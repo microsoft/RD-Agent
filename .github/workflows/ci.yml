@@ -1,0 +1,93 @@
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+  ci:
+    if: ${{ !cancelled() && ! failure() }}
+    needs: dependabot
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
+          python-version: ${{ matrix.python-version }}
+      - run: env | sort
+      - run: make dev
+      - env:
+          AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: ${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT }}
+          AZURE_DOCUMENT_INTELLIGENCE_KEY: ${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_KEY }}
+          CHAT_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
+          CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
+          CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
+          CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
+          CHAT_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
+          CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
+          CONTINOUS_MODE: ${{ secrets.CONTINOUS_MODE }}
+          EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
+          EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
+          EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
+          EMBEDDING_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
+          MAX_RETRY: ${{ secrets.MAX_RETRY }}
+          RETRY_WAIT_SECONDS: ${{ secrets.RETRY_WAIT_SECONDS }}
+          USE_AZURE: ${{ secrets.USE_AZURE }}
+        name: lint test docs and build
+        run: make lint test docs build
+    strategy:
+      matrix:
+        python-version:
+          - '3.8'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+  dependabot:
+    if: ${{ github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/pip/') }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - name: Set up Git
+        run: |
+          git config --global user.name github-actions
+          git config --global user.email github-actions@github.com
+      - name: Set up Python with multiple versions.
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+      - name: Install pipenv using pipx
+        run: pipx install pipenv
+      - name: Generate constraints for all supported Python versions
+        run: |
+          CI= PYTHON_VERSION=3.8 make constraints
+          CI= PYTHON_VERSION=3.9 make constraints
+          CI= PYTHON_VERSION=3.10 make constraints
+          CI= PYTHON_VERSION=3.11 make constraints
+      - name: Push changes if applicable
+        run: |
+          if [[ -n `git status --porcelain` ]]; then
+            git commit -a -m "build: Update constraints for dependabot."
+            git push
+          fi
+name: CI
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  push:
+    branches:
+      - master

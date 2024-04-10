@@ -1,0 +1,17 @@
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+  documentation-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: readthedocs/actions/preview@v1
+        with:
+          project-slug: fincov2
+name: Read the Docs Pull Request Preview
+on:
+  pull_request_target:
+    types:
+      - opened
+permissions:
+  pull-requests: write
