@@ -102,6 +102,9 @@ src = ["rdagent"]
 "docs/conf.py" = ["INP001"]
 "test/*" = ["S101"]
 
+[tool.setuptools]
+py-modules = ["rdagent"]
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 

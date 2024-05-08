@@ -89,11 +89,11 @@ isort:
 
 # Check lint with mypy.
 mypy:
-	$(PIPRUN) python -m mypy . --exclude FinCo --exclude finco --exclude src/scripts --exclude test/scripts  --exclude git_ignore_folder
+	$(PIPRUN) python -m mypy . --exclude FinCo --exclude finco --exclude rdagent/scripts --exclude test/scripts  --exclude git_ignore_folder
 
 # Check lint with ruff.
 ruff:
-	$(PIPRUN) python -m ruff .  --exclude FinCo,finco,src/scripts,test/scripts,git_ignore_folder --ignore ANN101,ANN401,TCH003,D,ERA001,PLR0913,S101 --line-length 120
+	$(PIPRUN) python -m ruff .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder --ignore ANN101,ANN401,TCH003,D,ERA001,PLR0913,S101 --line-length 120
 
 # Check lint with toml-sort.
 toml-sort:
@@ -141,7 +141,7 @@ upload:
 docs-autobuild:
 	$(PIPRUN) python -m sphinx_autobuild docs $(PUBLIC_DIR) \
 		--watch README.md \
-		--watch src
+		--watch rdagent
 
 # Generate changelog from git commits.
 # NOTE(xuan.hu): Need to be run before document generation to take effect.
@@ -156,13 +156,13 @@ changelog:
 release-notes:
 	@$(PIPRUN) git-changelog --input $(CHANGELOG_PATH) --release-notes
 
-# Build documentation only from src.
+# Build documentation only from rdagent.
 docs-gen:
 	$(PIPRUN) python -m sphinx.cmd.build docs $(PUBLIC_DIR)
 
 # Generate mypy reports.
 docs-mypy: docs-gen
-	$(PIPRUN) python -m mypy src test --exclude FinCo --exclude git_ignore_folder --exclude finco --exclude src/scripts --exclude test/scripts --html-report $(PUBLIC_DIR)/reports/mypy
+	$(PIPRUN) python -m mypy rdagent test --exclude FinCo --exclude git_ignore_folder --exclude finco --exclude rdagent/scripts --exclude test/scripts --html-report $(PUBLIC_DIR)/reports/mypy
 
 # Generate html coverage reports with badge.
 docs-coverage: test-run docs-gen
