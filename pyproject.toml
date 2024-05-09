@@ -1,0 +1,122 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+  "setuptools-scm",
+]
+
+[project]
+authors = [
+  {email = "xuyang1@microsoft.com", name = "MSRA-MIIC"},
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+]
+description = "Research & Development Agent"
+dynamic = [
+  "dependencies",
+  "optional-dependencies",
+  "version",
+]
+keywords = [
+  "Autonomous Agents",
+  "Research and Development",
+  "Large Language Models",
+]
+name = "rdagent"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.scripts]
+rdagent-cli = "rdagent.cli:app"
+
+[project.urls]
+homepage = "https://github.com/microsoft/RD-Agent/"
+issue = "https://github.com/microsoft/RD-Agent/issues"
+
+[tool.coverage.report]
+fail_under = 80
+
+[tool.coverage.run]
+source = [
+  "rdagent",
+]
+
+[tool.isort]
+color_output = true
+profile = "black"
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_unimported = true
+disallow_untyped_defs = true
+enable_error_code = [
+  "ignore-without-code",
+]
+no_implicit_optional = true
+show_error_codes = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+addopts = "-l -s --durations=0"
+log_cli = true
+log_cli_level = "info"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+minversion = "6.0"
+
+[tool.ruff]
+fix = true
+ignore = [
+  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+  "D203",
+  "D204",
+  "D213",
+  "D215",
+  "D400",
+  "D404",
+  "D406",
+  "D407",
+  "D408",
+  "D409",
+  "D413",
+  "ANN101",
+  "ANN401",
+  "TCH003",
+  "D",
+  "ERA001",
+  "PLR0913",
+  "S101",
+]
+select = ["ALL"]
+src = ["rdagent"]
+
+[tool.ruff.per-file-ignores]
+"docs/conf.py" = ["INP001"]
+"test/*" = ["S101"]
+
+[tool.setuptools]
+py-modules = ["rdagent"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.dynamic.optional-dependencies]
+docs = {file = ["requirements/docs.txt"]}
+lint = {file = ["requirements/lint.txt"]}
+package = {file = ["requirements/package.txt"]}
+test = {file = ["requirements/test.txt"]}
+
+[tool.setuptools_scm]
+
+[tool.tomlsort]
+all = true
+in_place = true
+trailing_comma_inline_array = true
