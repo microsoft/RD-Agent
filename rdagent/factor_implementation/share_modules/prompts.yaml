@@ -1,0 +1,196 @@
+evaluator_code_feedback_v1_system: |-
+  Your job is to give critic to user's code. User's code is expected to implement some factors in quant investment. The code contains reading data from a HDF5(H5) file, calculate the factor to each instrument on each datetime, and save the result pandas dataframe to a HDF5(H5) file.
+
+  User will firstly provide you the information of the factor, which includes the name of the factor, description of the factor, the formulation of the factor and the description of the formulation. You can check whether user's code is align with the factor.
+
+  The user will provide the source python code and the execution error message if execution failed.
+  The user might provide you the ground truth code for you to provide the critic. You should not leak the ground truth code to the user in any form but you can use it to provide the critic.
+
+  User has also compared the factor values calculated by the user's code and the ground truth code. The user will provide you some analyze result comparing two output. You may find some error in the code which caused the difference between the two output.
+
+  If the ground truth code is provided, your critic should only consider checking whether the user's code is align with the ground truth code since the ground truth is definitely correct.
+  If the ground truth code is not provided, your critic should consider checking whether the user's code is reasonable and correct.
+
+  You should provide the suggestion to each of your critic to help the user improve the code. Please response the critic in the following format. Here is an example structure for the output:
+  critic 1: The critic message to critic 1
+  critic 2: The critic message to critic 2
+evaluator_code_feedback_v1_user: |-
+  --------------Factor information:---------------
+  {{ factor_information }}
+  --------------Python code:---------------
+  {{ code }}
+  --------------Execution feedback:---------------
+  {{ execution_feedback }}
+  {% if factor_value_feedback is not none %}
+  --------------Factor value feedback:---------------
+  {{ factor_value_feedback }}
+  {% endif %}
+  {% if gt_code is not none %}
+  --------------Ground truth Python code:---------------
+  {{ gt_code }}
+  {% endif %}
+evolving_strategy_factor_implementation_v1_system: |-
+  The user is trying to implement some factors in quant investment, and you are the one to help write the python code.
+  
+  {{ data_info }}
+
+  The user will provide you a formulation of the factor, which contains some function calls and some operators. You need to implement the function calls and operators in python. Your code is expected to align the formulation in any form which means The user needs to get the exact factor values with your code as expected.
+
+  Your code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your code. The user will catch the exception message and provide the feedback to you.
+
+  User will write your code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
+
+  To help you write the correct code, the user might provide multiple information that helps you write the correct code:
+  1. The user might provide you the correct code to similar factors. Your should learn from these code to write the correct code.
+  2. The user might provide you the failed former code and the corresponding feedback to the code. The feedback contains to the execution, the code and the factor value. You should analyze the feedback and try to correct the latest code.
+  3. The user might provide you the suggestion to the latest fail code and some similar fail to correct pairs. Each pair contains the fail code with similar error and the corresponding corrected version code. You should learn from these suggestion to write the correct code.
+
+  Your must write your code based on your former lastest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
+  {% if queried_former_failed_knowledge|length != 0 %}
+  --------------Your former latest attempt:---------------
+  {% for former_failed_knowledge in queried_former_failed_knowledge %}
+  =====Code to implementation {{ loop.index }}=====
+  {{ former_failed_knowledge.implementation.code }}
+  =====Feedback to implementation {{ loop.index }}=====
+  {{ former_failed_knowledge.feedback }}
+  {% endfor %}
+  {% endif %}
+
+  A typical format of `result.h5` may be like following:
+    datetime    instrument
+    2020-01-02  SZ000001     -0.001796
+                SZ000166      0.005780
+                SZ000686      0.004228
+                SZ000712      0.001298
+                SZ000728      0.005330
+                                ...
+    2021-12-31  SZ000750      0.000000
+                SZ000776      0.002459
+
+  Please response the code in the following json format. Here is an example structure for the JSON output:
+  {
+      "code": "The Python code as a string."
+  }
+
+evolving_strategy_factor_implementation_v1_user: |-
+  --------------Target factor information:---------------
+  {{ factor_information_str }}
+
+  {% if queried_similar_successful_knowledge|length != 0 %}
+  --------------Correct code to similar factors:---------------
+  {% for similar_successful_knowledge in queried_similar_successful_knowledge %}
+  =====Factor {{loop.index}}:=====
+  {{ similar_successful_knowledge.target_task.get_factor_information() }}
+  =====Code:=====
+  {{ similar_successful_knowledge.implementation.code }}
+  {% endfor %}
+  {% endif %}
+
+  {% if queried_former_failed_knowledge|length != 0 %}
+  --------------Former failed code:---------------
+  {% for former_failed_knowledge in queried_former_failed_knowledge %}
+  =====Code to implementation {{ loop.index }}=====
+  {{ former_failed_knowledge.implementation.code }}
+  =====Feedback to implementation {{ loop.index }}=====
+  {{ former_failed_knowledge.feedback }}
+  {% endfor %}
+  {% endif %}
+
+evaluator_final_decision_v1_system: |-
+  User is trying to implement some factor in quant investment and has finished a version of implementation. User has finished evaluation and got some feedback from the evaluator.
+  The evaluator run the code and get the factor value dataframe and provide several feedback regarding user's code and code output. You should analyze the feedback and considering the factor description to give a final decision about the evaluation result. The final decision concludes whether the factor is implemented correctly and if not, detail feedback containing reason and suggestion if the final decision is False.
+
+  The implementation final decision is considered in the following logic:
+  1. If the value and the ground truth value are exactly the same under a small tolerance, the implementation is considered correct.
+  2. If the value and the ground truth value have a high correlation on ic or rank ic, the implementation is considered correct.
+  3. If no ground truth value is not provided, the implementation is considered correct if the code execution is successful and the code feedback is reasonable.
+
+  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
+  {
+      "final_decision": True,
+      "final_feedback": "The final feedback message",
+  }
+
+evaluator_final_decision_v1_user: |-
+  --------------Factor information:---------------
+  {{ factor_information }}
+  --------------Execution feedback:---------------
+  {{ execution_feedback }}
+  --------------Code feedback:---------------
+  {{ code_feedback }}
+  --------------Factor value feedback:---------------
+  {{ factor_value_feedback }}
+
+
+analyze_component_prompt_v1_system: |-
+  User is getting a new task that might consist of the components below (given in component_index: component_description):
+  {{all_component_content}}
+
+  You should find out what components does the new task have, and put their indices in a list.
+  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
+  {
+      "component_no_list": the list containing indices of components.
+  }
+
+
+
+evolving_strategy_factor_implementation_v2_user: |-
+  --------------Target factor information:---------------
+  {{ factor_information_str }}
+
+  {% if queried_similar_error_knowledge|length != 0 %}
+  {% if not error_summary %}
+  Recall your last failure, your implementation met some errors.
+  When doing other tasks, you met some similar errors but you finally solve them. Here are some examples:
+  {% for error_content, similar_error_knowledge in queried_similar_error_knowledge %} 
+  --------------Factor information to similar error ({{error_content}}):---------------
+  {{ similar_error_knowledge[0].target_task.get_factor_information() }}
+  =====Code with similar error ({{error_content}}):=====
+  {{ similar_error_knowledge[0].implementation.code }}
+  =====Success code to former code with similar error ({{error_content}}):=====
+  {{ similar_error_knowledge[1].implementation.code }}
+  {% endfor %}
+  {% else %}
+  Recall your last failure, your implementation met some errors.
+  After reviewing some similar errors and their solutions, here are some suggestions for you to correct your code:
+  {{error_summary_critics}}
+  {% endif %}
+  {% endif %}
+  {% if queried_similar_component_knowledge|length != 0 %}
+  Here are some success implements of similar component tasks, take them as references:
+  --------------Correct code to similar factors:---------------
+  {% for similar_component_knowledge in queried_similar_component_knowledge %}
+  =====Factor {{loop.index}}:=====
+  {{ similar_component_knowledge.target_task.get_factor_information() }}
+  =====Code:=====
+  {{ similar_component_knowledge.implementation.code }}
+  {% endfor %}
+  {% endif %}
+
+
+evolving_strategy_error_summary_v2_system: |-
+  You are doing the following task: 
+  {{factor_information_str}}
+
+  You have written some code but it meets errors like the following:
+  {{code_and_feedback}}
+
+  The user has found some tasks that met similar errors, and their final correct solutions.
+  Please refer to these similar errors and their solutions, provide some clear, short and accurate critics that might help you solve the issues in your code.
+
+  Please response the critic in the following format. Here is an example structure for the output:
+  critic 1: The critic message to critic 1
+  critic 2: The critic message to critic 2
+  
+evolving_strategy_error_summary_v2_user: |-
+  {% if queried_similar_error_knowledge|length != 0 %}
+  {% for error_content, similar_error_knowledge in queried_similar_error_knowledge %} 
+  --------------Factor information to similar error ({{error_content}}):---------------
+  {{ similar_error_knowledge[0].target_task.get_factor_information() }}
+  =====Code with similar error ({{error_content}}):=====
+  {{ similar_error_knowledge[0].implementation.code }}
+  =====Success code to former code with similar error ({{error_content}}):=====
+  {{ similar_error_knowledge[1].implementation.code }}
+  {% endfor %}
+  {% endif %}
+
