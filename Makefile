@@ -93,14 +93,14 @@ mypy:
 
 # Check lint with ruff.
 ruff:
-	$(PIPRUN) ruff check .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder --line-length 120
+	$(PIPRUN) ruff check .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder
 
 # Check lint with toml-sort.
 toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
-lint: black isort mypy ruff toml-sort
+lint: mypy ruff toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:
