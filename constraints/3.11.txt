@@ -109,7 +109,7 @@ rfc3986==2.0.0
 rich==13.7.0
 ruamel.yaml==0.18.5
 ruamel.yaml.clib==0.2.8
-ruff==0.1.9
+ruff==0.4.5
 scipy==1.11.4
 SecretStorage==3.3.3
 semver==3.0.2

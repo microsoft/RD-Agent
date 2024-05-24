@@ -17,9 +17,9 @@ import numpy as np
 import tiktoken
 from scipy.spatial.distance import cosine
 
-from core.conf import FincoSettings as Config
-from core.log import FinCoLog, LogColors
-from core.utils import SingletonBaseClass
+from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.log import FinCoLog, LogColors
+from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
