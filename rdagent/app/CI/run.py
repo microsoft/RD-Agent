@@ -28,6 +28,7 @@ from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
+import datetime
 
 from .prompts import (
     linting_system_prompt_template,
@@ -46,6 +47,8 @@ class CIError:
     msg: str
     hint: str
 
+    def to_dict(self):
+        return self.__dict__
 
 @dataclass
 class CIFeedback(Feedback):
@@ -57,6 +60,15 @@ class FixRecord:
     skipped_errors: List[CIError]
     directly_fixed_errors: List[CIError]
     manually_fixed_errors: List[CIError]
+    manual_instructions: Dict[str, List[CIError]]
+
+    def to_dict(self):
+        return {
+            "skipped_errors": [error.to_dict() for error in self.skipped_errors],
+            "directly_fixed_errors": [error.to_dict() for error in self.directly_fixed_errors],
+            "manually_fixed_errors": [error.to_dict() for error in self.manually_fixed_errors],
+            "manual_instructions": {key: [error.to_dict() for error in errors] for key, errors in self.manual_instructions.items()},
+        }
 
 
 class CodeFile:
@@ -264,7 +276,7 @@ class CIEvoStr(EvolvingStrategy):
 
         if len(evolving_trace) > 0:
             last_feedback: CIFeedback = evolving_trace[-1].feedback
-            fix_records: Dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], []))
+            fix_records: Dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], [], defaultdict(list)))
             # iterate by file
             for file_path, errors in last_feedback.errors.items():
                 print(Rule(f"[cyan]Fixing {file_path}[/cyan]", style="bold cyan", align="left", characters="."))
@@ -314,18 +326,21 @@ class CIEvoStr(EvolvingStrategy):
                     manual_fix_flag = False
 
                     while True:
-                        new_code = re.search(r".*```[Pp]ython\n(.*)\n```.*", res, re.DOTALL).group(1)
-
-                        # print repair status (code diff)
-                        diff = ndiff(code_snippet_lines, new_code.split("\n"), linejunk=IS_LINE_JUNK)
-                        table = Table(show_header=False, box=None)
-                        table.add_column()
-                        for i in diff:
-                            if i.startswith("+"): table.add_row(Text(i, style="green"))
-                            elif i.startswith("-"): table.add_row(Text(i, style="red"))
-                            elif i.startswith("?"): table.add_row(Text(i, style="yellow"))
-                            else: table.add_row(Syntax(i, lexer="python", background_color="default"))
-                        print(Panel.fit(table, title="Repair Status"))
+                        try:
+                            new_code = re.search(r".*```[Pp]ython\n(.*)\n```.*", res, re.DOTALL).group(1)
+                            
+                            # print repair status (code diff)
+                            diff = ndiff(code_snippet_lines, new_code.split("\n"), linejunk=IS_LINE_JUNK)
+                            table = Table(show_header=False, box=None)
+                            table.add_column()
+                            for i in diff:
+                                if i.startswith("+"): table.add_row(Text(i, style="green"))
+                                elif i.startswith("-"): table.add_row(Text(i, style="red"))
+                                elif i.startswith("?"): table.add_row(Text(i, style="yellow"))
+                                else: table.add_row(Syntax(i, lexer="python", background_color="default"))
+                            print(Panel.fit(table, title="Repair Status"))
+                        except Exception as e:
+                            print(f"[red]Error[/red]: {e}")
 
                         operation = input("Input your operation: ")
                         if operation == "s" or operation == "skip":
@@ -339,9 +354,12 @@ class CIEvoStr(EvolvingStrategy):
 
                             changes.append((start_line, end_line, new_code))
                             break
-
+                        
                         manual_fix_flag = True
-                        res = session.build_chat_completion(operation)
+                        fix_records[file_path].manual_instructions[operation].extend(group)
+                        res = session.build_chat_completion(('There are some problems with the code you provided, '
+                                            'please follow the instruction below to fix it again and return.\n'
+                                            f'Instruction: {operation}'))
 
                 # apply changes
                 file.apply_changes(changes)
@@ -351,14 +369,19 @@ class CIEvoStr(EvolvingStrategy):
         return evo
 
 
-# DIR = "/home/bowen/workspace/fincov2_test/"
-DIR = "/home/bowen/workspace/RD-Agent/"
-PY = "/home/bowen/miniconda3/envs/cr/bin/python"
+DIR = None
+while True:
+    DIR = Prompt.ask("Please input the project directory")
+    DIR = Path(DIR)
+    if DIR.exists():
+        break
+    else:
+        print("Invalid directory. Please try again.")
 
 start_time = time.time()
+start_timestamp = datetime.datetime.now().strftime("%m%d%H%M")
 
-evo = Repo(DIR, python_path=PY)
-
+evo = Repo(DIR)
 eval = RuffEvaluator()
 estr = CIEvoStr()
 rag = None  # RAG is not enable firstly.
@@ -369,6 +392,8 @@ while True:
     evo: Repo = ea.step_evolving(evo, eval)
 
     fix_records = evo.fix_records
+    filename = f"{DIR.name}_{start_timestamp}_fix_records_{len(ea.evolving_trace)}.json"
+    json.dump(fix_records, open(filename, "w"), indent=4)
 
     # Count the number of skipped errors
     skipped_errors_count = 0
@@ -412,7 +437,7 @@ while True:
     table.add_row("Manually Fixed Errors", manually_fixed_errors_statistics, str(manually_fixed_errors_count), f"{manually_fixed_errors_count / total_errors_count:.2%}")
 
     print(table)
-    operation = Prompt.ask("Start next round? (y/n): ", choices=["y", "n"])
+    operation = Prompt.ask("Start next round? (y/n)", choices=["y", "n"])
     if operation == "n": break
 
 
