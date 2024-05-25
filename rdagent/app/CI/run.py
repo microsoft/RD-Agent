@@ -29,6 +29,19 @@ from rdagent.core.evolving_framework import (
     Knowledge,
 )
 from rdagent.oai.llm_utils import APIBackend
+from rich import print
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+
+from .prompts import (
+    linting_system_prompt_template,
+    session_normal_template,
+    session_start_template,
+)
 
 from .prompts import (
     linting_system_prompt_template,

@@ -15,7 +15,6 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tiktoken
-
 from rdagent.core.conf import FincoSettings as Config
 from rdagent.core.log import FinCoLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
