@@ -2,24 +2,14 @@
 
 """
 import json
+import re
 import subprocess
 import time
-import re
-from dataclasses import dataclass
-from difflib import ndiff, IS_LINE_JUNK
 from collections import defaultdict
+from dataclasses import dataclass
+from difflib import IS_LINE_JUNK, ndiff
 from pathlib import Path
-
-from rich import print
-from rich.syntax import Syntax
-from rich.prompt import Prompt
-from rich.text import Text
-from rich.rule import Rule
-from rich.panel import Panel
-from rich.table import Table
-
-from typing import Dict, List, Union, cast, Tuple
-from .prompts import linting_system_prompt_template, session_start_template, session_normal_template, user_template_for_code_snippet
+from typing import Dict, List, Tuple, Union, cast
 
 from rdagent.core.evolving_framework import (
     Evaluator,
@@ -31,6 +21,19 @@ from rdagent.core.evolving_framework import (
     Knowledge,
 )
 from rdagent.oai.llm_utils import APIBackend
+from rich import print
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+
+from .prompts import (
+    linting_system_prompt_template,
+    session_normal_template,
+    session_start_template,
+)
 
 
 @dataclass
@@ -180,7 +183,7 @@ class RuffEvaluator(Evaluator):
             )
         except subprocess.CalledProcessError as e:
             out = e.output
-        
+
         return json.loads(out.decode())
 
 
@@ -232,7 +235,7 @@ class MypyEvaluator(Evaluator):
             self.command = "mypy . --explicit-package-bases"
         else:
             self.command = command
-    
+
     def evaluate(self, evo: Repo, **kwargs) -> CIFeedback:
         try:
             out = subprocess.check_output(
@@ -257,7 +260,7 @@ class CIEvoStr(EvolvingStrategy):
         **kwargs,
     ) -> Repo:
         api = APIBackend()
-        system_prompt = linting_system_prompt_template.format(language='Python')
+        system_prompt = linting_system_prompt_template.format(language="Python")
 
         if len(evolving_trace) > 0:
             last_feedback: CIFeedback = evolving_trace[-1].feedback
@@ -286,14 +289,14 @@ class CIEvoStr(EvolvingStrategy):
                 for group_id, group in enumerate(groups, start=1):
                     session = api.build_chat_session(session_system_prompt=system_prompt)
                     session.build_chat_completion(session_start_template.format(code=file.get(add_line_number=True)))
-                    
+
                     print(f"[yellow]Fixing part {group_id}...[/yellow]\n")
 
                     start_line = group[0].line - 3
                     end_line = group[-1].line + 3 + 1
                     code_snippet_with_lineno = file.get(start_line, end_line, add_line_number=True, return_list=False)
                     code_snippet_lines = file.get(start_line, end_line, add_line_number=False, return_list=True)
-                    
+
                     # front_anchor_code = file.get(start_line-3, start_line, add_line_number=False, return_list=False)
                     # rear_anchor_code = file.get(end_line+1, end_line+3+1, add_line_number=False, return_list=False)
 
@@ -336,7 +339,7 @@ class CIEvoStr(EvolvingStrategy):
 
                             changes.append((start_line, end_line, new_code))
                             break
-                        
+
                         manual_fix_flag = True
                         res = session.build_chat_completion(operation)
 
@@ -348,7 +351,8 @@ class CIEvoStr(EvolvingStrategy):
         return evo
 
 
-DIR = "/home/bowen/workspace/fincov2_test/"
+# DIR = "/home/bowen/workspace/fincov2_test/"
+DIR = "/home/bowen/workspace/RD-Agent/"
 PY = "/home/bowen/miniconda3/envs/cr/bin/python"
 
 start_time = time.time()
@@ -363,7 +367,7 @@ ea.step_evolving(evo, eval)
 while True:
     print(Rule(f"Round {len(ea.evolving_trace)} repair", style="blue"))
     evo: Repo = ea.step_evolving(evo, eval)
-    
+
     fix_records = evo.fix_records
 
     # Count the number of skipped errors

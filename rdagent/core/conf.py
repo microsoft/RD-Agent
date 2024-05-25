@@ -65,19 +65,19 @@ class FincoSettings(BaseSettings):
     llama2_70b_endpoint: str = ""
     llama2_70b_endpoint_key: str = ""
     llama2_70b_endpoint_deployment: str = ""
-    
+
     llama3_70b_endpoint: str = ""
     llama3_70b_endpoint_key: str = ""
     llama3_70b_endpoint_deployment: str = ""
-    
+
     phi2_endpoint: str = ""
     phi2_endpoint_key: str = ""
     phi2_endpoint_deployment: str = ""
-    
+
     phi3_4k_endpoint: str = ""
     phi3_4k_endpoint_key: str = ""
     phi3_4k_endpoint_deployment: str = ""
-    
+
     phi3_128k_endpoint: str = ""
     phi3_128k_endpoint_key: str = ""
     phi3_128k_endpoint_deployment: str = ""

@@ -5,10 +5,7 @@ from pathlib import Path
 import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-
 from finco.conf import FincoSettings as Config
-from oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
-from core.log import FinCoLog
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document

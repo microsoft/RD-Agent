@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Generator, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from loguru import logger
-
 
 if TYPE_CHECKING:
     from loguru import Logger

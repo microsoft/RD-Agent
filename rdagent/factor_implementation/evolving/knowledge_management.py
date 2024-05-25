@@ -8,6 +8,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Union
 
+from finco.graph import UndirectedGraph, UndirectedNode
 from jinja2 import Template
 
 from core.evolving_framework import (
@@ -18,8 +19,6 @@ from core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from finco.graph import UndirectedGraph, UndirectedNode
-from oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 from core.log import FinCoLog
 from factor_implementation.evolving.evaluators import (
     FactorImplementationSingleFeedback,
@@ -32,6 +31,7 @@ from factor_implementation.share_modules.factor import (
 from factor_implementation.share_modules.prompt import (
     FactorImplementationPrompts,
 )
+from oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationKnowledge(Knowledge):
@@ -150,47 +150,46 @@ class FactorImplementationRAGStrategyV1(RAGStrategy):
                 queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
                     self.knowledgebase.implementation_trace[target_factor_task_information][-1]
                 )
+            elif (
+                len(
+                    self.knowledgebase.implementation_trace.setdefault(
+                        target_factor_task_information,
+                        [],
+                    ),
+                )
+                >= fail_task_trial_limit
+            ):
+                queried_knowledge.failed_task_info_set.add(target_factor_task_information)
             else:
-                if (
-                    len(
-                        self.knowledgebase.implementation_trace.setdefault(
-                            target_factor_task_information,
-                            [],
-                        ),
-                    )
-                    >= fail_task_trial_limit
-                ):
-                    queried_knowledge.failed_task_info_set.add(target_factor_task_information)
-                else:
-                    queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
-                        self.knowledgebase.implementation_trace.setdefault(
-                            target_factor_task_information,
-                            [],
-                        )[-v1_query_former_trace_limit:]
-                    )
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
+                    self.knowledgebase.implementation_trace.setdefault(
+                        target_factor_task_information,
+                        [],
+                    )[-v1_query_former_trace_limit:]
+                )
 
-                    knowledge_base_success_task_list = list(
-                        self.knowledgebase.success_task_info_set,
-                    )
-                    similarity = calculate_embedding_distance_between_str_list(
-                        [target_factor_task_information],
-                        knowledge_base_success_task_list,
-                    )[0]
-                    similar_indexes = sorted(
-                        range(len(similarity)),
-                        key=lambda i: similarity[i],
-                        reverse=True,
-                    )[:v1_query_similar_success_limit]
-                    similar_successful_knowledge = [
-                        self.knowledgebase.implementation_trace.setdefault(
-                            knowledge_base_success_task_list[index],
-                            [],
-                        )[-1]
-                        for index in similar_indexes
-                    ]
-                    queried_knowledge.working_task_to_similar_successful_knowledge_dict[
-                        target_factor_task_information
-                    ] = similar_successful_knowledge
+                knowledge_base_success_task_list = list(
+                    self.knowledgebase.success_task_info_set,
+                )
+                similarity = calculate_embedding_distance_between_str_list(
+                    [target_factor_task_information],
+                    knowledge_base_success_task_list,
+                )[0]
+                similar_indexes = sorted(
+                    range(len(similarity)),
+                    key=lambda i: similarity[i],
+                    reverse=True,
+                )[:v1_query_similar_success_limit]
+                similar_successful_knowledge = [
+                    self.knowledgebase.implementation_trace.setdefault(
+                        knowledge_base_success_task_list[index],
+                        [],
+                    )[-1]
+                    for index in similar_indexes
+                ]
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
+                    target_factor_task_information
+                ] = similar_successful_knowledge
         return queried_knowledge
 
 
@@ -889,7 +888,7 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
             for possible_combination in possible_combinations:
                 node_list = list(possible_combination)
                 intersection_node_list.extend(
-                    self.graph.get_nodes_intersection(node_list, steps=steps, constraint_labels=constraint_labels)
+                    self.graph.get_nodes_intersection(node_list, steps=steps, constraint_labels=constraint_labels),
                 )
                 if output_intersection_origin:
                     for _ in range(len(intersection_node_list)):

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pandas as pd
-
 from core.evolving_framework import EvolvableSubjects
 from core.log import FinCoLog
 from factor_implementation.share_modules.factor import (

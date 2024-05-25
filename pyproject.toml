@@ -74,7 +74,7 @@ minversion = "6.0"
 
 [tool.ruff]
 line-length = 120
-src = ["src"]
+src = ["rdagent"]
 
 [tool.ruff.lint]
 ignore = [

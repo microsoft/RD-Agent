@@ -8,6 +8,7 @@ from pandas.core.api import DataFrame as DataFrame
 from core.evolving_framework import Evaluator as EvolvingEvaluator
 from core.evolving_framework import Feedback, QueriedKnowledge
 from core.log import FinCoLog
+from core.utils import multiprocessing_wrapper
 from factor_implementation.evolving.evolvable_subjects import (
     FactorImplementationList,
 )
@@ -24,7 +25,6 @@ from factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )
-from core.utils import multiprocessing_wrapper
 
 
 class FactorImplementationSingleFeedback:

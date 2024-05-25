@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from jinja2 import Template
 
 from core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from oai.llm_utils import APIBackend
+from core.utils import multiprocessing_wrapper
 from factor_implementation.share_modules.conf import FactorImplementSettings
 from factor_implementation.share_modules.factor import (
     FactorImplementation,
@@ -20,7 +20,7 @@ from factor_implementation.share_modules.prompt import (
     FactorImplementationPrompts,
 )
 from factor_implementation.share_modules.utils import get_data_folder_intro
-from core.utils import multiprocessing_wrapper
+from oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
     from factor_implementation.evolving.evolvable_subjects import (

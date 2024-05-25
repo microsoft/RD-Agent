@@ -18,8 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
 
 from core.conf import FincoSettings as Config
-from oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from core.log import FinCoLog
+from oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
@@ -229,7 +229,7 @@ def __extract_factors_name_and_desc_from_content(
             parse_success = False
         if ret_json_str is None or not parse_success:
             current_user_prompt = (
-                "Your response didn't follow the instruction" " might be wrong json format. Try again."
+                "Your response didn't follow the instruction might be wrong json format. Try again."
             )
         else:
             factors = ret_dict["factors"]
@@ -273,7 +273,7 @@ def __extract_factors_formulation_from_content(
             parse_success = False
         if ret_json_str is None or not parse_success:
             current_user_prompt = (
-                "Your response didn't follow the instruction" " might be wrong json format. Try again."
+                "Your response didn't follow the instruction might be wrong json format. Try again."
             )
         else:
             for name, formulation_and_description in ret_dict.items():
@@ -393,7 +393,7 @@ def check_factor_dict_viability_simulate_json_mode(
             parse_success = False
         if ret_json_str is None or not parse_success:
             current_user_prompt = (
-                "Your response didn't follow the " "instruction might be wrong json format. Try again."
+                "Your response didn't follow the instruction might be wrong json format. Try again."
             )
         else:
             return ret_dict

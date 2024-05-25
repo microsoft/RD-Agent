@@ -1,14 +1,16 @@
 # %%
-from document_process.document_reader import load_and_process_pdfs_by_langchain, classify_report_from_dict
-from dotenv import load_dotenv
-from oai.llm_utils import APIBackend
-from pathlib import Path
 import json
+from pathlib import Path
 
+from dotenv import load_dotenv
 
-from document_process.document_analysis import extract_factors_from_report_dict_and_classify_result
-from document_process.document_analysis import check_factor_dict_viability
-from document_process.document_analysis import deduplicate_factors_several_times
+from document_process.document_analysis import (
+    check_factor_dict_viability,
+    deduplicate_factors_several_times,
+    extract_factors_from_report_dict_and_classify_result,
+)
+from document_process.document_reader import classify_report_from_dict, load_and_process_pdfs_by_langchain
+from oai.llm_utils import APIBackend
 
 
 def extract_factors_and_implement(report_file_path: str):
@@ -29,7 +31,7 @@ def extract_factors_and_implement(report_file_path: str):
     for factor_name in factor_dict:
         if len(factor_dict[factor_name]) > 1:
             factor_dict_simple_deduplication[factor_name] = max(
-                factor_dict[factor_name], key=lambda x: len(x["formulation"])
+                factor_dict[factor_name], key=lambda x: len(x["formulation"]),
             )
         else:
             factor_dict_simple_deduplication[factor_name] = factor_dict[factor_name][0]
@@ -115,11 +117,11 @@ def extract_factors_and_implement(report_file_path: str):
             for factor_name in target_dict:
                 formulation = target_dict[factor_name]["formulation"]
                 if factor_name in formulation:
-                    target_factor_name = factor_name.replace("_", "\_")
+                    target_factor_name = factor_name.replace("_", r"\_")
                     formulation = formulation.replace(factor_name, target_factor_name)
                 for variable in target_dict[factor_name]["variables"]:
                     if variable in formulation:
-                        target_variable = variable.replace("_", "\_")
+                        target_variable = variable.replace("_", r"\_")
                         formulation = formulation.replace(variable, target_variable)
 
                 fw.write(f"## {current_index}. 因子名称：{factor_name}\n")
@@ -130,9 +132,9 @@ def extract_factors_and_implement(report_file_path: str):
                 fw.write(f"### formulation string: {formulation}\n")
                 # write a table of variable and its description
 
-                fw.write(f"### variable tables: \n")
-                fw.write(f"| variable | description |\n")
-                fw.write(f"| -------- | ----------- |\n")
+                fw.write("### variable tables: \n")
+                fw.write("| variable | description |\n")
+                fw.write("| -------- | ----------- |\n")
                 for variable in target_dict[factor_name]["variables"]:
                     fw.write(f"| {variable} | {target_dict[factor_name]['variables'][variable]} |\n")
 
