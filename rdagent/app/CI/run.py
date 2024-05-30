@@ -38,6 +38,7 @@ from .prompts import (
     linting_system_prompt_template,
     session_normal_template,
     session_start_template,
+    session_manual_template,
 )
 
 py_parser = Parser(Language(tree_sitter_python.language()))
@@ -370,8 +371,6 @@ class CIEvoStr(EvolvingStrategy):
             fix_records: dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], [], defaultdict(list)))
             # iterate by file
             for file_path, errors in last_feedback.errors.items():
-                if "CI/run.py" not in file_path:
-                    break
                 print(Rule(f"[cyan]Fixing {file_path}[/cyan]", style="bold cyan", align="left", characters="."))
 
                 file = evo.files[evo.project_path / Path(file_path)]
@@ -418,7 +417,7 @@ class CIEvoStr(EvolvingStrategy):
 
                     # print errors
                     printed_errors_str = "\n".join(
-                        [f"{error.line: >{file.lineno_width}}: {error.code: >8} {error.msg}" for error in group_errors],
+                        [f"{error.line: >{file.lineno_width}}:{error.column: <4} {error.code}  {error.msg}" for error in group_errors],
                     )
                     print(
                         Panel.fit(
@@ -447,57 +446,71 @@ class CIEvoStr(EvolvingStrategy):
                     )
                     res = session.build_chat_completion(user_prompt)
 
-                    manual_fix_flag = False
-
                     while True:
                         try:
-                            new_code = re.search(r".*```[Pp]ython\n(.*)\n```.*", res, re.DOTALL).group(1)
+                            new_code = re.search(r".*```[Pp]ython\n(.*?)\n```.*", res, re.DOTALL).group(1)
                         except Exception:
                             print(f"[red]Error when extract codes[/red]:\n {res}")
+                        try:
+                            fixed_errors_info = re.search(r".*```[Jj]son\n(.*?)\n```.*", res, re.DOTALL).group(1)
+                            fixed_errors_info = json.loads(fixed_errors_info)
+                        except Exception:
+                            fixed_errors_info = None
 
                         new_code = CodeFile.remove_line_number(new_code)
                         # print repair status (code diff)
                         diff = ndiff(code_snippet_lines, new_code.split("\n"))
                         table = Table(show_header=False, box=None)
                         table.add_column()
+                        table.add_column()
+                        table.add_column()
 
                         # add 2 spaces to align with diff format
                         front_context = re.sub(r"^", "  ", front_context, flags=re.MULTILINE)
                         rear_context = re.sub(r"^", "  ", rear_context, flags=re.MULTILINE)
 
-                        table.add_row(Syntax(front_context, lexer="python", background_color="default"))
-                        table.add_row(Rule(style="dark_orange"))
+                        table.add_row("", "", Syntax(front_context, lexer="python", background_color="default"))
+                        table.add_row("", "", Rule(style="dark_orange"))
+                        diff_original_lineno = start_line
+                        diff_new_lineno = start_line
                         for i in diff:
                             if i.startswith("+"):
-                                table.add_row(Text(i, style="green"))
+                                table.add_row("", Text(str(diff_new_lineno), style="green bold"), Text(i, style="green"))
+                                diff_new_lineno += 1
                             elif i.startswith("-"):
-                                table.add_row(Text(i, style="red"))
+                                table.add_row(Text(str(diff_original_lineno), style="red bold"), "", Text(i, style="red"))
+                                diff_original_lineno += 1
                             elif i.startswith("?"):
-                                table.add_row(Text(i, style="yellow"))
+                                table.add_row("", "", Text(i, style="yellow"))
                             else:
-                                table.add_row(Syntax(i, lexer="python", background_color="default"))
-                        table.add_row(Rule(style="dark_orange"))
-                        table.add_row(Syntax(rear_context, lexer="python", background_color="default"))
+                                table.add_row(str(diff_original_lineno), str(diff_new_lineno), Syntax(i, lexer="python", background_color="default"))
+                                diff_original_lineno += 1
+                                diff_new_lineno += 1
+                        table.add_row("", "", Rule(style="dark_orange"))
+                        table.add_row("", "", Syntax(rear_context, lexer="python", background_color="default"))
                         print(Panel.fit(table, title="Repair Status"))
 
-                        operation = input("Input your operation: ")
+                        operation = Prompt.ask("Input your operation [ (s)kip / (a)pply / manual instruction ]")
                         if operation in ("s", "skip"):
                             fix_records[file_path].skipped_errors.extend(group_errors)
                             break
                         if operation in ("a", "apply"):
-                            if manual_fix_flag:
-                                fix_records[file_path].manually_fixed_errors.extend(group_errors)
+                            if fixed_errors_info:
+                                fixed_errors_str = "\n".join(fixed_errors_info["errors"])
+                                print(fixed_errors_str)
+                                for error in group_errors:
+                                    if f"{error.line}:{error.column}" in fixed_errors_str:
+                                        fix_records[file_path].manually_fixed_errors.append(error)
+                                    else:
+                                        fix_records[file_path].skipped_errors.append(error)
                             else:
                                 fix_records[file_path].directly_fixed_errors.extend(group_errors)
 
                             changes.append((start_line, end_line, new_code))
                             break
                         
-                        manual_fix_flag = True
                         fix_records[file_path].manual_instructions[operation].extend(group_errors)
-                        res = session.build_chat_completion("There are some problems with the code you provided, "
-                                            "please follow the instruction below to fix it again and return.\n"
-                                            f"Instruction: {operation}")
+                        res = session.build_chat_completion(session_manual_template.format(operation=operation))
 
                 # apply changes
                 file.apply_changes(changes)
@@ -571,15 +584,15 @@ while True:
 
     total_errors_count = skipped_errors_count + directly_fixed_errors_count + manually_fixed_errors_count
     table.add_row("Total Errors", "", str(total_errors_count), "")
-    table.add_row("Skipped Errors", skipped_errors_statistics, 
-                   str(skipped_errors_count), 
-                   f"{skipped_errors_count / total_errors_count:.2%}")
-    table.add_row("Directly Fixed Errors", directly_fixed_errors_statistics, 
-                   str(directly_fixed_errors_count), 
-                   f"{directly_fixed_errors_count / total_errors_count:.2%}")
-    table.add_row("Manually Fixed Errors", manually_fixed_errors_statistics, 
-                   str(manually_fixed_errors_count), 
-                   f"{manually_fixed_errors_count / total_errors_count:.2%}")
+    table.add_row(Text("Skipped Errors", style="red"), skipped_errors_statistics,
+                   Text(str(skipped_errors_count), style="red"),
+                   Text(f"{skipped_errors_count / total_errors_count:.2%}", style="red"))
+    table.add_row(Text("Directly Fixed Errors", style="green"), directly_fixed_errors_statistics,
+                   Text(str(directly_fixed_errors_count), style="green"),
+                   Text(f"{directly_fixed_errors_count / total_errors_count:.2%}"), style="green")
+    table.add_row(Text("Manually Fixed Errors", style="yellow"), manually_fixed_errors_statistics,
+                   Text(str(manually_fixed_errors_count), style="yellow"),
+                   Text(f"{manually_fixed_errors_count / total_errors_count:.2%}"), style="yellow")
 
     print(table)
     operation = Prompt.ask("Start next round? (y/n)", choices=["y", "n"])
