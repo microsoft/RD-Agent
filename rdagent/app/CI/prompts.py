@@ -93,6 +93,26 @@ Please wrap your code with following format:
 """
 
 
+session_manual_template = """There are some problems with the code you provided, \
+please modify the code again according to the instruction and return the errors list you modified.
+
+Instruction:
+{operation}
+
+Your response format should be like this:
+
+```python
+<modified code>
+```
+
+```json
+{{
+    "errors": ["<Line Number>:<Error Start Position> <Error Code>", ...]
+}}
+```
+"""
+
+
 user_template_for_code_snippet = """Please modify the Python code based on the lint info.
 -----Python Code-----
 {code}
