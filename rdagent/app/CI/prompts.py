@@ -80,9 +80,11 @@ Different errors are separated by blank lines. Each error follows this format:
 The error code is an abbreviation set by the checker for ease of describing the error. \
 The error context includes the relevant code around the error, and the helpful information suggests possible fixes.
 
-Please simply reply the code after you fix all linting errors.
-The code you return does not require line numbers, \
-and should just replace the code I provided you, and does not require comments.
+Please simply reply the code after you fix all linting errors. You should be aware of the following:
+1. The indentation of the code should be consistent with the original code.
+2. You should just replace the code I provided you, which starts from line {start_line} to line {end_line}.
+3. You'll need to add line numbers to the modified code which starts from {start_lineno}.
+4. You don't need to add comments to your changes.
 Please wrap your code with following format:
 
 ```python
