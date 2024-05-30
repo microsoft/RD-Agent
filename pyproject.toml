@@ -73,6 +73,7 @@ log_format = "%(asctime)s %(levelname)s %(message)s"
 minversion = "6.0"
 
 [tool.ruff]
+fix = true
 line-length = 120
 src = ["rdagent"]
 
