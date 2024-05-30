@@ -73,32 +73,28 @@ log_format = "%(asctime)s %(levelname)s %(message)s"
 minversion = "6.0"
 
 [tool.ruff]
-fix = true
-ignore = [
-  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
-  "D203",
-  "D204",
-  "D213",
-  "D215",
-  "D400",
-  "D404",
-  "D406",
-  "D407",
-  "D408",
-  "D409",
-  "D413",
-  "ANN101",
-  "ANN401",
-  "TCH003",
-  "D",
-  "ERA001",
-  "PLR0913",
-  "S101",
-]
-select = ["ALL"]
+line-length = 120
 src = ["rdagent"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint]
+ignore = [
+  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+  "ANN101",
+  "ANN401",
+  "D",
+  "ERA001",
+  "FIX",
+  "INP001",
+  "PGH",
+  "PLR0913",
+  "S101",
+  "T20",
+  "TCH003",
+  "TD",
+]
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
 "docs/conf.py" = ["INP001"]
 "test/*" = ["S101"]
 

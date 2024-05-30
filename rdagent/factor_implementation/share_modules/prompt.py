@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
-
 from finco.utils import SingletonBaseClass
 
 

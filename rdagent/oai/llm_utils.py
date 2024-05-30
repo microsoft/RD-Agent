@@ -15,11 +15,9 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tiktoken
-from scipy.spatial.distance import cosine
-
-from core.conf import FincoSettings as Config
-from core.log import FinCoLog, LogColors
-from core.utils import SingletonBaseClass
+from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.log import FinCoLog, LogColors
+from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
@@ -65,7 +63,6 @@ class ConvManager:
             if m is not None:
                 n = int(m.group(1))
                 pairs.append((n, f))
-            pass
         pairs.sort(key=lambda x: x[0])
         for n, f in pairs[: self.recent_n][::-1]:
             if Path(self.path / f"{n+1}.json").exists():
@@ -92,7 +89,7 @@ class SQliteLazyCache(SingletonBaseClass):
                     md5_key TEXT PRIMARY KEY,
                     chat TEXT
                 )
-                """
+                """,
             )
             self.c.execute(
                 """
@@ -100,7 +97,7 @@ class SQliteLazyCache(SingletonBaseClass):
                     md5_key TEXT PRIMARY KEY,
                     embedding TEXT
                 )
-                """
+                """,
             )
             self.conn.commit()
 
@@ -186,7 +183,7 @@ class ChatSession:
             {
                 "role": "user",
                 "content": user_prompt,
-            }
+            },
         )
         return messages
 
@@ -202,13 +199,13 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
         response = self.api_backend._try_create_chat_completion_or_embedding(
-            messages=messages, chat_completion=True, **kwargs
+            messages=messages, chat_completion=True, **kwargs,
         )
         messages.append(
             {
                 "role": "assistant",
                 "content": response,
-            }
+            },
         )
         SessionChatHistoryCache().message_set(self.conversation_id, messages)
         return response
@@ -362,14 +359,14 @@ class APIBackend:
             {
                 "role": "system",
                 "content": system_prompt,
-            }
+            },
         ]
         messages.extend(former_messages[-1 * self.cfg.max_past_message_include :])
         messages.append(
             {
                 "role": "user",
                 "content": user_prompt,
-            }
+            },
         )
         return messages
 
@@ -400,7 +397,7 @@ class APIBackend:
         elif isinstance(input_content, list):
             input_content_list = input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list, embedding=True, **kwargs
+            input_content_list=input_content_list, embedding=True, **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]
@@ -421,7 +418,7 @@ class APIBackend:
                 {
                     "role": "user",
                     "content": "continue the former output with no overlap",
-                }
+                },
             )
             new_response, finish_reason = self._create_chat_completion_inner_function(messages=new_message, **kwargs)
             return response + new_response
@@ -563,9 +560,9 @@ class APIBackend:
                                 "do_sample": self.gcr_endpoint_do_sample,
                                 "max_new_tokens": self.gcr_endpoint_max_token,
                             },
-                        }
-                    }
-                )
+                        },
+                    },
+                ),
             )
 
             req = urllib.request.Request(self.gcr_endpoint, body, self.headers)

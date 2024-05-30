@@ -1,19 +1,17 @@
 from __future__ import annotations
 
+import importlib
 import json
+import multiprocessing as mp
 import os
 import random
 import string
-import uuid
+from collections.abc import Callable
 from pathlib import Path
-import importlib
 from typing import Any
 
 import yaml
 from fuzzywuzzy import fuzz
-
-import multiprocessing as mp
-from collections.abc import Callable
 
 
 class FincoException(Exception):
@@ -87,9 +85,9 @@ def crawl_the_folder(folder_path: Path):
 
 
 def compare_yaml(file1, file2):
-    with open(file1, "r") as stream:
+    with open(file1) as stream:
         data1 = yaml.safe_load(stream)
-    with open(file2, "r") as stream:
+    with open(file2) as stream:
         data2 = yaml.safe_load(stream)
     return data1 == data2
 
@@ -107,7 +105,7 @@ class YamlConfigCache(SingletonBaseClass):
         self.path_to_config = dict()
 
     def load(self, path):
-        with open(path, "r") as stream:
+        with open(path) as stream:
             data = yaml.safe_load(stream)
             self.path_to_config[path] = data
 

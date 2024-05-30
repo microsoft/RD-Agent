@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 import pandas as pd
+from finco.log import FinCoLog
 from jinja2 import Template
 
-from oai.llm_utils import APIBackend
-from finco.log import FinCoLog
 from factor_implementation.share_modules.conf import FactorImplementSettings
 from factor_implementation.share_modules.factor import (
     FactorImplementation,
@@ -15,6 +14,7 @@ from factor_implementation.share_modules.factor import (
 from factor_implementation.share_modules.prompt import (
     FactorImplementationPrompts,
 )
+from oai.llm_utils import APIBackend
 
 
 class Evaluator(ABC):
@@ -454,7 +454,7 @@ class FactorImplementationValueEvaluator(Evaluator):
                         )
 
                 except Exception as e:
-                    FinCoLog().warning(f"Error occurred when calculating the correlation: {str(e)}")
+                    FinCoLog().warning(f"Error occurred when calculating the correlation: {e!s}")
                     conclusions.append(
                         f"Some error occurred when calculating the correlation. Investigate the factors that might be causing the discrepancies and ensure that the logic of the factor calculation is consistent. Error: {e}",
                     )

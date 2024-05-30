@@ -8,6 +8,7 @@ from fire.core import Fire
 from tqdm import tqdm
 
 from core.evolving_framework import EvoAgent, KnowledgeBase
+from core.utils import multiprocessing_wrapper
 from factor_implementation.evolving.evaluators import (
     FactorImplementationEvaluatorV1,
     FactorImplementationsMultiEvaluator,
@@ -29,7 +30,6 @@ from factor_implementation.share_modules.factor import (
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
-from core.utils import multiprocessing_wrapper
 
 ALPHA101_INIT_COMPONENTS = [
     "1. abs(): absolute value to certain columns",
@@ -108,10 +108,8 @@ class FactorImplementationEvolvingCli:
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
             if self.evolving_version == 1 and not isinstance(
-                factor_knowledge_base, FactorImplementationKnowledgeBaseV1
-            ):
-                raise ValueError("The former knowledge base is not compatible with the current version")
-            elif self.evolving_version == 2 and not isinstance(
+                factor_knowledge_base, FactorImplementationKnowledgeBaseV1,
+            ) or self.evolving_version == 2 and not isinstance(
                 factor_knowledge_base,
                 FactorImplementationGraphKnowledgeBase,
             ):
@@ -261,7 +259,7 @@ class FactorImplementationEvolvingCli:
         print([feedback.final_decision if feedback is not None else None for feedback in feedbacks].count(True))
 
     def implement_amc(
-        self, evo_sub_path_str, former_knowledge_base_path_str, implementation_dump_path_str, slice_index
+        self, evo_sub_path_str, former_knowledge_base_path_str, implementation_dump_path_str, slice_index,
     ):
         factor_implementations: FactorImplementationList = pickle.load(open(evo_sub_path_str, "rb"))
         factor_implementations.target_factor_tasks = factor_implementations.target_factor_tasks[
