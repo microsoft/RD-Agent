@@ -559,15 +559,14 @@ class CIEvoStr(EvolvingStrategy):
         return evo
 
 
-# DIR = None
-# while True:
-#     DIR = Prompt.ask("Please input the project directory")
-#     DIR = Path(DIR)
-#     if DIR.exists():
-#         break
-#     else:
-#         print("Invalid directory. Please try again.")
-DIR = Path("/home/bowen/workspace/RD-Agent")
+DIR = None
+while True:
+    DIR = Prompt.ask("Please input the project directory")
+    DIR = Path(DIR)
+    if DIR.exists():
+        break
+    else:
+        print("Invalid directory. Please try again.")
 
 start_time = time.time()
 start_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%m%d%H%M")
