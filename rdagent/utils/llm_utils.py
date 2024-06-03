@@ -16,9 +16,11 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.conf import LLMSettings as Config
 from rdagent.core.log import FinCoLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
+from fincov2.logging.storage import get_or_create_storage
+
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
@@ -30,11 +32,6 @@ def md5_hash(input_string):
     hashed_string = md5.hexdigest()
     return hashed_string
 
-
-try:
-    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-except ImportError:
-    FinCoLog().warning("azure.identity is not installed.")
 
 try:
     import openai
@@ -69,6 +66,7 @@ class ConvManager:
             if m is not None:
                 n = int(m.group(1))
                 pairs.append((n, f))
+            pass
         pairs.sort(key=lambda x: x[0])
         for n, f in pairs[: self.recent_n][::-1]:
             if Path(self.path / f"{n+1}.json").exists():
@@ -95,7 +93,7 @@ class SQliteLazyCache(SingletonBaseClass):
                     md5_key TEXT PRIMARY KEY,
                     chat TEXT
                 )
-                """,
+                """
             )
             self.c.execute(
                 """
@@ -103,7 +101,7 @@ class SQliteLazyCache(SingletonBaseClass):
                     md5_key TEXT PRIMARY KEY,
                     embedding TEXT
                 )
-                """,
+                """
             )
             self.conn.commit()
 
@@ -189,7 +187,7 @@ class ChatSession:
             {
                 "role": "user",
                 "content": user_prompt,
-            },
+            }
         )
         return messages
 
@@ -205,15 +203,13 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
         response = self.api_backend._try_create_chat_completion_or_embedding(
-            messages=messages,
-            chat_completion=True,
-            **kwargs,
+            messages=messages, chat_completion=True, **kwargs
         )
         messages.append(
             {
                 "role": "assistant",
                 "content": response,
-            },
+            }
         )
         SessionChatHistoryCache().message_set(self.conversation_id, messages)
         return response
@@ -290,7 +286,6 @@ class APIBackend:
             self.encoder = None
         else:
             self.use_azure = self.cfg.use_azure
-            self.use_azure_token_provider = self.cfg.use_azure_token_provider
 
             self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
@@ -312,32 +307,16 @@ class APIBackend:
             )
 
             if self.use_azure:
-                if self.use_azure_token_provider:
-                    credential = DefaultAzureCredential()
-                    token_provider = get_bearer_token_provider(
-                        credential, "https://cognitiveservices.azure.com/.default"
-                    )
-                    self.chat_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.chat_api_version,
-                        azure_endpoint=self.chat_api_base,
-                    )
-                    self.embedding_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
-                    )
-                else:
-                    self.chat_client = openai.AzureOpenAI(
-                        api_key=self.chat_api_key,
-                        api_version=self.chat_api_version,
-                        azure_endpoint=self.chat_api_base,
-                    )
-                    self.embedding_client = openai.AzureOpenAI(
-                        api_key=self.embedding_api_key,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
-                    )
+                self.chat_client = openai.AzureOpenAI(
+                    api_key=self.chat_api_key,
+                    api_version=self.chat_api_version,
+                    azure_endpoint=self.chat_api_base,
+                )
+                self.embedding_client = openai.AzureOpenAI(
+                    api_key=self.embedding_api_key,
+                    api_version=self.embedding_api_version,
+                    azure_endpoint=self.embedding_api_base,
+                )
             else:
                 self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
                 self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
@@ -350,7 +329,7 @@ class APIBackend:
         self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
             self.cache_file_location = self.cfg.prompt_cache_path
-            self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
+            self.cache = SQliteLazyCache(self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = self.cfg.use_llama2
@@ -384,14 +363,14 @@ class APIBackend:
             {
                 "role": "system",
                 "content": system_prompt,
-            },
+            }
         ]
         messages.extend(former_messages[-1 * self.cfg.max_past_message_include :])
         messages.append(
             {
                 "role": "user",
                 "content": user_prompt,
-            },
+            }
         )
         return messages
 
@@ -422,9 +401,7 @@ class APIBackend:
         elif isinstance(input_content, list):
             input_content_list = input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list,
-            embedding=True,
-            **kwargs,
+            input_content_list=input_content_list, embedding=True, **kwargs
         )
         if isinstance(input_content, str):
             return resp[0]
@@ -445,7 +422,7 @@ class APIBackend:
                 {
                     "role": "user",
                     "content": "continue the former output with no overlap",
-                },
+                }
             )
             new_response, finish_reason = self._create_chat_completion_inner_function(messages=new_message, **kwargs)
             return response + new_response
@@ -548,6 +525,7 @@ class APIBackend:
     ) -> str:
         self.log_messages(messages)
         # TODO: fail to use loguru adaptor due to stream response
+        get_or_create_storage().log(self._build_messages(messages), name="gpt.messages")
         input_content_json = json.dumps(messages)
         input_content_json = (
             chat_cache_prefix + input_content_json
@@ -587,9 +565,9 @@ class APIBackend:
                                 "do_sample": self.gcr_endpoint_do_sample,
                                 "max_new_tokens": self.gcr_endpoint_max_token,
                             },
-                        },
-                    },
-                ),
+                        }
+                    }
+                )
             )
 
             req = urllib.request.Request(self.gcr_endpoint, body, self.headers)
@@ -658,6 +636,7 @@ class APIBackend:
         if self.dump_chat_cache:
             self.cache.chat_set(input_content_json, resp)
         # TODO: fail to use loguru adaptor due to stream response
+        get_or_create_storage().log(resp, name="gpt.messages", obj_type="json" if json_mode else "text")
         return resp, finish_reason
 
     def calculate_token_from_messages(self, messages):

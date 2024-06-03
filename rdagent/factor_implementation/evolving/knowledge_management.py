@@ -900,3 +900,4 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
                     intersection_node_list_sort_by_freq.append(node)
 
         return intersection_node_list_sort_by_freq
+

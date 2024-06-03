@@ -1,66 +1,166 @@
-import pickle
-import subprocess
-import uuid
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import pandas as pd
-from factor_implementation.share_modules.exception import (
-    CodeFormatException,
-    NoOutputException,
-    RuntimeErrorException,
+
+from tqdm import tqdm
+from collections import defaultdict
+from rdagent.core.conf import FactorImplementSettings
+from rdagent.core.exception import ImplementRunException
+from rdagent.core.task import (
+    TaskImplementation,
+    FactorTask,
+    TestCase,
 )
-from filelock import FileLock
-from finco.log import FinCoLog
-from oai.llm_utils import md5_hash
-
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
+from rdagent.benchmark.evaluators import (
+    FactorImplementationCorrelationEvaluator,
+    FactorImplementationIndexEvaluator,
+    FactorImplementationIndexFormatEvaluator,
+    FactorImplementationMissingValuesEvaluator,
+    FactorImplementationRowCountEvaluator,
+    FactorImplementationSingleColumnEvaluator,
+    FactorImplementationValuesEvaluator,
+    FactorImplementationEvaluator,
 )
+from rdagent.core.implementation import TaskGenerator
+from rdagent.utils.misc import multiprocessing_wrapper
 
-
-class FactorImplementationTask:
-    # TODO: remove the factor_ prefix may be better
+class BaseEval:
+    """
+    The benchmark benchmark evaluation.
+    """
     def __init__(
         self,
-        factor_name,
-        factor_description,
-        factor_formulation,
-        factor_formulation_description,
-        variables: dict = {},
-    ) -> None:
-        self.factor_name = factor_name
-        self.factor_description = factor_description
-        self.factor_formulation = factor_formulation
-        self.factor_formulation_description = factor_formulation_description
-        # TODO: check variables a good candidate
-        self.variables = variables
+        evaluator_l: List[FactorImplementationEvaluator],
+        test_cases: List[TestCase],
+        generate_method: TaskGenerator,
+        catch_eval_except: bool = True,
+    ):
+        """Parameters
+        ----------
+        test_cases : List[TestCase]
+            cases to be evaluated, ground truth are included in the test cases.
+        evaluator_l : List[FactorImplementationEvaluator]
+            A list of evaluators to evaluate the generated code.
+        catch_eval_except : bool
+            If we want to debug the evaluators, we recommend to set the this parameter to True.
+        """
+        self.evaluator_l = evaluator_l
+        self.test_cases = test_cases
+        self.generate_method = generate_method
+        self.catch_eval_except = catch_eval_except
 
-    def get_factor_information(self):
-        return f"""factor_name: {self.factor_name}
-factor_description: {self.factor_description}
-factor_formulation: {self.factor_formulation}
-factor_formulation_description: {self.factor_formulation_description}"""
+    def load_cases_to_eval(
+        self,
+        path: Union[Path, str],
+        **kwargs,
+    ) -> List[TaskImplementation]:
+        path = Path(path)
+        fi_l = []
+        for tc in self.test_cases:
+            try:
+                fi = FileBasedFactorImplementation.from_folder(tc.task, path, **kwargs)
+                fi_l.append(fi)
+            except FileNotFoundError:
+                print("Fail to load test case for factor: ", tc.task.factor_name)
+        return fi_l
 
-    @staticmethod
-    def from_dict(dict):
-        return FactorImplementationTask(**dict)
+    def eval_case(
+        self,
+        case_gt: TaskImplementation,
+        case_gen: TaskImplementation,
+    ) -> List[Union[Tuple[FactorImplementationEvaluator, object], Exception]]:
+        """Parameters
+        ----------
+        case_gt : FactorImplementation
 
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}[{self.factor_name}]>"
-
-
-class FactorImplementation(ABC):
-    def __init__(self, target_task: FactorImplementationTask) -> None:
-        self.target_task = target_task
-
-    @abstractmethod
-    def execute(self, *args, **kwargs) -> Tuple[str, pd.DataFrame]:
-        raise NotImplementedError("__call__ method is not implemented.")
+        case_gen : FactorImplementation
 
 
-class FileBasedFactorImplementation(FactorImplementation):
+        Returns
+        -------
+        List[Union[Tuple[FactorImplementationEvaluator, object],Exception]]
+            for each item
+                If the evaluation run successfully, return the evaluate results.  Otherwise, return the exception.
+        """
+        eval_res = []
+        for ev in self.evaluator_l:
+            try:
+                eval_res.append((ev, ev.evaluate(case_gt, case_gen)))
+                # if the corr ev is successfully evaluated and achieve the best performance, then break
+            except ImplementRunException as e:
+                return e
+            except Exception as e:
+                # exception when evaluation
+                if self.catch_eval_except:
+                    eval_res.append((ev, e))
+                else:
+                    raise e
+        return eval_res
+    
+class FactorImplementEval(BaseEval):
+    def __init__(
+        self,
+        test_case: TestCase,
+        method: TaskGenerator,
+        test_round: int = 10,
+        *args,
+        **kwargs,
+    ):
+        # evaluator collection for online evaluation
+        online_evaluator_l = [
+                            FactorImplementationCorrelationEvaluator,
+                            FactorImplementationIndexEvaluator,
+                            FactorImplementationIndexFormatEvaluator,
+                            FactorImplementationMissingValuesEvaluator,
+                            FactorImplementationRowCountEvaluator,
+                            FactorImplementationSingleColumnEvaluator,
+                            FactorImplementationValuesEvaluator,
+                         ],
+        super().__init__(online_evaluator_l, test_case, method, *args, **kwargs)
+        self.test_round = test_round
+
+    def eval(self):
+
+        gen_factor_l_all_rounds = []
+        test_cases_all_rounds = []
+        res = defaultdict(list)
+        for _ in tqdm(range(self.test_round), desc="Rounds of Eval"):
+            print("\n========================================================")
+            print(f"Eval {_}-th times...")
+            print("========================================================\n")
+            try:
+                gen_factor_l = self.generate_method.generate(self.test_cases.target_task)
+            except KeyboardInterrupt:
+                # TODO: Why still need to save result after KeyboardInterrupt?
+                print("Manually interrupted the evaluation. Saving existing results")
+                break
+
+            if len(gen_factor_l) != len(self.test_cases):
+                raise ValueError(
+                    "The number of cases to eval should be equal to the number of test cases.",
+                )
+            gen_factor_l_all_rounds.extend(gen_factor_l)
+            test_cases_all_rounds.extend(self.test_cases)
+
+        eval_res_l = []
+
+        eval_res_list = multiprocessing_wrapper(
+            [
+                (self.eval_case, (gt_case.ground_truth, gen_factor))
+                for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
+            ],
+            n=FactorImplementSettings().evo_multi_proc_n,
+        )
+
+        for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):
+            res[gt_case.task.factor_name].append((gen_factor, eval_res))
+            eval_res_l.append(eval_res)
+
+        return res
+    
+
+class FileBasedFactorImplementation(TaskImplementation):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -76,7 +176,7 @@ class FileBasedFactorImplementation(FactorImplementation):
 
     def __init__(
         self,
-        target_task: FactorImplementationTask,
+        target_task: FactorTask,
         code,
         executed_factor_value_dataframe=None,
         raise_exception=False,
@@ -124,8 +224,7 @@ class FileBasedFactorImplementation(FactorImplementation):
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
             (Path.cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").mkdir(
-                exist_ok=True,
-                parents=True,
+                exist_ok=True, parents=True
             )
             if FactorImplementSettings().enable_execution_cache:
                 # NOTE: cache the result for the same code
@@ -216,9 +315,13 @@ class FileBasedFactorImplementation(FactorImplementation):
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorImplementationTask, path: Union[str, Path], **kwargs):
+    def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
         path = Path(path)
         factor_path = (path / task.factor_name).with_suffix(".py")
         with factor_path.open("r") as f:
             code = f.read()
         return FileBasedFactorImplementation(task, code=code, **kwargs)
+
+
+
+
