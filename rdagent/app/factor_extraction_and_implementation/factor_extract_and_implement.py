@@ -2,14 +2,16 @@
 import json
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 from document_process.document_analysis import (
     check_factor_dict_viability,
     deduplicate_factors_several_times,
     extract_factors_from_report_dict_and_classify_result,
 )
-from document_process.document_reader import classify_report_from_dict, load_and_process_pdfs_by_langchain
+from document_process.document_reader import (
+    classify_report_from_dict,
+    load_and_process_pdfs_by_langchain,
+)
+from dotenv import load_dotenv
 from oai.llm_utils import APIBackend
 
 
@@ -31,7 +33,8 @@ def extract_factors_and_implement(report_file_path: str):
     for factor_name in factor_dict:
         if len(factor_dict[factor_name]) > 1:
             factor_dict_simple_deduplication[factor_name] = max(
-                factor_dict[factor_name], key=lambda x: len(x["formulation"]),
+                factor_dict[factor_name],
+                key=lambda x: len(x["formulation"]),
             )
         else:
             factor_dict_simple_deduplication[factor_name] = factor_dict[factor_name][0]

@@ -81,11 +81,11 @@ constraints: deepclean
 
 # Check lint with black.
 black:
-	$(PIPRUN) python -m black --check . --exclude finco --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
+	$(PIPRUN) python -m black --check . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 # Check lint with isort.
 isort:
-	$(PIPRUN) python -m isort --check . -s FinCo -s finco -s git_ignore_folder -s test/scripts
+	$(PIPRUN) python -m isort --check . -s git_ignore_folder -s test/scripts
 
 # Check lint with mypy.
 mypy:
@@ -93,14 +93,14 @@ mypy:
 
 # Check lint with ruff.
 ruff:
-	$(PIPRUN) ruff check .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder
+	$(PIPRUN) ruff check .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder --line-length 120
 
 # Check lint with toml-sort.
 toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
-lint: mypy ruff toml-sort
+lint: black isort mypy ruff toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:

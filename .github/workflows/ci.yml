@@ -20,22 +20,16 @@ jobs:
       - run: env | sort
       - run: make dev
       - env:
-          AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: ${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT }}
-          AZURE_DOCUMENT_INTELLIGENCE_KEY: ${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_KEY }}
           CHAT_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
           CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
           CHAT_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
           CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
-          CONTINOUS_MODE: ${{ secrets.CONTINOUS_MODE }}
           EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
           EMBEDDING_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
-          MAX_RETRY: ${{ secrets.MAX_RETRY }}
-          RETRY_WAIT_SECONDS: ${{ secrets.RETRY_WAIT_SECONDS }}
-          USE_AZURE: ${{ secrets.USE_AZURE }}
         name: lint test docs and build
         run: make lint test docs build
     strategy:

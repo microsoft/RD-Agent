@@ -6,21 +6,23 @@ from abc import abstractmethod
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
-from jinja2 import Template
-
 from core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from core.utils import multiprocessing_wrapper
-from factor_implementation.share_modules.conf import FactorImplementSettings
 from factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
-from factor_implementation.share_modules.prompt import (
-    FactorImplementationPrompts,
-)
-from factor_implementation.share_modules.utils import get_data_folder_intro
+from factor_implementation.share_modules.prompt import FactorImplementationPrompts
+from jinja2 import Template
 from oai.llm_utils import APIBackend
+
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
+)
+from rdagent.factor_implementation.share_modules.factor_implementation_utils import (
+    get_data_folder_intro,
+)
 
 if TYPE_CHECKING:
     from factor_implementation.evolving.evolvable_subjects import (
