@@ -24,3 +24,7 @@ azure-ai-formrecognizer
 
 # factor implementations
 tables
+
+# CI Fix Tool
+tree-sitter-python
+tree-sitter
