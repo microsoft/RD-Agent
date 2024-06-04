@@ -287,6 +287,7 @@ class RuffEvaluator(Evaluator):
                 self.command.split(),
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
+                text=True,
             )
         except subprocess.CalledProcessError as e:
             out = e.output
@@ -304,7 +305,7 @@ class RuffEvaluator(Evaluator):
 
         # extract error info
         pattern = r"(([^\n]*):(\d+):(\d+): (\w+) ([^\n]*)\n(.*?))\n\n"
-        matches = re.findall(pattern, out.decode(), re.DOTALL)
+        matches = re.findall(pattern, out, re.DOTALL)
 
         errors = defaultdict(list)
 
@@ -326,7 +327,7 @@ class RuffEvaluator(Evaluator):
 
     def __init__(self, command: str | None = None) -> None:
         if command is None:
-            self.command = "mypy . --explicit-package-bases"
+            self.command = "mypy . --pretty --no-error-summary --show-column-numbers"
         else:
             self.command = command
 
@@ -336,11 +337,36 @@ class RuffEvaluator(Evaluator):
                 self.command.split(),
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
+                text=True,
             )
         except subprocess.CalledProcessError as e:
             out = e.output
+        
+        errors = defaultdict(list)
 
-        return CIFeedback(out.decode("utf-8"))
+        out = re.sub(r'([^\n]*?):(\d+):(\d+): error:', r'\n\1:\2: error:', out)
+        out += "\n"
+        pattern = r'(([^\n]*?):(\d+):(\d+): error:(.*?)\s\[([\w-]*?)\]\s(.*?))\n\n'
+        for match in re.findall(pattern, out, re.DOTALL):
+            raw_str, file_path, line_number, column_number, error_message, error_code, error_hint = match
+            error_message = error_message.strip().replace('\n', ' ')
+            if re.match(r'.*[^\n]*?:\d+:\d+: note:.*', error_hint, re.DOTALL) is not None:
+                error_hint_position = re.split(r'[^\n]*?:\d+:\d+: note:', error_hint, re.DOTALL)[0]
+                error_hint_help = re.findall(r'^.*?:\d+:\d+: note: (.*)$', error_hint, re.MULTILINE)
+                error_hint_help = "\n".join(error_hint_help)
+                error_hint = f"{error_hint_position}\nHelp:\n{error_hint_help}"
+
+            error = CIError(raw_str=raw_str,
+                            file_path=file_path,
+                            line=int(line_number),
+                            column=int(column_number),
+                            code=error_code,
+                            msg=error_message,
+                            hint=error_hint)
+
+            errors[file_path].append(error)
+
+        return CIFeedback(errors=errors)
 
 
 class CIEvoStr(EvolvingStrategy):
