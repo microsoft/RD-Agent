@@ -27,3 +27,7 @@ tables
 
 # azure identity related
 azure.identity
+
+# CI Fix Tool
+tree-sitter-python
+tree-sitter
