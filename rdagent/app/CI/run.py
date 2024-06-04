@@ -9,7 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from difflib import ndiff
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import tree_sitter_python
 from rdagent.core.evolving_framework import (
@@ -24,7 +24,7 @@ from rdagent.core.evolving_framework import (
 from rdagent.oai.llm_utils import APIBackend
 from rich import print
 from rich.panel import Panel
-from rich.progress import track
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.syntax import Syntax
@@ -231,6 +231,7 @@ class Repo(EvolvableSubjects):
 @dataclass
 class RuffRule:
     """
+    Example:
     {
         "name": "missing-trailing-comma",
         "code": "COM812",
@@ -240,28 +241,7 @@ class RuffRule:
             "Trailing comma missing"
         ],
         "fix": "Fix is always available.",
-        "explanation": (
-            "## What it does\n"
-            "Checks for the absence of trailing commas.\n\n"
-            "## Why is this bad?\n"
-            "The presence of a trailing comma can reduce diff size when parameters or\n"
-            "elements are added or removed from function calls, function definitions,\n"
-            "literals, etc.\n\n"
-            "## Example\n"
-            "```python\n"
-            "foo = {\n"
-            "    \"bar\": 1,\n"
-            "    \"baz\": 2,\n"
-            "}\n"
-            "```\n\n"
-            "Use instead:\n"
-            "```python\n"
-            "foo = {\n"
-            "    \"bar\": 1,\n"
-            "    \"baz\": 2,\n"
-            "}\n"
-            "```\n"
-        ),
+        "explanation": "...",
         "preview": false
     }
     """
@@ -360,7 +340,7 @@ class RuffEvaluator(Evaluator):
         except subprocess.CalledProcessError as e:
             out = e.output
 
-        return CIFeedback(cast(str, out).decode("utf-8"))
+        return CIFeedback(out.decode("utf-8"))
 
 
 class CIEvoStr(EvolvingStrategy):
@@ -387,10 +367,10 @@ class CIEvoStr(EvolvingStrategy):
             last_feedback: CIFeedback = evolving_trace[-1].feedback
             fix_records: dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], [], defaultdict(list)))
 
-            # Fix the entire repository once
+            # Group errors by code blocks
             fix_groups: dict[str, list[CodeFixGroup]] = defaultdict(list)
             changes: dict[str, list[tuple[int, int, str]]] = defaultdict(list)
-            for file_path, errors in track(last_feedback.errors.items(), description="Fixing files..."):
+            for file_path, errors in last_feedback.errors.items():
                 file = evo.files[evo.project_path / Path(file_path)]
 
                 # check if the file needs to add `from __future__ import annotations`
@@ -405,10 +385,14 @@ class CIEvoStr(EvolvingStrategy):
                 error_p = 0
                 for start_line, end_line in file.get_code_blocks(max_lines=30):
                     group_errors: list[CIError] = []
+
+                    # collect errors in the same code block
                     while error_p < len(errors) and start_line <= errors[error_p].line <= end_line:
                         if errors[error_p].code not in ("FA100", "FA102"):
                             group_errors.append(errors[error_p])
                         error_p += 1
+
+                    # process errors in the code block
                     if group_errors:
                         session = api.build_chat_session(session_system_prompt=system_prompt)
                         session_id = session.get_conversation_id()
@@ -416,9 +400,23 @@ class CIEvoStr(EvolvingStrategy):
                             session_start_template.format(code=file.get(add_line_number=True)),
                         )
 
-                        code_snippet_with_lineno = file.get(
-                            start_line, end_line, add_line_number=True, return_list=False,
+                        fix_groups[file_path].append(
+                            CodeFixGroup(start_line, end_line, group_errors, session_id, []),
                         )
+
+
+            # Fix errors in each code block
+            with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn()) as progress:
+                group_counts = sum([len(groups) for groups in fix_groups.values()])
+                task_id = progress.add_task("Fixing repo...", total=group_counts)
+
+                for file_path in fix_groups:
+                    file = evo.files[evo.project_path / Path(file_path)]
+                    for code_fix_g in fix_groups[file_path]:
+                        start_line, end_line, group_errors = code_fix_g.start_line, code_fix_g.end_line, code_fix_g.errors
+                        code_snippet_with_lineno = file.get(
+                                    start_line, end_line, add_line_number=True, return_list=False,
+                                )
                         errors_str = "\n".join([f"{error.raw_str}\n" for error in group_errors])
 
                         # ask LLM to repair current code snippet
@@ -429,10 +427,12 @@ class CIEvoStr(EvolvingStrategy):
                             end_line=end_line,
                             start_lineno=start_line,
                         )
+
+                        session = api.build_chat_session(conversation_id=code_fix_g.session_id)
                         res = session.build_chat_completion(user_prompt)
-                        fix_groups[file_path].append(
-                            CodeFixGroup(start_line, end_line, group_errors, session_id, [res]),
-                        )
+
+                        code_fix_g.responses.append(res)
+                        progress.update(task_id, description=f"Fixing [cyan]{file_path}[/cyan]...", advance=1)
 
 
             # Manual inspection and repair
@@ -528,7 +528,7 @@ class CIEvoStr(EvolvingStrategy):
                         print(Panel.fit(table, title="Repair Status"))
 
                         operation = Prompt.ask("Input your operation [ [red]([bold]s[/bold])kip[/red] / "
-                                                "[green]([bold]a[/bold])pply[/green] / manual instruction ]")
+                                                "[green]([bold]a[/bold])pply[/green] / [yellow]manual instruction[/yellow] ]")
                         if operation in ("s", "skip"):
                             fix_records[file_path].skipped_errors.extend(group_errors)
                             break
