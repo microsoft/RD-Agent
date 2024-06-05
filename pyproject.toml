@@ -98,7 +98,7 @@ select = ["ALL"]
 "test/*" = ["S101"]
 
 [tool.setuptools]
-py-modules = ["rdagent"]
+packages = ["rdagent"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

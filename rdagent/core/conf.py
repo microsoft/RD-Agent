@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings
 
 class FincoSettings(BaseSettings):
     use_azure: bool = True
+    use_azure_token_provider: bool = False
     max_retry: int = 10
     retry_wait_seconds: int = 1
     continuous_mode: bool = False

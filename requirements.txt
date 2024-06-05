@@ -24,3 +24,6 @@ azure-ai-formrecognizer
 
 # factor implementations
 tables
+
+# azure identity related
+azure.identity

@@ -14,17 +14,21 @@ import yaml
 from fuzzywuzzy import fuzz
 
 
-class FincoException(Exception):
+class RDAgentException(Exception):
     pass
 
 
 class SingletonMeta(type):
-    _instance = None
+    _instance_dict = {}
 
     def __call__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(SingletonMeta, cls).__call__(*args, **kwargs)
-        return cls._instance
+        # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
+        if len(args) > 0:
+            raise RDAgentException("Please only use kwargs in Singleton to avoid misunderstanding.")
+        kwargs_hash = hash(tuple(sorted(kwargs.items())))
+        if kwargs_hash not in cls._instance_dict:
+            cls._instance_dict[kwargs_hash] = super(SingletonMeta, cls).__call__(*args, **kwargs)
+        return cls._instance_dict[kwargs_hash]
 
 
 class SingletonBaseClass(metaclass=SingletonMeta):

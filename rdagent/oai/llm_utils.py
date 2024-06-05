@@ -32,6 +32,11 @@ def md5_hash(input_string):
 
 
 try:
+    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+except ImportError:
+    FinCoLog().warning("azure.identity is not installed.")
+
+try:
     import openai
 except ImportError:
     FinCoLog().warning("openai is not installed.")
@@ -285,6 +290,7 @@ class APIBackend:
             self.encoder = None
         else:
             self.use_azure = self.cfg.use_azure
+            self.use_azure_token_provider = self.cfg.use_azure_token_provider
 
             self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
@@ -306,16 +312,32 @@ class APIBackend:
             )
 
             if self.use_azure:
-                self.chat_client = openai.AzureOpenAI(
-                    api_key=self.chat_api_key,
-                    api_version=self.chat_api_version,
-                    azure_endpoint=self.chat_api_base,
-                )
-                self.embedding_client = openai.AzureOpenAI(
-                    api_key=self.embedding_api_key,
-                    api_version=self.embedding_api_version,
-                    azure_endpoint=self.embedding_api_base,
-                )
+                if self.use_azure_token_provider:
+                    credential = DefaultAzureCredential()
+                    token_provider = get_bearer_token_provider(
+                        credential, "https://cognitiveservices.azure.com/.default"
+                    )
+                    self.chat_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.chat_api_version,
+                        azure_endpoint=self.chat_api_base,
+                    )
+                    self.embedding_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
+                else:
+                    self.chat_client = openai.AzureOpenAI(
+                        api_key=self.chat_api_key,
+                        api_version=self.chat_api_version,
+                        azure_endpoint=self.chat_api_base,
+                    )
+                    self.embedding_client = openai.AzureOpenAI(
+                        api_key=self.embedding_api_key,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
             else:
                 self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
                 self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
@@ -328,7 +350,7 @@ class APIBackend:
         self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
             self.cache_file_location = self.cfg.prompt_cache_path
-            self.cache = SQliteLazyCache(self.cache_file_location)
+            self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = self.cfg.use_llama2

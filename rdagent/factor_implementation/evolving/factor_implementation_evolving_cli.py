@@ -4,24 +4,24 @@ import subprocess
 from pathlib import Path
 
 import pandas as pd
-from core.evolving_framework import EvoAgent, KnowledgeBase
-from core.utils import multiprocessing_wrapper
-from factor_implementation.evolving.evaluators import (
+from rdagent.core.evolving_framework import EvoAgent, KnowledgeBase
+from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.factor_implementation.evolving.evaluators import (
     FactorImplementationEvaluatorV1,
     FactorImplementationsMultiEvaluator,
 )
-from factor_implementation.evolving.evolvable_subjects import FactorImplementationList
-from factor_implementation.evolving.evolving_strategy import (
+from rdagent.factor_implementation.evolving.evolvable_subjects import FactorImplementationList
+from rdagent.factor_implementation.evolving.evolving_strategy import (
     FactorEvolvingStrategy,
     FactorEvolvingStrategyWithGraph,
 )
-from factor_implementation.evolving.knowledge_management import (
+from rdagent.factor_implementation.evolving.knowledge_management import (
     FactorImplementationGraphKnowledgeBase,
     FactorImplementationGraphRAGStrategy,
     FactorImplementationKnowledgeBaseV1,
     FactorImplementationRAGStrategyV1,
 )
-from factor_implementation.share_modules.factor import (
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
