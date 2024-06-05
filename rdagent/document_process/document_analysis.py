@@ -12,117 +12,25 @@ import tiktoken
 import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
+from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.log import FinCoLog
+from rdagent.core.prompts import Prompts
 from jinja2 import Template
+from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
-
-from core.conf import FincoSettings as Config
-from core.log import FinCoLog
-from oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 
-with (Path(__file__).parent / "util_prompt.yaml").open(encoding="utf8") as f:
-    UTIL_PROMPT = yaml.safe_load(
-        f,
-    )
-
-
-def load_documents_by_langchain(path: Path) -> list:
-    """Load documents from the specified path.
-
-    Args:
-        path (str): The path to the directory or file containing the documents.
-
-    Returns:
-        list: A list of loaded documents.
-    """
-    loader = PyPDFDirectoryLoader(str(path), silent_errors=True) if path.is_dir() else PyPDFLoader(str(path))
-    return loader.load()
-
-
-def process_documents_by_langchain(docs: list[Document]) -> dict[str, str]:
-    """Process a list of documents and group them by document name.
-
-    Args:
-        docs (list): A list of documents.
-
-    Returns:
-        dict: A dictionary where the keys are document names and the values are
-        the concatenated content of the documents.
-    """
-    content_dict = {}
-
-    for doc in docs:
-        doc_name = str(Path(doc.metadata["source"]).resolve())
-        doc_content = doc.page_content
-
-        if doc_name not in content_dict:
-            content_dict[str(doc_name)] = doc_content
-        else:
-            content_dict[str(doc_name)] += doc_content
-
-    return content_dict
-
-
-def load_and_process_pdfs_by_langchain(path: Path) -> dict[str, str]:
-    return process_documents_by_langchain(load_documents_by_langchain(path))
-
-
-def load_and_process_one_pdf_by_azure_document_intelligence(
-    path: Path,
-    key: str,
-    endpoint: str,
-) -> str:
-    pages = len(PyPDFLoader(str(path)).load())
-    document_analysis_client = DocumentAnalysisClient(
-        endpoint=endpoint,
-        credential=AzureKeyCredential(key),
-    )
-
-    with path.open("rb") as file:
-        result = document_analysis_client.begin_analyze_document(
-            "prebuilt-document",
-            file,
-            pages=f"1-{pages}",
-        ).result()
-    return result.content
-
-
-def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str, str]:
-    config = Config()
-
-    assert config.azure_document_intelligence_key is not None
-    assert config.azure_document_intelligence_endpoint is not None
-
-    content_dict = {}
-    ab_path = path.resolve()
-    if ab_path.is_file():
-        assert ".pdf" in ab_path.suffixes, "The file must be a PDF file."
-        proc = load_and_process_one_pdf_by_azure_document_intelligence
-        content_dict[str(ab_path)] = proc(
-            ab_path,
-            config.azure_document_intelligence_key,
-            config.azure_document_intelligence_endpoint,
-        )
-    else:
-        for file_path in ab_path.rglob("*"):
-            if file_path.is_file() and ".pdf" in file_path.suffixes:
-                content_dict[str(file_path)] = load_and_process_one_pdf_by_azure_document_intelligence(
-                    file_path,
-                    config.azure_document_intelligence_key,
-                    config.azure_document_intelligence_endpoint,
-                )
-    return content_dict
+document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
 def classify_report_from_dict(
     report_dict: Mapping[str, str],
-    api: APIBackend,
     input_max_token: int = 128000,
     vote_time: int = 1,
     substrings: tuple[str] = (),
@@ -132,7 +40,6 @@ def classify_report_from_dict(
     - report_dict (Dict[str, str]):
       A dictionary where the key is the path of the report (ending with .pdf),
       and the value is either the report content as a string.
-    - api (APIBackend): An instance of the APIBackend class.
     - input_max_token (int): Specifying the maximum number of input tokens.
     - vote_time (int): An integer specifying how many times to vote.
     - substrings (list(str)): List of hardcode substrings.
@@ -155,7 +62,7 @@ def classify_report_from_dict(
         )
 
     res_dict = {}
-    classify_prompt = UTIL_PROMPT["classify_system"]
+    classify_prompt = document_process_prompts["classify_system"]
     enc = tiktoken.encoding_for_model("gpt-4-turbo")
 
     for key, value in report_dict.items():
@@ -183,7 +90,7 @@ def classify_report_from_dict(
             for _ in range(vote_time):
                 user_prompt = content
                 system_prompt = classify_prompt
-                res = api.build_messages_and_create_chat_completion(
+                res = APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                     json_mode=True,
@@ -209,7 +116,7 @@ def __extract_factors_name_and_desc_from_content(
     content: str,
 ) -> dict[str, dict[str, str]]:
     session = APIBackend().build_chat_session(
-        session_system_prompt=UTIL_PROMPT["extract_factors_system"],
+        session_system_prompt=document_process_prompts["extract_factors_system"],
     )
 
     extracted_factor_dict = {}
@@ -228,16 +135,14 @@ def __extract_factors_name_and_desc_from_content(
         except json.JSONDecodeError:
             parse_success = False
         if ret_json_str is None or not parse_success:
-            current_user_prompt = (
-                "Your response didn't follow the instruction might be wrong json format. Try again."
-            )
+            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
         else:
             factors = ret_dict["factors"]
             if len(factors) == 0:
                 break
             for factor_name, factor_description in factors.items():
                 extracted_factor_dict[factor_name] = factor_description
-            current_user_prompt = UTIL_PROMPT["extract_factors_follow_user"]
+            current_user_prompt = document_process_prompts["extract_factors_follow_user"]
 
     return extracted_factor_dict
 
@@ -251,9 +156,9 @@ def __extract_factors_formulation_from_content(
         columns=["factor_name", "factor_description"],
     )
 
-    system_prompt = UTIL_PROMPT["extract_factor_formulation_system"]
+    system_prompt = document_process_prompts["extract_factor_formulation_system"]
     current_user_prompt = Template(
-        UTIL_PROMPT["extract_factor_formulation_user"],
+        document_process_prompts["extract_factor_formulation_user"],
     ).render(report_content=content, factor_dict=factor_dict_df.to_string())
 
     session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
@@ -272,9 +177,7 @@ def __extract_factors_formulation_from_content(
         except json.JSONDecodeError:
             parse_success = False
         if ret_json_str is None or not parse_success:
-            current_user_prompt = (
-                "Your response didn't follow the instruction might be wrong json format. Try again."
-            )
+            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
         else:
             for name, formulation_and_description in ret_dict.items():
                 if name in factor_dict:
@@ -293,7 +196,7 @@ def __extract_factors_formulation_from_content(
     return factor_to_formulation
 
 
-def extract_factor_and_formulation_from_one_report(
+def __extract_factor_and_formulation_from_one_report(
     content: str,
 ) -> dict[str, dict[str, str]]:
     final_factor_dict_to_one_report = {}
@@ -304,6 +207,9 @@ def extract_factor_and_formulation_from_one_report(
             factor_dict,
         )
     for factor_name in factor_dict:
+        if factor_name not in factor_to_formulation:
+            continue
+
         final_factor_dict_to_one_report.setdefault(factor_name, {})
         final_factor_dict_to_one_report[factor_name]["description"] = factor_dict[factor_name]
 
@@ -323,7 +229,7 @@ def extract_factor_and_formulation_from_one_report(
     return final_factor_dict_to_one_report
 
 
-def extract_factors_from_report_dict_and_classify_result(
+def extract_factors_from_report_dict(
     report_dict: dict[str, str],
     useful_no_dict: dict[str, dict[str, str]],
     n_proc: int = 11,
@@ -339,9 +245,7 @@ def extract_factors_from_report_dict_and_classify_result(
     final_report_factor_dict = {}
     # for file_name, content in useful_report_dict.items():
     #     final_report_factor_dict.setdefault(file_name, {})
-    #     final_report_factor_dict[
-    #         file_name
-    #     ] = extract_factor_and_formulation_from_one_report(content)
+    #     final_report_factor_dict[file_name] = __extract_factor_and_formulation_from_one_report(content)
 
     while len(final_report_factor_dict) != len(useful_report_dict):
         pool = mp.Pool(n_proc)
@@ -353,7 +257,7 @@ def extract_factors_from_report_dict_and_classify_result(
             file_names.append(file_name)
             pool_result_list.append(
                 pool.apply_async(
-                    extract_factor_and_formulation_from_one_report,
+                    __extract_factor_and_formulation_from_one_report,
                     (content,),
                 ),
             )
@@ -371,11 +275,32 @@ def extract_factors_from_report_dict_and_classify_result(
     return final_report_factor_dict
 
 
-def check_factor_dict_viability_simulate_json_mode(
+def merge_file_to_factor_dict_to_factor_dict(
+    file_to_factor_dict: dict[str, dict],
+) -> dict:
+    factor_dict = {}
+    for file_name in file_to_factor_dict:
+        for factor_name in file_to_factor_dict[file_name]:
+            factor_dict.setdefault(factor_name, [])
+            factor_dict[factor_name].append(file_to_factor_dict[file_name][factor_name])
+
+    factor_dict_simple_deduplication = {}
+    for factor_name in factor_dict:
+        if len(factor_dict[factor_name]) > 1:
+            factor_dict_simple_deduplication[factor_name] = max(
+                factor_dict[factor_name],
+                key=lambda x: len(x["formulation"]),
+            )
+        else:
+            factor_dict_simple_deduplication[factor_name] = factor_dict[factor_name][0]
+    return factor_dict_simple_deduplication
+
+
+def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
     session = APIBackend().build_chat_session(
-        session_system_prompt=UTIL_PROMPT["factor_viability_system"],
+        session_system_prompt=document_process_prompts["factor_viability_system"],
     )
     current_user_prompt = factor_df_string
 
@@ -392,17 +317,15 @@ def check_factor_dict_viability_simulate_json_mode(
         except json.JSONDecodeError:
             parse_success = False
         if ret_json_str is None or not parse_success:
-            current_user_prompt = (
-                "Your response didn't follow the instruction might be wrong json format. Try again."
-            )
+            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
         else:
             return ret_dict
     return {}
 
 
-def check_factor_dict_viability(
+def check_factor_viability(
     factor_dict: dict[str, dict[str, str]],
-) -> dict[str, dict[str, str]]:
+) -> tuple[dict[str, dict[str, str]], dict[str, dict[str, str]]]:
     factor_viability_dict = {}
 
     factor_df = pd.DataFrame(factor_dict).T
@@ -417,7 +340,7 @@ def check_factor_dict_viability(
 
             result_list.append(
                 pool.apply_async(
-                    check_factor_dict_viability_simulate_json_mode,
+                    __check_factor_dict_viability_simulate_json_mode,
                     (target_factor_df_string,),
                 ),
             )
@@ -432,14 +355,20 @@ def check_factor_dict_viability(
 
         factor_df = factor_df[~factor_df.index.isin(factor_viability_dict)]
 
+    # filtered_factor_dict = {
+    #     factor_name: factor_dict[factor_name]
+    #     for factor_name in factor_dict
+    #     if factor_viability_dict[factor_name]["viability"]
+    # }
+
     return factor_viability_dict
 
 
-def check_factor_duplication_simulate_json_mode(
+def __check_factor_duplication_simulate_json_mode(
     factor_df: pd.DataFrame,
 ) -> list[list[str]]:
     session = APIBackend().build_chat_session(
-        session_system_prompt=UTIL_PROMPT["factor_duplicate_system"],
+        session_system_prompt=document_process_prompts["factor_duplicate_system"],
     )
     current_user_prompt = factor_df.to_string()
 
@@ -474,7 +403,7 @@ def check_factor_duplication_simulate_json_mode(
     return generated_duplicated_groups
 
 
-def kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
+def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
     x_normalized = normalize(embeddings)
 
     kmeans = KMeans(
@@ -528,7 +457,7 @@ def kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
     )
 
 
-def deduplicate_factor_dict(factor_dict: dict[str, dict[str, str]]) -> list[list[str]]:
+def __deduplicate_factor_dict(factor_dict: dict[str, dict[str, str]]) -> list[list[str]]:
     factor_df = pd.DataFrame(factor_dict).T
     factor_df.index.names = ["factor_name"]
 
@@ -559,7 +488,7 @@ Factor variables: {variables}
             len(full_str_list) // Config().max_input_duplicate_factor_group,
             30,
         ):
-            kmeans_index_group = kmeans_embeddings(embeddings=embeddings, k=k)
+            kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < Config().max_input_duplicate_factor_group:
                 target_k = k
                 FinCoLog().info(f"K-means group number: {k}")
@@ -572,7 +501,7 @@ Factor variables: {variables}
     result_list = []
     result_list = [
         pool.apply_async(
-            check_factor_duplication_simulate_json_mode,
+            __check_factor_duplication_simulate_json_mode,
             (factor_df.loc[factor_name_group, :],),
         )
         for factor_name_group in factor_name_groups
@@ -593,13 +522,14 @@ Factor variables: {variables}
     return duplication_names_list
 
 
-def deduplicate_factors_several_times(
+def deduplicate_factors_by_llm(
     factor_dict: dict[str, dict[str, str]],
+    factor_viability_dict: dict[str, dict[str, str]] = None,
 ) -> list[list[str]]:
     final_duplication_names_list = []
     current_round_factor_dict = factor_dict
     for _ in range(10):
-        duplication_names_list = deduplicate_factor_dict(current_round_factor_dict)
+        duplication_names_list = __deduplicate_factor_dict(current_round_factor_dict)
 
         new_round_names = []
         for duplication_names in duplication_names_list:
@@ -611,5 +541,31 @@ def deduplicate_factors_several_times(
         if len(new_round_names) != 0:
             current_round_factor_dict = {factor_name: factor_dict[factor_name] for factor_name in new_round_names}
         else:
-            return final_duplication_names_list
-    return []
+            break
+
+    final_duplication_names_list = sorted(final_duplication_names_list, key=lambda x: len(x), reverse=True)
+
+    to_replace_dict = {}
+    for duplication_names in duplication_names_list:
+        if factor_viability_dict is not None:
+            viability_list = [factor_viability_dict[name]["viability"] for name in duplication_names]
+            if True not in viability_list:
+                continue
+            target_factor_name = duplication_names[viability_list.index(True)]
+        else:
+            target_factor_name = duplication_names[0]
+        for duplication_factor_name in duplication_names:
+            if duplication_factor_name == target_factor_name:
+                continue
+            to_replace_dict[duplication_factor_name] = target_factor_name
+
+    llm_deduplicated_factor_dict = dict()
+    added_lower_name_set = set()
+    for factor_name in factor_dict:
+        if factor_name not in to_replace_dict and factor_name.lower() not in added_lower_name_set:
+            if factor_viability_dict is not None and not factor_viability_dict[factor_name]["viability"]:
+                continue
+            added_lower_name_set.add(factor_name.lower())
+            llm_deduplicated_factor_dict[factor_name] = factor_dict[factor_name]
+
+    return llm_deduplicated_factor_dict, final_duplication_names_list

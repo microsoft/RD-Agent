@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from core.evolving_framework import EvolvableSubjects
-from core.log import FinCoLog
-from factor_implementation.share_modules.factor import (
+from rdagent.core.evolving_framework import EvolvableSubjects
+from rdagent.core.log import FinCoLog
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )

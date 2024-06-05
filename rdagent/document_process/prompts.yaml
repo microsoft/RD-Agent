@@ -1,0 +1,182 @@
+extract_factors_system: |-
+    用户会提供一篇金融工程研报，其中包括了量化因子和模型研究，请按照要求抽取以下信息:
+    1. 概述这篇研报的主要研究思路;
+    2. 抽取出所有的因子，并概述因子的计算过程，请注意有些因子可能存在于表格中，请不要遗漏，因子的名称请使用英文，不能包含空格，可用下划线连接，研报中可能不含有因子，若没有请返回空字典;
+    3. 抽取研报里面的所有模型，并概述模型的计算过程，可以分步骤描述模型搭建或计算的过程，研报中可能不含有模型，若没有请返回空字典;
+
+    user will treat your factor name as key to store the factor, don't put any interaction message in the content. Just response the output without any interaction and explanation.
+    All names should be in English.
+    Respond with your analysis in JSON format. The JSON schema should include:
+    ```json
+    {
+        "summary": "The summary of this report",
+        "factors": {
+            "Name of factor 1": "Description to factor 1",
+            "Name of factor 2": "Description to factor 2"
+        },
+        "models": {
+            "Name of model 1": "Description to model 1",
+            "Name of model 2": "Description to model 2"
+        }
+    }
+    ```
+
+extract_factors_follow_user: |-
+    Please continue extracting the factors. Please ignore factors appeared in former messages. If no factor is found, please return an empty dict.
+    Notice: You should not miss any factor in the report! Some factors might appear several times in the report. You can repeat them to avoid missing other factors.
+    Respond with your analysis in JSON format. The JSON schema should include:
+    ```json
+    {
+        "factors": {
+            "Name of factor 1": "Description to factor 1",
+            "Name of factor 2": "Description to factor 2"
+        }
+    }
+    ```
+
+extract_factor_formulation_system: |-
+    用户会提供一篇金融工程研报，和用户从中提取到的因子列表，请结合文章和用户提供的因子名称和因子描述，按照要求抽取：
+    1. 因子的计算公式，使用latex格式，公式中的变量名称不能包含空格，可用下划线连接，公式中的因子名称与用户提供的因子名称保持一致;
+    2. 因子公式中的变量和函数解释，请使用英文描述，变量名和函数名请与公式中的名称对齐
+
+    User has several source data:
+    1. The Stock Trade Data Table containing information about stock trades, such as daily open, close, high, low, vwap prices, volume, and turnover;
+    2. The Financial Data Table containing company financial statements such as the balance sheet, income statement, and cash flow statement;
+    3. The Stock Fundamental Data Table containing basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc;
+    4. The high frequency data containing price and volume of each stock containing open close high low volume vwap in each minute.
+    Please try to expand the formulation to using the source data provided by user.
+
+    user will treat your factor name as key to store the factor, don't put any interaction message in the content. Just response the output without any interaction and explanation.
+    You can extract part of the user's input factors if token is not enough. To avoid the situation that you don't respond in the valid format, don't extract more than thirty factors in one response.
+    Be caution of the "\" in your formulation because In JSON, certain characters like the backslash need to be escaped with another backslash. Especially, _ and \_ are different in latex so use \_ to represent _ in latex.
+    Respond with your analysis in JSON format. The JSON schema should include:
+    ```json
+    {
+        "name of factor 1": {
+            "formulation": "latex formulation of factor 1",
+            "variables": {
+                "Name to variable or function 1": "Description to variable or function 1",
+                "Name to variable or function 2": "Description to variable or function 2"
+            }
+        },
+        "name of factor 2": {
+            "formulation": "latex formulation of factor 2",
+            "variables": {
+                "Name to variable or function 1": "Description to variable or function 1",
+                "Name to variable or function 2": "Description to variable or function 2"
+            }
+        }
+    }
+    ```
+
+extract_factor_formulation_user: |-
+    ===========================Report content:=============================
+    {{ report_content }}
+    ===========================Factor list in dataframe=============================
+    {{ factor_dict }}
+
+classify_system: |-
+    你是一个研报分类助手。用户会输入一篇金融研报。请按照要求回答：
+    因子指能够解释资产收益率或价格等的变量；而模型则指机器学习或深度学习模型，利用因子等变量来预测价格或收益率变化。
+
+    请你对研报进行分类，考虑两个条件：
+        1. 是金工量化领域中选股（需与择时，选基等严格区分开）方面的研报;
+        2. 涉及了因子或模型的构成，或者是测试了它们的表现。
+    如果研报同时满足上述两个条件，请输出1；若没有，请输出0。
+
+    请使用json进行回答。json key为：class
+
+factor_viability_system: |-
+    User has designed several factors in quant investment. Please help the user to check the viability of these factors.
+    These factors are used to build a daily frequency strategy in China A-share market.
+
+    User will provide a pandas dataframe like table containing following information:
+    1. The name of the factor;
+    2. The simple description of the factor;
+    3. The formulation of the factor in latex format;
+    4. The description to the variables and functions in the formulation of the factor.
+
+    User has several source data:
+    1. The Stock Trade Data Table containing information about stock trades, such as daily open, close, high, low, vwap prices, volume, and turnover;
+    2. The Financial Data Table containing company financial statements such as the balance sheet, income statement, and cash flow statement;
+    3. The Stock Fundamental Data Table containing basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc;
+    4. The high frequency data containing price and volume of each stock containing open close high low volume vwap in each minute;
+    5. The Consensus Expectations Factor containing the consensus expectations of the analysts about the future performance of the company.
+
+
+    A viable factor should satisfy the following conditions:
+    1. The factor should be able to be calculated in daily frequency;
+    2. The factor should be able to be calculated based on each stock;
+    3. The factor should be able to be calculated based on the source data provided by user.
+
+    You should give decision to each factor provided by the user. You should reject the factor based on very solid reason.
+    Please return true to the viable factor and false to the non-viable factor.
+
+    Notice, you can just return part of the factors due to token limit. Your factor name should be the same as the user's factor name.
+
+    Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
+    The JSON schema should include:
+    ```json
+    {
+        "Name to factor 1":
+        {
+            "viability": true,
+            "reason": "The reason to the viability of this factor"
+        },
+        "Name to factor 2":
+        {
+            "viability": false,
+            "reason": "The reason to the non-viability of this factor"
+        }
+        "Name to factor 3":
+        {
+            "viability": true,
+            "reason": "The reason to the viability of this factor"
+        }
+    }
+    ```
+
+
+factor_duplicate_system: |-
+    User has designed several factors in quant investment. Please help the user to duplicate these factors.
+    These factors are used to build a daily frequency strategy in China A-share market.
+
+    User will provide a pandas dataframe like table containing following information:
+    1. The name of the factor;
+    2. The simple description of the factor;
+    3. The formulation of the factor in latex format;
+    4. The description to the variables and functions in the formulation of the factor.
+
+    User wants to find whether there are duplicated groups. The factors in a duplicate group should satisfy the following conditions:
+    1. They might differ in the name, description, formulation, or the description to the variables and functions in the formulation, some upper or lower case difference is included;
+    2. They should be talking about exactly the same factor;
+    3. If horizon information like 1 day, 5 days, 10 days, etc is provided, the horizon information should be the same.
+
+    To make your response valid, we have some very important constraint for you to follow! Listed here:
+    1. You should be very confident to put duplicated factors into a group;
+    2. A group should contain at least two factors;
+    3. To a factor which has no duplication, don't put them into your response;
+    4. To avoid merging too many similar factor, don't put more than ten factors into a group!
+    You should always follow the above constraints to make your response valid. 
+
+    Your response JSON schema should include:
+    ```json
+    [
+        [
+            "factor name 1",
+            "factor name 2"
+        ],
+        [
+            "factor name 5",
+            "factor name 6"
+        ],
+        [
+            "factor name 7",
+            "factor name 8",
+            "factor name 9"
+        ]
+    ]
+    ```
+    Your response is a list of lists. Each list represents a duplicate group containing all the factor names in this group. 
+    The factor names in the list should be unique and the factor names should be the same as the user's factor name.
+    To avoid reaching token limit, don't respond more than fifty groups in one response. You should respond the output json string without any interaction and explanation.

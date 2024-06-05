@@ -6,16 +6,18 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import pandas as pd
-from filelock import FileLock
-from finco.log import FinCoLog
-
-from factor_implementation.share_modules.conf import FactorImplementSettings
 from factor_implementation.share_modules.exception import (
     CodeFormatException,
     NoOutputException,
     RuntimeErrorException,
 )
+from filelock import FileLock
+from finco.log import FinCoLog
 from oai.llm_utils import md5_hash
+
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
+)
 
 
 class FactorImplementationTask:
@@ -122,7 +124,8 @@ class FileBasedFactorImplementation(FactorImplementation):
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
             (Path.cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").mkdir(
-                exist_ok=True, parents=True,
+                exist_ok=True,
+                parents=True,
             )
             if FactorImplementSettings().enable_execution_cache:
                 # NOTE: cache the result for the same code

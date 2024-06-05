@@ -8,10 +8,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Union
 
-from finco.graph import UndirectedGraph, UndirectedNode
-from jinja2 import Template
-
-from core.evolving_framework import (
+from rdagent.core.evolving_framework import (
     EvolvableSubjects,
     EvoStep,
     Knowledge,
@@ -19,19 +16,20 @@ from core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from core.log import FinCoLog
-from factor_implementation.evolving.evaluators import (
-    FactorImplementationSingleFeedback,
-)
-from factor_implementation.share_modules.conf import FactorImplementSettings
-from factor_implementation.share_modules.factor import (
+from rdagent.core.log import FinCoLog
+from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )
-from factor_implementation.share_modules.prompt import (
-    FactorImplementationPrompts,
+from rdagent.core.prompts import Prompts
+from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from jinja2 import Template
+from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
+
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
 )
-from oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationKnowledge(Knowledge):
@@ -187,9 +185,9 @@ class FactorImplementationRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
-                    target_factor_task_information
-                ] = similar_successful_knowledge
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
+                    similar_successful_knowledge
+                )
         return queried_knowledge
 
 
@@ -212,7 +210,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
     def __init__(self, knowledgebase: FactorImplementationGraphKnowledgeBase) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
-        self.prompt = FactorImplementationPrompts()
+        self.prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
     def generate_knowledge(
         self,

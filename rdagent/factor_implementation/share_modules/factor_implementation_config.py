@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from finco.conf import FincoSettings
+from core.conf import FincoSettings
 
 
 class FactorImplementSettings(FincoSettings):

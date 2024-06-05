@@ -5,17 +5,11 @@ from pathlib import Path
 import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from finco.conf import FincoSettings as Config
+from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.prompts import Prompts
 
-if TYPE_CHECKING:
-    from langchain_core.documents import Document
-
+from langchain_core.documents import Document
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
-
-with (Path(__file__).parent / "util_prompt.yaml").open(encoding="utf8") as f:
-    UTIL_PROMPT = yaml.safe_load(
-        f,
-    )
 
 
 def load_documents_by_langchain(path: Path) -> list:

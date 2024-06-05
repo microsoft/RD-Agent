@@ -4,32 +4,29 @@ import subprocess
 from pathlib import Path
 
 import pandas as pd
-from fire.core import Fire
-from tqdm import tqdm
-
-from core.evolving_framework import EvoAgent, KnowledgeBase
-from core.utils import multiprocessing_wrapper
-from factor_implementation.evolving.evaluators import (
+from rdagent.core.evolving_framework import EvoAgent, KnowledgeBase
+from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.factor_implementation.evolving.evaluators import (
     FactorImplementationEvaluatorV1,
     FactorImplementationsMultiEvaluator,
 )
-from factor_implementation.evolving.evolvable_subjects import (
-    FactorImplementationList,
-)
-from factor_implementation.evolving.evolving_strategy import (
+from rdagent.factor_implementation.evolving.evolvable_subjects import FactorImplementationList
+from rdagent.factor_implementation.evolving.evolving_strategy import (
     FactorEvolvingStrategy,
     FactorEvolvingStrategyWithGraph,
 )
-from factor_implementation.evolving.knowledge_management import (
+from rdagent.factor_implementation.evolving.knowledge_management import (
     FactorImplementationGraphKnowledgeBase,
     FactorImplementationGraphRAGStrategy,
     FactorImplementationKnowledgeBaseV1,
     FactorImplementationRAGStrategyV1,
 )
-from factor_implementation.share_modules.factor import (
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
+from fire.core import Fire
+from tqdm import tqdm
 
 ALPHA101_INIT_COMPONENTS = [
     "1. abs(): absolute value to certain columns",
@@ -107,11 +104,17 @@ class FactorImplementationEvolvingCli:
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
-            if self.evolving_version == 1 and not isinstance(
-                factor_knowledge_base, FactorImplementationKnowledgeBaseV1,
-            ) or self.evolving_version == 2 and not isinstance(
-                factor_knowledge_base,
-                FactorImplementationGraphKnowledgeBase,
+            if (
+                self.evolving_version == 1
+                and not isinstance(
+                    factor_knowledge_base,
+                    FactorImplementationKnowledgeBaseV1,
+                )
+                or self.evolving_version == 2
+                and not isinstance(
+                    factor_knowledge_base,
+                    FactorImplementationGraphKnowledgeBase,
+                )
             ):
                 raise ValueError("The former knowledge base is not compatible with the current version")
         else:
@@ -259,7 +262,11 @@ class FactorImplementationEvolvingCli:
         print([feedback.final_decision if feedback is not None else None for feedback in feedbacks].count(True))
 
     def implement_amc(
-        self, evo_sub_path_str, former_knowledge_base_path_str, implementation_dump_path_str, slice_index,
+        self,
+        evo_sub_path_str,
+        former_knowledge_base_path_str,
+        implementation_dump_path_str,
+        slice_index,
     ):
         factor_implementations: FactorImplementationList = pickle.load(open(evo_sub_path_str, "rb"))
         factor_implementations.target_factor_tasks = factor_implementations.target_factor_tasks[

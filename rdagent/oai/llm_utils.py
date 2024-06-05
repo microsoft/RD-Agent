@@ -15,6 +15,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tiktoken
+
 from rdagent.core.conf import FincoSettings as Config
 from rdagent.core.log import FinCoLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
@@ -29,6 +30,11 @@ def md5_hash(input_string):
     hashed_string = md5.hexdigest()
     return hashed_string
 
+
+try:
+    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+except ImportError:
+    FinCoLog().warning("azure.identity is not installed.")
 
 try:
     import openai
@@ -199,7 +205,9 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
         response = self.api_backend._try_create_chat_completion_or_embedding(
-            messages=messages, chat_completion=True, **kwargs,
+            messages=messages,
+            chat_completion=True,
+            **kwargs,
         )
         messages.append(
             {
@@ -282,6 +290,7 @@ class APIBackend:
             self.encoder = None
         else:
             self.use_azure = self.cfg.use_azure
+            self.use_azure_token_provider = self.cfg.use_azure_token_provider
 
             self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
@@ -303,16 +312,32 @@ class APIBackend:
             )
 
             if self.use_azure:
-                self.chat_client = openai.AzureOpenAI(
-                    api_key=self.chat_api_key,
-                    api_version=self.chat_api_version,
-                    azure_endpoint=self.chat_api_base,
-                )
-                self.embedding_client = openai.AzureOpenAI(
-                    api_key=self.embedding_api_key,
-                    api_version=self.embedding_api_version,
-                    azure_endpoint=self.embedding_api_base,
-                )
+                if self.use_azure_token_provider:
+                    credential = DefaultAzureCredential()
+                    token_provider = get_bearer_token_provider(
+                        credential, "https://cognitiveservices.azure.com/.default"
+                    )
+                    self.chat_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.chat_api_version,
+                        azure_endpoint=self.chat_api_base,
+                    )
+                    self.embedding_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
+                else:
+                    self.chat_client = openai.AzureOpenAI(
+                        api_key=self.chat_api_key,
+                        api_version=self.chat_api_version,
+                        azure_endpoint=self.chat_api_base,
+                    )
+                    self.embedding_client = openai.AzureOpenAI(
+                        api_key=self.embedding_api_key,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
             else:
                 self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
                 self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
@@ -325,7 +350,7 @@ class APIBackend:
         self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
             self.cache_file_location = self.cfg.prompt_cache_path
-            self.cache = SQliteLazyCache(self.cache_file_location)
+            self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = self.cfg.use_llama2
@@ -397,7 +422,9 @@ class APIBackend:
         elif isinstance(input_content, list):
             input_content_list = input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list, embedding=True, **kwargs,
+            input_content_list=input_content_list,
+            embedding=True,
+            **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]

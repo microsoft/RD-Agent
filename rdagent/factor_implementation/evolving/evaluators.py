@@ -3,27 +3,27 @@ from __future__ import annotations
 import re
 from typing import List
 
-from pandas.core.api import DataFrame as DataFrame
-
-from core.evolving_framework import Evaluator as EvolvingEvaluator
-from core.evolving_framework import Feedback, QueriedKnowledge
-from core.log import FinCoLog
-from core.utils import multiprocessing_wrapper
-from factor_implementation.evolving.evolvable_subjects import (
-    FactorImplementationList,
-)
-from factor_implementation.share_modules.conf import FactorImplementSettings
-from factor_implementation.share_modules.evaluator import (
+from rdagent.core.evolving_framework import Evaluator as EvolvingEvaluator
+from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
+from rdagent.core.log import FinCoLog
+from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.factor_implementation.evolving.evolvable_subjects import FactorImplementationList
+from rdagent.factor_implementation.share_modules.evaluator import (
     Evaluator as FactorImplementationEvaluator,
 )
-from factor_implementation.share_modules.evaluator import (
+from rdagent.factor_implementation.share_modules.evaluator import (
     FactorImplementationCodeEvaluator,
     FactorImplementationFinalDecisionEvaluator,
     FactorImplementationValueEvaluator,
 )
-from factor_implementation.share_modules.factor import (
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
+)
+from pandas.core.api import DataFrame as DataFrame
+
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
 )
 
 

@@ -11,6 +11,14 @@ from difflib import IS_LINE_JUNK, ndiff
 from pathlib import Path
 from typing import Dict, List, Tuple, Union, cast
 
+from rich import print
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+
 from rdagent.core.evolving_framework import (
     Evaluator,
     EvoAgent,
@@ -21,13 +29,6 @@ from rdagent.core.evolving_framework import (
     Knowledge,
 )
 from rdagent.oai.llm_utils import APIBackend
-from rich import print
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
 
 from .prompts import (
     linting_system_prompt_template,
@@ -64,7 +65,6 @@ class CodeFile:
         self.path = Path(path)
         self.load()
 
-
     def load(self) -> None:
         code = self.path.read_text(encoding="utf-8")
         self.code_lines = code.split("\n")
@@ -76,31 +76,30 @@ class CodeFile:
         for i, code_line in enumerate(self.code_lines):
             self.code_lines_with_lineno.append(f"{i+1: >{self.lineno_width}} | {code_line}")
 
-
-    def get(self, start = 0, end = None, add_line_number: bool = False, return_list: bool = False) -> Union[List[str], str]:
+    def get(self, start=0, end=None, add_line_number: bool = False, return_list: bool = False) -> Union[List[str], str]:
         start -= 1
-        if start < 0: start = 0
-        end = self.lineno if end is None else end-1
+        if start < 0:
+            start = 0
+        end = self.lineno if end is None else end - 1
 
         res = self.code_lines_with_lineno[start:end] if add_line_number else self.code_lines[start:end]
 
         return res if return_list else "\n".join(res)
 
-
     def apply_changes(self, changes: List[Tuple[int, int, str]]) -> None:
         offset = 0
         for start, end, code in changes:
             start -= 1
-            if start < 0: start = 0
+            if start < 0:
+                start = 0
             end -= 1
 
             new_code = code.split("\n")
-            self.code_lines[start+offset:end+offset] = new_code
+            self.code_lines[start + offset : end + offset] = new_code
             offset += len(new_code) - (end - start)
 
         self.path.write_text("\n".join(self.code_lines), encoding="utf-8")
         self.load()
-
 
     def __str__(self):
         return f"{self.path}"
@@ -151,6 +150,7 @@ class RuffRule:
         "preview": false
     }
     """
+
     name: str
     code: str
     linter: str
@@ -172,7 +172,6 @@ class RuffEvaluator(Evaluator):
         else:
             self.command = command
 
-
     def explain_rule(self, error_code: str) -> RuffRule:
         explain_command = "ruff rule {error_code} --output-format json"
         try:
@@ -185,7 +184,6 @@ class RuffEvaluator(Evaluator):
             out = e.output
 
         return json.loads(out.decode())
-
 
     def evaluate(self, evo: Repo, **kwargs) -> CIFeedback:
         """Simply run ruff to get the feedbacks."""
@@ -217,19 +215,21 @@ class RuffEvaluator(Evaluator):
         errors = defaultdict(list)
         for match in matches:
             raw_str, file_path, line_number, column_number, error_code, error_message, error_hint = match
-            error = CIError(raw_str=raw_str,
-                            file_path=file_path,
-                            line=int(line_number),
-                            column=int(column_number),
-                            code=error_code,
-                            msg=error_message,
-                            hint=error_hint)
+            error = CIError(
+                raw_str=raw_str,
+                file_path=file_path,
+                line=int(line_number),
+                column=int(column_number),
+                code=error_code,
+                msg=error_message,
+                hint=error_hint,
+            )
             errors[file_path].append(error)
 
         return CIFeedback(errors=errors)
 
-class MypyEvaluator(Evaluator):
 
+class MypyEvaluator(Evaluator):
     def __init__(self, command: str = None):
         if command is None:
             self.command = "mypy . --explicit-package-bases"
@@ -251,7 +251,6 @@ class MypyEvaluator(Evaluator):
 
 
 class CIEvoStr(EvolvingStrategy):
-
     def evolve(
         self,
         evo: Repo,
@@ -302,9 +301,23 @@ class CIEvoStr(EvolvingStrategy):
 
                     errors_str = "\n".join([f"{error.raw_str}\n" for error in group])
 
-                    print(Panel.fit(Syntax("\n".join([f"{error.line}: {error.msg}" for error in group]), lexer="python", background_color="default"), title=f"{len(group)} Errors"))
+                    print(
+                        Panel.fit(
+                            Syntax(
+                                "\n".join([f"{error.line}: {error.msg}" for error in group]),
+                                lexer="python",
+                                background_color="default",
+                            ),
+                            title=f"{len(group)} Errors",
+                        )
+                    )
                     # print(f"[bold yellow]original code:[/bold yellow]\n\n{code_snippet_with_lineno}")
-                    print(Panel.fit(Syntax(code_snippet_with_lineno, lexer="python", background_color="default"), title="Original Code"))
+                    print(
+                        Panel.fit(
+                            Syntax(code_snippet_with_lineno, lexer="python", background_color="default"),
+                            title="Original Code",
+                        )
+                    )
                     user_prompt = session_normal_template.format(
                         code=code_snippet_with_lineno,
                         lint_info=errors_str,
@@ -321,10 +334,14 @@ class CIEvoStr(EvolvingStrategy):
                         table = Table(show_header=False, box=None)
                         table.add_column()
                         for i in diff:
-                            if i.startswith("+"): table.add_row(Text(i, style="green"))
-                            elif i.startswith("-"): table.add_row(Text(i, style="red"))
-                            elif i.startswith("?"): table.add_row(Text(i, style="yellow"))
-                            else: table.add_row(Syntax(i, lexer="python", background_color="default"))
+                            if i.startswith("+"):
+                                table.add_row(Text(i, style="green"))
+                            elif i.startswith("-"):
+                                table.add_row(Text(i, style="red"))
+                            elif i.startswith("?"):
+                                table.add_row(Text(i, style="yellow"))
+                            else:
+                                table.add_row(Syntax(i, lexer="python", background_color="default"))
                         print(Panel.fit(table, title="Repair Status"))
 
                         operation = input("Input your operation: ")
@@ -407,13 +424,29 @@ while True:
 
     total_errors_count = skipped_errors_count + directly_fixed_errors_count + manually_fixed_errors_count
     table.add_row("Total Errors", "", str(total_errors_count), "")
-    table.add_row("Skipped Errors", skipped_errors_statistics, str(skipped_errors_count), f"{skipped_errors_count / total_errors_count:.2%}")
-    table.add_row("Directly Fixed Errors", directly_fixed_errors_statistics, str(directly_fixed_errors_count), f"{directly_fixed_errors_count / total_errors_count:.2%}")
-    table.add_row("Manually Fixed Errors", manually_fixed_errors_statistics, str(manually_fixed_errors_count), f"{manually_fixed_errors_count / total_errors_count:.2%}")
+    table.add_row(
+        "Skipped Errors",
+        skipped_errors_statistics,
+        str(skipped_errors_count),
+        f"{skipped_errors_count / total_errors_count:.2%}",
+    )
+    table.add_row(
+        "Directly Fixed Errors",
+        directly_fixed_errors_statistics,
+        str(directly_fixed_errors_count),
+        f"{directly_fixed_errors_count / total_errors_count:.2%}",
+    )
+    table.add_row(
+        "Manually Fixed Errors",
+        manually_fixed_errors_statistics,
+        str(manually_fixed_errors_count),
+        f"{manually_fixed_errors_count / total_errors_count:.2%}",
+    )
 
     print(table)
     operation = Prompt.ask("Start next round? (y/n): ", choices=["y", "n"])
-    if operation == "n": break
+    if operation == "n":
+        break
 
 
 end_time = time.time()

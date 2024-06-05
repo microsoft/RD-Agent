@@ -4,6 +4,7 @@ requires = [
   "setuptools",
   "setuptools-scm",
 ]
+root= "rdagent"
 
 [project]
 authors = [
@@ -33,8 +34,6 @@ name = "rdagent"
 readme = "README.md"
 requires-python = ">=3.8"
 
-[project.scripts]
-rdagent-cli = "rdagent.cli:app"
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
@@ -99,7 +98,7 @@ select = ["ALL"]
 "test/*" = ["S101"]
 
 [tool.setuptools]
-py-modules = ["rdagent"]
+packages = ["rdagent"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

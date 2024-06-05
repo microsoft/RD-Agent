@@ -1,26 +1,29 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import random
 from abc import abstractmethod
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
-from jinja2 import Template
-
-from core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from core.utils import multiprocessing_wrapper
-from factor_implementation.share_modules.conf import FactorImplementSettings
-from factor_implementation.share_modules.factor import (
+from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
-from factor_implementation.share_modules.prompt import (
-    FactorImplementationPrompts,
+from rdagent.core.prompts import Prompts
+from jinja2 import Template
+from rdagent.oai.llm_utils import APIBackend
+
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
 )
-from factor_implementation.share_modules.utils import get_data_folder_intro
-from oai.llm_utils import APIBackend
+from rdagent.factor_implementation.share_modules.factor_implementation_utils import (
+    get_data_folder_intro,
+)
 
 if TYPE_CHECKING:
     from factor_implementation.evolving.evolvable_subjects import (
@@ -115,7 +118,9 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
             system_prompt = Template(
-                FactorImplementationPrompts()["evolving_strategy_factor_implementation_v1_system"],
+                Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                    "evolving_strategy_factor_implementation_v1_system"
+                ],
             ).render(
                 data_info=get_data_folder_intro(),
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
@@ -128,7 +133,9 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             while True:
                 user_prompt = (
                     Template(
-                        FactorImplementationPrompts()["evolving_strategy_factor_implementation_v1_user"],
+                        Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                            "evolving_strategy_factor_implementation_v1_user"
+                        ],
                     )
                     .render(
                         factor_information_str=factor_information_str,
@@ -202,7 +209,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
             system_prompt = Template(
-                FactorImplementationPrompts()["evolving_strategy_factor_implementation_v1_system"],
+                Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                    "evolving_strategy_factor_implementation_v1_system"
+                ],
             ).render(
                 data_info=get_data_folder_intro(),
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
@@ -222,7 +231,11 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     and len(queried_former_failed_knowledge_to_render) != 0
                 ):
                     error_summary_system_prompt = (
-                        Template(FactorImplementationPrompts()["evolving_strategy_error_summary_v2_system"])
+                        Template(
+                            Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                                "evolving_strategy_error_summary_v2_system"
+                            ]
+                        )
                         .render(
                             factor_information_str=target_factor_task_information,
                             code_and_feedback=queried_former_failed_knowledge_to_render[
@@ -236,7 +249,11 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     )
                     while True:
                         error_summary_user_prompt = (
-                            Template(FactorImplementationPrompts()["evolving_strategy_error_summary_v2_user"])
+                            Template(
+                                Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                                    "evolving_strategy_error_summary_v2_user"
+                                ]
+                            )
                             .render(
                                 queried_similar_component_knowledge=queried_similar_component_knowledge_to_render,
                             )
@@ -256,7 +273,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
 
                 user_prompt = (
                     Template(
-                        FactorImplementationPrompts()["evolving_strategy_factor_implementation_v2_user"],
+                        Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+                            "evolving_strategy_factor_implementation_v2_user"
+                        ],
                     )
                     .render(
                         factor_information_str=target_factor_task_information,

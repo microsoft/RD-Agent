@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings
 
 class FincoSettings(BaseSettings):
     use_azure: bool = True
+    use_azure_token_provider: bool = False
     max_retry: int = 10
     retry_wait_seconds: int = 1
     continuous_mode: bool = False
@@ -60,7 +61,7 @@ class FincoSettings(BaseSettings):
 
     # fincov2 llama2 endpoint
     use_gcr_endpoint: bool = False
-    gcr_endpoint_type: str = "llama2_70b" # or "llama3_70b", "phi2", "phi3_4k", "phi3_128k"
+    gcr_endpoint_type: str = "llama2_70b"  # or "llama3_70b", "phi2", "phi3_4k", "phi3_128k"
 
     llama2_70b_endpoint: str = ""
     llama2_70b_endpoint_key: str = ""
