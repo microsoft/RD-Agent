@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 
 from rdagent.document_process.document_analysis import (
-    filter_factor_by_viability,
-    deduplicate_factors_several_times,
+    check_factor_viability,
+    deduplicate_factors_by_llm,
     extract_factors_from_report_dict,
     merge_file_to_factor_dict_to_factor_dict,
 )
@@ -21,9 +21,9 @@ def extract_factors_and_implement(report_file_path: str):
     file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
     factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
 
-    factor_dict_viable, factor_viability = filter_factor_by_viability(factor_dict)
+    factor_viability = check_factor_viability(factor_dict)
 
-    factor_dict, duplication_names_list = deduplicate_factors_several_times(factor_dict, factor_viability)
+    factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
 
 
 if __name__ == "__main__":
