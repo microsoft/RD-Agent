@@ -21,4 +21,14 @@ class TaskGenerator(ABC):
 
         """
 
+class QueriedKnowledge:
+    pass
+
+class KnowledgeBase(ABC):
+    @abstractmethod
+    def query(
+        self,
+    ) -> QueriedKnowledge | None:
+        raise NotImplementedError
+
 

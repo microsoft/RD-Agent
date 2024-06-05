@@ -5,7 +5,7 @@ from typing import Tuple
 import pandas as pd
 from jinja2 import Template
 
-from rdagent.core.llm import APIBackend
+from rdagent.core.utils import APIBackend
 from rdagent.core.log import FinCoLog
 from rdagent.core.conf import FactorImplementSettings
 from rdagent.core.task import (
