@@ -15,7 +15,6 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tiktoken
-
 from rdagent.core.conf import FincoSettings as Config
 from rdagent.core.log import FinCoLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
@@ -205,9 +204,7 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
         response = self.api_backend._try_create_chat_completion_or_embedding(
-            messages=messages,
-            chat_completion=True,
-            **kwargs,
+            messages=messages, chat_completion=True, **kwargs,
         )
         messages.append(
             {
@@ -422,9 +419,7 @@ class APIBackend:
         elif isinstance(input_content, list):
             input_content_list = input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list,
-            embedding=True,
-            **kwargs,
+            input_content_list=input_content_list, embedding=True, **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]
@@ -669,7 +664,7 @@ class APIBackend:
             tokens_per_message = 3
             tokens_per_name = 1
         else:
-            tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+            tokens_per_message = 4  # every message follows <start>{role/name}\n{content}<end>\n
             tokens_per_name = -1  # if there's a name, the role is omitted
         num_tokens = 0
         for message in messages:
@@ -678,7 +673,7 @@ class APIBackend:
                 num_tokens += len(self.encoder.encode(value))
                 if key == "name":
                     num_tokens += tokens_per_name
-        num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+        num_tokens += 3  # every reply is primed with <start>assistant<message>
         return num_tokens
 
     def build_messages_and_calculate_token(

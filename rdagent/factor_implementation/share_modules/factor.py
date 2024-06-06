@@ -124,8 +124,7 @@ class FileBasedFactorImplementation(FactorImplementation):
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
             (Path.cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").mkdir(
-                exist_ok=True,
-                parents=True,
+                exist_ok=True, parents=True,
             )
             if FactorImplementSettings().enable_execution_cache:
                 # NOTE: cache the result for the same code

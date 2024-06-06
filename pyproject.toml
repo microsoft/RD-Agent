@@ -52,14 +52,13 @@ color_output = true
 profile = "black"
 
 [tool.mypy]
+explicit_package_bases = true
 check_untyped_defs = true
 disallow_any_unimported = true
 disallow_untyped_defs = true
 enable_error_code = [
   "ignore-without-code",
 ]
-no_implicit_optional = true
-show_error_codes = true
 warn_return_any = true
 warn_unused_ignores = true
 
@@ -72,6 +71,7 @@ log_format = "%(asctime)s %(levelname)s %(message)s"
 minversion = "6.0"
 
 [tool.ruff]
+fix = true
 line-length = 120
 src = ["rdagent"]
 

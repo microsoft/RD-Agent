@@ -1,0 +1,117 @@
+generate_lint_command_template: |
+  Please generate a command to lint or format a {language} repository.
+  Here are some information about different linting tools ```{linting_tools}```
+linting_system_prompt_template: |
+  You are a software engineer. You can write code to a high standard and are adept at solving {language} linting problems.
+session_manual_template: |
+  There are some problems with the code you provided, please modify the code again according to the instruction and return the errors list you modified.
+  
+  Instruction:
+  {operation}
+  
+  Your response format should be like this:
+  
+  ```python
+  <modified code>
+  ```
+  
+  ```json
+  {{
+      "errors": ["<Line Number>:<Error Start Position> <Error Code>", ...]
+  }}
+  ```
+session_normal_template: |
+  Please modify this code snippet based on the lint info. Here is the code snippet:
+  ```Python
+  {code}
+  ```
+
+  -----Lint info-----
+  {lint_info}
+  -------------------
+
+  The lint info contains one or more errors. Different errors are separated by blank lines. Each error follows this format:
+  -----Lint info format-----
+  <Line Number>:<Error Start Position> <Error Code> <Error Message>
+  <Error Position (maybe multiple lines)>
+  <Helpful Information (sometimes have)>
+  --------------------------
+  The error code is an abbreviation set by the checker for ease of describing the error. The error position includes the relevant code around the error, and the helpful information provides useful information or possible fix method.
+
+  Please simply reply the code after you fix all linting errors. You should be aware of the following:
+  1. The indentation of the code should be consistent with the original code.
+  2. You should just replace the code I provided you, which starts from line {start_line} to line {end_line}.
+  3. You'll need to add line numbers to the modified code which starts from {start_lineno}.
+  4. You don't need to add comments to explain your changes.
+  Please wrap your code with following format:
+
+  ```python
+  <your code..>
+  ```
+session_start_template: |
+  Please modify the Python code based on the lint info.
+  Due to the length of the code, I will first tell you the entire code, and then each time I ask a question, I will extract a portion of the code and tell you the error information contained in this code segment.
+  You need to fix the corresponding error in the code segment and return the code that can replace the corresponding code segment.
+
+  The Python code is from a complete Python project file. Each line of the code is annotated with a line number, separated from the original code by three characters ("<white space>|<white space>"). The vertical bars are aligned.
+  Here is the complete code, please be prepared to fix it:
+  ```Python
+  {code}
+  ```
+suffix2language_template: |
+  Here are the files suffix in one code repo: {suffix}.
+  Please tell me the programming language used in this repo and which language has linting-tools.
+  Your response should follow this template:
+  {{
+      "languages": <languages list>,
+      "languages_with_linting_tools": <languages with lingting tools list>
+  }}
+user_get_files_contain_lint_commands_template: |
+  You get a file list of a repository. Some files may contain linting rules or linting commands defined by repo authors.
+  Here are the file list:
+  ```
+  {file_list}
+  ```
+  
+  Please find all files that may correspond to linting from it.
+  Please respond with the following JSON template:
+  {{
+      "files": </path/to/file>,
+  }}
+user_get_makefile_lint_commands_template: |
+  You get a Makefile which contains some linting rules. Here are its content:
+  ```
+  {file_text}
+  ```
+  Please find executable commands about linting from it.
+  Please respond with the following JSON template:
+  {{
+      "commands": ["python -m xxx --params"...],
+  }}
+user_template_for_code_snippet: |
+  Please modify the Python code based on the lint info.
+  -----Python Code-----
+  {code}
+  ---------------------
+
+  -----Lint info-----
+  {lint_info}
+  -------------------
+
+  The Python code is a snippet from a complete Python project file. Each line of the code is annotated with a line number, separated from the original code by three characters ("<white space>|<white space>"). The vertical bars are aligned.
+
+  The lint info contains one or more errors. Different errors are separated by blank lines. Each error follows this format:
+  -----Lint info format-----
+  <Line Number>:<Error Start Position> <Error Code> <Error Message>
+  <Error Context (multiple lines)>
+  <Helpful Information (last line)>
+  --------------------------
+  The error code is an abbreviation set by the checker for ease of describing the error. The error context includes the relevant code around the error, and the helpful information suggests possible fixes.
+
+  Please simply reply the code after you fix all linting errors.
+  The code you return does not require line numbers, and should just replace the code I provided you, and does not require comments.
+  Please wrap your code with following format:
+
+  ```python
+  <your code..>
+  ```
