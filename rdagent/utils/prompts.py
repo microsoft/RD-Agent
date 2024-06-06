@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.utils.llm import SingletonBaseClass
 
 
 class Prompts(Dict, SingletonBaseClass):

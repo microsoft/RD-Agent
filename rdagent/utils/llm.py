@@ -18,8 +18,7 @@ import tiktoken
 
 from rdagent.core.conf import LLMSettings as Config
 from rdagent.core.log import FinCoLog, LogColors
-from rdagent.core.utils import SingletonBaseClass
-from fincov2.logging.storage import get_or_create_storage
+from rdagent.utils.storage import get_or_create_storage
 
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
@@ -43,6 +42,110 @@ try:
 except ImportError:
     FinCoLog().warning("llama is not installed.")
 
+
+class RDAgentException(Exception):
+    pass
+
+
+class SingletonMeta(type):
+    _instance_dict = {}
+
+    def __call__(cls, *args, **kwargs):
+        # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
+        if len(args) > 0:
+            raise RDAgentException("Please only use kwargs in Singleton to avoid misunderstanding.")
+        kwargs_hash = hash(tuple(sorted(kwargs.items())))
+        if kwargs_hash not in cls._instance_dict:
+            cls._instance_dict[kwargs_hash] = super(SingletonMeta, cls).__call__(*args, **kwargs)
+        return cls._instance_dict[kwargs_hash]
+
+
+class SingletonBaseClass(metaclass=SingletonMeta):
+    """
+    Because we try to support defining Singleton with `class A(SingletonBaseClass)` instead of `A(metaclass=SingletonMeta)`
+    This class becomes necessary
+
+    """
+
+    # TODO: Add move this class to Qlib's general utils.
+
+
+def parse_json(response):
+    try:
+        return json.loads(response)
+    except json.decoder.JSONDecodeError:
+        pass
+
+    raise Exception(f"Failed to parse response: {response}, please report it or help us to fix it.")
+
+
+def similarity(text1, text2):
+    text1 = text1 if isinstance(text1, str) else ""
+    text2 = text2 if isinstance(text2, str) else ""
+
+    # Maybe we can use other similarity algorithm such as tfidf
+    return fuzz.ratio(text1, text2)
+
+
+def random_string(length=10):
+    letters = string.ascii_letters + string.digits
+    return "".join(random.choice(letters) for i in range(length))
+
+
+def remove_uncommon_keys(new_dict, org_dict):
+    keys_to_remove = []
+
+    for key in new_dict:
+        if key not in org_dict:
+            keys_to_remove.append(key)
+        elif isinstance(new_dict[key], dict) and isinstance(org_dict[key], dict):
+            remove_uncommon_keys(new_dict[key], org_dict[key])
+        elif isinstance(new_dict[key], dict) and isinstance(org_dict[key], str):
+            new_dict[key] = org_dict[key]
+
+    for key in keys_to_remove:
+        del new_dict[key]
+
+
+def crawl_the_folder(folder_path: Path):
+    yaml_files = []
+    for root, _, files in os.walk(folder_path.as_posix()):
+        for file in files:
+            if file.endswith(".yaml") or file.endswith(".yml"):
+                yaml_file_path = Path(os.path.join(root, file)).relative_to(folder_path)
+                yaml_files.append(yaml_file_path.as_posix())
+    return sorted(yaml_files)
+
+
+def compare_yaml(file1, file2):
+    with open(file1) as stream:
+        data1 = yaml.safe_load(stream)
+    with open(file2) as stream:
+        data2 = yaml.safe_load(stream)
+    return data1 == data2
+
+
+def remove_keys(valid_keys, ori_dict):
+    for key in list(ori_dict.keys()):
+        if key not in valid_keys:
+            ori_dict.pop(key)
+    return ori_dict
+
+
+class YamlConfigCache(SingletonBaseClass):
+    def __init__(self) -> None:
+        super().__init__()
+        self.path_to_config = dict()
+
+    def load(self, path):
+        with open(path) as stream:
+            data = yaml.safe_load(stream)
+            self.path_to_config[path] = data
+
+    def __getitem__(self, path):
+        if path not in self.path_to_config:
+            self.load(path)
+        return self.path_to_config[path]
 
 class ConvManager:
     """
