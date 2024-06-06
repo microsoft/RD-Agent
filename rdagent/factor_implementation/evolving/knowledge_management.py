@@ -18,14 +18,14 @@ from rdagent.core.evolving_framework import (
 )
 from rdagent.core.log import FinCoLog
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
-from rdagent.factor_implementation.share_modules.factor import (
+from rdagent.core.task import (
     FactorImplementation,
     FactorImplementationTask,
 )
 from rdagent.core.prompts import Prompts
 from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
 from jinja2 import Template
-from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
+from rdagent.utils.llm import APIBackend, calculate_embedding_distance_between_str_list
 
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,

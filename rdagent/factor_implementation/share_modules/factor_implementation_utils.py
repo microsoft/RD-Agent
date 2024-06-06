@@ -16,7 +16,6 @@ TPL = """
 # Create a Jinja template from the string
 JJ_TPL = Template(TPL)
 
-
 def get_data_folder_intro():
     """Direclty get the info of the data folder.
     It is for preparing prompting message.

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 import pandas as pd
+from rdagent.core.evolving_framework import EvolvableSubjects
 
 '''
 This file contains the all the data class for rdagent task.
@@ -66,5 +67,29 @@ class ModelTask(BaseTask):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
+class FactorImplementationList(EvolvableSubjects):
+    """
+    Factors is a list.
+    """
 
-
+    def __init__(
+        self,
+        target_factor_tasks: list[FactorTask],
+        corresponding_gt: list[TestCase] = None,
+        corresponding_gt_implementations: list[TaskImplementation] = None,
+    ):
+        super().__init__()
+        self.target_factor_tasks = target_factor_tasks
+        self.corresponding_implementations: list[TaskImplementation] = []
+        self.corresponding_selection: list[list] = []
+        self.evolve_trace = {}
+        self.corresponding_gt = corresponding_gt
+        if corresponding_gt_implementations is not None and len(
+            corresponding_gt_implementations,
+        ) != len(target_factor_tasks):
+            self.corresponding_gt_implementations = None
+            FinCoLog.warning(
+                "The length of corresponding_gt_implementations is not equal to the length of target_factor_tasks, set corresponding_gt_implementations to None",
+            )
+        else:
+            self.corresponding_gt_implementations = corresponding_gt_implementations

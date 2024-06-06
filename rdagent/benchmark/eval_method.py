@@ -12,7 +12,7 @@ from rdagent.core.task import (
     FactorTask,
     TestCase,
 )
-from rdagent.benchmark.evaluators import (
+from rdagent.factor_implementation.evolving.evaluators import (
     FactorImplementationCorrelationEvaluator,
     FactorImplementationIndexEvaluator,
     FactorImplementationIndexFormatEvaluator,
