@@ -6,14 +6,14 @@ import pandas as pd
 from jinja2 import Template
 
 from rdagent.utils.llm import APIBackend
-from rdagent.core.log import FinCoLog
+from rdagent.utils.log import FinCoLog
 from rdagent.core.conf import LLMSettings
 from rdagent.core.task import (
     TaskImplementation,
     FactorTask,
 )
 from rdagent.core.evaluation import Evaluator
-from rdagent.core.prompts import Prompts
+from rdagent.utils.prompts import Prompts
 
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
