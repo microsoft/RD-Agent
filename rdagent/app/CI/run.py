@@ -9,7 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from difflib import ndiff
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import tree_sitter_python
 from rdagent.core.evolving_framework import (
@@ -41,6 +41,7 @@ from .prompts import (
 
 py_parser = Parser(Language(tree_sitter_python.language()))
 
+
 @dataclass
 class CIError:
     raw_str: str
@@ -50,9 +51,14 @@ class CIError:
     code: str
     msg: str
     hint: str
+    checker: Literal["ruff", "mypy"]
 
     def to_dict(self) -> dict[str, object]:
         return self.__dict__
+
+    def __str__(self) -> str:
+        return f"{self.file_path}:{self.line}:{self.column}: {self.code} {self.msg}\n{self.hint}".strip()
+
 
 @dataclass
 class CIFeedback(Feedback):
@@ -266,7 +272,8 @@ class RuffEvaluator(Evaluator):
         else:
             self.command = command
 
-    def explain_rule(self, error_code: str) -> RuffRule:
+    @staticmethod
+    def explain_rule(error_code: str) -> RuffRule:
         explain_command = f"ruff rule {error_code} --output-format json"
         try:
             out = subprocess.check_output(
@@ -311,19 +318,25 @@ class RuffEvaluator(Evaluator):
 
         for match in matches:
             raw_str, file_path, line_number, column_number, error_code, error_message, error_hint = match
-            error = CIError(
-                raw_str=raw_str,
-                file_path=file_path,
-                line=int(line_number),
-                column=int(column_number),
-                code=error_code,
-                msg=error_message,
-                hint=error_hint,
-            )
+
+            # TODO @bowen: filter these files when running the check command
+            if evo.project_path / Path(file_path) not in evo.files:
+                continue
+            error = CIError(raw_str=raw_str,
+                            file_path=file_path,
+                            line=int(line_number),
+                            column=int(column_number),
+                            code=error_code,
+                            msg=error_message,
+                            hint=error_hint,
+                            checker="ruff")
+
             errors[file_path].append(error)
 
         return CIFeedback(errors=errors)
 
+
+class MypyEvaluator(Evaluator):
 
     def __init__(self, command: str | None = None) -> None:
         if command is None:
@@ -341,33 +354,55 @@ class RuffEvaluator(Evaluator):
             )
         except subprocess.CalledProcessError as e:
             out = e.output
-        
+
         errors = defaultdict(list)
 
-        out = re.sub(r'([^\n]*?):(\d+):(\d+): error:', r'\n\1:\2: error:', out)
+        out = re.sub(r"([^\n]*?:\d+:\d+): error:", r"\n\1: error:", out)
         out += "\n"
-        pattern = r'(([^\n]*?):(\d+):(\d+): error:(.*?)\s\[([\w-]*?)\]\s(.*?))\n\n'
+        pattern = r"(([^\n]*?):(\d+):(\d+): error:(.*?)\s\[([\w-]*?)\]\s(.*?))\n\n"
         for match in re.findall(pattern, out, re.DOTALL):
             raw_str, file_path, line_number, column_number, error_message, error_code, error_hint = match
-            error_message = error_message.strip().replace('\n', ' ')
-            if re.match(r'.*[^\n]*?:\d+:\d+: note:.*', error_hint, re.DOTALL) is not None:
-                error_hint_position = re.split(r'[^\n]*?:\d+:\d+: note:', error_hint, re.DOTALL)[0]
-                error_hint_help = re.findall(r'^.*?:\d+:\d+: note: (.*)$', error_hint, re.MULTILINE)
+            error_message = error_message.strip().replace("\n", " ")
+            if re.match(r".*[^\n]*?:\d+:\d+: note:.*", error_hint, re.DOTALL) is not None:
+                error_hint_position = re.split(r"[^\n]*?:\d+:\d+: note:", error_hint, re.DOTALL)[0]
+                error_hint_help = re.findall(r"^.*?:\d+:\d+: note: (.*)$", error_hint, re.MULTILINE)
                 error_hint_help = "\n".join(error_hint_help)
                 error_hint = f"{error_hint_position}\nHelp:\n{error_hint_help}"
 
+            if evo.project_path / Path(file_path) not in evo.files:
+                continue
             error = CIError(raw_str=raw_str,
                             file_path=file_path,
                             line=int(line_number),
                             column=int(column_number),
                             code=error_code,
                             msg=error_message,
-                            hint=error_hint)
+                            hint=error_hint,
+                            checker="mypy")
 
             errors[file_path].append(error)
 
         return CIFeedback(errors=errors)
 
+
+class MultiEvaluator(Evaluator):
+
+    def __init__(self, *evaluators: Evaluator) -> None:
+        self.evaluators = evaluators
+
+    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
+
+        all_errors = defaultdict(list)
+        for evaluator in self.evaluators:
+            feedback: CIFeedback = evaluator.evaluate(evo, **kwargs)
+            for file_path, errors in feedback.errors.items():
+                all_errors[file_path].extend(errors)
+
+        # sort errors by position
+        for file_path in all_errors:
+            all_errors[file_path].sort(key=lambda x: (x.line, x.column))
+
+        return CIFeedback(errors=all_errors)
 
 class CIEvoStr(EvolvingStrategy):
     def evolve(
@@ -443,7 +478,7 @@ class CIEvoStr(EvolvingStrategy):
                         code_snippet_with_lineno = file.get(
                                     start_line, end_line, add_line_number=True, return_list=False,
                                 )
-                        errors_str = "\n".join([f"{error.raw_str}\n" for error in group_errors])
+                        errors_str = "\n\n".join(str(e) for e in group_errors)
 
                         # ask LLM to repair current code snippet
                         user_prompt = session_normal_template.format(
@@ -483,7 +518,7 @@ class CIEvoStr(EvolvingStrategy):
 
                     # print errors
                     printed_errors_str = "\n".join(
-                        [f"{error.line: >{file.lineno_width}}:{error.column: <4} {error.code}  {error.msg}" for error in group_errors],
+                        [f"[{error.checker}] {error.line: >{file.lineno_width}}:{error.column: <4} {error.code}  {error.msg}" for error in group_errors],
                     )
                     print(
                         Panel.fit(
@@ -597,19 +632,20 @@ while True:
 start_time = time.time()
 start_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%m%d%H%M")
 
-evo = Repo(DIR)
-ruff_evaluator = RuffEvaluator()
+repo = Repo(DIR)
+evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
 estr = CIEvoStr()
 rag = None  # RAG is not enable firstly.
 ea = EvoAgent(estr, rag=rag)
-ea.step_evolving(evo, ruff_evaluator)
+ea.step_evolving(repo, evaluator)
 while True:
     print(Rule(f"Round {len(ea.evolving_trace)} repair", style="blue"))
-    evo: Repo = ea.step_evolving(evo, eval)
-    fix_records = evo.fix_records
-    filename = f"{DIR.name}_{start_timestamp}_fix_records_{len(ea.evolving_trace)}.json"
+    repo: Repo = ea.step_evolving(repo, evaluator)
+
+    fix_records = repo.fix_records
+    filename = f"{DIR.name}_{start_timestamp}_round_{len(ea.evolving_trace)}_fix_records.json"
     with Path(filename).open("w") as file:
-        json.dump([v.to_dict() for k,v in fix_records.items()], file, indent=4)
+        json.dump({k:v.to_dict() for k,v in fix_records.items()}, file, indent=4)
 
     # Count the number of skipped errors
     skipped_errors_count = 0
@@ -618,26 +654,30 @@ while True:
     skipped_errors_code_count = defaultdict(int)
     directly_fixed_errors_code_count = defaultdict(int)
     manually_fixed_errors_code_count = defaultdict(int)
+    code_message = defaultdict(str)
     for record in fix_records.values():
         skipped_errors_count += len(record.skipped_errors)
         directly_fixed_errors_count += len(record.directly_fixed_errors)
         manually_fixed_errors_count += len(record.manually_fixed_errors)
         for error in record.skipped_errors:
             skipped_errors_code_count[error.code] += 1
+            code_message[error.code] = error.msg
         for error in record.directly_fixed_errors:
             directly_fixed_errors_code_count[error.code] += 1
+            code_message[error.code] = error.msg
         for error in record.manually_fixed_errors:
             manually_fixed_errors_code_count[error.code] += 1
+            code_message[error.code] = error.msg
 
     skipped_errors_statistics = ""
     directly_fixed_errors_statistics = ""
     manually_fixed_errors_statistics = ""
     for code, count in sorted(skipped_errors_code_count.items(), key=lambda x: x[1], reverse=True):
-        skipped_errors_statistics += f"{count: >5} {code: >10} {eval.explain_rule(code).summary}\n"
+        skipped_errors_statistics += f"{count: >5} {code: >10} {code_message[code]}\n"
     for code, count in sorted(directly_fixed_errors_code_count.items(), key=lambda x: x[1], reverse=True):
-        directly_fixed_errors_statistics += f"{count: >5} {code: >10} {eval.explain_rule(code).summary}\n"
+        directly_fixed_errors_statistics += f"{count: >5} {code: >10} {code_message[code]}\n"
     for code, count in sorted(manually_fixed_errors_code_count.items(), key=lambda x: x[1], reverse=True):
-        manually_fixed_errors_statistics += f"{count: >5} {code: >10} {eval.explain_rule(code).summary}\n"
+        manually_fixed_errors_statistics += f"{count: >5} {code: >10} {code_message[code]}\n"
 
     # Create a table to display the counts and ratios
     table = Table(title="Error Fix Statistics")
