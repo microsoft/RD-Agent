@@ -30,7 +30,6 @@ from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_betwe
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )
-from oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationKnowledge(Knowledge):
