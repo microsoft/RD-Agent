@@ -204,9 +204,7 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
         response = self.api_backend._try_create_chat_completion_or_embedding(
-            messages=messages,
-            chat_completion=True,
-            **kwargs,
+            messages=messages, chat_completion=True, **kwargs,
         )
         messages.append(
             {
@@ -421,9 +419,7 @@ class APIBackend:
         elif isinstance(input_content, list):
             input_content_list = input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list,
-            embedding=True,
-            **kwargs,
+            input_content_list=input_content_list, embedding=True, **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]

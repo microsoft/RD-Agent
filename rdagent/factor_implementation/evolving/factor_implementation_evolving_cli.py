@@ -262,11 +262,7 @@ class FactorImplementationEvolvingCli:
         print([feedback.final_decision if feedback is not None else None for feedback in feedbacks].count(True))
 
     def implement_amc(
-        self,
-        evo_sub_path_str,
-        former_knowledge_base_path_str,
-        implementation_dump_path_str,
-        slice_index,
+        self, evo_sub_path_str, former_knowledge_base_path_str, implementation_dump_path_str, slice_index,
     ):
         factor_implementations: FactorImplementationList = pickle.load(open(evo_sub_path_str, "rb"))
         factor_implementations.target_factor_tasks = factor_implementations.target_factor_tasks[

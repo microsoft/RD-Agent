@@ -335,7 +335,6 @@ class RuffEvaluator(Evaluator):
 
         return CIFeedback(errors=errors)
 
-
 class MypyEvaluator(Evaluator):
 
     def __init__(self, command: str | None = None) -> None:
@@ -699,7 +698,7 @@ while True:
                    Text(f"{manually_fixed_errors_count / total_errors_count:.2%}"), style="yellow")
 
     print(table)
-    operation = Prompt.ask("Start next round? (y/n): ", choices=["y", "n"])
+    operation = Prompt.ask("Start next round? (y/n)", choices=["y", "n"])
     if operation == "n":
         break
 

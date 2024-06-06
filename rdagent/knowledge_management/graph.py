@@ -238,8 +238,7 @@ class UndirectedGraph(Graph):
                 result.append(node)
 
                 for neighbor in sorted(
-                    list(self.get_node(node.id).neighbors),
-                    key=lambda x: x.content,
+                    list(self.get_node(node.id).neighbors), key=lambda x: x.content,
                 ):  # to make sure the result is deterministic
                     if neighbor not in visited:
                         if not (block and neighbor.label not in constraint_labels):
@@ -276,16 +275,12 @@ class UndirectedGraph(Graph):
         for node in nodes:
             if intersection is None:
                 intersection = self.get_nodes_within_steps(
-                    node,
-                    steps=steps,
-                    constraint_labels=constraint_labels,
+                    node, steps=steps, constraint_labels=constraint_labels,
                 )
             intersection = self.intersection(
                 nodes1=intersection,
                 nodes2=self.get_nodes_within_steps(
-                    node,
-                    steps=steps,
-                    constraint_labels=constraint_labels,
+                    node, steps=steps, constraint_labels=constraint_labels,
                 ),
             )
 
@@ -398,9 +393,7 @@ class UndirectedGraph(Graph):
         res_list = []
         for query in content:
             similar_nodes = self.semantic_search(
-                content=query,
-                topk_k=topk_k,
-                similarity_threshold=similarity_threshold,
+                content=query, topk_k=topk_k, similarity_threshold=similarity_threshold,
             )
 
             connected_nodes = []
@@ -414,7 +407,11 @@ class UndirectedGraph(Graph):
                     block=block,
                 )
                 connected_nodes.extend(
-                    [node for node in graph_query_node_res if node not in connected_nodes],
+                    [
+                        node
+                        for node in graph_query_node_res
+                        if node not in connected_nodes
+                    ],
                 )
                 if len(connected_nodes) >= topk_k:
                     break
@@ -458,9 +455,7 @@ def graph_to_edges(graph: Dict[str, List[str]]):
 
 
 def assign_random_coordinate_to_node(
-    nodes: List,
-    scope: float = 1.0,
-    origin: Tuple = (0.0, 0.0),
+    nodes: List, scope: float = 1.0, origin: Tuple = (0.0, 0.0),
 ) -> Dict:
     coordinates = {}
 
@@ -473,10 +468,7 @@ def assign_random_coordinate_to_node(
 
 
 def assign_isometric_coordinate_to_node(
-    nodes: List,
-    x_step: float = 1.0,
-    x_origin: float = 0.0,
-    y_origin: float = 0.0,
+    nodes: List, x_step: float = 1.0, x_origin: float = 0.0, y_origin: float = 0.0,
 ) -> Dict:
     coordinates = {}
 
@@ -489,9 +481,7 @@ def assign_isometric_coordinate_to_node(
 
 
 def curly_node_coordinate(
-    coordinates: Dict,
-    center_y: float = 1.0,
-    r: float = 1.0,
+    coordinates: Dict, center_y: float = 1.0, r: float = 1.0,
 ) -> Dict:
     # noto: this method can only curly < 90 degree, and the curl line is circle.
     # the original funtion is: x**2 + (y-m)**2 = r**2
