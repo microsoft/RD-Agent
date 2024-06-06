@@ -10,12 +10,11 @@ from factor_implementation.share_modules.factor import (
 from factor_implementation.share_modules.prompt import FactorImplementationPrompts
 from finco.log import FinCoLog
 from jinja2 import Template
-from oai.llm_utils import APIBackend
+from rdagent.oai.llm_utils import APIBackend
 
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )
-from oai.llm_utils import APIBackend
 
 
 class Evaluator(ABC):
