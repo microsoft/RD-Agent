@@ -74,17 +74,18 @@ The lint info contains one or more errors. \
 Different errors are separated by blank lines. Each error follows this format:
 -----Lint info format-----
 <Line Number>:<Error Start Position> <Error Code> <Error Message>
-<Error Context (multiple lines)>
-<Helpful Information (last line)>
+<Error Position (maybe multiple lines)>
+<Helpful Information (sometimes have)>
 --------------------------
 The error code is an abbreviation set by the checker for ease of describing the error. \
-The error context includes the relevant code around the error, and the helpful information suggests possible fixes.
+The error position includes the relevant code around the error, \
+and the helpful information provides useful information or possible fix method.
 
 Please simply reply the code after you fix all linting errors. You should be aware of the following:
 1. The indentation of the code should be consistent with the original code.
 2. You should just replace the code I provided you, which starts from line {start_line} to line {end_line}.
 3. You'll need to add line numbers to the modified code which starts from {start_lineno}.
-4. You don't need to add comments to your changes.
+4. You don't need to add comments to explain your changes.
 Please wrap your code with following format:
 
 ```python
