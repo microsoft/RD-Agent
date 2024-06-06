@@ -5,7 +5,7 @@ import yaml
 from rdagent.core.utils import SingletonBaseClass
 
 
-class Prompts(Dict, SingletonBaseClass):
+class Prompts(Dict[str, str], SingletonBaseClass):
     def __init__(self, file_path: Path):
         prompt_yaml_dict = yaml.load(
             open(

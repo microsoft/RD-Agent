@@ -21,6 +21,7 @@ from rdagent.core.evolving_framework import (
     Feedback,
     Knowledge,
 )
+from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
 from rich import print
 from rich.panel import Panel
@@ -32,15 +33,8 @@ from rich.table import Table
 from rich.text import Text
 from tree_sitter import Language, Node, Parser
 
-from .prompts import (
-    linting_system_prompt_template,
-    session_manual_template,
-    session_normal_template,
-    session_start_template,
-)
-
 py_parser = Parser(Language(tree_sitter_python.language()))
-
+CI_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 @dataclass
 class CIError:
@@ -213,9 +207,12 @@ class CodeFile:
 
 
 class Repo(EvolvableSubjects):
-    def __init__(self, project_path: Path | str, **kwargs: Any) -> None:
+    def __init__(self, project_path: Path | str, excludes: list[Path] = [], **kwargs: Any) -> None:
         self.params = kwargs
         self.project_path = Path(project_path)
+
+        excludes = [self.project_path / path for path in excludes]
+
         git_ignored_output = subprocess.check_output(
             ["git", "status", "--ignored", "-s"],
             cwd=project_path,
@@ -228,11 +225,13 @@ class Repo(EvolvableSubjects):
             if line.startswith("!!")
         ]
 
+        excludes.extend(git_ignored_files)
+
         files = [
             file
             for file in self.project_path.glob("**/*")
             if file.is_file()
-            and not any(str(file).startswith(str(path)) for path in git_ignored_files)
+            and not any(str(file).startswith(str(path)) for path in excludes)
             and ".git/" not in str(file)
             and file.suffix == ".py"
         ]
@@ -428,7 +427,7 @@ class CIEvoStr(EvolvingStrategy):
             responses: list[str]
 
         api = APIBackend()
-        system_prompt = linting_system_prompt_template.format(language="Python")
+        system_prompt = CI_prompts["linting_system_prompt_template"].format(language="Python")
 
         if len(evolving_trace) > 0:
             last_feedback: CIFeedback = evolving_trace[-1].feedback
@@ -470,7 +469,7 @@ class CIEvoStr(EvolvingStrategy):
                         session = api.build_chat_session(session_system_prompt=system_prompt)
                         session_id = session.get_conversation_id()
                         session.build_chat_completion(
-                            session_start_template.format(code=file.get(add_line_number=True)),
+                            CI_prompts["session_start_template"].format(code=file.get(add_line_number=True)),
                         )
 
                         fix_groups[file_path].append(
@@ -493,7 +492,7 @@ class CIEvoStr(EvolvingStrategy):
                         errors_str = "\n\n".join(str(e) for e in group_errors)
 
                         # ask LLM to repair current code snippet
-                        user_prompt = session_normal_template.format(
+                        user_prompt = CI_prompts["session_normal_template"].format(
                             code=code_snippet_with_lineno,
                             lint_info=errors_str,
                             start_line=start_line,
@@ -621,7 +620,7 @@ class CIEvoStr(EvolvingStrategy):
                             break
 
                         fix_records[file_path].manual_instructions[operation].extend(group_errors)
-                        res = session.build_chat_completion(session_manual_template.format(operation=operation))
+                        res = session.build_chat_completion(CI_prompts["session_manual_template"].format(operation=operation))
                         code_fix_g.responses.append(res)
 
                 # apply changes
@@ -633,18 +632,17 @@ class CIEvoStr(EvolvingStrategy):
 
 
 DIR = None
-while True:
-    DIR = Prompt.ask("Please input the project directory")
+while DIR is None or not DIR.exists():
+    DIR = Prompt.ask("Please input the [cyan]project directory[/cyan]")
     DIR = Path(DIR)
-    if DIR.exists():
-        break
-    else:
-        print("Invalid directory. Please try again.")
+
+excludes = Prompt.ask("Input the [dark_orange]excluded directories[/dark_orange] (relative to [cyan]project path[/cyan] and separated by whitespace)").split(" ")
+excludes = [Path(exclude.strip()) for exclude in excludes if exclude.strip() != ""]
 
 start_time = time.time()
 start_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%m%d%H%M")
 
-repo = Repo(DIR)
+repo = Repo(DIR, excludes=excludes)
 evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
 estr = CIEvoStr()
 rag = None  # RAG is not enable firstly.
