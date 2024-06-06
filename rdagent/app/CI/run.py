@@ -64,6 +64,13 @@ class CIError:
 class CIFeedback(Feedback):
     errors: dict[str, list[CIError]]
 
+    def statistics(self) -> dict[Literal["ruff", "mypy"], dict[str, int]]:
+        error_counts = defaultdict(lambda: defaultdict(int))
+        for file_errors in self.errors.values():
+            for error in file_errors:
+                error_counts[error.checker][error.code] += 1
+        return error_counts
+
 
 @dataclass
 class FixRecord:
@@ -425,6 +432,12 @@ class CIEvoStr(EvolvingStrategy):
 
         if len(evolving_trace) > 0:
             last_feedback: CIFeedback = evolving_trace[-1].feedback
+
+            # print statistics
+            checker_error_counts = {checker: sum(c_statistics.values()) for checker, c_statistics in last_feedback.statistics().items()}
+            print(f"Found [red]{sum(checker_error_counts.values())}[/red] errors, including: " +
+                  ", ".join(f"[red]{count}[/red] [magenta]{checker}[/magenta] errors" for checker, count in checker_error_counts.items()))
+
             fix_records: dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], [], defaultdict(list)))
 
             # Group errors by code blocks
@@ -492,12 +505,12 @@ class CIEvoStr(EvolvingStrategy):
                         res = session.build_chat_completion(user_prompt)
 
                         code_fix_g.responses.append(res)
-                        progress.update(task_id, description=f"Fixing [cyan]{file_path}[/cyan]...", advance=1)
+                        progress.update(task_id, description=f"[green]Fixing[/green] [cyan]{file_path}[/cyan]...", advance=1)
 
 
             # Manual inspection and repair
             for file_path in last_feedback.errors:
-                print(Rule(f"[cyan]Checking {file_path}[/cyan]", style="bold cyan", align="left", characters="."))
+                print(Rule(f"[bright_blue]Checking[/bright_blue] [cyan]{file_path}[/cyan]", style="bright_blue", align="left", characters="."))
 
                 file = evo.files[evo.project_path / Path(file_path)]
 
@@ -506,7 +519,7 @@ class CIEvoStr(EvolvingStrategy):
                     start_line, end_line, group_errors = code_fix_g.start_line, code_fix_g.end_line, code_fix_g.errors
                     session = api.build_chat_session(conversation_id=code_fix_g.session_id)
 
-                    print(f"[yellow]Checking part {group_id}...[/yellow]\n")
+                    print(f"[yellow]Checking part {group_id}...[/yellow]")
 
                     front_context = file.get(start_line-3, start_line-1)
                     rear_context = file.get(end_line+1, end_line+3)
@@ -589,13 +602,13 @@ class CIEvoStr(EvolvingStrategy):
 
                         operation = Prompt.ask("Input your operation [ [red]([bold]s[/bold])kip[/red] / "
                                                 "[green]([bold]a[/bold])pply[/green] / [yellow]manual instruction[/yellow] ]")
+                        print()
                         if operation in ("s", "skip"):
                             fix_records[file_path].skipped_errors.extend(group_errors)
                             break
                         if operation in ("a", "apply"):
                             if fixed_errors_info:
                                 fixed_errors_str = "\n".join(fixed_errors_info["errors"])
-                                print(fixed_errors_str)
                                 for error in group_errors:
                                     if f"{error.line}:{error.column}" in fixed_errors_str:
                                         fix_records[file_path].manually_fixed_errors.append(error)
