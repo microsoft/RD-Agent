@@ -12,11 +12,11 @@ import tiktoken
 import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from rdagent.core.conf import FincoSettings as Config
-from rdagent.core.log import FinCoLog
-from rdagent.core.prompts import Prompts
+from rdagent.core.conf import LLMSettings as Config
+from rdagent.utils.log import FinCoLog
+from rdagent.utils.prompts import Prompts
 from jinja2 import Template
-from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
+from rdagent.utils.llm import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize

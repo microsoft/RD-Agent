@@ -2,17 +2,17 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 import pandas as pd
 from rdagent.core.task import (
-    FactorImplementation,
-    FactorTask
+    TaskImplementation,
+    FactorImplementTask
 )
 
 class Evaluator(ABC):
     @abstractmethod
     def evaluate(
         self,
-        target_task: FactorTask,
-        implementation: FactorImplementation,
-        gt_implementation: FactorImplementation,
+        target_task: FactorImplementTask,
+        implementation: TaskImplementation,
+        gt_implementation: TaskImplementation,
         **kwargs,
     ):
         raise NotImplementedError
@@ -24,8 +24,8 @@ class FactorImplementationEvaluator(Evaluator):
     @abstractmethod
     def evaluate(
         self,
-        gt: FactorImplementation,
-        gen: FactorImplementation,
+        gt: TaskImplementation,
+        gen: TaskImplementation,
     ) -> Tuple[str, object]:
         """You can get the dataframe by
 
@@ -43,7 +43,7 @@ class FactorImplementationEvaluator(Evaluator):
         """
         raise NotImplementedError("Please implement the `evaluator` method")
 
-    def _get_df(self, gt: FactorImplementation, gen: FactorImplementation):
+    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation):
         _, gt_df = gt.execute()
         _, gen_df = gen.execute()
         if isinstance(gen_df, pd.Series):

@@ -1,4 +1,6 @@
 import json
+import re
+
 from abc import ABC, abstractmethod
 from typing import Tuple
 
@@ -10,15 +12,20 @@ from rdagent.utils.log import FinCoLog
 from rdagent.core.conf import LLMSettings
 from rdagent.core.task import (
     TaskImplementation,
-    FactorTask,
+    FactorImplementTask,
 )
+from typing import List, Tuple
+from rdagent.core.evolving_framework import QueriedKnowledge,Feedback
 from rdagent.core.evaluation import Evaluator
 from rdagent.utils.prompts import Prompts
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
+from rdagent.utils.misc import multiprocessing_wrapper
+from rdagent.core.task import FactorImplementationList
 
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
         self,
-        target_task: FactorTask,
+        target_task: FactorImplementTask,
         implementation: TaskImplementation,
         execution_feedback: str,
         factor_value_feedback: str = "",
@@ -465,7 +472,7 @@ def shorten_prompt(tpl: str, render_kwargs: dict, shorten_key: str, max_trail: i
 class FactorImplementationFinalDecisionEvaluator(Evaluator):
     def evaluate(
         self,
-        target_task: FactorTask,
+        target_task: FactorImplementTask,
         execution_feedback: str,
         value_feedback: str,
         code_feedback: str,
@@ -571,9 +578,9 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
 
     def evaluate(
         self,
-        target_task: FactorImplementationTask,
-        implementation: FactorImplementation,
-        gt_implementation: FactorImplementation = None,
+        target_task: FactorImplementTask,
+        implementation: TaskImplementation,
+        gt_implementation: TaskImplementation = None,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorImplementationSingleFeedback:

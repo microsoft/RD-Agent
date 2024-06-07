@@ -9,7 +9,7 @@ from rdagent.core.conf import FactorImplementSettings
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.task import (
     TaskImplementation,
-    FactorTask,
+    FactorImplementTask,
     TestCase,
 )
 from rdagent.factor_implementation.evolving.evaluators import (
@@ -176,7 +176,7 @@ class FileBasedFactorImplementation(TaskImplementation):
 
     def __init__(
         self,
-        target_task: FactorTask,
+        target_task: FactorImplementTask,
         code,
         executed_factor_value_dataframe=None,
         raise_exception=False,
@@ -315,7 +315,7 @@ class FileBasedFactorImplementation(TaskImplementation):
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
+    def from_folder(task: FactorImplementTask, path: Union[str, Path], **kwargs):
         path = Path(path)
         factor_path = (path / task.factor_name).with_suffix(".py")
         with factor_path.open("r") as f:

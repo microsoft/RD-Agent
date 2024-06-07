@@ -1,14 +1,27 @@
 from __future__ import annotations
 
+import re
+import random
+import json
+import copy
+
+from jinja2 import Template
+
 from itertools import combinations
 from pathlib import Path
 from typing import Union
 
-from evolving.core import (
+from rdagent.core.evolving_framework import (
     KnowledgeBase,
 )
-from finco.graph import UndirectedGraph, UndirectedNode
-from finco.log import FinCoLog
+from rdagent.core.evolving_framework import EvoStep, EvolvableSubjects, RAGStrategy, Knowledge, QueriedKnowledge
+from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledge, FactorImplementationQueriedGraphKnowledge
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
+
+from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from rdagent.utils.prompts import Prompts
+from rdagent.utils.log import FinCoLog
+from rdagent.utils.llm import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
@@ -220,7 +233,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
     def __init__(self, knowledgebase: FactorImplementationGraphKnowledgeBase) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
-        self.prompt = FactorImplementationPrompts()
+        self.prompt = Prompts()
 
     def generate_knowledge(
         self,

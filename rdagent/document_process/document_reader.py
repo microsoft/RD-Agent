@@ -5,8 +5,8 @@ from pathlib import Path
 import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from rdagent.core.conf import FincoSettings as Config
-from rdagent.core.prompts import Prompts
+from rdagent.core.conf import LLMSettings as Config
+from rdagent.utils.prompts import Prompts
 
 from langchain_core.documents import Document
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader

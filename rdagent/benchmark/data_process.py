@@ -1,7 +1,7 @@
 from scripts.benchmark.config import TASK_VERSION
 from rdagent.core.implementation import TaskImplementation
 from typing import List
-from rdagent.core.task import FactorTask, TestCase
+from rdagent.core.task import FactorImplementTask, TestCase
 # TODO:Need to verify the type of input data，how to deal with the gt
 
 # (haoxue) need to check the following code, it seems that there exists task.py 
@@ -66,7 +66,7 @@ def load_tasks(data: dict, with_fname=False):
     ft_l = []
     for fname, factor_list in data.items():
         for t in factor_list:
-            ft = FactorTask.from_dict(t)
+            ft = FactorImplementTask.from_dict(t)
             # key in factor
             if "variables" in t:
                 ft.factor_formulation_description = str(t["variables"])
@@ -98,7 +98,7 @@ class FileBasedFactorImplementation(TaskImplementation):
 
     def __init__(
         self,
-        target_task: FactorTask,
+        target_task: FactorImplementTask,
         code,
         executed_factor_value_dataframe=None,
         raise_exception=False,
@@ -237,7 +237,7 @@ class FileBasedFactorImplementation(TaskImplementation):
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
+    def from_folder(task: FactorImplementTask, path: Union[str, Path], **kwargs):
         path = Path(path)
         factor_path = (path / task.factor_name).with_suffix(".py")
         with factor_path.open("r") as f:

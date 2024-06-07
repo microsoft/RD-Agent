@@ -7,9 +7,11 @@ from rdagent.document_process.document_analysis import (
     deduplicate_factors_by_llm,
     extract_factors_from_report_dict,
     merge_file_to_factor_dict_to_factor_dict,
+    classify_report_from_dict,
 )
 from rdagent.document_process.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.document_process.document_analysis import classify_report_from_dict
+from rdagent.factor_implementation.share_modules.factor_implementation_utils import load_data_from_dict
+from rdagent.factor_implementation.CoSTEER import CoSTEERFG
 from dotenv import load_dotenv
 
 
@@ -25,6 +27,11 @@ def extract_factors_and_implement(report_file_path: str):
 
     factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
 
+    factor_tasks = load_data_from_dict(factor_dict)
+
+    factor_generate_method = CoSTEERFG()
+
+    result = factor_generate_method.generate(factor_tasks)
 
 if __name__ == "__main__":
-    extract_factors_and_implement("/home/xuyang1/workspace/report.pdf")
+    extract_factors_and_implement("/home/finco/v-wenjunfeng/RD-Agent/report.pdf")

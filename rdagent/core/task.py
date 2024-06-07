@@ -27,13 +27,13 @@ class TestCase:
         self.ground_truth = ground_truth
         self.target_task = target_task
 
-class FactorTask(BaseTask):
+class FactorImplementTask(BaseTask):
     def __init__(
         self,
         factor_name,
         factor_description,
         factor_formulation,
-        factor_formulation_description,
+        factor_formulation_description: str = None,
         variables: dict = {},
         resource: str = None,
     ) -> None:
@@ -41,7 +41,6 @@ class FactorTask(BaseTask):
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.factor_formulation_description = factor_formulation_description
-        # TODO: check variables a good candidate
         self.variables = variables
         self.factor_resources = resource
 
@@ -53,7 +52,7 @@ factor_formulation_description: {self.factor_formulation_description}"""
 
     @staticmethod
     def from_dict(dict):
-        return FactorTask(**dict)
+        return FactorImplementTask(**dict)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
@@ -74,7 +73,7 @@ class FactorImplementationList(EvolvableSubjects):
 
     def __init__(
         self,
-        target_factor_tasks: list[FactorTask],
+        target_factor_tasks: list[FactorImplementTask],
         corresponding_gt: list[TestCase] = None,
         corresponding_gt_implementations: list[TaskImplementation] = None,
     ):

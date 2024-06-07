@@ -3,7 +3,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import FactorTask, TaskImplementation
+from rdagent.core.task import FactorImplementTask, TaskImplementation
 from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1
@@ -52,7 +52,7 @@ class CoSTEERFG(TaskGenerator):
             )
         return factor_knowledge_base
     
-    def generate(self, tasks: List[FactorTask]) -> List[TaskImplementation]:
+    def generate(self, tasks: List[FactorImplementTask]) -> List[TaskImplementation]:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base,

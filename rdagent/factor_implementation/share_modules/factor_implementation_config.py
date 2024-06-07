@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from core.conf import FincoSettings
+from pydantic_settings import BaseSettings
 
-
-class FactorImplementSettings(FincoSettings):
+class FactorImplementSettings(BaseSettings):
     file_based_execution_data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
     )
