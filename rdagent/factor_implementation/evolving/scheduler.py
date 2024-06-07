@@ -3,11 +3,11 @@ from scripts.factor_implementation.share_modules.prompt import (
     FactorImplementationPrompts,
 )
 from jinja2 import Template
-from scripts.factor_implementation.share_modules.conf import FactorImplementSettings
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
 import json
 from scripts.factor_implementation.share_modules.utils import get_data_folder_intro
-from scripts.factor_implementation.baselines.evolving.evolvable_subjects import (
-    FactorImplementationList,
+from rdagent.core.task import (
+    FactorEvovlingItem,
 )
 def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
     import random
@@ -18,7 +18,7 @@ def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
     print("The random selection is:",to_be_finished_task_index)
     return to_be_finished_task_index
 
-def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo:FactorImplementationList, former_trace):
+def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo:FactorEvovlingItem, former_trace):
     tasks = []
     for i in to_be_finished_task_index:
     # find corresponding former trace for each task
@@ -65,7 +65,7 @@ def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo:F
     code = json.loads(response)["selected_factor"]
     return code
 
-def LLMCoTSelect(to_be_finished_task_index, implementation_factors_per_round, evo:FactorImplementationList, former_trace):
+def LLMCoTSelect(to_be_finished_task_index, implementation_factors_per_round, evo:FactorEvovlingItem, former_trace):
     tasks = []
     for i in to_be_finished_task_index:
     # find corresponding former trace for each task

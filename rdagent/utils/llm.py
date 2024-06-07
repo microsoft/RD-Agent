@@ -436,7 +436,7 @@ class APIBackend:
         self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
             self.cache_file_location = self.cfg.prompt_cache_path
-            self.cache = SQliteLazyCache(self.cache_file_location)
+            self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = self.cfg.use_llama2

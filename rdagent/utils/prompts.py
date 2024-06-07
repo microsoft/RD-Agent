@@ -4,7 +4,6 @@ from typing import Dict
 import yaml
 from rdagent.utils.llm import SingletonBaseClass
 
-
 class Prompts(Dict, SingletonBaseClass):
     def __init__(self, file_path: Path):
         prompt_yaml_dict = yaml.load(

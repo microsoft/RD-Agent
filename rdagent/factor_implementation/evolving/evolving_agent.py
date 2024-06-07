@@ -22,7 +22,7 @@ class EvoAgent:
         # 2. 检索需要的Knowledge
         queried_knowledge = None
         if with_knowledge and self.rag is not None:
-            # 这里放了evolving_trace实际上没有作用
+            # TODO: 这里放了evolving_trace实际上没有作用
             queried_knowledge = self.rag.query(evo, self.evolving_trace)
 
         # 3. evolve

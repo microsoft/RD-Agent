@@ -233,7 +233,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
     def __init__(self, knowledgebase: FactorImplementationGraphKnowledgeBase) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
-        self.prompt = Prompts()
+        self.prompt = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
     def generate_knowledge(
         self,

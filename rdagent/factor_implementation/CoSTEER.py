@@ -3,7 +3,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import FactorImplementTask, TaskImplementation
+from rdagent.core.task import FactorImplementTask, TaskImplementation, FactorEvovlingItem
 from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1
@@ -30,11 +30,10 @@ class CoSTEERFG(TaskGenerator):
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
         if self.knowledge_base_path is not None:
-            self.knowledge_base        # declare the evolving strategy and RAG strategy
+            self.knowledge_base_path = Path(knowledge_base_path)       # declare the evolving strategy and RAG strategy
         self.evolving_strategy = FactorEvolvingStrategyWithGraph()
         # declare the factor evaluator
         self.factor_evaluator = FactorImplementationsMultiEvaluator(FactorImplementationEvaluatorV1())
-        self.evolve_agent = EvoAgent()
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
@@ -55,14 +54,19 @@ class CoSTEERFG(TaskGenerator):
     def generate(self, tasks: List[FactorImplementTask]) -> List[TaskImplementation]:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
-            former_knowledge_base_path=self.knowledge_base,
+            former_knowledge_base_path=self.knowledge_base_path,
             component_init_list=[],
         )
         # init rag method
         self.rag = (
             FactorImplementationGraphRAGStrategy(factor_knowledge_base)
         )
-        # 
+
+        # init indermediate items
+        factor_implementations = FactorEvovlingItem(target_factor_tasks=tasks)
+
+        self.evolve_agent = EvoAgent(evolving_strategy=self.evolving_strategy, rag=self.rag)
+
         for _ in tqdm(range(self.max_loops), "Implementing factors"):
             factor_implementations = self.evolve_agent.step_evolving(
                 factor_implementations,

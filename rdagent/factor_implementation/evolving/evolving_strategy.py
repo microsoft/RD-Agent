@@ -9,12 +9,15 @@ from jinja2 import Template
 
 from evolving.core import EvolvingStrategy, QueriedKnowledge
 from rdagent.utils.llm import APIBackend
-from scripts.factor_implementation.share_modules.conf import FactorImplementSettings
-from scripts.factor_implementation.share_modules.factor import (
-    FactorImplementation,
-    FactorImplementationTask,
-    FileBasedFactorImplementation,
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
 )
+from rdagent.core.task import (
+    TaskImplementation,
+    FactorImplementTask,
+)
+
+from rdagent.factor_implementation.evolving.knowledge_management import FileBasedFactorImplementation
 
 from rdagent.factor_implementation.evolving.scheduler import (
     RandomSelect,
@@ -29,8 +32,8 @@ from scripts.factor_implementation.share_modules.utils import get_data_folder_in
 from utils.misc import multiprocessing_wrapper
 
 if TYPE_CHECKING:
-    from scripts.factor_implementation.baselines.evolving.evolvable_subjects import (
-        FactorImplementationList,
+    from rdagent.core.task import (
+        FactorEvovlingItem,
     )
     from scripts.factor_implementation.baselines.evolving.knowledge_management import (
         FactorImplementationQueriedKnowledge,
@@ -42,18 +45,18 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
     @abstractmethod
     def implement_one_factor(
         self,
-        target_task: FactorImplementationTask,
+        target_task: FactorImplementTask,
         queried_knowledge: QueriedKnowledge = None,
-    ) -> FactorImplementation:
+    ) -> TaskImplementation:
         raise NotImplementedError
 
     def evolve(
         self,
         *,
-        evo: FactorImplementationList,
+        evo: FactorEvovlingItem,
         queried_knowledge: FactorImplementationQueriedKnowledge | None = None,
         **kwargs,
-    ) -> FactorImplementationList:
+    ) -> FactorEvovlingItem:
         self.num_loop += 1
         new_evo = deepcopy(evo)
         new_evo.corresponding_implementations = [None for _ in new_evo.target_factor_tasks]
@@ -76,13 +79,13 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
         if FactorImplementSettings().implementation_factors_per_round < len(to_be_finished_task_index):
             # if the number of loops is equal to the select_loop, we need to select some of them
-            if FactorImplementSettings().select_factor_method == "random":
+            if FactorImplementSettings().select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
                     FactorImplementSettings().implementation_factors_per_round
                 )
 
-            if FactorImplementSettings().select_factor_method == "LLM":
+            if FactorImplementSettings().select_method == "LLM":
                 to_be_finished_task_index = LLMSelect(
                     to_be_finished_task_index,
                     FactorImplementSettings().implementation_factors_per_round,
@@ -90,7 +93,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                     queried_knowledge.all_former_traces,
                 )
 
-            if FactorImplementSettings().select_factor_method == "CoT":
+            if FactorImplementSettings().select_method == "CoT":
                 to_be_finished_task_index = LLMCoTSelect(
                     to_be_finished_task_index,
                     FactorImplementSettings().implementation_factors_per_round,
@@ -98,7 +101,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                     queried_knowledge.all_former_traces,
                 )
         
-        # 
         result = multiprocessing_wrapper(
             [
                 (self.implement_one_factor, (new_evo.target_factor_tasks[target_index], queried_knowledge))
@@ -117,19 +119,16 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 new_evo.evolve_trace[result[index].target_task.factor_name] = [result[index]]
 
         new_evo.corresponding_selection.append(to_be_finished_task_index)
-        # for target_index in to_be_finished_task_index:
-        #     new_evo.corresponding_implementations[target_index] = self.implement_one_factor(
-        #         new_evo.target_factor_tasks[target_index], queried_knowledge
-        #     )
+
         return new_evo
 
 
 class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_factor(
         self,
-        target_task: FactorImplementationTask,
+        target_task: FactorImplementTask,
         queried_knowledge: FactorImplementationQueriedKnowledgeV1 = None,
-    ) -> FactorImplementation:
+    ) -> TaskImplementation:
         factor_information_str = target_task.get_factor_information()
 
         if queried_knowledge is not None and factor_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -205,9 +204,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
 
     def implement_one_factor(
         self,
-        target_task: FactorImplementationTask,
+        target_task: FactorImplementTask,
         queried_knowledge,
-    ) -> FactorImplementation:
+    ) -> TaskImplementation:
         error_summary = FactorImplementSettings().v2_error_summary
         # 1. 提取因子的背景信息
         target_factor_task_information = target_task.get_factor_information()

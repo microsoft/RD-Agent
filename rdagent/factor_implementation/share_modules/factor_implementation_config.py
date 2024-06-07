@@ -2,6 +2,10 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
+from typing import Literal
+
+SELECT_METHOD = Literal["random", "scheduler"]
+
 class FactorImplementSettings(BaseSettings):
     file_based_execution_data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
@@ -36,6 +40,8 @@ class FactorImplementSettings(BaseSettings):
     evo_multi_proc_n: int = 16  # how many processes to use for evolving (including eval & generation)
 
     file_based_execution_timeout: int = 120  # seconds for each factor implementation execution
+
+    select_method: SELECT_METHOD = "random"
 
 
 FIS = FactorImplementSettings()

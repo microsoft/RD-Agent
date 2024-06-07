@@ -9,7 +9,7 @@ This file contains the all the data class for rdagent task.
 class BaseTask(ABC):
     # 把name放在这里作为主键
     pass
-# X, y
+
 class TaskImplementation(ABC):
     def __init__(self, target_task: BaseTask) -> None:
         self.target_task = target_task
@@ -33,7 +33,7 @@ class FactorImplementTask(BaseTask):
         factor_name,
         factor_description,
         factor_formulation,
-        factor_formulation_description: str = None,
+        factor_formulation_description: str = '',
         variables: dict = {},
         resource: str = None,
     ) -> None:
@@ -66,29 +66,17 @@ class ModelTask(BaseTask):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
-class FactorImplementationList(EvolvableSubjects):
+class FactorEvovlingItem(EvolvableSubjects):
     """
-    Factors is a list.
+    Intermediate item of factor implementation.
     """
 
     def __init__(
         self,
         target_factor_tasks: list[FactorImplementTask],
-        corresponding_gt: list[TestCase] = None,
-        corresponding_gt_implementations: list[TaskImplementation] = None,
     ):
         super().__init__()
         self.target_factor_tasks = target_factor_tasks
         self.corresponding_implementations: list[TaskImplementation] = []
         self.corresponding_selection: list[list] = []
         self.evolve_trace = {}
-        self.corresponding_gt = corresponding_gt
-        if corresponding_gt_implementations is not None and len(
-            corresponding_gt_implementations,
-        ) != len(target_factor_tasks):
-            self.corresponding_gt_implementations = None
-            FinCoLog.warning(
-                "The length of corresponding_gt_implementations is not equal to the length of target_factor_tasks, set corresponding_gt_implementations to None",
-            )
-        else:
-            self.corresponding_gt_implementations = corresponding_gt_implementations

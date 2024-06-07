@@ -20,7 +20,7 @@ from rdagent.core.evaluation import Evaluator
 from rdagent.utils.prompts import Prompts
 from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
 from rdagent.utils.misc import multiprocessing_wrapper
-from rdagent.core.task import FactorImplementationList
+from rdagent.core.task import FactorEvovlingItem
 
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
@@ -675,7 +675,7 @@ class FactorImplementationsMultiEvaluator(Evaluator):
 
     def evaluate(
         self,
-        evo: FactorImplementationList,
+        evo: FactorEvovlingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorImplementationsMultiFeedback:
