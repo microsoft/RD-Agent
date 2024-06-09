@@ -121,19 +121,6 @@ evaluator_final_decision_v1_user: |-
   --------------Factor value feedback:---------------
   {{ factor_value_feedback }}
 
-
-analyze_component_prompt_v1_system: |-
-  User is getting a new task that might consist of the components below (given in component_index: component_description):
-  {{all_component_content}}
-
-  You should find out what components does the new task have, and put their indices in a list.
-  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
-  {
-      "component_no_list": the list containing indices of components.
-  }
-
-
-
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
@@ -194,3 +181,39 @@ evolving_strategy_error_summary_v2_user: |-
   {% endfor %}
   {% endif %}
 
+
+select_implementable_factor_system: |-
+  User is trying to implement some factors in quant investment using Python code, You are an assistant who helps the user select the easiest-to-implement factors and some factors may be difficult to implement due to a lack of information or excessive complexity.. 
+  The user will provide the number of factor you should pick and information about the factors, including their descriptions, formulas, and variable explanations.
+
+  At the same time, user will provide with your former attempt to implement the factor and the feedback to the implementation.You need to carefully review your previous attempts. Some factors have been repeatedly tried without success. You should consider discarding these factors.
+
+  Here is the source data that user will use to implement the factors:
+  {{ data_info }}
+
+  Please analyze the difficulties of the each factors and provide the reason and response the indices of selected implementable factor in the json format. Here is an example structure for the JSON output:
+  {
+      "Analysis": "Analyze the difficulties of the each factors and provide the reason why the factor can be implemented or not."
+      "selected_factor": "The indices of selected factor index in the list, like [0, 2, 3].The length should be the number of factor left after filtering.",
+  }
+
+select_implementable_factor_user: |-
+  Number of factor you should pick: {{ factor_num }}
+  {% for factor_info in target_factor_tasks %} 
+  =============Factor index:{{factor_info[0]}}:=============
+  =====Factor name:=====
+  {{ factor_info[1].factor_name }}
+  =====Factor description:=====
+  {{ factor_info[1].factor_description }}
+  =====Factor formulation:=====
+  {{ factor_info[1].factor_formulation }}
+  {% if factor_info[2]|length != 0 %}
+  --------------Your former attempt:---------------
+  {% for former_attempt in factor_info[2] %}
+  =====Code to attempt {{ loop.index }}=====
+  {{ former_attempt.implementation.code }}
+  =====Feedback to attempt {{ loop.index }}=====
+  {{ former_attempt.feedback }}
+  {% endfor %}
+  {% endif %}
+  {% endfor %}

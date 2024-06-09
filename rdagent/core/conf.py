@@ -1,17 +1,17 @@
-# TODO: use pydantic for other modules in Qlib
-# from pydantic_settings import BaseSettings
 import os
-from typing import Union
-
 from dotenv import load_dotenv
-
-# make sure that env variable is loaded while calling Config()
 load_dotenv(verbose=True, override=True)
-
 from pydantic_settings import BaseSettings
+from pathlib import Path
+from typing import Literal, Union
 
+DIRNAME = Path(__file__).absolute().resolve().parent
 
-class FincoSettings(BaseSettings):
+BENCHMARK_VERSION = Literal["paper", "amcV01", "amcV02train", "amcV02test"]
+
+TASK_VERSION = Literal["", "random", "Naive", "CoT", "Past"]
+
+class RDAgentSettings(BaseSettings):
     use_azure: bool = True
     use_azure_token_provider: bool = False
     max_retry: int = 10
