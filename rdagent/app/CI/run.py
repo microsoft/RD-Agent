@@ -161,11 +161,12 @@ class CodeFile:
         """
         offset = 0
         for start, end, code in changes:
+            # starts from 1  -->  starts from 0
             adjusted_start = max(start - 1, 0)
 
             new_code = code.split("\n")
-            self.code_lines[adjusted_start+offset:end+offset] = new_code
-            offset += len(new_code) - (end - start)
+            self.code_lines[adjusted_start + offset : end + offset] = new_code
+            offset += len(new_code) - (end - adjusted_start)
 
         self.path.write_text("\n".join(self.code_lines), encoding="utf-8")
         self.load()
@@ -450,7 +451,7 @@ class CIEvoStr(EvolvingStrategy):
                 # TODO @bowen: current way of handling errors like 'Add import statement' may be not good
                 for error in errors:
                     if error.code in ("FA100", "FA102"):
-                        changes[file_path].append((0, 0, "from __future__ import annotations\n"))
+                        changes[file_path].append((1, 1, "from __future__ import annotations\n"))
                         break
 
                 # Group errors by code blocks
