@@ -2,14 +2,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv(verbose=True, override=True)
 from pydantic_settings import BaseSettings
-from pathlib import Path
-from typing import Literal, Union
+from typing import Union
 
-DIRNAME = Path(__file__).absolute().resolve().parent
-
-BENCHMARK_VERSION = Literal["paper", "amcV01", "amcV02train", "amcV02test"]
-
-TASK_VERSION = Literal["", "random", "Naive", "CoT", "Past"]
 
 class RDAgentSettings(BaseSettings):
     use_azure: bool = True
@@ -91,3 +85,4 @@ class RDAgentSettings(BaseSettings):
     # factor extraction conf
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
+

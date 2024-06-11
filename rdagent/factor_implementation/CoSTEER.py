@@ -3,7 +3,8 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import FactorImplementTask, TaskImplementation, FactorEvovlingItem
+from rdagent.core.task import TaskImplementation
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask, FactorEvovlingItem
 from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1

@@ -1,7 +1,7 @@
 import json
 import re
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Tuple
 
 import pandas as pd
@@ -9,9 +9,9 @@ from jinja2 import Template
 
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.core.log import FinCoLog
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask, FactorEvovlingItem
 from rdagent.core.task import (
     TaskImplementation,
-    FactorImplementTask,
 )
 from typing import List, Tuple
 from rdagent.core.evolving_framework import QueriedKnowledge,Feedback
@@ -19,10 +19,44 @@ from rdagent.core.evaluation import Evaluator
 from rdagent.core.prompts import Prompts
 from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
 from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.core.task import FactorEvovlingItem
 from pathlib import Path
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+
+class FactorImplementationEvaluator(Evaluator):
+    # TODO:
+    # I think we should have unified interface for all evaluates, for examples.
+    # So we should adjust the interface of other factors
+    @abstractmethod
+    def evaluate(
+        self,
+        gt: TaskImplementation,
+        gen: TaskImplementation,
+    ) -> Tuple[str, object]:
+        """You can get the dataframe by
+
+        .. code-block:: python
+
+            _, gt_df = gt.execute()
+            _, gen_df = gen.execute()
+
+        Returns
+        -------
+        Tuple[str, object]
+            - str: the text-based description of the evaluation result
+            - object: a comparable metric (bool, integer, float ...)
+
+        """
+        raise NotImplementedError("Please implement the `evaluator` method")
+
+    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation):
+        _, gt_df = gt.execute()
+        _, gen_df = gen.execute()
+        if isinstance(gen_df, pd.Series):
+            gen_df = gen_df.to_frame("source_factor")
+        if isinstance(gt_df, pd.Series):
+            gt_df = gt_df.to_frame("gt_factor")
+        return gt_df, gen_df
 
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
@@ -73,47 +107,7 @@ class FactorImplementationCodeEvaluator(Evaluator):
             json_mode=False,
         )
 
-        # critic_response = json.loads(critic_response)
         return critic_response
-
-class FactorImplementationEvaluator(Evaluator):
-    # TODO:
-    # I think we should have unified interface for all evaluates, for examples.
-    # So we should adjust the interface of other factors
-    @abstractmethod
-    def evaluate(
-        self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
-    ) -> Tuple[str, object]:
-        """You can get the dataframe by
-
-        .. code-block:: python
-
-            _, gt_df = gt.execute()
-            _, gen_df = gen.execute()
-
-        Returns
-        -------
-        Tuple[str, object]
-            - str: the text-based description of the evaluation result
-            - object: a comparable metric (bool, integer, float ...)
-
-        """
-        raise NotImplementedError("Please implement the `evaluator` method")
-
-    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation):
-        _, gt_df = gt.execute()
-        _, gen_df = gen.execute()
-        if isinstance(gen_df, pd.Series):
-            gen_df = gen_df.to_frame("source_factor")
-        if isinstance(gt_df, pd.Series):
-            gt_df = gt_df.to_frame("gt_factor")
-        return gt_df, gen_df
-
-
-# NOTE: the following evaluators are splited from FactorImplementationValueEvaluator
-
 
 class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
     def evaluate(

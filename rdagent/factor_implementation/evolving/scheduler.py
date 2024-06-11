@@ -3,9 +3,7 @@ from jinja2 import Template
 from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
 import json
 from rdagent.factor_implementation.share_modules.factor_implementation_utils import get_data_folder_intro
-from rdagent.core.task import (
-    FactorEvovlingItem,
-)
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvovlingItem
 from rdagent.core.prompts import Prompts
 from pathlib import Path
 

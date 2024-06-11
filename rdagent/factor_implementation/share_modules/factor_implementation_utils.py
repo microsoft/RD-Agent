@@ -6,7 +6,7 @@ import pandas as pd
 from jinja2 import Template
 
 from rdagent.factor_implementation.share_modules.factor_implementation_config import FIS
-from rdagent.core.task import FactorImplementTask
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask
 
 
 TPL = """
