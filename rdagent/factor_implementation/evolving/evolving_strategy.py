@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from abc import abstractmethod
 from copy import deepcopy
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from jinja2 import Template

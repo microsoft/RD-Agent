@@ -9,6 +9,7 @@ from pathlib import Path
 from jinja2 import Template
 from typing import Union
 
+from jinja2 import Template
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
     EvoStep,
@@ -18,6 +19,7 @@ from rdagent.core.evolving_framework import (
     RAGStrategy,
 )
 from rdagent.core.log import FinCoLog
+from rdagent.core.prompts import Prompts
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
 from rdagent.core.task import (
     TaskImplementation,
