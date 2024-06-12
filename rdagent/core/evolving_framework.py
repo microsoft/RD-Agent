@@ -91,6 +91,16 @@ class EvolvingStrategy(ABC):
         """
 
 
+class EvoAgent(ABC):
+    def __init__(self, max_loop, evolving_strategy) -> None:
+        self.max_loop = max_loop
+        self.evolving_strategy = evolving_strategy
+    
+    @abstractmethod
+    def multistep_evolve(self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any) -> EvolvableSubjects:
+        pass
+
+
 class RAGStrategy(ABC):
     """Retrival Augmentation Generation Strategy"""
 
