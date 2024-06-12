@@ -20,7 +20,7 @@ class CoSTEERFG(TaskGenerator):
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
     ) -> None:
-        self.max_loops = FactorImplementSettings().max_loops
+        self.max_loop = FactorImplementSettings().max_loop
         self.knowledge_base_path = Path(FactorImplementSettings().knowledge_base_path) if FactorImplementSettings().knowledge_base_path is not None else None
         self.new_knowledge_base_path = Path(FactorImplementSettings().new_knowledge_base_path) if FactorImplementSettings().new_knowledge_base_path is not None else None
         self.with_knowledge = with_knowledge
@@ -63,7 +63,7 @@ class CoSTEERFG(TaskGenerator):
         # init indermediate items
         factor_implementations = FactorEvovlingItem(target_factor_tasks=tasks)
 
-        self.evolve_agent = RAGEvoAgent(max_loops=self.max_loops, evolving_strategy=self.evolving_strategy, rag=self.rag)
+        self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
 
         factor_implementations = self.evolve_agent.multistep_evolve(
             factor_implementations,
