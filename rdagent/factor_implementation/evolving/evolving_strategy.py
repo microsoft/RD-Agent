@@ -75,18 +75,19 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         # 2. 选择selection方法
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
-        if FactorImplementSettings().implementation_factors_per_round < len(to_be_finished_task_index):
+        if FactorImplementSettings().select_ratio < 1:
             # if the number of loops is equal to the select_loop, we need to select some of them
+            implementation_factors_per_round = int(FactorImplementSettings().select_ratio * len(to_be_finished_task_index))
             if FactorImplementSettings().select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
-                    FactorImplementSettings().implementation_factors_per_round
+                    implementation_factors_per_round,
                 )
 
             if FactorImplementSettings().select_method == "scheduler":
                 to_be_finished_task_index = LLMSelect(
                     to_be_finished_task_index,
-                    FactorImplementSettings().implementation_factors_per_round,
+                    implementation_factors_per_round,
                     new_evo,
                     queried_knowledge.former_traces,
                 )

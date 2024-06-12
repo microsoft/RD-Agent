@@ -1,54 +1,51 @@
 import pickle
-from tqdm import tqdm
 from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.task import TaskImplementation
+from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledgeBaseV1
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem
 from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1
-from rdagent.factor_implementation.evolving.evolving_agent import EvoAgent
+from rdagent.factor_implementation.evolving.evolving_agent import RAGEvoAgent
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
+)
 
 class CoSTEERFG(TaskGenerator):
     def __init__(
         self,
-        max_loops: int = 2,
-        selection_method: str = "random",
-        selection_ratio: float = 0.5,
-        knowledge_base_path: Path = None,
-        new_knowledge_base_path: Path = None,
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
     ) -> None:
-        self.max_loops = max_loops
-        self.selection_method = selection_method
-        self.selection_ratio = selection_ratio
-        self.knowledge_base_path = knowledge_base_path
-        self.new_knowledge_base_path = new_knowledge_base_path
+        self.max_loops = FactorImplementSettings().max_loops
+        self.knowledge_base_path = Path(FactorImplementSettings().knowledge_base_path) if FactorImplementSettings().knowledge_base_path is not None else None
+        self.new_knowledge_base_path = Path(FactorImplementSettings().new_knowledge_base_path) if FactorImplementSettings().new_knowledge_base_path is not None else None
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
-        if self.knowledge_base_path is not None:
-            self.knowledge_base_path = Path(knowledge_base_path)       # declare the evolving strategy and RAG strategy
         self.evolving_strategy = FactorEvolvingStrategyWithGraph()
         # declare the factor evaluator
         self.factor_evaluator = FactorImplementationsMultiEvaluator(FactorImplementationEvaluatorV1())
+        self.evolving_version = 2
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
+    
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
-            if not isinstance(
-                factor_knowledge_base,
-                FactorImplementationGraphKnowledgeBase,
-            ):
+            if self.evolving_version == 1 and (factor_knowledge_base.__class__.__name__ != FactorImplementationKnowledgeBaseV1().__class__.__name__):
+                raise ValueError("The former knowledge base is not compatible with the current version")
+            elif self.evolving_version == 2 and (factor_knowledge_base.__class__.__name__ != FactorImplementationGraphKnowledgeBase().__class__.__name__):
                 raise ValueError("The former knowledge base is not compatible with the current version")
         else:
             factor_knowledge_base = (
                 FactorImplementationGraphKnowledgeBase(
                     init_component_list=component_init_list,
                 )
+                if self.evolving_version == 2
+                else FactorImplementationKnowledgeBaseV1()
             )
         return factor_knowledge_base
     
@@ -66,16 +63,15 @@ class CoSTEERFG(TaskGenerator):
         # init indermediate items
         factor_implementations = FactorEvovlingItem(target_factor_tasks=tasks)
 
-        self.evolve_agent = EvoAgent(evolving_strategy=self.evolving_strategy, rag=self.rag)
+        self.evolve_agent = RAGEvoAgent(max_loops=self.max_loops, evolving_strategy=self.evolving_strategy, rag=self.rag)
 
-        for _ in tqdm(range(self.max_loops), "Implementing factors"):
-            factor_implementations = self.evolve_agent.step_evolving(
-                factor_implementations,
-                self.factor_evaluator,
-                with_knowledge=self.with_knowledge,
-                with_feedback=self.with_feedback,
-                knowledge_self_gen=self.knowledge_self_gen,
-            )
+        factor_implementations = self.evolve_agent.multistep_evolve(
+            factor_implementations,
+            self.factor_evaluator,
+            with_knowledge=self.with_knowledge,
+            with_feedback=self.with_feedback,
+            knowledge_self_gen=self.knowledge_self_gen,
+        )
 
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
