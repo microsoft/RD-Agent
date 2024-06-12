@@ -1,29 +1,28 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import random
 from abc import abstractmethod
 from copy import deepcopy
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from jinja2 import Template
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
-from rdagent.core.prompts import Prompts
-from jinja2 import Template
-from rdagent.oai.llm_utils import APIBackend
-
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )
 from rdagent.factor_implementation.share_modules.factor_implementation_utils import (
     get_data_folder_intro,
 )
+from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
     from factor_implementation.evolving.evolvable_subjects import (
@@ -234,7 +233,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         Template(
                             Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
                                 "evolving_strategy_error_summary_v2_system"
-                            ]
+                            ],
                         )
                         .render(
                             factor_information_str=target_factor_task_information,
@@ -252,7 +251,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                             Template(
                                 Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
                                     "evolving_strategy_error_summary_v2_user"
-                                ]
+                                ],
                             )
                             .render(
                                 queried_similar_component_knowledge=queried_similar_component_knowledge_to_render,

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import yaml
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from rdagent.core.conf import FincoSettings as Config
-from rdagent.core.prompts import Prompts
-
-from langchain_core.documents import Document
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
+
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+from rdagent.core.conf import FincoSettings as Config
 
 
 def load_documents_by_langchain(path: Path) -> list:

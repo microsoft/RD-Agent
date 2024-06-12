@@ -1,19 +1,18 @@
 # %%
-import json
 from pathlib import Path
 
+from dotenv import load_dotenv
 from rdagent.document_process.document_analysis import (
     check_factor_viability,
+    classify_report_from_dict,
     deduplicate_factors_by_llm,
     extract_factors_from_report_dict,
     merge_file_to_factor_dict_to_factor_dict,
 )
 from rdagent.document_process.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.document_process.document_analysis import classify_report_from_dict
-from dotenv import load_dotenv
 
 
-def extract_factors_and_implement(report_file_path: str):
+def extract_factors_and_implement(report_file_path: str) -> None:
     assert load_dotenv()
     docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
 

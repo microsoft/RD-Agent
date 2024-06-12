@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import re
+import shlex
 import subprocess
 import time
 from collections import defaultdict
@@ -122,20 +123,23 @@ class CodeFile:
         self.lineno_width = len(str(self.lineno))
         self.code_lines_with_lineno = self.add_line_number(self.code_lines)
 
-    def get(self, start: int = 1, end: int | None = None, add_line_number: bool = False, return_list: bool = False) -> list[str] | str:
+    def get(
+        self, start: int = 1, end: int | None = None, *,
+        add_line_number: bool = False, return_list: bool = False,
+    ) -> list[str] | str:
         """
         Retrieves a portion of the code lines.
         line number starts from 1, return codes in [start, end].
 
         Args:
             start (int): The starting line number (inclusive). Defaults to 1.
-            end (int): The ending line number (inclusive). Defaults to None, which means the last line.
+            end (int | None): The ending line number (inclusive). Defaults to None, which means the last line.
             add_line_number (bool): Whether to include line numbers in the result. Defaults to False.
             return_list (bool): Whether to return the result as a list of lines
                 or as a single string. Defaults to False.
 
         Returns:
-            Union[List[str], str]: The code lines as a list of strings or as a
+            list[str] | str: The code lines as a list of strings or as a
                 single string, depending on the value of `return_list`.
         """
         start -= 1
@@ -208,15 +212,17 @@ class CodeFile:
 
 
 class Repo(EvolvableSubjects):
-    def __init__(self, project_path: Path | str, excludes: list[Path] = [], **kwargs: Any) -> None:
+    def __init__(self, project_path: Path | str, excludes: list[Path] | None = None, **kwargs: Any) -> None:
+        if excludes is None:
+            excludes = []
         self.params = kwargs
         self.project_path = Path(project_path)
 
         excludes = [self.project_path / path for path in excludes]
 
         git_ignored_output = subprocess.check_output(
-            ["git", "status", "--ignored", "-s"],
-            cwd=project_path,
+            ["/usr/bin/git", "status", "--ignored", "-s"],
+            cwd=str(self.project_path),
             stderr=subprocess.STDOUT,
             text=True,
         )
@@ -281,7 +287,7 @@ class RuffEvaluator(Evaluator):
 
     @staticmethod
     def explain_rule(error_code: str) -> RuffRule:
-        explain_command = f"ruff rule {error_code} --output-format json"
+        explain_command = f"ruff rule {error_code} --output-format json".split()
         try:
             out = subprocess.check_output(
                 explain_command,
@@ -298,7 +304,7 @@ class RuffEvaluator(Evaluator):
         """Simply run ruff to get the feedbacks."""
         try:
             out = subprocess.check_output(
-                self.command.split(),
+                shlex.split(self.command),
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -353,7 +359,7 @@ class MypyEvaluator(Evaluator):
     def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
         try:
             out = subprocess.check_output(
-                self.command.split(),
+                shlex.split(self.command),
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -369,9 +375,11 @@ class MypyEvaluator(Evaluator):
         for match in re.findall(pattern, out, re.DOTALL):
             raw_str, file_path, line_number, column_number, error_message, error_code, error_hint = match
             error_message = error_message.strip().replace("\n", " ")
-            if re.match(r".*[^\n]*?:\d+:\d+: note:.*", error_hint, re.DOTALL) is not None:
-                error_hint_position = re.split(r"[^\n]*?:\d+:\d+: note:", error_hint, re.DOTALL)[0]
-                error_hint_help = re.findall(r"^.*?:\d+:\d+: note: (.*)$", error_hint, re.MULTILINE)
+            if re.match(r".*[^\n]*?:\d+:\d+: note:.*", error_hint, flags=re.DOTALL) is not None:
+                error_hint_position = re.split(
+                    pattern=r"[^\n]*?:\d+:\d+: note:", string=error_hint, maxsplit=1, flags=re.DOTALL,
+                )[0]
+                error_hint_help = re.findall(r"^.*?:\d+:\d+: note: (.*)$", error_hint, flags=re.MULTILINE)
                 error_hint_help = "\n".join(error_hint_help)
                 error_hint = f"{error_hint_position}\nHelp:\n{error_hint_help}"
 
@@ -434,11 +442,22 @@ class CIEvoStr(EvolvingStrategy):
             last_feedback: CIFeedback = evolving_trace[-1].feedback
 
             # print statistics
-            checker_error_counts = {checker: sum(c_statistics.values()) for checker, c_statistics in last_feedback.statistics().items()}
-            print(f"Found [red]{sum(checker_error_counts.values())}[/red] errors, including: " +
-                  ", ".join(f"[red]{count}[/red] [magenta]{checker}[/magenta] errors" for checker, count in checker_error_counts.items()))
+            checker_error_counts = {
+                checker: sum(c_statistics.values())
+                for checker, c_statistics in last_feedback.statistics().items()
+            }
+            print(
+                f"Found [red]{sum(checker_error_counts.values())}[/red] errors, "
+                "including: " +
+                ", ".join(
+                    f"[red]{count}[/red] [magenta]{checker}[/magenta] errors"
+                    for checker, count in checker_error_counts.items()
+                ),
+            )
 
-            fix_records: dict[str, FixRecord] = defaultdict(lambda: FixRecord([], [], [], defaultdict(list)))
+            fix_records: dict[str, FixRecord] = defaultdict(
+                lambda: FixRecord([], [], [], defaultdict(list)),
+            )
 
             # Group errors by code blocks
             fix_groups: dict[str, list[CodeFixGroup]] = defaultdict(list)
@@ -486,10 +505,12 @@ class CIEvoStr(EvolvingStrategy):
                 for file_path in fix_groups:
                     file = evo.files[evo.project_path / Path(file_path)]
                     for code_fix_g in fix_groups[file_path]:
-                        start_line, end_line, group_errors = code_fix_g.start_line, code_fix_g.end_line, code_fix_g.errors
+                        start_line = code_fix_g.start_line
+                        end_line = code_fix_g.end_line
+                        group_errors = code_fix_g.errors
                         code_snippet_with_lineno = file.get(
-                                    start_line, end_line, add_line_number=True, return_list=False,
-                                )
+                            start_line, end_line, add_line_number=True, return_list=False,
+                        )
                         errors_str = "\n\n".join(str(e) for e in group_errors)
 
                         # ask LLM to repair current code snippet
@@ -503,14 +524,18 @@ class CIEvoStr(EvolvingStrategy):
 
                         session = api.build_chat_session(conversation_id=code_fix_g.session_id)
                         res = session.build_chat_completion(user_prompt)
-
                         code_fix_g.responses.append(res)
-                        progress.update(task_id, description=f"[green]Fixing[/green] [cyan]{file_path}[/cyan]...", advance=1)
+                        progress.update(
+                            task_id,
+                            description=f"[green]Fixing[/green] [cyan]{file_path}[/cyan]...",
+                            advance=1,
+                        )
 
 
             # Manual inspection and repair
             for file_path in last_feedback.errors:
-                print(Rule(f"[bright_blue]Checking[/bright_blue] [cyan]{file_path}[/cyan]", style="bright_blue", align="left", characters="."))
+                print(Rule(f"[bright_blue]Checking[/bright_blue] [cyan]{file_path}[/cyan]",
+                           style="bright_blue", align="left", characters="."))
 
                 file = evo.files[evo.project_path / Path(file_path)]
 
@@ -530,7 +555,8 @@ class CIEvoStr(EvolvingStrategy):
 
                     # print errors
                     printed_errors_str = "\n".join(
-                        [f"[{error.checker}] {error.line: >{file.lineno_width}}:{error.column: <4} {error.code}  {error.msg}" for error in group_errors],
+                        [f"[{error.checker}] {error.line: >{file.lineno_width}}:{error.column: <4}"
+                         f" {error.code}  {error.msg}" for error in group_errors],
                     )
                     print(
                         Panel.fit(
@@ -555,13 +581,16 @@ class CIEvoStr(EvolvingStrategy):
                     while True:
                         try:
                             new_code = re.search(r".*```[Pp]ython\n(.*?)\n```.*", res, re.DOTALL).group(1)
-                        except Exception:
-                            print(f"[red]Error when extract codes[/red]:\n {res}")
+                        except (re.error, AttributeError) as exc:
+                            print(f"[red]Error when extract codes[/red]:\n {res}\nException: {exc}")
                         try:
                             fixed_errors_info = re.search(r".*```[Jj]son\n(.*?)\n```.*", res, re.DOTALL).group(1)
                             fixed_errors_info = json.loads(fixed_errors_info)
-                        except Exception:
+                        except AttributeError:
                             fixed_errors_info = None
+                        except (json.JSONDecodeError, re.error) as exc:
+                            fixed_errors_info = None
+                            print(f"[red]Error when extracting fixed_errors[/red]: {exc}")
 
                         new_code = CodeFile.remove_line_number(new_code)
 
@@ -601,7 +630,8 @@ class CIEvoStr(EvolvingStrategy):
                         print(Panel.fit(table, title="Repair Status"))
 
                         operation = Prompt.ask("Input your operation [ [red]([bold]s[/bold])kip[/red] / "
-                                                "[green]([bold]a[/bold])pply[/green] / [yellow]manual instruction[/yellow] ]")
+                                                "[green]([bold]a[/bold])pply[/green] / "
+                                                "[yellow]manual instruction[/yellow] ]")
                         print()
                         if operation in ("s", "skip"):
                             fix_records[file_path].skipped_errors.extend(group_errors)
@@ -621,7 +651,9 @@ class CIEvoStr(EvolvingStrategy):
                             break
 
                         fix_records[file_path].manual_instructions[operation].extend(group_errors)
-                        res = session.build_chat_completion(CI_prompts["session_manual_template"].format(operation=operation))
+                        res = session.build_chat_completion(
+                            CI_prompts["session_manual_template"].format(operation=operation),
+                        )
                         code_fix_g.responses.append(res)
 
                 # apply changes
@@ -637,14 +669,18 @@ while DIR is None or not DIR.exists():
     DIR = Prompt.ask("Please input the [cyan]project directory[/cyan]")
     DIR = Path(DIR)
 
-excludes = Prompt.ask("Input the [dark_orange]excluded directories[/dark_orange] (relative to [cyan]project path[/cyan] and separated by whitespace)").split(" ")
+excludes = Prompt.ask(
+    "Input the [dark_orange]excluded directories[/dark_orange] (relative to "
+    "[cyan]project path[/cyan] and separated by whitespace)",
+).split(" ")
 excludes = [Path(exclude.strip()) for exclude in excludes if exclude.strip() != ""]
 
 start_time = time.time()
 start_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%m%d%H%M")
 
 repo = Repo(DIR, excludes=excludes)
-evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
+# evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
+evaluator = RuffEvaluator()
 estr = CIEvoStr()
 rag = None  # RAG is not enable firstly.
 ea = EvoAgent(estr, rag=rag)

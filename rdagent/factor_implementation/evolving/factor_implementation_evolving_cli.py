@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 import pandas as pd
+from fire.core import Fire
 from rdagent.core.evolving_framework import EvoAgent, KnowledgeBase
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.factor_implementation.evolving.evaluators import (
@@ -25,7 +26,6 @@ from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementationTask,
     FileBasedFactorImplementation,
 )
-from fire.core import Fire
 from tqdm import tqdm
 
 ALPHA101_INIT_COMPONENTS = [
