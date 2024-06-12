@@ -8,6 +8,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Union
 
+from jinja2 import Template
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
     EvoStep,
@@ -17,19 +18,17 @@ from rdagent.core.evolving_framework import (
     RAGStrategy,
 )
 from rdagent.core.log import FinCoLog
+from rdagent.core.prompts import Prompts
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
 from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )
-from rdagent.core.prompts import Prompts
-from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
-from jinja2 import Template
-from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
-
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )
+from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationKnowledge(Knowledge):

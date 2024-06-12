@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import List
 
+from pandas.core.api import DataFrame as DataFrame
 from rdagent.core.evolving_framework import Evaluator as EvolvingEvaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
 from rdagent.core.log import FinCoLog
@@ -20,8 +21,6 @@ from rdagent.factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )
-from pandas.core.api import DataFrame as DataFrame
-
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )

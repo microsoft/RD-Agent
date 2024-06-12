@@ -4,27 +4,19 @@ import json
 import multiprocessing as mp
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Mapping
+from typing import Mapping
 
 import numpy as np
 import pandas as pd
 import tiktoken
-import yaml
-from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.core.credentials import AzureKeyCredential
+from jinja2 import Template
 from rdagent.core.conf import FincoSettings as Config
 from rdagent.core.log import FinCoLog
 from rdagent.core.prompts import Prompts
-from jinja2 import Template
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
-
-if TYPE_CHECKING:
-    from langchain_core.documents import Document
-
-from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -522,9 +514,9 @@ Factor variables: {variables}
     return duplication_names_list
 
 
-def deduplicate_factors_by_llm(
+def deduplicate_factors_by_llm( # noqa: C901, PLR0912
     factor_dict: dict[str, dict[str, str]],
-    factor_viability_dict: dict[str, dict[str, str]] = None,
+    factor_viability_dict: dict[str, dict[str, str]] | None = None,
 ) -> list[list[str]]:
     final_duplication_names_list = []
     current_round_factor_dict = factor_dict
@@ -559,7 +551,7 @@ def deduplicate_factors_by_llm(
                 continue
             to_replace_dict[duplication_factor_name] = target_factor_name
 
-    llm_deduplicated_factor_dict = dict()
+    llm_deduplicated_factor_dict = {}
     added_lower_name_set = set()
     for factor_name in factor_dict:
         if factor_name not in to_replace_dict and factor_name.lower() not in added_lower_name_set:

@@ -8,49 +8,48 @@ import random
 import string
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 from fuzzywuzzy import fuzz
 
 
-class RDAgentException(Exception):
+class RDAgentException(Exception): # noqa: N818
     pass
 
 
 class SingletonMeta(type):
-    _instance_dict = {}
+    _instance_dict: ClassVar[dict] = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
-        if len(args) > 0:
-            raise RDAgentException("Please only use kwargs in Singleton to avoid misunderstanding.")
+        if args:
+            exception_message = "Please only use kwargs in Singleton to avoid misunderstanding."
+            raise RDAgentException(exception_message)
         kwargs_hash = hash(tuple(sorted(kwargs.items())))
         if kwargs_hash not in cls._instance_dict:
-            cls._instance_dict[kwargs_hash] = super(SingletonMeta, cls).__call__(*args, **kwargs)
+            cls._instance_dict[kwargs_hash] = super().__call__(**kwargs)
         return cls._instance_dict[kwargs_hash]
-
 
 class SingletonBaseClass(metaclass=SingletonMeta):
     """
-    Because we try to support defining Singleton with `class A(SingletonBaseClass)` instead of `A(metaclass=SingletonMeta)`
-    This class becomes necessary
-
+    Because we try to support defining Singleton with `class A(SingletonBaseClass)`
+    instead of `A(metaclass=SingletonMeta)` this class becomes necessary.
     """
 
     # TODO: Add move this class to Qlib's general utils.
 
 
-def parse_json(response):
+def parse_json(response: str) -> Any:
     try:
         return json.loads(response)
     except json.decoder.JSONDecodeError:
         pass
+    error_message = f"Failed to parse response: {response}, please report it or help us to fix it."
+    raise ValueError(error_message)
 
-    raise Exception(f"Failed to parse response: {response}, please report it or help us to fix it.")
 
-
-def similarity(text1, text2):
+def similarity(text1: str, text2: str) -> int:
     text1 = text1 if isinstance(text1, str) else ""
     text2 = text2 if isinstance(text2, str) else ""
 
@@ -58,12 +57,12 @@ def similarity(text1, text2):
     return fuzz.ratio(text1, text2)
 
 
-def random_string(length=10):
+def random_string(length: int = 10) -> str:
     letters = string.ascii_letters + string.digits
-    return "".join(random.choice(letters) for i in range(length))
+    return "".join(random.SystemRandom().choice(letters) for _ in range(length))
 
 
-def remove_uncommon_keys(new_dict, org_dict):
+def remove_uncommon_keys(new_dict: dict, org_dict: dict) -> None:
     keys_to_remove = []
 
     for key in new_dict:
@@ -78,25 +77,25 @@ def remove_uncommon_keys(new_dict, org_dict):
         del new_dict[key]
 
 
-def crawl_the_folder(folder_path: Path):
+def crawl_the_folder(folder_path: Path) -> list:
     yaml_files = []
     for root, _, files in os.walk(folder_path.as_posix()):
         for file in files:
-            if file.endswith(".yaml") or file.endswith(".yml"):
-                yaml_file_path = Path(os.path.join(root, file)).relative_to(folder_path)
-                yaml_files.append(yaml_file_path.as_posix())
+            if file.endswith((".yaml", ".yml")):
+                yaml_file_path = Path(root) / file
+                yaml_files.append(str(yaml_file_path.relative_to(folder_path)))
     return sorted(yaml_files)
 
 
-def compare_yaml(file1, file2):
-    with open(file1) as stream:
+def compare_yaml(file1: Path | str, file2: Path | str) -> bool:
+    with Path(file1).open() as stream:
         data1 = yaml.safe_load(stream)
-    with open(file2) as stream:
+    with Path(file2).open() as stream:
         data2 = yaml.safe_load(stream)
     return data1 == data2
 
 
-def remove_keys(valid_keys, ori_dict):
+def remove_keys(valid_keys: set[Any], ori_dict: dict[Any, Any]) -> dict[Any, Any]:
     for key in list(ori_dict.keys()):
         if key not in valid_keys:
             ori_dict.pop(key)
@@ -106,14 +105,14 @@ def remove_keys(valid_keys, ori_dict):
 class YamlConfigCache(SingletonBaseClass):
     def __init__(self) -> None:
         super().__init__()
-        self.path_to_config = dict()
+        self.path_to_config = {}
 
-    def load(self, path):
-        with open(path) as stream:
+    def load(self, path: str) -> None:
+        with Path(path).open() as stream:
             data = yaml.safe_load(stream)
             self.path_to_config[path] = data
 
-    def __getitem__(self, path):
+    def __getitem__(self, path: str) -> Any:
         if path not in self.path_to_config:
             self.load(path)
         return self.path_to_config[path]

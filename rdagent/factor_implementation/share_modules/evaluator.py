@@ -3,18 +3,18 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 import pandas as pd
+from finco.log import FinCoLog
+from jinja2 import Template
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
+)
+from rdagent.oai.llm_utils import APIBackend
+
 from factor_implementation.share_modules.factor import (
     FactorImplementation,
     FactorImplementationTask,
 )
 from factor_implementation.share_modules.prompt import FactorImplementationPrompts
-from finco.log import FinCoLog
-from jinja2 import Template
-from rdagent.oai.llm_utils import APIBackend
-
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
-)
 
 
 class Evaluator(ABC):

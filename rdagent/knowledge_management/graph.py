@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import pickle
 import random
 from collections import deque
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Any, NoReturn
 
 from finco.llm import APIBackend
 from finco.vector_base import KnowledgeMetaData, PDVectorBase, VectorBase, cosine
@@ -11,29 +13,29 @@ Node = KnowledgeMetaData
 
 
 class UndirectedNode(Node):
-    def __init__(self, content: str = "", label: str = "", embedding=None):
+    def __init__(self, content: str = "", label: str = "", embedding: Any = None) -> None:
         super().__init__(content, label, embedding)
-        self.neighbors = set()
+        self.neighbors: set[UndirectedNode] = set()
 
-    def add_neighbor(self, node):
+    def add_neighbor(self, node: UndirectedNode) -> None:
         self.neighbors.add(node)
         node.neighbors.add(self)
 
-    def remove_neighbor(self, node):
+    def remove_neighbor(self, node: UndirectedNode) -> None:
         if node in self.neighbors:
             self.neighbors.remove(node)
             node.neighbors.remove(self)
 
-    def get_neighbors(self):
+    def get_neighbors(self) -> set[UndirectedNode]:
         return self.neighbors
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"UndirectedNode(id={self.id}, label={self.label}, content={self.content[:100]}, "
             f"neighbors={self.neighbors})"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"UndirectedNode(id={self.id}, label={self.label}, content={self.content[:100]}, "
             f"neighbors={self.neighbors})"
@@ -45,53 +47,49 @@ class Graph:
     base Graph class for Knowledge Graph Search
     """
 
-    def __init__(self, path: Union[str, Path] = None):
+    def __init__(self, path: str | Path | None = None) -> None:
         self.path = path
         self.nodes = {}
 
-    def size(self):
+    def size(self) -> int:
         return len(self.nodes)
 
-    def get_node(self, node_id: str) -> Node:
-        node = self.nodes.get(node_id)
-        return node
+    def get_node(self, node_id: str) -> Node | None:
+        return self.nodes.get(node_id)
 
-    def add_node(self, **kwargs):
+    def add_node(self, **kwargs: Any) -> NoReturn:
         raise NotImplementedError
 
-    def get_all_nodes(self) -> List:
+    def get_all_nodes(self) -> list[Node]:
         return list(self.nodes.values())
 
-    def get_all_nodes_by_label_list(self, label_list: List[str]) -> List:
-        node_list = []
-        for node in self.nodes.values():
-            if node.label in label_list:
-                node_list.append(node)
-        return node_list
+    def get_all_nodes_by_label_list(self, label_list: list[str]) -> list[Node]:
+        return [node for node in self.nodes.values() if node.label in label_list]
 
-    def find_node(self, content: str, label: str):
+    def find_node(self, content: str, label: str) -> Node | None:
         for node in self.nodes.values():
             if node.content == content and node.label == label:
                 return node
+        return None
 
     @classmethod
-    def load(cls, path: Union[str, Path]):
+    def load(cls: type[Graph], path: str | Path) -> Graph:
         """use pickle as the default load method"""
         path = path if isinstance(path, Path) else Path(path)
         if not path.exists():
-            return Graph(path=path)
+            return cls(path=path)
 
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             return pickle.load(f)
 
-    def save(self, path: Union[str, Path], **kwargs):
+    def save(self, path: str | Path) -> None:
         """use pickle as the default save method"""
         Path.mkdir(path.parent, exist_ok=True)
-        with open(path, "wb") as f:
+        with path.open("wb") as f:
             pickle.dump(self, f)
 
     @staticmethod
-    def batch_embedding(nodes: List[Node]):
+    def batch_embedding(nodes: list[Node]) -> list[Node]:
         contents = [node.content for node in nodes]
         # openai create embedding API input's max length is 16
         size = 16
@@ -101,14 +99,12 @@ class Graph:
                 APIBackend().create_embedding(input_content=contents[i : i + size]),
             )
 
-        assert len(nodes) == len(
-            embeddings,
-        ), "nodes' length must equals embeddings' length"
+        assert len(nodes) == len(embeddings), "nodes' length must equals embeddings' length"
         for node, embedding in zip(nodes, embeddings):
             node.embedding = embedding
         return nodes
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Graph(nodes={self.nodes})"
 
 
@@ -117,19 +113,19 @@ class UndirectedGraph(Graph):
     Undirected Graph which edges have no relationship
     """
 
-    def __init__(self, path: Union[str, Path] = None):
+    def __init__(self, path: str | Path | None = None) -> None:
         super().__init__(path=path)
         self.vector_base: VectorBase = PDVectorBase()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"UndirectedGraph(nodes={self.nodes})"
 
     def add_node(
         self,
         node: UndirectedNode,
         neighbor: UndirectedNode = None,
-        same_node_threshold=0.95,
-    ):
+        same_node_threshold: float = 0.95, # noqa: ARG002
+    ) -> None:
         """
         add node and neighbor to the Graph
         Parameters
@@ -174,27 +170,27 @@ class UndirectedGraph(Graph):
             node.add_neighbor(neighbor)
 
     @classmethod
-    def load(cls, path: Union[str, Path]):
+    def load(cls: type[UndirectedGraph], path: str | Path) -> UndirectedGraph:
         """use pickle as the default load method"""
         path = path if isinstance(path, Path) else Path(path)
         if not path.exists():
-            return UndirectedGraph(path=path)
+            return cls(path=path)
 
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             return pickle.load(f)
 
-    def add_nodes(self, node: UndirectedNode, neighbors: List[UndirectedNode]):
-        if not len(neighbors):
+    def add_nodes(self, node: UndirectedNode, neighbors: list[UndirectedNode]) -> None:
+        if not neighbors:
             self.add_node(node)
         else:
             for neighbor in neighbors:
                 self.add_node(node, neighbor=neighbor)
 
     def get_node(self, node_id: str) -> UndirectedNode:
-        node = self.nodes.get(node_id)
-        return node
+        return self.nodes.get(node_id)
 
-    def get_node_by_content(self, content: str) -> Union[UndirectedNode, None]:
+
+    def get_node_by_content(self, content: str) -> UndirectedNode | None:
         """
         Get node by semantic distance
         Parameters
@@ -208,18 +204,18 @@ class UndirectedGraph(Graph):
         if content == "Model":
             pass
         match = self.semantic_search(node=content, similarity_threshold=0.999)
-        if len(match):
+        if match:
             return match[0]
-        else:
-            return None
+        return None
 
     def get_nodes_within_steps(
         self,
         start_node: UndirectedNode,
         steps: int = 1,
-        constraint_labels: List[str] = None,
+        constraint_labels: list[str] | None = None,
+        *,
         block: bool = False,
-    ) -> List[UndirectedNode]:
+    ) -> list[UndirectedNode]:
         """
         Returns the nodes in the graph whose distance from node is less than or equal to step
         """
@@ -238,24 +234,23 @@ class UndirectedGraph(Graph):
                 result.append(node)
 
                 for neighbor in sorted(
-                    list(self.get_node(node.id).neighbors), key=lambda x: x.content,
+                    self.get_node(node.id).neighbors, key=lambda x: x.content,
                 ):  # to make sure the result is deterministic
-                    if neighbor not in visited:
-                        if not (block and neighbor.label not in constraint_labels):
-                            queue.append((neighbor, current_steps + 1))
+                    if neighbor not in visited and not (block and neighbor.label not in constraint_labels):
+                        queue.append((neighbor, current_steps + 1))
 
         if constraint_labels:
             result = [node for node in result if node.label in constraint_labels]
         if start_node in result:
-            result.pop(result.index(start_node))
+            result.remove(start_node)
         return result
 
     def get_nodes_intersection(
         self,
-        nodes: List[UndirectedNode],
+        nodes: list[UndirectedNode],
         steps: int = 1,
-        constraint_labels: List[str] = None,
-    ) -> List[UndirectedNode]:
+        constraint_labels: list[str] | None = None,
+    ) -> list[UndirectedNode]:
         """
         Get the intersection with nodes connected within n steps of nodes
 
@@ -269,7 +264,8 @@ class UndirectedGraph(Graph):
         -------
 
         """
-        assert len(nodes) >= 2, "nodes length must >=2"
+        min_nodes_count = 2
+        assert len(nodes) >= min_nodes_count, "nodes length must >=2"
         intersection = None
 
         for node in nodes:
@@ -283,15 +279,14 @@ class UndirectedGraph(Graph):
                     node, steps=steps, constraint_labels=constraint_labels,
                 ),
             )
-
         return intersection
 
     def semantic_search(
         self,
-        node: Union[UndirectedNode, str],
+        node: UndirectedNode | str,
         similarity_threshold: float = 0.0,
         topk_k: int = 5,
-    ) -> List[UndirectedNode]:
+    ) -> list[UndirectedNode]:
         """
         semantic search by node's embedding
 
@@ -299,7 +294,8 @@ class UndirectedGraph(Graph):
         ----------
         topk_k
         node
-        similarity_threshold: Returns nodes whose distance score from the input node is greater than similarity_threshold
+        similarity_threshold: Returns nodes whose distance score from the input
+            node is greater than similarity_threshold
 
         Returns
         -------
@@ -312,10 +308,9 @@ class UndirectedGraph(Graph):
             topk_k=topk_k,
             similarity_threshold=similarity_threshold,
         )
-        nodes = [self.get_node(doc.id) for doc in docs]
-        return nodes
+        return [self.get_node(doc.id) for doc in docs]
 
-    def clear(self):
+    def clear(self) -> None:
         self.nodes.clear()
         self.vector_base: VectorBase = PDVectorBase()
 
@@ -323,11 +318,12 @@ class UndirectedGraph(Graph):
         self,
         node: UndirectedNode,
         step: int = 1,
-        constraint_labels: List[str] = None,
-        constraint_node: UndirectedNode = None,
+        constraint_labels: list[str] | None = None,
+        constraint_node: UndirectedNode | None = None,
         constraint_distance: float = 0,
+        *,
         block: bool = False,
-    ) -> List[UndirectedNode]:
+    ) -> list[UndirectedNode]:
         """
         search graph by connection, return empty list if nodes' chain without node near to constraint_node
         Parameters
@@ -358,29 +354,39 @@ class UndirectedGraph(Graph):
 
     def query_by_content(
         self,
-        content: Union[str, List[str]],
+        content: str | list[str],
         topk_k: int = 5,
         step: int = 1,
-        constraint_labels: List[str] = None,
-        constraint_node: UndirectedNode = None,
+        constraint_labels: list[str] | None = None,
+        constraint_node: UndirectedNode | None = None,
         similarity_threshold: float = 0.0,
         constraint_distance: float = 0,
+        *,
         block: bool = False,
-    ) -> List[UndirectedNode]:
+    ) -> list[UndirectedNode]:
         """
-        search graph by content similarity and connection relationship, return empty list if nodes' chain without node
-        near to constraint_node
+        Search graph by content similarity and connection relationship, return empty
+        list if nodes' chain without node near to constraint_node.
 
         Parameters
         ----------
-        constraint_distance : float the distance between the node and the constraint_node
+        constraint_distance : float
+            The distance between the node and the constraint_node.
         content : Union[str, List[str]]
-        topk_k: the upper number of output for each query, if the number of fit nodes is less than topk_k, return all fit nodes's content
-        step : the maximum distance between the start node and the result node
-        constraint_labels : the type of nodes that the search can only flow through
-        constraint_node : the node that the search can only flow through
-        similarity_threshold : the similarity threshold of the content
-        block: despite the start node, the search can only flow through the constraint_label type nodes
+            Content to search for.
+        topk_k: int
+            The upper number of output for each query. If the number of fit nodes is
+            less than topk_k, returns all fit nodes' content.
+        step : int
+            The maximum distance between the start node and the result node.
+        constraint_labels : List[str]
+            The type of nodes that the search can only flow through.
+        constraint_node : UndirectedNode, optional
+            The node that the search can only flow through.
+        similarity_threshold : float
+            The similarity threshold of the content.
+        block: bool
+            Despite the start node, the search can only flow through the constraint_label type nodes.
 
         Returns
         -------
@@ -422,54 +428,50 @@ class UndirectedGraph(Graph):
         return res_list
 
     @staticmethod
-    def intersection(nodes1: List[UndirectedNode], nodes2: List[UndirectedNode]):
-        intersection = [node for node in nodes1 if node in nodes2]
-        return intersection
+    def intersection(nodes1: list[UndirectedNode], nodes2: list[UndirectedNode]) -> list[UndirectedNode]:
+        return [node for node in nodes1 if node in nodes2]
 
     @staticmethod
-    def different(nodes1: List[UndirectedNode], nodes2: List[UndirectedNode]):
-        difference = list(set(nodes1).symmetric_difference(set(nodes2)))
-        return difference
+    def different(nodes1: list[UndirectedNode], nodes2: list[UndirectedNode]) -> list[UndirectedNode]:
+        return list(set(nodes1).symmetric_difference(set(nodes2)))
 
     @staticmethod
-    def cal_distance(node1: UndirectedNode, node2: UndirectedNode):
-        distance = cosine(node1.embedding, node2.embedding)
-        return distance
+    def cal_distance(node1: UndirectedNode, node2: UndirectedNode) -> float:
+        return cosine(node1.embedding, node2.embedding)
 
     @staticmethod
-    def filter_label(nodes: List[UndirectedNode], labels: List[str]):
-        nodes = [node for node in nodes if node.label in labels]
-        return nodes
+    def filter_label(nodes: list[UndirectedNode], labels: list[str]) -> list[UndirectedNode]:
+        return [node for node in nodes if node.label in labels]
 
 
-def graph_to_edges(graph: Dict[str, List[str]]):
+
+def graph_to_edges(graph: dict[str, list[str]]) -> list[tuple[str, str]]:
     edges = []
 
     for node, neighbors in graph.items():
         for neighbor in neighbors:
-            if [node, neighbor] in edges or [neighbor, node] in edges:
+            if (node, neighbor) in edges or (neighbor, node) in edges:
                 continue
-            edges.append([node, neighbor])
+            edges.append((node, neighbor))
 
     return edges
 
 
 def assign_random_coordinate_to_node(
-    nodes: List, scope: float = 1.0, origin: Tuple = (0.0, 0.0),
-) -> Dict:
+    nodes: list[str], scope: float = 1.0, origin: tuple[float, float] = (0.0, 0.0),
+) -> dict[str, tuple[float, float]]:
     coordinates = {}
-
     for node in nodes:
-        x = random.uniform(0, scope) + origin[0]
-        y = random.uniform(0, scope) + origin[1]
+        x = random.SystemRandom().uniform(0, scope) + origin[0]
+        y = random.SystemRandom().uniform(0, scope) + origin[1]
         coordinates[node] = (x, y)
 
     return coordinates
 
 
 def assign_isometric_coordinate_to_node(
-    nodes: List, x_step: float = 1.0, x_origin: float = 0.0, y_origin: float = 0.0,
-) -> Dict:
+    nodes: list, x_step: float = 1.0, x_origin: float = 0.0, y_origin: float = 0.0,
+) -> dict:
     coordinates = {}
 
     for i, node in enumerate(nodes):
@@ -481,10 +483,10 @@ def assign_isometric_coordinate_to_node(
 
 
 def curly_node_coordinate(
-    coordinates: Dict, center_y: float = 1.0, r: float = 1.0,
-) -> Dict:
+    coordinates: dict, center_y: float = 1.0, r: float = 1.0,
+) -> dict:
     # noto: this method can only curly < 90 degree, and the curl line is circle.
-    # the original funtion is: x**2 + (y-m)**2 = r**2
+    # the original function is: x**2 + (y-m)**2 = r**2
     for node, coordinate in coordinates.items():
-        coordinate[1] = center_y + (r**2 - coordinate[0] ** 2) ** 0.5
+        coordinates[node] = (coordinate[0], center_y + (r**2 - coordinate[0] ** 2) ** 0.5)
     return coordinates

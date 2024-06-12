@@ -1,14 +1,15 @@
-# TODO: use pydantic for other modules in Qlib
-# from pydantic_settings import BaseSettings
-import os
-from typing import Union
+from __future__ import annotations
+
+from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
+
+# TODO: use pydantic for other modules in Qlib
+# from pydantic_settings import BaseSettings
 
 # make sure that env variable is loaded while calling Config()
 load_dotenv(verbose=True, override=True)
-
-from pydantic_settings import BaseSettings
 
 
 class FincoSettings(BaseSettings):
@@ -22,8 +23,8 @@ class FincoSettings(BaseSettings):
     dump_embedding_cache: bool = False
     use_embedding_cache: bool = False
     workspace: str = "./finco_workspace"
-    prompt_cache_path: str = os.getcwd() + "/prompt_cache.db"
-    session_cache_folder_location: str = os.getcwd() + "/session_cache_folder/"
+    prompt_cache_path: str = str(Path.cwd() / "prompt_cache.db")
+    session_cache_folder_location: str = str(Path.cwd() / "session_cache_folder/")
     max_past_message_include: int = 10
 
     use_vector_only: bool = False
@@ -37,7 +38,7 @@ class FincoSettings(BaseSettings):
     chat_max_tokens: int = 3000
     chat_temperature: float = 0.5
     chat_stream: bool = True
-    chat_seed: Union[int, None] = None
+    chat_seed: int | None = None
     chat_frequency_penalty: float = 0.0
     chat_presence_penalty: float = 0.0
 

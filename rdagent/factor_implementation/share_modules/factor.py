@@ -6,18 +6,18 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import pandas as pd
+from filelock import FileLock
+from finco.log import FinCoLog
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FactorImplementSettings,
+)
+
 from factor_implementation.share_modules.exception import (
     CodeFormatException,
     NoOutputException,
     RuntimeErrorException,
 )
-from filelock import FileLock
-from finco.log import FinCoLog
 from oai.llm_utils import md5_hash
-
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
-)
 
 
 class FactorImplementationTask:

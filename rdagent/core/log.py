@@ -78,17 +78,10 @@ class FinCoLog:
     def __init__(self) -> None:
         self.logger: Logger = logger
 
-    def info(self, *args: Sequence, plain: bool = False, title: str = "Info") -> None:
+    def info(self, *args: Sequence, plain: bool = False) -> None:
         if plain:
             return self.plain_info(*args)
         for arg in args:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # self.logger.info(f"{LogColors.WHITE}{arg}{LogColors.END}")
-            # Description of the problem:
-            # G004 Logging statement uses f-string
-            # References:
-            # https://docs.astral.sh/ruff/rules/logging-f-string/
             info = f"{LogColors.WHITE}{arg}{LogColors.END}"
             self.logger.info(info)
         return None
@@ -96,11 +89,6 @@ class FinCoLog:
     def __getstate__(self) -> dict:
         return {}
 
-    # Changes to accommodate ruff checks.
-    # Original code: def __setstate__(self, _: str) -> None:
-    # Description of the problem:
-    # PLE0302 The special method `__setstate__` expects 2 parameters, 1 was given
-    # References: https://docs.astral.sh/ruff/rules/unexpected-special-method-signature/
     def __setstate__(self, _: str) -> None:
         self.logger = logger
 
