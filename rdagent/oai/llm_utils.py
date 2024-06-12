@@ -204,7 +204,7 @@ class ChatSession:
         """
         messages = self.build_chat_completion_message(user_prompt, **kwargs)
 
-        response = self.api_backend._try_create_chat_completion_or_embedding(
+        response = self.api_backend._try_create_chat_completion_or_embedding( # noqa: SLF001
             messages=messages, chat_completion=True, **kwargs,
         )
         messages.append(
@@ -225,7 +225,7 @@ class ChatSession:
 
 
 class APIBackend:
-    def __init__(
+    def __init__( # noqa: C901, PLR0912, PLR0915
         self,
         *,
         chat_api_key: str | None = None,
@@ -285,7 +285,7 @@ class APIBackend:
             self.gcr_endpoint_do_sample = self.cfg.gcr_endpoint_do_sample
             self.gcr_endpoint_max_token = self.cfg.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
-                ssl._create_default_https_context = ssl._create_unverified_context
+                ssl._create_default_https_context = ssl._create_unverified_context # noqa: SLF001
             self.encoder = None
         else:
             self.use_azure = self.cfg.use_azure
@@ -406,8 +406,9 @@ class APIBackend:
         user_prompt: str,
         system_prompt: str | None = None,
         former_messages: list | None = None,
-        shrink_multiple_break: bool = False,
         chat_cache_prefix: str = "",
+        *,
+        shrink_multiple_break: bool = False,
         **kwargs: Any,
     ) -> str:
         if former_messages is None:
@@ -462,7 +463,7 @@ class APIBackend:
                     return self._create_embedding_inner_function(**kwargs)
                 if chat_completion:
                     return self._create_chat_completion_auto_continue(**kwargs)
-            except openai.BadRequestError as e:
+            except openai.BadRequestError as e: # noqa: PERF203
                 print(e)
                 print(f"Retrying {i+1}th time...")
                 if "'messages' must contain the word 'json' in some form" in e.message:
@@ -471,14 +472,14 @@ class APIBackend:
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
-            except Exception as e:
+            except Exception as e: # noqa: BLE001
                 print(e)
                 print(f"Retrying {i+1}th time...")
                 time.sleep(self.retry_wait_seconds)
         error_message = f"Failed to create chat completion after {max_retry} retries."
         raise RuntimeError(error_message)
 
-    def _create_embedding_inner_function(self, input_content_list: list[str], **kwargs: Any) -> list[Any]:
+    def _create_embedding_inner_function(self, input_content_list: list[str], **kwargs: Any) -> list[Any]: # noqa: ARG002
         content_to_embedding_dict = {}
         filtered_input_content_list = []
         if self.use_embedding_cache:
@@ -532,16 +533,17 @@ class APIBackend:
             else:
                 FinCoLog().info(f"\n{LogColors.CYAN}Response:{response}{LogColors.END}")
 
-    def _create_chat_completion_inner_function(
+    def _create_chat_completion_inner_function( # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict],
         temperature: float | None = None,
         max_tokens: int | None = None,
         chat_cache_prefix: str = "",
-        json_mode: bool = False,
-        add_json_in_prompt: bool = False,
         frequency_penalty: float | None = None,
         presence_penalty: float | None = None,
+        *,
+        json_mode: bool = False,
+        add_json_in_prompt: bool = False,
     ) -> str:
         self.log_messages(messages)
         # TODO: fail to use loguru adaptor due to stream response
@@ -589,8 +591,8 @@ class APIBackend:
                 ),
             )
 
-            req = urllib.request.Request(self.gcr_endpoint, body, self.headers)
-            response = urllib.request.urlopen(req)
+            req = urllib.request.Request(self.gcr_endpoint, body, self.headers) # noqa: S310
+            response = urllib.request.urlopen(req) # noqa: S310
             resp = json.loads(response.read().decode())["output"]
             self.log_response(resp)
         else:

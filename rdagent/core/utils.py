@@ -14,7 +14,7 @@ import yaml
 from fuzzywuzzy import fuzz
 
 
-class RDAgentException(Exception):
+class RDAgentException(Exception): # noqa: N818
     pass
 
 

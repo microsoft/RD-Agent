@@ -514,7 +514,7 @@ Factor variables: {variables}
     return duplication_names_list
 
 
-def deduplicate_factors_by_llm(
+def deduplicate_factors_by_llm( # noqa: C901, PLR0912
     factor_dict: dict[str, dict[str, str]],
     factor_viability_dict: dict[str, dict[str, str]] | None = None,
 ) -> list[list[str]]:

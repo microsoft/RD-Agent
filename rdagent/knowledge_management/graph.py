@@ -124,7 +124,7 @@ class UndirectedGraph(Graph):
         self,
         node: UndirectedNode,
         neighbor: UndirectedNode = None,
-        same_node_threshold: float = 0.95,
+        same_node_threshold: float = 0.95, # noqa: ARG002
     ) -> None:
         """
         add node and neighbor to the Graph

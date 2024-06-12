@@ -221,7 +221,7 @@ class Repo(EvolvableSubjects):
         excludes = [self.project_path / path for path in excludes]
 
         git_ignored_output = subprocess.check_output(
-            ["/usr/bin/git", "status", "--ignored", "-s"],
+            ["/usr/bin/git", "status", "--ignored", "-s"], # noqa: S603
             cwd=str(self.project_path),
             stderr=subprocess.STDOUT,
             text=True,
@@ -287,10 +287,10 @@ class RuffEvaluator(Evaluator):
 
     @staticmethod
     def explain_rule(error_code: str) -> RuffRule:
-        explain_command = f"ruff rule {error_code} --output-format json".split()
+        explain_command = f"ruff rule {error_code} --output-format json"
         try:
             out = subprocess.check_output(
-                explain_command,
+                shlex.split(explain_command), # noqa: S603
                 stderr=subprocess.STDOUT,
                 text=True,
             )
@@ -300,11 +300,11 @@ class RuffEvaluator(Evaluator):
         return RuffRule(**json.loads(out))
 
 
-    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
+    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback: # noqa: ARG002
         """Simply run ruff to get the feedbacks."""
         try:
             out = subprocess.check_output(
-                shlex.split(self.command),
+                shlex.split(self.command), # noqa: S603
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -356,10 +356,10 @@ class MypyEvaluator(Evaluator):
         else:
             self.command = command
 
-    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
+    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback: # noqa: ARG002
         try:
             out = subprocess.check_output(
-                shlex.split(self.command),
+                shlex.split(self.command), # noqa: S603
                 cwd=evo.project_path,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -419,12 +419,12 @@ class MultiEvaluator(Evaluator):
         return CIFeedback(errors=all_errors)
 
 class CIEvoStr(EvolvingStrategy):
-    def evolve(
+    def evolve( # noqa: C901, PLR0912, PLR0915
         self,
         evo: Repo,
         evolving_trace: list[EvoStep] | None = None,
-        knowledge_l: list[Knowledge] | None = None,
-        **kwargs: Any,
+        knowledge_l: list[Knowledge] | None = None, # noqa: ARG002
+        **kwargs: Any, # noqa: ARG002
     ) -> Repo:
 
         @dataclass
