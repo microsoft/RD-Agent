@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.task import TaskImplementation
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask, FactorEvovlingItem
+from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem
 from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
 from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1
@@ -13,7 +13,7 @@ from rdagent.factor_implementation.evolving.evolving_agent import EvoAgent
 class CoSTEERFG(TaskGenerator):
     def __init__(
         self,
-        max_loops: int = 10,
+        max_loops: int = 2,
         selection_method: str = "random",
         selection_ratio: float = 0.5,
         knowledge_base_path: Path = None,

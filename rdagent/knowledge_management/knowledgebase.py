@@ -441,9 +441,6 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                 factor_implementation_queried_graph_knowledge.former_traces[
                     target_factor_task_information
                 ] = former_trace_knowledge[-v2_query_former_trace_limit:]
-                factor_implementation_queried_graph_knowledge.all_former_traces[
-                    target_factor_task_information
-                ] = former_trace_knowledge
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 

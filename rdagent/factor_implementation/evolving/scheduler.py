@@ -3,7 +3,7 @@ from jinja2 import Template
 from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
 import json
 from rdagent.factor_implementation.share_modules.factor_implementation_utils import get_data_folder_intro
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvovlingItem
+from rdagent.factor_implementation.evolving.factor import FactorEvovlingItem
 from rdagent.core.prompts import Prompts
 from pathlib import Path
 
@@ -22,22 +22,12 @@ def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo:F
     tasks = []
     for i in to_be_finished_task_index:
     # find corresponding former trace for each task
-        flag = 0
-        if len(former_trace) == 0:
-            tasks.append((i, evo.target_factor_tasks[i]))
-        else:
-            for t in former_trace:
-                if former_trace[t][0].target_task.factor_name == evo.target_factor_tasks[i].factor_name:
-                    tasks.append((i, evo.target_factor_tasks[i], former_trace[t]))
-                    flag = 1
-                    break
-            # if former trace not exist, but it still in to_be_finished_task_index
-            if flag == 0:
-                tasks.append((i, evo.target_factor_tasks[i]))
-        
+        target_factor_task_information = evo.target_factor_tasks[i].get_factor_information()
+        if target_factor_task_information in former_trace:
+            tasks.append((i, evo.target_factor_tasks[i], former_trace[target_factor_task_information]))
 
     system_prompt = Template(
-        scheduler_prompts("prompts.yaml")["select_implementable_factor_system"],
+        scheduler_prompts["select_implementable_factor_system"],
     ).render(
         data_info=get_data_folder_intro(),
     )
@@ -49,7 +39,7 @@ def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo:F
     while True:
         user_prompt = (
             Template(
-                scheduler_prompts("prompts.yaml")["select_implementable_factor_user"],
+                scheduler_prompts["select_implementable_factor_user"],
             )
             .render(
                 factor_num = implementation_factors_per_round,
