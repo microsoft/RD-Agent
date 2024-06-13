@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
-from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.conf import RDAgentSettings as Config
 from rdagent.core.log import FinCoLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
@@ -69,14 +69,17 @@ def classify_report_from_dict(
             res_dict[file_name] = {"class": 0}
             continue
 
-        if not any(substring in content for substring in substrings):
+        if not any(substring in content for substring in substrings) and False:
             res_dict[file_name] = {"class": 0}
         else:
-            gpt_4_max_token = 128000
-            if input_max_token < gpt_4_max_token:
-                content = enc.encode(content)
-                max_token_1 = max(0, min(len(content), input_max_token) - 1)
-                content = enc.decode(content[:max_token_1])
+            while (
+                APIBackend().build_messages_and_calculate_token(
+                    user_prompt=content,
+                    system_prompt=classify_prompt,
+                )
+                > Config().chat_token_limit
+            ):
+                content = content[: -(Config().chat_token_limit // 100)]
 
             vote_list = []
             for _ in range(vote_time):
@@ -450,6 +453,8 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
 
 
 def __deduplicate_factor_dict(factor_dict: dict[str, dict[str, str]]) -> list[list[str]]:
+    if len(factor_dict) == 0:
+        return []
     factor_df = pd.DataFrame(factor_dict).T
     factor_df.index.names = ["factor_name"]
 

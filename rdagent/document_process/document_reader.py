@@ -9,7 +9,7 @@ from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
-from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.conf import RDAgentSettings as Config
 
 
 def load_documents_by_langchain(path: Path) -> list:

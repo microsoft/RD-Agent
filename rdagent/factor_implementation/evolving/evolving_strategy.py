@@ -29,17 +29,22 @@ from rdagent.factor_implementation.evolving.scheduler import (
 from rdagent.factor_implementation.share_modules.factor_implementation_utils import get_data_folder_intro
 from rdagent.oai.llm_utils import APIBackend
 
-from utils.misc import multiprocessing_wrapper
+from rdagent.core.utils import multiprocessing_wrapper
 
-from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem, FileBasedFactorImplementation
+from rdagent.factor_implementation.evolving.factor import (
+    FactorImplementTask,
+    FactorEvovlingItem,
+    FileBasedFactorImplementation,
+)
 
 if TYPE_CHECKING:
-    from scripts.factor_implementation.baselines.evolving.knowledge_management import (
+    from rdagent.factor_implementation.evolving.knowledge_management import (
         FactorImplementationQueriedKnowledge,
         FactorImplementationQueriedKnowledgeV1,
     )
 
 implement_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+
 
 class MultiProcessEvolvingStrategy(EvolvingStrategy):
     @abstractmethod
@@ -78,7 +83,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
         if FactorImplementSettings().select_ratio < 1:
             # if the number of loops is equal to the select_loop, we need to select some of them
-            implementation_factors_per_round = int(FactorImplementSettings().select_ratio * len(to_be_finished_task_index))
+            implementation_factors_per_round = int(
+                FactorImplementSettings().select_ratio * len(to_be_finished_task_index)
+            )
             if FactorImplementSettings().select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
@@ -92,7 +99,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                     new_evo,
                     queried_knowledge.former_traces,
                 )
-        
+
         result = multiprocessing_wrapper(
             [
                 (self.implement_one_factor, (new_evo.target_factor_tasks[target_index], queried_knowledge))
@@ -104,9 +111,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         for index, target_index in enumerate(to_be_finished_task_index):
             new_evo.corresponding_implementations[target_index] = result[index]
             if result[index].target_task.factor_name in new_evo.evolve_trace:
-                new_evo.evolve_trace[result[index].target_task.factor_name].append(
-                    result[index]
-                )
+                new_evo.evolve_trace[result[index].target_task.factor_name].append(result[index])
             else:
                 new_evo.evolve_trace[result[index].target_task.factor_name] = [result[index]]
 
@@ -189,6 +194,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
 
             return factor_implementation
 
+
 class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
     def __init__(self) -> None:
         self.num_loop = 0
@@ -254,7 +260,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     and len(queried_similar_error_knowledge_to_render) != 0
                     and len(queried_former_failed_knowledge_to_render) != 0
                 ):
-                    
+
                     error_summary_system_prompt = (
                         Template(implement_prompts["evolving_strategy_error_summary_v2_system"])
                         .render(
