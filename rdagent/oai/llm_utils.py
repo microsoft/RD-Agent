@@ -203,7 +203,7 @@ class ChatSession:
         this function is to build the session messages
         user prompt should always be provided
         """
-        messages = self.build_chat_completion_message(user_prompt, **kwargs)
+        messages = self.build_chat_completion_message(user_prompt)
 
         response = self.api_backend._try_create_chat_completion_or_embedding( # noqa: SLF001
             messages=messages, chat_completion=True, **kwargs,
@@ -414,7 +414,7 @@ class APIBackend:
     ) -> str:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break)
+        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break)
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
             chat_completion=True,
@@ -691,7 +691,7 @@ class APIBackend:
     ) -> int:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break)
+        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break)
         return self.calculate_token_from_messages(messages)
 
 
