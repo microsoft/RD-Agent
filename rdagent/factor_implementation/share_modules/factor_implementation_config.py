@@ -2,9 +2,10 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-from typing import Literal,Union
+from typing import Literal, Union
 
 SELECT_METHOD = Literal["random", "scheduler"]
+
 
 class FactorImplementSettings(BaseSettings):
     file_based_execution_data_folder: str = str(
