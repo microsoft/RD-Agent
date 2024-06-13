@@ -35,9 +35,14 @@ class CoSTEERFG(TaskGenerator):
     
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
-            if self.evolving_version == 1 and (factor_knowledge_base.__class__.__name__ != FactorImplementationKnowledgeBaseV1().__class__.__name__):
+            if self.evolving_version == 1 and not isinstance(
+                factor_knowledge_base, FactorImplementationKnowledgeBaseV1
+            ):
                 raise ValueError("The former knowledge base is not compatible with the current version")
-            elif self.evolving_version == 2 and (factor_knowledge_base.__class__.__name__ != FactorImplementationGraphKnowledgeBase().__class__.__name__):
+            elif self.evolving_version == 2 and not isinstance(
+                factor_knowledge_base,
+                FactorImplementationGraphKnowledgeBase,
+            ):
                 raise ValueError("The former knowledge base is not compatible with the current version")
         else:
             factor_knowledge_base = (
