@@ -29,10 +29,6 @@ class FactorImplementSettings(FincoSettings):
     v2_error_summary: bool = False
     v2_knowledge_sampler: float = 1.0
 
-    chat_token_limit: int = (
-        100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
-    )
-
     implementation_factors_per_round: int = 100  # how many factors to choose for each round of evolving
     evo_multi_proc_n: int = 16  # how many processes to use for evolving (including eval & generation)
 

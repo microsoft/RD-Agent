@@ -75,7 +75,7 @@ extract_factor_formulation_user: |-
     ===========================Factor list in dataframe=============================
     {{ factor_dict }}
 
-classify_system: |-
+classify_system_chinese: |-
     你是一个研报分类助手。用户会输入一篇金融研报。请按照要求回答：
     因子指能够解释资产收益率或价格等的变量；而模型则指机器学习或深度学习模型，利用因子等变量来预测价格或收益率变化。
 
@@ -85,6 +85,20 @@ classify_system: |-
     如果研报同时满足上述两个条件，请输出1；若没有，请输出0。
 
     请使用json进行回答。json key为：class
+
+classify_system: |-
+    Your job is classify whether the user input document is a quantitative investment research report. The user will input a document and you should classify it based on the following conditions:
+    1. The document is about finance other than other fields like biology, physics, chemistry, etc.
+    2. The document is a research report on stock selection (which needs to be strictly separated from time selection and base selection) in the field of metalworking quantification.
+    3. The document involves the composition of factors or models, or tests their performance.
+
+    If the document meets all the above conditions, please return 1; otherwise, please return 0.
+
+    Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
+    The JSON schema should include:
+    {
+        "class": 1
+    }
 
 factor_viability_system: |-
     User has designed several factors in quant investment. Please help the user to check the viability of these factors.
