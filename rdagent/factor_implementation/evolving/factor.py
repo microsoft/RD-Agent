@@ -1,41 +1,50 @@
-import pickle
-import subprocess
-import uuid
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Tuple, Union
-
-import pandas as pd
-from filelock import FileLock
-from finco.log import FinCoLog
+from __future__ import annotations
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FactorImplementSettings,
 )
 
-from factor_implementation.share_modules.exception import (
+from rdagent.core.task import (
+    TaskImplementation,
+    BaseTask,
+    TestCase,
+)
+from rdagent.core.evolving_framework import EvolvableSubjects
+from rdagent.core.log import FinCoLog
+
+from pathlib import Path
+
+from rdagent.oai.llm_utils import md5_hash
+
+from rdagent.core.exception import (
     CodeFormatException,
     NoOutputException,
     RuntimeErrorException,
 )
-from oai.llm_utils import md5_hash
+
+import pandas as pd
+import uuid
+import pickle
+import subprocess
+from typing import Tuple, Union
+from filelock import FileLock
 
 
-class FactorImplementationTask:
-    # TODO: remove the factor_ prefix may be better
+class FactorImplementTask(BaseTask):
     def __init__(
         self,
         factor_name,
         factor_description,
         factor_formulation,
-        factor_formulation_description,
+        factor_formulation_description: str = '',
         variables: dict = {},
+        resource: str = None,
     ) -> None:
         self.factor_name = factor_name
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.factor_formulation_description = factor_formulation_description
-        # TODO: check variables a good candidate
         self.variables = variables
+        self.factor_resources = resource
 
     def get_factor_information(self):
         return f"""factor_name: {self.factor_name}
@@ -45,22 +54,41 @@ factor_formulation_description: {self.factor_formulation_description}"""
 
     @staticmethod
     def from_dict(dict):
-        return FactorImplementationTask(**dict)
+        return FactorImplementTask(**dict)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
 
-class FactorImplementation(ABC):
-    def __init__(self, target_task: FactorImplementationTask) -> None:
-        self.target_task = target_task
+class FactorEvovlingItem(EvolvableSubjects):
+    """
+    Intermediate item of factor implementation.
+    """
 
-    @abstractmethod
-    def execute(self, *args, **kwargs) -> Tuple[str, pd.DataFrame]:
-        raise NotImplementedError("__call__ method is not implemented.")
+    def __init__(
+        self,
+        target_factor_tasks: list[FactorImplementTask],
+        corresponding_gt: list[TestCase] = None,
+        corresponding_gt_implementations: list[TaskImplementation] = None,
+    ):
+        super().__init__()
+        self.target_factor_tasks = target_factor_tasks
+        self.corresponding_implementations: list[TaskImplementation] = [None for _ in target_factor_tasks]
+        self.corresponding_selection: list[list] = []
+        self.evolve_trace = {}
+        self.corresponding_gt = corresponding_gt
+        if corresponding_gt_implementations is not None and len(
+            corresponding_gt_implementations,
+        ) != len(target_factor_tasks):
+            self.corresponding_gt_implementations = None
+            FinCoLog.warning(
+                "The length of corresponding_gt_implementations is not equal to the length of target_factor_tasks, set corresponding_gt_implementations to None",
+            )
+        else:
+            self.corresponding_gt_implementations = corresponding_gt_implementations
 
 
-class FileBasedFactorImplementation(FactorImplementation):
+class FileBasedFactorImplementation(TaskImplementation):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -76,7 +104,7 @@ class FileBasedFactorImplementation(FactorImplementation):
 
     def __init__(
         self,
-        target_task: FactorImplementationTask,
+        target_task: FactorImplementTask,
         code,
         executed_factor_value_dataframe=None,
         raise_exception=False,
@@ -124,7 +152,7 @@ class FileBasedFactorImplementation(FactorImplementation):
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
             (Path.cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").mkdir(
-                exist_ok=True, parents=True,
+                exist_ok=True, parents=True
             )
             if FactorImplementSettings().enable_execution_cache:
                 # NOTE: cache the result for the same code
@@ -215,9 +243,10 @@ class FileBasedFactorImplementation(FactorImplementation):
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorImplementationTask, path: Union[str, Path], **kwargs):
+    def from_folder(task: FactorImplementTask, path: Union[str, Path], **kwargs):
         path = Path(path)
         factor_path = (path / task.factor_name).with_suffix(".py")
         with factor_path.open("r") as f:
             code = f.read()
         return FileBasedFactorImplementation(task, code=code, **kwargs)
+

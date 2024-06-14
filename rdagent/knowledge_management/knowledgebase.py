@@ -1,217 +1,239 @@
 from __future__ import annotations
 
-import copy
-import json
-import random
 import re
+import random
+import json
+import copy
+
+from jinja2 import Template
+
 from itertools import combinations
 from pathlib import Path
-from jinja2 import Template
 from typing import Union
 
-from jinja2 import Template
 from rdagent.core.evolving_framework import (
-    EvolvableSubjects,
-    EvoStep,
-    Knowledge,
     KnowledgeBase,
-    QueriedKnowledge,
-    RAGStrategy,
 )
-from rdagent.core.log import FinCoLog
-from rdagent.core.prompts import Prompts
-from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
-from rdagent.core.task import (
-    TaskImplementation,
-)
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask
-from rdagent.core.prompts import Prompts
+from rdagent.core.evolving_framework import EvoStep, EvolvableSubjects, RAGStrategy, Knowledge, QueriedKnowledge
+from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledge, FactorImplementationQueriedGraphKnowledge
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
+
 from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from rdagent.core.prompts import Prompts
+from rdagent.core.log import FinCoLog
 from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
-)
 
-class FactorImplementationKnowledge(Knowledge):
-    def __init__(
+class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
+    def __init__(self, init_component_list=None) -> None:
+        """
+        Load knowledge, offer brief information of knowledge and common handle interfaces
+        """
+        self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
+        FinCoLog().info(f"Knowledge Graph loaded, size={self.graph.size()}")
+
+        if init_component_list:
+            for component in init_component_list:
+                exist_node = self.graph.get_node_by_content(content=component)
+                node = exist_node if exist_node else UndirectedNode(content=component, label="component")
+                self.graph.add_nodes(node=node, neighbors=[])
+
+        # A dict containing all working trace until they fail or succeed
+        self.working_trace_knowledge = {}
+
+        # A dict containing error analysis each step aligned with working trace
+        self.working_trace_error_analysis = {}
+
+        # Add already success task
+        self.success_task_to_knowledge_dict = {}
+
+        # key:node_id(for task trace and success implement), value:knowledge instance(aka 'FactorImplementationKnowledge')
+        self.node_to_implementation_knowledge_dict = {}
+
+        # store the task description to component nodes
+        self.task_to_component_nodes = {}
+
+    def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
+        return self.graph.get_all_nodes_by_label(label)
+
+    def update_success_task(
         self,
-        target_task: FactorImplementTask,
-        implementation: TaskImplementation,
-        feedback: FactorImplementationSingleFeedback,
-    ) -> None:
-        """
-        Initialize a FactorKnowledge object. The FactorKnowledge object is used to store a factor implementation without the ground truth code and value.
-
-        Args:
-            factor (Factor): The factor object associated with the KnowledgeManagement.
-
-        Returns:
-            None
-        """
-        self.target_task = target_task
-        self.implementation = implementation
-        self.feedback = feedback
-
-    def get_implementation_and_feedback_str(self) -> str:
-        return f"""------------------Factor implementation code:------------------
-{self.implementation.code}
-------------------Factor implementation feedback:------------------
-{self.feedback!s}
-"""
-
-
-class FactorImplementationQueriedKnowledge(QueriedKnowledge):
-    def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
-        self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
-        self.failed_task_info_set = failed_task_info_set
-
-
-class FactorImplementationKnowledgeBaseV1(KnowledgeBase):
-    def __init__(self) -> None:
-        self.implementation_trace: dict[str, FactorImplementationKnowledge] = dict()
-        self.success_task_info_set: set[str] = set()
-
-        self.task_to_embedding = dict()
-
-    def query(self) -> QueriedKnowledge | None:
-        """
-        Query the knowledge base to get the queried knowledge. So far is handled in RAG strategy.
-        """
-        raise NotImplementedError
-
-
-class FactorImplementationQueriedKnowledgeV1(FactorImplementationQueriedKnowledge):
-    def __init__(self) -> None:
-        self.working_task_to_former_failed_knowledge_dict = dict()
-        self.working_task_to_similar_successful_knowledge_dict = dict()
-        super().__init__()
-
-
-class FactorImplementationRAGStrategyV1(RAGStrategy):
-    def __init__(self, knowledgebase: FactorImplementationKnowledgeBaseV1) -> None:
-        super().__init__(knowledgebase)
-        self.current_generated_trace_count = 0
-
-    def generate_knowledge(
-        self,
-        evolving_trace: list[EvoStep],
-        *,
-        return_knowledge: bool = False,
-    ) -> Knowledge | None:
-        if len(evolving_trace) == self.current_generated_trace_count:
-            return
-        else:
-            for trace_index in range(
-                self.current_generated_trace_count,
-                len(evolving_trace),
-            ):
-                evo_step = evolving_trace[trace_index]
-                implementations = evo_step.evolvable_subjects
-                feedback = evo_step.feedback
-                for task_index in range(len(implementations.target_factor_tasks)):
-                    target_task = implementations.target_factor_tasks[task_index]
-                    target_task_information = target_task.get_factor_information()
-                    implementation = implementations.corresponding_implementations[task_index]
-                    single_feedback = feedback[task_index]
-                    if single_feedback is None:
-                        continue
-                    single_knowledge = FactorImplementationKnowledge(
-                        target_task=target_task,
-                        implementation=implementation,
-                        feedback=single_feedback,
-                    )
-                    if target_task_information not in self.knowledgebase.success_task_info_set:
-                        self.knowledgebase.implementation_trace.setdefault(
-                            target_task_information,
-                            [],
-                        ).append(single_knowledge)
-
-                        if single_feedback.final_decision == True:
-                            self.knowledgebase.success_task_info_set.add(
-                                target_task_information,
-                            )
-            self.current_generated_trace_count = len(evolving_trace)
-
-    def query(
-        self,
-        evo: EvolvableSubjects,
-        evolving_trace: list[EvoStep],
-    ) -> QueriedKnowledge | None:
-        v1_query_former_trace_limit = FactorImplementSettings().v1_query_former_trace_limit
-        v1_query_similar_success_limit = FactorImplementSettings().v1_query_similar_success_limit
-        fail_task_trial_limit = FactorImplementSettings().fail_task_trial_limit
-
-        queried_knowledge = FactorImplementationQueriedKnowledgeV1()
-        for target_factor_task in evo.target_factor_tasks:
-            target_factor_task_information = target_factor_task.get_factor_information()
-            if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+        success_task_info: str,
+    ):  # Transfer the success tasks' working trace to knowledge storage & graph
+        success_task_trace = self.working_trace_knowledge[success_task_info]
+        success_task_error_analysis_record = (
+            self.working_trace_error_analysis[success_task_info]
+            if success_task_info in self.working_trace_error_analysis
+            else []
+        )
+        task_des_node = UndirectedNode(content=success_task_info, label="task_description")
+        self.graph.add_nodes(
+            node=task_des_node,
+            neighbors=self.task_to_component_nodes[success_task_info],
+        )  # 1st version, we assume that all component nodes are given
+        for index, trace_unit in enumerate(success_task_trace):  # every unit: single_knowledge
+            neighbor_nodes = [task_des_node]
+            if index != len(success_task_trace) - 1:
+                trace_node = UndirectedNode(
+                    content=trace_unit.get_implementation_and_feedback_str(),
+                    label="task_trace",
                 )
-            elif (
-                len(
-                    self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
-                        [],
-                    ),
-                )
-                >= fail_task_trial_limit
-            ):
-                queried_knowledge.failed_task_info_set.add(target_factor_task_information)
+                self.node_to_implementation_knowledge_dict[trace_node.id] = trace_unit
+                for node_index, error_node in enumerate(success_task_error_analysis_record[index]):
+                    if type(error_node).__name__ == "str":
+                        queried_node = self.graph.get_node_by_content(content=error_node)
+                        if queried_node is None:
+                            new_error_node = UndirectedNode(content=error_node, label="error")
+                            self.graph.add_node(node=new_error_node)
+                            success_task_error_analysis_record[index][node_index] = new_error_node
+                        else:
+                            success_task_error_analysis_record[index][node_index] = queried_node
+                neighbor_nodes.extend(success_task_error_analysis_record[index])
+                self.graph.add_nodes(node=trace_node, neighbors=neighbor_nodes)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
-                        [],
-                    )[-v1_query_former_trace_limit:]
+                success_node = UndirectedNode(
+                    content=trace_unit.get_implementation_and_feedback_str(),
+                    label="task_success_implement",
                 )
+                self.graph.add_nodes(node=success_node, neighbors=neighbor_nodes)
+                self.node_to_implementation_knowledge_dict[success_node.id] = trace_unit
 
-                knowledge_base_success_task_list = list(
-                    self.knowledgebase.success_task_info_set,
-                )
-                similarity = calculate_embedding_distance_between_str_list(
-                    [target_factor_task_information],
-                    knowledge_base_success_task_list,
-                )[0]
-                similar_indexes = sorted(
-                    range(len(similarity)),
-                    key=lambda i: similarity[i],
-                    reverse=True,
-                )[:v1_query_similar_success_limit]
-                similar_successful_knowledge = [
-                    self.knowledgebase.implementation_trace.setdefault(
-                        knowledge_base_success_task_list[index],
-                        [],
-                    )[-1]
-                    for index in similar_indexes
-                ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
-                    similar_successful_knowledge
-                )
-        return queried_knowledge
+    def query(self):
+        pass
 
+    def graph_get_node_by_content(self, content: str) -> UndirectedNode:
+        return self.graph.get_node_by_content(content=content)
 
-class FactorImplementationQueriedGraphKnowledge(FactorImplementationQueriedKnowledge):
-    # Aggregation of knowledge
-    def __init__(
+    def graph_query_by_content(
         self,
-        former_traces: dict = {},
-        component_with_success_task: dict = {},
-        error_with_success_task: dict = {},
-        **kwargs,
-    ) -> None:
-        self.former_traces = former_traces
-        self.component_with_success_task = component_with_success_task
-        self.error_with_success_task = error_with_success_task
-        super().__init__(**kwargs)
+        content: Union[str, list[str]],
+        topk_k: int = 5,
+        step: int = 1,
+        constraint_labels: list[str] = None,
+        constraint_node: UndirectedNode = None,
+        similarity_threshold: float = 0.0,
+        constraint_distance: float = 0,
+        block: bool = False,
+    ) -> list[UndirectedNode]:
+        """
+        search graph by content similarity and connection relationship, return empty list if nodes' chain without node
+        near to constraint_node
+
+        Parameters
+        ----------
+        constraint_distance
+        content
+        topk_k: the upper number of output for each query, if the number of fit nodes is less than topk_k, return all fit nodes's content
+        step
+        constraint_labels
+        constraint_node
+        similarity_threshold
+        block: despite the start node, the search can only flow through the constraint_label type nodes
+
+        Returns
+        -------
+
+        """
+
+        return self.graph.query_by_content(
+            content=content,
+            topk_k=topk_k,
+            step=step,
+            constraint_labels=constraint_labels,
+            constraint_node=constraint_node,
+            similarity_threshold=similarity_threshold,
+            constraint_distance=constraint_distance,
+            block=block,
+        )
+
+    def graph_query_by_node(
+        self,
+        node: UndirectedNode,
+        step: int = 1,
+        constraint_labels: list[str] = None,
+        constraint_node: UndirectedNode = None,
+        constraint_distance: float = 0,
+        block: bool = False,
+    ) -> list[UndirectedNode]:
+        """
+        search graph by connection, return empty list if nodes' chain without node near to constraint_node
+        Parameters
+        ----------
+        node : start node
+        step : the max steps will be searched
+        constraint_labels : the labels of output nodes
+        constraint_node : the node that the output nodes must connect to
+        constraint_distance : the max distance between output nodes and constraint_node
+        block: despite the start node, the search can only flow through the constraint_label type nodes
+
+        Returns
+        -------
+        A list of nodes
+
+        """
+        nodes = self.graph.query_by_node(
+            node=node,
+            step=step,
+            constraint_labels=constraint_labels,
+            constraint_node=constraint_node,
+            constraint_distance=constraint_distance,
+            block=block,
+        )
+        return nodes
+
+    def graph_query_by_intersection(
+        self,
+        nodes: list[UndirectedNode],
+        steps: int = 1,
+        constraint_labels: list[str] = None,
+        output_intersection_origin: bool = False,
+    ) -> list[UndirectedNode] | list[list[list[UndirectedNode], UndirectedNode]]:
+        """
+        search graph by node intersection, node intersected by a higher frequency has a prior order in the list
+        Parameters
+        ----------
+        nodes : node list
+        step : the max steps will be searched
+        constraint_labels : the labels of output nodes
+        output_intersection_origin: output the list that contains the node which form this intersection node
+
+        Returns
+        -------
+        A list of nodes
+
+        """
+        node_count = len(nodes)
+        assert node_count >= 2, "nodes length must >=2"
+        intersection_node_list = []
+        if output_intersection_origin:
+            origin_list = []
+        for k in range(node_count, 1, -1):
+            possible_combinations = combinations(nodes, k)
+            for possible_combination in possible_combinations:
+                node_list = list(possible_combination)
+                intersection_node_list.extend(
+                    self.graph.get_nodes_intersection(node_list, steps=steps, constraint_labels=constraint_labels)
+                )
+                if output_intersection_origin:
+                    for _ in range(len(intersection_node_list)):
+                        origin_list.append(node_list)
+        intersection_node_list_sort_by_freq = []
+        for index, node in enumerate(intersection_node_list):
+            if node not in intersection_node_list_sort_by_freq:
+                if output_intersection_origin:
+                    intersection_node_list_sort_by_freq.append([origin_list[index], node])
+                else:
+                    intersection_node_list_sort_by_freq.append(node)
+
+        return intersection_node_list_sort_by_freq
+
 
 
 class FactorImplementationGraphRAGStrategy(RAGStrategy):
     def __init__(self, knowledgebase: FactorImplementationGraphKnowledgeBase) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
-        self.prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+        self.prompt = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
     def generate_knowledge(
         self,
@@ -284,7 +306,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         factor_implementation_queried_graph_knowledge = FactorImplementationQueriedGraphKnowledge(
             success_task_to_knowledge_dict=self.knowledgebase.success_task_to_knowledge_dict,
         )
-
+        
         factor_implementation_queried_graph_knowledge = self.former_trace_query(
             evo,
             factor_implementation_queried_graph_knowledge,
@@ -416,9 +438,9 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
-                    former_trace_knowledge[-v2_query_former_trace_limit:]
-                )
+                factor_implementation_queried_graph_knowledge.former_traces[
+                    target_factor_task_information
+                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 
@@ -697,208 +719,4 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                 ] = same_error_success_knowledge_pair_list
 
         return factor_implementation_queried_graph_knowledge
-
-
-class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
-    def __init__(self, init_component_list=None) -> None:
-        """
-        Load knowledge, offer brief information of knowledge and common handle interfaces
-        """
-        self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
-        FinCoLog().info(f"Knowledge Graph loaded, size={self.graph.size()}")
-
-        if init_component_list:
-            for component in init_component_list:
-                exist_node = self.graph.get_node_by_content(content=component)
-                node = exist_node if exist_node else UndirectedNode(content=component, label="component")
-                self.graph.add_nodes(node=node, neighbors=[])
-
-        # A dict containing all working trace until they fail or succeed
-        self.working_trace_knowledge = {}
-
-        # A dict containing error analysis each step aligned with working trace
-        self.working_trace_error_analysis = {}
-
-        # Add already success task
-        self.success_task_to_knowledge_dict = {}
-
-        # key:node_id(for task trace and success implement), value:knowledge instance(aka 'FactorImplementationKnowledge')
-        self.node_to_implementation_knowledge_dict = {}
-
-        # store the task description to component nodes
-        self.task_to_component_nodes = {}
-
-    def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
-        return self.graph.get_all_nodes_by_label(label)
-
-    def update_success_task(
-        self,
-        success_task_info: str,
-    ):  # Transfer the success tasks' working trace to knowledge storage & graph
-        success_task_trace = self.working_trace_knowledge[success_task_info]
-        success_task_error_analysis_record = (
-            self.working_trace_error_analysis[success_task_info]
-            if success_task_info in self.working_trace_error_analysis
-            else []
-        )
-        task_des_node = UndirectedNode(content=success_task_info, label="task_description")
-        self.graph.add_nodes(
-            node=task_des_node,
-            neighbors=self.task_to_component_nodes[success_task_info],
-        )  # 1st version, we assume that all component nodes are given
-        for index, trace_unit in enumerate(success_task_trace):  # every unit: single_knowledge
-            neighbor_nodes = [task_des_node]
-            if index != len(success_task_trace) - 1:
-                trace_node = UndirectedNode(
-                    content=trace_unit.get_implementation_and_feedback_str(),
-                    label="task_trace",
-                )
-                self.node_to_implementation_knowledge_dict[trace_node.id] = trace_unit
-                for node_index, error_node in enumerate(success_task_error_analysis_record[index]):
-                    if type(error_node).__name__ == "str":
-                        queried_node = self.graph.get_node_by_content(content=error_node)
-                        if queried_node is None:
-                            new_error_node = UndirectedNode(content=error_node, label="error")
-                            self.graph.add_node(node=new_error_node)
-                            success_task_error_analysis_record[index][node_index] = new_error_node
-                        else:
-                            success_task_error_analysis_record[index][node_index] = queried_node
-                neighbor_nodes.extend(success_task_error_analysis_record[index])
-                self.graph.add_nodes(node=trace_node, neighbors=neighbor_nodes)
-            else:
-                success_node = UndirectedNode(
-                    content=trace_unit.get_implementation_and_feedback_str(),
-                    label="task_success_implement",
-                )
-                self.graph.add_nodes(node=success_node, neighbors=neighbor_nodes)
-                self.node_to_implementation_knowledge_dict[success_node.id] = trace_unit
-
-    def query(self):
-        pass
-
-    def graph_get_node_by_content(self, content: str) -> UndirectedNode:
-        return self.graph.get_node_by_content(content=content)
-
-    def graph_query_by_content(
-        self,
-        content: Union[str, list[str]],
-        topk_k: int = 5,
-        step: int = 1,
-        constraint_labels: list[str] = None,
-        constraint_node: UndirectedNode = None,
-        similarity_threshold: float = 0.0,
-        constraint_distance: float = 0,
-        block: bool = False,
-    ) -> list[UndirectedNode]:
-        """
-        search graph by content similarity and connection relationship, return empty list if nodes' chain without node
-        near to constraint_node
-
-        Parameters
-        ----------
-        constraint_distance
-        content
-        topk_k: the upper number of output for each query, if the number of fit nodes is less than topk_k, return all fit nodes's content
-        step
-        constraint_labels
-        constraint_node
-        similarity_threshold
-        block: despite the start node, the search can only flow through the constraint_label type nodes
-
-        Returns
-        -------
-
-        """
-
-        return self.graph.query_by_content(
-            content=content,
-            topk_k=topk_k,
-            step=step,
-            constraint_labels=constraint_labels,
-            constraint_node=constraint_node,
-            similarity_threshold=similarity_threshold,
-            constraint_distance=constraint_distance,
-            block=block,
-        )
-
-    def graph_query_by_node(
-        self,
-        node: UndirectedNode,
-        step: int = 1,
-        constraint_labels: list[str] = None,
-        constraint_node: UndirectedNode = None,
-        constraint_distance: float = 0,
-        block: bool = False,
-    ) -> list[UndirectedNode]:
-        """
-        search graph by connection, return empty list if nodes' chain without node near to constraint_node
-        Parameters
-        ----------
-        node : start node
-        step : the max steps will be searched
-        constraint_labels : the labels of output nodes
-        constraint_node : the node that the output nodes must connect to
-        constraint_distance : the max distance between output nodes and constraint_node
-        block: despite the start node, the search can only flow through the constraint_label type nodes
-
-        Returns
-        -------
-        A list of nodes
-
-        """
-        nodes = self.graph.query_by_node(
-            node=node,
-            step=step,
-            constraint_labels=constraint_labels,
-            constraint_node=constraint_node,
-            constraint_distance=constraint_distance,
-            block=block,
-        )
-        return nodes
-
-    def graph_query_by_intersection(
-        self,
-        nodes: list[UndirectedNode],
-        steps: int = 1,
-        constraint_labels: list[str] = None,
-        output_intersection_origin: bool = False,
-    ) -> list[UndirectedNode] | list[list[list[UndirectedNode], UndirectedNode]]:
-        """
-        search graph by node intersection, node intersected by a higher frequency has a prior order in the list
-        Parameters
-        ----------
-        nodes : node list
-        step : the max steps will be searched
-        constraint_labels : the labels of output nodes
-        output_intersection_origin: output the list that contains the node which form this intersection node
-
-        Returns
-        -------
-        A list of nodes
-
-        """
-        node_count = len(nodes)
-        assert node_count >= 2, "nodes length must >=2"
-        intersection_node_list = []
-        if output_intersection_origin:
-            origin_list = []
-        for k in range(node_count, 1, -1):
-            possible_combinations = combinations(nodes, k)
-            for possible_combination in possible_combinations:
-                node_list = list(possible_combination)
-                intersection_node_list.extend(
-                    self.graph.get_nodes_intersection(node_list, steps=steps, constraint_labels=constraint_labels),
-                )
-                if output_intersection_origin:
-                    for _ in range(len(intersection_node_list)):
-                        origin_list.append(node_list)
-        intersection_node_list_sort_by_freq = []
-        for index, node in enumerate(intersection_node_list):
-            if node not in intersection_node_list_sort_by_freq:
-                if output_intersection_origin:
-                    intersection_node_list_sort_by_freq.append([origin_list[index], node])
-                else:
-                    intersection_node_list_sort_by_freq.append(node)
-
-        return intersection_node_list_sort_by_freq
 

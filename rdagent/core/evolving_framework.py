@@ -91,6 +91,16 @@ class EvolvingStrategy(ABC):
         """
 
 
+class EvoAgent(ABC):
+    def __init__(self, max_loop, evolving_strategy) -> None:
+        self.max_loop = max_loop
+        self.evolving_strategy = evolving_strategy
+    
+    @abstractmethod
+    def multistep_evolve(self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any) -> EvolvableSubjects:
+        pass
+
+
 class RAGStrategy(ABC):
     """Retrival Augmentation Generation Strategy"""
 
@@ -119,66 +129,3 @@ class RAGStrategy(ABC):
 
         RAGStrategy should maintain the new knowledge all by itself.
         """
-
-
-class EvoAgent:
-    """It is responsible for driving the workflow."""
-
-    evolving_trace: list[EvoStep]
-
-    def __init__(
-        self,
-        evolving_strategy: EvolvingStrategy,
-        rag: RAGStrategy | None = None,
-    ) -> None:
-        self.evolving_trace = []
-        self.evolving_strategy = evolving_strategy
-        self.rag = rag
-
-    def step_evolving(
-        self,
-        evo: EvolvableSubjects,
-        eva: Evaluator | Feedback,
-        *,
-        with_knowledge: bool = False,
-        with_feedback: bool = True,
-        knowledge_self_gen: bool = False,
-    ) -> EvolvableSubjects:
-        """Common evolving mode are supported in this api .
-        - Interactive evolving:
-            - `with_feedback=True` and `eva` is a external Evaluator.
-
-        - Knowledge-driven evolving:
-            - `with_knowledge=True` and related knowledge are
-            queried based on `self.rag`
-
-        - Self-evolving: we have two ways to self-evolve.
-            - 1) self generating knowledge and then evolve
-                - `knowledge_self_gen=True` and `with_knowledge=True`
-            - 2) self evaluate to generate feedback and then evolve
-                - `with_feedback=True` and `eva` is a internal Evaluator.
-        """
-        # knowledge self-evolving
-        if knowledge_self_gen and self.rag is not None:
-            self.rag.generate_knowledge(self.evolving_trace)
-
-        # RAG
-        queried_knowledge = None
-        if with_knowledge and self.rag is not None:
-            queried_knowledge = self.rag.query(evo, self.evolving_trace)
-
-        # Evolve
-        evo = self.evolving_strategy.evolve(
-            evo=evo,
-            evolving_trace=self.evolving_trace,
-            queried_knowledge=queried_knowledge,
-        )
-        es = EvoStep(evo, queried_knowledge)
-
-        # Evaluate
-        if with_feedback:
-            es.feedback = eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
-
-        # Update trace
-        self.evolving_trace.append(es)
-        return evo

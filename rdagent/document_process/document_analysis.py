@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
-from rdagent.core.conf import FincoSettings as Config
+from rdagent.core.conf import RDAgentSettings as Config
 from rdagent.core.log import FinCoLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing

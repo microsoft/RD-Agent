@@ -6,8 +6,8 @@ from collections import deque
 from pathlib import Path
 from typing import Any, NoReturn
 
-from finco.llm import APIBackend
-from finco.vector_base import KnowledgeMetaData, PDVectorBase, VectorBase, cosine
+from rdagent.oai.llm_utils import APIBackend
+from rdagent.knowledge_management.vector_base import KnowledgeMetaData, PDVectorBase, VectorBase, cosine
 
 Node = KnowledgeMetaData
 
@@ -124,7 +124,7 @@ class UndirectedGraph(Graph):
         self,
         node: UndirectedNode,
         neighbor: UndirectedNode = None,
-        same_node_threshold: float = 0.95, # noqa: ARG002
+        same_node_threshold: float = 0.95,  # noqa: ARG002
     ) -> None:
         """
         add node and neighbor to the Graph
@@ -189,7 +189,6 @@ class UndirectedGraph(Graph):
     def get_node(self, node_id: str) -> UndirectedNode:
         return self.nodes.get(node_id)
 
-
     def get_node_by_content(self, content: str) -> UndirectedNode | None:
         """
         Get node by semantic distance
@@ -234,7 +233,8 @@ class UndirectedGraph(Graph):
                 result.append(node)
 
                 for neighbor in sorted(
-                    self.get_node(node.id).neighbors, key=lambda x: x.content,
+                    self.get_node(node.id).neighbors,
+                    key=lambda x: x.content,
                 ):  # to make sure the result is deterministic
                     if neighbor not in visited and not (block and neighbor.label not in constraint_labels):
                         queue.append((neighbor, current_steps + 1))
@@ -271,12 +271,16 @@ class UndirectedGraph(Graph):
         for node in nodes:
             if intersection is None:
                 intersection = self.get_nodes_within_steps(
-                    node, steps=steps, constraint_labels=constraint_labels,
+                    node,
+                    steps=steps,
+                    constraint_labels=constraint_labels,
                 )
             intersection = self.intersection(
                 nodes1=intersection,
                 nodes2=self.get_nodes_within_steps(
-                    node, steps=steps, constraint_labels=constraint_labels,
+                    node,
+                    steps=steps,
+                    constraint_labels=constraint_labels,
                 ),
             )
         return intersection
@@ -399,7 +403,9 @@ class UndirectedGraph(Graph):
         res_list = []
         for query in content:
             similar_nodes = self.semantic_search(
-                content=query, topk_k=topk_k, similarity_threshold=similarity_threshold,
+                content=query,
+                topk_k=topk_k,
+                similarity_threshold=similarity_threshold,
             )
 
             connected_nodes = []
@@ -413,11 +419,7 @@ class UndirectedGraph(Graph):
                     block=block,
                 )
                 connected_nodes.extend(
-                    [
-                        node
-                        for node in graph_query_node_res
-                        if node not in connected_nodes
-                    ],
+                    [node for node in graph_query_node_res if node not in connected_nodes],
                 )
                 if len(connected_nodes) >= topk_k:
                     break
@@ -444,7 +446,6 @@ class UndirectedGraph(Graph):
         return [node for node in nodes if node.label in labels]
 
 
-
 def graph_to_edges(graph: dict[str, list[str]]) -> list[tuple[str, str]]:
     edges = []
 
@@ -458,7 +459,9 @@ def graph_to_edges(graph: dict[str, list[str]]) -> list[tuple[str, str]]:
 
 
 def assign_random_coordinate_to_node(
-    nodes: list[str], scope: float = 1.0, origin: tuple[float, float] = (0.0, 0.0),
+    nodes: list[str],
+    scope: float = 1.0,
+    origin: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, tuple[float, float]]:
     coordinates = {}
     for node in nodes:
@@ -470,7 +473,10 @@ def assign_random_coordinate_to_node(
 
 
 def assign_isometric_coordinate_to_node(
-    nodes: list, x_step: float = 1.0, x_origin: float = 0.0, y_origin: float = 0.0,
+    nodes: list,
+    x_step: float = 1.0,
+    x_origin: float = 0.0,
+    y_origin: float = 0.0,
 ) -> dict:
     coordinates = {}
 
@@ -483,7 +489,9 @@ def assign_isometric_coordinate_to_node(
 
 
 def curly_node_coordinate(
-    coordinates: dict, center_y: float = 1.0, r: float = 1.0,
+    coordinates: dict,
+    center_y: float = 1.0,
+    r: float = 1.0,
 ) -> dict:
     # noto: this method can only curly < 90 degree, and the curl line is circle.
     # the original function is: x**2 + (y-m)**2 = r**2

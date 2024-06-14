@@ -11,8 +11,10 @@ from pydantic_settings import BaseSettings
 # make sure that env variable is loaded while calling Config()
 load_dotenv(verbose=True, override=True)
 
+from pydantic_settings import BaseSettings
 
-class FincoSettings(BaseSettings):
+
+class RDAgentSettings(BaseSettings):
     use_azure: bool = True
     use_azure_token_provider: bool = False
     max_retry: int = 10
@@ -96,3 +98,4 @@ class FincoSettings(BaseSettings):
     # factor extraction conf
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
+
