@@ -24,12 +24,10 @@ jobs:
           CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
           CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
-          CHAT_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
           CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
           EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
-          EMBEDDING_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
         name: lint test docs and build
         run: make lint test docs build
     strategy:
@@ -76,6 +74,52 @@ jobs:
             git commit -a -m "build: Update constraints for dependabot."
             git push
           fi
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: python
+          build-mode: default
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    # If the analyze step fails for one of the languages you are analyzing with
+    # "We were unable to automatically build your code", modify the matrix above
+    # to set the build mode to "manual" for that language. Then modify this step
+    # to build your code.
+    # ℹ️ Command-line programs to run using the OS shell.
+    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    - if: matrix.build-mode == 'manual'
+      shell: bash
+      run: |
+        echo 'If you are using a "manual" build mode for one or more of the' \
+          'languages you are analyzing, replace this with the commands to build' \
+          'your code, for example:'
+        echo '  make bootstrap'
+        echo '  make release'
+        exit 1
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
 name: CI
 on:
   pull_request:
@@ -84,4 +128,4 @@ on:
       - synchronize
   push:
     branches:
-      - master
+      - main
