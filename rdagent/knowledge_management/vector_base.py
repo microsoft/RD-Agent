@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.spatial.distance import cosine
 
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.log import FinCoLog
+from rdagent.core.log import RDAgentLog
 
 
 class KnowledgeMetaData:
@@ -127,7 +127,7 @@ class PDVectorBase(VectorBase):
         else:
             self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
 
-        FinCoLog().info(f"VectorBase loaded, shape={self.vector_df.shape}")
+        RDAgentLog().info(f"VectorBase loaded, shape={self.vector_df.shape}")
 
     def shape(self):
         return self.vector_df.shape
@@ -205,4 +205,4 @@ class PDVectorBase(VectorBase):
 
     def save(self, vector_df_path, **kwargs):
         self.vector_df.to_pickle(vector_df_path)
-        FinCoLog().info(f"Save vectorBase vector_df to: {vector_df_path}")
+        RDAgentLog().info(f"Save vectorBase vector_df to: {vector_df_path}")

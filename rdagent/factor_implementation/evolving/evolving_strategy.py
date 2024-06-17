@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING
 
 from jinja2 import Template
 
+from rdagent.core.conf import RD_Agent_Settings
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
+    Factor_Implement_Settings,
 )
 
 from rdagent.core.task import (
@@ -81,18 +82,18 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         # 2. 选择selection方法
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
-        if FactorImplementSettings().select_ratio < 1:
+        if Factor_Implement_Settings.select_ratio < 1:
             # if the number of loops is equal to the select_loop, we need to select some of them
             implementation_factors_per_round = int(
-                FactorImplementSettings().select_ratio * len(to_be_finished_task_index)
+                Factor_Implement_Settings.select_ratio * len(to_be_finished_task_index)
             )
-            if FactorImplementSettings().select_method == "random":
+            if Factor_Implement_Settings.select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
                     implementation_factors_per_round,
                 )
 
-            if FactorImplementSettings().select_method == "scheduler":
+            if Factor_Implement_Settings.select_method == "scheduler":
                 to_be_finished_task_index = LLMSelect(
                     to_be_finished_task_index,
                     implementation_factors_per_round,
@@ -105,17 +106,18 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 (self.implement_one_factor, (new_evo.target_factor_tasks[target_index], queried_knowledge))
                 for target_index in to_be_finished_task_index
             ],
-            n=FactorImplementSettings().evo_multi_proc_n,
+            n=Factor_Implement_Settings.evo_multi_proc_n,
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
             new_evo.corresponding_implementations[target_index] = result[index]
-            if result[index].target_task.factor_name in new_evo.evolve_trace:
-                new_evo.evolve_trace[result[index].target_task.factor_name].append(result[index])
-            else:
-                new_evo.evolve_trace[result[index].target_task.factor_name] = [result[index]]
 
-        new_evo.corresponding_selection.append(to_be_finished_task_index)
+        # for target_index in to_be_finished_task_index:
+        #     new_evo.corresponding_implementations[target_index] = self.implement_one_factor(
+        #         new_evo.target_factor_tasks[target_index], queried_knowledge
+        #     )
+
+        new_evo.corresponding_selection = to_be_finished_task_index
 
         return new_evo
 
@@ -172,7 +174,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     session.build_chat_completion_message_and_calculate_token(
                         user_prompt,
                     )
-                    < FactorImplementSettings().chat_token_limit
+                    < RD_Agent_Settings.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:
@@ -205,7 +207,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
         target_task: FactorImplementTask,
         queried_knowledge,
     ) -> TaskImplementation:
-        error_summary = FactorImplementSettings().v2_error_summary
+        error_summary = Factor_Implement_Settings.v2_error_summary
         # 1. 提取因子的背景信息
         target_factor_task_information = target_task.get_factor_information()
 
@@ -284,7 +286,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         )
                         if (
                             session_summary.build_chat_completion_message_and_calculate_token(error_summary_user_prompt)
-                            < FactorImplementSettings().chat_token_limit
+                            < RD_Agent_Settings.chat_token_limit
                         ):
                             break
                         elif len(queried_similar_error_knowledge_to_render) > 0:
@@ -311,7 +313,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     session.build_chat_completion_message_and_calculate_token(
                         user_prompt,
                     )
-                    < FactorImplementSettings().chat_token_limit
+                    < RD_Agent_Settings.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:

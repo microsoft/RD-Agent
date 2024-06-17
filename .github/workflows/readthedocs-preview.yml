@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: readthedocs/actions/preview@v1
         with:
-          project-slug: fincov2
+          project-slug: RDAgent
 name: Read the Docs Pull Request Preview
 on:
   pull_request_target:

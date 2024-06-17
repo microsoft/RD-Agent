@@ -14,7 +14,7 @@ import yaml
 from fuzzywuzzy import fuzz
 
 
-class RDAgentException(Exception): # noqa: N818
+class RDAgentException(Exception):  # noqa: N818
     pass
 
 
@@ -30,6 +30,7 @@ class SingletonMeta(type):
         if kwargs_hash not in cls._instance_dict:
             cls._instance_dict[kwargs_hash] = super().__call__(**kwargs)
         return cls._instance_dict[kwargs_hash]
+
 
 class SingletonBaseClass(metaclass=SingletonMeta):
     """
@@ -55,67 +56,6 @@ def similarity(text1: str, text2: str) -> int:
 
     # Maybe we can use other similarity algorithm such as tfidf
     return fuzz.ratio(text1, text2)
-
-
-def random_string(length: int = 10) -> str:
-    letters = string.ascii_letters + string.digits
-    return "".join(random.SystemRandom().choice(letters) for _ in range(length))
-
-
-def remove_uncommon_keys(new_dict: dict, org_dict: dict) -> None:
-    keys_to_remove = []
-
-    for key in new_dict:
-        if key not in org_dict:
-            keys_to_remove.append(key)
-        elif isinstance(new_dict[key], dict) and isinstance(org_dict[key], dict):
-            remove_uncommon_keys(new_dict[key], org_dict[key])
-        elif isinstance(new_dict[key], dict) and isinstance(org_dict[key], str):
-            new_dict[key] = org_dict[key]
-
-    for key in keys_to_remove:
-        del new_dict[key]
-
-
-def crawl_the_folder(folder_path: Path) -> list:
-    yaml_files = []
-    for root, _, files in os.walk(folder_path.as_posix()):
-        for file in files:
-            if file.endswith((".yaml", ".yml")):
-                yaml_file_path = Path(root) / file
-                yaml_files.append(str(yaml_file_path.relative_to(folder_path)))
-    return sorted(yaml_files)
-
-
-def compare_yaml(file1: Path | str, file2: Path | str) -> bool:
-    with Path(file1).open() as stream:
-        data1 = yaml.safe_load(stream)
-    with Path(file2).open() as stream:
-        data2 = yaml.safe_load(stream)
-    return data1 == data2
-
-
-def remove_keys(valid_keys: set[Any], ori_dict: dict[Any, Any]) -> dict[Any, Any]:
-    for key in list(ori_dict.keys()):
-        if key not in valid_keys:
-            ori_dict.pop(key)
-    return ori_dict
-
-
-class YamlConfigCache(SingletonBaseClass):
-    def __init__(self) -> None:
-        super().__init__()
-        self.path_to_config = {}
-
-    def load(self, path: str) -> None:
-        with Path(path).open() as stream:
-            data = yaml.safe_load(stream)
-            self.path_to_config[path] = data
-
-    def __getitem__(self, path: str) -> Any:
-        if path not in self.path_to_config:
-            self.load(path)
-        return self.path_to_config[path]
 
 
 def import_class(class_path: str) -> Any:
@@ -156,11 +96,3 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     with mp.Pool(processes=n) as pool:
         results = [pool.apply_async(f, args) for f, args in func_calls]
         return [result.get() for result in results]
-
-
-# You can test the above function
-# def f(x):
-#     return x**2
-#
-# if __name__ == "__main__":
-#     print(multiprocessing_wrapper([(f, (i,)) for i in range(10)], 4))

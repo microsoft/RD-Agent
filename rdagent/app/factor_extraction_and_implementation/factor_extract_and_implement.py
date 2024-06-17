@@ -2,13 +2,12 @@
 from pathlib import Path
 
 from dotenv import load_dotenv
-from rdagent.document_process.document_analysis import (
+from rdagent.document_process.document_analysis_to_factors import (
     check_factor_viability,
     classify_report_from_dict,
     deduplicate_factors_by_llm,
     extract_factors_from_report_dict,
     merge_file_to_factor_dict_to_factor_dict,
-    classify_report_from_dict,
 )
 from rdagent.document_process.document_reader import load_and_process_pdfs_by_langchain
 from rdagent.factor_implementation.share_modules.factor_implementation_utils import load_data_from_dict
