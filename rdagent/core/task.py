@@ -33,5 +33,5 @@ class TestCase:
 
 class TaskLoader:
     @abstractmethod
-    def load(*args, **kwargs) -> BaseTask | list[BaseTask]:
+    def load(self, *args, **kwargs) -> BaseTask | list[BaseTask]:
         raise NotImplementedError("load method is not implemented.")

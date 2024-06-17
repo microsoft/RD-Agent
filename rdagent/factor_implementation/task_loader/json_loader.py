@@ -5,7 +5,7 @@ from rdagent.factor_implementation.evolving.factor import FactorImplementTask
 
 
 class FactorImplementationTaskLoaderFromDict(TaskLoader):
-    def load(factor_dict: dict) -> list:
+    def load(self, factor_dict: dict) -> list:
         """Load data from a dict."""
         task_l = []
         for factor_name, factor_data in factor_dict.items():
@@ -20,12 +20,12 @@ class FactorImplementationTaskLoaderFromDict(TaskLoader):
 
 
 class FactorImplementationTaskLoaderFromJsonFile(TaskLoader):
-    def load(json_file_path: Path) -> list:
+    def load(self, json_file_path: Path) -> list:
         factor_dict = json.load(json_file_path)
         return FactorImplementationTaskLoaderFromDict().load(factor_dict)
 
 
 class FactorImplementationTaskLoaderFromJsonString(TaskLoader):
-    def load(json_string: str) -> list:
+    def load(self, json_string: str) -> list:
         factor_dict = json.loads(json_string)
         return FactorImplementationTaskLoaderFromDict().load(factor_dict)

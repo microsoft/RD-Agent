@@ -13,6 +13,9 @@ from jinja2 import Template
 from rdagent.core.conf import RD_Agent_Settings
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
+from rdagent.core.task import TaskLoader
+from rdagent.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.factor_implementation.task_loader.json_loader import FactorImplementationTaskLoaderFromDict
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
@@ -566,3 +569,16 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
             llm_deduplicated_factor_dict[factor_name] = factor_dict[factor_name]
 
     return llm_deduplicated_factor_dict, final_duplication_names_list
+
+
+class FactorImplementationTaskLoaderFromPDFfiles(TaskLoader):
+    def load(self, file_or_folder_path: Path) -> dict:
+        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+
+        selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
+        file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
+        factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
+
+        factor_viability = check_factor_viability(factor_dict)
+        factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
+        return FactorImplementationTaskLoaderFromDict().load(factor_dict)
