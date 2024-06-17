@@ -5,7 +5,7 @@ from rdagent.core.implementation import TaskGenerator
 from rdagent.core.task import TaskImplementation
 from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledgeBaseV1
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem
-from rdagent.knowledge_management.knowledgebase import (
+from rdagent.factor_implementation.evolving.knowledge_management import (
     FactorImplementationGraphKnowledgeBase,
     FactorImplementationGraphRAGStrategy,
 )
