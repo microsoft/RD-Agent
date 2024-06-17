@@ -12,7 +12,6 @@ from pydantic_settings import BaseSettings
 load_dotenv(verbose=True, override=True)
 
 from pydantic_settings import BaseSettings
-from rdagent.core.utils import SingletonBaseClass, SingletonMeta
 
 
 class RDAgentSettings(BaseSettings):
@@ -93,5 +92,6 @@ class RDAgentSettings(BaseSettings):
     # factor extraction conf
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
+
 
 RD_Agent_Settings = RDAgentSettings()
