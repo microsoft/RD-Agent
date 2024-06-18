@@ -1,6 +1,6 @@
 from __future__ import annotations
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
+    FACTOR_IMPLEMENT_SETTINGS,
 )
 
 from rdagent.core.task import (
@@ -9,7 +9,7 @@ from rdagent.core.task import (
     TestCase,
 )
 from rdagent.core.evolving_framework import EvolvableSubjects
-from rdagent.core.log import FinCoLog
+from rdagent.core.log import RDAgentLog
 
 from pathlib import Path
 
@@ -35,7 +35,7 @@ class FactorImplementTask(BaseTask):
         factor_name,
         factor_description,
         factor_formulation,
-        factor_formulation_description: str = '',
+        factor_formulation_description: str = "",
         variables: dict = {},
         resource: str = None,
     ) -> None:
@@ -68,20 +68,17 @@ class FactorEvovlingItem(EvolvableSubjects):
     def __init__(
         self,
         target_factor_tasks: list[FactorImplementTask],
-        corresponding_gt: list[TestCase] = None,
         corresponding_gt_implementations: list[TaskImplementation] = None,
     ):
         super().__init__()
         self.target_factor_tasks = target_factor_tasks
         self.corresponding_implementations: list[TaskImplementation] = [None for _ in target_factor_tasks]
-        self.corresponding_selection: list[list] = []
-        self.evolve_trace = {}
-        self.corresponding_gt = corresponding_gt
+        self.corresponding_selection: list = None
         if corresponding_gt_implementations is not None and len(
             corresponding_gt_implementations,
         ) != len(target_factor_tasks):
             self.corresponding_gt_implementations = None
-            FinCoLog.warning(
+            RDAgentLog().warning(
                 "The length of corresponding_gt_implementations is not equal to the length of target_factor_tasks, set corresponding_gt_implementations to None",
             )
         else:
@@ -112,10 +109,10 @@ class FileBasedFactorImplementation(TaskImplementation):
         super().__init__(target_task)
         self.code = code
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
-        self.logger = FinCoLog()
+        self.logger = RDAgentLog()
         self.raise_exception = raise_exception
         self.workspace_path = Path(
-            FactorImplementSettings().file_based_execution_workspace,
+            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
         ) / str(uuid.uuid4())
 
     @staticmethod
@@ -151,17 +148,14 @@ class FileBasedFactorImplementation(TaskImplementation):
                 # TODO: to make the interface compatible with previous code. I kept the original behavior.
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
-            (Path.cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").mkdir(
-                exist_ok=True, parents=True
-            )
-            if FactorImplementSettings().enable_execution_cache:
+            if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
                 target_file_name = md5_hash(self.code)
                 cache_file_path = (
-                    Path.cwd()
-                    / "git_ignore_folder"
-                    / "factor_implementation_execution_cache"
-                    / f"{target_file_name}.pkl"
+                    Path(FACTOR_IMPLEMENT_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
+                )
+                Path(FACTOR_IMPLEMENT_SETTINGS.implementation_execution_cache_location).mkdir(
+                    exist_ok=True, parents=True
                 )
                 if cache_file_path.exists() and not self.raise_exception:
                     cached_res = pickle.load(open(cache_file_path, "rb"))
@@ -173,7 +167,7 @@ class FileBasedFactorImplementation(TaskImplementation):
                 return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
 
             source_data_path = Path(
-                FactorImplementSettings().file_based_execution_data_folder,
+                FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder,
             )
             self.workspace_path.mkdir(exist_ok=True, parents=True)
 
@@ -189,7 +183,7 @@ class FileBasedFactorImplementation(TaskImplementation):
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
-                    timeout=FactorImplementSettings().file_based_execution_timeout,
+                    timeout=FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout,
                 )
             except subprocess.CalledProcessError as e:
                 import site
@@ -206,7 +200,7 @@ class FileBasedFactorImplementation(TaskImplementation):
                 if self.raise_exception:
                     raise RuntimeErrorException(execution_feedback)
             except subprocess.TimeoutExpired:
-                execution_feedback += f"Execution timeout error and the timeout is set to {FactorImplementSettings().file_based_execution_timeout} seconds."
+                execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
                     raise RuntimeErrorException(execution_feedback)
 
@@ -227,7 +221,7 @@ class FileBasedFactorImplementation(TaskImplementation):
             if store_result and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe
 
-        if FactorImplementSettings().enable_execution_cache:
+        if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
             pickle.dump(
                 (execution_feedback, executed_factor_value_dataframe),
                 open(cache_file_path, "wb"),
@@ -249,4 +243,3 @@ class FileBasedFactorImplementation(TaskImplementation):
         with factor_path.open("r") as f:
             code = f.read()
         return FileBasedFactorImplementation(task, code=code, **kwargs)
-

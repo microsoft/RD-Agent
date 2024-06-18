@@ -19,17 +19,13 @@ class RDAgentSettings(BaseSettings):
     use_azure_token_provider: bool = False
     max_retry: int = 10
     retry_wait_seconds: int = 1
-    continuous_mode: bool = False
     dump_chat_cache: bool = False
     use_chat_cache: bool = False
     dump_embedding_cache: bool = False
     use_embedding_cache: bool = False
-    workspace: str = "./finco_workspace"
     prompt_cache_path: str = str(Path.cwd() / "prompt_cache.db")
     session_cache_folder_location: str = str(Path.cwd() / "session_cache_folder/")
     max_past_message_include: int = 10
-
-    use_vector_only: bool = False
     log_llm_chat_content: bool = True
 
     # Chat configs
@@ -43,11 +39,9 @@ class RDAgentSettings(BaseSettings):
     chat_seed: int | None = None
     chat_frequency_penalty: float = 0.0
     chat_presence_penalty: float = 0.0
-
     chat_token_limit: int = (
         100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
     )
-
     default_system_prompt: str = "You are an AI assistant who helps to answer user's questions about finance."
 
     # Embedding configs
@@ -56,17 +50,17 @@ class RDAgentSettings(BaseSettings):
     embedding_azure_api_version: str = ""
     embedding_model: str = ""
 
-    # llama2 related config
+    # offline llama2 related config
     use_llama2: bool = False
     llama2_ckpt_dir: str = "Llama-2-7b-chat"
     llama2_tokenizer_path: str = "Llama-2-7b-chat/tokenizer.model"
     llams2_max_batch_size: int = 8
 
-    # finco v2 configs
+    # azure document intelligence configs
     azure_document_intelligence_key: str = ""
     azure_document_intelligence_endpoint: str = ""
 
-    # fincov2 llama2 endpoint
+    # server served endpoints
     use_gcr_endpoint: bool = False
     gcr_endpoint_type: str = "llama2_70b"  # or "llama3_70b", "phi2", "phi3_4k", "phi3_128k"
 
@@ -99,3 +93,5 @@ class RDAgentSettings(BaseSettings):
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
 
+
+RD_AGENT_SETTINGS = RDAgentSettings()

@@ -18,8 +18,8 @@ from typing import Any
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RDAgentSettings as Config
-from rdagent.core.log import FinCoLog, LogColors
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.log import RDAgentLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
@@ -35,17 +35,17 @@ def md5_hash(input_string: str) -> str:
 try:
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 except ImportError:
-    FinCoLog().warning("azure.identity is not installed.")
+    RDAgentLog().warning("azure.identity is not installed.")
 
 try:
     import openai
 except ImportError:
-    FinCoLog().warning("openai is not installed.")
+    RDAgentLog().warning("openai is not installed.")
 
 try:
     from llama import Llama
 except ImportError:
-    FinCoLog().warning("llama is not installed.")
+    RDAgentLog().warning("llama is not installed.")
 
 
 class ConvManager:
@@ -133,7 +133,6 @@ class SQliteLazyCache(SingletonBaseClass):
         )
         self.conn.commit()
 
-
     def embedding_set(self, content_to_embedding_dict: dict) -> None:
         for key, value in content_to_embedding_dict.items():
             md5_key = md5_hash(key)
@@ -147,15 +146,15 @@ class SQliteLazyCache(SingletonBaseClass):
 class SessionChatHistoryCache(SingletonBaseClass):
     def __init__(self) -> None:
         """load all history conversation json file from self.session_cache_location"""
-        self.cfg = Config()
+        self.cfg = RD_AGENT_SETTINGS
         self.session_cache_location = Path(self.cfg.session_cache_folder_location)
         self.cache = {}
         if not self.session_cache_location.exists():
-            FinCoLog.warning(f"Directory {self.session_cache_location} does not exist.")
+            RDAgentLog().warning(f"Directory {self.session_cache_location} does not exist.")
             self.session_cache_location.mkdir(parents=True, exist_ok=True)
         json_files = [f for f in self.session_cache_location.iterdir() if f.suffix == ".json"]
         if not json_files:
-            FinCoLog.info(f"No JSON files found in {self.session_cache_location}.")
+            RDAgentLog().info(f"No JSON files found in {self.session_cache_location}.")
         for file_path in json_files:
             conversation_id = file_path.stem
             with file_path.open("r") as f:
@@ -177,7 +176,7 @@ class SessionChatHistoryCache(SingletonBaseClass):
 class ChatSession:
     def __init__(self, api_backend: Any, conversation_id: str | None = None, system_prompt: str | None = None) -> None:
         self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
-        self.cfg = Config()
+        self.cfg = RD_AGENT_SETTINGS
         self.system_prompt = system_prompt if system_prompt is not None else self.cfg.default_system_prompt
         self.api_backend = api_backend
 
@@ -205,8 +204,10 @@ class ChatSession:
         """
         messages = self.build_chat_completion_message(user_prompt)
 
-        response = self.api_backend._try_create_chat_completion_or_embedding( # noqa: SLF001
-            messages=messages, chat_completion=True, **kwargs,
+        response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
+            messages=messages,
+            chat_completion=True,
+            **kwargs,
         )
         messages.append(
             {
@@ -226,7 +227,7 @@ class ChatSession:
 
 
 class APIBackend:
-    def __init__( # noqa: C901, PLR0912, PLR0915
+    def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,
         chat_api_key: str | None = None,
@@ -242,7 +243,7 @@ class APIBackend:
         use_embedding_cache: bool | None = None,
         dump_embedding_cache: bool | None = None,
     ) -> None:
-        self.cfg = Config()
+        self.cfg = RD_AGENT_SETTINGS
         if self.cfg.use_llama2:
             self.generator = Llama.build(
                 ckpt_dir=self.cfg.llama2_ckpt_dir,
@@ -286,7 +287,7 @@ class APIBackend:
             self.gcr_endpoint_do_sample = self.cfg.gcr_endpoint_do_sample
             self.gcr_endpoint_max_token = self.cfg.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
-                ssl._create_default_https_context = ssl._create_unverified_context # noqa: SLF001
+                ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
             self.encoder = None
         else:
             self.use_azure = self.cfg.use_azure
@@ -315,7 +316,8 @@ class APIBackend:
                 if self.use_azure_token_provider:
                     credential = DefaultAzureCredential()
                     token_provider = get_bearer_token_provider(
-                        credential, "https://cognitiveservices.azure.com/.default",
+                        credential,
+                        "https://cognitiveservices.azure.com/.default",
                     )
                     self.chat_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
@@ -414,7 +416,9 @@ class APIBackend:
     ) -> str:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break)
+        messages = self.build_messages(
+            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+        )
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
             chat_completion=True,
@@ -422,12 +426,12 @@ class APIBackend:
             **kwargs,
         )
 
-
-
     def create_embedding(self, input_content: str | list[str], **kwargs: Any) -> list[Any] | Any:
         input_content_list = [input_content] if isinstance(input_content, str) else input_content
         resp = self._try_create_chat_completion_or_embedding(
-            input_content_list=input_content_list, embedding=True, **kwargs,
+            input_content_list=input_content_list,
+            embedding=True,
+            **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]
@@ -454,7 +458,12 @@ class APIBackend:
         return response
 
     def _try_create_chat_completion_or_embedding(
-        self, max_retry: int = 10, *, chat_completion: bool = False, embedding: bool = False, **kwargs: Any,
+        self,
+        max_retry: int = 10,
+        *,
+        chat_completion: bool = False,
+        embedding: bool = False,
+        **kwargs: Any,
     ) -> Any:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = self.cfg.max_retry if self.cfg.max_retry is not None else max_retry
@@ -464,23 +473,25 @@ class APIBackend:
                     return self._create_embedding_inner_function(**kwargs)
                 if chat_completion:
                     return self._create_chat_completion_auto_continue(**kwargs)
-            except openai.BadRequestError as e: # noqa: PERF203
-                print(e)
-                print(f"Retrying {i+1}th time...")
+            except openai.BadRequestError as e:  # noqa: PERF203
+                RDAgentLog().warning(e)
+                RDAgentLog().warning(f"Retrying {i+1}th time...")
                 if "'messages' must contain the word 'json' in some form" in e.message:
                     kwargs["add_json_in_prompt"] = True
                 elif embedding and "maximum context length" in e.message:
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
-            except Exception as e: # noqa: BLE001
-                print(e)
-                print(f"Retrying {i+1}th time...")
+            except Exception as e:  # noqa: BLE001
+                RDAgentLog().warning(e)
+                RDAgentLog().warning(f"Retrying {i+1}th time...")
                 time.sleep(self.retry_wait_seconds)
         error_message = f"Failed to create chat completion after {max_retry} retries."
         raise RuntimeError(error_message)
 
-    def _create_embedding_inner_function(self, input_content_list: list[str], **kwargs: Any) -> list[Any]: # noqa: ARG002
+    def _create_embedding_inner_function(
+        self, input_content_list: list[str], **kwargs: Any
+    ) -> list[Any]:  # noqa: ARG002
         content_to_embedding_dict = {}
         filtered_input_content_list = []
         if self.use_embedding_cache:
@@ -511,7 +522,6 @@ class APIBackend:
                 self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
-
     def _build_messages(self, messages: list[dict]) -> str:
         log_messages = ""
         for m in messages:
@@ -525,16 +535,16 @@ class APIBackend:
 
     def log_messages(self, messages: list[dict]) -> None:
         if self.cfg.log_llm_chat_content:
-            FinCoLog().info(self._build_messages(messages))
+            RDAgentLog().info(self._build_messages(messages))
 
     def log_response(self, response: str | None = None, *, stream: bool = False) -> None:
         if self.cfg.log_llm_chat_content:
             if stream:
-                FinCoLog().info(f"\n{LogColors.CYAN}Response:{LogColors.END}")
+                RDAgentLog().info(f"\n{LogColors.CYAN}Response:{LogColors.END}")
             else:
-                FinCoLog().info(f"\n{LogColors.CYAN}Response:{response}{LogColors.END}")
+                RDAgentLog().info(f"\n{LogColors.CYAN}Response:{response}{LogColors.END}")
 
-    def _create_chat_completion_inner_function( # noqa: C901, PLR0912, PLR0915
+    def _create_chat_completion_inner_function(  # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict],
         temperature: float | None = None,
@@ -592,8 +602,8 @@ class APIBackend:
                 ),
             )
 
-            req = urllib.request.Request(self.gcr_endpoint, body, self.headers) # noqa: S310
-            response = urllib.request.urlopen(req) # noqa: S310
+            req = urllib.request.Request(self.gcr_endpoint, body, self.headers)  # noqa: S310
+            response = urllib.request.urlopen(req)  # noqa: S310
             resp = json.loads(response.read().decode())["output"]
             self.log_response(resp)
         else:
@@ -662,7 +672,7 @@ class APIBackend:
 
     def calculate_token_from_messages(self, messages: list[dict]) -> int:
         if self.use_llama2 or self.use_gcr_endpoint:
-            FinCoLog().warning("num_tokens_from_messages() is not implemented for model llama2.")
+            RDAgentLog().warning("num_tokens_from_messages() is not implemented for model llama2.")
             return 0  # TODO implement this function for llama2
 
         if "gpt4" in self.chat_model or "gpt-4" in self.chat_model:
@@ -691,7 +701,9 @@ class APIBackend:
     ) -> int:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break)
+        messages = self.build_messages(
+            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+        )
         return self.calculate_token_from_messages(messages)
 
 
@@ -703,8 +715,10 @@ def create_embedding_with_multiprocessing(str_list: list, slice_count: int = 50,
     embeddings = []
 
     pool = multiprocessing.Pool(nproc)
-    result_list = [pool.apply_async(calculate_embedding_process, (str_list[index : index + slice_count],))
-                    for index in range(0, len(str_list), slice_count)]
+    result_list = [
+        pool.apply_async(calculate_embedding_process, (str_list[index : index + slice_count],))
+        for index in range(0, len(str_list), slice_count)
+    ]
     pool.close()
     pool.join()
 
@@ -713,16 +727,16 @@ def create_embedding_with_multiprocessing(str_list: list, slice_count: int = 50,
     return embeddings
 
 
-
 def calculate_embedding_distance_between_str_list(
-    source_str_list: list[str], target_str_list: list[str],
+    source_str_list: list[str],
+    target_str_list: list[str],
 ) -> list[list[float]]:
     if not source_str_list or not target_str_list:
         return [[]]
 
     embeddings = create_embedding_with_multiprocessing(source_str_list + target_str_list, slice_count=50, nproc=8)
-    source_embeddings = embeddings[:len(source_str_list)]
-    target_embeddings = embeddings[len(source_str_list):]
+    source_embeddings = embeddings[: len(source_str_list)]
+    target_embeddings = embeddings[len(source_str_list) :]
 
     source_embeddings_np = np.array(source_embeddings)
     target_embeddings_np = np.array(target_embeddings)

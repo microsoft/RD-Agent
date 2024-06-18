@@ -72,7 +72,7 @@ class LogColors:
         return f"{style}{text}{self.END}"
 
 
-class FinCoLog:
+class RDAgentLog:
     # logger.add(loguru_handler, level="INFO")   # you can add use storage as a loguru handler
 
     def __init__(self) -> None:

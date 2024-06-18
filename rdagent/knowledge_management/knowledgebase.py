@@ -15,12 +15,15 @@ from rdagent.core.evolving_framework import (
     KnowledgeBase,
 )
 from rdagent.core.evolving_framework import EvoStep, EvolvableSubjects, RAGStrategy, Knowledge, QueriedKnowledge
-from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledge, FactorImplementationQueriedGraphKnowledge
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
+from rdagent.factor_implementation.evolving.knowledge_management import (
+    FactorImplementationKnowledge,
+    FactorImplementationQueriedGraphKnowledge,
+)
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 
 from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
 from rdagent.core.prompts import Prompts
-from rdagent.core.log import FinCoLog
+from rdagent.core.log import RDAgentLog
 from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
@@ -30,7 +33,7 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
         self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
-        FinCoLog().info(f"Knowledge Graph loaded, size={self.graph.size()}")
+        RDAgentLog().info(f"Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
             for component in init_component_list:
@@ -228,7 +231,6 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         return intersection_node_list_sort_by_freq
 
 
-
 class FactorImplementationGraphRAGStrategy(RAGStrategy):
     def __init__(self, knowledgebase: FactorImplementationGraphKnowledgeBase) -> None:
         super().__init__(knowledgebase)
@@ -302,26 +304,26 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
             return None
 
     def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> QueriedKnowledge | None:
-        conf_knowledge_sampler = FactorImplementSettings().v2_knowledge_sampler
+        conf_knowledge_sampler = FACTOR_IMPLEMENT_SETTINGS.v2_knowledge_sampler
         factor_implementation_queried_graph_knowledge = FactorImplementationQueriedGraphKnowledge(
             success_task_to_knowledge_dict=self.knowledgebase.success_task_to_knowledge_dict,
         )
-        
+
         factor_implementation_queried_graph_knowledge = self.former_trace_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            FactorImplementSettings().v2_query_former_trace_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_former_trace_limit,
         )
         factor_implementation_queried_graph_knowledge = self.component_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            FactorImplementSettings().v2_query_component_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_component_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
         factor_implementation_queried_graph_knowledge = self.error_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            FactorImplementSettings().v2_query_error_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_error_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
         return factor_implementation_queried_graph_knowledge
@@ -349,7 +351,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
             )["component_no_list"]
             return [all_component_nodes[index - 1] for index in sorted(list(set(component_no_list)))]
         except:
-            FinCoLog.warning("Error when analyzing components.")
+            RDAgentLog().warning("Error when analyzing components.")
             analyze_component_user_prompt = "Your response is not a valid component index list."
 
         return []
@@ -405,7 +407,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         """
         Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
         """
-        fail_task_trial_limit = FactorImplementSettings().fail_task_trial_limit
+        fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
 
         for target_factor_task in evo.target_factor_tasks:
             target_factor_task_information = target_factor_task.get_factor_information()
@@ -438,9 +440,9 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[
-                    target_factor_task_information
-                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
+                    former_trace_knowledge[-v2_query_former_trace_limit:]
+                )
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 
@@ -719,4 +721,3 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                 ] = same_error_success_knowledge_pair_list
 
         return factor_implementation_queried_graph_knowledge
-

@@ -4,7 +4,7 @@ import pandas as pd
 
 # render it with jinja
 from jinja2 import Template
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FIS
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask
 
 
@@ -17,12 +17,13 @@ TPL = """
 # Create a Jinja template from the string
 JJ_TPL = Template(TPL)
 
+
 def get_data_folder_intro():
     """Direclty get the info of the data folder.
     It is for preparing prompting message.
     """
     content_l = []
-    for p in Path(FIS.file_based_execution_data_folder).iterdir():
+    for p in Path(FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder).iterdir():
         if p.name.endswith(".h5"):
             df = pd.read_hdf(p)
             # get  df.head() as string with full width
@@ -49,17 +50,3 @@ def get_data_folder_intro():
                 f"file type {p.name} is not supported. Please implement its description function.",
             )
     return "\n ----------------- file spliter -------------\n".join(content_l)
-
-def load_data_from_dict(factor_dict:dict) -> list[FactorImplementTask]:
-    """Load data from a dict.
-    """
-    task_l = []
-    for factor_name, factor_data in factor_dict.items():
-        task = FactorImplementTask(
-            factor_name=factor_name,
-            factor_description=factor_data["description"],
-            factor_formulation=factor_data["formulation"],
-            variables=factor_data["variables"],
-        )
-        task_l.append(task)
-    return task_l

@@ -2,12 +2,15 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 import pandas as pd
 
-'''
+"""
 This file contains the all the data class for rdagent task.
-'''
+"""
+
+
 class BaseTask(ABC):
     # 把name放在这里作为主键
     pass
+
 
 class TaskImplementation(ABC):
     def __init__(self, target_task: BaseTask) -> None:
@@ -16,6 +19,7 @@ class TaskImplementation(ABC):
     @abstractmethod
     def execute(self, *args, **kwargs) -> Tuple[str, pd.DataFrame]:
         raise NotImplementedError("__call__ method is not implemented.")
+
 
 class TestCase:
     def __init__(
@@ -26,3 +30,8 @@ class TestCase:
         self.ground_truth = ground_truth
         self.target_task = target_task
 
+
+class TaskLoader:
+    @abstractmethod
+    def load(self, *args, **kwargs) -> BaseTask | list[BaseTask]:
+        raise NotImplementedError("load method is not implemented.")

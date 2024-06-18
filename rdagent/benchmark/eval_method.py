@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 from collections import defaultdict
-from rdagent.core.conf import RDAgentSettings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.task import (
     TaskImplementation,
@@ -23,10 +23,12 @@ from rdagent.core.implementation import TaskGenerator
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.factor_implementation.evolving.factor import FileBasedFactorImplementation
 
+
 class BaseEval:
     """
     The benchmark benchmark evaluation.
     """
+
     def __init__(
         self,
         evaluator_l: List[FactorImplementationEvaluator],
@@ -95,7 +97,8 @@ class BaseEval:
                 else:
                     raise e
         return eval_res
-    
+
+
 class FactorImplementEval(BaseEval):
     def __init__(
         self,
@@ -106,15 +109,17 @@ class FactorImplementEval(BaseEval):
         **kwargs,
     ):
         # evaluator collection for online evaluation
-        online_evaluator_l = [
-                            FactorImplementationCorrelationEvaluator,
-                            FactorImplementationIndexEvaluator,
-                            FactorImplementationIndexFormatEvaluator,
-                            FactorImplementationMissingValuesEvaluator,
-                            FactorImplementationRowCountEvaluator,
-                            FactorImplementationSingleColumnEvaluator,
-                            FactorImplementationValuesEvaluator,
-                         ],
+        online_evaluator_l = (
+            [
+                FactorImplementationCorrelationEvaluator,
+                FactorImplementationIndexEvaluator,
+                FactorImplementationIndexFormatEvaluator,
+                FactorImplementationMissingValuesEvaluator,
+                FactorImplementationRowCountEvaluator,
+                FactorImplementationSingleColumnEvaluator,
+                FactorImplementationValuesEvaluator,
+            ],
+        )
         super().__init__(online_evaluator_l, test_case, method, *args, **kwargs)
         self.test_round = test_round
 
@@ -148,7 +153,7 @@ class FactorImplementEval(BaseEval):
                 (self.eval_case, (gt_case.ground_truth, gen_factor))
                 for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
             ],
-            n=RDAgentSettings().evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.evo_multi_proc_n,
         )
 
         for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):

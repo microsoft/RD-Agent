@@ -24,12 +24,10 @@ jobs:
           CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
           CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
-          CHAT_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
           CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
           EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
-          EMBEDDING_OPENAI_API_KEY: ${{ secrets.CHAT_OPENAI_API_KEY }}
         name: lint test docs and build
         run: make lint test docs build
     strategy:
@@ -84,4 +82,4 @@ on:
       - synchronize
   push:
     branches:
-      - master
+      - main

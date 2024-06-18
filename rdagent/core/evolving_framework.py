@@ -33,27 +33,7 @@ class EvolvableSubjects:
         return copy.deepcopy(self)
 
 
-class QlibEvolvableSubjects(EvolvableSubjects):
-    ...
-
-
-class Evaluator(ABC):
-    """Both external EvolvableSubjects and internal evovler, it is
-
-    FAQ:
-    - Q: If we have a external whitebox evaluator, do we need a
-         intenral EvolvableSubjects?
-      A: When the external evovler is very complex, maybe a internal LLM-based evovler
-      may provide more understandable feedbacks.
-    """
-
-    @abstractmethod
-    def evaluate(self, evo: EvolvableSubjects, **kwargs: Any) -> Feedback:
-        raise NotImplementedError
-
-
-class SelfEvaluator(Evaluator):
-    pass
+class QlibEvolvableSubjects(EvolvableSubjects): ...
 
 
 @dataclass
@@ -89,16 +69,6 @@ class EvolvingStrategy(ABC):
         - evolving_trace: the historical feedback is important.
         - queried_knowledge: queried knowledge
         """
-
-
-class EvoAgent(ABC):
-    def __init__(self, max_loop, evolving_strategy) -> None:
-        self.max_loop = max_loop
-        self.evolving_strategy = evolving_strategy
-    
-    @abstractmethod
-    def multistep_evolve(self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any) -> EvolvableSubjects:
-        pass
 
 
 class RAGStrategy(ABC):

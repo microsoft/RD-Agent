@@ -10,9 +10,12 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
-from rdagent.core.conf import RDAgentSettings as Config
-from rdagent.core.log import FinCoLog
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
+from rdagent.core.task import TaskLoader
+from rdagent.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.factor_implementation.task_loader.json_loader import FactorImplementationTaskLoaderFromDict
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
@@ -23,7 +26,6 @@ document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.ya
 
 def classify_report_from_dict(
     report_dict: Mapping[str, str],
-    input_max_token: int = 128000,
     vote_time: int = 1,
     substrings: tuple[str] = (),
 ) -> dict[str, dict[str, str]]:
@@ -41,21 +43,19 @@ def classify_report_from_dict(
       with a single key 'class' and its value being the classification result (0 or 1).
 
     """
-    if len(substrings) == 0:
-        substrings = (
-            "FinCo",
-            "金融工程",
-            "金工",
-            "回测",
-            "因子",
-            "机器学习",
-            "深度学习",
-            "量化",
-        )
+    # if len(substrings) == 0:
+    #     substrings = (
+    #         "金融工程",
+    #         "金工",
+    #         "回测",
+    #         "因子",
+    #         "机器学习",
+    #         "深度学习",
+    #         "量化",
+    #     )
 
     res_dict = {}
     classify_prompt = document_process_prompts["classify_system"]
-    enc = tiktoken.encoding_for_model("gpt-4-turbo")
 
     for key, value in report_dict.items():
         if not key.endswith(".pdf"):
@@ -65,44 +65,47 @@ def classify_report_from_dict(
         if isinstance(value, str):
             content = value
         else:
-            FinCoLog().warning(f"输入格式不符合要求: {file_name}")
+            RDAgentLog().warning(f"输入格式不符合要求: {file_name}")
             res_dict[file_name] = {"class": 0}
             continue
 
-        if not any(substring in content for substring in substrings) and False:
-            res_dict[file_name] = {"class": 0}
-        else:
-            while (
-                APIBackend().build_messages_and_calculate_token(
-                    user_prompt=content,
-                    system_prompt=classify_prompt,
-                )
-                > Config().chat_token_limit
-            ):
-                content = content[: -(Config().chat_token_limit // 100)]
+        # pre-filter document with key words is not necessary, skip this check for now
+        # if (
+        #     not any(substring in content for substring in substrings) and False
+        # ):
+        #     res_dict[file_name] = {"class": 0}
+        # else:
+        while (
+            APIBackend().build_messages_and_calculate_token(
+                user_prompt=content,
+                system_prompt=classify_prompt,
+            )
+            > RD_AGENT_SETTINGS.chat_token_limit
+        ):
+            content = content[: -(RD_AGENT_SETTINGS.chat_token_limit // 100)]
 
-            vote_list = []
-            for _ in range(vote_time):
-                user_prompt = content
-                system_prompt = classify_prompt
-                res = APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt,
-                    system_prompt=system_prompt,
-                    json_mode=True,
-                )
-                try:
-                    res = json.loads(res)
-                    vote_list.append(int(res["class"]))
-                except json.JSONDecodeError:
-                    FinCoLog().warning(f"返回值无法解析: {file_name}")
-                    res_dict[file_name] = {"class": 0}
-                count_0 = vote_list.count(0)
-                count_1 = vote_list.count(1)
-                if max(count_0, count_1) > int(vote_time / 2):
-                    break
+        vote_list = []
+        for _ in range(vote_time):
+            user_prompt = content
+            system_prompt = classify_prompt
+            res = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=True,
+            )
+            try:
+                res = json.loads(res)
+                vote_list.append(int(res["class"]))
+            except json.JSONDecodeError:
+                RDAgentLog().warning(f"返回值无法解析: {file_name}")
+                res_dict[file_name] = {"class": 0}
+            count_0 = vote_list.count(0)
+            count_1 = vote_list.count(1)
+            if max(count_0, count_1) > int(vote_time / 2):
+                break
 
-            result = 1 if count_1 > count_0 else 0
-            res_dict[file_name] = {"class": result}
+        result = 1 if count_1 > count_0 else 0
+        res_dict[file_name] = {"class": result}
 
     return res_dict
 
@@ -235,7 +238,7 @@ def extract_factors_from_report_dict(
             if int(value.get("class")) == 1:
                 useful_report_dict[key] = report_dict[key]
         else:
-            FinCoLog().warning(f"输入格式不符合要求: {key}")
+            RDAgentLog().warning(f"Invalid input format: {key}")
 
     final_report_factor_dict = {}
     # for file_name, content in useful_report_dict.items():
@@ -265,7 +268,7 @@ def extract_factors_from_report_dict(
                 file_name = file_names[index]
                 final_report_factor_dict.setdefault(file_name, {})
                 final_report_factor_dict[file_name] = result.get()
-        FinCoLog().info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
+        RDAgentLog().info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
 
     return final_report_factor_dict
 
@@ -409,7 +412,7 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         random_state=42,
     )
 
-    # KMeans算法使用欧氏距离, 我们需要自定义一个函数来找到最相似的簇中心
+    # KMeans algorithm uses Euclidean distance, and we need to customize a function to find the most similar cluster center
     def find_closest_cluster_cosine_similarity(
         data: np.ndarray,
         centroids: np.ndarray,
@@ -417,25 +420,25 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         similarity = cosine_similarity(data, centroids)
         return np.argmax(similarity, axis=1)
 
-    # 初始化簇中心
+    # Initializes the cluster center
     rng = np.random.default_rng()
     centroids = rng.choice(x_normalized, size=k, replace=False)
 
-    # 迭代直到收敛或达到最大迭代次数
+    # Iterate until convergence or the maximum number of iterations is reached
     for _ in range(kmeans.max_iter):
-        # 分配样本到最近的簇中心
+        # Assign the sample to the nearest cluster center
         closest_clusters = find_closest_cluster_cosine_similarity(
             x_normalized,
             centroids,
         )
 
-        # 更新簇中心
+        # update the cluster center
         new_centroids = np.array(
             [x_normalized[closest_clusters == i].mean(axis=0) for i in range(k)],
         )
         new_centroids = normalize(new_centroids)  # 归一化新的簇中心
 
-        # 检查簇中心是否发生变化
+        # Check whether the cluster center has changed
         if np.allclose(centroids, new_centroids):
             break
 
@@ -477,18 +480,18 @@ Factor variables: {variables}
     embeddings = create_embedding_with_multiprocessing(full_str_list)
 
     target_k = None
-    if len(full_str_list) < Config().max_input_duplicate_factor_group:
+    if len(full_str_list) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
         kmeans_index_group = [list(range(len(full_str_list)))]
         target_k = 1
     else:
         for k in range(
-            len(full_str_list) // Config().max_input_duplicate_factor_group,
+            len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
             30,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
-            if len(kmeans_index_group[0]) < Config().max_input_duplicate_factor_group:
+            if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
                 target_k = k
-                FinCoLog().info(f"K-means group number: {k}")
+                RDAgentLog().info(f"K-means group number: {k}")
                 break
     factor_name_groups = [[factor_names[index] for index in index_group] for index_group in kmeans_index_group]
 
@@ -519,7 +522,7 @@ Factor variables: {variables}
     return duplication_names_list
 
 
-def deduplicate_factors_by_llm( # noqa: C901, PLR0912
+def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
     factor_dict: dict[str, dict[str, str]],
     factor_viability_dict: dict[str, dict[str, str]] | None = None,
 ) -> list[list[str]]:
@@ -530,7 +533,7 @@ def deduplicate_factors_by_llm( # noqa: C901, PLR0912
 
         new_round_names = []
         for duplication_names in duplication_names_list:
-            if len(duplication_names) < Config().max_output_duplicate_factor_group:
+            if len(duplication_names) < RD_AGENT_SETTINGS.max_output_duplicate_factor_group:
                 final_duplication_names_list.append(duplication_names)
             else:
                 new_round_names.extend(duplication_names)
@@ -566,3 +569,16 @@ def deduplicate_factors_by_llm( # noqa: C901, PLR0912
             llm_deduplicated_factor_dict[factor_name] = factor_dict[factor_name]
 
     return llm_deduplicated_factor_dict, final_duplication_names_list
+
+
+class FactorImplementationTaskLoaderFromPDFfiles(TaskLoader):
+    def load(self, file_or_folder_path: Path) -> dict:
+        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+
+        selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
+        file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
+        factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
+
+        factor_viability = check_factor_viability(factor_dict)
+        factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
+        return FactorImplementationTaskLoaderFromDict().load(factor_dict)

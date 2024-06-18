@@ -8,20 +8,22 @@ import pandas as pd
 from jinja2 import Template
 
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.log import FinCoLog
+from rdagent.core.log import RDAgentLog
 from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask, FactorEvovlingItem
 from rdagent.core.task import (
     TaskImplementation,
 )
 from typing import List, Tuple
-from rdagent.core.evolving_framework import QueriedKnowledge,Feedback
+from rdagent.core.evolving_framework import QueriedKnowledge, Feedback
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.prompts import Prompts
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FactorImplementSettings
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.utils import multiprocessing_wrapper
 from pathlib import Path
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+
 
 class FactorImplementationEvaluator(Evaluator):
     # TODO:
@@ -58,6 +60,7 @@ class FactorImplementationEvaluator(Evaluator):
             gt_df = gt_df.to_frame("gt_factor")
         return gt_df, gen_df
 
+
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
         self,
@@ -89,7 +92,7 @@ class FactorImplementationCodeEvaluator(Evaluator):
                 system_prompt=system_prompt,
                 former_messages=[],
             )
-            > FactorImplementSettings().chat_token_limit
+            > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             user_prompt = Template(
@@ -108,6 +111,7 @@ class FactorImplementationCodeEvaluator(Evaluator):
         )
 
         return critic_response
+
 
 class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
     def evaluate(
@@ -442,7 +446,7 @@ class FactorImplementationValueEvaluator(Evaluator):
                         )
 
                 except Exception as e:
-                    FinCoLog().warning(f"Error occurred when calculating the correlation: {str(e)}")
+                    RDAgentLog().warning(f"Error occurred when calculating the correlation: {str(e)}")
                     conclusions.append(
                         f"Some error occurred when calculating the correlation. Investigate the factors that might be causing the discrepancies and ensure that the logic of the factor calculation is consistent. Error: {e}",
                     )
@@ -474,7 +478,9 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
         code_feedback: str,
         **kwargs,
     ) -> Tuple:
-        system_prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")["evaluator_final_decision_v1_system"]
+        system_prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
+            "evaluator_final_decision_v1_system"
+        ]
         execution_feedback_to_render = execution_feedback
         user_prompt = Template(
             evaluate_prompts["evaluator_final_decision_v1_user"],
@@ -494,7 +500,7 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
                 system_prompt=system_prompt,
                 former_messages=[],
             )
-            > FactorImplementSettings().chat_token_limit
+            > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             user_prompt = Template(
@@ -521,6 +527,7 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
             final_evaluation_dict["final_decision"],
             final_evaluation_dict["final_feedback"],
         )
+
 
 class FactorImplementationSingleFeedback:
     """This class is a feedback to single implementation which is generated from an evaluator."""
@@ -556,11 +563,13 @@ class FactorImplementationSingleFeedback:
 This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
 
+
 class FactorImplementationsMultiFeedback(
     Feedback,
     List[FactorImplementationSingleFeedback],
 ):
     """Feedback contains a list, each element is the corresponding feedback for each factor implementation."""
+
 
 class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
     """This class is the v1 version of evaluator for a single factor implementation.
@@ -633,7 +642,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
                         value_decision,
                     ) = self.value_evaluator.evaluate(source_df=source_df, gt_df=gt_df)
                 except Exception as e:
-                    FinCoLog().warning("Value evaluation failed with exception: %s", e)
+                    RDAgentLog().warning("Value evaluation failed with exception: %s", e)
                     factor_feedback.factor_value_feedback = "Value evaluation failed."
                     value_decision = False
 
@@ -713,13 +722,12 @@ class FactorImplementationsMultiEvaluator(Evaluator):
                     ),
                 ),
             )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=FactorImplementSettings().evo_multi_proc_n)
+        multi_implementation_feedback = multiprocessing_wrapper(calls, n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n)
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
         ]
-        print(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
+        RDAgentLog().info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
 
         return multi_implementation_feedback
-

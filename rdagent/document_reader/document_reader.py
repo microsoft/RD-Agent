@@ -9,7 +9,7 @@ from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
-from rdagent.core.conf import RDAgentSettings as Config
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
 def load_documents_by_langchain(path: Path) -> list:
@@ -74,10 +74,8 @@ def load_and_process_one_pdf_by_azure_document_intelligence(
 
 
 def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str, str]:
-    config = Config()
-
-    assert config.azure_document_intelligence_key is not None
-    assert config.azure_document_intelligence_endpoint is not None
+    assert RD_AGENT_SETTINGS.azure_document_intelligence_key is not None
+    assert RD_AGENT_SETTINGS.azure_document_intelligence_endpoint is not None
 
     content_dict = {}
     ab_path = path.resolve()
@@ -86,15 +84,15 @@ def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str
         proc = load_and_process_one_pdf_by_azure_document_intelligence
         content_dict[str(ab_path)] = proc(
             ab_path,
-            config.azure_document_intelligence_key,
-            config.azure_document_intelligence_endpoint,
+            RD_AGENT_SETTINGS.azure_document_intelligence_key,
+            RD_AGENT_SETTINGS.azure_document_intelligence_endpoint,
         )
     else:
         for file_path in ab_path.rglob("*"):
             if file_path.is_file() and ".pdf" in file_path.suffixes:
                 content_dict[str(file_path)] = load_and_process_one_pdf_by_azure_document_intelligence(
                     file_path,
-                    config.azure_document_intelligence_key,
-                    config.azure_document_intelligence_endpoint,
+                    RD_AGENT_SETTINGS.azure_document_intelligence_key,
+                    RD_AGENT_SETTINGS.azure_document_intelligence_endpoint,
                 )
     return content_dict

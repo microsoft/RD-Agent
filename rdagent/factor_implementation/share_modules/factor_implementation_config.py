@@ -9,13 +9,13 @@ SELECT_METHOD = Literal["random", "scheduler"]
 
 class FactorImplementSettings(BaseSettings):
     file_based_execution_data_folder: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
+        (Path().cwd() / "factor_implementation_source_data").absolute(),
     )
     file_based_execution_workspace: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_workspace").absolute(),
+        (Path().cwd() / "factor_implementation_workspace").absolute(),
     )
     implementation_execution_cache_location: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_execution_cache.pkl").absolute(),
+        (Path().cwd() / "factor_implementation_execution_cache").absolute(),
     )
     enable_execution_cache: bool = True  # whether to enable the execution cache
 
@@ -45,9 +45,5 @@ class FactorImplementSettings(BaseSettings):
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
 
-    chat_token_limit: int = (
-        100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
-    )
 
-
-FIS = FactorImplementSettings()
+FACTOR_IMPLEMENT_SETTINGS = FactorImplementSettings()

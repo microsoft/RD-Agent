@@ -35,39 +35,44 @@ extract_factors_follow_user: |-
     ```
 
 extract_factor_formulation_system: |-
-    用户会提供一篇金融工程研报，和用户从中提取到的因子列表，请结合文章和用户提供的因子名称和因子描述，按照要求抽取：
-    1. 因子的计算公式，使用latex格式，公式中的变量名称不能包含空格，可用下划线连接，公式中的因子名称与用户提供的因子名称保持一致;
-    2. 因子公式中的变量和函数解释，请使用英文描述，变量名和函数名请与公式中的名称对齐
+    I have a financial engineering research report and a list of factors extracted from it. I need assistance in extracting specific information based on the report and the provided list of factors. The tasks are as follows:
 
-    User has several source data:
-    1. The Stock Trade Data Table containing information about stock trades, such as daily open, close, high, low, vwap prices, volume, and turnover;
-    2. The Financial Data Table containing company financial statements such as the balance sheet, income statement, and cash flow statement;
-    3. The Stock Fundamental Data Table containing basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc;
-    4. The high frequency data containing price and volume of each stock containing open close high low volume vwap in each minute.
-    Please try to expand the formulation to using the source data provided by user.
+    1. For each factor, I need its calculation formula in LaTeX format. The variable names within the formulas should not contain spaces; instead, use underscores to connect words. Ensure that the factor names within the formulas are consistent with the ones I've provided.
+    2. For each factor formula, provide explanations for the variables and functions used. The explanations should be in English, and the variable and function names should match those used in the formulas.
 
-    user will treat your factor name as key to store the factor, don't put any interaction message in the content. Just response the output without any interaction and explanation.
-    You can extract part of the user's input factors if token is not enough. To avoid the situation that you don't respond in the valid format, don't extract more than thirty factors in one response.
-    Be caution of the "\" in your formulation because In JSON, certain characters like the backslash need to be escaped with another backslash. Especially, _ and \_ are different in latex so use \_ to represent _ in latex.
-    Respond with your analysis in JSON format. The JSON schema should include:
+    Here are the sources of data I have:
+
+    1. Stock Trade Data Table: Contains information on stock trades, including daily open, close, high, low, VWAP prices, volume, and turnover.
+    2. Financial Data Table: Contains company financial statements, such as the balance sheet, income statement, and cash flow statement.
+    3. Stock Fundamental Data Table: Contains basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc.
+    4. High-Frequency Data: Contains price and volume of each stock at the minute level, including open, close, high, low, volume, and VWAP.
+
+    Please expand the formulation to use the source data I have provided. If the number of factors exceeds the token limit, extract the formulas for as many factors as possible without exceeding the limit. Ensure to avoid syntax errors related to special characters in JSON, especially with backslashes and underscores in LaTeX.
+
+    Provide your analysis in JSON format, using the following schema:
+
     ```json
     {
-        "name of factor 1": {
+        "factor name 1": {
             "formulation": "latex formulation of factor 1",
             "variables": {
-                "Name to variable or function 1": "Description to variable or function 1",
-                "Name to variable or function 2": "Description to variable or function 2"
+                "variable or function name 1": "description of variable or function 1",
+                "variable or function name 2": "description of variable or function 2"
             }
         },
-        "name of factor 2": {
+        "factor name 2": {
             "formulation": "latex formulation of factor 2",
             "variables": {
-                "Name to variable or function 1": "Description to variable or function 1",
-                "Name to variable or function 2": "Description to variable or function 2"
+                "variable or function name 1": "description of variable or function 1",
+                "variable or function name 2": "description of variable or function 2"
             }
         }
+        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
     }
     ```
+
+    Please only include the factors you've extracted in your response, without any additional messages or explanations. If you can only provide part of the factors, do not use ellipsis or any filler text that might cause JSON parsing errors.
+
 
 extract_factor_formulation_user: |-
     ===========================Report content:=============================

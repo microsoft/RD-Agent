@@ -5,13 +5,20 @@ from rdagent.core.implementation import TaskGenerator
 from rdagent.core.task import TaskImplementation
 from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledgeBaseV1
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem
-from rdagent.knowledge_management.knowledgebase import FactorImplementationGraphKnowledgeBase, FactorImplementationGraphRAGStrategy
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
-from rdagent.factor_implementation.evolving.evaluators import FactorImplementationsMultiEvaluator, FactorImplementationEvaluatorV1
-from rdagent.factor_implementation.evolving.evolving_agent import RAGEvoAgent
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    FactorImplementSettings,
+from rdagent.factor_implementation.evolving.knowledge_management import (
+    FactorImplementationGraphKnowledgeBase,
+    FactorImplementationGraphRAGStrategy,
 )
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
+from rdagent.factor_implementation.evolving.evaluators import (
+    FactorImplementationsMultiEvaluator,
+    FactorImplementationEvaluatorV1,
+)
+from rdagent.core.evolving_agent import RAGEvoAgent
+from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
+
 
 class CoSTEERFG(TaskGenerator):
     def __init__(
@@ -20,9 +27,17 @@ class CoSTEERFG(TaskGenerator):
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
     ) -> None:
-        self.max_loop = FactorImplementSettings().max_loop
-        self.knowledge_base_path = Path(FactorImplementSettings().knowledge_base_path) if FactorImplementSettings().knowledge_base_path is not None else None
-        self.new_knowledge_base_path = Path(FactorImplementSettings().new_knowledge_base_path) if FactorImplementSettings().new_knowledge_base_path is not None else None
+        self.max_loop = FACTOR_IMPLEMENT_SETTINGS.max_loop
+        self.knowledge_base_path = (
+            Path(FACTOR_IMPLEMENT_SETTINGS.knowledge_base_path)
+            if FACTOR_IMPLEMENT_SETTINGS.knowledge_base_path is not None
+            else None
+        )
+        self.new_knowledge_base_path = (
+            Path(FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path)
+            if FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path is not None
+            else None
+        )
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
@@ -32,7 +47,7 @@ class CoSTEERFG(TaskGenerator):
         self.evolving_version = 2
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
-    
+
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
             if self.evolving_version == 1 and not isinstance(
@@ -53,7 +68,7 @@ class CoSTEERFG(TaskGenerator):
                 else FactorImplementationKnowledgeBaseV1()
             )
         return factor_knowledge_base
-    
+
     def generate(self, tasks: List[FactorImplementTask]) -> List[TaskImplementation]:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
@@ -61,9 +76,7 @@ class CoSTEERFG(TaskGenerator):
             component_init_list=[],
         )
         # init rag method
-        self.rag = (
-            FactorImplementationGraphRAGStrategy(factor_knowledge_base)
-        )
+        self.rag = FactorImplementationGraphRAGStrategy(factor_knowledge_base)
 
         # init indermediate items
         factor_implementations = FactorEvovlingItem(target_factor_tasks=tasks)
@@ -83,4 +96,4 @@ class CoSTEERFG(TaskGenerator):
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
         self.knowledge_base = factor_knowledge_base
         self.latest_factor_implementations = tasks
-        return factor_implementations       
+        return factor_implementations

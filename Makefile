@@ -19,7 +19,7 @@ CONSTRAINTS_FILE := constraints/$(PYTHON_VERSION).txt
 PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$$READTHEDOCS_OUTPUT/html" || echo "public")
 
 # URL and Path of changelog source code.
-CHANGELOG_URL := $(shell echo $${CI_PAGES_URL:-https://peteryang1.github.io/fincov2}/_sources/changelog.md.txt)
+CHANGELOG_URL := $(shell echo $${CI_PAGES_URL:-https://microsoft.github.io/rdagent}/_sources/changelog.md.txt)
 CHANGELOG_PATH := docs/changelog.md
 
 ########################################################################################
@@ -63,8 +63,8 @@ dev-%:
 init-qlib-env:
 	# note: You may need to install torch manually
 	# todo: downgrade ruamel.yaml in pyqlib
-	conda create -n qlibFinCo python=3.8 -y
-	@source $$(conda info --base)/etc/profile.d/conda.sh && conda activate qlibFinCo && which pip && pip install pyqlib && pip install ruamel-yaml==0.17.21 && pip install torch==2.1.1 && pip install catboost==0.24.3 && conda deactivate
+	conda create -n qlibRDAgent python=3.8 -y
+	@source $$(conda info --base)/etc/profile.d/conda.sh && conda activate qlibRDAgent && which pip && pip install pyqlib && pip install ruamel-yaml==0.17.21 && pip install torch==2.1.1 && pip install catboost==0.24.3 && conda deactivate
 
 dev:
 	$(PIPRUN) pip install -e .[docs,lint,package,test] -c $(CONSTRAINTS_FILE)
@@ -89,11 +89,11 @@ isort:
 
 # Check lint with mypy.
 mypy:
-	$(PIPRUN) python -m mypy . --exclude FinCo --exclude finco --exclude rdagent/scripts --exclude test/scripts  --exclude git_ignore_folder
+	$(PIPRUN) python -m mypy . --exclude rdagent/scripts --exclude git_ignore_folder
 
 # Check lint with ruff.
 ruff:
-	$(PIPRUN) ruff check .  --exclude FinCo,finco,rdagent/scripts,test/scripts,git_ignore_folder
+	$(PIPRUN) ruff check .  --exclude rdagent/scripts,git_ignore_folder
 
 # Check lint with toml-sort.
 toml-sort:
@@ -113,7 +113,7 @@ pre-commit:
 # Clean and run test with coverage.
 test-run:
 	$(PIPRUN) python -m coverage erase
-	$(PIPRUN) python -m coverage run --concurrency=multiprocessing -m pytest --ignore FinCo --ignore test/finco --ignore test/scripts
+	$(PIPRUN) python -m coverage run --concurrency=multiprocessing -m pytest --ignore test/scripts
 	$(PIPRUN) python -m coverage combine
 
 # Generate coverage report for terminal and xml.
@@ -162,7 +162,7 @@ docs-gen:
 
 # Generate mypy reports.
 docs-mypy: docs-gen
-	$(PIPRUN) python -m mypy rdagent test --exclude FinCo --exclude git_ignore_folder --exclude finco --exclude rdagent/scripts --exclude test/scripts --html-report $(PUBLIC_DIR)/reports/mypy
+	$(PIPRUN) python -m mypy rdagent test --exclude git_ignore_folder --exclude rdagent/scripts --html-report $(PUBLIC_DIR)/reports/mypy
 
 # Generate html coverage reports with badge.
 docs-coverage: test-run docs-gen
