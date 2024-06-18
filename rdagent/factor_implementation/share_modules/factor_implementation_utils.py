@@ -4,7 +4,7 @@ import pandas as pd
 
 # render it with jinja
 from jinja2 import Template
-from rdagent.factor_implementation.share_modules.factor_implementation_config import Factor_Implement_Settings
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask
 
 
@@ -23,7 +23,7 @@ def get_data_folder_intro():
     It is for preparing prompting message.
     """
     content_l = []
-    for p in Path(Factor_Implement_Settings.file_based_execution_data_folder).iterdir():
+    for p in Path(FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder).iterdir():
         if p.name.endswith(".h5"):
             df = pd.read_hdf(p)
             # get  df.head() as string with full width

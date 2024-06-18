@@ -45,4 +45,5 @@ class FactorImplementSettings(BaseSettings):
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
 
-Factor_Implement_Settings = FactorImplementSettings()
+
+FACTOR_IMPLEMENT_SETTINGS = FactorImplementSettings()

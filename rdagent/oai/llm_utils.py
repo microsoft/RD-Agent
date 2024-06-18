@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_Agent_Settings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog, LogColors
 from rdagent.core.utils import SingletonBaseClass
 
@@ -146,7 +146,7 @@ class SQliteLazyCache(SingletonBaseClass):
 class SessionChatHistoryCache(SingletonBaseClass):
     def __init__(self) -> None:
         """load all history conversation json file from self.session_cache_location"""
-        self.cfg = RD_Agent_Settings
+        self.cfg = RD_AGENT_SETTINGS
         self.session_cache_location = Path(self.cfg.session_cache_folder_location)
         self.cache = {}
         if not self.session_cache_location.exists():
@@ -176,7 +176,7 @@ class SessionChatHistoryCache(SingletonBaseClass):
 class ChatSession:
     def __init__(self, api_backend: Any, conversation_id: str | None = None, system_prompt: str | None = None) -> None:
         self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
-        self.cfg = RD_Agent_Settings
+        self.cfg = RD_AGENT_SETTINGS
         self.system_prompt = system_prompt if system_prompt is not None else self.cfg.default_system_prompt
         self.api_backend = api_backend
 
@@ -243,7 +243,7 @@ class APIBackend:
         use_embedding_cache: bool | None = None,
         dump_embedding_cache: bool | None = None,
     ) -> None:
-        self.cfg = RD_Agent_Settings
+        self.cfg = RD_AGENT_SETTINGS
         if self.cfg.use_llama2:
             self.generator = Llama.build(
                 ckpt_dir=self.cfg.llama2_ckpt_dir,

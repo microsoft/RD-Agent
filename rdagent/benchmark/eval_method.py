@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 from collections import defaultdict
-from rdagent.core.conf import RD_Agent_Settings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.task import (
     TaskImplementation,
@@ -153,7 +153,7 @@ class FactorImplementEval(BaseEval):
                 (self.eval_case, (gt_case.ground_truth, gen_factor))
                 for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
             ],
-            n=RD_Agent_Settings.evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.evo_multi_proc_n,
         )
 
         for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):

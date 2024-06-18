@@ -30,7 +30,7 @@ from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
 from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    Factor_Implement_Settings,
+    FACTOR_IMPLEMENT_SETTINGS,
 )
 
 
@@ -139,9 +139,9 @@ class FactorImplementationRAGStrategyV1(RAGStrategy):
         evo: EvolvableSubjects,
         evolving_trace: list[EvoStep],
     ) -> QueriedKnowledge | None:
-        v1_query_former_trace_limit = Factor_Implement_Settings.v1_query_former_trace_limit
-        v1_query_similar_success_limit = Factor_Implement_Settings.v1_query_similar_success_limit
-        fail_task_trial_limit = Factor_Implement_Settings.fail_task_trial_limit
+        v1_query_former_trace_limit = FACTOR_IMPLEMENT_SETTINGS.v1_query_former_trace_limit
+        v1_query_similar_success_limit = FACTOR_IMPLEMENT_SETTINGS.v1_query_similar_success_limit
+        fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
 
         queried_knowledge = FactorImplementationQueriedKnowledgeV1()
         for target_factor_task in evo.target_factor_tasks:
@@ -281,7 +281,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
             return None
 
     def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> QueriedKnowledge | None:
-        conf_knowledge_sampler = Factor_Implement_Settings.v2_knowledge_sampler
+        conf_knowledge_sampler = FACTOR_IMPLEMENT_SETTINGS.v2_knowledge_sampler
         factor_implementation_queried_graph_knowledge = FactorImplementationQueriedGraphKnowledge(
             success_task_to_knowledge_dict=self.knowledgebase.success_task_to_knowledge_dict,
         )
@@ -289,18 +289,18 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         factor_implementation_queried_graph_knowledge = self.former_trace_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            Factor_Implement_Settings.v2_query_former_trace_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_former_trace_limit,
         )
         factor_implementation_queried_graph_knowledge = self.component_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            Factor_Implement_Settings.v2_query_component_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_component_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
         factor_implementation_queried_graph_knowledge = self.error_query(
             evo,
             factor_implementation_queried_graph_knowledge,
-            Factor_Implement_Settings.v2_query_error_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_query_error_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
         return factor_implementation_queried_graph_knowledge
@@ -384,7 +384,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         """
         Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
         """
-        fail_task_trial_limit = Factor_Implement_Settings.fail_task_trial_limit
+        fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
 
         for target_factor_task in evo.target_factor_tasks:
             target_factor_task_information = target_factor_task.get_factor_information()

@@ -16,7 +16,7 @@ from rdagent.factor_implementation.evolving.evaluators import (
 )
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
-    Factor_Implement_Settings,
+    FACTOR_IMPLEMENT_SETTINGS,
 )
 
 
@@ -27,15 +27,15 @@ class CoSTEERFG(TaskGenerator):
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
     ) -> None:
-        self.max_loop = Factor_Implement_Settings.max_loop
+        self.max_loop = FACTOR_IMPLEMENT_SETTINGS.max_loop
         self.knowledge_base_path = (
-            Path(Factor_Implement_Settings.knowledge_base_path)
-            if Factor_Implement_Settings.knowledge_base_path is not None
+            Path(FACTOR_IMPLEMENT_SETTINGS.knowledge_base_path)
+            if FACTOR_IMPLEMENT_SETTINGS.knowledge_base_path is not None
             else None
         )
         self.new_knowledge_base_path = (
-            Path(Factor_Implement_Settings.new_knowledge_base_path)
-            if Factor_Implement_Settings.new_knowledge_base_path is not None
+            Path(FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path)
+            if FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path is not None
             else None
         )
         self.with_knowledge = with_knowledge

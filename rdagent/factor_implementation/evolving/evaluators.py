@@ -17,8 +17,8 @@ from typing import List, Tuple
 from rdagent.core.evolving_framework import QueriedKnowledge, Feedback
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.prompts import Prompts
-from rdagent.core.conf import RD_Agent_Settings
-from rdagent.factor_implementation.share_modules.factor_implementation_config import Factor_Implement_Settings
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.utils import multiprocessing_wrapper
 from pathlib import Path
 
@@ -92,7 +92,7 @@ class FactorImplementationCodeEvaluator(Evaluator):
                 system_prompt=system_prompt,
                 former_messages=[],
             )
-            > RD_Agent_Settings.chat_token_limit
+            > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             user_prompt = Template(
@@ -500,7 +500,7 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
                 system_prompt=system_prompt,
                 former_messages=[],
             )
-            > RD_Agent_Settings.chat_token_limit
+            > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             user_prompt = Template(
@@ -722,7 +722,7 @@ class FactorImplementationsMultiEvaluator(Evaluator):
                     ),
                 ),
             )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=Factor_Implement_Settings.evo_multi_proc_n)
+        multi_implementation_feedback = multiprocessing_wrapper(calls, n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n)
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision

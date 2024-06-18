@@ -5,7 +5,7 @@ from rdagent.factor_implementation.share_modules.factor_implementation_utils imp
 from rdagent.factor_implementation.evolving.factor import FactorEvovlingItem
 from rdagent.core.prompts import Prompts
 from rdagent.core.log import RDAgentLog
-from rdagent.core.conf import RD_Agent_Settings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from pathlib import Path
 
 scheduler_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -52,7 +52,7 @@ def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: 
             session.build_chat_completion_message_and_calculate_token(
                 user_prompt,
             )
-            < RD_Agent_Settings.chat_token_limit
+            < RD_AGENT_SETTINGS.chat_token_limit
         ):
             break
 

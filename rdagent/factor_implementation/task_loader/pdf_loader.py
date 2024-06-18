@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
-from rdagent.core.conf import RD_Agent_Settings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.core.task import TaskLoader
@@ -80,9 +80,9 @@ def classify_report_from_dict(
                 user_prompt=content,
                 system_prompt=classify_prompt,
             )
-            > RD_Agent_Settings.chat_token_limit
+            > RD_AGENT_SETTINGS.chat_token_limit
         ):
-            content = content[: -(RD_Agent_Settings.chat_token_limit // 100)]
+            content = content[: -(RD_AGENT_SETTINGS.chat_token_limit // 100)]
 
         vote_list = []
         for _ in range(vote_time):
@@ -480,16 +480,16 @@ Factor variables: {variables}
     embeddings = create_embedding_with_multiprocessing(full_str_list)
 
     target_k = None
-    if len(full_str_list) < RD_Agent_Settings.max_input_duplicate_factor_group:
+    if len(full_str_list) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
         kmeans_index_group = [list(range(len(full_str_list)))]
         target_k = 1
     else:
         for k in range(
-            len(full_str_list) // RD_Agent_Settings.max_input_duplicate_factor_group,
+            len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
             30,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
-            if len(kmeans_index_group[0]) < RD_Agent_Settings.max_input_duplicate_factor_group:
+            if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
                 target_k = k
                 RDAgentLog().info(f"K-means group number: {k}")
                 break
@@ -533,7 +533,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 
         new_round_names = []
         for duplication_names in duplication_names_list:
-            if len(duplication_names) < RD_Agent_Settings.max_output_duplicate_factor_group:
+            if len(duplication_names) < RD_AGENT_SETTINGS.max_output_duplicate_factor_group:
                 final_duplication_names_list.append(duplication_names)
             else:
                 new_round_names.extend(duplication_names)

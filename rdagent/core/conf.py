@@ -94,4 +94,4 @@ class RDAgentSettings(BaseSettings):
     max_output_duplicate_factor_group: int = 20
 
 
-RD_Agent_Settings = RDAgentSettings()
+RD_AGENT_SETTINGS = RDAgentSettings()
