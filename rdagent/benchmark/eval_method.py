@@ -1,60 +1,63 @@
-from pathlib import Path
-from typing import List, Tuple, Union
+from __future__ import annotations
 
-from tqdm import tqdm
 from collections import defaultdict
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import ImplementRunException
-from rdagent.core.task import (
-    TaskImplementation,
-    TestCase,
-)
+
+if TYPE_CHECKING:
+    from rdagent.core.implementation import TaskGenerator
+    from rdagent.core.task import (
+        TaskImplementation,
+        TestCase,
+    )
+from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.factor_implementation.evolving.evaluators import (
     FactorImplementationCorrelationEvaluator,
+    FactorImplementationEvaluator,
     FactorImplementationIndexEvaluator,
     FactorImplementationIndexFormatEvaluator,
     FactorImplementationMissingValuesEvaluator,
     FactorImplementationRowCountEvaluator,
     FactorImplementationSingleColumnEvaluator,
     FactorImplementationValuesEvaluator,
-    FactorImplementationEvaluator,
 )
-from rdagent.core.implementation import TaskGenerator
-from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.factor_implementation.evolving.factor import FileBasedFactorImplementation
+from tqdm import tqdm
 
 
 class BaseEval:
     """
     The benchmark benchmark evaluation.
     """
-
     def __init__(
         self,
-        evaluator_l: List[FactorImplementationEvaluator],
-        test_cases: List[TestCase],
+        evaluator_l: list[FactorImplementationEvaluator],
+        test_cases: list[TestCase],
         generate_method: TaskGenerator,
+        *,
         catch_eval_except: bool = True,
-    ):
+    ) -> None:
         """Parameters
         ----------
-        test_cases : List[TestCase]
-            cases to be evaluated, ground truth are included in the test cases.
-        evaluator_l : List[FactorImplementationEvaluator]
+        test_cases : list[TestCase]
+            Cases to be evaluated, ground truth are included in the test cases.
+        evaluator_l : list[FactorImplementationEvaluator]
             A list of evaluators to evaluate the generated code.
         catch_eval_except : bool
-            If we want to debug the evaluators, we recommend to set the this parameter to True.
+            If we want to debug the evaluators, we recommend to set this parameter to True.
         """
         self.evaluator_l = evaluator_l
         self.test_cases = test_cases
         self.generate_method = generate_method
-        self.catch_eval_except = catch_eval_except
 
     def load_cases_to_eval(
         self,
-        path: Union[Path, str],
-        **kwargs,
-    ) -> List[TaskImplementation]:
+        path: Path | str,
+        **kwargs: Any,
+    ) -> list[TaskImplementation]:
         path = Path(path)
         fi_l = []
         for tc in self.test_cases:
@@ -69,19 +72,18 @@ class BaseEval:
         self,
         case_gt: TaskImplementation,
         case_gen: TaskImplementation,
-    ) -> List[Union[Tuple[FactorImplementationEvaluator, object], Exception]]:
+    ) -> list[tuple[FactorImplementationEvaluator, object] | Exception]:
         """Parameters
         ----------
         case_gt : FactorImplementation
 
         case_gen : FactorImplementation
 
-
         Returns
         -------
-        List[Union[Tuple[FactorImplementationEvaluator, object],Exception]]
+        list[tuple[FactorImplementationEvaluator, object] | Exception]
             for each item
-                If the evaluation run successfully, return the evaluate results.  Otherwise, return the exception.
+                If the evaluation run successfully, return the evaluate results. Otherwise, return the exception.
         """
         eval_res = []
         for ev in self.evaluator_l:
@@ -95,7 +97,7 @@ class BaseEval:
                 if self.catch_eval_except:
                     eval_res.append((ev, e))
                 else:
-                    raise e
+                    raise
         return eval_res
 
 
@@ -105,25 +107,23 @@ class FactorImplementEval(BaseEval):
         test_case: TestCase,
         method: TaskGenerator,
         test_round: int = 10,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         # evaluator collection for online evaluation
-        online_evaluator_l = (
-            [
-                FactorImplementationCorrelationEvaluator,
-                FactorImplementationIndexEvaluator,
-                FactorImplementationIndexFormatEvaluator,
-                FactorImplementationMissingValuesEvaluator,
-                FactorImplementationRowCountEvaluator,
-                FactorImplementationSingleColumnEvaluator,
-                FactorImplementationValuesEvaluator,
-            ],
-        )
-        super().__init__(online_evaluator_l, test_case, method, *args, **kwargs)
+        online_evaluator_l = [
+            FactorImplementationCorrelationEvaluator,
+            FactorImplementationIndexEvaluator,
+            FactorImplementationIndexFormatEvaluator,
+            FactorImplementationMissingValuesEvaluator,
+            FactorImplementationRowCountEvaluator,
+            FactorImplementationSingleColumnEvaluator,
+            FactorImplementationValuesEvaluator,
+        ]
+        super().__init__(online_evaluator_l, [test_case], method, *args, **kwargs)
         self.test_round = test_round
 
-    def eval(self):
+    def eval(self) -> defaultdict:
 
         gen_factor_l_all_rounds = []
         test_cases_all_rounds = []
@@ -139,10 +139,10 @@ class FactorImplementEval(BaseEval):
                 print("Manually interrupted the evaluation. Saving existing results")
                 break
 
+            eval_error_message = "The number of cases to eval should be equal to the number of test cases."
             if len(gen_factor_l) != len(self.test_cases):
-                raise ValueError(
-                    "The number of cases to eval should be equal to the number of test cases.",
-                )
+                raise ValueError(eval_error_message)
+
             gen_factor_l_all_rounds.extend(gen_factor_l)
             test_cases_all_rounds.extend(self.test_cases)
 

@@ -1,26 +1,25 @@
+from __future__ import annotations
+
 import json
 import re
-
 from abc import abstractmethod
-from typing import Tuple
+from pathlib import Path
+from typing import Any, List, Tuple
 
 import pandas as pd
 from jinja2 import Template
-
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.evaluation import Evaluator
+from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
 from rdagent.core.log import RDAgentLog
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask, FactorEvovlingItem
+from rdagent.core.prompts import Prompts
 from rdagent.core.task import (
     TaskImplementation,
 )
-from typing import List, Tuple
-from rdagent.core.evolving_framework import QueriedKnowledge, Feedback
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.prompts import Prompts
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.utils import multiprocessing_wrapper
-from pathlib import Path
+from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvovlingItem, FactorImplementTask
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -49,9 +48,10 @@ class FactorImplementationEvaluator(Evaluator):
             - object: a comparable metric (bool, integer, float ...)
 
         """
-        raise NotImplementedError("Please implement the `evaluator` method")
+        error_message = "Please implement the `evaluator` method"
+        raise NotImplementedError(error_message)
 
-    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation):
+    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation) -> Tuple[pd.DataFrame, pd.DataFrame]:
         _, gt_df = gt.execute()
         _, gen_df = gen.execute()
         if isinstance(gen_df, pd.Series):
@@ -69,8 +69,8 @@ class FactorImplementationCodeEvaluator(Evaluator):
         execution_feedback: str,
         factor_value_feedback: str = "",
         gt_implementation: TaskImplementation = None,
-        **kwargs,
-    ):
+        **kwargs: dict,
+    ) -> Any:
         factor_information = target_task.get_factor_information()
         code = implementation.code
 
@@ -104,13 +104,11 @@ class FactorImplementationCodeEvaluator(Evaluator):
                 factor_value_feedback=factor_value_feedback,
                 gt_code=gt_implementation.code if gt_implementation else None,
             )
-        critic_response = APIBackend().build_messages_and_create_chat_completion(
+        return APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
             json_mode=False,
         )
-
-        return critic_response
 
 
 class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
@@ -123,14 +121,11 @@ class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
 
         if len(gen_df.columns) == 1 and len(gt_df.columns) == 1:
             return "Both dataframes have only one column.", True
-        elif len(gen_df.columns) != 1:
-            gen_df = gen_df.iloc(axis=1)[
-                [
-                    0,
-                ]
-            ]
+        if len(gen_df.columns) != 1:
+            gen_df = gen_df.iloc(axis=1)[[0]]
             return (
-                "The source dataframe has more than one column. Please check the implementation. We only evaluate the first column.",
+                "The source dataframe has more than one column. Please check the "
+                "implementation. We only evaluate the first column.",
                 False,
             )
         return "", False
@@ -152,11 +147,10 @@ class FactorImplementationIndexFormatEvaluator(FactorImplementationEvaluator):
                 'The index of the dataframe is ("datetime", "instrument") and align with the predefined format.',
                 True,
             )
-        else:
-            return (
-                'The index of the dataframe is not ("datetime", "instrument"). Please check the implementation.',
-                False,
-            )
+        return (
+            'The index of the dataframe is not ("datetime", "instrument"). Please check the implementation.',
+            False,
+        )
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -172,11 +166,12 @@ class FactorImplementationRowCountEvaluator(FactorImplementationEvaluator):
 
         if gen_df.shape[0] == gt_df.shape[0]:
             return "Both dataframes have the same rows count.", True
-        else:
-            return (
-                f"The source dataframe and the ground truth dataframe have different rows count. The source dataframe has {gen_df.shape[0]} rows, while the ground truth dataframe has {gt_df.shape[0]} rows. Please check the implementation.",
-                False,
-            )
+        return (
+            "The source dataframe and the ground truth dataframe have different "
+            f"rows count. The source dataframe has {gen_df.shape[0]} rows, while "
+            f"the ground truth dataframe has {gt_df.shape[0]} rows. Please check the implementation.",
+            False,
+        )
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -192,11 +187,11 @@ class FactorImplementationIndexEvaluator(FactorImplementationEvaluator):
 
         if gen_df.index.equals(gt_df.index):
             return "Both dataframes have the same index.", True
-        else:
-            return (
-                "The source dataframe and the ground truth dataframe have different index. Please check the implementation.",
-                False,
-            )
+        return (
+            "The source dataframe and the ground truth dataframe have different indices. "
+            "Please check the implementation.",
+            False,
+        )
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -212,11 +207,13 @@ class FactorImplementationMissingValuesEvaluator(FactorImplementationEvaluator):
 
         if gen_df.isna().sum().sum() == gt_df.isna().sum().sum():
             return "Both dataframes have the same missing values.", True
-        else:
-            return (
-                f"The dataframes do not have the same missing values. The source dataframe has {gen_df.isna().sum().sum()} missing values, while the ground truth dataframe has {gt_df.isna().sum().sum()} missing values. Please check the implementation.",
-                False,
-            )
+        return (
+            "The dataframes do not have the same missing values. "
+            f"The source dataframe has {gen_df.isna().sum().sum()} missing values, "
+            f"while the ground truth dataframe has {gt_df.isna().sum().sum()} missing values. "
+            "Please check the implementation.",
+            False,
+        )
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -242,18 +239,17 @@ class FactorImplementationValuesEvaluator(FactorImplementationEvaluator):
                 "All values in the dataframes are equal within the tolerance of 1e-6.",
                 acc_rate,
             )
-        else:
-            return (
-                "Some values differ by more than the tolerance of 1e-6. Check for rounding errors or differences in the calculation methods.",
-                acc_rate,
-            )
+        return (
+            "Some values differ by more than the tolerance of 1e-6. Check for rounding errors or differences in the calculation methods.",
+            acc_rate,
+        )
 
     def __str__(self) -> str:
         return self.__class__.__name__
 
 
 class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
-    def __init__(self, hard_check: bool) -> None:
+    def __init__(self, *, hard_check: bool) -> None:
         self.hard_check = hard_check
 
     def evaluate(
@@ -261,6 +257,7 @@ class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
         gt: TaskImplementation,
         gen: TaskImplementation,
     ) -> Tuple[str, object]:
+        HIGH_CORRELATION_THRESHOLD = 0.99
         gt_df, gen_df = self._get_df(gt, gen)
 
         concat_df = pd.concat([gen_df, gt_df], axis=1)
@@ -274,18 +271,18 @@ class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
         )
 
         if self.hard_check:
-            if ic > 0.99 and ric > 0.99:
+            if ic > HIGH_CORRELATION_THRESHOLD and ric > HIGH_CORRELATION_THRESHOLD:
                 return (
                     f"The dataframes are highly correlated. The ic is {ic:.6f} and the rankic is {ric:.6f}.",
                     True,
                 )
-            else:
-                return (
-                    f"The dataframes are not sufficiently high correlated. The ic is {ic:.6f} and the rankic is {ric:.6f}. Investigate the factors that might be causing the discrepancies and ensure that the logic of the factor calculation is consistent.",
-                    False,
-                )
-        else:
-            return f"The ic is ({ic:.6f}) and the rankic is ({ric:.6f}).", ic
+            return (
+                f"The dataframes are not sufficiently high correlated. The ic is {ic:.6f} and the rankic is {ric:.6f}. "
+                "Investigate the factors that might be causing the discrepancies and ensure that the logic of the "
+                "factor calculation is consistent.",
+                False,
+            )
+        return f"The ic is ({ic:.6f}) and the rankic is ({ric:.6f}).", ic
 
     def __str__(self) -> str:
         return self.__class__.__name__
@@ -329,23 +326,20 @@ class FactorImplementationValueEvaluator(Evaluator):
             conclusions.append("The source dataframe has only one column which is correct.")
         else:
             conclusions.append(
-                "The source dataframe has more than one column. Please check the implementation. We only evaluate the first column.",
+                "The source dataframe has more than one column. Please check the "
+                "implementation. We only evaluate the first column.",
             )
-            source_df = source_df.iloc(axis=1)[
-                [
-                    0,
-                ]
-            ]
+            source_df = source_df.iloc(axis=1)[[0]]
 
         if list(source_df.index.names) != ["datetime", "instrument"]:
             conclusions.append(
-                rf"The index of the dataframe is not (\"datetime\", \"instrument\"), instead is {source_df.index.names}. Please check the implementation.",
+                'The index of the dataframe is not ("datetime", "instrument"), '
+                f"instead is {source_df.index.names}. Please check the implementation.",
             )
         else:
             conclusions.append(
                 'The index of the dataframe is ("datetime", "instrument") and align with the predefined format.',
             )
-
         # Check if both dataframe have the same rows count
         if gt_df is not None:
             if source_df.shape[0] == gt_df.shape[0]:
@@ -380,7 +374,9 @@ class FactorImplementationValueEvaluator(Evaluator):
             # Check if the values are the same within a small tolerance
             if not same_index_result:
                 conclusions.append(
-                    "The source dataframe and the ground truth dataframe have different index. Give up comparing the values and correlation because it's useless",
+                    "The source dataframe and the ground truth dataframe have "
+                    "different index. Give up comparing the values and "
+                    "correlation because it's useless",
                 )
                 same_values_result = False
                 high_correlation_result = False
@@ -446,7 +442,7 @@ class FactorImplementationValueEvaluator(Evaluator):
                         )
 
                 except Exception as e:
-                    RDAgentLog().warning(f"Error occurred when calculating the correlation: {str(e)}")
+                    RDAgentLog().warning(f"Error occurred when calculating the correlation: {e!s}")
                     conclusions.append(
                         f"Some error occurred when calculating the correlation. Investigate the factors that might be causing the discrepancies and ensure that the logic of the factor calculation is consistent. Error: {e}",
                     )
@@ -534,13 +530,13 @@ class FactorImplementationSingleFeedback:
 
     def __init__(
         self,
-        execution_feedback: str = None,
+        execution_feedback: str | None = None,
         value_generated_flag: bool = False,
-        code_feedback: str = None,
-        factor_value_feedback: str = None,
-        final_decision: bool = None,
-        final_feedback: str = None,
-        final_decision_based_on_gt: bool = None,
+        code_feedback: str | None = None,
+        factor_value_feedback: str | None = None,
+        final_decision: bool | None = None,
+        final_feedback: str | None = None,
+        final_decision_based_on_gt: bool | None = None,
     ) -> None:
         self.execution_feedback = execution_feedback
         self.value_generated_flag = value_generated_flag
@@ -598,7 +594,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict
         ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
-        elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
+        if queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return FactorImplementationSingleFeedback(
                 execution_feedback="This task has failed too many times, skip implementation.",
                 value_generated_flag=False,
@@ -608,69 +604,68 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
                 final_feedback="This task has failed too many times, skip final decision evaluation.",
                 final_decision_based_on_gt=False,
             )
+        factor_feedback = FactorImplementationSingleFeedback()
+        (
+            factor_feedback.execution_feedback,
+            source_df,
+        ) = implementation.execute()
+
+        # Remove the long list of numbers in the feedback
+        pattern = r"(?<=\D)(,\s+-?\d+\.\d+){50,}(?=\D)"
+        factor_feedback.execution_feedback = re.sub(pattern, ", ", factor_feedback.execution_feedback)
+        execution_feedback_lines = [
+            line for line in factor_feedback.execution_feedback.split("\n") if "warning" not in line.lower()
+        ]
+        factor_feedback.execution_feedback = "\n".join(execution_feedback_lines)
+
+        if source_df is None:
+            factor_feedback.factor_value_feedback = "No factor value generated, skip value evaluation."
+            factor_feedback.value_generated_flag = False
+            value_decision = None
         else:
-            factor_feedback = FactorImplementationSingleFeedback()
-            (
-                factor_feedback.execution_feedback,
-                source_df,
-            ) = implementation.execute()
-
-            # Remove the long list of numbers in the feedback
-            pattern = r"(?<=\D)(,\s+-?\d+\.\d+){50,}(?=\D)"
-            factor_feedback.execution_feedback = re.sub(pattern, ", ", factor_feedback.execution_feedback)
-            execution_feedback_lines = [
-                line for line in factor_feedback.execution_feedback.split("\n") if "warning" not in line.lower()
-            ]
-            factor_feedback.execution_feedback = "\n".join(execution_feedback_lines)
-
-            if source_df is None:
-                factor_feedback.factor_value_feedback = "No factor value generated, skip value evaluation."
-                factor_feedback.value_generated_flag = False
-                value_decision = None
+            factor_feedback.value_generated_flag = True
+            if gt_implementation is not None:
+                _, gt_df = gt_implementation.execute(store_result=True)
             else:
-                factor_feedback.value_generated_flag = True
-                if gt_implementation is not None:
-                    _, gt_df = gt_implementation.execute(store_result=True)
-                else:
-                    gt_df = None
-                try:
-                    source_df = source_df.sort_index()
-                    if gt_df is not None:
-                        gt_df = gt_df.sort_index()
-                    (
-                        factor_feedback.factor_value_feedback,
-                        value_decision,
-                    ) = self.value_evaluator.evaluate(source_df=source_df, gt_df=gt_df)
-                except Exception as e:
-                    RDAgentLog().warning("Value evaluation failed with exception: %s", e)
-                    factor_feedback.factor_value_feedback = "Value evaluation failed."
-                    value_decision = False
-
-            factor_feedback.final_decision_based_on_gt = gt_implementation is not None
-
-            if value_decision is not None and value_decision is True:
-                # To avoid confusion, when value_decision is True, we do not need code feedback
-                factor_feedback.code_feedback = "Final decision is True and there are no code critics."
-                factor_feedback.final_decision = value_decision
-                factor_feedback.final_feedback = "Value evaluation passed, skip final decision evaluation."
-            else:
-                factor_feedback.code_feedback = self.code_evaluator.evaluate(
-                    target_task=target_task,
-                    implementation=implementation,
-                    execution_feedback=factor_feedback.execution_feedback,
-                    value_feedback=factor_feedback.factor_value_feedback,
-                    gt_implementation=gt_implementation,
-                )
+                gt_df = None
+            try:
+                source_df = source_df.sort_index()
+                if gt_df is not None:
+                    gt_df = gt_df.sort_index()
                 (
-                    factor_feedback.final_decision,
-                    factor_feedback.final_feedback,
-                ) = self.final_decision_evaluator.evaluate(
-                    target_task=target_task,
-                    execution_feedback=factor_feedback.execution_feedback,
-                    value_feedback=factor_feedback.factor_value_feedback,
-                    code_feedback=factor_feedback.code_feedback,
-                )
-            return factor_feedback
+                    factor_feedback.factor_value_feedback,
+                    value_decision,
+                ) = self.value_evaluator.evaluate(source_df=source_df, gt_df=gt_df)
+            except Exception as e:
+                RDAgentLog().warning("Value evaluation failed with exception: %s", e)
+                factor_feedback.factor_value_feedback = "Value evaluation failed."
+                value_decision = False
+
+        factor_feedback.final_decision_based_on_gt = gt_implementation is not None
+
+        if value_decision is not None and value_decision is True:
+            # To avoid confusion, when value_decision is True, we do not need code feedback
+            factor_feedback.code_feedback = "Final decision is True and there are no code critics."
+            factor_feedback.final_decision = value_decision
+            factor_feedback.final_feedback = "Value evaluation passed, skip final decision evaluation."
+        else:
+            factor_feedback.code_feedback = self.code_evaluator.evaluate(
+                target_task=target_task,
+                implementation=implementation,
+                execution_feedback=factor_feedback.execution_feedback,
+                value_feedback=factor_feedback.factor_value_feedback,
+                gt_implementation=gt_implementation,
+            )
+            (
+                factor_feedback.final_decision,
+                factor_feedback.final_feedback,
+            ) = self.final_decision_evaluator.evaluate(
+                target_task=target_task,
+                execution_feedback=factor_feedback.execution_feedback,
+                value_feedback=factor_feedback.factor_value_feedback,
+                code_feedback=factor_feedback.code_feedback,
+            )
+        return factor_feedback
 
 
 class FactorImplementationsMultiEvaluator(Evaluator):

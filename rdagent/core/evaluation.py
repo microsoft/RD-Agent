@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Any
+
 from rdagent.core.task import (
-    TaskImplementation,
     BaseTask,
+    TaskImplementation,
 )
+
 
 class Evaluator(ABC):
     @abstractmethod
@@ -11,6 +14,6 @@ class Evaluator(ABC):
         target_task: BaseTask,
         implementation: TaskImplementation,
         gt_implementation: TaskImplementation,
-        **kwargs,
-    ):
+        **kwargs: dict,
+    ) -> Any:
         raise NotImplementedError

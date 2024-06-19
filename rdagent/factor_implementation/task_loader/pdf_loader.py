@@ -8,7 +8,6 @@ from typing import Mapping
 
 import numpy as np
 import pandas as pd
-import tiktoken
 from jinja2 import Template
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
@@ -412,7 +411,8 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         random_state=42,
     )
 
-    # KMeans algorithm uses Euclidean distance, and we need to customize a function to find the most similar cluster center
+    # KMeans algorithm uses Euclidean distance, and we need to customize
+    # a function to find the most similar cluster center
     def find_closest_cluster_cosine_similarity(
         data: np.ndarray,
         centroids: np.ndarray,
@@ -423,7 +423,6 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
     # Initializes the cluster center
     rng = np.random.default_rng()
     centroids = rng.choice(x_normalized, size=k, replace=False)
-
     # Iterate until convergence or the maximum number of iterations is reached
     for _ in range(kmeans.max_iter):
         # Assign the sample to the nearest cluster center

@@ -1,24 +1,30 @@
-from abc import ABC, abstractmethod
-from typing import List
+from __future__ import annotations
 
-from rdagent.core.task import (
-    TaskImplementation,
-)
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rdagent.core.task import TaskImplementation
+
 
 class TaskGenerator(ABC):
     @abstractmethod
-    def generate(self, *args, **kwargs) -> List[TaskImplementation]:
-        raise NotImplementedError("generate method is not implemented.")
+    def generate(self, *args: list, **kwargs: dict) -> list[TaskImplementation]:
+        error_message = "generate method is not implemented."
+        raise NotImplementedError(error_message)
 
-    def collect_feedback(self, feedback_obj_l: List[object]):
+    @abstractmethod
+    def collect_feedback(self, feedback_obj_l: list[object]) -> None:
         """
         When online evaluation.
-        The preivous feedbacks will be collected to support advanced factor generator
+        The previous feedbacks will be collected to support advanced factor generator
 
         Parameters
         ----------
         feedback_obj_l : List[object]
 
         """
+
+
 
 

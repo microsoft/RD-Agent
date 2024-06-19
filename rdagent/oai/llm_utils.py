@@ -17,9 +17,8 @@ from typing import Any
 
 import numpy as np
 import tiktoken
-
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import RDAgentLog, LogColors
+from rdagent.core.log import LogColors, RDAgentLog
 from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
@@ -417,7 +416,7 @@ class APIBackend:
         if former_messages is None:
             former_messages = []
         messages = self.build_messages(
-            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break,
         )
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
@@ -490,8 +489,8 @@ class APIBackend:
         raise RuntimeError(error_message)
 
     def _create_embedding_inner_function(
-        self, input_content_list: list[str], **kwargs: Any
-    ) -> list[Any]:  # noqa: ARG002
+        self, input_content_list: list[str], **kwargs: dict,
+    ) -> list[Any]:
         content_to_embedding_dict = {}
         filtered_input_content_list = []
         if self.use_embedding_cache:
@@ -702,7 +701,7 @@ class APIBackend:
         if former_messages is None:
             former_messages = []
         messages = self.build_messages(
-            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break,
         )
         return self.calculate_token_from_messages(messages)
 

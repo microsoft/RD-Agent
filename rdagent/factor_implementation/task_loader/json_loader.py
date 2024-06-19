@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 from rdagent.core.task import TaskLoader
 from rdagent.factor_implementation.evolving.factor import FactorImplementTask
 

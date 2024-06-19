@@ -6,8 +6,7 @@ import random
 import re
 from itertools import combinations
 from pathlib import Path
-from jinja2 import Template
-from typing import Union
+from typing import TYPE_CHECKING, List
 
 from jinja2 import Template
 from rdagent.core.evolving_framework import (
@@ -20,18 +19,19 @@ from rdagent.core.evolving_framework import (
 )
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
-from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
-from rdagent.core.task import (
-    TaskImplementation,
-)
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask
-from rdagent.core.prompts import Prompts
-from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
-from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
+
+if TYPE_CHECKING:
+    from rdagent.core.task import (
+        TaskImplementation,
+    )
+    from rdagent.factor_implementation.evolving.evaluators import FactorImplementationSingleFeedback
+    from rdagent.factor_implementation.evolving.evolving_strategy import FactorImplementTask
 
 from rdagent.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
+from rdagent.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from rdagent.oai.llm_utils import APIBackend, calculate_embedding_distance_between_str_list
 
 
 class FactorImplementationKnowledge(Knowledge):
@@ -42,10 +42,13 @@ class FactorImplementationKnowledge(Knowledge):
         feedback: FactorImplementationSingleFeedback,
     ) -> None:
         """
-        Initialize a FactorKnowledge object. The FactorKnowledge object is used to store a factor implementation without the ground truth code and value.
+        Initialize a FactorKnowledge object. The object is used to store a factor
+        implementation without the ground truth code and value.
 
         Args:
-            factor (Factor): The factor object associated with the KnowledgeManagement.
+            target_task (FactorImplementTask): The task object associated with the Knowledge.
+            implementation (TaskImplementation): Implementation of the task.
+            feedback (FactorImplementationSingleFeedback): Feedback for the implementation.
 
         Returns:
             None
@@ -63,17 +66,21 @@ class FactorImplementationKnowledge(Knowledge):
 
 
 class FactorImplementationQueriedKnowledge(QueriedKnowledge):
-    def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
+    def __init__(self, success_task_to_knowledge_dict: dict | None = None, failed_task_info_set: set | None = None) -> None:
+        if success_task_to_knowledge_dict is None:
+            success_task_to_knowledge_dict = {}
+        if failed_task_info_set is None:
+            failed_task_info_set = set()
         self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
         self.failed_task_info_set = failed_task_info_set
 
 
 class FactorImplementationKnowledgeBaseV1(KnowledgeBase):
     def __init__(self) -> None:
-        self.implementation_trace: dict[str, FactorImplementationKnowledge] = dict()
+        self.implementation_trace: dict[str, FactorImplementationKnowledge] = {}
         self.success_task_info_set: set[str] = set()
 
-        self.task_to_embedding = dict()
+        self.task_to_embedding = {}
 
     def query(self) -> QueriedKnowledge | None:
         """
@@ -84,8 +91,8 @@ class FactorImplementationKnowledgeBaseV1(KnowledgeBase):
 
 class FactorImplementationQueriedKnowledgeV1(FactorImplementationQueriedKnowledge):
     def __init__(self) -> None:
-        self.working_task_to_former_failed_knowledge_dict = dict()
-        self.working_task_to_similar_successful_knowledge_dict = dict()
+        self.working_task_to_former_failed_knowledge_dict = {}
+        self.working_task_to_similar_successful_knowledge_dict = {}
         super().__init__()
 
 
@@ -128,7 +135,7 @@ class FactorImplementationRAGStrategyV1(RAGStrategy):
                             [],
                         ).append(single_knowledge)
 
-                        if single_feedback.final_decision == True:
+                        if single_feedback.final_decision:
                             self.knowledgebase.success_task_info_set.add(
                                 target_task_information,
                             )
@@ -197,14 +204,14 @@ class FactorImplementationQueriedGraphKnowledge(FactorImplementationQueriedKnowl
     # Aggregation of knowledge
     def __init__(
         self,
-        former_traces: dict = {},
-        component_with_success_task: dict = {},
-        error_with_success_task: dict = {},
-        **kwargs,
+        former_traces: dict | None = None,
+        component_with_success_task: dict | None = None,
+        error_with_success_task: dict | None = None,
+        **kwargs: dict,
     ) -> None:
-        self.former_traces = former_traces
-        self.component_with_success_task = component_with_success_task
-        self.error_with_success_task = error_with_success_task
+        self.former_traces = former_traces if former_traces is not None else {}
+        self.component_with_success_task = component_with_success_task if component_with_success_task is not None else {}
+        self.error_with_success_task = error_with_success_task if error_with_success_task is not None else {}
         super().__init__(**kwargs)
 
 
@@ -248,7 +255,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                         self.knowledgebase.working_trace_knowledge.setdefault(target_task_information, []).append(
                             single_knowledge,
                         )  # save to working trace
-                        if single_feedback.final_decision == True:
+                        if single_feedback.final_decision:
                             self.knowledgebase.success_task_to_knowledge_dict.setdefault(
                                 target_task_information,
                                 single_knowledge,
@@ -297,21 +304,20 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
             FACTOR_IMPLEMENT_SETTINGS.v2_query_component_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
-        factor_implementation_queried_graph_knowledge = self.error_query(
+        return self.error_query(
             evo,
             factor_implementation_queried_graph_knowledge,
             FACTOR_IMPLEMENT_SETTINGS.v2_query_error_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
-        return factor_implementation_queried_graph_knowledge
 
     def analyze_component(
         self,
-        target_factor_task_information,
+        target_factor_task_information: str,
     ) -> list[UndirectedNode]:  # Hardcode: certain component nodes
         all_component_nodes = self.knowledgebase.graph.get_all_nodes_by_label_list(["component"])
         all_component_content = ""
-        for _, component_node in enumerate(all_component_nodes):
+        for component_node in all_component_nodes:
             all_component_content += f"{component_node.content}, \n"
         analyze_component_system_prompt = Template(self.prompt["analyze_component_prompt_v1_system"]).render(
             all_component_content=all_component_content,
@@ -326,35 +332,43 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                     json_mode=True,
                 ),
             )["component_no_list"]
-            return [all_component_nodes[index - 1] for index in sorted(list(set(component_no_list)))]
-        except:
-            RDAgentLog().warning("Error when analyzing components.")
+            return [all_component_nodes[index - 1] for index in sorted(set(component_no_list))]
+        except Exception as e:
+            RDAgentLog().warning(f"Error when analyzing components: {e}")
             analyze_component_user_prompt = "Your response is not a valid component index list."
 
         return []
 
     def analyze_error(
         self,
-        single_feedback,
-        feedback_type="execution",
+        single_feedback: str,
+        feedback_type: str = "execution",
     ) -> list[
         UndirectedNode | str
     ]:  # Hardcode: Raised errors, existed error nodes + not existed error nodes(here, they are strs)
         if feedback_type == "execution":
             match = re.search(
-                r'File "(?P<file>.+)", line (?P<line>\d+), in (?P<function>.+)\n\s+(?P<error_line>.+)\n(?P<error_type>\w+): (?P<error_message>.+)',
+                (
+                    r'File "(?P<file>.+)", line (?P<line>\d+), in (?P<function>.+)\n\s+'
+                    r'(?P<error_line>.+)\n(?P<error_type>\w+): (?P<error_message>.+)'
+                ),
                 single_feedback,
             )
             if match:
                 error_details = match.groupdict()
-                # last_traceback = f'File "{error_details["file"]}", line {error_details["line"]}, in {error_details["function"]}\n    {error_details["error_line"]}'
                 error_type = error_details["error_type"]
                 error_line = error_details["error_line"]
-                error_contents = [f"ErrorType: {error_type}" + "\n" + f"Error line: {error_line}"]
+                error_contents = [f"ErrorType: {error_type}\nError line: {error_line}"]
             else:
                 error_contents = ["Undefined Error"]
         elif feedback_type == "value":  # value check error
-            value_check_types = r"The source dataframe and the ground truth dataframe have different rows count.|The source dataframe and the ground truth dataframe have different index.|Some values differ by more than the tolerance of 1e-6.|No sufficient correlation found when shifting up|Something wrong happens when naming the multi indices of the dataframe."
+            value_check_types = (
+                r"The source dataframe and the ground truth dataframe have different rows count.|"
+                r"The source dataframe and the ground truth dataframe have different index.|"
+                r"Some values differ by more than the tolerance of 1e-6.|"
+                r"No sufficient correlation found when shifting up|"
+                r"Something wrong happens when naming the multi indices of the dataframe."
+            )
             error_contents = re.findall(value_check_types, single_feedback)
         else:
             error_contents = ["Undefined Error"]
@@ -362,27 +376,28 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         all_error_nodes = self.knowledgebase.graph.get_all_nodes_by_label_list(["error"])
         if not len(all_error_nodes):
             return error_contents
-        else:
-            error_list = []
-            for error_content in error_contents:
-                for error_node in all_error_nodes:
-                    if error_content == error_node.content:
-                        error_list.append(error_node)
-                    else:
-                        error_list.append(error_content)
-                    if error_list[-1] in error_list[:-1]:
-                        error_list.pop()
 
-            return error_list
+        error_list = []
+        for error_content in error_contents:
+            for error_node in all_error_nodes:
+                if error_content == error_node.content:
+                    error_list.append(error_node)
+                else:
+                    error_list.append(error_content)
+                if error_list[-1] in error_list[:-1]:
+                    error_list.pop()
+
+        return error_list
 
     def former_trace_query(
         self,
         evo: EvolvableSubjects,
         factor_implementation_queried_graph_knowledge: FactorImplementationQueriedGraphKnowledge,
         v2_query_former_trace_limit: int = 5,
-    ) -> Union[QueriedKnowledge, set]:
+    ) -> QueriedKnowledge | set:
         """
-        Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
+        Query the former trace knowledge of the working trace, and find all the
+        failed task information which tried more than fail_task_trial_limit times
         """
         fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
 
@@ -405,8 +420,10 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                 former_trace_knowledge = copy.copy(
                     self.knowledgebase.working_trace_knowledge[target_factor_task_information],
                 )
-                # in former trace query we will delete the right trace in the following order:[..., value_generated_flag is True, value_generated_flag is False, ...]
-                # because we think this order means a deterioration of the trial (like a wrong gradient descent)
+                # in former trace query we will delete the right trace in the following order:
+                # [..., value_generated_flag is True, value_generated_flag is False, ...]
+                # because we think this order means a deterioration of the trial
+                # (like a wrong gradient descent)
                 current_index = 1
                 while current_index < len(former_trace_knowledge):
                     if (
@@ -545,12 +562,12 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
                 queried_from_gt_knowledge_list = [
                     knowledge
                     for knowledge in queried_knowledge_list
-                    if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt == True
+                    if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt
                 ]
                 queried_without_gt_knowledge_list = [
                     knowledge
                     for knowledge in queried_knowledge_list
-                    if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt == False
+                    if knowledge.feedback is not None and not knowledge.feedback.final_decision_based_on_gt
                 ]
                 queried_from_gt_knowledge_count = max(
                     min(v2_query_component_limit // 2, len(queried_from_gt_knowledge_list)),
@@ -573,7 +590,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
         knowledge_sampler: float = 1.0,
     ) -> QueriedKnowledge | None:
         # queried_error_knowledge = FactorImplementationQueriedGraphErrorKnowledge()
-        for task_index, target_factor_task in enumerate(evo.target_factor_tasks):
+        for target_factor_task in evo.target_factor_tasks:
             target_factor_task_information = target_factor_task.get_factor_information()
             factor_implementation_queried_graph_knowledge.error_with_success_task[target_factor_task_information] = {}
             if (
@@ -701,7 +718,7 @@ class FactorImplementationGraphRAGStrategy(RAGStrategy):
 
 
 class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
-    def __init__(self, init_component_list=None) -> None:
+    def __init__(self, init_component_list: List[str] | None = None) -> None:
         """
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
@@ -723,10 +740,11 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         # Add already success task
         self.success_task_to_knowledge_dict = {}
 
-        # key:node_id(for task trace and success implement), value:knowledge instance(aka 'FactorImplementationKnowledge')
+        # Key: node_id (for task trace and success implement),
+        # value: knowledge instance (aka 'FactorImplementationKnowledge')
         self.node_to_implementation_knowledge_dict = {}
 
-        # store the task description to component nodes
+        # Store the task description to component nodes
         self.task_to_component_nodes = {}
 
     def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
@@ -735,13 +753,9 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
     def update_success_task(
         self,
         success_task_info: str,
-    ):  # Transfer the success tasks' working trace to knowledge storage & graph
+    ) -> None:  # Transfer the success tasks' working trace to knowledge storage & graph
         success_task_trace = self.working_trace_knowledge[success_task_info]
-        success_task_error_analysis_record = (
-            self.working_trace_error_analysis[success_task_info]
-            if success_task_info in self.working_trace_error_analysis
-            else []
-        )
+        success_task_error_analysis_record = self.working_trace_error_analysis.get(success_task_info, [])
         task_des_node = UndirectedNode(content=success_task_info, label="task_description")
         self.graph.add_nodes(
             node=task_des_node,
@@ -782,29 +796,31 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
 
     def graph_query_by_content(
         self,
-        content: Union[str, list[str]],
+        content: str | list[str],
         topk_k: int = 5,
         step: int = 1,
-        constraint_labels: list[str] = None,
-        constraint_node: UndirectedNode = None,
+        constraint_labels: list[str] | None = None,
+        constraint_node: UndirectedNode | None = None,
         similarity_threshold: float = 0.0,
         constraint_distance: float = 0,
+        *,
         block: bool = False,
     ) -> list[UndirectedNode]:
         """
-        search graph by content similarity and connection relationship, return empty list if nodes' chain without node
-        near to constraint_node
+        Search graph by content similarity and connection relationship, return empty list if nodes' chain without node
+        near to constraint_node.
 
         Parameters
         ----------
         constraint_distance
         content
-        topk_k: the upper number of output for each query, if the number of fit nodes is less than topk_k, return all fit nodes's content
+        topk_k: the upper number of output for each query, if the number of fit nodes is less
+               than topk_k, return all fit nodes' content.
         step
         constraint_labels
         constraint_node
         similarity_threshold
-        block: despite the start node, the search can only flow through the constraint_label type nodes
+        block: despite the start node, the search can only flow through the constraint_label type nodes.
 
         Returns
         -------
@@ -826,8 +842,8 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         self,
         node: UndirectedNode,
         step: int = 1,
-        constraint_labels: list[str] = None,
-        constraint_node: UndirectedNode = None,
+        constraint_labels: list[str] | None = None,
+        constraint_node: UndirectedNode | None = None,
         constraint_distance: float = 0,
         block: bool = False,
     ) -> list[UndirectedNode]:
@@ -847,7 +863,7 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         A list of nodes
 
         """
-        nodes = self.graph.query_by_node(
+        return self.graph.query_by_node(
             node=node,
             step=step,
             constraint_labels=constraint_labels,
@@ -855,7 +871,7 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
             constraint_distance=constraint_distance,
             block=block,
         )
-        return nodes
+
 
     def graph_query_by_intersection(
         self,
@@ -878,8 +894,9 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
         A list of nodes
 
         """
+        MIN_NODE_COUNT = 2
         node_count = len(nodes)
-        assert node_count >= 2, "nodes length must >=2"
+        assert node_count >= MIN_NODE_COUNT, "nodes length must >=2"
         intersection_node_list = []
         if output_intersection_origin:
             origin_list = []
@@ -891,8 +908,7 @@ class FactorImplementationGraphKnowledgeBase(KnowledgeBase):
                     self.graph.get_nodes_intersection(node_list, steps=steps, constraint_labels=constraint_labels),
                 )
                 if output_intersection_origin:
-                    for _ in range(len(intersection_node_list)):
-                        origin_list.append(node_list)
+                    origin_list.extend([node_list] * len(intersection_node_list))
         intersection_node_list_sort_by_freq = []
         for index, node in enumerate(intersection_node_list):
             if node not in intersection_node_list_sort_by_freq:

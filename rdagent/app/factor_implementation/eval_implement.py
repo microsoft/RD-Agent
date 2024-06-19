@@ -1,7 +1,7 @@
+from rdagent.benchmark.data_process import load_eval_data
+from rdagent.benchmark.eval_method import FactorImplementEval
 from rdagent.core.conf import BenchmarkSettings
 from rdagent.core.utils import import_class
-from rdagent.benchmark.eval_method import FactorImplementEval
-from rdagent.benchmark.data_process import load_eval_data
 
 # 1.read the settings
 bs = BenchmarkSettings()

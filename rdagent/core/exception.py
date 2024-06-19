@@ -8,19 +8,19 @@ class ImplementRunException(Exception):
     """
 
 
-class CodeFormatException(ImplementRunException):
+class CodeFormatError(ImplementRunException):
     """
     The generated code is not found due format error.
     """
 
 
-class RuntimeErrorException(ImplementRunException):
+class RuntimeError(ImplementRunException):
     """
     The generated code fail to execute the script.
     """
 
 
-class NoOutputException(ImplementRunException):
+class NoOutputError(ImplementRunException):
     """
     The code fail to generate output file.
     """
