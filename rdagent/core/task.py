@@ -118,8 +118,8 @@ class TestCase:
 
     def __init__(
         self,
-        target_task: BaseTask,
-        ground_truth: TaskImplementation,
+        target_task: list[BaseTask] = [],
+        ground_truth: list[TaskImplementation] = [],
     ):
         self.ground_truth = ground_truth
         self.target_task = target_task
