@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 from collections import defaultdict
-from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.task import (
     TaskImplementation,
@@ -102,29 +102,25 @@ class BaseEval:
 class FactorImplementEval(BaseEval):
     def __init__(
         self,
-        test_case: TestCase,
+        test_cases: TestCase,
         method: TaskGenerator,
         test_round: int = 10,
         *args,
         **kwargs,
     ):
-        # evaluator collection for online evaluation
-        online_evaluator_l = (
-            [
-                FactorImplementationCorrelationEvaluator,
-                FactorImplementationIndexEvaluator,
-                FactorImplementationIndexFormatEvaluator,
-                FactorImplementationMissingValuesEvaluator,
-                FactorImplementationRowCountEvaluator,
-                FactorImplementationSingleColumnEvaluator,
-                FactorImplementationValuesEvaluator,
-            ],
-        )
-        super().__init__(online_evaluator_l, test_case, method, *args, **kwargs)
+        online_evaluator_l = [
+                FactorImplementationSingleColumnEvaluator(),
+                FactorImplementationIndexFormatEvaluator(),
+                FactorImplementationRowCountEvaluator(),
+                FactorImplementationIndexEvaluator(),
+                FactorImplementationMissingValuesEvaluator(),
+                FactorImplementationValuesEvaluator(),
+                FactorImplementationCorrelationEvaluator(hard_check=False),
+            ]
+        super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round
 
     def eval(self):
-
         gen_factor_l_all_rounds = []
         test_cases_all_rounds = []
         res = defaultdict(list)
@@ -139,25 +135,22 @@ class FactorImplementEval(BaseEval):
                 print("Manually interrupted the evaluation. Saving existing results")
                 break
 
-            if len(gen_factor_l) != len(self.test_cases):
+            if len(gen_factor_l.corresponding_implementations) != len(self.test_cases.ground_truth):
                 raise ValueError(
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
-            gen_factor_l_all_rounds.extend(gen_factor_l)
-            test_cases_all_rounds.extend(self.test_cases)
-
-        eval_res_l = []
+            gen_factor_l_all_rounds.extend(gen_factor_l.corresponding_implementations)
+            test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
         eval_res_list = multiprocessing_wrapper(
             [
-                (self.eval_case, (gt_case.ground_truth, gen_factor))
+                (self.eval_case, (gt_case, gen_factor))
                 for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
             ],
-            n=RD_AGENT_SETTINGS.evo_multi_proc_n,
+            n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
         )
 
         for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):
-            res[gt_case.task.factor_name].append((gen_factor, eval_res))
-            eval_res_l.append(eval_res)
+            res[gt_case.target_task.factor_name].append((gen_factor, eval_res))
 
         return res

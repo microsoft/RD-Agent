@@ -23,8 +23,4 @@ eval_method = FactorImplementEval(
 )
 
 # 5.run the eval
-eval_method.eval()
-
-# 6.save the result
-eval_method.save(output_path = bs.bench_result_path)
-
+res = eval_method.eval()
