@@ -10,7 +10,38 @@ As the maintainer of this project, please make a few updates:
 - Understanding the security reporting process in SECURITY.MD
 - Remove this section from the README
 
+## Configuration:
+
+You can manually source the `.env` file in your shell before running the Python script:
+Most of the workflow are controlled by the environment variables.
+```sh
+# Export each variable in the .env file; Please note that it is different from `source .env` without export
+export $(grep -v '^#' .env | xargs)
+# Run the Python script
+python your_script.py
+```
+
+## Naming convention
+
+### File naming convention
+
+| Name      | Description       |
+| --        | --                |
+| `conf.py` | The configuration for the module & app & project  | 
+
+<!-- TODO: renaming files -->
+ 
+
 ## Contributing
+
+### Guidance
+This project welcomes contributions and suggestions.
+You can find issues in the issues list or simply running `grep -r "TODO:"`.
+
+Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
+
+
+### Policy
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
