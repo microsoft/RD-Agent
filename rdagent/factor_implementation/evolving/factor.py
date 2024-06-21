@@ -30,6 +30,8 @@ from filelock import FileLock
 
 
 class FactorImplementTask(BaseTask):
+    # TODO:  generalized the attributes into the BaseTask
+    # - factor_* -> *
     def __init__(
         self,
         factor_name,
@@ -39,6 +41,7 @@ class FactorImplementTask(BaseTask):
         variables: dict = {},
         resource: str = None,
     ) -> None:
+        # TODO: remove the useless factor_formulation_description
         self.factor_name = factor_name
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation

@@ -1,7 +1,3 @@
-"""
-This is just an exmaple.
-It will be replaced wtih a list of ground truth tasks.
-"""
 import math
 from typing import Any, Callable, Dict, Optional, Union
 
@@ -122,6 +118,9 @@ class AntiSymmetricConv(torch.nn.Module):
             f"epsilon={self.epsilon}, "
             f"gamma={self.gamma})"
         )
+
+
+model_cls = AntiSymmetricConv
 
 
 if __name__ == "__main__":
