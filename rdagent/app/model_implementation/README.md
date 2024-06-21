@@ -11,3 +11,29 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 pip3 install torch_geometric
 
 ```
+
+# Tasks
+
+## Task Extraction
+From paper to task.
+```bash
+python rdagent/app/model_implementation/task_extraction.py
+# It may based on rdagent/document_reader/document_reader.py
+```
+
+## Complete workflow
+From paper to implementation
+``` bash
+# Similar to
+# rdagent/app/factor_extraction_and_implementation/factor_extract_and_implement.py
+```
+
+## Paper benchmark
+```bash
+python rdagent/app/model_implementation/eval.py
+
+TODO:
+- Is evaluation reasonable
+```
+
+## Evolving

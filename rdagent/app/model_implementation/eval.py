@@ -3,7 +3,6 @@ from pathlib import Path
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 from rdagent.model_implementation.benchmark.eval import ModelImpValEval
-from rdagent.model_implementation.conf import MODEL_IMPL_SETTINGS
 from rdagent.model_implementation.one_shot import ModelTaskGen
 from rdagent.model_implementation.task import ModelImpLoader, ModelTaskLoderJson
 
