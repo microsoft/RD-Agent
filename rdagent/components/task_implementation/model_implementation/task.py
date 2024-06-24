@@ -42,6 +42,20 @@ class ModelImplTask(BaseTask):
         self.formulation = formulation
         self.variables = variables
         self.key = key
+    def get_information(self):
+        return f"""name: {self.name}
+description: {self.description}
+formulation: {self.formulation}
+variables: {self.variables}
+key: {self.key}
+"""
+    
+    @staticmethod
+    def from_dict(dict):
+        return ModelImplTask(**dict)
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} {self.name}>"
 
 
 class ModelTaskLoderJson(TaskLoader):
@@ -86,6 +100,20 @@ class ModelTaskLoderJson(TaskLoader):
             "key": "A-DGN",
         }
         return [ModelImplTask(**formula_info)]
+    
+class ModelImplementationTaskLoaderFromDict(TaskLoader):
+    def load(self, model_dict: dict) -> list:
+        """Load data from a dict."""
+        task_l = []
+        for model_name, model_data in model_dict.items():
+            task = ModelImplTask(
+                name=model_name,
+                description=model_data["description"],
+                formulation=model_data["formulation"],
+                variables=model_data["variables"],
+            )
+            task_l.append(task)
+        return task_l
 
 
 class ModelTaskImpl(TaskImplementation):
