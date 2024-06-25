@@ -7,10 +7,10 @@ assert load_dotenv()
 
 
 def extract_models_and_implement(report_file_path: str) -> None:
-    factor_tasks = ModelImplementationTaskLoaderFromPDFfiles().load(report_file_path) # 解决pdf-> task
+    factor_tasks = ModelImplementationTaskLoaderFromPDFfiles().load(report_file_path)
     implementation_result = ModelTaskGen().generate(factor_tasks)
     return implementation_result
 
 
 if __name__ == "__main__":
-    extract_models_and_implement("../test_paper.pdf")
+    extract_models_and_implement("../test_doc")

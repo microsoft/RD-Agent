@@ -56,7 +56,6 @@ def extract_model_from_doc(doc_content: str) -> dict:
             parse_success = bool(isinstance(ret_dict, dict))
         except json.JSONDecodeError:
             parse_success = False
-        
         if ret_json_str is None or not parse_success:
             current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
         else:
@@ -73,6 +72,25 @@ def extract_model_from_doc(doc_content: str) -> dict:
 
     return model_dict
 
+def merge_file_to_model_dict_to_model_dict(
+    file_to_model_dict: dict[str, dict],
+) -> dict:
+    model_dict = {}
+    for file_name in file_to_model_dict:
+        for model_name in file_to_model_dict[file_name]:
+            model_dict.setdefault(model_name, [])
+            model_dict[model_name].append(file_to_model_dict[file_name][model_name])
+    
+    model_dict_simple_deduplication = {}
+    for model_name in model_dict:
+        if len(model_dict[model_name]) > 1:
+            model_dict_simple_deduplication[model_name] = max(
+                model_dict[model_name],
+                key=lambda x: len(x["formulation"]),
+            )
+        else:
+            model_dict_simple_deduplication[model_name] = model_dict[model_name][0]
+    return model_dict_simple_deduplication
 
 
 def extract_model_from_docs(docs_dict):
@@ -87,6 +105,7 @@ class ModelImplementationTaskLoaderFromPDFfiles(TaskLoader):
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path)) # dict{file_path:content}
         model_dict = extract_model_from_docs(docs_dict)
         # take in dict {factor_name: dict{description, formulation, variables}}
+        model_dict = merge_file_to_model_dict_to_model_dict(model_dict)
         return ModelImplementationTaskLoaderFromDict().load(model_dict)
 
 if __name__ == "__main__":
