@@ -9,6 +9,7 @@ assert load_dotenv()
 def extract_factors_and_implement(report_file_path: str) -> None:
     factor_tasks = FactorImplementationTaskLoaderFromPDFfiles().load(report_file_path)
     implementation_result = CoSTEERFG().generate(factor_tasks)
+    # Qlib to run the implementation
     return implementation_result
 
 
