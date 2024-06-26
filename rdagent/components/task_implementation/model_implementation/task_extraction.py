@@ -103,9 +103,8 @@ def extract_model_from_docs(docs_dict):
 class ModelImplementationTaskLoaderFromPDFfiles(TaskLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path)) # dict{file_path:content}
-        model_dict = extract_model_from_docs(docs_dict)
-        # take in dict {factor_name: dict{description, formulation, variables}}
-        model_dict = merge_file_to_model_dict_to_model_dict(model_dict)
+        model_dict = extract_model_from_docs(docs_dict) # dict{file_name: dict{model_name: dict{description, formulation, variables}}}
+        model_dict = merge_file_to_model_dict_to_model_dict(model_dict) # dict {model_name: dict{description, formulation, variables}}
         return ModelImplementationTaskLoaderFromDict().load(model_dict)
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from rdagent.model_implementation.benchmark.eval import ModelImpValEval
 from rdagent.model_implementation.one_shot import ModelTaskGen
 from rdagent.model_implementation.task import ModelImpLoader, ModelTaskLoderJson
 
-mtl = ModelTaskLoderJson("TODO: A Path to json")
+mtl = ModelTaskLoderJson("rdagent/model_implementation/benchmark/model_dict.json")
 
 task_l = mtl.load()
 
