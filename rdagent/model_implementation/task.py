@@ -41,18 +41,35 @@ class ModelTaskLoderJson(TaskLoader):
     def load(self, *argT, **kwargs) -> Sequence[ModelImplTask]:
         # TODO: we should load the tasks from json;
 
+        # this version does not align with the right answer
+        # formula_info = {
+        #     "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
+        #     "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
+        #     "formulation": "x_u^{(l)} = x_u^{(l-1)} + \\epsilon \\sigma \\left( W^T x_u^{(l-1)} + \\Phi(X^{(l-1)}, N_u) + b \\right)",
+        #     "variables": {
+        #         "x_u^{(l)}": "The state of node u at layer l",
+        #         "\\epsilon": "The step size in the Euler discretization",
+        #         "\\sigma": "A monotonically non-decreasing activation function",
+        #         "W": "An anti-symmetric weight matrix",
+        #         "X^{(l-1)}": "The node feature matrix at layer l-1",
+        #         "N_u": "The set of neighbors of node u",
+        #         "b": "A bias vector",
+        #     },
+        #     "key": "A-DGN",
+        # }
         formula_info = {
             "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
             "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
-            "formulation": "x_u^{(l)} = x_u^{(l-1)} + \\epsilon \\sigma \\left( W^T x_u^{(l-1)} + \\Phi(X^{(l-1)}, N_u) + b \\right)",
+            "formulation": r"\mathbf{x}^{\prime}_i = \mathbf{x}_i + \epsilon \cdot \sigma \left( (\mathbf{W}-\mathbf{W}^T-\gamma \mathbf{I}) \mathbf{x}_i + \Phi(\mathbf{X}, \mathcal{N}_i) + \mathbf{b}\right),",
             "variables": {
-                "x_u^{(l)}": "The state of node u at layer l",
-                "\\epsilon": "The step size in the Euler discretization",
-                "\\sigma": "A monotonically non-decreasing activation function",
-                "W": "An anti-symmetric weight matrix",
-                "X^{(l-1)}": "The node feature matrix at layer l-1",
-                "N_u": "The set of neighbors of node u",
-                "b": "A bias vector",
+                r"\mathbf{x}_i": "The state of node i at previous layer",
+                r"\epsilon": "The step size in the Euler discretization",
+                r"\sigma": "A monotonically non-decreasing activation function",
+                r"\Phi": "A graph convolutional operator",
+                r"W": "An anti-symmetric weight matrix",
+                r"\mathbf{x}^{\prime}_i": "The node feature matrix at layer l-1",
+                r"\mathcal{N}_i": "The set of neighbors of node u",
+                r"\mathbf{b}": "A bias vector",
             },
             "key": "A-DGN",
         }

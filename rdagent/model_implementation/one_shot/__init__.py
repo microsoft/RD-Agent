@@ -1,3 +1,4 @@
+import re
 from typing import Sequence
 from rdagent.oai.llm_utils import APIBackend
 
@@ -36,7 +37,8 @@ class ModelTaskGen(TaskGenerator):
             )
 
             # Extract the code part from the response
-            code = resp.split("```python")[1].split("```")[0]
+            match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
+            code = match.group(1)
             mti.inject_code(**{"model.py": code})
             mti_l.append(mti)
         return mti_l
