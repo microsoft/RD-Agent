@@ -1,10 +1,20 @@
-import torch
-from pathlib import Path
 import uuid
+from pathlib import Path
 from typing import Dict, Optional, Sequence
+
+import torch
+
+from rdagent.components.task_implementation.model_implementation.conf import (
+    MODEL_IMPL_SETTINGS,
+)
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.task import BaseTask, FBTaskImplementation, ImpLoader, TaskImplementation, TaskLoader
-from rdagent.components.task_implementation.model_implementation.conf import MODEL_IMPL_SETTINGS
+from rdagent.core.task import (
+    BaseTask,
+    FBTaskImplementation,
+    ImpLoader,
+    TaskImplementation,
+    TaskLoader,
+)
 from rdagent.utils import get_module_by_module_path
 
 
@@ -15,7 +25,9 @@ class ModelImplTask(BaseTask):
     formulation: str
     variables: Dict[str, str]  # map the variable name to the variable description
 
-    def __init__(self, name: str, description: str, formulation: str, variables: Dict[str, str], key: Optional[str] = None) -> None:
+    def __init__(
+        self, name: str, description: str, formulation: str, variables: Dict[str, str], key: Optional[str] = None
+    ) -> None:
         """
 
         Parameters
@@ -88,13 +100,14 @@ class ModelTaskImpl(TaskImplementation):
         - the `model.py` that contains a variable named `model_cls` which indicates the implemented model structure
             - `model_cls` is a instance of `torch.nn.Module`;
 
-    
+
     We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
     - from model import model_cls
     - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
     - And then verify the modle.
 
     """
+
     def __init__(self, target_task: BaseTask) -> None:
         super().__init__(target_task)
         self.path = None
@@ -114,7 +127,7 @@ class ModelTaskImpl(TaskImplementation):
             model_cls = mod.model_cls
         except AttributeError:
             raise CodeFormatException("The model_cls is not implemented in the model.py")
-        # model_init = 
+        # model_init =
 
         assert isinstance(data, tuple)
         node_feature, _ = data
@@ -146,6 +159,7 @@ We'll import the model in the implementation in file `model.py` after setting th
 - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
 - And then verify the model by comparing the output tensors by feeding specific input tensor.
 """
+
 
 class ModelImpLoader(ImpLoader[ModelImplTask, ModelTaskImpl]):
     def __init__(self, path: Path) -> None:

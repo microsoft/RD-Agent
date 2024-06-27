@@ -13,6 +13,16 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tree_sitter_python
+from rich import print
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+from tree_sitter import Language, Node, Parser
+
 from rdagent.core.evolving_framework import (
     Evaluator,
     EvoAgent,
@@ -24,15 +34,6 @@ from rdagent.core.evolving_framework import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
-from rich import print
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
-from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
-from tree_sitter import Language, Node, Parser
 
 py_parser = Parser(Language(tree_sitter_python.language()))
 CI_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -355,7 +356,6 @@ class RuffEvaluator(Evaluator):
 
 
 class MypyEvaluator(Evaluator):
-
     def __init__(self, command: str | None = None) -> None:
         if command is None:
             self.command = "mypy . --pretty --no-error-summary --show-column-numbers"
@@ -411,12 +411,10 @@ class MypyEvaluator(Evaluator):
 
 
 class MultiEvaluator(Evaluator):
-
     def __init__(self, *evaluators: Evaluator) -> None:
         self.evaluators = evaluators
 
     def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
-
         all_errors = defaultdict(list)
         for evaluator in self.evaluators:
             feedback: CIFeedback = evaluator.evaluate(evo, **kwargs)
@@ -438,7 +436,6 @@ class CIEvoStr(EvolvingStrategy):
         knowledge_l: list[Knowledge] | None = None,  # noqa: ARG002
         **kwargs: Any,  # noqa: ARG002
     ) -> Repo:
-
         @dataclass
         class CodeFixGroup:
             start_line: int

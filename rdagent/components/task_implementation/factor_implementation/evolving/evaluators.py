@@ -1,31 +1,27 @@
 import json
 import re
-
 from abc import abstractmethod
-from typing import Tuple
+from pathlib import Path
+from typing import List, Tuple
 
 import pandas as pd
 from jinja2 import Template
 
-from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.log import RDAgentLog
 from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
-    FactorImplementTask,
     FactorEvovlingItem,
+    FactorImplementTask,
 )
-from rdagent.core.task import (
-    TaskImplementation,
-)
-from typing import List, Tuple
-from rdagent.core.evolving_framework import QueriedKnowledge, Feedback
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.prompts import Prompts
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.evaluation import Evaluator
+from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
+from rdagent.core.log import RDAgentLog
+from rdagent.core.prompts import Prompts
+from rdagent.core.task import TaskImplementation
 from rdagent.core.utils import multiprocessing_wrapper
-from pathlib import Path
+from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 

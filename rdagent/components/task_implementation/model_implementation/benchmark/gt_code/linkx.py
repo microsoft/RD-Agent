@@ -3,7 +3,6 @@ import math
 import torch
 from torch import Tensor
 from torch.nn import BatchNorm1d, Parameter
-
 from torch_geometric.nn import inits
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.models import MLP
@@ -13,7 +12,7 @@ from torch_geometric.utils import spmm
 
 class SparseLinear(MessagePassing):
     def __init__(self, in_channels: int, out_channels: int, bias: bool = True):
-        super().__init__(aggr='add')
+        super().__init__(aggr="add")
         self.in_channels = in_channels
         self.out_channels = out_channels
 
@@ -21,13 +20,12 @@ class SparseLinear(MessagePassing):
         if bias:
             self.bias = Parameter(torch.empty(out_channels))
         else:
-            self.register_parameter('bias', None)
+            self.register_parameter("bias", None)
 
         self.reset_parameters()
 
     def reset_parameters(self):
-        inits.kaiming_uniform(self.weight, fan=self.in_channels,
-                              a=math.sqrt(5))
+        inits.kaiming_uniform(self.weight, fan=self.in_channels, a=math.sqrt(5))
         inits.uniform(self.in_channels, self.bias)
 
     def forward(
@@ -36,8 +34,7 @@ class SparseLinear(MessagePassing):
         edge_weight: OptTensor = None,
     ) -> Tensor:
         # propagate_type: (weight: Tensor, edge_weight: OptTensor)
-        out = self.propagate(edge_index, weight=self.weight,
-                             edge_weight=edge_weight)
+        out = self.propagate(edge_index, weight=self.weight, edge_weight=edge_weight)
 
         if self.bias is not None:
             out = out + self.bias
@@ -87,6 +84,7 @@ class LINKX(torch.nn.Module):
         dropout (float, optional): Dropout probability of each hidden
             embedding. (default: :obj:`0.0`)
     """
+
     def __init__(
         self,
         num_nodes: int,
@@ -110,13 +108,13 @@ class LINKX(torch.nn.Module):
         if self.num_edge_layers > 1:
             self.edge_norm = BatchNorm1d(hidden_channels)
             channels = [hidden_channels] * num_edge_layers
-            self.edge_mlp = MLP(channels, dropout=0., act_first=True)
+            self.edge_mlp = MLP(channels, dropout=0.0, act_first=True)
         else:
             self.edge_norm = None
             self.edge_mlp = None
 
         channels = [in_channels] + [hidden_channels] * num_node_layers
-        self.node_mlp = MLP(channels, dropout=0., act_first=True)
+        self.node_mlp = MLP(channels, dropout=0.0, act_first=True)
 
         self.cat_lin1 = torch.nn.Linear(hidden_channels, hidden_channels)
         self.cat_lin2 = torch.nn.Linear(hidden_channels, hidden_channels)
@@ -162,16 +160,25 @@ class LINKX(torch.nn.Module):
         return self.final_mlp(out.relu_())
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__name__}(num_nodes={self.num_nodes}, '
-                f'in_channels={self.in_channels}, '
-                f'out_channels={self.out_channels})')
+        return (
+            f"{self.__class__.__name__}(num_nodes={self.num_nodes}, "
+            f"in_channels={self.in_channels}, "
+            f"out_channels={self.out_channels})"
+        )
+
 
 if __name__ == "__main__":
     node_features = torch.load("node_features.pt")
     edge_index = torch.load("edge_index.pt")
 
     # Model instantiation and forward pass
-    model = LINKX(num_nodes=node_features.size(0), in_channels=node_features.size(1), hidden_channels=node_features.size(1), out_channels=node_features.size(1), num_layers=1)
+    model = LINKX(
+        num_nodes=node_features.size(0),
+        in_channels=node_features.size(1),
+        hidden_channels=node_features.size(1),
+        out_channels=node_features.size(1),
+        num_layers=1,
+    )
     output = model(node_features, edge_index)
 
     # Save output to a file

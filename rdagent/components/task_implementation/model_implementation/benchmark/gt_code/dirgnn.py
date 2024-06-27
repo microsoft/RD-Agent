@@ -2,7 +2,6 @@ import copy
 
 import torch
 from torch import Tensor
-
 from torch_geometric.nn.conv import MessagePassing
 
 
@@ -23,6 +22,7 @@ class DirGNNConv(torch.nn.Module):
             transformed root node features to the output.
             (default: :obj:`True`)
     """
+
     def __init__(
         self,
         conv: MessagePassing,
@@ -37,10 +37,10 @@ class DirGNNConv(torch.nn.Module):
         self.conv_in = copy.deepcopy(conv)
         self.conv_out = copy.deepcopy(conv)
 
-        if hasattr(conv, 'add_self_loops'):
+        if hasattr(conv, "add_self_loops"):
             self.conv_in.add_self_loops = False
             self.conv_out.add_self_loops = False
-        if hasattr(conv, 'root_weight'):
+        if hasattr(conv, "root_weight"):
             self.conv_in.root_weight = False
             self.conv_out.root_weight = False
 
@@ -71,8 +71,9 @@ class DirGNNConv(torch.nn.Module):
         return out
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.conv_in}, alpha={self.alpha})'
-    
+        return f"{self.__class__.__name__}({self.conv_in}, alpha={self.alpha})"
+
+
 if __name__ == "__main__":
     node_features = torch.load("node_features.pt")
     edge_index = torch.load("edge_index.pt")

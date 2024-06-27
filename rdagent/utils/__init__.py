@@ -2,6 +2,7 @@
 This is some common utils functions.
 it is not binding to the scenarios or framework (So it is not placed in rdagent.core.utils)
 """
+
 # TODO: merge the common utils in `rdagent.core.utils` into this folder
 # TODO: split the utils in this module into different modules in the future.
 

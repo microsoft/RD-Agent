@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Optional, Union
 import torch
 from torch import Tensor
 from torch.nn import Parameter
-
 from torch_geometric.nn.conv import GCNConv, MessagePassing
 from torch_geometric.nn.inits import zeros
 from torch_geometric.nn.resolver import activation_resolver

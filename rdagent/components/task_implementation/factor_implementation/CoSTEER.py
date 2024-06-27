@@ -1,30 +1,29 @@
 import pickle
 from pathlib import Path
 from typing import List
-from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import TaskImplementation
-from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
-    FactorImplementationKnowledgeBaseV1,
-)
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorImplementTask,
-    FactorEvovlingItem,
-)
-from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
-    FactorImplementationGraphKnowledgeBase,
-    FactorImplementationGraphRAGStrategy,
+
+from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
+    FactorImplementationEvaluatorV1,
+    FactorImplementationsMultiEvaluator,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
     FactorEvolvingStrategyWithGraph,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
-    FactorImplementationsMultiEvaluator,
-    FactorImplementationEvaluatorV1,
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FactorEvovlingItem,
+    FactorImplementTask,
 )
-from rdagent.core.evolving_agent import RAGEvoAgent
+from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
+    FactorImplementationGraphKnowledgeBase,
+    FactorImplementationGraphRAGStrategy,
+    FactorImplementationKnowledgeBaseV1,
+)
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
+from rdagent.core.evolving_agent import RAGEvoAgent
+from rdagent.core.implementation import TaskGenerator
+from rdagent.core.task import TaskImplementation
 
 
 class CoSTEERFG(TaskGenerator):
@@ -54,7 +53,6 @@ class CoSTEERFG(TaskGenerator):
         self.evolving_version = 2
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
-
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
             if self.evolving_version == 1 and not isinstance(

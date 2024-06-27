@@ -8,37 +8,27 @@ from typing import TYPE_CHECKING
 
 from jinja2 import Template
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FactorEvovlingItem,
+    FactorImplementTask,
+    FileBasedFactorImplementation,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
+    LLMSelect,
+    RandomSelect,
+)
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-
-from rdagent.core.task import (
-    TaskImplementation,
-)
-from rdagent.core.prompts import Prompts
-
-from pathlib import Path
-
-from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
-    RandomSelect,
-    LLMSelect,
-)
-
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_utils import (
     get_data_folder_intro,
 )
-from rdagent.oai.llm_utils import APIBackend
-
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.prompts import Prompts
+from rdagent.core.task import TaskImplementation
 from rdagent.core.utils import multiprocessing_wrapper
-
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorImplementTask,
-    FactorEvovlingItem,
-    FileBasedFactorImplementation,
-)
+from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
     from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
@@ -222,7 +212,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
         elif queried_knowledge is not None and target_factor_task_information in queried_knowledge.failed_task_info_set:
             return None
         else:
-
             # 3. 取出knowledge里面的经验数据（similar success、similar error、former_trace）
             queried_similar_component_knowledge = (
                 queried_knowledge.component_with_success_task[target_factor_task_information]
@@ -264,7 +253,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     and len(queried_similar_error_knowledge_to_render) != 0
                     and len(queried_former_failed_knowledge_to_render) != 0
                 ):
-
                     error_summary_system_prompt = (
                         Template(implement_prompts["evolving_strategy_error_summary_v2_system"])
                         .render(

@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 
 def shape_evaluator(target, prediction):
@@ -41,12 +41,8 @@ def value_evaluator(target, prediction):
         )
     ]
     # Reshape both tensors to the determined shape
-    target = target.reshape(
-        *tar_shape, *(1,) * (max(len(tar_shape), len(pre_shape)) - len(tar_shape))
-    )
-    prediction = prediction.reshape(
-        *pre_shape, *(1,) * (max(len(tar_shape), len(pre_shape)) - len(pre_shape))
-    )
+    target = target.reshape(*tar_shape, *(1,) * (max(len(tar_shape), len(pre_shape)) - len(tar_shape)))
+    prediction = prediction.reshape(*pre_shape, *(1,) * (max(len(tar_shape), len(pre_shape)) - len(pre_shape)))
     target_padded = reshape_tensor(target, dims)
     prediction_padded = reshape_tensor(prediction, dims)
 

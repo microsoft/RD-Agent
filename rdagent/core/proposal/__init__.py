@@ -6,7 +6,6 @@ from typing import Tuple
 
 from rdagent.core.task import BaseTask, TaskLoader
 
-
 # class data_ana: XXX
 
 
@@ -79,7 +78,8 @@ class Belief2Task(TaskLoader):
         ...
 
 
-class BeliefFeedback: ...
+class BeliefFeedback:
+    ...
 
 
 # Boolean, Reason, Confidence, etc.

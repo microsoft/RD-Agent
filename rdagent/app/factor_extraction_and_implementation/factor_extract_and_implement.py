@@ -1,7 +1,12 @@
 # %%
 from dotenv import load_dotenv
-from rdagent.scenarios.qlib.factor_task_implementation import COSTEERFG_QUANT_FACTOR_IMPLEMENTATION
-from rdagent.scenarios.qlib.factor_task_loader.pdf_loader import FactorImplementationTaskLoaderFromPDFfiles
+
+from rdagent.scenarios.qlib.factor_task_implementation import (
+    COSTEERFG_QUANT_FACTOR_IMPLEMENTATION,
+)
+from rdagent.scenarios.qlib.factor_task_loader.pdf_loader import (
+    FactorImplementationTaskLoaderFromPDFfiles,
+)
 
 assert load_dotenv()
 

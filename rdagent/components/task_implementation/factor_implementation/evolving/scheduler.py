@@ -1,14 +1,18 @@
-from rdagent.oai.llm_utils import APIBackend
-from jinja2 import Template
 import json
+from pathlib import Path
+
+from jinja2 import Template
+
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FactorEvovlingItem,
+)
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_utils import (
     get_data_folder_intro,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import FactorEvovlingItem
-from rdagent.core.prompts import Prompts
-from rdagent.core.log import RDAgentLog
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from pathlib import Path
+from rdagent.core.log import RDAgentLog
+from rdagent.core.prompts import Prompts
+from rdagent.oai.llm_utils import APIBackend
 
 scheduler_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 

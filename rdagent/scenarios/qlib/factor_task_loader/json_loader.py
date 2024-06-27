@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from rdagent.core.task import TaskLoader
-from rdagent.core.task import TestCase
-from rdagent.components.task_loader import FactorTaskLoader
+
 from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
     FactorImplementTask,
     FileBasedFactorImplementation,
 )
+from rdagent.components.task_loader import FactorTaskLoader
+from rdagent.core.task import TaskLoader, TestCase
 
 
 class FactorImplementationTaskLoaderFromDict(FactorTaskLoader):

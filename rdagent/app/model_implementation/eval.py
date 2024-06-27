@@ -17,7 +17,7 @@ impl_l = mtg.generate(task_l)
 # TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
 # Currently, we just handcraft a workflow for fast evaluation.
 
-mil = ModelImpLoader(DIRNAME.parent.parent / "model_implementation" / "benchmark" /  "gt_code")
+mil = ModelImpLoader(DIRNAME.parent.parent / "model_implementation" / "benchmark" / "gt_code")
 
 mie = ModelImpValEval()
 # Evaluation:

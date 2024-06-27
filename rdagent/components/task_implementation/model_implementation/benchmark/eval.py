@@ -59,12 +59,13 @@ class ModelImpValEval:
         # pearson correlation of each hidden output
         def norm(x):
             return (x - x.mean(axis=0)) / x.std(axis=0)
+
         dim_corr = (norm(res_batch) * norm(gt_res_batch)).mean(axis=0)  # the correlation of each hidden output
 
         # aggregate all the correlation
         avr_corr = dim_corr.mean()
-        # FIXME: 
+        # FIXME:
         # It is too high(e.g. 0.944) .
-        # Check if it is not a good evaluation!! 
+        # Check if it is not a good evaluation!!
         # Maybe all the same initial params will results in extreamly high correlation without regard to the model structure.
         return avr_corr

@@ -1,33 +1,31 @@
 from __future__ import annotations
+
+import pickle
+import subprocess
+import uuid
+from pathlib import Path
+from typing import Tuple, Union
+
+import pandas as pd
+from filelock import FileLock
+
 from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-
-from rdagent.core.task import (
-    FBTaskImplementation,
-    TaskImplementation,
-    BaseTask,
-    TestCase,
-)
 from rdagent.core.evolving_framework import EvolvableSubjects
-from rdagent.core.log import RDAgentLog
-
-from pathlib import Path
-
-from rdagent.oai.llm_utils import md5_hash
-
 from rdagent.core.exception import (
     CodeFormatException,
     NoOutputException,
     RuntimeErrorException,
 )
-
-import pandas as pd
-import uuid
-import pickle
-import subprocess
-from typing import Tuple, Union
-from filelock import FileLock
+from rdagent.core.log import RDAgentLog
+from rdagent.core.task import (
+    BaseTask,
+    FBTaskImplementation,
+    TaskImplementation,
+    TestCase,
+)
+from rdagent.oai.llm_utils import md5_hash
 
 
 class FactorImplementTask(BaseTask):

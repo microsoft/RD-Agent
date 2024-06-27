@@ -10,7 +10,8 @@ class TestChatCompletion(unittest.TestCase):
         system_prompt = "You are a helpful assistant."
         user_prompt = "What is your name?"
         response = APIBackend().build_messages_and_create_chat_completion(
-            system_prompt=system_prompt, user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
         )
         assert response is not None
         assert isinstance(response, str)
@@ -19,7 +20,9 @@ class TestChatCompletion(unittest.TestCase):
         system_prompt = "You are a helpful assistant. answer in Json format."
         user_prompt = "What is your name?"
         response = APIBackend().build_messages_and_create_chat_completion(
-            system_prompt=system_prompt, user_prompt=user_prompt, json_mode=True,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            json_mode=True,
         )
         assert response is not None
         assert isinstance(response, str)

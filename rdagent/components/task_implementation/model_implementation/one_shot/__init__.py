@@ -1,19 +1,21 @@
 import re
+from pathlib import Path
 from typing import Sequence
-from rdagent.oai.llm_utils import APIBackend
 
 from jinja2 import Template
+
+from rdagent.components.task_implementation.model_implementation.task import (
+    ModelImplTask,
+    ModelTaskImpl,
+)
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.prompts import Prompts
-from rdagent.components.task_implementation.model_implementation.task import ModelImplTask, ModelTaskImpl
-
-from pathlib import Path
+from rdagent.oai.llm_utils import APIBackend
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class ModelTaskGen(TaskGenerator):
-
     def generate(self, task_l: Sequence[ModelImplTask]) -> Sequence[ModelTaskImpl]:
         mti_l = []
         for t in task_l:

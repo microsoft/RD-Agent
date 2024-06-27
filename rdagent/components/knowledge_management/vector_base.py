@@ -5,8 +5,8 @@ from typing import List, Tuple, Union
 import pandas as pd
 from scipy.spatial.distance import cosine
 
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.core.log import RDAgentLog
+from rdagent.oai.llm_utils import APIBackend
 
 
 class KnowledgeMetaData:

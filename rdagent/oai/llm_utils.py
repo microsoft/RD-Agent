@@ -19,7 +19,7 @@ import numpy as np
 import tiktoken
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import RDAgentLog, LogColors
+from rdagent.core.log import LogColors, RDAgentLog
 from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")

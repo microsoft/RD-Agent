@@ -1,8 +1,7 @@
 from pathlib import Path
+from typing import Literal, Union
 
 from pydantic_settings import BaseSettings
-
-from typing import Literal, Union
 
 SELECT_METHOD = Literal["random", "scheduler"]
 

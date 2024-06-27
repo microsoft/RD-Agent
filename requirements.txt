@@ -31,3 +31,6 @@ azure.identity
 # CI Fix Tool
 tree-sitter-python
 tree-sitter
+
+# Jupyter related
+jupyter

@@ -1,29 +1,29 @@
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple, Union
 
 from tqdm import tqdm
-from collections import defaultdict
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
-from rdagent.core.exception import ImplementRunException
-from rdagent.core.task import (
-    TaskImplementation,
-    TestCase,
-)
+
 from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
     FactorImplementationCorrelationEvaluator,
+    FactorImplementationEvaluator,
     FactorImplementationIndexEvaluator,
     FactorImplementationIndexFormatEvaluator,
     FactorImplementationMissingValuesEvaluator,
     FactorImplementationRowCountEvaluator,
     FactorImplementationSingleColumnEvaluator,
     FactorImplementationValuesEvaluator,
-    FactorImplementationEvaluator,
 )
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FileBasedFactorImplementation,
+)
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
+from rdagent.core.exception import ImplementRunException
 from rdagent.core.implementation import TaskGenerator
+from rdagent.core.task import TaskImplementation, TestCase
 from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import FileBasedFactorImplementation
 
 
 class BaseEval:

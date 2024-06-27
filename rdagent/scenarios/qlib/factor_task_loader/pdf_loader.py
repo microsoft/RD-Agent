@@ -10,16 +10,21 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import normalize
+
+from rdagent.components.document_reader.document_reader import (
+    load_and_process_pdfs_by_langchain,
+)
 from rdagent.components.task_loader import FactorTaskLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
-from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.scenarios.qlib.factor_task_loader.json_loader import FactorImplementationTaskLoaderFromDict
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
-from sklearn.cluster import KMeans
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import normalize
+from rdagent.scenarios.qlib.factor_task_loader.json_loader import (
+    FactorImplementationTaskLoaderFromDict,
+)
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 

@@ -2,13 +2,15 @@
 This file will be removed in the future and replaced by
 - rdagent/app/model_implementation/eval.py
 """
-from dotenv import load_dotenv
-from rdagent.oai.llm_utils import APIBackend
+
+import os
 
 # randomly generate a input graph, node_feature and edge_index
 # 1000 nodes, 128 dim node feature, 2000 edges
 import torch
-import os
+from dotenv import load_dotenv
+
+from rdagent.oai.llm_utils import APIBackend
 
 assert load_dotenv()
 formula_info = {
@@ -34,9 +36,7 @@ user_prompt = "With the following given information, write a python code using p
     formula_info["variables"],
 )
 
-resp = APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(
-    user_prompt, system_prompt
-)
+resp = APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(user_prompt, system_prompt)
 
 print(resp)
 
@@ -48,7 +48,6 @@ with open("llm_code.py", "w") as f:
 average_shape_eval = []
 average_value_eval = []
 for test_mode in ["zeros", "ones", "randn"]:
-
     if test_mode == "zeros":
         node_feature = torch.zeros(1000, 128)
     elif test_mode == "ones":

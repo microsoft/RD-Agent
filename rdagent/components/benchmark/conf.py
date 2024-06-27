@@ -1,15 +1,16 @@
 from dotenv import load_dotenv
+
 load_dotenv(verbose=True, override=True)
 from dataclasses import field
 from pathlib import Path
-from typing import Optional 
+from typing import Optional
 
 from pydantic_settings import BaseSettings
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-class BenchmarkSettings(BaseSettings):
 
+class BenchmarkSettings(BaseSettings):
     ground_truth_dir: Path = DIRNAME / "ground_truth"
 
     bench_data_path: Path = DIRNAME / "example.json"

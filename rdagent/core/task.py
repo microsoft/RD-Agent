@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generic, Optional, Sequence, Tuple, TypeVar
+
 import pandas as pd
+
 """
 This file contains the all the data class for rdagent task.
 """
@@ -13,11 +15,11 @@ class BaseTask(ABC):
     # I think the task version applies to the base class.
     pass
 
+
 ASpecificTask = TypeVar("ASpecificTask", bound=BaseTask)
 
 
 class TaskImplementation(ABC, Generic[ASpecificTask]):
-
     def __init__(self, target_task: ASpecificTask) -> None:
         self.target_task = target_task
 
@@ -46,7 +48,6 @@ ASpecificTaskImp = TypeVar("ASpecificTaskImp", bound=TaskImplementation)
 
 
 class ImpLoader(ABC, Generic[ASpecificTask, ASpecificTaskImp]):
-
     @abstractmethod
     def load(self, task: ASpecificTask) -> ASpecificTaskImp:
         raise NotImplementedError("load method is not implemented.")
@@ -55,7 +56,7 @@ class ImpLoader(ABC, Generic[ASpecificTask, ASpecificTaskImp]):
 class FBTaskImplementation(TaskImplementation):
     """
     File-based task implementation
-    
+
     The implemented task will be a folder which contains related elements.
     - Data
     - Code Implementation
@@ -73,6 +74,7 @@ class FBTaskImplementation(TaskImplementation):
             self.execute()
 
     """
+
     # TODO:
     # FileBasedFactorImplementation should inherient from it.
     # Why not directly reuse FileBasedFactorImplementation.
@@ -115,7 +117,6 @@ class FBTaskImplementation(TaskImplementation):
 
 
 class TestCase:
-
     def __init__(
         self,
         target_task: list[BaseTask] = [],
@@ -126,7 +127,6 @@ class TestCase:
 
 
 class TaskLoader:
-
     @abstractmethod
     def load(self, *args, **kwargs) -> Sequence[BaseTask]:
         raise NotImplementedError("load method is not implemented.")
