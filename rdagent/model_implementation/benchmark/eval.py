@@ -19,7 +19,16 @@ class ModelImpValEval:
 
     Assumption:
     - If the model structure is similar, the output will change in similar way when we change the input.
-        - we try to initialize the model param in similar value. So only the model structure is different.
+
+    Challenge:
+    - The key difference between it and implementing factors is that we have parameters in the layers (Factor operators often have no parameters or are given parameters).
+    - we try to initialize the model param in similar value. So only the model structure is different.
+
+    Comparing the correlation of following sequences
+    - modelA[init1](input1).hidden_out1, modelA[init1](input2).hidden_out1, ...
+    - modelB[init1](input1).hidden_out1, modelB[init1](input2).hidden_out1, ...
+    
+    For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
     def evaluate(self, gt: ModelTaskImpl, gen: ModelTaskImpl):
