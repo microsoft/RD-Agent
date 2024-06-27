@@ -4,7 +4,7 @@ import uuid
 from typing import Dict, Optional, Sequence
 from rdagent.core.exception import CodeFormatException
 from rdagent.core.task import BaseTask, FBTaskImplementation, ImpLoader, TaskImplementation, TaskLoader
-from rdagent.model_implementation.conf import MODEL_IMPL_SETTINGS
+from rdagent.components.task_implementation.model_implementation.conf import MODEL_IMPL_SETTINGS
 from rdagent.utils import get_module_by_module_path
 
 
@@ -76,7 +76,7 @@ class ModelTaskLoderJson(TaskLoader):
         return [ModelImplTask(**formula_info)]
 
 
-class ModelTaskImpl(FBTaskImplementation):
+class ModelTaskImpl(TaskImplementation):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.

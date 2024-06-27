@@ -1,11 +1,15 @@
 import json
 from pathlib import Path
 from rdagent.core.task import TaskLoader
-from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FileBasedFactorImplementation
 from rdagent.core.task import TestCase
+from rdagent.components.task_loader import FactorTaskLoader
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FactorImplementTask,
+    FileBasedFactorImplementation,
+)
 
 
-class FactorImplementationTaskLoaderFromDict(TaskLoader):
+class FactorImplementationTaskLoaderFromDict(FactorTaskLoader):
     def load(self, factor_dict: dict) -> list:
         """Load data from a dict."""
         task_l = []
@@ -20,21 +24,22 @@ class FactorImplementationTaskLoaderFromDict(TaskLoader):
         return task_l
 
 
-class FactorImplementationTaskLoaderFromJsonFile(TaskLoader):
+class FactorImplementationTaskLoaderFromJsonFile(FactorTaskLoader):
     def load(self, json_file_path: Path) -> list:
-        with open(json_file_path, 'r') as file:
+        with open(json_file_path, "r") as file:
             factor_dict = json.load(file)
         return FactorImplementationTaskLoaderFromDict().load(factor_dict)
 
 
-class FactorImplementationTaskLoaderFromJsonString(TaskLoader):
+class FactorImplementationTaskLoaderFromJsonString(FactorTaskLoader):
     def load(self, json_string: str) -> list:
         factor_dict = json.loads(json_string)
         return FactorImplementationTaskLoaderFromDict().load(factor_dict)
 
+
 class FactorTestCaseLoaderFromJsonFile(TaskLoader):
     def load(self, json_file_path: Path) -> list:
-        with open(json_file_path, 'r') as file:
+        with open(json_file_path, "r") as file:
             factor_dict = json.load(file)
         TestData = TestCase()
         for factor_name, factor_data in factor_dict.items():

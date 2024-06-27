@@ -9,7 +9,7 @@ from rdagent.core.task import (
     TaskImplementation,
     TestCase,
 )
-from rdagent.factor_implementation.evolving.evaluators import (
+from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
     FactorImplementationCorrelationEvaluator,
     FactorImplementationIndexEvaluator,
     FactorImplementationIndexFormatEvaluator,
@@ -21,7 +21,7 @@ from rdagent.factor_implementation.evolving.evaluators import (
 )
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.factor_implementation.evolving.factor import FileBasedFactorImplementation
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import FileBasedFactorImplementation
 
 
 class BaseEval:

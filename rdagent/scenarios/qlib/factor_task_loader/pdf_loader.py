@@ -10,12 +10,12 @@ import numpy as np
 import pandas as pd
 import tiktoken
 from jinja2 import Template
+from rdagent.components.task_loader import FactorTaskLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
-from rdagent.core.task import TaskLoader
-from rdagent.document_reader.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.factor_implementation.task_loader.json_loader import FactorImplementationTaskLoaderFromDict
+from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.scenarios.qlib.factor_task_loader.json_loader import FactorImplementationTaskLoaderFromDict
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
@@ -571,7 +571,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
     return llm_deduplicated_factor_dict, final_duplication_names_list
 
 
-class FactorImplementationTaskLoaderFromPDFfiles(TaskLoader):
+class FactorImplementationTaskLoaderFromPDFfiles(FactorTaskLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
 

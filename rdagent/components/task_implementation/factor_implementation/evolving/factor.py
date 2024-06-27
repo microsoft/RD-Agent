@@ -1,9 +1,10 @@
 from __future__ import annotations
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
 
 from rdagent.core.task import (
+    FBTaskImplementation,
     TaskImplementation,
     BaseTask,
     TestCase,
@@ -37,15 +38,12 @@ class FactorImplementTask(BaseTask):
         factor_name,
         factor_description,
         factor_formulation,
-        factor_formulation_description: str = "",
         variables: dict = {},
         resource: str = None,
     ) -> None:
-        # TODO: remove the useless factor_formulation_description
         self.factor_name = factor_name
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
-        self.factor_formulation_description = factor_formulation_description
         self.variables = variables
         self.factor_resources = resource
 
@@ -53,7 +51,7 @@ class FactorImplementTask(BaseTask):
         return f"""factor_name: {self.factor_name}
 factor_description: {self.factor_description}
 factor_formulation: {self.factor_formulation}
-factor_formulation_description: {self.factor_formulation_description}"""
+variables: {str(self.variables)}"""
 
     @staticmethod
     def from_dict(dict):
@@ -88,7 +86,7 @@ class FactorEvovlingItem(EvolvableSubjects):
             self.corresponding_gt_implementations = corresponding_gt_implementations
 
 
-class FileBasedFactorImplementation(TaskImplementation):
+class FileBasedFactorImplementation(FBTaskImplementation):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -130,6 +128,13 @@ class FileBasedFactorImplementation(TaskImplementation):
                 ["ln", "-s", data_file_path, workspace_data_file_path],
                 check=False,
             )
+
+    def execute_desc(self):
+        raise NotImplementedError
+
+    def prepare(self, *args, **kwargs):
+        # TODO move the prepare part code in execute into here
+        return super().prepare(*args, **kwargs)
 
     def execute(self, store_result: bool = False) -> Tuple[str, pd.DataFrame]:
         """

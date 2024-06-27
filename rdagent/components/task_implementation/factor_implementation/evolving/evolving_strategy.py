@@ -11,7 +11,7 @@ from jinja2 import Template
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
 
@@ -22,24 +22,26 @@ from rdagent.core.prompts import Prompts
 
 from pathlib import Path
 
-from rdagent.factor_implementation.evolving.scheduler import (
+from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
     RandomSelect,
     LLMSelect,
 )
 
-from rdagent.factor_implementation.share_modules.factor_implementation_utils import get_data_folder_intro
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_utils import (
+    get_data_folder_intro,
+)
 from rdagent.oai.llm_utils import APIBackend
 
 from rdagent.core.utils import multiprocessing_wrapper
 
-from rdagent.factor_implementation.evolving.factor import (
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
     FactorImplementTask,
     FactorEvovlingItem,
     FileBasedFactorImplementation,
 )
 
 if TYPE_CHECKING:
-    from rdagent.factor_implementation.evolving.knowledge_management import (
+    from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
         FactorImplementationQueriedKnowledge,
         FactorImplementationQueriedKnowledgeV1,
     )

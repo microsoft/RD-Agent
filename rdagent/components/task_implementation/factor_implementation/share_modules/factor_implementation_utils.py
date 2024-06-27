@@ -4,8 +4,10 @@ import pandas as pd
 
 # render it with jinja
 from jinja2 import Template
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
-from rdagent.factor_implementation.evolving.factor import FactorImplementTask
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import FactorImplementTask
 
 
 TPL = """

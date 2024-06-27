@@ -3,19 +3,26 @@ from pathlib import Path
 from typing import List
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.task import TaskImplementation
-from rdagent.factor_implementation.evolving.knowledge_management import FactorImplementationKnowledgeBaseV1
-from rdagent.factor_implementation.evolving.factor import FactorImplementTask, FactorEvovlingItem
-from rdagent.factor_implementation.evolving.knowledge_management import (
+from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
+    FactorImplementationKnowledgeBaseV1,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+    FactorImplementTask,
+    FactorEvovlingItem,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
     FactorImplementationGraphKnowledgeBase,
     FactorImplementationGraphRAGStrategy,
 )
-from rdagent.factor_implementation.evolving.evolving_strategy import FactorEvolvingStrategyWithGraph
-from rdagent.factor_implementation.evolving.evaluators import (
+from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
+    FactorEvolvingStrategyWithGraph,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
     FactorImplementationsMultiEvaluator,
     FactorImplementationEvaluatorV1,
 )
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
 

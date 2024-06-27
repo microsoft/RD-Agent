@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.knowledge_management.vector_base import KnowledgeMetaData, PDVectorBase, VectorBase, cosine
+from rdagent.components.knowledge_management.vector_base import KnowledgeMetaData, PDVectorBase, VectorBase, cosine
 
 Node = KnowledgeMetaData
 

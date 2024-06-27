@@ -5,9 +5,10 @@ from rdagent.oai.llm_utils import APIBackend
 from jinja2 import Template
 from rdagent.core.implementation import TaskGenerator
 from rdagent.core.prompts import Prompts
-from rdagent.model_implementation.task import ModelImplTask, ModelTaskImpl
+from rdagent.components.task_implementation.model_implementation.task import ModelImplTask, ModelTaskImpl
 
 from pathlib import Path
+
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
@@ -28,13 +29,11 @@ class ModelTaskGen(TaskGenerator):
                 description=t.description,
                 formulation=t.formulation,
                 variables=t.variables,
-                execute_desc=mti.execute_desc()
+                execute_desc=mti.execute_desc(),
             )
             system_prompt = sys_prompt_tpl.render()
 
-            resp = APIBackend().build_messages_and_create_chat_completion(
-                user_prompt, system_prompt
-            )
+            resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt)
 
             # Extract the code part from the response
             match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
