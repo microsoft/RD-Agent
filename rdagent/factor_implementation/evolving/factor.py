@@ -173,7 +173,7 @@ class FileBasedFactorImplementation(TaskImplementation):
                 FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder,
             )
             self.workspace_path.mkdir(exist_ok=True, parents=True)
-
+            source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"{self.target_task.factor_name}.py"
             code_path.write_text(self.code)
 

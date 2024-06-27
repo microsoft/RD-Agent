@@ -1,18 +1,18 @@
-from rdagent.core.conf import BenchmarkSettings
+from rdagent.benchmark.conf import BenchmarkSettings
 from rdagent.core.utils import import_class
 from rdagent.benchmark.eval_method import FactorImplementEval
-from rdagent.benchmark.data_process import load_eval_data
+from rdagent.factor_implementation.task_loader.json_loader import FactorTestCaseLoaderFromJsonFile
 
 # 1.read the settings
 bs = BenchmarkSettings()
 
 # 2.read and prepare the eval_data
-test_cases = load_eval_data(bs.bench_version)
+test_cases = FactorTestCaseLoaderFromJsonFile().load(bs.bench_data_path)
 
 # 3.declare the method to be tested and pass the arguments.
-# TODO: Whether it is necessary to define two Eval method classes for two data type?
+
 method_cls = import_class(bs.bench_method_cls)
-generate_method = method_cls(bs.bench_method_extra_kwargs)
+generate_method = method_cls()
 
 # 4.declare the eval method and pass the arguments.
 eval_method = FactorImplementEval(
@@ -23,8 +23,4 @@ eval_method = FactorImplementEval(
 )
 
 # 5.run the eval
-eval_method.eval()
-
-# 6.save the result
-eval_method.save(output_path = bs.bench_result_path)
-
+res = eval_method.eval()
