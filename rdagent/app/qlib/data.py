@@ -1,3 +1,6 @@
+from rdagent.core.task import FBTaskImplementation
+
+
 class QlibDataTaskImplementation(FBTaskImplementation):
     """
     Docker run
