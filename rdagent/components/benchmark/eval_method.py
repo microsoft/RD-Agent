@@ -3,7 +3,9 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 from collections import defaultdict
-from rdagent.factor_implementation.share_modules.factor_implementation_config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.task import (
     TaskImplementation,
@@ -109,14 +111,14 @@ class FactorImplementEval(BaseEval):
         **kwargs,
     ):
         online_evaluator_l = [
-                FactorImplementationSingleColumnEvaluator(),
-                FactorImplementationIndexFormatEvaluator(),
-                FactorImplementationRowCountEvaluator(),
-                FactorImplementationIndexEvaluator(),
-                FactorImplementationMissingValuesEvaluator(),
-                FactorImplementationValuesEvaluator(),
-                FactorImplementationCorrelationEvaluator(hard_check=False),
-            ]
+            FactorImplementationSingleColumnEvaluator(),
+            FactorImplementationIndexFormatEvaluator(),
+            FactorImplementationRowCountEvaluator(),
+            FactorImplementationIndexEvaluator(),
+            FactorImplementationMissingValuesEvaluator(),
+            FactorImplementationValuesEvaluator(),
+            FactorImplementationCorrelationEvaluator(hard_check=False),
+        ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round
 
