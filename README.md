@@ -72,9 +72,7 @@ Example: code standard, design. Lint
    make lint
    ```
 
-## Running the Evaluation
-
-- **Evaluation:**
+- **Environment Testing & Evaluation:**
   - To test the environment, run the evaluation script:
     ```sh
     python ~/RD-Agent/rdagent/app/model_implementation/eval.py
