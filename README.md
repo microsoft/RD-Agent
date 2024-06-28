@@ -60,8 +60,7 @@ Example: code standard, design. Lint
      ```
      
  **Run Make Files:**
- 
--Navigate to the directory containing the MakeFile and set up the development environment.
+ - Navigate to the directory containing the MakeFile and set up the development environment.
 
    ```bash
    make dev
