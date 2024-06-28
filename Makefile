@@ -100,7 +100,7 @@ toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
-lint: mypy ruff toml-sort
+lint: black isort mypy ruff toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:

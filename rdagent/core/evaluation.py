@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from rdagent.core.task import (
-    TaskImplementation,
-    BaseTask,
-)
+
+from rdagent.core.task import BaseTask, TaskImplementation
+
 
 class Evaluator(ABC):
     @abstractmethod

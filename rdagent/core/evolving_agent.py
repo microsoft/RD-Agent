@@ -1,8 +1,10 @@
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_framework import Feedback, EvolvableSubjects, EvoStep
-from tqdm import tqdm
 from abc import ABC, abstractmethod
 from typing import Any
+
+from tqdm import tqdm
+
+from rdagent.core.evaluation import Evaluator
+from rdagent.core.evolving_framework import EvolvableSubjects, EvoStep, Feedback
 
 
 class EvoAgent(ABC):
@@ -30,7 +32,6 @@ class RAGEvoAgent(EvoAgent):
         with_feedback: bool = True,
         knowledge_self_gen: bool = False,
     ) -> EvolvableSubjects:
-
         for _ in tqdm(range(self.max_loop), "Implementing factors"):
             # 1. knowledge self-evolving
             if knowledge_self_gen and self.rag is not None:

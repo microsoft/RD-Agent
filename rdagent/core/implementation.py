@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Sequence
 
-from rdagent.core.task import (
-    BaseTask,
-    TaskImplementation,
-)
+from rdagent.core.task import BaseTask, TaskImplementation
+
 
 class TaskGenerator(ABC):
     @abstractmethod
@@ -28,5 +26,3 @@ class TaskGenerator(ABC):
         feedback_obj_l : List[object]
 
         """
-
-

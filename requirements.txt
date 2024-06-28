@@ -2,32 +2,13 @@
 pydantic-settings
 typer[all]
 
-loguru
-black
-isort
-mypy
-ruff
-
-numpy
-pandas
 cython
-langchain
 scipy
-tiktoken
 python-Levenshtein
-scikit-learn
-
-# PDF related
-pypdf
-azure-core
-azure-ai-formrecognizer
-
-# factor implementations
-tables
-
-# azure identity related
-azure.identity
 
 # CI Fix Tool
 tree-sitter-python
 tree-sitter
+
+# Jupyter related
+jupyter
