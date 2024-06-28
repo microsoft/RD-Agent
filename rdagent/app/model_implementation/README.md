@@ -12,6 +12,9 @@ pip3 install torch_geometric
 
 ```
 
+**Copy Environment File:**
+   - Copy the `.env` file from `temp/env` to your project directory.
+
 # Tasks
 
 ## Task Extraction
