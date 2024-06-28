@@ -48,13 +48,26 @@ Example: code standard, design. Lint
 
 
 # 🔧 Development
-- Set up the development environment.
+
+**Create a Conda Environment:**
+   - Create a new conda environment with Python 3.9 or 3.10:
+     ```sh
+     conda create -n myenv python=3.9
+     ```
+   - Activate the environment:
+     ```sh
+     conda activate myenv
+     ```
+     
+ **Run Make Files:**
+ 
+-Navigate to the directory containing the MakeFile and set up the development environment.
 
    ```bash
    make dev
    ```
 
-- Run linting and formatting.
+- Run linting and formatting (not necessary for first-time use or testing).
 
    ```bash
    make lint
