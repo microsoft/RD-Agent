@@ -75,7 +75,7 @@ Example: code standard, design. Lint
 ## Running the Evaluation
 
 - **Evaluation:**
-  - To test the environment and run the evaluation script:
+  - To test the environment, run the evaluation script:
     ```sh
     python ~/RD-Agent/rdagent/app/model_implementation/eval.py
     ```
