@@ -72,6 +72,15 @@ Example: code standard, design. Lint
    make lint
    ```
 
+## Running the Evaluation
+
+- **Evaluation:**
+  - To test the environment and run the evaluation script:
+    ```sh
+    python ~/RD-Agent/rdagent/app/model_implementation/eval.py
+    ```
+  - Note, as you navigate to the relevant folder, another ReadMe should suggest more details. 
+
 ### 📚 Code Structure
 1. Backbone/APIBackend of LLm are encapsulated in [src/finco/llm.py](src/finco/llm.py). All chat completion request are managed by this file.
 
