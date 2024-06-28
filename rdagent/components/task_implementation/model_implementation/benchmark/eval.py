@@ -27,7 +27,7 @@ class ModelImpValEval:
     Comparing the correlation of following sequences
     - modelA[init1](input1).hidden_out1, modelA[init1](input2).hidden_out1, ...
     - modelB[init1](input1).hidden_out1, modelB[init1](input2).hidden_out1, ...
-    
+
     For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
