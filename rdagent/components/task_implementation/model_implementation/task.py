@@ -119,7 +119,7 @@ class ModelTaskLoderJson(TaskLoader):
                 description=model_data["description"],
                 formulation=model_data["formulation"],
                 variables=model_data["variables"],
-                key=model_name
+                key=model_data["key"]
             )
             model_impl_task_list.append(model_impl_task)
         return model_impl_task_list
@@ -140,7 +140,7 @@ class ModelImplementationTaskLoaderFromDict(TaskLoader):
         return task_l
 
 
-class ModelTaskImpl(TaskImplementation):
+class ModelTaskImpl(FBTaskImplementation):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.

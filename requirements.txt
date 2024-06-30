@@ -25,3 +25,5 @@ tree-sitter
 
 # Jupyter related
 jupyter
+
+python-dotenv

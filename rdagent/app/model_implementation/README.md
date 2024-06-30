@@ -30,10 +30,14 @@ From paper to implementation
 
 ## Paper benchmark
 ```bash
+# TODO: it does not work well now.
 python rdagent/app/model_implementation/eval.py
+```
 
 TODO:
-- Is evaluation reasonable
-```
+- Create reasonable benchmark
+  - with uniform input
+  - manually create task
+- Create reasonable evaluation metrics
 
 ## Evolving
