@@ -14,8 +14,8 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.core.task import TaskLoader
-from rdagent.document_reader.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.model_implementation.task import ModelImplementationTaskLoaderFromDict
+from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.components.task_implementation.model_implementation.task import ModelImplementationTaskLoaderFromDict
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 
 
@@ -107,6 +107,11 @@ class ModelImplementationTaskLoaderFromPDFfiles(TaskLoader):
         model_dict = merge_file_to_model_dict_to_model_dict(model_dict) # dict {model_name: dict{description, formulation, variables}}
         return ModelImplementationTaskLoaderFromDict().load(model_dict)
 
-if __name__ == "__main__":
-    doc_dict = load_and_process_pdfs_by_langchain(Path("../test_doc"))
+def main(path="../test_doc"):
+    doc_dict = load_and_process_pdfs_by_langchain(Path(path))
     print(doc_dict.keys()) # if you run code like "python -u", the print content will be truncated
+
+
+import fire
+if __name__ == "__main__":
+    fire.Fire(main)
