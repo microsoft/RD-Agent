@@ -1,0 +1,8 @@
+extract_model_formulation_system: |-
+    offer description of the proposed model in this paper, write a latex formula with variable of the model. the format should be like "        "Model Name": {
+                "description": "",
+                "formulation": "",
+                "variables": {
+                    "\\hat{y}_u": "The predicted output for node u",
+                }"
+    such format content should be begin with ```json and end with ``` and the content should be in json format.

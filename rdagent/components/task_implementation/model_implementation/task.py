@@ -16,6 +16,7 @@ from rdagent.core.task import (
     TaskLoader,
 )
 from rdagent.utils import get_module_by_module_path
+import json
 
 
 class ModelImplTask(BaseTask):
@@ -42,53 +43,104 @@ class ModelImplTask(BaseTask):
         self.formulation = formulation
         self.variables = variables
         self.key = key
+    def get_information(self):
+        return f"""name: {self.name}
+description: {self.description}
+formulation: {self.formulation}
+variables: {self.variables}
+key: {self.key}
+"""
+    
+    @staticmethod
+    def from_dict(dict):
+        return ModelImplTask(**dict)
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} {self.name}>"
 
 
 class ModelTaskLoderJson(TaskLoader):
+    # def __init__(self, json_uri: str, select_model: Optional[str] = None) -> None:
+    #     super().__init__()
+    #     self.json_uri = json_uri
+    #     self.select_model = 'A-DGN'
+
+    # def load(self, *argT, **kwargs) -> Sequence[ModelImplTask]:
+    #     # json is supposed to be in the format of {model_name: dict{model_data}}
+    #     model_dict = json.load(open(self.json_uri, "r"))
+    #     if self.select_model is not None:
+    #         assert self.select_model in model_dict
+    #         model_name = self.select_model
+    #         model_data = model_dict[self.select_model]
+    #     else:
+    #         model_name, model_data = list(model_dict.items())[0]
+
+    #     model_impl_task = ModelImplTask(
+    #         name=model_name,
+    #         description=model_data["description"],
+    #         formulation=model_data["formulation"],
+    #         variables=model_data["variables"],
+    #         key=model_name
+    #     )
+        
+    #     return [model_impl_task]
+
     def __init__(self, json_uri: str) -> None:
         super().__init__()
-        # TODO: the json should be loaded from URI.
         self.json_uri = json_uri
 
     def load(self, *argT, **kwargs) -> Sequence[ModelImplTask]:
-        # TODO: we should load the tasks from json;
+        # json is supposed to be in the format of {model_name: dict{model_data}}
+        model_dict = json.load(open(self.json_uri, "r"))
 
-        # this version does not align with the right answer
+        # FIXME: the model in the json file is not right due to extraction error
+        #       We should fix them case by case in the future
+        # 
         # formula_info = {
         #     "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
         #     "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
-        #     "formulation": "x_u^{(l)} = x_u^{(l-1)} + \\epsilon \\sigma \\left( W^T x_u^{(l-1)} + \\Phi(X^{(l-1)}, N_u) + b \\right)",
+        #     "formulation": r"\mathbf{x}^{\prime}_i = \mathbf{x}_i + \epsilon \cdot \sigma \left( (\mathbf{W}-\mathbf{W}^T-\gamma \mathbf{I}) \mathbf{x}_i + \Phi(\mathbf{X}, \mathcal{N}_i) + \mathbf{b}\right),",
         #     "variables": {
-        #         "x_u^{(l)}": "The state of node u at layer l",
-        #         "\\epsilon": "The step size in the Euler discretization",
-        #         "\\sigma": "A monotonically non-decreasing activation function",
-        #         "W": "An anti-symmetric weight matrix",
-        #         "X^{(l-1)}": "The node feature matrix at layer l-1",
-        #         "N_u": "The set of neighbors of node u",
-        #         "b": "A bias vector",
+        #         r"\mathbf{x}_i": "The state of node i at previous layer",
+        #         r"\epsilon": "The step size in the Euler discretization",
+        #         r"\sigma": "A monotonically non-decreasing activation function",
+        #         r"\Phi": "A graph convolutional operator",
+        #         r"W": "An anti-symmetric weight matrix",
+        #         r"\mathbf{x}^{\prime}_i": "The node feature matrix at layer l-1",
+        #         r"\mathcal{N}_i": "The set of neighbors of node u",
+        #         r"\mathbf{b}": "A bias vector",
         #     },
         #     "key": "A-DGN",
         # }
-        formula_info = {
-            "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
-            "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
-            "formulation": r"\mathbf{x}^{\prime}_i = \mathbf{x}_i + \epsilon \cdot \sigma \left( (\mathbf{W}-\mathbf{W}^T-\gamma \mathbf{I}) \mathbf{x}_i + \Phi(\mathbf{X}, \mathcal{N}_i) + \mathbf{b}\right),",
-            "variables": {
-                r"\mathbf{x}_i": "The state of node i at previous layer",
-                r"\epsilon": "The step size in the Euler discretization",
-                r"\sigma": "A monotonically non-decreasing activation function",
-                r"\Phi": "A graph convolutional operator",
-                r"W": "An anti-symmetric weight matrix",
-                r"\mathbf{x}^{\prime}_i": "The node feature matrix at layer l-1",
-                r"\mathcal{N}_i": "The set of neighbors of node u",
-                r"\mathbf{b}": "A bias vector",
-            },
-            "key": "A-DGN",
-        }
-        return [ModelImplTask(**formula_info)]
+        model_impl_task_list = []
+        for model_name, model_data in model_dict.items():
+            model_impl_task = ModelImplTask(
+                name=model_name,
+                description=model_data["description"],
+                formulation=model_data["formulation"],
+                variables=model_data["variables"],
+                key=model_data["key"]
+            )
+            model_impl_task_list.append(model_impl_task)
+        return model_impl_task_list
+    
+class ModelImplementationTaskLoaderFromDict(TaskLoader):
+    def load(self, model_dict: dict) -> list:
+        """Load data from a dict."""
+        task_l = []
+        for model_name, model_data in model_dict.items():
+            task = ModelImplTask(
+                name=model_name,
+                description=model_data["description"],
+                formulation=model_data["formulation"],
+                variables=model_data["variables"],
+                key=model_name
+            )
+            task_l.append(task)
+        return task_l
 
 
-class ModelTaskImpl(TaskImplementation):
+class ModelTaskImpl(FBTaskImplementation):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.

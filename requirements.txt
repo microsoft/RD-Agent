@@ -5,6 +5,19 @@ typer[all]
 cython
 scipy
 python-Levenshtein
+scikit-learn
+filelock
+
+# PDF related
+pypdf
+azure-core
+azure-ai-formrecognizer
+
+# factor implementations
+tables
+
+# azure identity related
+azure.identity
 
 # CI Fix Tool
 tree-sitter-python
@@ -12,3 +25,5 @@ tree-sitter
 
 # Jupyter related
 jupyter
+
+python-dotenv

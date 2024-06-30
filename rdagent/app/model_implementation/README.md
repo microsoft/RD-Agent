@@ -17,8 +17,9 @@ pip3 install torch_geometric
 ## Task Extraction
 From paper to task.
 ```bash
-python rdagent/app/model_implementation/task_extraction.py
+# python rdagent/app/model_implementation/task_extraction.py
 # It may based on rdagent/document_reader/document_reader.py
+python rdagent/components/task_implementation/model_implementation/task_extraction.py ./PaperImpBench/raw_paper/
 ```
 
 ## Complete workflow
@@ -30,10 +31,14 @@ From paper to implementation
 
 ## Paper benchmark
 ```bash
+# TODO: it does not work well now.
 python rdagent/app/model_implementation/eval.py
+```
 
 TODO:
-- Is evaluation reasonable
-```
+- Create reasonable benchmark
+  - with uniform input
+  - manually create task
+- Create reasonable evaluation metrics
 
 ## Evolving
