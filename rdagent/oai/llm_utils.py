@@ -292,6 +292,7 @@ class APIBackend:
         else:
             self.use_azure = self.cfg.use_azure
             self.use_azure_token_provider = self.cfg.use_azure_token_provider
+            self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
             self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
@@ -314,7 +315,10 @@ class APIBackend:
 
             if self.use_azure:
                 if self.use_azure_token_provider:
-                    credential = DefaultAzureCredential()
+                    dac_kwargs = {}
+                    if self.managed_identity_client_id is not None:
+                        dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
+                    credential = DefaultAzureCredential(**dac_kwargs)
                     token_provider = get_bearer_token_provider(
                         credential,
                         "https://cognitiveservices.azure.com/.default",

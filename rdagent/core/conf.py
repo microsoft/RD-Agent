@@ -15,8 +15,10 @@ from pydantic_settings import BaseSettings
 
 
 class RDAgentSettings(BaseSettings):
+    # TODO: (xiao) I think most of the config should be in oai.config
     use_azure: bool = True
     use_azure_token_provider: bool = False
+    managed_identity_client_id: str | None = None
     max_retry: int = 10
     retry_wait_seconds: int = 1
     dump_chat_cache: bool = False
