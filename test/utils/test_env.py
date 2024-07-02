@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from rdagent.utils.env import QTDockerEnv
+import shutil
 
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -16,7 +17,11 @@ class EnvUtils(unittest.TestCase):
         pass
 
     def tearDown(self):
-        pass
+        # NOTE: For a docker file, the output are generated with root permission.
+        # mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+        # if mlrun_p.exists():
+        #     shutil.rmtree(mlrun_p)
+        ...
 
     def test_docker(self):
         """
@@ -25,23 +30,12 @@ class EnvUtils(unittest.TestCase):
         """
         qtde = QTDockerEnv()
         qtde.prepare()
-        # qtde.run(local_path=DIRNAME / "env_tpl")
-        # TODO: test assert: check if the output is generated.
-        # - if mlflow is enabled.
-        output_dir = DIRNAME / "env_tpl" / "output"
-        if not output_dir.exists():
-            os.makedirs(output_dir)
-        yaml_path = DIRNAME / "env_tpl" / "conf.yaml"
-        result = subprocess.run(['pwd'], capture_output=True, text=True, check=True)
-        pwd_output = result.stdout.strip()
-        print(pwd_output)
-        extra_volumes = {"~/.qlib/": "/root/.qlib/"}
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml", extra_volumes=extra_volumes)
+        qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
+        # the stdout are returned as result
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
 
-        output_file = output_dir / "output_file"
-        with open(output_dir / "output_file", "w") as f:
-            f.write(result)
-        self.assertTrue(output_file.exists(), f"Expected output file {output_file} not found")
+        mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+        self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
 
 if __name__ == "__main__":

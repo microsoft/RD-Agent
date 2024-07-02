@@ -33,23 +33,29 @@ class Env(Generic[ASpecificBaseModel]):
         """
 
     @abstractmethod
-    def run(self, local_path: str, entry: str | None, env: dict | None = None, extra_volumes: dict | None = None):
+    def run(self,
+            entry: str | None,
+            local_path: str | None = None,
+            env: dict | None = None) -> str:
         """
         Run the folder under the environment.
 
         Parameters
         ----------
-        local_path : str
-            the local path (to project, mainly for code) will be mounted into the docker
         entry : str | None
             We may we the entry point when we run it.
             For example, we may have different entries when we run and summarize the project.
+        local_path : str | None
+            the local path (to project, mainly for code) will be mounted into the docker
+            Here are some examples for a None local path
+            - for example, run docker for updating the data in the extra_volumes.
+            - simply run the image. The results are produced by output or network
         env : dict | None
             Run the code with your specific environment.
-        extra_volumes : dict | None
-            Sometime, we need maintain some extra data for the workspace.
-            And the extra data may be shared and the downloading can be time consuming.
-            So we just want to download it once.
+
+        Returns
+        -------
+            the stdout
         """
 
 
@@ -74,7 +80,11 @@ class DockerConf(BaseModel):
     image: str  # the image you want to run
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
-    extra_volumes: dict | None  # TODO:
+
+    extra_volumes: dict | None = {}
+    # Sometime, we need maintain some extra data for the workspace.
+    # And the extra data may be shared and the downloading can be time consuming.
+    # So we just want to download it once.
 
 
 QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
@@ -84,12 +94,12 @@ QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightl
 
 
 class DockerEnv(Env[DockerConf]):
+    # TODO: Save the output into a specific file
 
     def prepare(self):
         """
         Download image if it doesn't exist
         """
-        # TODO: download the image
         client = docker.from_env()
         try:
             client.images.get(self.conf.image)
@@ -98,19 +108,18 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
-    def run(self, local_path: str, entry: str | None, env: dict | None = None, extra_volumes: dict | None = None):
+    def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
 
         if env is None:
             env = {}
-        # TODO:
-        # - Mount the local_path to mount_path
-        # - run with entry
         client = docker.from_env()
         if entry is None:
             entry = self.conf.default_entry
 
-        local_path = os.path.abspath(local_path)
-        volumns = {local_path: {'bind': self.conf.mount_path, 'mode': 'rw'}}
+        volumns = {}
+        if local_path is not None:
+            local_path = os.path.abspath(local_path)
+            volumns[local_path] = {'bind': self.conf.mount_path, 'mode': 'rw'}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumns[lp] = {'bind': rp, 'mode': 'rw'}
@@ -152,5 +161,9 @@ class QTDockerEnv(DockerEnv):
         Download image & data if it doesn't exist
         """
         super().prepare()
-        # TODO: 
-        self.run(local_path="test/utils/env_tpl", entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False", extra_volumes=self.conf.extra_volumes)
+        qlib_data_path = next(iter(self.conf.extra_volumes.keys()))
+        if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
+            cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
+            self.run(entry=cmd)
+        else:
+            print("Data already exists. Download skipped.")
