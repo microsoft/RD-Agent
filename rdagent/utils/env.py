@@ -31,7 +31,7 @@ class Env(Generic[ASpecificBaseModel]):
         """
 
     @abstractmethod
-    def run(self, local_path: str, entry: str | None, env: dict | None = None):
+    def run(self, local_path: str, entry: str | None, env: dict | None = None, extra_volumes: dict | None = None):
         """
         Run the folder under the environment.
 
@@ -44,6 +44,10 @@ class Env(Generic[ASpecificBaseModel]):
             For example, we may have different entries when we run and summarize the project.
         env : dict | None
             Run the code with your specific environment.
+        extra_volumes : dict | None
+            Sometime, we need maintain some extra data for the workspace.
+            And the extra data may be shared and the downloading can be time consuming.
+            So we just want to download it once.
         """
 
 
@@ -68,6 +72,7 @@ class DockerConf(BaseModel):
     image: str  # the image you want to run
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
+    extra_volumes: dict | None  # TODO:
 
 
 QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
@@ -101,11 +106,16 @@ class DockerEnv(Env[DockerConf]):
         if entry is None:
             entry = self.conf.default_entry
 
+        volumns = {local_path: {'bind': self.conf.mount_path, 'mode': 'rw'}}
+        if self.conf.extra_volumes is not None:
+            for lp, rp in self.extra_volumes.items():
+                volumns[lp] = {'bind': rp, 'mode': 'rw'}
+
         try:
             container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
-                volumes={local_path: {'bind': self.conf.mount_path, 'mode': 'rw'}},
+                volumes=volumns,
                 environment=env,
                 detach=True
             )
@@ -126,3 +136,12 @@ class QTDockerEnv(DockerEnv):
 
     def __init__(self, conf: DockerConf = QLIB_TORCH_IMAGE):
         super().__init__(conf)
+
+    def prepare(self):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+        # TODO: 
+        extra_volumes = {"~/.qlib/": "/root/.qlib/"}
+        qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn", extra_volumes=extra_volumes)
