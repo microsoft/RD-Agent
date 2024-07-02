@@ -2,25 +2,29 @@
 
 """
 
-from typing import Tuple
+from typing import Dict, List, Tuple
 
-from rdagent.core.task import BaseTask, TaskLoader
+from rdagent.core.evolving_framework import Feedback
+from rdagent.core.experiment import Experiment, Implementation, Loader, Task
 
 # class data_ana: XXX
 
 
-class Belief:
+class Hypothesis:
     """
     TODO: We may have better name for it.
 
     Name Candidates:
-    - Hypothesis
+    - Belief
     """
+
+    hypothesis: str = None
+    reason: str = None
 
     # source: data_ana | model_nan = None
 
 
-# Origin(path of repo/data/feedback) => view/summarization => generated Belief
+# Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
 
 class Scenario:
@@ -33,18 +37,24 @@ class Scenario:
     def get_env(self):
         """env description"""
 
+    def get_scenario_all_desc(self) -> str:
+        """Combine all the description together"""
+
+
+class HypothesisFeedback(Feedback): ...
+
 
 class Trace:
     scen: Scenario
-    hist: list[Tuple[Belief, Feedback]]
+    hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]]
 
 
-class BeliefGen:
+class HypothesisGen:
     def __init__(self, scen: Scenario):
         self.scen = scen
 
-    def gen(self, trace: Trace) -> Belief:
-        # def gen(self, scenario_desc: str, ) -> Belief:
+    def gen(self, trace: Trace) -> Hypothesis:
+        # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
         Motivation of the variable `scenario_desc`:
         - Mocking a data-scientist is observing the scenario.
@@ -56,39 +66,35 @@ class BeliefGen:
         """
 
 
-class BeliefSet:
+class HypothesisSet:
     """
     # drop, append
 
-    belief_imp: list[float] | None  # importance of each belief
-    failed_belief or success belief
+    hypothesis_imp: list[float] | None  # importance of each hypothesis
+    true_hypothesis or false_hypothesis
     """
 
-    belief_l: list[Belief]
-    feedbacks: Dict[Tuple[Belief, Scenario], BeliefFeedback]
+    hypothesis_list: list[Hypothesis]
+    trace: Trace
 
 
-class Belief2Task(TaskLoader):
+class Hypothesis2Experiment(Loader[Experiment]):
     """
     [Abstract description => conceret description] => Code implement
     """
 
-    def convert(self, bs: BeliefSet) -> BaseTask:
+    def convert(self, bs: HypothesisSet) -> Experiment:
         """Connect the idea proposal to implementation"""
         ...
-
-
-class BeliefFeedback:
-    ...
 
 
 # Boolean, Reason, Confidence, etc.
 
 
-class Imp2Feedback:
+class Experiment2Feedback:
     """ "Generated(summarize) feedback from **Executed** Implemenation"""
 
-    def summarize(self, ti: TaskImplementation) -> BeliefFeedback:
+    def summarize(self, ti: Experiment) -> HypothesisFeedback:
         """
         The `ti` should be exectued and the results should be included.
         For example: `mlflow` of Qlib will be included.

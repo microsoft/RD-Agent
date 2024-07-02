@@ -23,9 +23,9 @@ from rich.table import Table
 from rich.text import Text
 from tree_sitter import Language, Node, Parser
 
+from rdagent.core.evaluation import Evaluator
+from rdagent.core.evolving_agent import EvoAgent
 from rdagent.core.evolving_framework import (
-    Evaluator,
-    EvoAgent,
     EvolvableSubjects,
     EvolvingStrategy,
     EvoStep,

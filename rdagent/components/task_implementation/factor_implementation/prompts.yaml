@@ -199,7 +199,7 @@ select_implementable_factor_system: |-
 
 select_implementable_factor_user: |-
   Number of factor you should pick: {{ factor_num }}
-  {% for factor_info in target_factor_tasks %} 
+  {% for factor_info in sub_tasks %} 
   =============Factor index:{{factor_info[0]}}:=============
   =====Factor name:=====
   {{ factor_info[1].factor_name }}

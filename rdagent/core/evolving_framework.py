@@ -33,8 +33,7 @@ class EvolvableSubjects:
         return copy.deepcopy(self)
 
 
-class QlibEvolvableSubjects(EvolvableSubjects):
-    ...
+class QlibEvolvableSubjects(EvolvableSubjects): ...
 
 
 @dataclass

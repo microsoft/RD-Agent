@@ -3,13 +3,13 @@ from pathlib import Path
 import pandas as pd
 
 # render it with jinja
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorImplementTask,
-)
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
+)
+from rdagent.components.task_implementation.factor_implementation.factor import (
+    FactorTask,
 )
 
 TPL = """
@@ -19,7 +19,7 @@ TPL = """
 ````
 """
 # Create a Jinja template from the string
-JJ_TPL = Template(TPL)
+JJ_TPL = Environment(undefined=StrictUndefined).from_string(TPL)
 
 
 def get_data_folder_intro():
