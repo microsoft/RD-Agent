@@ -6,27 +6,29 @@ from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorEvovlingItem,
-    FactorImplementTask,
-    FileBasedFactorImplementation,
+from rdagent.components.task_implementation.factor_implementation.config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+    FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
     LLMSelect,
     RandomSelect,
 )
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
-    FACTOR_IMPLEMENT_SETTINGS,
+from rdagent.components.task_implementation.factor_implementation.factor import (
+    FactorTask,
+    FileBasedFactorImplementation,
 )
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_utils import (
+from rdagent.components.task_implementation.factor_implementation.utils import (
     get_data_folder_intro,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.experiment import Implementation
 from rdagent.core.prompts import Prompts
-from rdagent.core.task import TaskImplementation
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
@@ -43,27 +45,27 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
     @abstractmethod
     def implement_one_factor(
         self,
-        target_task: FactorImplementTask,
+        target_task: FactorTask,
         queried_knowledge: QueriedKnowledge = None,
-    ) -> TaskImplementation:
+    ) -> Implementation:
         raise NotImplementedError
 
     def evolve(
         self,
         *,
-        evo: FactorEvovlingItem,
+        evo: FactorEvolvingItem,
         queried_knowledge: FactorImplementationQueriedKnowledge | None = None,
         **kwargs,
-    ) -> FactorEvovlingItem:
+    ) -> FactorEvolvingItem:
         self.num_loop += 1
         new_evo = deepcopy(evo)
 
         # 1.找出需要evolve的factor
         to_be_finished_task_index = []
-        for index, target_factor_task in enumerate(new_evo.target_factor_tasks):
+        for index, target_factor_task in enumerate(new_evo.sub_tasks):
             target_factor_task_desc = target_factor_task.get_factor_information()
             if target_factor_task_desc in queried_knowledge.success_task_to_knowledge_dict:
-                new_evo.corresponding_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
+                new_evo.sub_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_factor_task_desc
                 ].implementation
             elif (
@@ -95,18 +97,18 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_factor, (new_evo.target_factor_tasks[target_index], queried_knowledge))
+                (self.implement_one_factor, (new_evo.sub_tasks[target_index], queried_knowledge))
                 for target_index in to_be_finished_task_index
             ],
             n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            new_evo.corresponding_implementations[target_index] = result[index]
+            new_evo.sub_implementations[target_index] = result[index]
 
         # for target_index in to_be_finished_task_index:
-        #     new_evo.corresponding_implementations[target_index] = self.implement_one_factor(
-        #         new_evo.target_factor_tasks[target_index], queried_knowledge
+        #     new_evo.sub_implementations[target_index] = self.implement_one_factor(
+        #         new_evo.sub_tasks[target_index], queried_knowledge
         #     )
 
         new_evo.corresponding_selection = to_be_finished_task_index
@@ -117,9 +119,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_factor(
         self,
-        target_task: FactorImplementTask,
+        target_task: FactorTask,
         queried_knowledge: FactorImplementationQueriedKnowledgeV1 = None,
-    ) -> TaskImplementation:
+    ) -> Implementation:
         factor_information_str = target_task.get_factor_information()
 
         if queried_knowledge is not None and factor_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -140,11 +142,15 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
 
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
-            system_prompt = Template(
-                implement_prompts["evolving_strategy_factor_implementation_v1_system"],
-            ).render(
-                data_info=get_data_folder_intro(),
-                queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+            system_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    implement_prompts["evolving_strategy_factor_implementation_v1_system"],
+                )
+                .render(
+                    data_info=get_data_folder_intro(),
+                    queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                )
             )
             session = APIBackend(use_chat_cache=False).build_chat_session(
                 session_system_prompt=system_prompt,
@@ -153,7 +159,8 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
             while True:
                 user_prompt = (
-                    Template(
+                    Environment(undefined=StrictUndefined)
+                    .from_string(
                         implement_prompts["evolving_strategy_factor_implementation_v1_user"],
                     )
                     .render(
@@ -196,9 +203,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
 
     def implement_one_factor(
         self,
-        target_task: FactorImplementTask,
+        target_task: FactorTask,
         queried_knowledge,
-    ) -> TaskImplementation:
+    ) -> Implementation:
         error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
         # 1. 提取因子的背景信息
         target_factor_task_information = target_task.get_factor_information()
@@ -231,11 +238,15 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
 
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
-            system_prompt = Template(
-                implement_prompts["evolving_strategy_factor_implementation_v1_system"],
-            ).render(
-                data_info=get_data_folder_intro(),
-                queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+            system_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    implement_prompts["evolving_strategy_factor_implementation_v1_system"],
+                )
+                .render(
+                    data_info=get_data_folder_intro(),
+                    queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                )
             )
 
             session = APIBackend(use_chat_cache=False).build_chat_session(
@@ -254,7 +265,8 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     and len(queried_former_failed_knowledge_to_render) != 0
                 ):
                     error_summary_system_prompt = (
-                        Template(implement_prompts["evolving_strategy_error_summary_v2_system"])
+                        Environment(undefined=StrictUndefined)
+                        .from_string(implement_prompts["evolving_strategy_error_summary_v2_system"])
                         .render(
                             factor_information_str=target_factor_task_information,
                             code_and_feedback=queried_former_failed_knowledge_to_render[
@@ -268,7 +280,8 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     )
                     while True:
                         error_summary_user_prompt = (
-                            Template(implement_prompts["evolving_strategy_error_summary_v2_user"])
+                            Environment(undefined=StrictUndefined)
+                            .from_string(implement_prompts["evolving_strategy_error_summary_v2_user"])
                             .render(
                                 queried_similar_component_knowledge=queried_similar_component_knowledge_to_render,
                             )
@@ -287,7 +300,8 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     )
                 # 构建user_prompt。开始写代码
                 user_prompt = (
-                    Template(
+                    Environment(undefined=StrictUndefined)
+                    .from_string(
                         implement_prompts["evolving_strategy_factor_implementation_v2_user"],
                     )
                     .render(

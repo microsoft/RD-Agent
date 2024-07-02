@@ -1,25 +1,22 @@
 from __future__ import annotations
 
 import json
-import multiprocessing as mp
 import re
 from pathlib import Path
-from typing import Mapping
 
-import numpy as np
-import pandas as pd
-import tiktoken
-from jinja2 import Template
-from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.components.document_reader.document_reader import (
+    load_and_process_pdfs_by_langchain,
+)
+from rdagent.components.loader.task_loader import ModelTaskLoader
+from rdagent.components.task_implementation.model_implementation.task import (
+    ModelImplementationTaskLoaderFromDict,
+)
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
-from rdagent.core.task import TaskLoader
-from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
-from rdagent.components.task_implementation.model_implementation.task import ModelImplementationTaskLoaderFromDict
-from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
-
+from rdagent.oai.llm_utils import APIBackend
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 def extract_model_from_doc(doc_content: str) -> dict:
     """
@@ -67,10 +64,10 @@ def extract_model_from_doc(doc_content: str) -> dict:
             else:
                 break
 
-
     RDAgentLog().info(f"已经完成{len(model_dict)}个模型的提取")
 
     return model_dict
+
 
 def merge_file_to_model_dict_to_model_dict(
     file_to_model_dict: dict[str, dict],
@@ -80,7 +77,7 @@ def merge_file_to_model_dict_to_model_dict(
         for model_name in file_to_model_dict[file_name]:
             model_dict.setdefault(model_name, [])
             model_dict[model_name].append(file_to_model_dict[file_name][model_name])
-    
+
     model_dict_simple_deduplication = {}
     for model_name in model_dict:
         if len(model_dict[model_name]) > 1:
@@ -100,18 +97,24 @@ def extract_model_from_docs(docs_dict):
     return model_dict
 
 
-class ModelImplementationTaskLoaderFromPDFfiles(TaskLoader):
+class ModelImplementationTaskLoaderFromPDFfiles(ModelTaskLoader):
     def load(self, file_or_folder_path: Path) -> dict:
-        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path)) # dict{file_path:content}
-        model_dict = extract_model_from_docs(docs_dict) # dict{file_name: dict{model_name: dict{description, formulation, variables}}}
-        model_dict = merge_file_to_model_dict_to_model_dict(model_dict) # dict {model_name: dict{description, formulation, variables}}
+        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))  # dict{file_path:content}
+        model_dict = extract_model_from_docs(
+            docs_dict
+        )  # dict{file_name: dict{model_name: dict{description, formulation, variables}}}
+        model_dict = merge_file_to_model_dict_to_model_dict(
+            model_dict
+        )  # dict {model_name: dict{description, formulation, variables}}
         return ModelImplementationTaskLoaderFromDict().load(model_dict)
+
 
 def main(path="../test_doc"):
     doc_dict = load_and_process_pdfs_by_langchain(Path(path))
-    print(doc_dict.keys()) # if you run code like "python -u", the print content will be truncated
+    print(doc_dict.keys())  # if you run code like "python -u", the print content will be truncated
 
 
 import fire
+
 if __name__ == "__main__":
     fire.Fire(main)

@@ -2,31 +2,33 @@ import pickle
 from pathlib import Path
 from typing import List
 
+from rdagent.components.task_implementation.factor_implementation.config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
 from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
     FactorImplementationEvaluatorV1,
     FactorImplementationsMultiEvaluator,
 )
+from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+    FactorEvolvingItem,
+)
 from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
     FactorEvolvingStrategyWithGraph,
-)
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorEvovlingItem,
-    FactorImplementTask,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
     FactorImplementationGraphKnowledgeBase,
     FactorImplementationGraphRAGStrategy,
     FactorImplementationKnowledgeBaseV1,
 )
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
-    FACTOR_IMPLEMENT_SETTINGS,
+from rdagent.components.task_implementation.factor_implementation.factor import (
+    FactorExperiment,
 )
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import TaskImplementation
+from rdagent.core.experiment import Experiment
+from rdagent.core.task_generator import TaskGenerator
 
 
-class CoSTEERFG(TaskGenerator):
+class CoSTEERFG(TaskGenerator[FactorExperiment]):
     def __init__(
         self,
         with_knowledge: bool = True,
@@ -74,7 +76,7 @@ class CoSTEERFG(TaskGenerator):
             )
         return factor_knowledge_base
 
-    def generate(self, tasks: List[FactorImplementTask]) -> List[TaskImplementation]:
+    def generate(self, exp: FactorExperiment) -> FactorExperiment:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,
@@ -83,8 +85,8 @@ class CoSTEERFG(TaskGenerator):
         # init rag method
         self.rag = FactorImplementationGraphRAGStrategy(factor_knowledge_base)
 
-        # init indermediate items
-        factor_implementations = FactorEvovlingItem(target_factor_tasks=tasks)
+        # init intermediate items
+        factor_implementations = FactorEvolvingItem(sub_tasks=exp.sub_tasks)
 
         self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
 
@@ -100,5 +102,5 @@ class CoSTEERFG(TaskGenerator):
         if self.new_knowledge_base_path is not None:
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
         self.knowledge_base = factor_knowledge_base
-        self.latest_factor_implementations = tasks
+        self.latest_factor_implementations = exp.sub_tasks
         return factor_implementations

@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import Generic, List, Sequence, TypeVar
 
-from rdagent.core.task import BaseTask, TaskImplementation
+from rdagent.core.experiment import Experiment
+
+ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 
-class TaskGenerator(ABC):
+class TaskGenerator(ABC, Generic[ASpecificExp]):
     @abstractmethod
-    def generate(self, task_l: Sequence[BaseTask]) -> Sequence[TaskImplementation]:
+    def generate(self, exp: ASpecificExp) -> ASpecificExp:
         """
-        Task Generator should take in a sequence of tasks.
+        Task Generator should take in an experiment.
 
         Because the schedule of different tasks is crucial for the final performance
         due to it affects the learning process.
@@ -19,7 +21,7 @@ class TaskGenerator(ABC):
     def collect_feedback(self, feedback_obj_l: List[object]):
         """
         When online evaluation.
-        The preivous feedbacks will be collected to support advanced factor generator
+        The previous feedbacks will be collected to support advanced factor generator
 
         Parameters
         ----------

@@ -1,26 +1,21 @@
+import json
 import uuid
 from pathlib import Path
 from typing import Dict, Optional, Sequence
 
 import torch
 
+from rdagent.components.loader.task_loader import ModelTaskLoader
 from rdagent.components.task_implementation.model_implementation.conf import (
     MODEL_IMPL_SETTINGS,
 )
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.task import (
-    BaseTask,
-    FBTaskImplementation,
-    ImpLoader,
-    TaskImplementation,
-    TaskLoader,
-)
+from rdagent.core.experiment import FBImplementation, ImpLoader, Task
 from rdagent.utils import get_module_by_module_path
-import json
 
 
-class ModelImplTask(BaseTask):
-    # TODO: it should change when the BaseTask changes.
+class ModelImplTask(Task):
+    # TODO: it should change when the Task changes.
     name: str
     description: str
     formulation: str
@@ -43,6 +38,7 @@ class ModelImplTask(BaseTask):
         self.formulation = formulation
         self.variables = variables
         self.key = key
+
     def get_information(self):
         return f"""name: {self.name}
 description: {self.description}
@@ -50,16 +46,16 @@ formulation: {self.formulation}
 variables: {self.variables}
 key: {self.key}
 """
-    
+
     @staticmethod
     def from_dict(dict):
         return ModelImplTask(**dict)
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
 
 
-class ModelTaskLoderJson(TaskLoader):
+class ModelTaskLoaderJson(ModelTaskLoader):
     # def __init__(self, json_uri: str, select_model: Optional[str] = None) -> None:
     #     super().__init__()
     #     self.json_uri = json_uri
@@ -82,7 +78,7 @@ class ModelTaskLoderJson(TaskLoader):
     #         variables=model_data["variables"],
     #         key=model_name
     #     )
-        
+
     #     return [model_impl_task]
 
     def __init__(self, json_uri: str) -> None:
@@ -95,7 +91,7 @@ class ModelTaskLoderJson(TaskLoader):
 
         # FIXME: the model in the json file is not right due to extraction error
         #       We should fix them case by case in the future
-        # 
+        #
         # formula_info = {
         #     "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
         #     "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
@@ -119,12 +115,13 @@ class ModelTaskLoderJson(TaskLoader):
                 description=model_data["description"],
                 formulation=model_data["formulation"],
                 variables=model_data["variables"],
-                key=model_data["key"]
+                key=model_data["key"],
             )
             model_impl_task_list.append(model_impl_task)
         return model_impl_task_list
-    
-class ModelImplementationTaskLoaderFromDict(TaskLoader):
+
+
+class ModelImplementationTaskLoaderFromDict(ModelTaskLoader):
     def load(self, model_dict: dict) -> list:
         """Load data from a dict."""
         task_l = []
@@ -134,13 +131,13 @@ class ModelImplementationTaskLoaderFromDict(TaskLoader):
                 description=model_data["description"],
                 formulation=model_data["formulation"],
                 variables=model_data["variables"],
-                key=model_name
+                key=model_name,
             )
             task_l.append(task)
         return task_l
 
 
-class ModelTaskImpl(FBTaskImplementation):
+class ModelTaskImpl(FBImplementation):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.
@@ -156,11 +153,11 @@ class ModelTaskImpl(FBTaskImplementation):
     We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
     - from model import model_cls
     - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-    - And then verify the modle.
+    - And then verify the model.
 
     """
 
-    def __init__(self, target_task: BaseTask) -> None:
+    def __init__(self, target_task: Task) -> None:
         super().__init__(target_task)
         self.path = None
 
@@ -202,7 +199,7 @@ The the implemented code will be placed in a file like <uuid>/model.py
 
 We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
 - from model import model_cls (So you must have a variable named `model_cls` in the file)
-  - So your implelemented code could follow the following pattern
+  - So your implemented code could follow the following pattern
     ```Python
     class XXXLayer(torch.nn.Module):
         ...

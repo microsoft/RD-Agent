@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorEvovlingItem,
+from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+    FactorEvolvingItem,
 )
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_utils import (
+from rdagent.components.task_implementation.factor_implementation.utils import (
     get_data_folder_intro,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -29,18 +29,22 @@ def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
     return to_be_finished_task_index
 
 
-def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: FactorEvovlingItem, former_trace):
+def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: FactorEvolvingItem, former_trace):
     tasks = []
     for i in to_be_finished_task_index:
         # find corresponding former trace for each task
-        target_factor_task_information = evo.target_factor_tasks[i].get_factor_information()
+        target_factor_task_information = evo.sub_tasks[i].get_factor_information()
         if target_factor_task_information in former_trace:
-            tasks.append((i, evo.target_factor_tasks[i], former_trace[target_factor_task_information]))
+            tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information]))
 
-    system_prompt = Template(
-        scheduler_prompts["select_implementable_factor_system"],
-    ).render(
-        data_info=get_data_folder_intro(),
+    system_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(
+            scheduler_prompts["select_implementable_factor_system"],
+        )
+        .render(
+            data_info=get_data_folder_intro(),
+        )
     )
 
     session = APIBackend(use_chat_cache=False).build_chat_session(
@@ -48,11 +52,15 @@ def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: 
     )
 
     while True:
-        user_prompt = Template(
-            scheduler_prompts["select_implementable_factor_user"],
-        ).render(
-            factor_num=implementation_factors_per_round,
-            target_factor_tasks=tasks,
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(
+                scheduler_prompts["select_implementable_factor_user"],
+            )
+            .render(
+                factor_num=implementation_factors_per_round,
+                sub_tasks=tasks,
+            )
         )
         if (
             session.build_chat_completion_message_and_calculate_token(

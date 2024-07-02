@@ -1,7 +1,7 @@
-from rdagent.core.task import FBTaskImplementation
+from rdagent.core.task_generator import TaskGenerator
 
 
-class QlibModelTaskImplementation(FBTaskImplementation):
+class QlibModelImplementation(TaskGenerator[QlibModelExperiment]):
     """
     Docker run
     Everything in a folder

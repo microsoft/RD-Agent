@@ -4,6 +4,9 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 
+from rdagent.components.task_implementation.factor_implementation.config import (
+    FACTOR_IMPLEMENT_SETTINGS,
+)
 from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
     FactorImplementationCorrelationEvaluator,
     FactorImplementationEvaluator,
@@ -14,16 +17,23 @@ from rdagent.components.task_implementation.factor_implementation.evolving.evalu
     FactorImplementationSingleColumnEvaluator,
     FactorImplementationValuesEvaluator,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
+from rdagent.components.task_implementation.factor_implementation.factor import (
     FileBasedFactorImplementation,
 )
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
 from rdagent.core.exception import ImplementRunException
-from rdagent.core.implementation import TaskGenerator
-from rdagent.core.task import TaskImplementation, TestCase
+from rdagent.core.experiment import Implementation, Task
+from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import multiprocessing_wrapper
+
+
+class TestCase:
+    def __init__(
+        self,
+        target_task: list[Task] = [],
+        ground_truth: list[Implementation] = [],
+    ):
+        self.ground_truth = ground_truth
+        self.target_task = target_task
 
 
 class BaseEval:
@@ -56,7 +66,7 @@ class BaseEval:
         self,
         path: Union[Path, str],
         **kwargs,
-    ) -> List[TaskImplementation]:
+    ) -> List[Implementation]:
         path = Path(path)
         fi_l = []
         for tc in self.test_cases:
@@ -69,8 +79,8 @@ class BaseEval:
 
     def eval_case(
         self,
-        case_gt: TaskImplementation,
-        case_gen: TaskImplementation,
+        case_gt: Implementation,
+        case_gen: Implementation,
     ) -> List[Union[Tuple[FactorImplementationEvaluator, object], Exception]]:
         """Parameters
         ----------
@@ -137,11 +147,11 @@ class FactorImplementEval(BaseEval):
                 print("Manually interrupted the evaluation. Saving existing results")
                 break
 
-            if len(gen_factor_l.corresponding_implementations) != len(self.test_cases.ground_truth):
+            if len(gen_factor_l.sub_implementations) != len(self.test_cases.ground_truth):
                 raise ValueError(
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
-            gen_factor_l_all_rounds.extend(gen_factor_l.corresponding_implementations)
+            gen_factor_l_all_rounds.extend(gen_factor_l.sub_implementations)
             test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
         eval_res_list = multiprocessing_wrapper(

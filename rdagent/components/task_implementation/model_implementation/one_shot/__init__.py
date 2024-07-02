@@ -2,13 +2,13 @@ import re
 from pathlib import Path
 from typing import Sequence
 
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.task_implementation.model_implementation.task import (
     ModelImplTask,
     ModelTaskImpl,
 )
-from rdagent.core.implementation import TaskGenerator
+from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
 
@@ -23,8 +23,8 @@ class ModelTaskGen(TaskGenerator):
             mti.prepare()
             pr = Prompts(file_path=DIRNAME / "prompt.yaml")
 
-            user_prompt_tpl = Template(pr["code_implement_user"])
-            sys_prompt_tpl = Template(pr["code_implement_sys"])
+            user_prompt_tpl = Environment(undefined=StrictUndefined).from_string(pr["code_implement_user"])
+            sys_prompt_tpl = Environment(undefined=StrictUndefined).from_string(pr["code_implement_sys"])
 
             user_prompt = user_prompt_tpl.render(
                 name=t.name,
