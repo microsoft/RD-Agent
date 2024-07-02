@@ -1,12 +1,12 @@
 import unittest
 
-from rdagent.utils.env import DockerEnv, QTDockerEnv
+from rdagent.utils.env import QTDockerEnv
 
 from pathlib import Path
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class TimeUtils(unittest.TestCase):
+class EnvUtils(unittest.TestCase):
 
     def setUp(self):
         pass
