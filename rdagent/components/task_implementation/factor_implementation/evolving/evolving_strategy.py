@@ -12,7 +12,7 @@ from rdagent.components.task_implementation.factor_implementation.config import 
     FACTOR_IMPLEMENT_SETTINGS,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
-    FactorEvovlingItem,
+    FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
     LLMSelect,
@@ -53,10 +53,10 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
     def evolve(
         self,
         *,
-        evo: FactorEvovlingItem,
+        evo: FactorEvolvingItem,
         queried_knowledge: FactorImplementationQueriedKnowledge | None = None,
         **kwargs,
-    ) -> FactorEvovlingItem:
+    ) -> FactorEvolvingItem:
         self.num_loop += 1
         new_evo = deepcopy(evo)
 

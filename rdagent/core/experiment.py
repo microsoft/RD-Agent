@@ -26,7 +26,7 @@ class Implementation(ABC, Generic[ASpecificTask]):
         """
         The execution of the implementation can be dynamic.
 
-        So we may passin the data and config dynamically.
+        So we may pass in the data and config dynamically.
         """
         raise NotImplementedError("execute method is not implemented.")
 
@@ -66,7 +66,7 @@ class FBImplementation(Implementation):
 
     .. code-block:: python
 
-        def run_pipline(self, **files: str):
+        def run_pipeline(self, **files: str):
             self.prepare()
             self.inject_code(**files)
             self.execute()
@@ -74,9 +74,9 @@ class FBImplementation(Implementation):
     """
 
     # TODO:
-    # FileBasedFactorImplementation should inherient from it.
+    # FileBasedFactorImplementation should inherit from it.
     # Why not directly reuse FileBasedFactorImplementation.
-    #   Because it has too much concerete dependencies.
+    #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
 
     path: Optional[Path]

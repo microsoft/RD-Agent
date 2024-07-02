@@ -10,7 +10,7 @@ from rdagent.components.task_implementation.factor_implementation.evolving.evalu
     FactorImplementationsMultiEvaluator,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
-    FactorEvovlingItem,
+    FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
     FactorEvolvingStrategyWithGraph,
@@ -85,8 +85,8 @@ class CoSTEERFG(TaskGenerator[FactorExperiment]):
         # init rag method
         self.rag = FactorImplementationGraphRAGStrategy(factor_knowledge_base)
 
-        # init indermediate items
-        factor_implementations = FactorEvovlingItem(sub_tasks=exp.sub_tasks)
+        # init intermediate items
+        factor_implementations = FactorEvolvingItem(sub_tasks=exp.sub_tasks)
 
         self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
 

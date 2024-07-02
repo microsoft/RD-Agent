@@ -10,7 +10,7 @@ class TaskGenerator(ABC, Generic[ASpecificExp]):
     @abstractmethod
     def generate(self, exp: ASpecificExp) -> ASpecificExp:
         """
-        Task Generator should take in an xperiment.
+        Task Generator should take in an experiment.
 
         Because the schedule of different tasks is crucial for the final performance
         due to it affects the learning process.
@@ -21,7 +21,7 @@ class TaskGenerator(ABC, Generic[ASpecificExp]):
     def collect_feedback(self, feedback_obj_l: List[object]):
         """
         When online evaluation.
-        The preivous feedbacks will be collected to support advanced factor generator
+        The previous feedbacks will be collected to support advanced factor generator
 
         Parameters
         ----------

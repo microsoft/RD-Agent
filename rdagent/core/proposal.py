@@ -80,7 +80,7 @@ class HypothesisSet:
 
 class Hypothesis2Experiment(Loader[Experiment]):
     """
-    [Abstract description => conceret description] => Code implement
+    [Abstract description => concrete description] => Code implement
     """
 
     def convert(self, bs: HypothesisSet) -> Experiment:
@@ -92,10 +92,10 @@ class Hypothesis2Experiment(Loader[Experiment]):
 
 
 class Experiment2Feedback:
-    """ "Generated(summarize) feedback from **Executed** Implemenation"""
+    """ "Generated(summarize) feedback from **Executed** Implementation"""
 
     def summarize(self, ti: Experiment) -> HypothesisFeedback:
         """
-        The `ti` should be exectued and the results should be included.
+        The `ti` should be executed and the results should be included.
         For example: `mlflow` of Qlib will be included.
         """

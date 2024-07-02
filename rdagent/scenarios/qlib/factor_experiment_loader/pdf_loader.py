@@ -8,7 +8,6 @@ from typing import Mapping
 
 import numpy as np
 import pandas as pd
-import tiktoken
 from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity

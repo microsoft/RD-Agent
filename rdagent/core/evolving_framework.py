@@ -41,7 +41,7 @@ class EvoStep:
     """At a specific step,
     based on
     - previous trace
-    - newly RAG kownledge `QueriedKnowledge`
+    - newly RAG knowledge `QueriedKnowledge`
 
     the EvolvableSubjects is evolved to a new one `EvolvableSubjects`.
 
@@ -72,7 +72,7 @@ class EvolvingStrategy(ABC):
 
 
 class RAGStrategy(ABC):
-    """Retrival Augmentation Generation Strategy"""
+    """Retrieval Augmentation Generation Strategy"""
 
     def __init__(self, knowledgebase: KnowledgeBase) -> None:
         self.knowledgebase = knowledgebase

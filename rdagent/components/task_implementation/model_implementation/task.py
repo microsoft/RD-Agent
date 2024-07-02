@@ -10,7 +10,7 @@ from rdagent.components.task_implementation.model_implementation.conf import (
     MODEL_IMPL_SETTINGS,
 )
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.experiment import ImpLoader, Task
+from rdagent.core.experiment import FBImplementation, ImpLoader, Task
 from rdagent.utils import get_module_by_module_path
 
 
@@ -55,7 +55,7 @@ key: {self.key}
         return f"<{self.__class__.__name__} {self.name}>"
 
 
-class ModelTaskLoderJson(ModelTaskLoader):
+class ModelTaskLoaderJson(ModelTaskLoader):
     # def __init__(self, json_uri: str, select_model: Optional[str] = None) -> None:
     #     super().__init__()
     #     self.json_uri = json_uri
@@ -137,7 +137,7 @@ class ModelImplementationTaskLoaderFromDict(ModelTaskLoader):
         return task_l
 
 
-class ModelTaskImpl(FBTaskImplementation):
+class ModelTaskImpl(FBImplementation):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.
@@ -153,7 +153,7 @@ class ModelTaskImpl(FBTaskImplementation):
     We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
     - from model import model_cls
     - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-    - And then verify the modle.
+    - And then verify the model.
 
     """
 
@@ -199,7 +199,7 @@ The the implemented code will be placed in a file like <uuid>/model.py
 
 We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
 - from model import model_cls (So you must have a variable named `model_cls` in the file)
-  - So your implelemented code could follow the following pattern
+  - So your implemented code could follow the following pattern
     ```Python
     class XXXLayer(torch.nn.Module):
         ...

@@ -11,7 +11,7 @@ from rdagent.components.task_implementation.factor_implementation.config import 
     FACTOR_IMPLEMENT_SETTINGS,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
-    FactorEvovlingItem,
+    FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
     FactorTask,
@@ -699,7 +699,7 @@ class FactorImplementationsMultiEvaluator(Evaluator):
 
     def evaluate(
         self,
-        evo: FactorEvovlingItem,
+        evo: FactorEvolvingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorImplementationsMultiFeedback:

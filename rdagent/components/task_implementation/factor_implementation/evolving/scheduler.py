@@ -4,7 +4,7 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
-    FactorEvovlingItem,
+    FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.utils import (
     get_data_folder_intro,
@@ -29,7 +29,7 @@ def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
     return to_be_finished_task_index
 
 
-def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: FactorEvovlingItem, former_trace):
+def LLMSelect(to_be_finished_task_index, implementation_factors_per_round, evo: FactorEvolvingItem, former_trace):
     tasks = []
     for i in to_be_finished_task_index:
         # find corresponding former trace for each task
