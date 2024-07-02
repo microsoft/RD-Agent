@@ -5,10 +5,12 @@ Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
 
 """
+import os
 import docker
 from abc import abstractmethod
 from pydantic import BaseModel
 from typing import Generic, TypeVar
+from pathlib import Path
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -77,7 +79,8 @@ class DockerConf(BaseModel):
 
 QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
                               mount_path="/workspace",
-                              default_entry="qrun conf.yaml")
+                              default_entry="qrun conf.yaml",
+                              extra_volumes={Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"})
 
 
 class DockerEnv(Env[DockerConf]):
@@ -95,7 +98,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
-    def run(self, local_path: str, entry: str | None, env: dict | None = None):
+    def run(self, local_path: str, entry: str | None, env: dict | None = None, extra_volumes: dict | None = None):
 
         if env is None:
             env = {}
@@ -106,23 +109,30 @@ class DockerEnv(Env[DockerConf]):
         if entry is None:
             entry = self.conf.default_entry
 
+        local_path = os.path.abspath(local_path)
         volumns = {local_path: {'bind': self.conf.mount_path, 'mode': 'rw'}}
         if self.conf.extra_volumes is not None:
-            for lp, rp in self.extra_volumes.items():
+            for lp, rp in self.conf.extra_volumes.items():
                 volumns[lp] = {'bind': rp, 'mode': 'rw'}
 
+        log_output = ""
         try:
             container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
                 volumes=volumns,
                 environment=env,
-                detach=True
+                detach=True,
+                working_dir=self.conf.mount_path,
+                auto_remove=True,
             )
             logs = container.logs(stream=True)
             for log in logs:
-                print(log.strip().decode())
+                decoded_log = log.strip().decode()
+                print(decoded_log)
+                log_output += decoded_log + "\n"
             container.wait()
+            return log_output
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
         except docker.errors.ImageNotFound:
@@ -143,5 +153,4 @@ class QTDockerEnv(DockerEnv):
         """
         super().prepare()
         # TODO: 
-        extra_volumes = {"~/.qlib/": "/root/.qlib/"}
-        qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python scripts/get_data.py qlib_data --name qlib_data_simple --target_dir ~/.qlib/qlib_data/cn_data --interval 1d --region cn", extra_volumes=extra_volumes)
+        self.run(local_path="test/utils/env_tpl", entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False", extra_volumes=self.conf.extra_volumes)

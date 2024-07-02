@@ -35,9 +35,12 @@ class EnvUtils(unittest.TestCase):
         result = subprocess.run(['pwd'], capture_output=True, text=True, check=True)
         pwd_output = result.stdout.strip()
         print(pwd_output)
-        qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun test/utils/env_tpl/conf.yaml", extra_volumes=extra_volumes)
+        extra_volumes = {"~/.qlib/": "/root/.qlib/"}
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml", extra_volumes=extra_volumes)
 
         output_file = output_dir / "output_file"
+        with open(output_dir / "output_file", "w") as f:
+            f.write(result)
         self.assertTrue(output_file.exists(), f"Expected output file {output_file} not found")
 
 
