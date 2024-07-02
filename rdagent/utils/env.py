@@ -71,8 +71,8 @@ class DockerConf(BaseModel):
 
 
 QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
-                              mount_path="XXXXX",
-                              default_entry="qrun XXXXX")
+                              mount_path="/workspace",
+                              default_entry="qrun conf.yaml")
 
 
 class DockerEnv(Env[DockerConf]):
@@ -82,6 +82,13 @@ class DockerEnv(Env[DockerConf]):
         Download image if it doesn't exist
         """
         # TODO: download the image
+        client = docker.from_env()
+        try:
+            client.images.get(self.conf.image)
+        except docker.errors.ImageNotFound:
+            client.images.pull(self.conf.image)
+        except docker.errors.APIError as e:
+            raise RuntimeError(f"Error while pulling the image: {e}")
 
     def run(self, local_path: str, entry: str | None, env: dict | None = None):
 
@@ -90,6 +97,28 @@ class DockerEnv(Env[DockerConf]):
         # TODO:
         # - Mount the local_path to mount_path
         # - run with entry
+        client = docker.from_env()
+        if entry is None:
+            entry = self.conf.default_entry
+
+        try:
+            container = client.containers.run(
+                image=self.conf.image,
+                command=entry,
+                volumes={local_path: {'bind': self.conf.mount_path, 'mode': 'rw'}},
+                environment=env,
+                detach=True
+            )
+            logs = container.logs(stream=True)
+            for log in logs:
+                print(log.strip().decode())
+            container.wait()
+        except docker.errors.ContainerError as e:
+            raise RuntimeError(f"Error while running the container: {e}")
+        except docker.errors.ImageNotFound:
+            raise RuntimeError("Docker image not found.")
+        except docker.errors.APIError as e:
+            raise RuntimeError(f"Error while running the container: {e}")
 
 
 class QTDockerEnv(DockerEnv):
