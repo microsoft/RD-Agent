@@ -27,3 +27,6 @@ tree-sitter
 jupyter
 
 python-dotenv
+
+# infrastructure related.
+docker
