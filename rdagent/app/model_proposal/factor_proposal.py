@@ -8,6 +8,7 @@ from rdagent.app.model_proposal.conf import PROP_SETTING
 from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis2Experiment,
+    HypothesisGen,
     HypothesisSet,
     Trace,
 )
@@ -18,29 +19,21 @@ from rdagent.core.utils import import_class
 
 scen = import_class(PROP_SETTING.scen)()
 
-print(scen)
-print(scen.background)
-print(type(scen))
+hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+
+hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
 
 
-hypothesis_gen = load_from_cls_uri(MODEL_PROP_SETTING.hypothesis_gen)(scen)
 
-hypothesis2task: Hypothesis2Experiment = load_from_cls_uri(MODEL_PROP_SETTING.hypothesis2task)()
+# task_gen: TaskGenerator = load_from_cls_uri(PROP_SETTING.task_gen)(scen)  # for implementation
 
-task_gen: TaskGenerator = load_from_cls_uri(MODEL_PROP_SETTING.task_gen)(scen)  # for implementation
-
-imp2feedback: Experiment2Feedback = load_from_cls_uri(MODEL_PROP_SETTING.imp2feedback)(scen)  # for implementation
+# imp2feedback: Experiment2Feedback = load_from_cls_uri(PROP_SETTING.imp2feedback)(scen)  # for implementation
 
 
-iter_n = MODEL_PROP_SETTING.iter_n
-
-trace = Trace()
+trace = Trace(scen=scen)
+hs = HypothesisSet()
 
 hypothesis_set = HypothesisSet()
-for _ in range(iter_n):
+for _ in range(PROP_SETTING.evolving_n):
     hypothesis = hypothesis_gen.gen(trace)
-    task = hypothesis2task.convert(hypothesis)
-    imp = task_gen.gen(task)
-    imp.execute()
-    feedback = imp2feedback.summarize(imp)
-    trace.hist.append((hypothesis, feedback))
+    hypothesis2experiment.convert(hs)
