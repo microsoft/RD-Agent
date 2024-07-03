@@ -99,17 +99,14 @@ class PMLP(torch.nn.Module):
         return f"{self.__class__.__name__}({self.in_channels}, " f"{self.out_channels}, num_layers={self.num_layers})"
 
 
+model_cls = PMLP
+
 if __name__ == "__main__":
     node_features = torch.load("node_features.pt")
     edge_index = torch.load("edge_index.pt")
 
     # Model instantiation and forward pass
-    model = PMLP(
-        in_channels=node_features.size(-1),
-        hidden_channels=node_features.size(-1),
-        out_channels=node_features.size(-1),
-        num_layers=1,
-    )
+    model = PMLP(in_channels=node_features.size(-1), hidden_channels=node_features.size(-1), out_channels=node_features.size(-1), num_layers=1)
     output = model(node_features, edge_index)
 
     # Save output to a file

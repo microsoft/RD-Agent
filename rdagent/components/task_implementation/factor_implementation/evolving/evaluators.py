@@ -5,21 +5,23 @@ from pathlib import Path
 from typing import List, Tuple
 
 import pandas as pd
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
-    FactorEvovlingItem,
-    FactorImplementTask,
-)
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+    FactorEvolvingItem,
+)
+from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
+    FactorTask,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
+from rdagent.core.experiment import Implementation
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
-from rdagent.core.task import TaskImplementation
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
@@ -33,8 +35,8 @@ class FactorImplementationEvaluator(Evaluator):
     @abstractmethod
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         """You can get the dataframe by
 
@@ -52,7 +54,7 @@ class FactorImplementationEvaluator(Evaluator):
         """
         raise NotImplementedError("Please implement the `evaluator` method")
 
-    def _get_df(self, gt: TaskImplementation, gen: TaskImplementation):
+    def _get_df(self, gt: Implementation, gen: Implementation):
         _, gt_df = gt.execute()
         _, gen_df = gen.execute()
         if isinstance(gen_df, pd.Series):
@@ -65,11 +67,11 @@ class FactorImplementationEvaluator(Evaluator):
 class FactorImplementationCodeEvaluator(Evaluator):
     def evaluate(
         self,
-        target_task: FactorImplementTask,
-        implementation: TaskImplementation,
+        target_task: FactorTask,
+        implementation: Implementation,
         execution_feedback: str,
         factor_value_feedback: str = "",
-        gt_implementation: TaskImplementation = None,
+        gt_implementation: Implementation = None,
         **kwargs,
     ):
         factor_information = target_task.get_factor_information()
@@ -78,14 +80,18 @@ class FactorImplementationCodeEvaluator(Evaluator):
         system_prompt = evaluate_prompts["evaluator_code_feedback_v1_system"]
 
         execution_feedback_to_render = execution_feedback
-        user_prompt = Template(
-            evaluate_prompts["evaluator_code_feedback_v1_user"],
-        ).render(
-            factor_information=factor_information,
-            code=code,
-            execution_feedback=execution_feedback_to_render,
-            factor_value_feedback=factor_value_feedback,
-            gt_code=gt_implementation.code if gt_implementation else None,
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(
+                evaluate_prompts["evaluator_code_feedback_v1_user"],
+            )
+            .render(
+                factor_information=factor_information,
+                code=code,
+                execution_feedback=execution_feedback_to_render,
+                factor_value_feedback=factor_value_feedback,
+                gt_code=gt_implementation.code if gt_implementation else None,
+            )
         )
         while (
             APIBackend().build_messages_and_calculate_token(
@@ -96,14 +102,18 @@ class FactorImplementationCodeEvaluator(Evaluator):
             > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
-            user_prompt = Template(
-                evaluate_prompts["evaluator_code_feedback_v1_user"],
-            ).render(
-                factor_information=factor_information,
-                code=code,
-                execution_feedback=execution_feedback_to_render,
-                factor_value_feedback=factor_value_feedback,
-                gt_code=gt_implementation.code if gt_implementation else None,
+            user_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    evaluate_prompts["evaluator_code_feedback_v1_user"],
+                )
+                .render(
+                    factor_information=factor_information,
+                    code=code,
+                    execution_feedback=execution_feedback_to_render,
+                    factor_value_feedback=factor_value_feedback,
+                    gt_code=gt_implementation.code if gt_implementation else None,
+                )
             )
         critic_response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -117,8 +127,8 @@ class FactorImplementationCodeEvaluator(Evaluator):
 class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -143,8 +153,8 @@ class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
 class FactorImplementationIndexFormatEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
         idx_name_right = gen_df.index.names == ("datetime", "instrument")
@@ -166,8 +176,8 @@ class FactorImplementationIndexFormatEvaluator(FactorImplementationEvaluator):
 class FactorImplementationRowCountEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -186,8 +196,8 @@ class FactorImplementationRowCountEvaluator(FactorImplementationEvaluator):
 class FactorImplementationIndexEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -206,8 +216,8 @@ class FactorImplementationIndexEvaluator(FactorImplementationEvaluator):
 class FactorImplementationMissingValuesEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -226,8 +236,8 @@ class FactorImplementationMissingValuesEvaluator(FactorImplementationEvaluator):
 class FactorImplementationValuesEvaluator(FactorImplementationEvaluator):
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -259,8 +269,8 @@ class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
 
     def evaluate(
         self,
-        gt: TaskImplementation,
-        gen: TaskImplementation,
+        gt: Implementation,
+        gen: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt, gen)
 
@@ -293,7 +303,7 @@ class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
 
 
 class FactorImplementationValEvaluator(FactorImplementationEvaluator):
-    def evaluate(self, gt: TaskImplementation, gen: TaskImplementation):
+    def evaluate(self, gt: Implementation, gen: Implementation):
         _, gt_df = gt.execute()
         _, gen_df = gen.execute()
         # FIXME: refactor the two classes
@@ -473,7 +483,7 @@ def shorten_prompt(tpl: str, render_kwargs: dict, shorten_key: str, max_trail: i
 class FactorImplementationFinalDecisionEvaluator(Evaluator):
     def evaluate(
         self,
-        target_task: FactorImplementTask,
+        target_task: FactorTask,
         execution_feedback: str,
         value_feedback: str,
         code_feedback: str,
@@ -483,17 +493,21 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
             "evaluator_final_decision_v1_system"
         ]
         execution_feedback_to_render = execution_feedback
-        user_prompt = Template(
-            evaluate_prompts["evaluator_final_decision_v1_user"],
-        ).render(
-            factor_information=target_task.get_factor_information(),
-            execution_feedback=execution_feedback_to_render,
-            code_feedback=code_feedback,
-            factor_value_feedback=(
-                value_feedback
-                if value_feedback is not None
-                else "No Ground Truth Value provided, so no evaluation on value is performed."
-            ),
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(
+                evaluate_prompts["evaluator_final_decision_v1_user"],
+            )
+            .render(
+                factor_information=target_task.get_factor_information(),
+                execution_feedback=execution_feedback_to_render,
+                code_feedback=code_feedback,
+                factor_value_feedback=(
+                    value_feedback
+                    if value_feedback is not None
+                    else "No Ground Truth Value provided, so no evaluation on value is performed."
+                ),
+            )
         )
         while (
             APIBackend().build_messages_and_calculate_token(
@@ -504,17 +518,21 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
             > RD_AGENT_SETTINGS.chat_token_limit
         ):
             execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
-            user_prompt = Template(
-                evaluate_prompts["evaluator_final_decision_v1_user"],
-            ).render(
-                factor_information=target_task.get_factor_information(),
-                execution_feedback=execution_feedback_to_render,
-                code_feedback=code_feedback,
-                factor_value_feedback=(
-                    value_feedback
-                    if value_feedback is not None
-                    else "No Ground Truth Value provided, so no evaluation on value is performed."
-                ),
+            user_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    evaluate_prompts["evaluator_final_decision_v1_user"],
+                )
+                .render(
+                    factor_information=target_task.get_factor_information(),
+                    execution_feedback=execution_feedback_to_render,
+                    code_feedback=code_feedback,
+                    factor_value_feedback=(
+                        value_feedback
+                        if value_feedback is not None
+                        else "No Ground Truth Value provided, so no evaluation on value is performed."
+                    ),
+                )
             )
 
         final_evaluation_dict = json.loads(
@@ -584,9 +602,9 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
 
     def evaluate(
         self,
-        target_task: FactorImplementTask,
-        implementation: TaskImplementation,
-        gt_implementation: TaskImplementation = None,
+        target_task: FactorTask,
+        implementation: Implementation,
+        gt_implementation: Implementation = None,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorImplementationSingleFeedback:
@@ -681,23 +699,23 @@ class FactorImplementationsMultiEvaluator(Evaluator):
 
     def evaluate(
         self,
-        evo: FactorEvovlingItem,
+        evo: FactorEvolvingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorImplementationsMultiFeedback:
         multi_implementation_feedback = FactorImplementationsMultiFeedback()
 
-        # for index in range(len(evo.target_factor_tasks)):
-        #     corresponding_implementation = evo.corresponding_implementations[index]
+        # for index in range(len(evo.sub_tasks)):
+        #     corresponding_implementation = evo.sub_implementations[index]
         #     corresponding_gt_implementation = (
-        #         evo.corresponding_gt_implementations[index]
-        #         if evo.corresponding_gt_implementations is not None
+        #         evo.sub_gt_implementations[index]
+        #         if evo.sub_gt_implementations is not None
         #         else None
         #     )
 
         #     multi_implementation_feedback.append(
         #         self.single_factor_implementation_evaluator.evaluate(
-        #             target_task=evo.target_factor_tasks[index],
+        #             target_task=evo.sub_tasks[index],
         #             implementation=corresponding_implementation,
         #             gt_implementation=corresponding_gt_implementation,
         #             queried_knowledge=queried_knowledge,
@@ -705,18 +723,16 @@ class FactorImplementationsMultiEvaluator(Evaluator):
         #     )
 
         calls = []
-        for index in range(len(evo.target_factor_tasks)):
-            corresponding_implementation = evo.corresponding_implementations[index]
+        for index in range(len(evo.sub_tasks)):
+            corresponding_implementation = evo.sub_implementations[index]
             corresponding_gt_implementation = (
-                evo.corresponding_gt_implementations[index]
-                if evo.corresponding_gt_implementations is not None
-                else None
+                evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
             )
             calls.append(
                 (
                     self.single_factor_implementation_evaluator.evaluate,
                     (
-                        evo.target_factor_tasks[index],
+                        evo.sub_tasks[index],
                         corresponding_implementation,
                         corresponding_gt_implementation,
                         queried_knowledge,

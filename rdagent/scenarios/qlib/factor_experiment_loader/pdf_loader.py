@@ -8,8 +8,7 @@ from typing import Mapping
 
 import numpy as np
 import pandas as pd
-import tiktoken
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
@@ -17,13 +16,13 @@ from sklearn.preprocessing import normalize
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
-from rdagent.components.task_loader import FactorTaskLoader
+from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
-from rdagent.scenarios.qlib.factor_task_loader.json_loader import (
-    FactorImplementationTaskLoaderFromDict,
+from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
+    FactorImplementationExperimentLoaderFromDict,
 )
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -160,9 +159,13 @@ def __extract_factors_formulation_from_content(
     )
 
     system_prompt = document_process_prompts["extract_factor_formulation_system"]
-    current_user_prompt = Template(
-        document_process_prompts["extract_factor_formulation_user"],
-    ).render(report_content=content, factor_dict=factor_dict_df.to_string())
+    current_user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(
+            document_process_prompts["extract_factor_formulation_user"],
+        )
+        .render(report_content=content, factor_dict=factor_dict_df.to_string())
+    )
 
     session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
     factor_to_formulation = {}
@@ -576,7 +579,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
     return llm_deduplicated_factor_dict, final_duplication_names_list
 
 
-class FactorImplementationTaskLoaderFromPDFfiles(FactorTaskLoader):
+class FactorImplementationExperimentLoaderFromPDFfiles(FactorExperimentLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
 
@@ -586,4 +589,4 @@ class FactorImplementationTaskLoaderFromPDFfiles(FactorTaskLoader):
 
         factor_viability = check_factor_viability(factor_dict)
         factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
-        return FactorImplementationTaskLoaderFromDict().load(factor_dict)
+        return FactorImplementationExperimentLoaderFromDict().load(factor_dict)

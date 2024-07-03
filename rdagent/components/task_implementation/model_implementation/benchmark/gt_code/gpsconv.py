@@ -183,6 +183,9 @@ class GPSConv(torch.nn.Module):
         )
 
 
+model_cls = GPSConv
+
+
 if __name__ == "__main__":
     node_features = torch.load("node_features.pt")
     edge_index = torch.load("edge_index.pt")

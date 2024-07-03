@@ -1,7 +1,8 @@
-from rdagent.core.task import FBTaskImplementation
+from rdagent.core.task_generator import TaskGenerator
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
-class QlibDataTaskImplementation(FBTaskImplementation):
+class QlibDataImplementation(TaskGenerator[QlibFactorExperiment]):
     """
     Docker run
     Everything in a folder

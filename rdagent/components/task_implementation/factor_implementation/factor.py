@@ -9,27 +9,21 @@ from typing import Tuple, Union
 import pandas as pd
 from filelock import FileLock
 
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.core.exception import (
     CodeFormatException,
     NoOutputException,
     RuntimeErrorException,
 )
+from rdagent.core.experiment import Experiment, FBImplementation, Task
 from rdagent.core.log import RDAgentLog
-from rdagent.core.task import (
-    BaseTask,
-    FBTaskImplementation,
-    TaskImplementation,
-    TestCase,
-)
 from rdagent.oai.llm_utils import md5_hash
 
 
-class FactorImplementTask(BaseTask):
-    # TODO:  generalized the attributes into the BaseTask
+class FactorTask(Task):
+    # TODO:  generalized the attributes into the Task
     # - factor_* -> *
     def __init__(
         self,
@@ -53,38 +47,13 @@ variables: {str(self.variables)}"""
 
     @staticmethod
     def from_dict(dict):
-        return FactorImplementTask(**dict)
+        return FactorTask(**dict)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
 
-class FactorEvovlingItem(EvolvableSubjects):
-    """
-    Intermediate item of factor implementation.
-    """
-
-    def __init__(
-        self,
-        target_factor_tasks: list[FactorImplementTask],
-        corresponding_gt_implementations: list[TaskImplementation] = None,
-    ):
-        super().__init__()
-        self.target_factor_tasks = target_factor_tasks
-        self.corresponding_implementations: list[TaskImplementation] = [None for _ in target_factor_tasks]
-        self.corresponding_selection: list = None
-        if corresponding_gt_implementations is not None and len(
-            corresponding_gt_implementations,
-        ) != len(target_factor_tasks):
-            self.corresponding_gt_implementations = None
-            RDAgentLog().warning(
-                "The length of corresponding_gt_implementations is not equal to the length of target_factor_tasks, set corresponding_gt_implementations to None",
-            )
-        else:
-            self.corresponding_gt_implementations = corresponding_gt_implementations
-
-
-class FileBasedFactorImplementation(FBTaskImplementation):
+class FileBasedFactorImplementation(FBImplementation):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -100,7 +69,7 @@ class FileBasedFactorImplementation(FBTaskImplementation):
 
     def __init__(
         self,
-        target_task: FactorImplementTask,
+        target_task: FactorTask,
         code,
         executed_factor_value_dataframe=None,
         raise_exception=False,
@@ -243,9 +212,12 @@ class FileBasedFactorImplementation(FBTaskImplementation):
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorImplementTask, path: Union[str, Path], **kwargs):
+    def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
         path = Path(path)
         factor_path = (path / task.factor_name).with_suffix(".py")
         with factor_path.open("r") as f:
             code = f.read()
         return FileBasedFactorImplementation(task, code=code, **kwargs)
+
+
+FactorExperiment = Experiment

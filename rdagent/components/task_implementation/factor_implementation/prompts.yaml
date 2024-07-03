@@ -45,7 +45,7 @@ evolving_strategy_factor_implementation_v1_system: |-
   2. The user might provide you the failed former code and the corresponding feedback to the code. The feedback contains to the execution, the code and the factor value. You should analyze the feedback and try to correct the latest code.
   3. The user might provide you the suggestion to the latest fail code and some similar fail to correct pairs. Each pair contains the fail code with similar error and the corresponding corrected version code. You should learn from these suggestion to write the correct code.
 
-  Your must write your code based on your former lastest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
+  Your must write your code based on your former latest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
   {% if queried_former_failed_knowledge|length != 0 %}
   --------------Your former latest attempt:---------------
   {% for former_failed_knowledge in queried_former_failed_knowledge %}
@@ -199,7 +199,7 @@ select_implementable_factor_system: |-
 
 select_implementable_factor_user: |-
   Number of factor you should pick: {{ factor_num }}
-  {% for factor_info in target_factor_tasks %} 
+  {% for factor_info in sub_tasks %} 
   =============Factor index:{{factor_info[0]}}:=============
   =====Factor name:=====
   {{ factor_info[1].factor_name }}

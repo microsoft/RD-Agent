@@ -3,12 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 # render it with jinja
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.factor import (
-    FactorImplementTask,
-)
-from rdagent.components.task_implementation.factor_implementation.share_modules.factor_implementation_config import (
+from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
 
@@ -19,11 +16,11 @@ TPL = """
 ````
 """
 # Create a Jinja template from the string
-JJ_TPL = Template(TPL)
+JJ_TPL = Environment(undefined=StrictUndefined).from_string(TPL)
 
 
 def get_data_folder_intro():
-    """Direclty get the info of the data folder.
+    """Directly get the info of the data folder.
     It is for preparing prompting message.
     """
     content_l = []
@@ -53,4 +50,4 @@ def get_data_folder_intro():
             raise NotImplementedError(
                 f"file type {p.name} is not supported. Please implement its description function.",
             )
-    return "\n ----------------- file spliter -------------\n".join(content_l)
+    return "\n ----------------- file splitter -------------\n".join(content_l)

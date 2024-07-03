@@ -1176,6 +1176,9 @@ class ViSNet(torch.nn.Module):
         return y, None
 
 
+model_cls = ViSNet
+
+
 if __name__ == "__main__":
     node_features = torch.load("node_features.pt")
     edge_index = torch.load("edge_index.pt")
