@@ -13,16 +13,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tree_sitter_python
-from rich import print
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
-from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
-from tree_sitter import Language, Node, Parser
-
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_agent import EvoAgent
 from rdagent.core.evolving_framework import (
@@ -34,6 +24,15 @@ from rdagent.core.evolving_framework import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
+from rich import print
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+from tree_sitter import Language, Node, Parser
 
 py_parser = Parser(Language(tree_sitter_python.language()))
 CI_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -304,7 +303,7 @@ class RuffEvaluator(Evaluator):
 
         return RuffRule(**json.loads(out))
 
-    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:  # noqa: ARG002
+    def evaluate(self, evo: Repo, **kwargs: dict) -> CIFeedback:
         """Simply run ruff to get the feedbacks."""
         try:
             out = subprocess.check_output(
@@ -356,13 +355,14 @@ class RuffEvaluator(Evaluator):
 
 
 class MypyEvaluator(Evaluator):
+
     def __init__(self, command: str | None = None) -> None:
         if command is None:
             self.command = "mypy . --pretty --no-error-summary --show-column-numbers"
         else:
             self.command = command
 
-    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:  # noqa: ARG002
+    def evaluate(self, evo: Repo, **kwargs: dict) -> CIFeedback:
         try:
             out = subprocess.check_output(
                 shlex.split(self.command),  # noqa: S603
@@ -411,10 +411,12 @@ class MypyEvaluator(Evaluator):
 
 
 class MultiEvaluator(Evaluator):
+
     def __init__(self, *evaluators: Evaluator) -> None:
         self.evaluators = evaluators
 
-    def evaluate(self, evo: Repo, **kwargs: Any) -> CIFeedback:
+    def evaluate(self, evo: Repo, **kwargs: dict) -> CIFeedback:
+
         all_errors = defaultdict(list)
         for evaluator in self.evaluators:
             feedback: CIFeedback = evaluator.evaluate(evo, **kwargs)
@@ -433,9 +435,10 @@ class CIEvoStr(EvolvingStrategy):
         self,
         evo: Repo,
         evolving_trace: list[EvoStep] | None = None,
-        knowledge_l: list[Knowledge] | None = None,  # noqa: ARG002
-        **kwargs: Any,  # noqa: ARG002
+        knowledge_l: list[Knowledge] | None = None,
+        **kwargs: dict,
     ) -> Repo:
+
         @dataclass
         class CodeFixGroup:
             start_line: int
@@ -549,7 +552,7 @@ class CIEvoStr(EvolvingStrategy):
                         style="bright_blue",
                         align="left",
                         characters=".",
-                    )
+                    ),
                 )
 
                 file = evo.files[evo.project_path / Path(file_path)]
@@ -630,12 +633,12 @@ class CIEvoStr(EvolvingStrategy):
                         for i in diff:
                             if i.startswith("+"):
                                 table.add_row(
-                                    "", Text(str(diff_new_lineno), style="green bold"), Text(i, style="green")
+                                    "", Text(str(diff_new_lineno), style="green bold"), Text(i, style="green"),
                                 )
                                 diff_new_lineno += 1
                             elif i.startswith("-"):
                                 table.add_row(
-                                    Text(str(diff_original_lineno), style="red bold"), "", Text(i, style="red")
+                                    Text(str(diff_original_lineno), style="red bold"), "", Text(i, style="red"),
                                 )
                                 diff_original_lineno += 1
                             elif i.startswith("?"):
@@ -655,7 +658,7 @@ class CIEvoStr(EvolvingStrategy):
                         operation = Prompt.ask(
                             "Input your operation [ [red]([bold]s[/bold])kip[/red] / "
                             "[green]([bold]a[/bold])pply[/green] / "
-                            "[yellow]manual instruction[/yellow] ]"
+                            "[yellow]manual instruction[/yellow] ]",
                         )
                         print()
                         if operation in ("s", "skip"):
@@ -688,6 +691,21 @@ class CIEvoStr(EvolvingStrategy):
 
         return evo
 
+class CIEvoAgent(EvoAgent):
+    def __init__(self, evolving_strategy: CIEvoStr) -> None:
+        super().__init__(max_loop=1, evolving_strategy=evolving_strategy)
+        self.evolving_trace = []
+
+    def multistep_evolve(self, evo: Repo, eva: Evaluator, **kwargs: Any) -> Repo:
+
+        evo = self.evolving_strategy.evolve(
+            evo=evo,
+            evolving_trace=self.evolving_trace,
+        )
+
+        self.evolving_trace.append(EvoStep(evo, feedback=eva.evaluate(evo)))
+
+        return evo
 
 DIR = None
 while DIR is None or not DIR.exists():
@@ -707,12 +725,11 @@ repo = Repo(DIR, excludes=excludes)
 # evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
 evaluator = RuffEvaluator()
 estr = CIEvoStr()
-rag = None  # RAG is not enable firstly.
-ea = EvoAgent(estr, rag=rag)
-ea.step_evolving(repo, evaluator)
+ea = CIEvoAgent(estr)
+ea.multistep_evolve(repo, evaluator)
 while True:
     print(Rule(f"Round {len(ea.evolving_trace)} repair", style="blue"))
-    repo: Repo = ea.step_evolving(repo, evaluator)
+    repo: Repo = ea.multistep_evolve(repo, evaluator)
 
     fix_records = repo.fix_records
     filename = f"{DIR.name}_{start_timestamp}_round_{len(ea.evolving_trace)}_fix_records.json"
