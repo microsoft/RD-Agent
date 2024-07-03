@@ -89,7 +89,7 @@ isort:
 
 # Check lint with mypy.
 mypy:
-	$(PIPRUN) python -m mypy . --exclude rdagent/scripts --exclude git_ignore_folder
+	$(PIPRUN) mypy --check . --exclude rdagent/scripts --exclude git_ignore_folder
 
 # Check lint with ruff.
 ruff:
