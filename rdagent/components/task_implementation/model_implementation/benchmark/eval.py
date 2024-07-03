@@ -1,6 +1,9 @@
 # TODO: inherent from the benchmark base class
 import torch
-from rdagent.components.task_implementation.model_implementation.task import ModelTaskImpl
+
+from rdagent.components.task_implementation.model_implementation.model import (
+    ModelImplementation,
+)
 
 
 def get_data_conf(init_val):
@@ -15,7 +18,7 @@ def get_data_conf(init_val):
 
 class ModelImpValEval:
     """
-    Evaluate the similarity of the model structure by changing the input and observate the output.
+    Evaluate the similarity of the model structure by changing the input and observe the output.
 
     Assumption:
     - If the model structure is similar, the output will change in similar way when we change the input.
@@ -31,7 +34,7 @@ class ModelImpValEval:
     For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
-    def evaluate(self, gt: ModelTaskImpl, gen: ModelTaskImpl):
+    def evaluate(self, gt: ModelImplementation, gen: ModelImplementation):
         round_n = 10
 
         eval_pairs: list[tuple] = []

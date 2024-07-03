@@ -4,22 +4,23 @@ from typing import Sequence
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.model_implementation.task import (
-    ModelImplTask,
-    ModelTaskImpl,
+from rdagent.components.task_implementation.model_implementation.model import (
+    ModelExperiment,
+    ModelImplementation,
+    ModelTask,
 )
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.prompts import Prompts
+from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import APIBackend
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class ModelTaskGen(TaskGenerator):
-    def generate(self, task_l: Sequence[ModelImplTask]) -> Sequence[ModelTaskImpl]:
+class ModelCodeWriter(TaskGenerator[ModelExperiment]):
+    def generate(self, exp: ModelExperiment) -> ModelExperiment:
         mti_l = []
-        for t in task_l:
-            mti = ModelTaskImpl(t)
+        for t in exp.sub_tasks:
+            mti = ModelImplementation(t)
             mti.prepare()
             pr = Prompts(file_path=DIRNAME / "prompt.yaml")
 
@@ -42,4 +43,5 @@ class ModelTaskGen(TaskGenerator):
             code = match.group(1)
             mti.inject_code(**{"model.py": code})
             mti_l.append(mti)
-        return mti_l
+        exp.sub_implementations = mti_l
+        return exp
