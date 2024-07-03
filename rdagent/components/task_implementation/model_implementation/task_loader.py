@@ -8,8 +8,10 @@ from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.components.task_implementation.model_implementation.task import (
+from rdagent.components.task_implementation.model_implementation.model import (
+    ModelExperiment,
     ModelImplementationTaskLoaderFromDict,
+    ModelTask,
 )
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
@@ -97,7 +99,23 @@ def extract_model_from_docs(docs_dict):
     return model_dict
 
 
-class ModelImplementationTaskLoaderFromPDFfiles(ModelTaskLoader):
+class ModelImplementationExperimentLoaderFromDict(ModelTaskLoader):
+    def load(self, model_dict: dict) -> list:
+        """Load data from a dict."""
+        task_l = []
+        for model_name, model_data in model_dict.items():
+            task = ModelTask(
+                name=model_name,
+                description=model_data["description"],
+                formulation=model_data["formulation"],
+                variables=model_data["variables"],
+                key=model_name,
+            )
+            task_l.append(task)
+        return ModelExperiment(sub_tasks=task_l)
+
+
+class ModelImplementationExperimentLoaderFromPDFfiles(ModelTaskLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))  # dict{file_path:content}
         model_dict = extract_model_from_docs(
@@ -106,7 +124,7 @@ class ModelImplementationTaskLoaderFromPDFfiles(ModelTaskLoader):
         model_dict = merge_file_to_model_dict_to_model_dict(
             model_dict
         )  # dict {model_name: dict{description, formulation, variables}}
-        return ModelImplementationTaskLoaderFromDict().load(model_dict)
+        return ModelImplementationExperimentLoaderFromDict().load(model_dict)
 
 
 def main(path="../test_doc"):

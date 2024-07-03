@@ -5,12 +5,12 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 from rdagent.components.task_implementation.model_implementation.benchmark.eval import (
     ModelImpValEval,
 )
-from rdagent.components.task_implementation.model_implementation.one_shot import (
-    ModelTaskGen,
-)
-from rdagent.components.task_implementation.model_implementation.task import (
+from rdagent.components.task_implementation.model_implementation.model import (
     ModelImpLoader,
     ModelTaskLoaderJson,
+)
+from rdagent.components.task_implementation.model_implementation.one_shot import (
+    ModelCodeWriter,
 )
 
 bench_folder = DIRNAME.parent.parent / "components" / "task_implementation" / "model_implementation" / "benchmark"
@@ -20,7 +20,7 @@ task_l = mtl.load()
 
 task_l = [t for t in task_l if t.key == "A-DGN"]  # FIXME: other models does not work well
 
-mtg = ModelTaskGen()
+mtg = ModelCodeWriter()
 
 impl_l = mtg.generate(task_l)
 
