@@ -220,4 +220,4 @@ class FileBasedFactorImplementation(FBImplementation):
         return FileBasedFactorImplementation(task, code=code, **kwargs)
 
 
-FactorExperiment = Experiment
+class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...

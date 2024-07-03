@@ -2,7 +2,8 @@
 
 """
 
-from typing import Dict, List, Tuple
+from abc import ABC, abstractmethod
+from typing import Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evolving_framework import Feedback
 from rdagent.core.experiment import Experiment, Implementation, Loader, Task
@@ -27,16 +28,29 @@ class Hypothesis:
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
 
-class Scenario:
-    def get_repo_path(self):
-        """codebase"""
+class Scenario(ABC):
 
-    def get_data(self):
-        """ "data info"""
+    @property
+    @abstractmethod
+    def background(self):
+        """Background information"""
 
-    def get_env(self):
-        """env description"""
+    @property
+    @abstractmethod
+    def source_data(self):
+        """Source data description"""
 
+    @property
+    @abstractmethod
+    def interface(self):
+        """Interface description about how to run the code"""
+
+    @property
+    @abstractmethod
+    def simulator(self):
+        """Simulator description"""
+
+    @abstractmethod
     def get_scenario_all_desc(self) -> str:
         """Combine all the description together"""
 
@@ -78,12 +92,16 @@ class HypothesisSet:
     trace: Trace
 
 
-class Hypothesis2Experiment(Loader[Experiment]):
+ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
+
+
+class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
     [Abstract description => concrete description] => Code implement
     """
 
-    def convert(self, bs: HypothesisSet) -> Experiment:
+    @abstractmethod
+    def convert(self, hs: HypothesisSet) -> ASpecificExp:
         """Connect the idea proposal to implementation"""
         ...
 
