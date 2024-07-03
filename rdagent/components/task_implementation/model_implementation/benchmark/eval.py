@@ -18,7 +18,7 @@ def get_data_conf(init_val):
 
 class ModelImpValEval:
     """
-    Evaluate the similarity of the model structure by changing the input and observate the output.
+    Evaluate the similarity of the model structure by changing the input and observe the output.
 
     Assumption:
     - If the model structure is similar, the output will change in similar way when we change the input.
