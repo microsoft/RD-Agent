@@ -19,8 +19,9 @@ class Hypothesis:
     - Belief
     """
 
-    hypothesis: str = None
-    reason: str = None
+    def __init__(self, hypothesis: str, reason: str) -> None:
+        self.hypothesis: str = hypothesis
+        self.reason: str = reason
 
     # source: data_ana | model_nan = None
 
@@ -58,9 +59,13 @@ class Scenario(ABC):
 class HypothesisFeedback(Feedback): ...
 
 
-class Trace:
-    scen: Scenario
-    hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]]
+ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
+
+
+class Trace(Generic[ASpecificScen]):
+    def __init__(self, scen: ASpecificScen) -> None:
+        self.scen: ASpecificScen = scen
+        self.hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
 
 class HypothesisGen:
@@ -88,8 +93,9 @@ class HypothesisSet:
     true_hypothesis or false_hypothesis
     """
 
-    hypothesis_list: list[Hypothesis]
-    trace: Trace
+    def __init__(self, trace: Trace, hypothesis_list: list[Hypothesis] = []) -> None:
+        self.hypothesis_list: list[Hypothesis] = hypothesis_list
+        self.trace: Trace = trace
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
@@ -117,3 +123,4 @@ class Experiment2Feedback:
         The `ti` should be executed and the results should be included.
         For example: `mlflow` of Qlib will be included.
         """
+        return HypothesisFeedback()

@@ -43,7 +43,7 @@ class FactorHypothesisGen(HypothesisGen):
             .from_string(prompt_dict["factor_hypothesis_gen"]["system_prompt"])
             .render(
                 scenario=self.scen.get_scenario_all_desc(),
-                hypothesis_output_format=self.context_dict["hypothesis_output_format"],
+                hypothesis_output_format=context_dict["hypothesis_output_format"],
             )
         )
         user_prompt = (
@@ -78,8 +78,8 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["factor_hypothesis2experiment"]["system_prompt"])
             .render(
-                scenario=self.scen.get_scenario_all_desc(),
-                experiment_output_format=self.context_dict["experiment_output_format"],
+                scenario=hs.trace.scen.get_scenario_all_desc(),
+                experiment_output_format=context["experiment_output_format"],
             )
         )
         user_prompt = (
@@ -87,7 +87,7 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
             .from_string(prompt_dict["factor_hypothesis2experiment"]["user_prompt"])
             .render(
                 hypothesis_and_feedback=context["hypothesis_and_feedback"],
-                factors=context["factors"],
+                factor_list=context["factor_list"],
                 RAG=context["RAG"],
             )
         )

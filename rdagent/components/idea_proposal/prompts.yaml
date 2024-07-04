@@ -32,7 +32,7 @@ factor_hypothesis2experiment:
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
     The former proposed factors on similar hypothesis are as follows:
-    {{ factors }}
+    {{ factor_list }}
     To help you generate new factors, we have prepared the following information for you:
     {{ RAG }}
     Please generate the new factors based on the information above.

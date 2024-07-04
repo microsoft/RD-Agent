@@ -7,7 +7,7 @@ from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.core.log import RDAgentLog
 
 
-class FactorEvolvingItem(FactorExperiment[FactorTask, FileBasedFactorImplementation], EvolvableSubjects):
+class FactorEvolvingItem(FactorExperiment, EvolvableSubjects):
     """
     Intermediate item of factor implementation.
     """

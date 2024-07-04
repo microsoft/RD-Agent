@@ -21,36 +21,6 @@ from rdagent.core.proposal import HypothesisSet, Scenario, Trace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-
-class QlibFactorScenario(Scenario):
-    @property
-    def background(self) -> str:
-        return prompt_dict["qlib_factor_background"]
-
-    @property
-    def source_data(self) -> str:
-        return get_data_folder_intro()
-
-    @property
-    def interface(self) -> str:
-        return prompt_dict["qlib_factor_interface"]
-
-    @property
-    def simulator(self) -> str:
-        return prompt_dict["qlib_factor_simulator"]
-
-    def get_scenario_all_desc(self) -> str:
-        return f"""Background of the scenario:
-{self.background}
-The source data you can use:
-{self.source_data}
-The interface you should follow to write the runnable code:
-{self.interface}
-The simulator user can use to test your factor:
-{self.simulator}
-"""
-
-
 QlibFactorHypothesis = FactorHypothesis
 
 
@@ -82,13 +52,13 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         scenario = hs.trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["experiment_output_format"]
 
-        hypothesis_feedback = (
+        hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_and_feedback"])
             .render(trace=hs.trace)
         )
 
-        experiment_list: List[FactorExperiment] = [t[1] for t in hs.trace]
+        experiment_list: List[FactorExperiment] = [t[1] for t in hs.trace.hist]
 
         factor_list = []
         for experiment in experiment_list:
@@ -96,7 +66,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
 
         return {
             "scenario": scenario,
-            "hypothesis_feedback": hypothesis_feedback,
+            "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "factor_list": factor_list,
             "RAG": ...,
