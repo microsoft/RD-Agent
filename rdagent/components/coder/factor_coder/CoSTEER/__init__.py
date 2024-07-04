@@ -3,7 +3,7 @@ from pathlib import Path
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
-    FactorEvaluatorV1,
+    FactorEvaluatorForCoder,
     FactorMultiEvaluator,
 )
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
@@ -45,7 +45,7 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
         self.knowledge_self_gen = knowledge_self_gen
         self.evolving_strategy = FactorEvolvingStrategyWithGraph()
         # declare the factor evaluator
-        self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorV1())
+        self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder())
         self.evolving_version = 2
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):

@@ -7,13 +7,13 @@ from tqdm import tqdm
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorCorrelationEvaluator,
+    FactorEqualValueCountEvaluator,
     FactorEvaluator,
     FactorIndexEvaluator,
     FactorIndexFormatEvaluator,
     FactorMissingValuesEvaluator,
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
-    FactorValuesEvaluator,
 )
 from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
 from rdagent.core.exception import ImplementRunException
@@ -94,7 +94,7 @@ class BaseEval:
         eval_res = []
         for ev in self.evaluator_l:
             try:
-                eval_res.append((ev, ev.evaluate(case_gt, case_gen)))
+                eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
             except ImplementRunException as e:
                 return e
@@ -122,7 +122,7 @@ class FactorImplementEval(BaseEval):
             FactorRowCountEvaluator(),
             FactorIndexEvaluator(),
             FactorMissingValuesEvaluator(),
-            FactorValuesEvaluator(),
+            FactorEqualValueCountEvaluator(),
             FactorCorrelationEvaluator(hard_check=False),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
