@@ -1,6 +1,5 @@
 """
-TODO: Model Structure RD-Loop
-TODO: move the following code to a new class: Model_RD_Agent
+TODO: Factor Structure RD-Loop
 """
 
 # import_from
