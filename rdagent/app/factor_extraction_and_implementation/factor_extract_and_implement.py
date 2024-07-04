@@ -19,4 +19,4 @@ def extract_factors_and_implement(report_file_path: str) -> None:
 
 
 if __name__ == "__main__":
-    extract_factors_and_implement("/home/xuyang1/workspace/report.pdf")
+    extract_factors_and_implement("/home/finco/v-yuanteli/test/RD-Agent/report/finance_report.pdf")
