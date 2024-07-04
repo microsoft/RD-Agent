@@ -43,27 +43,9 @@ class LogColors:
         colors = self.get_all_colors()
         # Perhaps color and font should be distinguished here.
         if color and color in colors:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # raise ValueError(f"color should be in: {colors} but now is: {color}")
-            # Description of the problem:
-            # TRY003 Avoid specifying long messages outside the exception class
-            # EM102 Exception must not use an f-string literal, assign to variable first
-            # References:
-            # https://docs.astral.sh/ruff/rules/raise-vanilla-args/
-            # https://docs.astral.sh/ruff/rules/f-string-in-exception/
             error_message = f"color should be in: {colors} but now is: {color}"
             raise ValueError(error_message)
         if style and style in colors:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # raise ValueError(f"style should be in: {colors} but now is: {style}")
-            # Description of the problem:
-            # TRY003 Avoid specifying long messages outside the exception class
-            # EM102 Exception must not use an f-string literal, assign to variable first
-            # References:
-            # https://docs.astral.sh/ruff/rules/raise-vanilla-args/
-            # https://docs.astral.sh/ruff/rules/f-string-in-exception/
             error_message = f"style should be in: {colors} but now is: {style}"
             raise ValueError(error_message)
 
@@ -94,18 +76,6 @@ class RDAgentLog:
 
     def plain_info(self, *args: Sequence) -> None:
         for arg in args:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # self.logger.info(
-            #   f"""
-            #   {LogColors.YELLOW}{LogColors.BOLD}
-            #   Info:{LogColors.END}{LogColors.WHITE}{arg}{LogColors.END}
-            #   """,
-            # )
-            # Description of the problem:
-            # G004 Logging statement uses f-string
-            # References:
-            # https://docs.astral.sh/ruff/rules/logging-f-string/
             info = f"""
                 {LogColors.YELLOW}{LogColors.BOLD}
                 Info:{LogColors.END}{LogColors.WHITE}{arg}{LogColors.END}
@@ -114,28 +84,10 @@ class RDAgentLog:
 
     def warning(self, *args: Sequence) -> None:
         for arg in args:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # self.logger.warning(
-            #   f"{LogColors.BLUE}{LogColors.BOLD}Warning:{LogColors.END}{arg}",
-            # )
-            # Description of the problem:
-            # G004 Logging statement uses f-string
-            # References:
-            # https://docs.astral.sh/ruff/rules/logging-f-string/
             info = f"{LogColors.BLUE}{LogColors.BOLD}Warning:{LogColors.END}{arg}"
             self.logger.warning(info)
 
     def error(self, *args: Sequence) -> None:
         for arg in args:
-            # Changes to accommodate ruff checks.
-            # Original code:
-            # self.logger.error(
-            #   f"{LogColors.RED}{LogColors.BOLD}Error:{LogColors.END}{arg}",
-            # )
-            # Description of the problem:
-            # G004 Logging statement uses f-string
-            # References:
-            # https://docs.astral.sh/ruff/rules/logging-f-string/
             info = f"{LogColors.RED}{LogColors.BOLD}Error:{LogColors.END}{arg}"
             self.logger.error(info)
