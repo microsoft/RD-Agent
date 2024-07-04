@@ -1,0 +1,25 @@
+qlib_factor_background: |-
+  The factor is a characteristic or variable used in quant investment that can help explain the returns and risks of a portfolio or a single asset. Factors are used by investors to identify and exploit sources of excess returns, and they are central to many quantitative investment strategies.
+  Each number in the factor represents a physics value to an instrument on a day.
+  User will train a model to predict the next several days return based on the factor values of the previous days.
+  The factor is defined in the following parts:
+  1. Name: The name of the factor.
+  2. Description: The description of the factor.
+  3. Formulation: The formulation of the factor.
+  4. Variables: The variables or functions used in the formulation of the factor.
+  The factor might not provide all the parts of the information above since some might not be applicable.
+  Please specifically give all the hyperparameter in the factors like the window size, look back period, and so on. One factor should statically defines one output with a static source data. For example, last 10 days momentum and last 20 days momentum should be two different factors.
+
+qlib_factor_interface: |-
+  Your code should follow the interface to better interact with the user's system.
+  Your code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your code. The user will catch the exception message and provide the feedback to you.
+  User will write your code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
+
+qlib_factor_simulator: |-
+  The factors will be sent into Qlib to train a model to predict the next several days return based on the factor values of the previous days. 
+  Qlib is an AI-oriented quantitative investment platform that aims to realize the potential, empower research, and create value using AI technologies in quantitative investment, from exploring ideas to implementing productions. Qlib supports diverse machine learning modeling paradigms. including supervised learning, market dynamics modeling, and RL.
+  User will use Qlib to automatically do the following things:
+  1. generate a new factor table based on the factor values.
+  2. train a model like LightGBM, CatBoost, LSTM or simple PyTorch model to predict the next several days return based on the factor values.
+  3. build a portfolio based on the predicted return based on a strategy.
+  4. evaluate the portfolio's performance including the return, sharpe ratio, max drawdown, and so on.
