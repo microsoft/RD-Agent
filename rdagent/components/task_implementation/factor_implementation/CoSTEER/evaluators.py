@@ -10,10 +10,10 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolving_strategy import (
     FactorTask,
 )
 from rdagent.core.conf import RD_AGENT_SETTINGS

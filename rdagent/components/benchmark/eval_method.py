@@ -7,7 +7,7 @@ from tqdm import tqdm
 from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evaluators import (
     FactorImplementationCorrelationEvaluator,
     FactorImplementationEvaluator,
     FactorImplementationIndexEvaluator,

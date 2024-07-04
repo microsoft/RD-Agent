@@ -11,10 +11,10 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.scheduler import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.scheduler import (
     LLMSelect,
     RandomSelect,
 )
@@ -33,7 +33,7 @@ from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
-    from rdagent.components.task_implementation.factor_implementation.evolving.knowledge_management import (
+    from rdagent.components.task_implementation.factor_implementation.CoSTEER.knowledge_management import (
         FactorImplementationQueriedKnowledge,
         FactorImplementationQueriedKnowledgeV1,
     )

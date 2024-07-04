@@ -3,7 +3,7 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.evolving.evolvable_subjects import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
 from rdagent.components.task_implementation.factor_implementation.utils import (

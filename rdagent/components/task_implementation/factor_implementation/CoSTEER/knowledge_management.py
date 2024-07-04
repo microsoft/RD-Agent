@@ -17,10 +17,10 @@ from rdagent.components.knowledge_management.graph import (
 from rdagent.components.task_implementation.factor_implementation.config import (
     FACTOR_IMPLEMENT_SETTINGS,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evaluators import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evaluators import (
     FactorImplementationSingleFeedback,
 )
-from rdagent.components.task_implementation.factor_implementation.evolving.evolving_strategy import (
+from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolving_strategy import (
     FactorTask,
 )
 from rdagent.core.evolving_framework import (
