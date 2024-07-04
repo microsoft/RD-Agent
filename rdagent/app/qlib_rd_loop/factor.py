@@ -14,8 +14,6 @@ from rdagent.core.proposal import (
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import import_class
 
-# load_from_cls_uri
-
 scen = import_class(PROP_SETTING.scen)()
 
 hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
