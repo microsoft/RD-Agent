@@ -1,12 +1,34 @@
 hypothesis_and_feedback: |-
-  {% for hypothesis, feedback in trace %}
+  {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
   Feedback: {{ feedback }}
   {% endfor %}
 
-output_format: |-
+hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
     "hypothesis": "The new hypothesis generated based on the information provided.",
     "reason": "The reason why you generate this hypothesis."
+  }
+
+experiment_output_format: |-
+  The output should follow JSON format. The schema is as follows:
+  {
+      "factor name 1": {
+          "description": "description of factor 1",
+          "formulation": "latex formulation of factor 1",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      },
+      "factor name 2": {
+          "description": "description of factor 1",
+          "formulation": "latex formulation of factor 2",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }

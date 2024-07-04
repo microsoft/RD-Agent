@@ -2,7 +2,8 @@
 
 """
 
-from typing import Dict, List, Tuple
+from abc import ABC, abstractmethod
+from typing import Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evolving_framework import Feedback
 from rdagent.core.experiment import Experiment, Implementation, Loader, Task
@@ -18,8 +19,9 @@ class Hypothesis:
     - Belief
     """
 
-    hypothesis: str = None
-    reason: str = None
+    def __init__(self, hypothesis: str, reason: str) -> None:
+        self.hypothesis: str = hypothesis
+        self.reason: str = reason
 
     # source: data_ana | model_nan = None
 
@@ -27,16 +29,29 @@ class Hypothesis:
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
 
-class Scenario:
-    def get_repo_path(self):
-        """codebase"""
+class Scenario(ABC):
 
-    def get_data(self):
-        """ "data info"""
+    @property
+    @abstractmethod
+    def background(self):
+        """Background information"""
 
-    def get_env(self):
-        """env description"""
+    @property
+    @abstractmethod
+    def source_data(self):
+        """Source data description"""
 
+    @property
+    @abstractmethod
+    def interface(self):
+        """Interface description about how to run the code"""
+
+    @property
+    @abstractmethod
+    def simulator(self):
+        """Simulator description"""
+
+    @abstractmethod
     def get_scenario_all_desc(self) -> str:
         """Combine all the description together"""
 
@@ -44,9 +59,13 @@ class Scenario:
 class HypothesisFeedback(Feedback): ...
 
 
-class Trace:
-    scen: Scenario
-    hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]]
+ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
+
+
+class Trace(Generic[ASpecificScen]):
+    def __init__(self, scen: ASpecificScen) -> None:
+        self.scen: ASpecificScen = scen
+        self.hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
 
 class HypothesisGen:
@@ -74,16 +93,21 @@ class HypothesisSet:
     true_hypothesis or false_hypothesis
     """
 
-    hypothesis_list: list[Hypothesis]
-    trace: Trace
+    def __init__(self, trace: Trace, hypothesis_list: list[Hypothesis] = []) -> None:
+        self.hypothesis_list: list[Hypothesis] = hypothesis_list
+        self.trace: Trace = trace
 
 
-class Hypothesis2Experiment(Loader[Experiment]):
+ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
+
+
+class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
     [Abstract description => concrete description] => Code implement
     """
 
-    def convert(self, bs: HypothesisSet) -> Experiment:
+    @abstractmethod
+    def convert(self, hs: HypothesisSet) -> ASpecificExp:
         """Connect the idea proposal to implementation"""
         ...
 
@@ -99,3 +123,4 @@ class Experiment2Feedback:
         The `ti` should be executed and the results should be included.
         For example: `mlflow` of Qlib will be included.
         """
+        return HypothesisFeedback()

@@ -2,7 +2,7 @@ from rdagent.core.task_generator import TaskGenerator
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
-class QlibDataImplementation(TaskGenerator[QlibFactorExperiment]):
+class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     """
     Docker run
     Everything in a folder
@@ -13,3 +13,6 @@ class QlibDataImplementation(TaskGenerator[QlibFactorExperiment]):
 
     - TODO: implement a qlib handler
     """
+
+    def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
+        return exp  # TODO IMPLEMENT THIS
