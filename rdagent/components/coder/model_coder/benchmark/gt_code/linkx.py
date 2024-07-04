@@ -166,6 +166,7 @@ class LINKX(torch.nn.Module):
             f"out_channels={self.out_channels})"
         )
 
+
 model_cls = LINKX
 
 if __name__ == "__main__":

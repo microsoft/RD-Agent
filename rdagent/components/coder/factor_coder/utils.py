@@ -5,9 +5,7 @@ import pandas as pd
 # render it with jinja
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 
 TPL = """
 {{file_name}}

@@ -4,22 +4,18 @@ from typing import List, Tuple, Union
 
 from tqdm import tqdm
 
-from rdagent.components.task_implementation.factor_implementation.config import (
-    FACTOR_IMPLEMENT_SETTINGS,
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
+    FactorCorrelationEvaluator,
+    FactorEvaluator,
+    FactorIndexEvaluator,
+    FactorIndexFormatEvaluator,
+    FactorMissingValuesEvaluator,
+    FactorRowCountEvaluator,
+    FactorSingleColumnEvaluator,
+    FactorValuesEvaluator,
 )
-from rdagent.components.task_implementation.factor_implementation.CoSTEER.evaluators import (
-    FactorImplementationCorrelationEvaluator,
-    FactorImplementationEvaluator,
-    FactorImplementationIndexEvaluator,
-    FactorImplementationIndexFormatEvaluator,
-    FactorImplementationMissingValuesEvaluator,
-    FactorImplementationRowCountEvaluator,
-    FactorImplementationSingleColumnEvaluator,
-    FactorImplementationValuesEvaluator,
-)
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FileBasedFactorImplementation,
-)
+from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.experiment import Implementation, Task
 from rdagent.core.task_generator import TaskGenerator
@@ -43,7 +39,7 @@ class BaseEval:
 
     def __init__(
         self,
-        evaluator_l: List[FactorImplementationEvaluator],
+        evaluator_l: List[FactorEvaluator],
         test_cases: List[TestCase],
         generate_method: TaskGenerator,
         catch_eval_except: bool = True,
@@ -52,7 +48,7 @@ class BaseEval:
         ----------
         test_cases : List[TestCase]
             cases to be evaluated, ground truth are included in the test cases.
-        evaluator_l : List[FactorImplementationEvaluator]
+        evaluator_l : List[FactorEvaluator]
             A list of evaluators to evaluate the generated code.
         catch_eval_except : bool
             If we want to debug the evaluators, we recommend to set the this parameter to True.
@@ -81,7 +77,7 @@ class BaseEval:
         self,
         case_gt: Implementation,
         case_gen: Implementation,
-    ) -> List[Union[Tuple[FactorImplementationEvaluator, object], Exception]]:
+    ) -> List[Union[Tuple[FactorEvaluator, object], Exception]]:
         """Parameters
         ----------
         case_gt : FactorImplementation
@@ -91,7 +87,7 @@ class BaseEval:
 
         Returns
         -------
-        List[Union[Tuple[FactorImplementationEvaluator, object],Exception]]
+        List[Union[Tuple[FactorEvaluator, object],Exception]]
             for each item
                 If the evaluation run successfully, return the evaluate results.  Otherwise, return the exception.
         """
@@ -121,13 +117,13 @@ class FactorImplementEval(BaseEval):
         **kwargs,
     ):
         online_evaluator_l = [
-            FactorImplementationSingleColumnEvaluator(),
-            FactorImplementationIndexFormatEvaluator(),
-            FactorImplementationRowCountEvaluator(),
-            FactorImplementationIndexEvaluator(),
-            FactorImplementationMissingValuesEvaluator(),
-            FactorImplementationValuesEvaluator(),
-            FactorImplementationCorrelationEvaluator(hard_check=False),
+            FactorSingleColumnEvaluator(),
+            FactorIndexFormatEvaluator(),
+            FactorRowCountEvaluator(),
+            FactorIndexEvaluator(),
+            FactorMissingValuesEvaluator(),
+            FactorValuesEvaluator(),
+            FactorCorrelationEvaluator(hard_check=False),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round

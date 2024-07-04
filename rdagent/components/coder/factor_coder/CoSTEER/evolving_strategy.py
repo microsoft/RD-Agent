@@ -8,23 +8,19 @@ from typing import TYPE_CHECKING
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
-from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolvable_subjects import (
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.components.task_implementation.factor_implementation.CoSTEER.scheduler import (
+from rdagent.components.coder.factor_coder.CoSTEER.scheduler import (
     LLMSelect,
     RandomSelect,
 )
-from rdagent.components.task_implementation.factor_implementation.factor import (
+from rdagent.components.coder.factor_coder.factor import (
     FactorTask,
     FileBasedFactorImplementation,
 )
-from rdagent.components.task_implementation.factor_implementation.utils import (
-    get_data_folder_intro,
-)
+from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import Implementation
@@ -33,7 +29,7 @@ from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
-    from rdagent.components.task_implementation.factor_implementation.CoSTEER.knowledge_management import (
+    from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
         FactorImplementationQueriedKnowledge,
         FactorImplementationQueriedKnowledgeV1,
     )

@@ -1,10 +1,8 @@
 # %%
 from dotenv import load_dotenv
 
-from rdagent.components.task_implementation.model_implementation.one_shot import (
-    ModelCodeWriter,
-)
-from rdagent.components.task_implementation.model_implementation.task_loader import (
+from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
+from rdagent.components.coder.model_coder.task_loader import (
     ModelImplementationExperimentLoaderFromPDFfiles,
 )
 

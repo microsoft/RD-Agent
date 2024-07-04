@@ -6,11 +6,12 @@ Tries to create uniform environment for the agent to run;
 
 """
 import os
-import docker
 from abc import abstractmethod
-from pydantic import BaseModel
-from typing import Generic, TypeVar
 from pathlib import Path
+from typing import Generic, TypeVar
+
+import docker
+from pydantic import BaseModel
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -21,6 +22,7 @@ class Env(Generic[ASpecificBaseModel]):
     - It provides base typing and checking featurs.
     - loading and dumping the information will be easier: for example, we can use package like `pydantic-yaml`
     """
+
     conf: ASpecificBaseModel  # different env have different conf.
 
     def __init__(self, conf: ASpecificBaseModel):
@@ -33,10 +35,7 @@ class Env(Generic[ASpecificBaseModel]):
         """
 
     @abstractmethod
-    def run(self,
-            entry: str | None,
-            local_path: str | None = None,
-            env: dict | None = None) -> str:
+    def run(self, entry: str | None, local_path: str | None = None, env: dict | None = None) -> str:
         """
         Run the folder under the environment.
 
@@ -70,6 +69,7 @@ class LocalEnv(Env[LocalConf]):
     """
     Sometimes local environment may be more convinient for testing
     """
+
     conf: LocalConf
 
 
@@ -87,10 +87,12 @@ class DockerConf(BaseModel):
     # So we just want to download it once.
 
 
-QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
-                              mount_path="/workspace",
-                              default_entry="qrun conf.yaml",
-                              extra_volumes={Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"})
+QLIB_TORCH_IMAGE = DockerConf(
+    image="linlanglv/qlib_image_nightly_pytorch:nightly",
+    mount_path="/workspace",
+    default_entry="qrun conf.yaml",
+    extra_volumes={Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"},
+)
 
 
 class DockerEnv(Env[DockerConf]):
@@ -109,7 +111,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while pulling the image: {e}")
 
     def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
-
         if env is None:
             env = {}
         client = docker.from_env()
@@ -119,10 +120,10 @@ class DockerEnv(Env[DockerConf]):
         volumns = {}
         if local_path is not None:
             local_path = os.path.abspath(local_path)
-            volumns[local_path] = {'bind': self.conf.mount_path, 'mode': 'rw'}
+            volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumns[lp] = {'bind': rp, 'mode': 'rw'}
+                volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
         try:

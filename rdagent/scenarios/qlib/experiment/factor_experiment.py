@@ -1,11 +1,7 @@
 from pathlib import Path
 
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FactorExperiment,
-)
-from rdagent.components.task_implementation.factor_implementation.utils import (
-    get_data_folder_intro,
-)
+from rdagent.components.coder.factor_coder.factor import FactorExperiment
+from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Scenario
 

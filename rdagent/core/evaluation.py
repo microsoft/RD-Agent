@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from rdagent.core.experiment import Task, Implementation
+from rdagent.core.experiment import Implementation, Task
 
 
 class Evaluator(ABC):

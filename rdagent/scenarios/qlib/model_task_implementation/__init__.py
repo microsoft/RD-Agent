@@ -1,6 +1,4 @@
-from rdagent.components.task_implementation.model_implementation.one_shot import (
-    ModelCodeWriter,
-)
+from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
 
 
 class QlibModelCodeWriter(ModelCodeWriter): ...

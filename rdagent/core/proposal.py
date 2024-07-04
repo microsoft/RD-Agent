@@ -30,7 +30,6 @@ class Hypothesis:
 
 
 class Scenario(ABC):
-
     @property
     @abstractmethod
     def background(self):
@@ -56,7 +55,8 @@ class Scenario(ABC):
         """Combine all the description together"""
 
 
-class HypothesisFeedback(Feedback): ...
+class HypothesisFeedback(Feedback):
+    ...
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)

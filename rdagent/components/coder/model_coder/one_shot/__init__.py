@@ -4,7 +4,7 @@ from typing import Sequence
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.model_implementation.model import (
+from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelImplementation,
     ModelTask,

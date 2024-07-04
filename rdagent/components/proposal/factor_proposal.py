@@ -4,9 +4,7 @@ from typing import Tuple
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FactorExperiment,
-)
+from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
@@ -30,10 +28,12 @@ class FactorHypothesisGen(HypothesisGen):
 
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]: ...
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorHypothesis: ...
+    def convert_response(self, response: str) -> FactorHypothesis:
+        ...
 
     def gen(self, trace: Trace) -> FactorHypothesis:
         context_dict, json_flag = self.prepare_context(trace)
@@ -67,10 +67,12 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
         super().__init__()
 
     @abstractmethod
-    def prepare_context(self, hs: HypothesisSet) -> Tuple[dict, bool]: ...
+    def prepare_context(self, hs: HypothesisSet) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorExperiment: ...
+    def convert_response(self, response: str) -> FactorExperiment:
+        ...
 
     def convert(self, hs: HypothesisSet) -> FactorExperiment:
         context, json_flag = self.prepare_context(hs)

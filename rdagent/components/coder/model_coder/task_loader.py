@@ -4,15 +4,15 @@ import json
 import re
 from pathlib import Path
 
-from rdagent.components.document_reader.document_reader import (
-    load_and_process_pdfs_by_langchain,
-)
-from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.components.task_implementation.model_implementation.model import (
+from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelImplementationTaskLoaderFromDict,
     ModelTask,
 )
+from rdagent.components.document_reader.document_reader import (
+    load_and_process_pdfs_by_langchain,
+)
+from rdagent.components.loader.task_loader import ModelTaskLoader
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend

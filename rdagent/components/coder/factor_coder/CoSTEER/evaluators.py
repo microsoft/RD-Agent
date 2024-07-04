@@ -7,15 +7,11 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.task_implementation.factor_implementation.config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
-from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolvable_subjects import (
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.components.task_implementation.factor_implementation.CoSTEER.evolving_strategy import (
-    FactorTask,
-)
+from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
@@ -28,7 +24,7 @@ from rdagent.oai.llm_utils import APIBackend
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-class FactorImplementationEvaluator(Evaluator):
+class FactorEvaluator(Evaluator):
     # TODO:
     # I think we should have unified interface for all evaluates, for examples.
     # So we should adjust the interface of other factors
@@ -64,7 +60,7 @@ class FactorImplementationEvaluator(Evaluator):
         return gt_df, gen_df
 
 
-class FactorImplementationCodeEvaluator(Evaluator):
+class FactorCodeEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: FactorTask,
@@ -124,7 +120,7 @@ class FactorImplementationCodeEvaluator(Evaluator):
         return critic_response
 
 
-class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
+class FactorSingleColumnEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -150,7 +146,7 @@ class FactorImplementationSingleColumnEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationIndexFormatEvaluator(FactorImplementationEvaluator):
+class FactorIndexFormatEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -173,7 +169,7 @@ class FactorImplementationIndexFormatEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationRowCountEvaluator(FactorImplementationEvaluator):
+class FactorRowCountEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -193,7 +189,7 @@ class FactorImplementationRowCountEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationIndexEvaluator(FactorImplementationEvaluator):
+class FactorIndexEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -213,7 +209,7 @@ class FactorImplementationIndexEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationMissingValuesEvaluator(FactorImplementationEvaluator):
+class FactorMissingValuesEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -233,7 +229,7 @@ class FactorImplementationMissingValuesEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationValuesEvaluator(FactorImplementationEvaluator):
+class FactorValuesEvaluator(FactorEvaluator):
     def evaluate(
         self,
         gt: Implementation,
@@ -263,7 +259,7 @@ class FactorImplementationValuesEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
+class FactorCorrelationEvaluator(FactorEvaluator):
     def __init__(self, hard_check: bool) -> None:
         self.hard_check = hard_check
 
@@ -302,19 +298,19 @@ class FactorImplementationCorrelationEvaluator(FactorImplementationEvaluator):
         return self.__class__.__name__
 
 
-class FactorImplementationValEvaluator(FactorImplementationEvaluator):
+class FactorValEvaluator(FactorEvaluator):
     def evaluate(self, gt: Implementation, gen: Implementation):
         _, gt_df = gt.execute()
         _, gen_df = gen.execute()
         # FIXME: refactor the two classes
-        fiv = FactorImplementationValueEvaluator()
+        fiv = FactorValueEvaluator()
         return fiv.evaluate(source_df=gen_df, gt_df=gt_df)
 
     def __str__(self) -> str:
         return self.__class__.__name__
 
 
-class FactorImplementationValueEvaluator(Evaluator):
+class FactorValueEvaluator(Evaluator):
     # TODO: let's discuss the about the interface of the evaluator
     def evaluate(
         self,
@@ -476,11 +472,11 @@ def shorten_prompt(tpl: str, render_kwargs: dict, shorten_key: str, max_trail: i
     But we should not truncate the prompt directly, so we should find the key we want to shorten and then shorten it.
     """
     # TODO: this should replace most of code in
-    # - FactorImplementationFinalDecisionEvaluator.evaluate
-    # - FactorImplementationCodeEvaluator.evaluate
+    # - FactorFinalDecisionEvaluator.evaluate
+    # - FactorCodeEvaluator.evaluate
 
 
-class FactorImplementationFinalDecisionEvaluator(Evaluator):
+class FactorFinalDecisionEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: FactorTask,
@@ -548,7 +544,7 @@ class FactorImplementationFinalDecisionEvaluator(Evaluator):
         )
 
 
-class FactorImplementationSingleFeedback:
+class FactorSingleFeedback:
     """This class is a feedback to single implementation which is generated from an evaluator."""
 
     def __init__(
@@ -583,22 +579,22 @@ This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
 
 
-class FactorImplementationsMultiFeedback(
+class FactorMultiFeedback(
     Feedback,
-    List[FactorImplementationSingleFeedback],
+    List[FactorSingleFeedback],
 ):
     """Feedback contains a list, each element is the corresponding feedback for each factor implementation."""
 
 
-class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
+class FactorEvaluatorV1(FactorEvaluator):
     """This class is the v1 version of evaluator for a single factor implementation.
     It calls several evaluators in share modules to evaluate the factor implementation.
     """
 
     def __init__(self) -> None:
-        self.code_evaluator = FactorImplementationCodeEvaluator()
-        self.value_evaluator = FactorImplementationValueEvaluator()
-        self.final_decision_evaluator = FactorImplementationFinalDecisionEvaluator()
+        self.code_evaluator = FactorCodeEvaluator()
+        self.value_evaluator = FactorValueEvaluator()
+        self.final_decision_evaluator = FactorFinalDecisionEvaluator()
 
     def evaluate(
         self,
@@ -607,7 +603,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
         gt_implementation: Implementation = None,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> FactorImplementationSingleFeedback:
+    ) -> FactorSingleFeedback:
         if implementation is None:
             return None
 
@@ -618,7 +614,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
         ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
-            return FactorImplementationSingleFeedback(
+            return FactorSingleFeedback(
                 execution_feedback="This task has failed too many times, skip implementation.",
                 value_generated_flag=False,
                 code_feedback="This task has failed too many times, skip code evaluation.",
@@ -628,7 +624,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
                 final_decision_based_on_gt=False,
             )
         else:
-            factor_feedback = FactorImplementationSingleFeedback()
+            factor_feedback = FactorSingleFeedback()
             (
                 factor_feedback.execution_feedback,
                 source_df,
@@ -692,8 +688,8 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
             return factor_feedback
 
 
-class FactorImplementationsMultiEvaluator(Evaluator):
-    def __init__(self, single_evaluator=FactorImplementationEvaluatorV1()) -> None:
+class FactorMultiEvaluator(Evaluator):
+    def __init__(self, single_evaluator=FactorEvaluatorV1()) -> None:
         super().__init__()
         self.single_factor_implementation_evaluator = single_evaluator
 
@@ -702,8 +698,8 @@ class FactorImplementationsMultiEvaluator(Evaluator):
         evo: FactorEvolvingItem,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> FactorImplementationsMultiFeedback:
-        multi_implementation_feedback = FactorImplementationsMultiFeedback()
+    ) -> FactorMultiFeedback:
+        multi_implementation_feedback = FactorMultiFeedback()
 
         # for index in range(len(evo.sub_tasks)):
         #     corresponding_implementation = evo.sub_implementations[index]
