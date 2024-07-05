@@ -152,7 +152,7 @@ class FileBasedFactorImplementation(FBImplementation):
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             try:
                 subprocess.check_output(
-                    f"/home/xuyang1/miniconda3/envs/rdagent/bin/python {code_path}",
+                    f"python {code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
