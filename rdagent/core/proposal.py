@@ -88,11 +88,10 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 
 # Boolean, Reason, Confidence, etc.
 
-
 class Experiment2Feedback:
     """ "Generated(summarize) feedback from **Executed** Implementation"""
 
-    def summarize(self, ti: Experiment) -> HypothesisFeedback:
+    def summarize(self, ti: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included.
         For example: `mlflow` of Qlib will be included.
