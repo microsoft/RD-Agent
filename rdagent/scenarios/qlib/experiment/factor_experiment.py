@@ -3,7 +3,7 @@ from pathlib import Path
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import Scenario
+from rdagent.core.scenario import Scenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 

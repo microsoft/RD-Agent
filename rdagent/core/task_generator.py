@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, List, Sequence, TypeVar
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import Scenario
+from rdagent.core.scenario import Scenario
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 

@@ -87,7 +87,11 @@ class FactorCodeEvaluator(FactorEvaluator):
         factor_information = target_task.get_factor_information()
         code = implementation.code
 
-        system_prompt = evaluate_prompts["evaluator_code_feedback_v1_system"]
+        system_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
+            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+        )
 
         execution_feedback_to_render = execution_feedback
         for _ in range(10):  # 10 times to split the content is enough

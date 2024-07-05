@@ -19,7 +19,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.core.proposal import Scenario
+from rdagent.core.scenario import Scenario
 from rdagent.core.task_generator import TaskGenerator
 
 
@@ -47,7 +47,7 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
-        self.evolving_strategy = FactorEvolvingStrategyWithGraph()
+        self.evolving_strategy = FactorEvolvingStrategyWithGraph(scen=self.scen)
         # declare the factor evaluator
         self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder(scen=self.scen), scen=self.scen)
         self.evolving_version = 2

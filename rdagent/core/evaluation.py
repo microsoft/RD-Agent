@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 
 from rdagent.core.experiment import Implementation, Task
-from rdagent.core.proposal import Scenario
+from rdagent.core.scenario import Scenario
+
+
+class Feedback:
+    pass
 
 
 class Evaluator(ABC):

@@ -89,6 +89,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                     implementation_factors_per_round,
                     new_evo,
                     queried_knowledge.former_traces,
+                    self.scen,
                 )
 
         result = multiprocessing_wrapper(
@@ -193,7 +194,8 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
 
 
 class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.num_loop = 0
         self.haveSelected = False
 
@@ -240,7 +242,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     implement_prompts["evolving_strategy_factor_implementation_v1_system"],
                 )
                 .render(
-                    data_info=get_data_folder_intro(),
+                    scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 )
             )
