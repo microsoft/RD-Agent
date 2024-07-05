@@ -11,7 +11,7 @@ class PropSetting(BaseSettings):
     qlib_factor_runner: str = "rdagent.scenarios.qlib.task_generator.data.QlibFactorRunner"
     qlib_factor_summarizer: str = "rdagent.scenarios.qlib.task_generator.feedback.QlibFactorExperiment2Feedback"
 
-    evolving_n: int = 10
+    evolving_n: int = 1  # changed from 10 to 1 for debug
 
 
 PROP_SETTING = PropSetting()

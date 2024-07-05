@@ -1,7 +1,9 @@
 """
 TODO: Factor Structure RD-Loop
 """
-
+from dotenv import load_dotenv
+ 
+load_dotenv(override=True)
 # import_from
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.proposal import (
@@ -28,11 +30,22 @@ qlib_factor_summarizer: Experiment2Feedback = import_class(PROP_SETTING.qlib_fac
 
 trace = Trace(scen=scen)
 hs = HypothesisSet(trace=trace)
-for _ in range(PROP_SETTING.evolving_n):
-    hypothesis = hypothesis_gen.gen(trace)
-    exp = hypothesis2experiment.convert(hs)
-    exp = qlib_factor_coder.generate(exp)
-    exp = qlib_factor_runner.generate(exp)
-    feedback = qlib_factor_summarizer.summarize(exp)
+# for _ in range(PROP_SETTING.evolving_n):
+#     hypothesis = hypothesis_gen.gen(trace)
+#     exp = hypothesis2experiment.convert(hs)
 
-    trace.hist.append((hypothesis, exp, feedback))
+    
+
+import pickle
+# # 将exp存储到文件中
+# with open('/home/finco/RDAgent_MS/RD-Agent/git_ignore_folder/factor_data_output/exp.pkl', 'wb') as f:
+#     pickle.dump(exp, f)
+
+file_path = '/home/finco/RDAgent_MS/RD-Agent/git_ignore_folder/factor_data_output/exp.pkl'
+
+with open(file_path, 'rb') as file:
+    exp = pickle.load(file)
+
+exp = qlib_factor_runner.generate(exp)
+feedback = qlib_factor_summarizer.summarize(exp)
+# trace.hist.append((hypothesis, exp, feedback))

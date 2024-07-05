@@ -153,3 +153,6 @@ git_ignore_folder/
 
 # DB files
 *.db
+
+# Docker
+env_factor/
