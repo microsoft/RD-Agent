@@ -1,7 +1,8 @@
+from rdagent.components.coder.model_coder.model import ModelImplementation
 from rdagent.core.task_generator import TaskGenerator
 
 
-class QlibModelImplementation(TaskGenerator[QlibModelExperiment]):
+class QlibModelImplementation(TaskGenerator[ModelImplementation]):
     """
     Docker run
     Everything in a folder

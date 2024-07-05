@@ -5,8 +5,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Generic, List, Tuple, TypeVar
 
-from rdagent.core.evolving_framework import Feedback
-from rdagent.core.experiment import Experiment, Implementation, Loader, Task
+from rdagent.core.evaluation import Feedback
+from rdagent.core.experiment import Experiment
+from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
 
@@ -27,33 +28,6 @@ class Hypothesis:
 
 
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
-
-
-class Scenario(ABC):
-
-    @property
-    @abstractmethod
-    def background(self):
-        """Background information"""
-
-    @property
-    @abstractmethod
-    def source_data(self):
-        """Source data description"""
-
-    @property
-    @abstractmethod
-    def interface(self):
-        """Interface description about how to run the code"""
-
-    @property
-    @abstractmethod
-    def simulator(self):
-        """Simulator description"""
-
-    @abstractmethod
-    def get_scenario_all_desc(self) -> str:
-        """Combine all the description together"""
 
 
 class HypothesisFeedback(Feedback): ...

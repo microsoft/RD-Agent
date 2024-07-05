@@ -22,7 +22,7 @@ from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
-    FactorImplementationExperimentLoaderFromDict,
+    FactorExperimentLoaderFromDict,
 )
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -579,7 +579,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
     return llm_deduplicated_factor_dict, final_duplication_names_list
 
 
-class FactorImplementationExperimentLoaderFromPDFfiles(FactorExperimentLoader):
+class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
 
@@ -589,4 +589,4 @@ class FactorImplementationExperimentLoaderFromPDFfiles(FactorExperimentLoader):
 
         factor_viability = check_factor_viability(factor_dict)
         factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
-        return FactorImplementationExperimentLoaderFromDict().load(factor_dict)
+        return FactorExperimentLoaderFromDict().load(factor_dict)

@@ -2,16 +2,16 @@ import json
 from pathlib import Path
 
 from rdagent.components.benchmark.eval_method import TestCase
-from rdagent.components.loader.experiment_loader import FactorExperimentLoader
-from rdagent.components.task_implementation.factor_implementation.factor import (
+from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
     FactorTask,
     FileBasedFactorImplementation,
 )
+from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.experiment import Loader
 
 
-class FactorImplementationExperimentLoaderFromDict(FactorExperimentLoader):
+class FactorExperimentLoaderFromDict(FactorExperimentLoader):
     def load(self, factor_dict: dict) -> list:
         """Load data from a dict."""
         task_l = []
@@ -27,17 +27,17 @@ class FactorImplementationExperimentLoaderFromDict(FactorExperimentLoader):
         return exp
 
 
-class FactorImplementationExperimentLoaderFromJsonFile(FactorExperimentLoader):
+class FactorExperimentLoaderFromJsonFile(FactorExperimentLoader):
     def load(self, json_file_path: Path) -> list:
         with open(json_file_path, "r") as file:
             factor_dict = json.load(file)
-        return FactorImplementationExperimentLoaderFromDict().load(factor_dict)
+        return FactorExperimentLoaderFromDict().load(factor_dict)
 
 
-class FactorImplementationExperimentLoaderFromJsonString(FactorExperimentLoader):
+class FactorExperimentLoaderFromJsonString(FactorExperimentLoader):
     def load(self, json_string: str) -> list:
         factor_dict = json.loads(json_string)
-        return FactorImplementationExperimentLoaderFromDict().load(factor_dict)
+        return FactorExperimentLoaderFromDict().load(factor_dict)
 
 
 # TODO loader only supports generic of task or experiment, testcase might cause CI error here

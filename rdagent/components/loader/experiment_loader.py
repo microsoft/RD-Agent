@@ -1,6 +1,4 @@
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FactorExperiment,
-)
+from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.experiment import Loader
 
 

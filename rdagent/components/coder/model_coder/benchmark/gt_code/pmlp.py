@@ -106,7 +106,12 @@ if __name__ == "__main__":
     edge_index = torch.load("edge_index.pt")
 
     # Model instantiation and forward pass
-    model = PMLP(in_channels=node_features.size(-1), hidden_channels=node_features.size(-1), out_channels=node_features.size(-1), num_layers=1)
+    model = PMLP(
+        in_channels=node_features.size(-1),
+        hidden_channels=node_features.size(-1),
+        out_channels=node_features.size(-1),
+        num_layers=1,
+    )
     output = model(node_features, edge_index)
 
     # Save output to a file

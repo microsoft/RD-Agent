@@ -11,9 +11,31 @@ qlib_factor_background: |-
   Please specifically give all the hyperparameter in the factors like the window size, look back period, and so on. One factor should statically defines one output with a static source data. For example, last 10 days momentum and last 20 days momentum should be two different factors.
 
 qlib_factor_interface: |-
-  Your code should follow the interface to better interact with the user's system.
-  Your code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your code. The user will catch the exception message and provide the feedback to you.
-  User will write your code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
+  Your python code should follow the interface to better interact with the user's system.
+  Your python code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
+  User will write your python code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
+
+qlib_factor_output_format: |-
+  Your output should be a pandas dataframe similar to the following example information:
+  <class 'pandas.core.frame.DataFrame'>
+  MultiIndex: 40914 entries, (Timestamp('2020-01-02 00:00:00'), 'SH600000') to (Timestamp('2021-12-31 00:00:00'), 'SZ300059')
+  Data columns (total 1 columns):
+  #   Column            Non-Null Count  Dtype  
+  ---  ------            --------------  -----  
+  0   your factor name  40914 non-null  float64
+  dtypes: float64(1)
+  memory usage: <ignore>
+  None
+  One possible format of `result.h5` may be like following:
+  datetime    instrument
+  2020-01-02  SZ000001     -0.001796
+              SZ000166      0.005780
+              SZ000686      0.004228
+              SZ000712      0.001298
+              SZ000728      0.005330
+                              ...
+  2021-12-31  SZ000750      0.000000
+              SZ000776      0.002459
 
 qlib_factor_simulator: |-
   The factors will be sent into Qlib to train a model to predict the next several days return based on the factor values of the previous days. 

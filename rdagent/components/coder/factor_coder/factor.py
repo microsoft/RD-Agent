@@ -9,9 +9,7 @@ from typing import Tuple, Union
 import pandas as pd
 from filelock import FileLock
 
-from rdagent.components.task_implementation.factor_implementation.config import (
-    FACTOR_IMPLEMENT_SETTINGS,
-)
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import (
     CodeFormatException,
     NoOutputException,

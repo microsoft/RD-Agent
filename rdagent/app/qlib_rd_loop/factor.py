@@ -2,6 +2,10 @@
 TODO: Factor Structure RD-Loop
 """
 
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 # import_from
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.proposal import (
@@ -20,8 +24,8 @@ hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
 
 hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
 
-qlib_factor_coder: TaskGenerator = import_class(PROP_SETTING.qlib_factor_coder)()
-qlib_factor_runner: TaskGenerator = import_class(PROP_SETTING.qlib_factor_runner)()
+qlib_factor_coder: TaskGenerator = import_class(PROP_SETTING.qlib_factor_coder)(scen)
+qlib_factor_runner: TaskGenerator = import_class(PROP_SETTING.qlib_factor_runner)(scen)
 
 qlib_factor_summarizer: Experiment2Feedback = import_class(PROP_SETTING.qlib_factor_summarizer)()
 

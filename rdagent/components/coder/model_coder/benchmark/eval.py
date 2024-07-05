@@ -1,9 +1,7 @@
 # TODO: inherent from the benchmark base class
 import torch
 
-from rdagent.components.task_implementation.model_implementation.model import (
-    ModelImplementation,
-)
+from rdagent.components.coder.model_coder.model import ModelImplementation
 
 
 def get_data_conf(init_val):

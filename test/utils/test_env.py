@@ -1,24 +1,24 @@
 import os
-import sys
 import subprocess
+import sys
 import unittest
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from rdagent.utils.env import QTDockerEnv
 import shutil
 
+from rdagent.utils.env import QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class EnvUtils(unittest.TestCase):
-
     def setUp(self):
         pass
 
     def tearDown(self):
         # NOTE: For a docker file, the output are generated with root permission.
-        # mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+        # mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         # if mlrun_p.exists():
         #     shutil.rmtree(mlrun_p)
         ...
@@ -34,7 +34,7 @@ class EnvUtils(unittest.TestCase):
         # the stdout are returned as result
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
 
-        mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+        mlrun_p = DIRNAME / "env_tpl" / "mlruns"
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
 
