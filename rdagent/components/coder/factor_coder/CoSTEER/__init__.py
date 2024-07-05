@@ -13,9 +13,9 @@ from rdagent.components.coder.factor_coder.CoSTEER.evolving_strategy import (
     FactorEvolvingStrategyWithGraph,
 )
 from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
-    FactorImplementationGraphKnowledgeBase,
-    FactorImplementationGraphRAGStrategy,
-    FactorImplementationKnowledgeBaseV1,
+    FactorGraphKnowledgeBase,
+    FactorGraphRAGStrategy,
+    FactorKnowledgeBaseV1,
 )
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.evolving_agent import RAGEvoAgent
@@ -55,22 +55,20 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
-            if self.evolving_version == 1 and not isinstance(
-                factor_knowledge_base, FactorImplementationKnowledgeBaseV1
-            ):
+            if self.evolving_version == 1 and not isinstance(factor_knowledge_base, FactorKnowledgeBaseV1):
                 raise ValueError("The former knowledge base is not compatible with the current version")
             elif self.evolving_version == 2 and not isinstance(
                 factor_knowledge_base,
-                FactorImplementationGraphKnowledgeBase,
+                FactorGraphKnowledgeBase,
             ):
                 raise ValueError("The former knowledge base is not compatible with the current version")
         else:
             factor_knowledge_base = (
-                FactorImplementationGraphKnowledgeBase(
+                FactorGraphKnowledgeBase(
                     init_component_list=component_init_list,
                 )
                 if self.evolving_version == 2
-                else FactorImplementationKnowledgeBaseV1()
+                else FactorKnowledgeBaseV1()
             )
         return factor_knowledge_base
 
@@ -81,7 +79,7 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
             component_init_list=[],
         )
         # init rag method
-        self.rag = FactorImplementationGraphRAGStrategy(factor_knowledge_base)
+        self.rag = FactorGraphRAGStrategy(factor_knowledge_base)
 
         # init intermediate items
         factor_experiment = FactorEvolvingItem(sub_tasks=exp.sub_tasks)

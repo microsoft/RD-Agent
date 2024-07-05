@@ -30,8 +30,8 @@ from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
     from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
-        FactorImplementationQueriedKnowledge,
-        FactorImplementationQueriedKnowledgeV1,
+        FactorQueriedKnowledge,
+        FactorQueriedKnowledgeV1,
     )
 
 implement_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -50,7 +50,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self,
         *,
         evo: FactorEvolvingItem,
-        queried_knowledge: FactorImplementationQueriedKnowledge | None = None,
+        queried_knowledge: FactorQueriedKnowledge | None = None,
         **kwargs,
     ) -> FactorEvolvingItem:
         self.num_loop += 1
@@ -116,7 +116,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_factor(
         self,
         target_task: FactorTask,
-        queried_knowledge: FactorImplementationQueriedKnowledgeV1 = None,
+        queried_knowledge: FactorQueriedKnowledgeV1 = None,
     ) -> Implementation:
         factor_information_str = target_task.get_factor_information()
 
