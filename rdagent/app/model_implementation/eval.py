@@ -2,16 +2,12 @@ from pathlib import Path
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-from rdagent.components.task_implementation.model_implementation.benchmark.eval import (
-    ModelImpValEval,
-)
-from rdagent.components.task_implementation.model_implementation.model import (
+from rdagent.components.coder.model_coder.benchmark.eval import ModelImpValEval
+from rdagent.components.coder.model_coder.model import (
     ModelImpLoader,
     ModelTaskLoaderJson,
 )
-from rdagent.components.task_implementation.model_implementation.one_shot import (
-    ModelCodeWriter,
-)
+from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
 
 bench_folder = DIRNAME.parent.parent / "components" / "task_implementation" / "model_implementation" / "benchmark"
 mtl = ModelTaskLoaderJson(str(bench_folder / "model_dict.json"))

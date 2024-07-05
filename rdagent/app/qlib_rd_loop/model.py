@@ -5,6 +5,7 @@ TODO: move the following code to a new class: Model_RD_Agent
 
 # import_from
 from rdagent.app.model_proposal.conf import MODEL_PROP_SETTING
+
 from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis2Experiment,

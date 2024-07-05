@@ -1,9 +1,20 @@
 from abc import ABC, abstractmethod
 
-from rdagent.core.experiment import Task, Implementation
+from rdagent.core.experiment import Implementation, Task
+from rdagent.core.scenario import Scenario
+
+
+class Feedback:
+    pass
 
 
 class Evaluator(ABC):
+    def __init__(
+        self,
+        scen: Scenario,
+    ) -> None:
+        self.scen = scen
+
     @abstractmethod
     def evaluate(
         self,

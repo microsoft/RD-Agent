@@ -5,10 +5,8 @@ from typing import Dict, Optional, Sequence
 
 import torch
 
+from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.components.task_implementation.model_implementation.conf import (
-    MODEL_IMPL_SETTINGS,
-)
 from rdagent.core.exception import CodeFormatException
 from rdagent.core.experiment import Experiment, FBImplementation, ImpLoader, Task
 from rdagent.utils import get_module_by_module_path
@@ -128,7 +126,8 @@ We'll import the model in the implementation in file `model.py` after setting th
 """
 
 
-class ModelExperiment(Experiment[ModelTask, ModelImplementation]): ...
+class ModelExperiment(Experiment[ModelTask, ModelImplementation]):
+    ...
 
 
 class ModelTaskLoaderJson(ModelTaskLoader):

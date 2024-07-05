@@ -1,7 +1,5 @@
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FactorTask,
-)
-from rdagent.components.task_implementation.model_implementation.model import ModelTask
+from rdagent.components.coder.factor_coder.factor import FactorTask
+from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.core.experiment import Loader
 
 

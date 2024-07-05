@@ -1,4 +1,4 @@
-from rdagent.components.task_implementation.factor_implementation.factor import (
+from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
     FactorTask,
     FileBasedFactorImplementation,

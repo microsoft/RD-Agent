@@ -4,15 +4,11 @@ import json
 import re
 from pathlib import Path
 
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.components.task_implementation.model_implementation.model import (
-    ModelExperiment,
-    ModelImplementationTaskLoaderFromDict,
-    ModelTask,
-)
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
@@ -99,7 +95,7 @@ def extract_model_from_docs(docs_dict):
     return model_dict
 
 
-class ModelImplementationExperimentLoaderFromDict(ModelTaskLoader):
+class ModelExperimentLoaderFromDict(ModelTaskLoader):
     def load(self, model_dict: dict) -> list:
         """Load data from a dict."""
         task_l = []
@@ -115,7 +111,7 @@ class ModelImplementationExperimentLoaderFromDict(ModelTaskLoader):
         return ModelExperiment(sub_tasks=task_l)
 
 
-class ModelImplementationExperimentLoaderFromPDFfiles(ModelTaskLoader):
+class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))  # dict{file_path:content}
         model_dict = extract_model_from_docs(
@@ -124,7 +120,7 @@ class ModelImplementationExperimentLoaderFromPDFfiles(ModelTaskLoader):
         model_dict = merge_file_to_model_dict_to_model_dict(
             model_dict
         )  # dict {model_name: dict{description, formulation, variables}}
-        return ModelImplementationExperimentLoaderFromDict().load(model_dict)
+        return ModelExperimentLoaderFromDict().load(model_dict)
 
 
 def main(path="../test_doc"):
