@@ -10,8 +10,8 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorEqualValueCountEvaluator,
     FactorEvaluator,
     FactorIndexEvaluator,
-    FactorIndexFormatEvaluator,
     FactorMissingValuesEvaluator,
+    FactorOutputFormatEvaluator,
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
 )
@@ -112,13 +112,13 @@ class FactorImplementEval(BaseEval):
         self,
         test_cases: TestCase,
         method: TaskGenerator,
-        test_round: int = 10,
         *args,
+        test_round: int = 10,
         **kwargs,
     ):
         online_evaluator_l = [
             FactorSingleColumnEvaluator(),
-            FactorIndexFormatEvaluator(),
+            FactorOutputFormatEvaluator(),
             FactorRowCountEvaluator(),
             FactorIndexEvaluator(),
             FactorMissingValuesEvaluator(),

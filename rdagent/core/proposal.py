@@ -47,6 +47,11 @@ class Scenario(ABC):
 
     @property
     @abstractmethod
+    def output_format(self):
+        """Output format description"""
+
+    @property
+    @abstractmethod
     def simulator(self):
         """Simulator description"""
 
@@ -55,8 +60,7 @@ class Scenario(ABC):
         """Combine all the description together"""
 
 
-class HypothesisFeedback(Feedback):
-    ...
+class HypothesisFeedback(Feedback): ...
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)

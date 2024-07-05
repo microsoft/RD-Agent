@@ -1,3 +1,4 @@
+import io
 import json
 import re
 from abc import abstractmethod
@@ -139,24 +140,41 @@ class FactorSingleColumnEvaluator(FactorEvaluator):
             )
 
 
-class FactorIndexFormatEvaluator(FactorEvaluator):
+class FactorOutputFormatEvaluator(FactorEvaluator):
     def evaluate(
         self,
         implementation: Implementation,
         gt_implementation: Implementation,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-        idx_name_right = gen_df.index.names == ("datetime", "instrument")
-        if idx_name_right:
+        if gen_df is None:
             return (
-                'The index of the dataframe is ("datetime", "instrument") and align with the predefined format.',
-                True,
-            )
-        else:
-            return (
-                'The index of the dataframe is not ("datetime", "instrument"). Please check the implementation.',
+                "The source dataframe is None. Skip the evaluation of the output format.",
                 False,
             )
+        buffer = io.StringIO()
+        gen_df.info(buf=buffer)
+        gen_df_info_str = buffer.getvalue()
+        system_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(
+                evaluate_prompts["evaluator_output_format_system"],
+            )
+            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+        )
+        resp = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
+        )
+        resp_dict = json.loads(resp)
+        if isinstance(resp_dict["output_format_decision"], str) and resp_dict["output_format_decision"].lower() in (
+            "true",
+            "false",
+        ):
+            resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
+        return (
+            resp_dict["output_format_feedback"],
+            resp_dict["output_format_decision"],
+        )
 
 
 class FactorRowCountEvaluator(FactorEvaluator):
@@ -238,7 +256,8 @@ class FactorEqualValueCountEvaluator(FactorEvaluator):
 
 
 class FactorCorrelationEvaluator(FactorEvaluator):
-    def __init__(self, hard_check: bool) -> None:
+    def __init__(self, hard_check: bool, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.hard_check = hard_check
 
     def evaluate(
@@ -284,33 +303,35 @@ class FactorValueEvaluator(FactorEvaluator):
         conclusions = []
 
         # Check if both dataframe has only one columns
-        feedback_str, _ = FactorSingleColumnEvaluator().evaluate(implementation, gt_implementation)
+        feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
 
         # Check if the index of the dataframe is ("datetime", "instrument")
-        feedback_str, _ = FactorIndexFormatEvaluator().evaluate(implementation, gt_implementation)
+        feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
 
         # Check if both dataframe have the same rows count
         if gt_implementation is not None:
-            feedback_str, _ = FactorRowCountEvaluator().evaluate(implementation, gt_implementation)
+            feedback_str, _ = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
-            feedback_str, same_index_result = FactorIndexEvaluator().evaluate(implementation, gt_implementation)
+            feedback_str, same_index_result = FactorIndexEvaluator(self.scen).evaluate(
+                implementation, gt_implementation
+            )
             conclusions.append(feedback_str)
 
-            feedback_str, _ = FactorMissingValuesEvaluator().evaluate(implementation, gt_implementation)
+            feedback_str, _ = FactorMissingValuesEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
-            feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator().evaluate(
+            feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator(self.scen).evaluate(
                 implementation, gt_implementation
             )
             conclusions.append(feedback_str)
 
             if same_index_result:
-                feedback_str, high_correlation_result = FactorCorrelationEvaluator(hard_check=True).evaluate(
-                    implementation, gt_implementation
-                )
+                feedback_str, high_correlation_result = FactorCorrelationEvaluator(
+                    hard_check=True, scen=self.scen
+                ).evaluate(implementation, gt_implementation)
             else:
                 high_correlation_result = False
                 feedback_str = "The source dataframe and the ground truth dataframe have different index. Give up comparing the values and correlation because it's useless"
@@ -334,9 +355,11 @@ class FactorFinalDecisionEvaluator(Evaluator):
         code_feedback: str,
         **kwargs,
     ) -> Tuple:
-        system_prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")[
-            "evaluator_final_decision_v1_system"
-        ]
+        system_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
+            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+        )
         execution_feedback_to_render = execution_feedback
 
         for _ in range(10):  # 10 times to split the content is enough
@@ -374,6 +397,10 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 json_mode=True,
             ),
         )
+        if isinstance(final_evaluation_dict["final_decision"], str) and final_evaluation_dict[
+            "final_decision"
+        ].lower() in ("true", "false"):
+            final_evaluation_dict["final_decision"] = bool(final_evaluation_dict["final_decision"])
         return (
             final_evaluation_dict["final_decision"],
             final_evaluation_dict["final_feedback"],
@@ -427,10 +454,11 @@ class FactorEvaluatorForCoder(FactorEvaluator):
     It calls several evaluators in share modules to evaluate the factor implementation.
     """
 
-    def __init__(self) -> None:
-        self.value_evaluator = FactorValueEvaluator()
-        self.code_evaluator = FactorCodeEvaluator()
-        self.final_decision_evaluator = FactorFinalDecisionEvaluator()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.value_evaluator = FactorValueEvaluator(self.scen)
+        self.code_evaluator = FactorCodeEvaluator(self.scen)
+        self.final_decision_evaluator = FactorFinalDecisionEvaluator(self.scen)
 
     def evaluate(
         self,
@@ -513,8 +541,8 @@ class FactorEvaluatorForCoder(FactorEvaluator):
 
 
 class FactorMultiEvaluator(Evaluator):
-    def __init__(self, single_evaluator=FactorEvaluatorForCoder()) -> None:
-        super().__init__()
+    def __init__(self, single_evaluator, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.single_factor_implementation_evaluator = single_evaluator
 
     def evaluate(

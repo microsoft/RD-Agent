@@ -19,16 +19,20 @@ from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.evolving_agent import RAGEvoAgent
+from rdagent.core.proposal import Scenario
 from rdagent.core.task_generator import TaskGenerator
 
 
 class FactorCoSTEER(TaskGenerator[FactorExperiment]):
     def __init__(
         self,
+        *args,
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
+        **kwargs,
     ) -> None:
+        super().__init__(*args, **kwargs)
         self.max_loop = FACTOR_IMPLEMENT_SETTINGS.max_loop
         self.knowledge_base_path = (
             Path(FACTOR_IMPLEMENT_SETTINGS.knowledge_base_path)
@@ -45,7 +49,7 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
         self.knowledge_self_gen = knowledge_self_gen
         self.evolving_strategy = FactorEvolvingStrategyWithGraph()
         # declare the factor evaluator
-        self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder())
+        self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder(scen=self.scen), scen=self.scen)
         self.evolving_version = 2
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
