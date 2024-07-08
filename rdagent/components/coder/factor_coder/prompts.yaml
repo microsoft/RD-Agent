@@ -116,7 +116,9 @@ evolving_strategy_factor_implementation_v2_user: |-
   {% endif %}
 
 evolving_strategy_error_summary_v2_system: |-
-  You are doing the following task: 
+  User is trying to implement some factors in the following scenario:
+  {{ scenario }}
+  User is doing the following task: 
   {{factor_information_str}}
 
   You have written some code but it meets errors like the following:

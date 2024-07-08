@@ -53,7 +53,7 @@ def LLMSelect(
         )
     )
 
-    while True:
+    for _ in range(10):  # max attempt to reduce the length of user_prompt
         user_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
