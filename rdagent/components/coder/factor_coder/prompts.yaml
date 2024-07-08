@@ -47,9 +47,9 @@ evolving_strategy_factor_implementation_v1_system: |-
 
   {% if queried_former_failed_knowledge|length != 0 %}
   --------------Your former latest attempt:---------------
-  =====Code to implementation {{ loop.index }}=====
+  =====Code to the former implementation=====
   {{ queried_former_failed_knowledge[-1].implementation.code }}
-  =====Feedback to implementation {{ loop.index }}=====
+  =====Feedback to the former implementation=====
   {{ queried_former_failed_knowledge[-1].feedback }}
   {% endif %}
 
