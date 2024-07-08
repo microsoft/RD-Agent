@@ -6,12 +6,13 @@ Tries to create uniform environment for the agent to run;
 
 """
 import os
-from abc import abstractmethod
-from pathlib import Path
-from typing import Generic, TypeVar
-
+import sys
 import docker
+import subprocess
+from abc import abstractmethod
 from pydantic import BaseModel
+from typing import Generic, TypeVar, Optional, Dict
+from pathlib import Path
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -62,15 +63,49 @@ class Env(Generic[ASpecificBaseModel]):
 
 
 class LocalConf(BaseModel):
-    py_entry: str  # where you can find your python path
+    py_entry: str
+    default_entry: str
 
 
 class LocalEnv(Env[LocalConf]):
-    """
-    Sometimes local environment may be more convinient for testing
-    """
 
-    conf: LocalConf
+    def prepare(self):
+        qtde = QTDockerEnv()
+        qtde.prepare()
+
+    def run(self,
+            entry: str | None = None,
+            local_path: Optional[str] = None) -> str:
+        # if env is None:
+        #     env = {}
+
+        if entry is None:
+            entry = self.conf.default_entry
+        # 获取当前路径
+        current_path = os.getcwd()
+
+        # 输出当前路径
+        print("当前路径:", current_path)
+        # Use the configured Python interpreter
+        command = str(Path(self.conf.py_entry).joinpath(entry)).split(" ")
+
+        # Set the working directory
+        cwd = None
+        if local_path:
+            cwd = Path(local_path).resolve()
+
+        result = subprocess.run(
+            command,
+            # env={**os.environ, **env},
+            cwd=cwd,
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Error while running the command: {result.stderr}")
+
+        return result.stdout
 
 
 ## Docker Environment -----
