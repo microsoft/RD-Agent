@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Generic, Optional, Sequence, TypeVar
+from typing import Any, Dict, Generic, Optional, Sequence, TypeVar
 
 """
 This file contains the all the class about organizing the task in RD-Agent.
@@ -78,6 +78,16 @@ class FBImplementation(Implementation):
     # Why not directly reuse FileBasedFactorImplementation.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
+    def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.code_dict = code_dict  # The code to be injected into the folder, store them in the variable
+
+    @property
+    def code(self) -> str:
+        code_string = ""
+        for file_name, code in self.code_dict.items():
+            code_string += f"File: {file_name}\n{code}\n"
+        return code_string
 
     path: Optional[Path]
 
@@ -100,6 +110,7 @@ class FBImplementation(Implementation):
             "model.py": "<model code>"
         }
         """
+        self.code_dict = files
         for k, v in files.items():
             with open(self.path / k, "w") as f:
                 f.write(v)
