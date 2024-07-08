@@ -81,6 +81,7 @@ class FBImplementation(Implementation):
     def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.code_dict = code_dict  # The code to be injected into the folder, store them in the variable
+        self.workspace_path: Optional[Path] = None
 
     @property
     def code(self) -> str:
@@ -88,8 +89,6 @@ class FBImplementation(Implementation):
         for file_name, code in self.code_dict.items():
             code_string += f"File: {file_name}\n{code}\n"
         return code_string
-
-    path: Optional[Path]
 
     @abstractmethod
     def prepare(self, *args, **kwargs):
@@ -112,7 +111,7 @@ class FBImplementation(Implementation):
         """
         self.code_dict = files
         for k, v in files.items():
-            with open(self.path / k, "w") as f:
+            with open(self.workspace_path / k, "w") as f:
                 f.write(v)
 
     def get_files(self) -> list[Path]:
@@ -122,7 +121,7 @@ class FBImplementation(Implementation):
         To be general, we only return a list of filenames.
         How to summarize the environment is the responsibility of the TaskGenerator.
         """
-        return list(self.path.iterdir())
+        return list(self.workspace_path.iterdir())
 
 
 class Experiment(ABC, Generic[ASpecificTask, ASpecificImp]):

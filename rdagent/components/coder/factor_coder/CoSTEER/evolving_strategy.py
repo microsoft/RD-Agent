@@ -188,6 +188,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             factor_implementation = FileBasedFactorImplementation(
                 target_task,
             )
+            factor_implementation.prepare()
             factor_implementation.inject_code(**{"factor.py": code})
 
             return factor_implementation
@@ -333,5 +334,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             )
             code = json.loads(response)["code"]
             factor_implementation = FileBasedFactorImplementation(target_task)
+            factor_implementation.prepare()
             factor_implementation.inject_code(**{"factor.py": code})
             return factor_implementation

@@ -76,9 +76,6 @@ class FileBasedFactorImplementation(FBImplementation):
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.logger = RDAgentLog()
         self.raise_exception = raise_exception
-        self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
-        ) / str(uuid.uuid4())
 
     @staticmethod
     def link_data_to_workspace(data_path: Path, workspace_path: Path):
@@ -97,8 +94,10 @@ class FileBasedFactorImplementation(FBImplementation):
         raise NotImplementedError
 
     def prepare(self, *args, **kwargs):
-        # TODO move the prepare part code in execute into here
-        return super().prepare(*args, **kwargs)
+        self.workspace_path = Path(
+            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
+        ) / str(uuid.uuid4())
+        self.workspace_path.mkdir(exist_ok=True, parents=True)
 
     def execute(self, store_result: bool = False) -> Tuple[str, pd.DataFrame]:
         """
@@ -141,7 +140,7 @@ class FileBasedFactorImplementation(FBImplementation):
             source_data_path = Path(
                 FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder,
             )
-            self.workspace_path.mkdir(exist_ok=True, parents=True)
+
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
 
