@@ -1,6 +1,8 @@
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.utils.env import QTDockerEnv
+# from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback
+# from rdagent.core.experiment import Experiment
 
 from pathlib import Path
 import pandas as pd
@@ -27,14 +29,18 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
     def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         # Process factor data format
-        # combined_factors = self.process_factor_data(exp)
-        # print("Success in processing factor data.")
+        # print(exp.sub_tasks)
+        combined_factors = self.process_factor_data(exp)
+        print("Success in processing factor data.")
+        # TODO: Call Docker, pass the combined factors to Docker, and generate backtest results
         # result = self.test_docker()
         # print(result)
-        print(exp)
-        # target_dir = self.save_quant_metrics()
-
-        # TODO: Call Docker, pass the combined factors to Docker, and generate backtest results
+        DATA_PATH = "/home/finco/RDAgent_MS/RD-Agent/rdagent/scenarios/qlib/task_generator/env_factor/mlruns/1/9851fea73d1e4473bd2c1828d55f274f/artifacts/portfolio_analysis/port_analysis_1day.pkl"
+        with open(DATA_PATH, 'rb') as f:
+            exp_res = pickle.load(f)
+        # print(exp_res)
+        exp.result = exp_res
+        return exp
         pass
 
     def process_factor_data(self, exp: QlibFactorExperiment) -> pd.DataFrame:
@@ -64,34 +70,11 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
             # Remove rows with NaN values
             combined_factors = combined_factors.dropna()
             
-            print(combined_factors)
+            # print(combined_factors)
             return combined_factors
         else:
             print("No valid factor data found to merge.")
             return pd.DataFrame()  # Return an empty DataFrame if no valid data
-
-    # @staticmethod
-    # def force_remove_directory(directory_path):
-    #     if directory_path.exists():
-    #         for root, dirs, files in os.walk(directory_path):
-    #             for dir in dirs:
-    #                 try:
-    #                     os.chmod(os.path.join(root, dir), stat.S_IWUSR | stat.S_IXUSR)
-    #                 except PermissionError as e:
-    #                     print(f"无法更改目录权限: {os.path.join(root, dir)}: {e}")
-    #             for file in files:
-    #                 try:
-    #                     os.chmod(os.path.join(root, file), stat.S_IWUSR)
-    #                 except PermissionError as e:
-    #                     print(f"无法更改文件权限: {os.path.join(root, file)}: {e}")
-    #         try:
-    #             shutil.rmtree(directory_path)
-    #             print(f"{directory_path} 已被删除")
-    #         except PermissionError as e:
-    #             print(f"权限错误：无法删除 {directory_path}: {e}")
-    #     else:
-    #         print(f"{directory_path} 不存在")
-
 
     def test_docker(self):
         """
@@ -134,105 +117,16 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
         return result
 
-    
+
+# class MyExperiment2Feedback(Experiment2Feedback):
+#     def summarize(self, ti: Experiment) -> HypothesisFeedback:
+#         """
+#         The `ti` should be executed and the results should be included.
+#         For example: `mlflow` of Qlib will be included.
+#         """
 
 
-
-
-
-
-
-    # def save_quant_metrics(self):
-    #     """
-    #     Save the quantitative metrics from the latest result folder.
-    #     """
-    #     # Ensure the result directory exists
-    #     RESULT_DIR.mkdir(parents=True, exist_ok=True)
-
-    #     # Find the latest created directory in the MLRUNS_DIR
-    #     latest_dir = max(MLRUNS_DIR.iterdir(), key=os.path.getctime)
-    #     artifacts_dir = latest_dir / "artifacts" / "portfolio_analysis"
-
-    #     # Define the target directory to save metrics
-    #     target_dir = RESULT_DIR / latest_dir.name
-    #     target_dir.mkdir(parents=True, exist_ok=True)
-
-    #     # Copy all files from the artifacts_dir to the target_dir
-    #     for item in artifacts_dir.iterdir():
-    #         if item.is_file():
-    #             shutil.copy(item, target_dir / item.name)
         
-    #     print(f"Quantitative metrics have been saved to {target_dir}.")
-    #     return target_dir
-
-
-
-
-
-
-
-
-    # def test_docker(self):
-    #     """
-    #     We will mount `env_tpl` into the docker image.
-    #     And run the docker image with `qrun conf.yaml`
-    #     """
-    #     qtde = QTDockerEnv()
-    #     print("It is running the prepare()")
-    #     qtde.prepare()
-    #     qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
-    #     # the stdout are returned as result
-    #     # result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf_mlp.yaml", env={"PYTHONPATH": "/workspace/"})
-    #     result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf_mlp.yaml", env={"PYTHONPATH": "./"})
-    #     # result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="ls")
-
-    #     # mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
-    #     # self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
-
-
-    # def run_docker(self, factors_file: Path):
-    #     """
-    #     Run the Docker container to execute the backtest with the combined factors.
-
-    #     Args:
-    #         factors_file (Path): The path to the combined factors CSV file.
-    #     """
-    #     qtde = QTDockerEnv()
-    #     qtde.prepare()
-    #     qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
-        
-    #     # Define the Docker command and environment variables
-    #     docker_command = [
-    #         'docker', 'run', '-v', f'{os.getcwd()}:/workspace', 
-    #         'qlib-docker-image', 'python', '/workspace/run_exp.py', str(factors_file)
-    #     ]
-        
-    #     # Run the Docker command
-    #     result = subprocess.run(docker_command, capture_output=True, text=True)
-
-    #     if result.returncode != 0:
-    #         raise RuntimeError(f'Docker run failed: {result.stderr}')
-
-    #     print(f"Docker run succeeded: {result.stdout}")
-
-    #     # Load the results back into the experiment
-    #     result_file = DIRNAME / 'result.json'
-    #     if result_file.exists():
-    #         with open(result_file, 'r') as f:
-    #             result_data = json.load(f)
-    #         exp.update_from_dict(result_data)
-    #     else:
-    #         print("No result file found after Docker run.")
-
-    # def test_docker(self):
-    #     """
-    #     We will mount `env_tpl` into the docker image.
-    #     And run the docker image with `qrun conf.yaml`
-    #     """
-    #     qtde = QTDockerEnv()
-    #     print("It is running the prepare()")
-    #     qtde.prepare()
-    #     qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
-    #     # the stdout are returned as result
-    #     result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf_mlp.yaml", env={"PYTHONPATH": "./"})
-    #     print(result)
+#         # 返回总结的反馈
+#         return feedback
+#         pass

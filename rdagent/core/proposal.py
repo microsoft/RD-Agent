@@ -56,7 +56,22 @@ class Scenario(ABC):
         """Combine all the description together"""
 
 
-class HypothesisFeedback(Feedback): ...
+class HypothesisFeedback(Feedback):
+    def __init__(self, observations=None, feedback_for_hypothesis=None, new_hypothesis=None, reasoning=None, replace_sota=False):
+        super().__init__()
+        self.observations = observations
+        self.feedback_for_hypothesis = feedback_for_hypothesis
+        self.new_hypothesis = new_hypothesis
+        self.reasoning = reasoning
+        self.replace_sota = replace_sota
+
+    def __str__(self):
+        return (f"HypothesisFeedback(\n"
+                f"  Observations: {self.observations},\n"
+                f"  Feedback for Hypothesis: {self.feedback_for_hypothesis},\n"
+                f"  New Hypothesis: {self.new_hypothesis},\n"
+                f"  Reasoning: {self.reasoning}\n"
+                f")")
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
@@ -115,12 +130,12 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 # Boolean, Reason, Confidence, etc.
 
 
-class Experiment2Feedback:
-    """ "Generated(summarize) feedback from **Executed** Implementation"""
+class HypothesisExperiment2Feedback:
+    """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def summarize(self, ti: Experiment) -> HypothesisFeedback:
+    def generateFeedback(self, ti: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included.
+        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM). 
         For example: `mlflow` of Qlib will be included.
         """
         return HypothesisFeedback()
