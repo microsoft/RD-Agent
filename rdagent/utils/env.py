@@ -63,12 +63,14 @@ class Env(Generic[ASpecificBaseModel]):
 
 
 class LocalConf(BaseModel):
-    py_entry: str
+    py_bin: str
     default_entry: str
 
 
 class LocalEnv(Env[LocalConf]):
-
+    """
+    Sometimes local environment may be more convinient for testing
+    """
     def prepare(self):
         ...
 
@@ -79,7 +81,7 @@ class LocalEnv(Env[LocalConf]):
         if entry is None:
             entry = self.conf.default_entry
 
-        command = str(Path(self.conf.py_entry).joinpath(entry)).split(" ")
+        command = str(Path(self.conf.py_bin).joinpath(entry)).split(" ")
 
         cwd = None
         if local_path:
