@@ -72,9 +72,12 @@ class LocalEnv(Env[LocalConf]):
     Sometimes local environment may be more convinient for testing
     """
     def prepare(self):
-        self.run(
-            entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
-        )
+        if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
+            self.run(
+                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
+            )
+        else:
+            print("Data already exists. Download skipped.")
 
     def run(self,
             entry: str | None = None,
