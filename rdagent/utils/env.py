@@ -81,7 +81,8 @@ class LocalEnv(Env[LocalConf]):
 
     def run(self,
             entry: str | None = None,
-            local_path: Optional[str] = None) -> str:
+            local_path: Optional[str] = None,
+            env: dict | None = None) -> str:
 
         if entry is None:
             entry = self.conf.default_entry
