@@ -72,7 +72,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "RAG": ...,
         }, True
 
-    def convert_response(self, response: str) -> FactorExperiment:
+    def convert_response(self, response: str, hs:HypothesisSet) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
         for factor_name in response_dict:
@@ -80,4 +80,4 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
             tasks.append(FactorTask(factor_name, description, formulation, variables))
-        return FactorExperiment(tasks)
+        return FactorExperiment(tasks, hs.trace)

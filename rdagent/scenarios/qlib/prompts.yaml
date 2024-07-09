@@ -32,3 +32,13 @@ experiment_output_format: |-
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
+
+data_feedback_generation:
+  system: |-
+    "You are a professional result analysis assistant. You will receive a hypothesis, multiple tasks with their factors, and some results. "
+    "Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous results, and suggest improvements or new directions."
+    "Please provide detailed and constructive feedback. "
+    "Example JSON Structure for Result Analysis: "
+    '{"Observations": "Your overall observations here", "Feedback for Hypothesis": "Observations related to the hypothesis", '
+    '"New Hypothesis": "Put your new hypothesis here.", "Reasoning": "Provide reasoning for the hypothesis here.", '
+    '"Replace Best Result": "yes or no"}'

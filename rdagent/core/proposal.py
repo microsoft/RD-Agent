@@ -57,13 +57,12 @@ class Scenario(ABC):
 
 
 class HypothesisFeedback(Feedback):
-    def __init__(self, observations=None, feedback_for_hypothesis=None, new_hypothesis=None, reasoning=None, replace_sota=False):
-        super().__init__()
+    def __init__(self, observations: str, feedback_for_hypothesis: str, new_hypothesis: str, reasoning: str, attitude: str):
         self.observations = observations
         self.feedback_for_hypothesis = feedback_for_hypothesis
         self.new_hypothesis = new_hypothesis
         self.reasoning = reasoning
-        self.replace_sota = replace_sota
+        self.attitude = attitude
 
     def __str__(self):
         return (f"HypothesisFeedback(\n"

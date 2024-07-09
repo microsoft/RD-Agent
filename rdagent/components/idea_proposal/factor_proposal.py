@@ -70,7 +70,7 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
     def prepare_context(self, hs: HypothesisSet) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorExperiment: ...
+    def convert_response(self, response: str, hs:HypothesisSet) -> FactorExperiment: ...
 
     def convert(self, hs: HypothesisSet) -> FactorExperiment:
         context, json_flag = self.prepare_context(hs)
@@ -94,4 +94,4 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=json_flag)
 
-        return self.convert_response(resp)
+        return self.convert_response(resp, hs)

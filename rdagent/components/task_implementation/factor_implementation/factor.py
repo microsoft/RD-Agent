@@ -4,7 +4,7 @@ import pickle
 import subprocess
 import uuid
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import pandas as pd
 from filelock import FileLock
@@ -220,4 +220,7 @@ class FileBasedFactorImplementation(FBImplementation):
         return FileBasedFactorImplementation(task, code=code, **kwargs)
 
 
-class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...
+class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]):
+    def __init__(self, *args, SOTA_expriments:List[FactorExperiment], **kwargs) -> None:
+        self.SOTA_experiments = SOTA_expriments
+        super().__init__(*args, **kwargs)
