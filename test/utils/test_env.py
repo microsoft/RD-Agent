@@ -29,13 +29,13 @@ class EnvUtils(unittest.TestCase):
         And run the docker image with `qrun conf.yaml`
         """
         qtde = QTDockerEnv()
-        # qtde.prepare()
-        # qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
-        # # the stdout are returned as result
-        # result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
-        #
-        # mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
-        # self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
+        qtde.prepare()
+        qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
+        # the stdout are returned as result
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
+        
+        mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+        self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
         # read experiment
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp.py")

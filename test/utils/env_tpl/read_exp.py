@@ -30,9 +30,24 @@ for experiment in experiments:
 recorder_list = R.list_recorders(experiment_name="workflow")
 end_times = {key: value.info['end_time'] for key, value in recorder_list.items()}
 sorted_end_times = dict(sorted(end_times.items(), key=lambda item: item[1], reverse=True))
+
 latest_recorder_id = next(iter(sorted_end_times))
 print(f"Latest recorder ID: {latest_recorder_id}")
+
 latest_recorder = R.get_recorder(experiment_name=experiment_name, recorder_id=latest_recorder_id)
 print(f"Latest recorder: {latest_recorder}")
-metrics = latest_recorder.list_metrics()
-print(f"Latest Metrics: {metrics}")
+
+pred_df = latest_recorder.load_object("pred.pkl")
+print("pred_df", pred_df)
+
+ic_df = latest_recorder.load_object("sig_analysis/ic.pkl")
+print("ic_df: ", ic_df)
+
+ric_df = latest_recorder.load_object("sig_analysis/ric.pkl")
+print("ric_df: ", ric_df)
+
+print("list_metrics: ", latest_recorder.list_metrics())
+print("IC: ", latest_recorder.list_metrics()["IC"])
+print("ICIR: ", latest_recorder.list_metrics()["ICIR"])
+print("Rank IC: ", latest_recorder.list_metrics()["Rank IC"])
+print("Rank ICIR: ", latest_recorder.list_metrics()["Rank ICIR"])
