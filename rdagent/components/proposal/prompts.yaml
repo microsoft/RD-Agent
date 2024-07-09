@@ -21,14 +21,17 @@ factor_hypothesis2experiment:
     The factors are used in certain scenario, the scenario is as follows:
     {{ scenario }}
     The user will use the factors generated to do some experiments. The user will provide this information to you:
-    1. The hypothesis generated in the previous steps and their corresponding feedbacks.
-    2. Former proposed factors on similar hypothesis.
-    3. Some additional information to help you generate new factors.
+    1. The target hypothesis you are targeting to generate factors for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed factors on similar hypothesis.
+    4. Some additional information to help you generate new factors.
     Please generate the output following the format below:
     {{ experiment_output_format }}
     
   user_prompt: |-
     The user has made several hypothesis on this scenario and did several evaluation on them.
+    The target hypothesis you are targeting to generate factors for is as follows:
+    {{ target_hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
     The former proposed factors on similar hypothesis are as follows:

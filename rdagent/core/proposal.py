@@ -23,6 +23,10 @@ class Hypothesis:
     def __init__(self, hypothesis: str, reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
+    
+    def __str__(self) -> str:
+        return f"""Hypothesis: {self.hypothesis}
+Reason: {self.reason}"""
 
     # source: data_ana | model_nan = None
 
@@ -30,7 +34,16 @@ class Hypothesis:
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
 
-class HypothesisFeedback(Feedback): ...
+class HypothesisFeedback(Feedback):
+    def __init__(self, observations: str, hypothesis_evaluation: str, new_hypothesis: str, reason: str, decision: bool):
+        self.observations = observations
+        self.hypothesis_evaluation = hypothesis_evaluation
+        self.new_hypothesis = new_hypothesis
+        self.reason = reason
+        self.decision = decision
+
+    def __bool__(self):
+        return self.decision
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
@@ -59,19 +72,6 @@ class HypothesisGen:
         """
 
 
-class HypothesisSet:
-    """
-    # drop, append
-
-    hypothesis_imp: list[float] | None  # importance of each hypothesis
-    true_hypothesis or false_hypothesis
-    """
-
-    def __init__(self, trace: Trace, hypothesis_list: list[Hypothesis] = []) -> None:
-        self.hypothesis_list: list[Hypothesis] = hypothesis_list
-        self.trace: Trace = trace
-
-
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 
@@ -81,21 +81,22 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
 
     @abstractmethod
-    def convert(self, hs: HypothesisSet) -> ASpecificExp:
+    def convert(self, hypothesis: Hypothesis, trace: Trace) -> ASpecificExp:
         """Connect the idea proposal to implementation"""
         ...
 
 
 # Boolean, Reason, Confidence, etc.
 
+
 class HypothesisExperiment2Feedback:
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
     def generateFeedback(self, ti: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM). 
+        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-        return HypothesisFeedback()
+        raise NotImplementedError("generateFeedback method is not implemented.")
 
     # def generateResultComparison()

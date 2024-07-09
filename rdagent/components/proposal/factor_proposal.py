@@ -10,7 +10,6 @@ from rdagent.core.proposal import (
     Hypothesis,
     Hypothesis2Experiment,
     HypothesisGen,
-    HypothesisSet,
     Scenario,
     Trace,
 )
@@ -28,12 +27,10 @@ class FactorHypothesisGen(HypothesisGen):
 
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        ...
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorHypothesis:
-        ...
+    def convert_response(self, response: str) -> FactorHypothesis: ...
 
     def gen(self, trace: Trace) -> FactorHypothesis:
         context_dict, json_flag = self.prepare_context(trace)
@@ -67,20 +64,18 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
         super().__init__()
 
     @abstractmethod
-    def prepare_context(self, hs: HypothesisSet) -> Tuple[dict, bool]:
-        ...
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorExperiment:
-        ...
+    def convert_response(self, response: str, trace: Trace) -> FactorExperiment: ...
 
-    def convert(self, hs: HypothesisSet) -> FactorExperiment:
-        context, json_flag = self.prepare_context(hs)
+    def convert(self, hypothesis: Hypothesis, trace: Trace) -> FactorExperiment:
+        context, json_flag = self.prepare_context(hypothesis, trace)
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["factor_hypothesis2experiment"]["system_prompt"])
             .render(
-                scenario=hs.trace.scen.get_scenario_all_desc(),
+                scenario=trace.scen.get_scenario_all_desc(),
                 experiment_output_format=context["experiment_output_format"],
             )
         )
@@ -88,6 +83,7 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["factor_hypothesis2experiment"]["user_prompt"])
             .render(
+                target_hypothesis=context["target_hypothesis"],
                 hypothesis_and_feedback=context["hypothesis_and_feedback"],
                 factor_list=context["factor_list"],
                 RAG=context["RAG"],
@@ -96,4 +92,4 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=json_flag)
 
-        return self.convert_response(resp)
+        return self.convert_response(resp, trace)
