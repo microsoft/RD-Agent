@@ -1,5 +1,5 @@
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
-from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelSingleFeedback
+from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
@@ -18,7 +18,7 @@ class ModelKnowledge(Knowledge):
         self,
         target_task: ModelTask,
         implementation: Implementation,
-        feedback: ModelSingleFeedback,
+        feedback: ModelCoderFeedback,
     ) -> None:
         """
         Initialize a ModelKnowledge object. The ModelKnowledge object is used to store a model implementation without the ground truth code and value.

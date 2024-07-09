@@ -1,11 +1,16 @@
 import json
+import pickle
+import site
 import uuid
 from pathlib import Path
 from typing import Dict, Optional
 
+import torch
+
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.exception import CodeFormatException
 from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils import get_module_by_module_path
 
 
@@ -17,29 +22,20 @@ class ModelTask(Task):
     variables: Dict[str, str]  # map the variable name to the variable description
 
     def __init__(
-        self, name: str, description: str, formulation: str, variables: Dict[str, str], key: Optional[str] = None
+        self, name: str, description: str, formulation: str, variables: Dict[str, str], model_type: Optional[str] = None
     ) -> None:
-        """
-
-        Parameters
-        ----------
-
-        key : Optional[str]
-            Key is a string to identify the task.
-            It will be used to connect to other information(e.g. ground truth).
-        """
-        self.name = name
-        self.description = description
-        self.formulation = formulation
-        self.variables = variables
-        self.key = key
+        self.name: str = name
+        self.description: str = description
+        self.formulation: str = formulation
+        self.variables: str = variables
+        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model
 
     def get_information(self):
         return f"""name: {self.name}
 description: {self.description}
 formulation: {self.formulation}
 variables: {self.variables}
-key: {self.key}
+model_type: {self.model_type}
 """
 
     @staticmethod
@@ -78,48 +74,47 @@ class ModelImplementation(FBImplementation):
         Prepare for the workspace;
         """
         unique_id = uuid.uuid4()
-        self.workspace_path = MODEL_IMPL_SETTINGS.workspace_path / f"M{unique_id}"
+        self.workspace_path = Path(MODEL_IMPL_SETTINGS.file_based_execution_workspace) / f"M{unique_id}"
         # start with `M` so that it can be imported via python
         self.workspace_path.mkdir(parents=True, exist_ok=True)
 
-    def execute(self, data=None, config: dict = {}):
-        mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
+    def execute(
+        self,
+        batch_size: int = 8,
+        num_features: int = 10,
+        num_timesteps: int = 4,
+        input_value: float = 1.0,
+        param_init_value: float = 1.0,
+    ):
         try:
+            if MODEL_IMPL_SETTINGS.enable_execution_cache:
+                # NOTE: cache the result for the same code
+                target_file_name = md5_hash(self.code_dict["model.py"])
+                cache_file_path = (
+                    Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
+                )
+                Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location).mkdir(exist_ok=True, parents=True)
+                if cache_file_path.exists():
+                    return pickle.load(open(cache_file_path, "rb"))
+            mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
             model_cls = mod.model_cls
-        except AttributeError:
-            raise CodeFormatException("The model_cls is not implemented in the model.py")
-        # model_init =
 
-        assert isinstance(data, tuple)
-        node_feature, _ = data
-        in_channels = node_feature.size(-1)
-        m = model_cls(in_channels)
+            if self.target_task.model_type == "Tabular":
+                input_shape = (batch_size, num_features)
+                m = model_cls(num_features=input_shape[1])
+            elif self.target_task.model_type == "TimeSeries":
+                input_shape = (batch_size, num_features, num_timesteps)
+                m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
+            data = torch.full(input_shape, input_value)
 
-        # TODO: initialize all the parameters of `m` to `model_eval_param_init`
-        model_eval_param_init: float = config["model_eval_param_init"]
+            # initialize all parameters of `m` to `param_init_value`
+            for _, param in m.named_parameters():
+                param.data.fill_(param_init_value)
+            out = m(data)
+            return "No execution error found, output tensor shape: " + str(out.shape), out.cpu()
 
-        # initialize all parameters of `m` to `model_eval_param_init`
-        for _, param in m.named_parameters():
-            param.data.fill_(model_eval_param_init)
-
-        assert isinstance(data, tuple)
-        return m(*data)
-
-    def execute_desc(self) -> str:
-        return """
-The the implemented code will be placed in a file like <uuid>/model.py
-
-We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
-- from model import model_cls (So you must have a variable named `model_cls` in the file)
-  - So your implemented code could follow the following pattern
-    ```Python
-    class XXXLayer(torch.nn.Module):
-        ...
-    model_cls = XXXLayer
-    ```
-- initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-- And then verify the model by comparing the output tensors by feeding specific input tensor.
-"""
+        except Exception as e:
+            return f"Execution error: {e}", None
 
 
 class ModelExperiment(Experiment[ModelTask, ModelImplementation]): ...

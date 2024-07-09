@@ -22,24 +22,8 @@ class Implementation(ABC, Generic[ASpecificTask]):
         self.target_task = target_task
 
     @abstractmethod
-    def execute(self, data=None, config: dict = {}) -> object:
-        """
-        The execution of the implementation can be dynamic.
-
-        So we may pass in the data and config dynamically.
-        """
+    def execute(self, *args, **kwargs) -> object:
         raise NotImplementedError("execute method is not implemented.")
-
-    @abstractmethod
-    def execute_desc(self):
-        """
-        return the description how we will execute the code in the folder.
-        """
-        raise NotImplementedError(f"This type of input is not supported")
-
-    # TODO:
-    # After execution, it should return some results.
-    # Some evaluators will input the results and output
 
 
 ASpecificImp = TypeVar("ASpecificImp", bound=Implementation)

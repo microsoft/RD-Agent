@@ -54,20 +54,43 @@ qlib_model_background: |-
   2. Description: The description of the model.
   3. Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
   4. Hyperparameters: The hyperparameters used in the model, such as learning rate, number of epochs, etc.
+  5. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
   The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters. For example, a model with an two GRU layer and a model with three GRU layer should be considered two different models.
 
 qlib_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   You code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A class called Net which is a sub-class of pytorch.nn.Module. This class should implement the forward method which inputs a tensor and outputs a tensor.
-  3. The main part in the "if __name__ == "__main__":" block. In this part, you should instantiate the model, prepare a random input tensor, and call the forward method of the model to get the output tensor. Then you should dump the output tensor to a file named "output.pth" in the same directory as your python file.
+  2. A class which is a sub-class of pytorch.nn.Module. This class should should have a init function and a forward function which inputs a tensor and outputs a tensor.
+  3. Set a variable called "model_cls" to the class you defined.
 
-  Your code should be able to run directly with "python {your_file_name}.py" and generate the output file "output.pth" in the same directory as your python file. Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
+  The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
+  ```python
+  from model import model_cls
+  ```
+  So your python code should follow the pattern:
+  ```python
+  class XXXModel(torch.nn.Module):
+      ...
+  model_cls = XXXModel
+  ```
 
-  Please pay attention, the input of the model has two types: tabular and time series. The tabular input is a tensor with shape (batch_size, num_features), and the time series input is a tensor with shape (batch_size, num_timesteps, num_features). The output of the model should be a tensor with shape (batch_size, 1) or (batch_size). You should consider whether the model is a tabular model or a time series model and write the corresponding code.
+  The model has two types, "Tabular" for tabular model and "TimeSeries" for time series model. The input shape to a tabular model is (batch_size, num_features) and the input shape to a time series model is (batch_size, num_features, num_timesteps). The output shape of the model should be (batch_size, 1).
+  The "batch_size" is a dynamic value which is determined by the input of forward function.
+  The "num_features" and "num_timesteps" are static which will be provided to the model through init function.
+  User will initialize the tabular model with the following code:
+  ```python
+  model = model_cls(num_features=num_features)
+  ```
+  User will initialize the time series model with the following code:
+  ```python
+  model = model_cls(num_features=num_features, num_timesteps=num_timesteps)
+  ```
+  No other parameters will be passed to the model so give other parameters a default value or just make them static.
 
-  Please set batch_size in your main part to 8 and the user will evaluate the shape of the output tensor.
+  When dealing with TimeSeries model, remember to permute the input tensor since the input tensor is in the shape of (batch_size, num_features, num_timesteps) and a normal time series model is expecting the input tensor in the shape of (batch_size, num_timesteps, num_features).
+
+  Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
 
 
 qlib_model_output_format: |-

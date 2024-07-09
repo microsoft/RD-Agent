@@ -2,7 +2,9 @@ import pickle
 from pathlib import Path
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
-from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelEvaluator
+from rdagent.components.coder.model_coder.CoSTEER.evaluators import (
+    ModelCoderMultiEvaluator,
+)
 from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
     ModelEvolvingItem,
 )
@@ -43,7 +45,7 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
         self.evolving_strategy = ModelCoderEvolvingStrategy(scen=self.scen)
-        self.model_evaluator = ModelEvaluator(scen=self.scen)
+        self.model_evaluator = ModelCoderMultiEvaluator(scen=self.scen)
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():

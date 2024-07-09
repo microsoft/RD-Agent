@@ -48,7 +48,6 @@ class ModelTaskLoaderJson(ModelTaskLoader):
     def load(self, *argT, **kwargs) -> Sequence[ModelTask]:
         # json is supposed to be in the format of {model_name: dict{model_data}}
         model_dict = json.load(open(self.json_uri, "r"))
-
         # FIXME: the model in the json file is not right due to extraction error
         #       We should fix them case by case in the future
         #
@@ -75,7 +74,7 @@ class ModelTaskLoaderJson(ModelTaskLoader):
                 description=model_data["description"],
                 formulation=model_data["formulation"],
                 variables=model_data["variables"],
-                key=model_data["key"],
+                model_type=model_data["model_type"],
             )
             model_impl_task_list.append(model_impl_task)
         return model_impl_task_list
@@ -92,4 +91,5 @@ class ModelImpLoader(ImpLoader[ModelTask, ModelImplementation]):
         with open(self.path / f"{task.key}.py", "r") as f:
             code = f.read()
         mti.inject_code(**{"model.py": code})
+        return mti
         return mti

@@ -5,10 +5,15 @@ from pydantic_settings import BaseSettings
 
 
 class ModelImplSettings(BaseSettings):
-    workspace_path: Path = Path("./git_ignore_folder/model_imp_workspace/")  # Added type annotation for work_space
-
     class Config:
         env_prefix = "MODEL_IMPL_"  # Use MODEL_IMPL_ as prefix for environment variables
+
+    file_based_execution_workspace: str = str(
+        (Path().cwd() / "git_ignore_folder" / "model_implementation_workspace").absolute(),
+    )
+    implementation_execution_cache_location: str = str(
+        (Path().cwd() / "git_ignore_folder" / "model_implementation_execution_cache").absolute(),
+    )
 
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
@@ -20,6 +25,8 @@ class ModelImplSettings(BaseSettings):
     fail_task_trial_limit: int = 20
 
     evo_multi_proc_n: int = 1
+
+    enable_execution_cache: bool = True  # whether to enable the execution cache
 
 
 MODEL_IMPL_SETTINGS = ModelImplSettings()

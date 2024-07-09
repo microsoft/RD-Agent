@@ -17,7 +17,7 @@ mtl = ModelTaskLoaderJson(str(bench_folder / "model_dict.json"))
 
 task_l = mtl.load()
 
-task_l = [t for t in task_l if t.key == "A-DGN"]  # FIXME: other models does not work well
+task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
 
 model_experiment = QlibModelExperiment(sub_tasks=task_l)
 # mtg = ModelCodeWriter(scen=QlibModelScenario())
