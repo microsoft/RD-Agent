@@ -22,7 +22,7 @@ class ModelImpValEval:
     - If the model structure is similar, the output will change in similar way when we change the input.
 
     Challenge:
-    - The key difference between it and implementing factors is that we have parameters in the layers (Factor operators often have no parameters or are given parameters).
+    - The key difference between it and implementing models is that we have parameters in the layers (Model operators often have no parameters or are given parameters).
     - we try to initialize the model param in similar value. So only the model structure is different.
 
     Comparing the correlation of following sequences

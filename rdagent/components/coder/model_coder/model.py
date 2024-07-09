@@ -1,14 +1,11 @@
 import json
 import uuid
 from pathlib import Path
-from typing import Dict, Optional, Sequence
-
-import torch
+from typing import Dict, Optional
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
-from rdagent.components.loader.task_loader import ModelTaskLoader
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.experiment import Experiment, FBImplementation, ImpLoader, Task
+from rdagent.core.experiment import Experiment, FBImplementation, Task
 from rdagent.utils import get_module_by_module_path
 
 
@@ -75,19 +72,18 @@ class ModelImplementation(FBImplementation):
 
     def __init__(self, target_task: Task) -> None:
         super().__init__(target_task)
-        self.path = None
 
     def prepare(self) -> None:
         """
         Prepare for the workspace;
         """
         unique_id = uuid.uuid4()
-        self.path = MODEL_IMPL_SETTINGS.workspace_path / f"M{unique_id}"
+        self.workspace_path = MODEL_IMPL_SETTINGS.workspace_path / f"M{unique_id}"
         # start with `M` so that it can be imported via python
-        self.path.mkdir(parents=True, exist_ok=True)
+        self.workspace_path.mkdir(parents=True, exist_ok=True)
 
     def execute(self, data=None, config: dict = {}):
-        mod = get_module_by_module_path(str(self.path / "model.py"))
+        mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
         try:
             model_cls = mod.model_cls
         except AttributeError:
@@ -126,85 +122,4 @@ We'll import the model in the implementation in file `model.py` after setting th
 """
 
 
-class ModelExperiment(Experiment[ModelTask, ModelImplementation]):
-    ...
-
-
-class ModelTaskLoaderJson(ModelTaskLoader):
-    # def __init__(self, json_uri: str, select_model: Optional[str] = None) -> None:
-    #     super().__init__()
-    #     self.json_uri = json_uri
-    #     self.select_model = 'A-DGN'
-
-    # def load(self, *argT, **kwargs) -> Sequence[ModelImplTask]:
-    #     # json is supposed to be in the format of {model_name: dict{model_data}}
-    #     model_dict = json.load(open(self.json_uri, "r"))
-    #     if self.select_model is not None:
-    #         assert self.select_model in model_dict
-    #         model_name = self.select_model
-    #         model_data = model_dict[self.select_model]
-    #     else:
-    #         model_name, model_data = list(model_dict.items())[0]
-
-    #     model_impl_task = ModelImplTask(
-    #         name=model_name,
-    #         description=model_data["description"],
-    #         formulation=model_data["formulation"],
-    #         variables=model_data["variables"],
-    #         key=model_name
-    #     )
-
-    #     return [model_impl_task]
-
-    def __init__(self, json_uri: str) -> None:
-        super().__init__()
-        self.json_uri = json_uri
-
-    def load(self, *argT, **kwargs) -> Sequence[ModelTask]:
-        # json is supposed to be in the format of {model_name: dict{model_data}}
-        model_dict = json.load(open(self.json_uri, "r"))
-
-        # FIXME: the model in the json file is not right due to extraction error
-        #       We should fix them case by case in the future
-        #
-        # formula_info = {
-        #     "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
-        #     "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
-        #     "formulation": r"\mathbf{x}^{\prime}_i = \mathbf{x}_i + \epsilon \cdot \sigma \left( (\mathbf{W}-\mathbf{W}^T-\gamma \mathbf{I}) \mathbf{x}_i + \Phi(\mathbf{X}, \mathcal{N}_i) + \mathbf{b}\right),",
-        #     "variables": {
-        #         r"\mathbf{x}_i": "The state of node i at previous layer",
-        #         r"\epsilon": "The step size in the Euler discretization",
-        #         r"\sigma": "A monotonically non-decreasing activation function",
-        #         r"\Phi": "A graph convolutional operator",
-        #         r"W": "An anti-symmetric weight matrix",
-        #         r"\mathbf{x}^{\prime}_i": "The node feature matrix at layer l-1",
-        #         r"\mathcal{N}_i": "The set of neighbors of node u",
-        #         r"\mathbf{b}": "A bias vector",
-        #     },
-        #     "key": "A-DGN",
-        # }
-        model_impl_task_list = []
-        for model_name, model_data in model_dict.items():
-            model_impl_task = ModelTask(
-                name=model_name,
-                description=model_data["description"],
-                formulation=model_data["formulation"],
-                variables=model_data["variables"],
-                key=model_data["key"],
-            )
-            model_impl_task_list.append(model_impl_task)
-        return model_impl_task_list
-
-
-class ModelImpLoader(ImpLoader[ModelTask, ModelImplementation]):
-    def __init__(self, path: Path) -> None:
-        self.path = Path(path)
-
-    def load(self, task: ModelTask) -> ModelImplementation:
-        assert task.key is not None
-        mti = ModelImplementation(task)
-        mti.prepare()
-        with open(self.path / f"{task.key}.py", "r") as f:
-            code = f.read()
-        mti.inject_code(**{"model.py": code})
-        return mti
+class ModelExperiment(Experiment[ModelTask, ModelImplementation]): ...

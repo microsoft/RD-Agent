@@ -14,5 +14,5 @@ code_implement_user: -|
   4. model variables:{{variables}}.
   You must complete the forward function as far as you can do.
   \# Execution
-  Your implemented code will be exectued in the follow way
+  Your implemented code will be executed in the follow way
   {{execute_desc}}
