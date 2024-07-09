@@ -1,13 +1,11 @@
 import os
-import subprocess
 import sys
 import unittest
 from pathlib import Path
-
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+from rdagent.utils.env import QTDockerEnv, LocalEnv, LocalConf
 import shutil
 
-from rdagent.utils.env import QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -22,6 +20,20 @@ class EnvUtils(unittest.TestCase):
         # if mlrun_p.exists():
         #     shutil.rmtree(mlrun_p)
         ...
+
+    # NOTE: Since I don't know the exact environment in which it will be used, here's just an example.
+    # NOTE: Because you need to download the data during the prepare process. So you need to have pyqlib in your environment.
+    # def test_local(self):
+    #     local_conf = LocalConf(
+    #         py_bin="/home/v-linlanglv/miniconda3/envs/RD-Agent-310/bin",
+    #         default_entry="qrun conf.yaml",
+    #     )
+    #     qle = LocalEnv(conf=local_conf)
+    #     qle.prepare()
+    #     conf_path = str(DIRNAME / "env_tpl" / "conf.yaml") 
+    #     qle.run(entry="qrun " + conf_path)
+    #     mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
+    #     self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
     def test_docker(self):
         """

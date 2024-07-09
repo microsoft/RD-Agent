@@ -6,12 +6,13 @@ Tries to create uniform environment for the agent to run;
 
 """
 import os
-from abc import abstractmethod
-from pathlib import Path
-from typing import Generic, TypeVar
-
+import sys
 import docker
+import subprocess
+from abc import abstractmethod
 from pydantic import BaseModel
+from typing import Generic, TypeVar, Optional, Dict
+from pathlib import Path
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -62,15 +63,50 @@ class Env(Generic[ASpecificBaseModel]):
 
 
 class LocalConf(BaseModel):
-    py_entry: str  # where you can find your python path
+    py_bin: str
+    default_entry: str
 
 
 class LocalEnv(Env[LocalConf]):
     """
     Sometimes local environment may be more convinient for testing
     """
+    def prepare(self):
+        if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
+            self.run(
+                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
+            )
+        else:
+            print("Data already exists. Download skipped.")
 
-    conf: LocalConf
+    def run(self,
+            entry: str | None = None,
+            local_path: Optional[str] = None,
+            env: dict | None = None) -> str:
+        if env is None:
+            env = {}
+
+        if entry is None:
+            entry = self.conf.default_entry
+
+        command = str(Path(self.conf.py_bin).joinpath(entry)).split(" ")
+
+        cwd = None
+        if local_path:
+            cwd = Path(local_path).resolve()
+        print(command)
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            env={**os.environ, **env},
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Error while running the command: {result.stderr}")
+
+        return result.stdout
 
 
 ## Docker Environment -----
