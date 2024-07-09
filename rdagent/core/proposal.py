@@ -29,8 +29,39 @@ class Hypothesis:
 
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
+class HypothesisFeedback(Feedback):
+    def __init__(self, observations: str, feedback_for_hypothesis: str, new_hypothesis: str, reasoning: str, attitude: str):
+        self.observations = observations
+        self.feedback_for_hypothesis = feedback_for_hypothesis
+        self.new_hypothesis = new_hypothesis
+        self.reasoning = reasoning
+        self.attitude = attitude
 
-class HypothesisFeedback(Feedback): ...
+    def __repr__(self):
+        return (f"HypothesisFeedback(observations={self.observations}, "
+                f"feedback_for_hypothesis={self.feedback_for_hypothesis}, "
+                f"new_hypothesis={self.new_hypothesis}, "
+                f"reasoning={self.reasoning}, "
+                f"attitude={self.attitude})")
+
+    def to_dict(self) -> dict:
+        return {
+            "Observations": self.observations,
+            "Feedback for Hypothesis": self.feedback_for_hypothesis,
+            "New Hypothesis": self.new_hypothesis,
+            "Reasoning": self.reasoning,
+            "Attitude": self.attitude
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            observations=data.get("Observations", ""),
+            feedback_for_hypothesis=data.get("Feedback for Hypothesis", ""),
+            new_hypothesis=data.get("New Hypothesis", ""),
+            reasoning=data.get("Reasoning", ""),
+            attitude=data.get("Attitude", "no")  # Default to "no" if not provided
+        )
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
@@ -73,7 +104,6 @@ class HypothesisSet:
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
-
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
