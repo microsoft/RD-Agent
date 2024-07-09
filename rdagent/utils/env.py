@@ -70,33 +70,23 @@ class LocalConf(BaseModel):
 class LocalEnv(Env[LocalConf]):
 
     def prepare(self):
-        qtde = QTDockerEnv()
-        qtde.prepare()
+        ...
 
     def run(self,
             entry: str | None = None,
             local_path: Optional[str] = None) -> str:
-        # if env is None:
-        #     env = {}
 
         if entry is None:
             entry = self.conf.default_entry
-        # 获取当前路径
-        current_path = os.getcwd()
 
-        # 输出当前路径
-        print("当前路径:", current_path)
-        # Use the configured Python interpreter
         command = str(Path(self.conf.py_entry).joinpath(entry)).split(" ")
 
-        # Set the working directory
         cwd = None
         if local_path:
             cwd = Path(local_path).resolve()
-
+        print(command)
         result = subprocess.run(
             command,
-            # env={**os.environ, **env},
             cwd=cwd,
             capture_output=True,
             text=True
