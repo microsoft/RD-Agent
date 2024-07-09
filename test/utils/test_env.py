@@ -22,6 +22,7 @@ class EnvUtils(unittest.TestCase):
         ...
 
     # NOTE: Since I don't know the exact environment in which it will be used, here's just an example.
+    # NOTE: Because you need to download the data during the prepare process. So you need to have pyqlib in your environment.
     # def test_local(self):
     #     local_conf = LocalConf(
     #         py_bin="/home/v-linlanglv/miniconda3/envs/RD-Agent-310/bin",
