@@ -9,11 +9,66 @@ import pandas as pd
 import os
 import shutil
 import pickle
+from typing import Optional
 
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 RESULT_DIR = Path("/home/finco/quant_result")
 MLRUNS_DIR = Path("/home/finco/RDAgent_MS/RD-Agent/rdagent/scenarios/qlib/task_generator/env_factor/mlruns/1")
+
+class ExperimentResults:
+    def __init__(self, last_experiment: Optional[pd.DataFrame] = None, sota: Optional[pd.DataFrame] = None, alpha158: Optional[pd.DataFrame] = None):
+        self.last_experiment = last_experiment
+        self.sota = sota
+        self.alpha158 = alpha158
+
+    def update_last_experiment(self, new_result: pd.DataFrame):
+        self.last_experiment = new_result
+
+    def update_sota(self, new_sota: pd.DataFrame):
+        self.sota = new_sota
+
+    def update_alpha158(self, new_alpha158: pd.DataFrame):
+        self.alpha158 = new_alpha158
+
+    def setup(self):
+        """
+        Run a Docker command to generate initial experiment results, and update last_experiment and alpha158 with those results.
+        """
+        # Store existing directory names in MLRUNS_DIR
+        existing_dirs = {d.name for d in MLRUNS_DIR.iterdir() if d.is_dir()}
+
+        qtde = QTDockerEnv()
+        qtde.prepare()  # Preparing the environment
+        qtde.prepare()
+        
+        # Run the Docker command
+        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="rm -r mlruns", env={"PYTHONPATH": "./"})
+        # Run the Qlib backtest
+        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="qrun conf.yaml", env={"PYTHONPATH": "./"})
+        
+        # Check for new directories in MLRUNS_DIR
+        existing_dirs2 = {d.name for d in MLRUNS_DIR.iterdir() if d.is_dir()}
+        new_dirs = {d.name for d in MLRUNS_DIR.iterdir() if d.is_dir()} - existing_dirs
+        new_dir = new_dirs.pop()
+        pkl_path = MLRUNS_DIR / new_dir / 'artifacts/portfolio_analysis/port_analysis_1day.pkl'
+
+        if not pkl_path.exists():
+            print(f"File {pkl_path} does not exist.")
+            return None
+
+        with open(pkl_path, 'rb') as f:
+            result = pickle.load(f)
+
+        # Check if the result is valid and is a DataFrame
+        if isinstance(result, pd.DataFrame):
+            if not result.empty:
+                self.update_last_experiment(result)
+                self.update_alpha158(result)
+            else:
+                print("Result DataFrame is empty.")
+        else:
+            print("Data format error.")
 
 class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     """
@@ -29,7 +84,6 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
     def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         # Process factor data format
-        # print(exp.sub_tasks)
         combined_factors = self.process_factor_data(exp)
         print("Success in processing factor data.")
         # TODO: Call Docker, pass the combined factors to Docker, and generate backtest results
@@ -116,17 +170,3 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
             result = pickle.load(f)
 
         return result
-
-
-# class MyExperiment2Feedback(Experiment2Feedback):
-#     def summarize(self, ti: Experiment) -> HypothesisFeedback:
-#         """
-#         The `ti` should be executed and the results should be included.
-#         For example: `mlflow` of Qlib will be included.
-#         """
-
-
-        
-#         # 返回总结的反馈
-#         return feedback
-#         pass
