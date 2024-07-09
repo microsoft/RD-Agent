@@ -83,6 +83,8 @@ class LocalEnv(Env[LocalConf]):
             entry: str | None = None,
             local_path: Optional[str] = None,
             env: dict | None = None) -> str:
+        if env is None:
+            env = {}
 
         if entry is None:
             entry = self.conf.default_entry
@@ -96,6 +98,7 @@ class LocalEnv(Env[LocalConf]):
         result = subprocess.run(
             command,
             cwd=cwd,
+            env={**os.environ, **env},
             capture_output=True,
             text=True
         )
