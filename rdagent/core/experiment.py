@@ -122,6 +122,8 @@ class Experiment(ABC, Generic[ASpecificTask, ASpecificImp]):
     def __init__(self, sub_tasks: Sequence[ASpecificTask]) -> None:
         self.sub_tasks = sub_tasks
         self.sub_implementations: Sequence[ASpecificImp] = [None for _ in self.sub_tasks]
+        self.based_experiments: Sequence[Experiment] = []
+        self.result: object = None  # The result of the experiment, can be different types in different scenarios.
 
 
 TaskOrExperiment = TypeVar("TaskOrExperiment", Task, Experiment)

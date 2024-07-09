@@ -1,8 +1,7 @@
 # TODO:
 # Implement to feedback.
 
-from rdagent.core.proposal import Experiment2Feedback
+from rdagent.core.proposal import HypothesisExperiment2Feedback
 
 
-class QlibFactorExperiment2Feedback(Experiment2Feedback):
-    ...
+class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback): ...

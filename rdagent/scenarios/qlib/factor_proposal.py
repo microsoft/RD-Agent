@@ -12,7 +12,7 @@ from rdagent.components.proposal.factor_proposal import (
     FactorHypothesisGen,
 )
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import HypothesisSet, Scenario, Trace
+from rdagent.core.proposal import Hypothesis, Scenario, Trace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -43,23 +43,24 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
 
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
-    def prepare_context(self, hs: HypothesisSet) -> Tuple[dict | bool]:
-        scenario = hs.trace.scen.get_scenario_all_desc()
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
+        scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["experiment_output_format"]
 
         hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=hs.trace)
+            .render(trace=trace)
         )
 
-        experiment_list: List[FactorExperiment] = [t[1] for t in hs.trace.hist]
+        experiment_list: List[FactorExperiment] = [t[1] for t in trace.hist]
 
         factor_list = []
         for experiment in experiment_list:
             factor_list.extend(experiment.sub_tasks)
 
         return {
+            "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
@@ -67,7 +68,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "RAG": ...,
         }, True
 
-    def convert_response(self, response: str) -> FactorExperiment:
+    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
         for factor_name in response_dict:
@@ -75,4 +76,6 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
             tasks.append(FactorTask(factor_name, description, formulation, variables))
-        return FactorExperiment(tasks)
+        exp = FactorExperiment(tasks)
+        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+        return exp
