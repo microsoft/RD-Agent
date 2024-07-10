@@ -36,10 +36,7 @@ class EnvUtils(unittest.TestCase):
         print("It is running the prepare()")
         qtde.prepare()
         qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
-        # the stdout are returned as result
-        # result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf_mlp.yaml", env={"PYTHONPATH": "/workspace/"})
-        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="rm -r mlruns", env={"PYTHONPATH": "./"})
-        # result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="ls")
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="rm -r mlruns", env={"PYTHONPATH": "./"}) #Removing
 
     # NOTE: Since I don't know the exact environment in which it will be used, here's just an example.
     # NOTE: Because you need to download the data during the prepare process. So you need to have pyqlib in your environment.
