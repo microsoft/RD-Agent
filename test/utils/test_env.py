@@ -30,8 +30,6 @@ class EnvUtils(unittest.TestCase):
         # mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
         # if mlrun_p.exists():
         #     shutil.rmtree(mlrun_p)
-        ...
-
         qtde = QTDockerEnv()
         print("It is running the prepare()")
         qtde.prepare()
