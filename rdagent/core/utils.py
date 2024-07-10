@@ -19,7 +19,10 @@ class RDAgentException(Exception):  # noqa: N818
 
 
 class SingletonMeta(type):
-    _instance_dict: ClassVar[dict] = {}
+    # _instance_dict: ClassVar[dict] = {}
+    def __init__(cls, *args, **kwargs):
+        cls._instance_dict = {}  # 为每个类创建一个唯一的_instance_dict字典
+        super().__init__(*args, **kwargs)
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
