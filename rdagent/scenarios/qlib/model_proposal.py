@@ -4,14 +4,14 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask, ModelResult
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.proposal.model_proposal import (
     ModelHypothesis,
     ModelHypothesis2Experiment,
     ModelHypothesisGen,
 )
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import HypothesisSet, Scenario, Trace
+from rdagent.core.proposal import Hypothesis, Scenario, Trace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -42,36 +42,40 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
 
 
 class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
-    def prepare_context(self, hs: HypothesisSet) -> Tuple[dict, bool]:
-        scenario = hs.trace.scen.get_scenario_all_desc()
-        experiment_output_format = prompt_dict["experiment_output_format"]
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
+        scenario = trace.scen.get_scenario_all_desc()
+        experiment_output_format = prompt_dict["model_experiment_output_format"]
 
         hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=hs.trace)
+            .render(trace=trace)
         )
 
-        experiment_list: List[ModelExperiment] = [t[1] for t in hs.trace.hist]
+        experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
 
         model_list = []
         for experiment in experiment_list:
             model_list.extend(experiment.sub_tasks)
 
         return {
+            "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "model_list": model_list,
+            "target_list": model_list,
             "RAG": ...,
         }, True
 
-    def convert_response(self, response: str) -> ModelExperiment:
+    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
         response_dict = json.loads(response)
         tasks = []
         for model_name in response_dict:
             description = response_dict[model_name]["description"]
-            architecture = response_dict[model_name]["architecture"]
-            hyperparameters = response_dict[model_name]["hyperparameters"]
-            tasks.append(ModelTask(model_name, description, architecture, hyperparameters))
-        return ModelExperiment(tasks)
+            formulation = response_dict[model_name]["formulation"]
+            variables = response_dict[model_name]["variables"]
+            model_type = response_dict[model_name]["model_type"]
+            tasks.append(ModelTask(model_name, description, formulation, variables, model_type))
+        exp = ModelExperiment(tasks)
+        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+        return exp

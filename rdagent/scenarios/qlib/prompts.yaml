@@ -11,7 +11,7 @@ hypothesis_output_format: |-
     "reason": "The reason why you generate this hypothesis."
   }
 
-experiment_output_format: |-
+factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
       "factor name 1": {
@@ -29,6 +29,22 @@ experiment_output_format: |-
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"
           }
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+  }
+
+model_experiment_output_format: |-
+  So far please only design one model to test the hypothesis!
+  The output should follow JSON format. The schema is as follows:
+  {
+      "model name 1": {
+          "description": "detailed description of model 1",
+          "formulation": "latex formulation of model 1",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+          "model_type": "type of model 1, Tabular or TimesSeries"
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }

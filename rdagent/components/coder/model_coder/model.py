@@ -15,12 +15,6 @@ from rdagent.utils import get_module_by_module_path
 
 
 class ModelTask(Task):
-    # TODO: it should change when the Task changes.
-    name: str
-    description: str
-    formulation: str
-    variables: Dict[str, str]  # map the variable name to the variable description
-
     def __init__(
         self, name: str, description: str, formulation: str, variables: Dict[str, str], model_type: Optional[str] = None
     ) -> None:

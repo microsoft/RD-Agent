@@ -5,7 +5,6 @@ from typing import List, Tuple
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
-from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.components.proposal.factor_proposal import (
     FactorHypothesis,
     FactorHypothesis2Experiment,
@@ -23,7 +22,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
-    def prepare_context(self, trace: Trace) -> None:
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_feedback = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_and_feedback"])
@@ -45,7 +44,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
         scenario = trace.scen.get_scenario_all_desc()
-        experiment_output_format = prompt_dict["experiment_output_format"]
+        experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
         hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
@@ -64,7 +63,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "factor_list": factor_list,
+            "target_list": factor_list,
             "RAG": ...,
         }, True
 

@@ -92,6 +92,8 @@ qlib_model_interface: |-
 
   Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
 
+  Please notice that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
+
 
 qlib_model_output_format: |-
   Your output should be a tensor with shape (batch_size, 1). 
