@@ -107,3 +107,4 @@ qlib_model_simulator: |-
   3. Build a portfolio based on the predicted returns using a specific strategy.
   4. Evaluate the portfolio's performance, including metrics such as return, Sharpe ratio, max drawdown, and others.
   5. Iterate on model improvements based on performance evaluations and feedback.
+  If the performance increases， the hypothesis should be considered positive (working).
