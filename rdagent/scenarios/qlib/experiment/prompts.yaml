@@ -45,3 +45,65 @@ qlib_factor_simulator: |-
   2. train a model like LightGBM, CatBoost, LSTM or simple PyTorch model to predict the next several days return based on the factor values.
   3. build a portfolio based on the predicted return based on a strategy.
   4. evaluate the portfolio's performance including the return, sharpe ratio, max drawdown, and so on.
+
+qlib_model_background: |-
+  The model is a machine learning or deep learning structure used in quantitative investment to predict the returns and risks of a portfolio or a single asset. Models are employed by investors to generate forecasts based on historical data and identified factors, which are central to many quantitative investment strategies.
+  Each model takes the factors as input and predicts the future returns.
+  The model is defined in the following parts:
+  1. Name: The name of the model.
+  2. Description: The description of the model.
+  3. Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
+  4. Hyperparameters: The hyperparameters used in the model, such as learning rate, number of epochs, etc.
+  5. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
+  The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters. For example, a model with an two GRU layer and a model with three GRU layer should be considered two different models.
+
+qlib_model_interface: |-
+  Your python code should follow the interface to better interact with the user's system.
+  You code should contain several parts:
+  1. The import part: import the necessary libraries.
+  2. A class which is a sub-class of pytorch.nn.Module. This class should should have a init function and a forward function which inputs a tensor and outputs a tensor.
+  3. Set a variable called "model_cls" to the class you defined.
+
+  The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
+  ```python
+  from model import model_cls
+  ```
+  So your python code should follow the pattern:
+  ```python
+  class XXXModel(torch.nn.Module):
+      ...
+  model_cls = XXXModel
+  ```
+
+  The model has two types, "Tabular" for tabular model and "TimeSeries" for time series model. The input shape to a tabular model is (batch_size, num_features) and the input shape to a time series model is (batch_size, num_features, num_timesteps). The output shape of the model should be (batch_size, 1).
+  The "batch_size" is a dynamic value which is determined by the input of forward function.
+  The "num_features" and "num_timesteps" are static which will be provided to the model through init function.
+  User will initialize the tabular model with the following code:
+  ```python
+  model = model_cls(num_features=num_features)
+  ```
+  User will initialize the time series model with the following code:
+  ```python
+  model = model_cls(num_features=num_features, num_timesteps=num_timesteps)
+  ```
+  No other parameters will be passed to the model so give other parameters a default value or just make them static.
+
+  When dealing with TimeSeries model, remember to permute the input tensor since the input tensor is in the shape of (batch_size, num_features, num_timesteps) and a normal time series model is expecting the input tensor in the shape of (batch_size, num_timesteps, num_features).
+
+  Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
+
+
+qlib_model_output_format: |-
+  Your output should be a tensor with shape (batch_size, 1). 
+  The output tensor should be saved in a file named "output.pth" in the same directory as your python file.
+  The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
+
+qlib_model_simulator: |-
+  The models will be sent into Qlib to train and evaluate their performance in predicting future returns based on historical factor values.
+  Qlib is an AI-oriented quantitative investment platform that aims to realize the potential, empower research, and create value using AI technologies in quantitative investment, from exploring ideas to implementing productions. Qlib supports diverse machine learning modeling paradigms, including supervised learning, market dynamics modeling, and reinforcement learning (RL).
+  User will use Qlib to automatically perform the following tasks:
+  1. Generate a baseline factor table.
+  2. Train the model defined in your class Net to predict the next several days' returns based on the factor values.
+  3. Build a portfolio based on the predicted returns using a specific strategy.
+  4. Evaluate the portfolio's performance, including metrics such as return, Sharpe ratio, max drawdown, and others.
+  5. Iterate on model improvements based on performance evaluations and feedback.

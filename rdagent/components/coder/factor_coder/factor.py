@@ -67,19 +67,15 @@ class FileBasedFactorImplementation(FBImplementation):
 
     def __init__(
         self,
-        target_task: FactorTask,
-        code,
+        *args,
         executed_factor_value_dataframe=None,
         raise_exception=False,
+        **kwargs,
     ) -> None:
-        super().__init__(target_task)
-        self.code = code
+        super().__init__(*args, **kwargs)
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.logger = RDAgentLog()
         self.raise_exception = raise_exception
-        self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
-        ) / str(uuid.uuid4())
 
     @staticmethod
     def link_data_to_workspace(data_path: Path, workspace_path: Path):
@@ -98,8 +94,10 @@ class FileBasedFactorImplementation(FBImplementation):
         raise NotImplementedError
 
     def prepare(self, *args, **kwargs):
-        # TODO move the prepare part code in execute into here
-        return super().prepare(*args, **kwargs)
+        self.workspace_path = Path(
+            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
+        ) / str(uuid.uuid4())
+        self.workspace_path.mkdir(exist_ok=True, parents=True)
 
     def execute(self, store_result: bool = False) -> Tuple[str, pd.DataFrame]:
         """
@@ -114,7 +112,7 @@ class FileBasedFactorImplementation(FBImplementation):
         parameters:
         store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
-        if self.code is None:
+        if self.code_dict is None or "factor.py" not in self.code_dict:
             if self.raise_exception:
                 raise CodeFormatException(self.FB_CODE_NOT_SET)
             else:
@@ -123,7 +121,7 @@ class FileBasedFactorImplementation(FBImplementation):
         with FileLock(self.workspace_path / "execution.lock"):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
-                target_file_name = md5_hash(self.code)
+                target_file_name = md5_hash(self.code_dict["factor.py"])
                 cache_file_path = (
                     Path(FACTOR_IMPLEMENT_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
                 )
@@ -142,10 +140,9 @@ class FileBasedFactorImplementation(FBImplementation):
             source_data_path = Path(
                 FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder,
             )
-            self.workspace_path.mkdir(exist_ok=True, parents=True)
+
             source_data_path.mkdir(exist_ok=True, parents=True)
-            code_path = self.workspace_path / f"{self.target_task.factor_name}.py"
-            code_path.write_text(self.code)
+            code_path = self.workspace_path / f"factor.py"
 
             self.link_data_to_workspace(source_data_path, self.workspace_path)
 
@@ -212,10 +209,11 @@ class FileBasedFactorImplementation(FBImplementation):
     @staticmethod
     def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
         path = Path(path)
-        factor_path = (path / task.factor_name).with_suffix(".py")
-        with factor_path.open("r") as f:
-            code = f.read()
-        return FileBasedFactorImplementation(task, code=code, **kwargs)
+        code_dict = {}
+        for file_path in path.iterdir():
+            if file_path.suffix == ".py":
+                code_dict[file_path.name] = file_path.read_text()
+        return FileBasedFactorImplementation(target_task=task, code_dict=code_dict, **kwargs)
 
 
 class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...

@@ -1,14 +1,16 @@
 import json
+import pickle
+import site
 import uuid
 from pathlib import Path
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional
 
 import torch
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
-from rdagent.components.loader.task_loader import ModelTaskLoader
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.experiment import Experiment, FBImplementation, ImpLoader, Task
+from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils import get_module_by_module_path
 
 
@@ -20,29 +22,20 @@ class ModelTask(Task):
     variables: Dict[str, str]  # map the variable name to the variable description
 
     def __init__(
-        self, name: str, description: str, formulation: str, variables: Dict[str, str], key: Optional[str] = None
+        self, name: str, description: str, formulation: str, variables: Dict[str, str], model_type: Optional[str] = None
     ) -> None:
-        """
-
-        Parameters
-        ----------
-
-        key : Optional[str]
-            Key is a string to identify the task.
-            It will be used to connect to other information(e.g. ground truth).
-        """
-        self.name = name
-        self.description = description
-        self.formulation = formulation
-        self.variables = variables
-        self.key = key
+        self.name: str = name
+        self.description: str = description
+        self.formulation: str = formulation
+        self.variables: str = variables
+        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model
 
     def get_information(self):
         return f"""name: {self.name}
 description: {self.description}
 formulation: {self.formulation}
 variables: {self.variables}
-key: {self.key}
+model_type: {self.model_type}
 """
 
     @staticmethod
@@ -75,136 +68,57 @@ class ModelImplementation(FBImplementation):
 
     def __init__(self, target_task: Task) -> None:
         super().__init__(target_task)
-        self.path = None
 
     def prepare(self) -> None:
         """
         Prepare for the workspace;
         """
         unique_id = uuid.uuid4()
-        self.path = MODEL_IMPL_SETTINGS.workspace_path / f"M{unique_id}"
+        self.workspace_path = Path(MODEL_IMPL_SETTINGS.file_based_execution_workspace) / f"M{unique_id}"
         # start with `M` so that it can be imported via python
-        self.path.mkdir(parents=True, exist_ok=True)
+        self.workspace_path.mkdir(parents=True, exist_ok=True)
 
-    def execute(self, data=None, config: dict = {}):
-        mod = get_module_by_module_path(str(self.path / "model.py"))
+    def execute(
+        self,
+        batch_size: int = 8,
+        num_features: int = 10,
+        num_timesteps: int = 4,
+        input_value: float = 1.0,
+        param_init_value: float = 1.0,
+    ):
         try:
+            if MODEL_IMPL_SETTINGS.enable_execution_cache:
+                # NOTE: cache the result for the same code
+                target_file_name = md5_hash(self.code_dict["model.py"])
+                cache_file_path = (
+                    Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
+                )
+                Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location).mkdir(exist_ok=True, parents=True)
+                if cache_file_path.exists():
+                    return pickle.load(open(cache_file_path, "rb"))
+            mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
             model_cls = mod.model_cls
-        except AttributeError:
-            raise CodeFormatException("The model_cls is not implemented in the model.py")
-        # model_init =
 
-        assert isinstance(data, tuple)
-        node_feature, _ = data
-        in_channels = node_feature.size(-1)
-        m = model_cls(in_channels)
+            if self.target_task.model_type == "Tabular":
+                input_shape = (batch_size, num_features)
+                m = model_cls(num_features=input_shape[1])
+            elif self.target_task.model_type == "TimeSeries":
+                input_shape = (batch_size, num_features, num_timesteps)
+                m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
+            data = torch.full(input_shape, input_value)
 
-        # TODO: initialize all the parameters of `m` to `model_eval_param_init`
-        model_eval_param_init: float = config["model_eval_param_init"]
+            # initialize all parameters of `m` to `param_init_value`
+            for _, param in m.named_parameters():
+                param.data.fill_(param_init_value)
+            out = m(data)
+            execution_model_output = out.cpu().detach()
+            execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
+            if MODEL_IMPL_SETTINGS.enable_execution_cache:
+                pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
+            return execution_feedback_str, execution_model_output
 
-        # initialize all parameters of `m` to `model_eval_param_init`
-        for _, param in m.named_parameters():
-            param.data.fill_(model_eval_param_init)
-
-        assert isinstance(data, tuple)
-        return m(*data)
-
-    def execute_desc(self) -> str:
-        return """
-The the implemented code will be placed in a file like <uuid>/model.py
-
-We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
-- from model import model_cls (So you must have a variable named `model_cls` in the file)
-  - So your implemented code could follow the following pattern
-    ```Python
-    class XXXLayer(torch.nn.Module):
-        ...
-    model_cls = XXXLayer
-    ```
-- initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-- And then verify the model by comparing the output tensors by feeding specific input tensor.
-"""
+        except Exception as e:
+            return f"Execution error: {e}", None
 
 
-class ModelExperiment(Experiment[ModelTask, ModelImplementation]):
-    ...
-
-
-class ModelTaskLoaderJson(ModelTaskLoader):
-    # def __init__(self, json_uri: str, select_model: Optional[str] = None) -> None:
-    #     super().__init__()
-    #     self.json_uri = json_uri
-    #     self.select_model = 'A-DGN'
-
-    # def load(self, *argT, **kwargs) -> Sequence[ModelImplTask]:
-    #     # json is supposed to be in the format of {model_name: dict{model_data}}
-    #     model_dict = json.load(open(self.json_uri, "r"))
-    #     if self.select_model is not None:
-    #         assert self.select_model in model_dict
-    #         model_name = self.select_model
-    #         model_data = model_dict[self.select_model]
-    #     else:
-    #         model_name, model_data = list(model_dict.items())[0]
-
-    #     model_impl_task = ModelImplTask(
-    #         name=model_name,
-    #         description=model_data["description"],
-    #         formulation=model_data["formulation"],
-    #         variables=model_data["variables"],
-    #         key=model_name
-    #     )
-
-    #     return [model_impl_task]
-
-    def __init__(self, json_uri: str) -> None:
-        super().__init__()
-        self.json_uri = json_uri
-
-    def load(self, *argT, **kwargs) -> Sequence[ModelTask]:
-        # json is supposed to be in the format of {model_name: dict{model_data}}
-        model_dict = json.load(open(self.json_uri, "r"))
-
-        # FIXME: the model in the json file is not right due to extraction error
-        #       We should fix them case by case in the future
-        #
-        # formula_info = {
-        #     "name": "Anti-Symmetric Deep Graph Network (A-DGN)",
-        #     "description": "A framework for stable and non-dissipative DGN design. It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
-        #     "formulation": r"\mathbf{x}^{\prime}_i = \mathbf{x}_i + \epsilon \cdot \sigma \left( (\mathbf{W}-\mathbf{W}^T-\gamma \mathbf{I}) \mathbf{x}_i + \Phi(\mathbf{X}, \mathcal{N}_i) + \mathbf{b}\right),",
-        #     "variables": {
-        #         r"\mathbf{x}_i": "The state of node i at previous layer",
-        #         r"\epsilon": "The step size in the Euler discretization",
-        #         r"\sigma": "A monotonically non-decreasing activation function",
-        #         r"\Phi": "A graph convolutional operator",
-        #         r"W": "An anti-symmetric weight matrix",
-        #         r"\mathbf{x}^{\prime}_i": "The node feature matrix at layer l-1",
-        #         r"\mathcal{N}_i": "The set of neighbors of node u",
-        #         r"\mathbf{b}": "A bias vector",
-        #     },
-        #     "key": "A-DGN",
-        # }
-        model_impl_task_list = []
-        for model_name, model_data in model_dict.items():
-            model_impl_task = ModelTask(
-                name=model_name,
-                description=model_data["description"],
-                formulation=model_data["formulation"],
-                variables=model_data["variables"],
-                key=model_data["key"],
-            )
-            model_impl_task_list.append(model_impl_task)
-        return model_impl_task_list
-
-
-class ModelImpLoader(ImpLoader[ModelTask, ModelImplementation]):
-    def __init__(self, path: Path) -> None:
-        self.path = Path(path)
-
-    def load(self, task: ModelTask) -> ModelImplementation:
-        assert task.key is not None
-        mti = ModelImplementation(task)
-        mti.prepare()
-        with open(self.path / f"{task.key}.py", "r") as f:
-            code = f.read()
-        mti.inject_code(**{"model.py": code})
-        return mti
+class ModelExperiment(Experiment[ModelTask, ModelImplementation]): ...

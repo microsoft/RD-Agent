@@ -28,7 +28,7 @@ def extract_model_from_doc(doc_content: str) -> dict:
     Returns
     -------
     dict
-        {factor_name: dict{description, formulation, variables}}
+        {model_name: dict{description, formulation, variables}}
     """
     session = APIBackend().build_chat_session(
         session_system_prompt=document_process_prompts["extract_model_formulation_system"],

@@ -30,7 +30,6 @@ class ModelCodeWriter(TaskGenerator[ModelExperiment]):
                 description=t.description,
                 formulation=t.formulation,
                 variables=t.variables,
-                execute_desc=mti.execute_desc(),
             )
             system_prompt = sys_prompt_tpl.render()
 

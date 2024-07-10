@@ -145,7 +145,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     implement_prompts["evolving_strategy_factor_implementation_v1_system"],
                 )
                 .render(
-                    data_info=get_data_folder_intro(),
+                    scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 )
             )
@@ -154,7 +154,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
             queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
-            while True:
+            for _ in range(10):  # max attempt to reduce the length of user_prompt
                 user_prompt = (
                     Environment(undefined=StrictUndefined)
                     .from_string(
@@ -163,6 +163,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     .render(
                         factor_information_str=factor_information_str,
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
+                        queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                     )
                     .strip("\n")
                 )
@@ -187,8 +188,9 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
             # ast.parse(code)
             factor_implementation = FileBasedFactorImplementation(
                 target_task,
-                code,
             )
+            factor_implementation.prepare()
+            factor_implementation.inject_code(**{"factor.py": code})
 
             return factor_implementation
 
@@ -255,7 +257,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             queried_similar_error_knowledge_to_render = queried_similar_error_knowledge
             error_summary_critics = ""
             # 动态地防止prompt超长
-            while True:
+            for _ in range(10):  # max attempt to reduce the length of user_prompt
                 # 总结error（可选）
                 if (
                     error_summary
@@ -266,6 +268,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         Environment(undefined=StrictUndefined)
                         .from_string(implement_prompts["evolving_strategy_error_summary_v2_system"])
                         .render(
+                            scenario=self.scen.get_scenario_all_desc(),
                             factor_information_str=target_factor_task_information,
                             code_and_feedback=queried_former_failed_knowledge_to_render[
                                 -1
@@ -276,7 +279,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     session_summary = APIBackend(use_chat_cache=False).build_chat_session(
                         session_system_prompt=error_summary_system_prompt,
                     )
-                    while True:
+                    for _ in range(10):  # max attempt to reduce the length of error_summary_user_prompt
                         error_summary_user_prompt = (
                             Environment(undefined=StrictUndefined)
                             .from_string(implement_prompts["evolving_strategy_error_summary_v2_user"])
@@ -332,5 +335,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 json_mode=True,
             )
             code = json.loads(response)["code"]
-            factor_implementation = FileBasedFactorImplementation(target_task, code)
+            factor_implementation = FileBasedFactorImplementation(target_task)
+            factor_implementation.prepare()
+            factor_implementation.inject_code(**{"factor.py": code})
             return factor_implementation
