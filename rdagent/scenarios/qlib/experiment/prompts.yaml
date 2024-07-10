@@ -94,7 +94,7 @@ qlib_model_interface: |-
 
 
 qlib_model_output_format: |-
-  Your output should be a tensor with shape (batch_size, 1) or (batch_size). 
+  Your output should be a tensor with shape (batch_size, 1). 
   The output tensor should be saved in a file named "output.pth" in the same directory as your python file.
   The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
 

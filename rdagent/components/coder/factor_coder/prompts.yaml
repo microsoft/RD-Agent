@@ -13,6 +13,8 @@ evaluator_code_feedback_v1_system: |-
   If the ground truth code is provided, your critic should only consider checking whether the user's code is align with the ground truth code since the ground truth is definitely correct.
   If the ground truth code is not provided, your critic should consider checking whether the user's code is reasonable and correct.
 
+  Notice that your critics are not for user to debug the code. They are sent to the coding agent to correct the code. So don't give any following items for the user to check like "Please check the code line XXX".
+  
   You should provide the suggestion to each of your critic to help the user improve the code. Please response the critic in the following format. Here is an example structure for the output:
   critic 1: The critic message to critic 1
   critic 2: The critic message to critic 2

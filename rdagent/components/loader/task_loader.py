@@ -85,10 +85,10 @@ class ModelImpLoader(ImpLoader[ModelTask, ModelImplementation]):
         self.path = Path(path)
 
     def load(self, task: ModelTask) -> ModelImplementation:
-        assert task.key is not None
+        assert task.name is not None
         mti = ModelImplementation(task)
         mti.prepare()
-        with open(self.path / f"{task.key}.py", "r") as f:
+        with open(self.path / f"{task.name}.py", "r") as f:
             code = f.read()
         mti.inject_code(**{"model.py": code})
         return mti

@@ -111,7 +111,11 @@ class ModelImplementation(FBImplementation):
             for _, param in m.named_parameters():
                 param.data.fill_(param_init_value)
             out = m(data)
-            return "No execution error found, output tensor shape: " + str(out.shape), out.cpu()
+            execution_model_output = out.cpu().detach()
+            execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
+            if MODEL_IMPL_SETTINGS.enable_execution_cache:
+                pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
+            return execution_feedback_str, execution_model_output
 
         except Exception as e:
             return f"Execution error: {e}", None

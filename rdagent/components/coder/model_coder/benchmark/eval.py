@@ -41,9 +41,8 @@ class ModelImpValEval:
         for _ in range(round_n):
             # run different model initial parameters.
             for init_val in [-0.2, -0.1, 0.1, 0.2]:
-                data, exec_config = get_data_conf(init_val)
-                gt_res = gt.execute(data=data, config=exec_config)
-                res = gen.execute(data=data, config=exec_config)
+                _, gt_res = gt.execute(input_value=init_val, param_init_value=init_val)
+                _, res = gen.execute(input_value=init_val, param_init_value=init_val)
                 eval_pairs.append((res, gt_res))
 
         # flat and concat the output
