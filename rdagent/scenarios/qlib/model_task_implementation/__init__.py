@@ -1,5 +1,3 @@
-from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
+from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
 
-
-class QlibModelCodeWriter(ModelCodeWriter):
-    ...
+QlibModelCoSTEER = ModelCoSTEER

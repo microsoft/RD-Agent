@@ -37,16 +37,18 @@ class FactorHypothesisGen(HypothesisGen):
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["factor_hypothesis_gen"]["system_prompt"])
+            .from_string(prompt_dict["hypothesis_gen"]["system_prompt"])
             .render(
+                targets="factors",
                 scenario=self.scen.get_scenario_all_desc(),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
             )
         )
         user_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["factor_hypothesis_gen"]["user_prompt"])
+            .from_string(prompt_dict["hypothesis_gen"]["user_prompt"])
             .render(
+                targets="factors",
                 hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
                 RAG=context_dict["RAG"],
             )
@@ -60,8 +62,6 @@ class FactorHypothesisGen(HypothesisGen):
 
 
 class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
-    def __init__(self) -> None:
-        super().__init__()
 
     @abstractmethod
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
@@ -73,19 +73,21 @@ class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
         context, json_flag = self.prepare_context(hypothesis, trace)
         system_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["factor_hypothesis2experiment"]["system_prompt"])
+            .from_string(prompt_dict["hypothesis2experiment"]["system_prompt"])
             .render(
+                targets="factors",
                 scenario=trace.scen.get_scenario_all_desc(),
                 experiment_output_format=context["experiment_output_format"],
             )
         )
         user_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["factor_hypothesis2experiment"]["user_prompt"])
+            .from_string(prompt_dict["hypothesis2experiment"]["user_prompt"])
             .render(
+                targets="factors",
                 target_hypothesis=context["target_hypothesis"],
                 hypothesis_and_feedback=context["hypothesis_and_feedback"],
-                factor_list=context["factor_list"],
+                target_list=context["target_list"],
                 RAG=context["RAG"],
             )
         )

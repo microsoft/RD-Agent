@@ -2,7 +2,7 @@ from rdagent.components.coder.model_coder.model import ModelImplementation
 from rdagent.core.task_generator import TaskGenerator
 
 
-class QlibModelImplementation(TaskGenerator[ModelImplementation]):
+class QlibModelRunner(TaskGenerator[ModelImplementation]):
     """
     Docker run
     Everything in a folder
@@ -14,3 +14,6 @@ class QlibModelImplementation(TaskGenerator[ModelImplementation]):
     - pt_model_uri:  hard-code `model.py:Net` in the config
     - let LLM modify model.py
     """
+
+    def generate(self, exp: ModelImplementation) -> ModelImplementation:
+        return exp  # TODO IMPLEMENT THIS

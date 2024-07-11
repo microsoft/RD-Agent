@@ -14,12 +14,12 @@ class PropSetting(BaseSettings):
     )
 
     # TODO: model part is not finished yet
-    qlib_model_scen: str = ""
-    qlib_model_hypothesis_gen: str = ""
-    qlib_model_hypothesis2experiment: str = ""
-    qlib_model_coder: str = ""
-    qlib_model_runner: str = ""
-    qlib_model_summarizer: str = ""
+    qlib_model_scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
+    qlib_model_hypothesis_gen: str = "rdagent.scenarios.qlib.model_proposal.QlibModelHypothesisGen"
+    qlib_model_hypothesis2experiment: str = "rdagent.scenarios.qlib.model_proposal.QlibModelHypothesis2Experiment"
+    qlib_model_coder: str = "rdagent.scenarios.qlib.model_task_implementation.QlibModelCoSTEER"
+    qlib_model_runner: str = "rdagent.scenarios.qlib.task_generator.model.QlibModelRunner"
+    qlib_model_summarizer: str = "rdagent.scenarios.qlib.task_generator.feedback.QlibModelHypothesisExperiment2Feedback"
 
     evolving_n: int = 10
 

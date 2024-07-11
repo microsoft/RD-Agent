@@ -9,21 +9,23 @@ from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
+    HypothesisGen,
     Trace,
 )
+from rdagent.core.scenario import Scenario
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import import_class
 
-scen = import_class(PROP_SETTING.qlib_model_scen)()
+scen: Scenario = import_class(PROP_SETTING.qlib_model_scen)()
 
-hypothesis_gen = import_class(PROP_SETTING.qlib_model_hypothesis_gen)(scen)
+hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.qlib_model_hypothesis_gen)(scen)
 
 hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.qlib_model_hypothesis2experiment)()
 
 qlib_model_coder: TaskGenerator = import_class(PROP_SETTING.qlib_model_coder)(scen)
 qlib_model_runner: TaskGenerator = import_class(PROP_SETTING.qlib_model_runner)(scen)
 
-qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_hypothesis2experiment)(scen)
+qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_hypothesis2experiment)()
 
 trace = Trace(scen=scen)
 for _ in range(PROP_SETTING.evolving_n):

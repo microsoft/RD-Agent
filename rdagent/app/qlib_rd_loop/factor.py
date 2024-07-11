@@ -4,6 +4,8 @@ TODO: Factor Structure RD-Loop
 
 from dotenv import load_dotenv
 
+from rdagent.core.scenario import Scenario
+
 load_dotenv(override=True)
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
@@ -16,7 +18,7 @@ from rdagent.core.proposal import (
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import import_class
 
-scen = import_class(PROP_SETTING.qlib_factor_scen)()
+scen: Scenario = import_class(PROP_SETTING.qlib_factor_scen)()
 
 hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.qlib_factor_hypothesis_gen)(scen)
 
