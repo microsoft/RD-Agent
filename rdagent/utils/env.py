@@ -94,7 +94,8 @@ class LocalEnv(Env[LocalConf]):
         cwd = None
         if local_path:
             cwd = Path(local_path).resolve()
-        print(command)
+        print(f"CWD: {cwd}")
+
         result = subprocess.run(
             command,
             cwd=cwd,

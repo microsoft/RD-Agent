@@ -30,8 +30,9 @@ class EnvUtils(unittest.TestCase):
     #     )
     #     qle = LocalEnv(conf=local_conf)
     #     qle.prepare()
+    #     exe_path = str(DIRNAME / "env_tpl")
     #     conf_path = str(DIRNAME / "env_tpl" / "conf.yaml") 
-    #     qle.run(entry="qrun " + conf_path)
+    #     qle.run(entry="qrun " + conf_path, local_path=exe_path)
     #     mlrun_p = DIRNAME / "env_tpl" / "mlruns" 
     #     self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
