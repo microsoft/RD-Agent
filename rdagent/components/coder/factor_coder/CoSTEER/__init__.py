@@ -98,4 +98,5 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
         if self.new_knowledge_base_path is not None:
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
         self.knowledge_base = factor_knowledge_base
+        factor_experiment.based_experiments = exp.based_experiments
         return factor_experiment

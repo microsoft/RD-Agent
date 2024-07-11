@@ -149,7 +149,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 )
             )
-            session = APIBackend(use_chat_cache=False).build_chat_session(
+            session = APIBackend(use_chat_cache=True).build_chat_session(
                 session_system_prompt=system_prompt,
             )
 
@@ -249,7 +249,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 )
             )
 
-            session = APIBackend(use_chat_cache=False).build_chat_session(
+            session = APIBackend(use_chat_cache=True).build_chat_session(
                 session_system_prompt=system_prompt,
             )
 
@@ -276,7 +276,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         )
                         .strip("\n")
                     )
-                    session_summary = APIBackend(use_chat_cache=False).build_chat_session(
+                    session_summary = APIBackend(use_chat_cache=True).build_chat_session(
                         session_system_prompt=error_summary_system_prompt,
                     )
                     for _ in range(10):  # max attempt to reduce the length of error_summary_user_prompt
