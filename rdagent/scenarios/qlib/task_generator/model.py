@@ -1,10 +1,9 @@
 from rdagent.components.coder.model_coder.model import ModelImplementation
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.utils.env import QTDockerEnv
 import shutil
 from pathlib import Path
 
-class QlibModelImplementation(TaskGenerator[ModelImplementation]):
+class QlibModelImplementation(ModelImplementation):
     """
     Docker run
     Everything in a folder
@@ -19,7 +18,12 @@ class QlibModelImplementation(TaskGenerator[ModelImplementation]):
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
-        self.local_path = kwargs.get('local_path', str(Path(__file__).resolve().parent / "env_tpl"))
+        self.local_path = kwargs.get('local_path', str(Path(__file__).resolve().parent / "env_tpl")) # Prepare function for creating a directory for implementation
+
+    def prepare():
+        # Build a new directory | each for a new implementation of model
+            # Standard components: 1) config.yaml, 2) model.py, 3) read_exp.py  
+        ... 
 
     def execute(self):
         """
