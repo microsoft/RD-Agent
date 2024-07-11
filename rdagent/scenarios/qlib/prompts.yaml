@@ -44,7 +44,7 @@ model_experiment_output_format: |-
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"
           }
-          "model_type": "type of model 1, Tabular or TimesSeries"
+          "model_type": "type of model 1, Tabular or TimesSeries" # Should be one of "Tabular" or "TimeSeries"
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
