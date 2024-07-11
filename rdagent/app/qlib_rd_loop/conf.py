@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pathlib import Path
 
 
 class PropSetting(BaseSettings):
@@ -22,6 +23,7 @@ class PropSetting(BaseSettings):
     qlib_model_summarizer: str = "rdagent.scenarios.qlib.task_generator.feedback.QlibModelHypothesisExperiment2Feedback"
 
     evolving_n: int = 10
-
-
+    
+    py_bin: str = "/usr/bin/python"
+    
 PROP_SETTING = PropSetting()
