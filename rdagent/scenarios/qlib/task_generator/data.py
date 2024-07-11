@@ -24,6 +24,8 @@ logger = RDAgentLog()
 #         de = DockerEnv()
 #         de.run(local_path=self.ws_path, entry="qrun conf.yaml")
 
+# TODO: supporting multiprocessing and keep previous results
+
 class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     """
     Docker run
@@ -32,8 +34,6 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     - price-volume data dumper
     - `data.py` + Adaptor to Factor implementation
     - results in `mlflow`
-
-    - TODO: implement a qlib handler
     """
     
     def FetchAlpha158ResultFromDocker(self):
@@ -86,8 +86,9 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
         Generate the experiment by processing and combining factor data,
         then passing the combined data to Docker for backtest results.
         """
-
-        SOTA_factor = self.process_factor_data(exp.based_experiments)
+        SOTA_factor = None
+        if exp.based_experiments.__len__() != 1:
+            SOTA_factor = self.process_factor_data(exp.based_experiments)
         
         if exp.based_experiments[-1].result is None:
             exp.based_experiments[-1].result = self.FetchAlpha158ResultFromDocker()
@@ -133,6 +134,7 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
             result = pickle.load(f)
          """
         
+        # TODO: Implement the Docker run in the following way
         # Local run
         # Clean up any previous run artifacts by deleting the mlruns directory
         mlruns_path = DIRNAME_local / 'mlruns' / '1'
@@ -147,7 +149,7 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
         qle = LocalEnv(conf=local_conf)
         qle.prepare()
         conf_path = str(DIRNAME / "env_factor" / "conf_combined.yaml") 
-        qle.run(entry="qrun " + conf_path)
+        qle.run(entry="qrun " + conf_path, local_path=PROP_SETTING.local_qlib_folder)
 
         # Verify if the new folder is created
         mlrun_p = DIRNAME_local / 'mlruns' / '1' 

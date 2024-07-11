@@ -25,5 +25,6 @@ class PropSetting(BaseSettings):
     evolving_n: int = 10
     
     py_bin: str = "/usr/bin/python"
+    local_qlib_folder: Path = Path("/home/rdagent/qlib")
     
 PROP_SETTING = PropSetting()

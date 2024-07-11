@@ -67,13 +67,13 @@ data_feedback_generation:
     }
   user: |-
     Target hypothesis: 
-    {{hypothesis}}
+    {{ hypothesis_text }}
     Tasks and Factors:
-    {{task_details}}
+    {{ task_details }}
     Current Result: 
-    {{current_result}}
+    {{ current_result }}
     SOTA Result: 
-    {{sota_result}}
+    {{ sota_result }}
     Analyze the current result in the context of its ability to:
     1. Support or refute the hypothesis.
     2. Show improvement or deterioration compared to the last experiment.

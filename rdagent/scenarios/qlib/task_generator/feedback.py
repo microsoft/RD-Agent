@@ -39,20 +39,15 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
         tasks_factors = [task.get_factor_information() for task in exp.sub_tasks]
-
         sota_result = exp.based_experiments[-1].result
 
         # Generate the system prompt
         sys_prompt = Environment(undefined=StrictUndefined).from_string(feedback_prompts["data_feedback_generation"]["system"]).render(scenario=self.scen.get_scenario_all_desc())
-        
-
-        # Prepare task details
-        task_details = "\n".join([f"Task: {factor_name}, Factor: {factor_description}" for factor_name, factor_description in tasks_factors])
 
         # Generate the user prompt
-        usr_prompt = Environment(undefined=StrictUndefined).from_string(feedback_prompts["data_feedback_generation"]["user"]).format(
+        usr_prompt = Environment(undefined=StrictUndefined).from_string(feedback_prompts["data_feedback_generation"]["user"]).render(
             hypothesis_text=hypothesis_text,
-            task_details=task_details,
+            task_details=tasks_factors,
             current_result=current_result,
             sota_result=sota_result
         )
