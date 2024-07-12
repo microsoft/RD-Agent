@@ -106,13 +106,15 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
         combined_factors = combined_factors.sort_index()
         new_columns = pd.MultiIndex.from_product([['feature'], combined_factors.columns])
         combined_factors.columns = new_columns
-
+        
+        # logger.info(combined_factors)
+        
         # Save the combined factors to a pickle file
         combined_factors_path = DIRNAME / 'env_factor/combined_factors_df.pkl'
         with open(combined_factors_path, 'wb') as f:
             pickle.dump(combined_factors, f)
 
-        """ Docker run
+        #  Docker run
         # Call Docker, pass the combined factors to Docker, and generate backtest results
         qtde = QTDockerEnv()
         qtde.prepare()
@@ -132,8 +134,8 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
         with open(pkl_path, 'rb') as f:
             result = pickle.load(f)
-         """
         
+        """
         # TODO: Implement the Docker run in the following way
         # Local run
         # Clean up any previous run artifacts by deleting the mlruns directory
@@ -166,9 +168,9 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
         with open(pickle_file, 'rb') as f:
             result = pickle.load(f)
-        
+        """
         exp.result = result
-        
+
         # Check if the result is valid and is a DataFrame
         if isinstance(result, pd.DataFrame):
             if not result.empty:

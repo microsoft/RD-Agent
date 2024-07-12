@@ -125,7 +125,7 @@ class DockerConf(BaseModel):
 
 
 QLIB_TORCH_IMAGE = DockerConf(
-    image="linlanglv/qlib_image_nightly_pytorch:nightly",
+    image="linlanglv/qlib_image_nightly_pytorch:240711",
     mount_path="/workspace",
     default_entry="qrun conf.yaml",
     extra_volumes={Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"},
