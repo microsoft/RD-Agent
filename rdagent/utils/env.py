@@ -201,6 +201,7 @@ class QTDockerEnv(DockerEnv):
         super().prepare()
         qlib_data_path = next(iter(self.conf.extra_volumes.keys()))
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
+            print("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
         else:
