@@ -3,10 +3,10 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import ASpecificTask, Experiment
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
