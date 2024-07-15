@@ -25,9 +25,10 @@ hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.qlib_factor_hypothesis
 hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.qlib_factor_hypothesis2experiment)()
 
 qlib_factor_coder: TaskGenerator = import_class(PROP_SETTING.qlib_factor_coder)(scen)
+
 qlib_factor_runner: TaskGenerator = import_class(PROP_SETTING.qlib_factor_runner)(scen)
 
-qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_factor_summarizer)()
+qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_factor_summarizer)(scen)
 
 
 trace = Trace(scen=scen)

@@ -48,3 +48,35 @@ model_experiment_output_format: |-
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
+
+data_feedback_generation:
+  system: |-
+    You are a professional result analysis assistant on data driven R&D.
+    The task is described in the following scenario:
+    {{ scenario }}
+    You will receive a hypothesis, multiple tasks with their factors, and some results.
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous results, and suggest improvements or new directions.
+    Please provide detailed and constructive feedback for the future exploration.
+    Please respond in JSON format, and example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Put your new hypothesis here.",
+      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "Replace Best Result": "yes or no"
+    }
+  user: |-
+    Target hypothesis: 
+    {{ hypothesis_text }}
+    Tasks and Factors:
+    {{ task_details }}
+    Current Result: 
+    {{ current_result }}
+    SOTA Result: 
+    {{ sota_result }}
+    Analyze the current result in the context of its ability to:
+    1. Support or refute the hypothesis.
+    2. Show improvement or deterioration compared to the last experiment.
+    3. Demonstrate positive or negative effects when compared to Alpha158.
+
+    Provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.

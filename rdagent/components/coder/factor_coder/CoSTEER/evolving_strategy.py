@@ -59,7 +59,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         # 1.找出需要evolve的factor
         to_be_finished_task_index = []
         for index, target_factor_task in enumerate(new_evo.sub_tasks):
-            target_factor_task_desc = target_factor_task.get_factor_information()
+            target_factor_task_desc = target_factor_task.get_task_information()
             if target_factor_task_desc in queried_knowledge.success_task_to_knowledge_dict:
                 new_evo.sub_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_factor_task_desc
@@ -119,7 +119,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: FactorTask,
         queried_knowledge: FactorQueriedKnowledgeV1 = None,
     ) -> Implementation:
-        factor_information_str = target_task.get_factor_information()
+        factor_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and factor_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[factor_information_str].implementation
@@ -208,7 +208,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
     ) -> Implementation:
         error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
         # 1. 提取因子的背景信息
-        target_factor_task_information = target_task.get_factor_information()
+        target_factor_task_information = target_task.get_task_information()
 
         # 2. 检查该因子是否需要继续做（是否已经作对，是否做错太多）
         if (

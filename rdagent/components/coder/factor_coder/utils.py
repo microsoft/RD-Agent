@@ -22,7 +22,7 @@ def get_data_folder_intro():
     It is for preparing prompting message.
     """
     content_l = []
-    for p in Path(FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder).iterdir():
+    for p in Path(FACTOR_IMPLEMENT_SETTINGS.factor_data_folder).iterdir():
         if p.name.endswith(".h5"):
             df = pd.read_hdf(p)
             # get  df.head() as string with full width

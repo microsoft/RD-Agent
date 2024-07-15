@@ -18,6 +18,7 @@ matplotlib
 langchain
 tiktoken
 scikit-learn
+docker
 
 # azure identity related
 azure.identity

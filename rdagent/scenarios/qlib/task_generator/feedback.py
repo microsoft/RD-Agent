@@ -1,13 +1,101 @@
 # TODO:
 # Implement to feedback.
+
 import json
-from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.proposal import HypothesisExperiment2Feedback, Trace, Hypothesis, HypothesisFeedback, Scenario
+from pathlib import Path
+
+from jinja2 import Environment, StrictUndefined
+
 from rdagent.core.experiment import Experiment
+from rdagent.core.log import RDAgentLog
+from rdagent.core.prompts import Prompts
+from rdagent.core.proposal import (
+    Hypothesis,
+    HypothesisExperiment2Feedback,
+    HypothesisFeedback,
+    Trace,
+)
+from rdagent.oai.llm_utils import APIBackend
+
+feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+DIRNAME = Path(__file__).absolute().resolve().parent
+logger = RDAgentLog()
 
 
-class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback): ...
+class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+        """
+        Generate feedback for the given experiment and hypothesis.
 
+        Args:
+            exp (QlibFactorExperiment): The experiment to generate feedback for.
+            hypothesis (QlibFactorHypothesis): The hypothesis to generate feedback for.
+            trace (Trace): The trace of the experiment.
+
+        Returns:
+            Any: The feedback generated for the given experiment and hypothesis.
+        """
+        logger.info("Generating feedback...")
+        hypothesis_text = hypothesis.hypothesis
+        current_result = exp.result
+        tasks_factors = [task.get_task_information() for task in exp.sub_tasks]
+        sota_result = exp.based_experiments[-1].result
+
+        # Generate the system prompt
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts["data_feedback_generation"]["system"])
+            .render(scenario=self.scen.get_scenario_all_desc())
+        )
+
+        # Generate the user prompt
+        usr_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts["data_feedback_generation"]["user"])
+            .render(
+                hypothesis_text=hypothesis_text,
+                task_details=tasks_factors,
+                current_result=current_result,
+                sota_result=sota_result,
+            )
+        )
+
+        # Call the APIBackend to generate the response for hypothesis feedback
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=usr_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+        )
+
+        # Parse the JSON response to extract the feedback
+        response_json = json.loads(response)
+
+        # Extract fields from JSON response
+        observations = response_json.get("Observations", "No observations provided")
+        hypothesis_evaluation = response_json.get("Feedback for Hypothesis", "No feedback provided")
+        new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
+        reason = response_json.get("Reasoning", "No reasoning provided")
+        decision = response_json.get("Replace Best Result", "no").lower() == "yes"
+
+        # Create HypothesisFeedback object
+        hypothesis_feedback = HypothesisFeedback(
+            observations=observations,
+            hypothesis_evaluation=hypothesis_evaluation,
+            new_hypothesis=new_hypothesis,
+            reason=reason,
+            decision=decision,
+        )
+
+        logger.info(
+            "Generated Hypothesis Feedback:\n"
+            f"Observations: {observations}\n"
+            f"Feedback for Hypothesis: {hypothesis_evaluation}\n"
+            f"New Hypothesis: {new_hypothesis}\n"
+            f"Reason: {reason}\n"
+            f"Replace Best Result: {'Yes' if decision else 'No'}"
+        )
+
+        return hypothesis_feedback
 
 
 class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
@@ -40,7 +128,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         else:
             last_info_str = "This is the first round. No previous information available."
 
-        usr_prompt_hypothesis = f'''
+        usr_prompt_hypothesis = f"""
             We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
             Here are the context: {context}. 
             {last_info_str}
@@ -51,8 +139,8 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             Result: {exp.result}\n
 
             Compare and observe. Which result has a better return and lower risk? If the performance increases， the hypothesis should be considered positive (working). 
-            Hence, with the hypotheses, relevant reasonings, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 
-        '''
+            Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 
+        """
 
         try:
             # Call the APIBackend to generate the response for hypothesis feedback
@@ -61,7 +149,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 system_prompt=sys_prompt_hypothesis,
                 json_mode=True,
             )
-            
+
             # Parse the JSON response to extract the feedback
             response_json_hypothesis = json.loads(response_hypothesis)
             hypothesis_feedback = HypothesisFeedback(
@@ -69,13 +157,13 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 hypothesis_evaluation=response_json_hypothesis.get("Feedback for Hypothesis", "No feedback provided"),
                 new_hypothesis=response_json_hypothesis.get("New Hypothesis", "No new hypothesis provided"),
                 reason=response_json_hypothesis.get("Reasoning", "No reasoning provided"),
-                decision=response_json_hypothesis.get("Decision", "false").lower() == "true"
+                decision=response_json_hypothesis.get("Decision", "false").lower() == "true",
             )
 
             return hypothesis_feedback
 
         except json.JSONDecodeError as e:
-            # TODO:  (Xiao) I think raising a specific type of ERROR to make caller know sth bad has happend would be more reasonable
+            # TODO:  (Xiao) I think raising a specific type of ERROR to make caller know sth bad has happened would be more reasonable
             print("Error parsing JSON response from LLM for hypothesis feedback:", e)
         except Exception as e:
             print("An unexpected error occurred while generating hypothesis feedback:", e)
@@ -85,6 +173,5 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             hypothesis_evaluation="No feedback",
             new_hypothesis="No new hypothesis",
             reason="No reasoning",
-            decision=False
+            decision=False,
         )
-
