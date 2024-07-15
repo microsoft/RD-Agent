@@ -27,7 +27,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
     ) -> ModelImplementation:
-        model_information_str = target_task.get_information()
+        model_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -113,7 +113,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         # 1.找出需要evolve的model
         to_be_finished_task_index = []
         for index, target_model_task in enumerate(new_evo.sub_tasks):
-            target_model_task_desc = target_model_task.get_information()
+            target_model_task_desc = target_model_task.get_task_information()
             if target_model_task_desc in queried_knowledge.success_task_to_knowledge_dict:
                 new_evo.sub_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_model_task_desc

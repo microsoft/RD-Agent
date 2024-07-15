@@ -68,7 +68,7 @@ evolving_strategy_factor_implementation_v1_user: |-
   --------------Correct code to similar factors:---------------
   {% for similar_successful_knowledge in queried_similar_successful_knowledge %}
   =====Factor {{loop.index}}:=====
-  {{ similar_successful_knowledge.target_task.get_factor_information() }}
+  {{ similar_successful_knowledge.target_task.get_task_information() }}
   =====Code:=====
   {{ similar_successful_knowledge.implementation.code }}
   {% endfor %}
@@ -94,7 +94,7 @@ evolving_strategy_factor_implementation_v2_user: |-
   When doing other tasks, you met some similar errors but you finally solve them. Here are some examples:
   {% for error_content, similar_error_knowledge in queried_similar_error_knowledge %} 
   --------------Factor information to similar error ({{error_content}}):---------------
-  {{ similar_error_knowledge[0].target_task.get_factor_information() }}
+  {{ similar_error_knowledge[0].target_task.get_task_information() }}
   =====Code with similar error ({{error_content}}):=====
   {{ similar_error_knowledge[0].implementation.code }}
   =====Success code to former code with similar error ({{error_content}}):=====
@@ -111,7 +111,7 @@ evolving_strategy_factor_implementation_v2_user: |-
   --------------Correct code to similar factors:---------------
   {% for similar_component_knowledge in queried_similar_component_knowledge %}
   =====Factor {{loop.index}}:=====
-  {{ similar_component_knowledge.target_task.get_factor_information() }}
+  {{ similar_component_knowledge.target_task.get_task_information() }}
   =====Code:=====
   {{ similar_component_knowledge.implementation.code }}
   {% endfor %}
@@ -137,7 +137,7 @@ evolving_strategy_error_summary_v2_user: |-
   {% if queried_similar_error_knowledge|length != 0 %}
   {% for error_content, similar_error_knowledge in queried_similar_error_knowledge %} 
   --------------Factor information to similar error ({{error_content}}):---------------
-  {{ similar_error_knowledge[0].target_task.get_factor_information() }}
+  {{ similar_error_knowledge[0].target_task.get_task_information() }}
   =====Code with similar error ({{error_content}}):=====
   {{ similar_error_knowledge[0].implementation.code }}
   =====Success code to former code with similar error ({{error_content}}):=====

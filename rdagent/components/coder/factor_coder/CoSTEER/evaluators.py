@@ -84,7 +84,7 @@ class FactorCodeEvaluator(FactorEvaluator):
         gt_implementation: Implementation = None,
         **kwargs,
     ):
-        factor_information = target_task.get_factor_information()
+        factor_information = target_task.get_task_information()
         code = implementation.code
 
         system_prompt = (
@@ -179,6 +179,36 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             resp_dict["output_format_feedback"],
             resp_dict["output_format_decision"],
         )
+
+
+class FactorDatetimeDailyEvaluator(FactorEvaluator):
+    def evaluate(
+        self,
+        implementation: Implementation,
+        gt_implementation: Implementation,
+    ) -> Tuple[str | object]:
+        _, gen_df = self._get_df(gt_implementation, implementation)
+        if gen_df is None:
+            return "The source dataframe is None. Skip the evaluation of the datetime format.", False
+
+        if "datetime" not in gen_df.index.names:
+            return "The source dataframe does not have a datetime index. Please check the implementation.", False
+
+        try:
+            pd.to_datetime(gen_df.index.get_level_values("datetime"))
+        except Exception:
+            return (
+                "The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.",
+                False,
+            )
+
+        time_diff = gen_df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+        if pd.Timedelta(minutes=1) in time_diff:
+            return (
+                "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
+                False,
+            )
+        return "The generated dataframe is daily.", True
 
 
 class FactorRowCountEvaluator(FactorEvaluator):
@@ -314,6 +344,9 @@ class FactorValueEvaluator(FactorEvaluator):
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
 
+        feedback_str, _ = FactorDatetimeDailyEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        conclusions.append(feedback_str)
+
         # Check if both dataframe have the same rows count
         if gt_implementation is not None:
             feedback_str, _ = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
@@ -373,7 +406,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                     evaluate_prompts["evaluator_final_decision_v1_user"],
                 )
                 .render(
-                    factor_information=target_task.get_factor_information(),
+                    factor_information=target_task.get_task_information(),
                     execution_feedback=execution_feedback_to_render,
                     code_feedback=code_feedback,
                     factor_value_feedback=(
@@ -475,7 +508,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
         if implementation is None:
             return None
 
-        target_task_information = target_task.get_factor_information()
+        target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict

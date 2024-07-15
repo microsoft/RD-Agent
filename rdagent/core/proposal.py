@@ -3,10 +3,10 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import ASpecificTask, Experiment
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
@@ -101,9 +101,12 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 class HypothesisExperiment2Feedback:
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generateFeedback(self, ti: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def __init__(self, scen: Scenario):
+        self.scen = scen
+
+    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
+        The `exp` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
         raise NotImplementedError("generateFeedback method is not implemented.")

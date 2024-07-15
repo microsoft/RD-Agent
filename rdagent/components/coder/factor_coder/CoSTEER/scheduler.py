@@ -39,7 +39,7 @@ def LLMSelect(
     tasks = []
     for i in to_be_finished_task_index:
         # find corresponding former trace for each task
-        target_factor_task_information = evo.sub_tasks[i].get_factor_information()
+        target_factor_task_information = evo.sub_tasks[i].get_task_information()
         if target_factor_task_information in former_trace:
             tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information]))
 

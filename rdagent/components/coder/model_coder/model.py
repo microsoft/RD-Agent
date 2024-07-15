@@ -24,7 +24,7 @@ class ModelTask(Task):
         self.variables: str = variables
         self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model
 
-    def get_information(self):
+    def get_task_information(self):
         return f"""name: {self.name}
 description: {self.description}
 formulation: {self.formulation}
@@ -68,7 +68,7 @@ class ModelImplementation(FBImplementation):
         Prepare for the workspace;
         """
         unique_id = uuid.uuid4()
-        self.workspace_path = Path(MODEL_IMPL_SETTINGS.file_based_execution_workspace) / f"M{unique_id}"
+        self.workspace_path = Path(MODEL_IMPL_SETTINGS.model_execution_workspace) / f"M{unique_id}"
         # start with `M` so that it can be imported via python
         self.workspace_path.mkdir(parents=True, exist_ok=True)
 
@@ -84,10 +84,8 @@ class ModelImplementation(FBImplementation):
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
                 target_file_name = md5_hash(self.code_dict["model.py"])
-                cache_file_path = (
-                    Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
-                )
-                Path(MODEL_IMPL_SETTINGS.implementation_execution_cache_location).mkdir(exist_ok=True, parents=True)
+                cache_file_path = Path(MODEL_IMPL_SETTINGS.model_cache_location) / f"{target_file_name}.pkl"
+                Path(MODEL_IMPL_SETTINGS.model_cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
