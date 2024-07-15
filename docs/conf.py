@@ -15,29 +15,6 @@ author = 'Microsoft'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# 1. sphinx.ext.autodoc
-# This extension is used to automatically extract docstrings from Python code and generate documentation. Using autodoc, you can insert documentation for modules, classes, functions, and methods into the documentation, ensuring that the documentation is always in sync with the code.
-
-# 2. sphinx.ext.autosummary
-# This extension is used to automatically generate summary tables for modules and classes, usually ... autosummary:: directive. It creates a table containing all the documented members of the target module or class for quick browsing.
-
-# 3. sphinx.ext.doctest
-# This extension is used to run Python code snippets through the documentation to ensure the accuracy of the sample code. Using doctest, you can automatically check that the sample code works when the document is built.
-
-# 4. sphinx.ext.intersphinx
-# The intersphinx extension is used to create cross-document links, allowing you to link to other Sphinx documents (e.g., from Django or NumPy). This allows you to reference objects from other projects in the documentation, providing richer information.
-
-# 5. sphinx.ext.todo
-# This extension is used to add TODO comments to documents. You can use the . todo:: directive to mark tasks that need to be done in a document and choose whether to display these TODO comments when building the document through a configuration option.
-
-# 6. sphinxcontrib.spelling
-# The spelling extension is used for spell checking. It checks for spelling errors during document construction and generates reports to help you maintain the linguistic quality of your documents.
-
-# 7. sphinx_copybutton
-# This extension adds a "copy" button to a block of code, making it easy for readers to quickly copy code samples. It improves the user-friendliness of the documentation.
-
-# 8. sphinxext.opengraph
-# This extension is used to generate Open Graph metadata to provide a better preview when sharing documents on social media. By adding Open Graph tags, you can improve the visibility and presentation of your documents on social platforms.
 extensions = []
 
 autodoc_member_order = "bysource"
