@@ -54,15 +54,14 @@ class Trace(Generic[ASpecificScen]):
         self.scen: ASpecificScen = scen
         self.hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
-    def get_last_experiment_info(self) -> Tuple[Hypothesis, ASpecificTask, Any]:
+    def get_SOTA_hypothesis_and_experiment(self) -> Tuple[Hypothesis, Experiment]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
-        if not self.hist:
-            return None
-        last_hypothesis, last_experiment, _ = self.hist[-1]
-        last_task = last_experiment.sub_tasks[-1]
-        last_result = last_experiment.result
-        return last_hypothesis, last_task, last_result
+        for hypothesis, experiment, feedback in self.hist[::-1]:
+            if feedback.decision:
+                return hypothesis, experiment
+
+        return None, None
 
 
 class HypothesisGen:

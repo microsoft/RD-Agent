@@ -49,7 +49,7 @@ model_experiment_output_format: |-
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
 
-data_feedback_generation:
+factor_feedback_generation:
   system: |-
     You are a professional result analysis assistant on data driven R&D.
     The task is described in the following scenario:
@@ -80,3 +80,37 @@ data_feedback_generation:
     3. Demonstrate positive or negative effects when compared to Alpha158.
 
     Provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.
+
+model_feedback_generation:
+  system: |-
+    You are a professional result analysis assistant. You will receive a result and a hypothesis.
+    Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
+    Please provide detailed and constructive feedback.
+    Example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Put your new hypothesis here.",
+      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "Decision": True or False,
+    }
+  user: |-
+    We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
+    Here are the context: {{context}}. 
+
+    {% if last_hypothesis %}
+    Last Round Information:
+    Hypothesis: {{last_hypothesis.hypothesis}}
+    Task: {{last_task}}
+    Result: {{last_result}}
+    {% else %}
+    This is the first round. No previous information available.
+    {% endif %}
+    
+    Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
+    Hypothesis: {{hypothesis.hypothesis}}
+    Relevant Reasoning: {{hypothesis.reason}}
+    Result: {{exp.result}}
+
+    Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
+    Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 

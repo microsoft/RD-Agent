@@ -86,13 +86,12 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[1:]
 
             code = json.loads(
-                APIBackend(use_chat_cache=True).build_messages_and_create_chat_completion(
+                APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                     json_mode=True,
                 ),
             )["code"]
-            # ast.parse(code)
             model_implementation = ModelImplementation(
                 target_task,
             )

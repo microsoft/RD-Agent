@@ -100,7 +100,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.error(f"File {csv_path} does not exist.")
             return None
 
-        result = pd.read_csv(csv_path, index_col=0)
+        result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
         if RUNNER_SETTINGS.runner_cache_result:

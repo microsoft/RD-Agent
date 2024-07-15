@@ -75,7 +75,9 @@ class QlibModelRunner(CachedRunner[ModelImplementation]):
             RDAgentLog().error(f"File {csv_path} does not exist.")
             return None
 
-        exp.result = pd.read_csv(csv_path, index_col=0)
+        result = pd.read_csv(csv_path, index_col=0).iloc[:,0]
+
+        exp.result = result
         if RUNNER_SETTINGS.runner_cache_result:
             self.dump_cache_result(exp, result)
 
