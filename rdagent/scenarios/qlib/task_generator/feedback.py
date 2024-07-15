@@ -78,6 +78,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             return hypothesis_feedback
 
         except json.JSONDecodeError as e:
+            # TODO:  (Xiao) I think raising a specific type of ERROR to make caller know sth bad has happend would be more reasonable
             print("Error parsing JSON response from LLM for hypothesis feedback:", e)
         except Exception as e:
             print("An unexpected error occurred while generating hypothesis feedback:", e)
