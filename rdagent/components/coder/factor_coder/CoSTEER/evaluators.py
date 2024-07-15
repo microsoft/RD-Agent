@@ -194,6 +194,14 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
         if "datetime" not in gen_df.index.names:
             return "The source dataframe does not have a datetime index. Please check the implementation.", False
 
+        try:
+            pd.to_datetime(gen_df.index.get_level_values("datetime"))
+        except Exception:
+            return (
+                "The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.",
+                False,
+            )
+
         time_diff = gen_df.index.get_level_values("datetime").to_series().diff().dropna().unique()
         if pd.Timedelta(minutes=1) in time_diff:
             return (
