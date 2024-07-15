@@ -8,10 +8,10 @@ class ModelImplSettings(BaseSettings):
     class Config:
         env_prefix = "MODEL_IMPL_"  # Use MODEL_IMPL_ as prefix for environment variables
 
-    file_based_execution_workspace: str = str(
+    model_execution_workspace: str = str(
         (Path().cwd() / "git_ignore_folder" / "model_implementation_workspace").absolute(),
     )
-    implementation_execution_cache_location: str = str(
+    model_cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "model_implementation_execution_cache").absolute(),
     )
 

@@ -95,11 +95,11 @@ class FileBasedFactorImplementation(FBImplementation):
 
     def prepare(self, *args, **kwargs):
         self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.file_based_execution_workspace,
+            FACTOR_IMPLEMENT_SETTINGS.factor_execution_workspace,
         ) / str(uuid.uuid4())
         self.workspace_path.mkdir(exist_ok=True, parents=True)
 
-    def execute(self, store_result: bool = False) -> Tuple[str, pd.DataFrame]:
+    def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
         1. make the directory in workspace path
@@ -120,14 +120,10 @@ class FileBasedFactorImplementation(FBImplementation):
                 raise ValueError(self.FB_CODE_NOT_SET)
         with FileLock(self.workspace_path / "execution.lock"):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
-                # NOTE: cache the result for the same code
-                target_file_name = md5_hash(self.code_dict["factor.py"])
-                cache_file_path = (
-                    Path(FACTOR_IMPLEMENT_SETTINGS.implementation_execution_cache_location) / f"{target_file_name}.pkl"
-                )
-                Path(FACTOR_IMPLEMENT_SETTINGS.implementation_execution_cache_location).mkdir(
-                    exist_ok=True, parents=True
-                )
+                # NOTE: cache the result for the same code and same data type
+                target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
+                cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.factor_cache_location) / f"{target_file_name}.pkl"
+                Path(FACTOR_IMPLEMENT_SETTINGS.factor_cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists() and not self.raise_exception:
                     cached_res = pickle.load(open(cache_file_path, "rb"))
                     if store_result and cached_res[1] is not None:
@@ -137,8 +133,14 @@ class FileBasedFactorImplementation(FBImplementation):
             if self.executed_factor_value_dataframe is not None:
                 return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
 
-            source_data_path = Path(
-                FACTOR_IMPLEMENT_SETTINGS.file_based_execution_data_folder,
+            source_data_path = (
+                Path(
+                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder_debug,
+                )
+                if data_type == "Debug"
+                else Path(
+                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder,
+                )
             )
 
             source_data_path.mkdir(exist_ok=True, parents=True)

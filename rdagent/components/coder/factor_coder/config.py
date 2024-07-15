@@ -7,13 +7,16 @@ SELECT_METHOD = Literal["random", "scheduler"]
 
 
 class FactorImplementSettings(BaseSettings):
-    file_based_execution_data_folder: str = str(
+    factor_data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
     )
-    file_based_execution_workspace: str = str(
+    factor_data_folder_debug: str = str(
+        (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data_debug").absolute(),
+    )
+    factor_execution_workspace: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_workspace").absolute(),
     )
-    implementation_execution_cache_location: str = str(
+    factor_cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").absolute(),
     )
     enable_execution_cache: bool = True  # whether to enable the execution cache

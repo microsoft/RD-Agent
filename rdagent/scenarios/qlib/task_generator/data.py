@@ -159,7 +159,7 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
         for exp in exp_or_list:
             # Iterate over sub-implementations and execute them to get each factor data
             for implementation in exp.sub_implementations:
-                message, df = implementation.execute()
+                message, df = implementation.execute(data_type="All")
 
                 # Check if factor generation was successful
                 if df is not None:
