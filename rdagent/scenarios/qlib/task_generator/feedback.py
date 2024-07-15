@@ -61,10 +61,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 system_prompt=sys_prompt_hypothesis,
                 json_mode=True,
             )
-
-            # Log the raw response for debugging
-            print("Raw Response for Hypothesis Feedback:\n", response_hypothesis)
-
+            
             # Parse the JSON response to extract the feedback
             response_json_hypothesis = json.loads(response_hypothesis)
             hypothesis_feedback = HypothesisFeedback(
