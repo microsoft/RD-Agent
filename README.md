@@ -32,7 +32,7 @@ In this project, we are aiming to build a Data-Centric R\&D Agent that can
 
 + Further propose new ideas based on current knowledge and observations.
 
-![Data-Centric R&D Overview](docs/images/overview.png)
+![Data-Centric R&D Overview](docs/_static/overview.png)
 
 ### 🛣️ Brief Roadmap
 In this section, we will briefly introduce the roadmap/technical type of this project.
