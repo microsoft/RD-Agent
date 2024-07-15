@@ -18,7 +18,7 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
     - let LLM modify model.py
     """
     def generate(self, exp: ModelExperiment) -> ModelExperiment:
-        TEMPLATE_PATH = Path("RD-Agent/test/utils/env_tpl")  #Can be updated 
+        TEMPLATE_PATH = Path("RD-Agent/test/utils/model_template")  #Can be updated 
 
         # To prepare
         unique_id = uuid.uuid4()
