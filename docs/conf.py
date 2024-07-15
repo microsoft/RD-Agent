@@ -77,11 +77,7 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['build', 'env']
-
-# List of directories, relative to source directory, that shouldn't be
-# searched for source files.
-exclude_trees = ['build']
+exclude_patterns = ['build']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
