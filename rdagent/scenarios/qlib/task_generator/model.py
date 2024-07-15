@@ -1,11 +1,21 @@
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelImplementation
-from rdagent.utils.env import QTDockerEnv
 import shutil
-from pathlib import Path
 import uuid
-from rdagent.core.task_generator import TaskGenerator
+from pathlib import Path
 
-class QlibModelRunner(TaskGenerator[ModelImplementation]):
+import pandas as pd
+
+from rdagent.components.coder.model_coder.model import (
+    ModelExperiment,
+    ModelImplementation,
+)
+from rdagent.components.runner import CachedRunner
+from rdagent.components.runner.conf import RUNNER_SETTINGS
+from rdagent.core.log import RDAgentLog
+from rdagent.core.task_generator import TaskGenerator
+from rdagent.utils.env import QTDockerEnv
+
+
+class QlibModelRunner(CachedRunner[ModelImplementation]):
     """
     Docker run
     Everything in a folder
@@ -17,61 +27,56 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
     - pt_model_uri:  hard-code `model.py:Net` in the config
     - let LLM modify model.py
     """
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
-        TEMPLATE_PATH = Path("RD-Agent/test/utils/model_template")  #Can be updated 
 
-        # To prepare
-        unique_id = uuid.uuid4()
-        self.workspace_path = Path("RD-Agent/test/testOutputs") / f"M{unique_id}"  # need to set base workspace path
-        self.workspace_path.mkdir(parents=True, exist_ok=True)
+    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+
+        if RUNNER_SETTINGS.runner_cache_result:
+            cache_hit, result = self.get_cache_result(exp)
+            if cache_hit:
+                exp.result = result
+                return exp
+        TEMPLATE_PATH = Path(__file__).parent / "model_template"  # Can be updated
+
+        # To set the experiment level workspace and prepare the workspaces use the first task as the target task
+        exp.exp_ws = ModelImplementation(target_task=exp.sub_tasks[0])
+        exp.exp_ws.prepare()
 
         # to copy_template_to_workspace
-        for file_name in ["model.py", "read_exp.py", "conf.yaml"]:
-            shutil.copyfile(TEMPLATE_PATH / file_name, self.workspace_path / file_name)
-
-        # Assign it to exp.workspace's varaible 
+        for file_path in TEMPLATE_PATH.iterdir():
+            shutil.copyfile(file_path, exp.exp_ws.workspace_path / file_path.name)
 
         # to replace & inject code
-        code_implementation = exp.sub_implementations[0].code_dict['model.py']
-
-        exp.sub_implementations[0].inject_code(**{"model.py": code_implementation})
-
-        # Write the code implementation directly to the model.py file
-        with open(self.workspace_path / "model.py", "w") as f:
-            f.write(code_implementation)
+        exp.exp_ws.inject_code(**{"model.py": exp.sub_implementations[0].code_dict["model.py"]})
 
         env_to_use = {}
 
         if exp.sub_tasks[0].model_type == "TimeSeries":
-            env_to_use = {
-            "dataset_cls": "TSDatasetH",
-            "step_len": 20,
-            "num_timesteps": 20
-            }
-
-        if exp.sub_tasks[0].model_type == "Tabular":
-            env_to_use = {
-            "dataset_cls": "DatasetH"
-            }
-
-        print("Model Type is:", exp.sub_tasks[0].model_type)
-
+            env_to_use = {"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20}
+        elif exp.sub_tasks[0].model_type == "Tabular":
+            env_to_use = {"dataset_cls": "DatasetH"}
         # to execute
         qtde = QTDockerEnv()
-        
+
         # Preparing the Docker environment
         qtde.prepare()
-        
+
         # Run the Docker container with the specified entry
-        
-        result = qtde.run(local_path=self.workspace_path, entry="qrun conf.yaml", env={"PYTHONPATH": "./", **env_to_use})
-        print(result)
-        
+
+        execute_log = qtde.run(
+            local_path=exp.exp_ws.workspace_path, entry="qrun conf.yaml", env={"PYTHONPATH": "./", **env_to_use}
+        )
+
         # Run the experiment analysis code
-        result = qtde.run(local_path=self.workspace_path, entry="python read_exp.py")
-        print(result)
+        execute_log = qtde.run(local_path=exp.exp_ws.workspace_path, entry="python read_exp_res.py")
 
-        exp.result = result 
+        csv_path = exp.exp_ws.workspace_path / "qlib_res.csv"
 
-        return exp  
+        if not csv_path.exists():
+            RDAgentLog().error(f"File {csv_path} does not exist.")
+            return None
 
+        exp.result = pd.read_csv(csv_path, index_col=0)
+        if RUNNER_SETTINGS.runner_cache_result:
+            self.dump_cache_result(exp, result)
+
+        return exp

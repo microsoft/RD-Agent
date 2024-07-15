@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import ASpecificTask, Experiment
+from rdagent.core.experiment import ASpecificExp, ASpecificTask, Experiment
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
@@ -23,7 +23,7 @@ class Hypothesis:
     def __init__(self, hypothesis: str, reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
-    
+
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
 Reason: {self.reason}"""
@@ -64,6 +64,7 @@ class Trace(Generic[ASpecificScen]):
         last_result = last_experiment.result
         return last_hypothesis, last_task, last_result
 
+
 class HypothesisGen:
     def __init__(self, scen: Scenario):
         self.scen = scen
@@ -79,9 +80,6 @@ class HypothesisGen:
             - Original or derivative
         - Task information:
         """
-
-
-ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):

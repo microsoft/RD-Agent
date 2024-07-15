@@ -25,7 +25,7 @@ hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.qlib_mo
 qlib_model_coder: TaskGenerator = import_class(PROP_SETTING.qlib_model_coder)(scen)
 qlib_model_runner: TaskGenerator = import_class(PROP_SETTING.qlib_model_runner)(scen)
 
-qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_summarizer)()
+qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_summarizer)(scen)
 
 trace = Trace(scen=scen)
 for _ in range(PROP_SETTING.evolving_n):

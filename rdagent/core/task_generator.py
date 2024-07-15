@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Generic, List, Sequence, TypeVar
+from typing import Generic, List
 
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import ASpecificExp
 from rdagent.core.scenario import Scenario
-
-ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 
 class TaskGenerator(ABC, Generic[ASpecificExp]):

@@ -11,9 +11,9 @@ load_dotenv(verbose=True, override=True)
 from pydantic_settings import BaseSettings
 
 
-class QlibRDAgentSettings(BaseSettings):
+class RunnerSettings(BaseSettings):
     runner_cache_result: bool = True  # whether to cache the result of the docker execution
     runner_cache_path: str = str(Path.cwd() / "runner_cache/")  # the path to store the cache
 
 
-Qlib_RD_AGENT_SETTINGS = QlibRDAgentSettings()
+RUNNER_SETTINGS = RunnerSettings()

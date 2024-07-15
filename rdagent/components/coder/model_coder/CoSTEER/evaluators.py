@@ -241,12 +241,12 @@ class ModelCoderEvaluator(Evaluator):
             )
         assert isinstance(target_task, ModelTask)
 
-        batch_size, num_features, num_timesteps = (
-            random.randint(6, 10),
-            random.randint(6, 10),
-            random.randint(6, 10),
-        )
-        input_value, param_init_value = random.random(), random.random()
+        # NOTE: Use fixed input to test the model to avoid randomness
+        batch_size = 8
+        num_features = 30
+        num_timesteps = 40
+        input_value = 0.4
+        param_init_value = 0.6
 
         assert isinstance(implementation, ModelImplementation)
         model_execution_feedback, gen_tensor = implementation.execute(
