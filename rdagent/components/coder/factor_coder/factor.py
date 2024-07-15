@@ -37,7 +37,7 @@ class FactorTask(Task):
         self.variables = variables
         self.factor_resources = resource
 
-    def get_factor_information(self):
+    def get_task_information(self):
         return f"""factor_name: {self.factor_name}
 factor_description: {self.factor_description}
 factor_formulation: {self.factor_formulation}

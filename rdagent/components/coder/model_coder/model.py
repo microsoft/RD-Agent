@@ -24,7 +24,7 @@ class ModelTask(Task):
         self.variables: str = variables
         self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model
 
-    def get_information(self):
+    def get_task_information(self):
         return f"""name: {self.name}
 description: {self.description}
 formulation: {self.formulation}

@@ -1,26 +1,32 @@
 # TODO:
 # Implement to feedback.
 
+import json
+import pickle
 from pathlib import Path
 
+import pandas as pd
 from jinja2 import Environment, StrictUndefined
-from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import HypothesisExperiment2Feedback
-from rdagent.core.proposal import Trace
+
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+from rdagent.core.log import RDAgentLog
+from rdagent.core.prompts import Prompts
+from rdagent.core.proposal import (
+    Hypothesis,
+    HypothesisExperiment2Feedback,
+    HypothesisFeedback,
+    Trace,
+)
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.env import QTDockerEnv
-from rdagent.core.log import RDAgentLog
-import json
-import pandas as pd
-import pickle
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 logger = RDAgentLog()
 
+
 class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback): ...
+
 
 class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
@@ -38,18 +44,26 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
-        tasks_factors = [task.get_factor_information() for task in exp.sub_tasks]
+        tasks_factors = [task.get_task_information() for task in exp.sub_tasks]
         sota_result = exp.based_experiments[-1].result
 
         # Generate the system prompt
-        sys_prompt = Environment(undefined=StrictUndefined).from_string(feedback_prompts["data_feedback_generation"]["system"]).render(scenario=self.scen.get_scenario_all_desc())
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts["data_feedback_generation"]["system"])
+            .render(scenario=self.scen.get_scenario_all_desc())
+        )
 
         # Generate the user prompt
-        usr_prompt = Environment(undefined=StrictUndefined).from_string(feedback_prompts["data_feedback_generation"]["user"]).render(
-            hypothesis_text=hypothesis_text,
-            task_details=tasks_factors,
-            current_result=current_result,
-            sota_result=sota_result
+        usr_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts["data_feedback_generation"]["user"])
+            .render(
+                hypothesis_text=hypothesis_text,
+                task_details=tasks_factors,
+                current_result=current_result,
+                sota_result=sota_result,
+            )
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
@@ -61,21 +75,21 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Parse the JSON response to extract the feedback
         response_json = json.loads(response)
-        
+
         # Extract fields from JSON response
         observations = response_json.get("Observations", "No observations provided")
         hypothesis_evaluation = response_json.get("Feedback for Hypothesis", "No feedback provided")
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = response_json.get("Replace Best Result", "no").lower() == "yes"
-        
+
         # Create HypothesisFeedback object
         hypothesis_feedback = HypothesisFeedback(
             observations=observations,
             hypothesis_evaluation=hypothesis_evaluation,
             new_hypothesis=new_hypothesis,
             reason=reason,
-            decision=decision
+            decision=decision,
         )
 
         logger.info(

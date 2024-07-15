@@ -114,7 +114,7 @@ class FactorRAGStrategyV1(RAGStrategy):
                 feedback = evo_step.feedback
                 for task_index in range(len(implementations.sub_tasks)):
                     target_task = implementations.sub_tasks[task_index]
-                    target_task_information = target_task.get_factor_information()
+                    target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_implementations[task_index]
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
@@ -147,7 +147,7 @@ class FactorRAGStrategyV1(RAGStrategy):
 
         queried_knowledge = FactorQueriedKnowledgeV1()
         for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_factor_information()
+            target_factor_task_information = target_factor_task.get_task_information()
             if target_factor_task_information in self.knowledgebase.success_task_info_set:
                 queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
                     self.knowledgebase.implementation_trace[target_factor_task_information][-1]
@@ -233,7 +233,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 for task_index in range(len(implementations.sub_tasks)):
                     single_feedback = feedback[task_index]
                     target_task = implementations.sub_tasks[task_index]
-                    target_task_information = target_task.get_factor_information()
+                    target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_implementations[task_index]
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
@@ -395,7 +395,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
         fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
 
         for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_factor_information()
+            target_factor_task_information = target_factor_task.get_task_information()
             if (
                 target_factor_task_information not in self.knowledgebase.success_task_to_knowledge_dict
                 and target_factor_task_information in self.knowledgebase.working_trace_knowledge
@@ -442,7 +442,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
     ) -> QueriedKnowledge | None:
         # queried_component_knowledge = FactorQueriedGraphComponentKnowledge()
         for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_factor_information()
+            target_factor_task_information = target_factor_task.get_task_information()
             if (
                 target_factor_task_information in self.knowledgebase.success_task_to_knowledge_dict
                 or target_factor_task_information in factor_implementation_queried_graph_knowledge.failed_task_info_set
@@ -582,7 +582,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
     ) -> QueriedKnowledge | None:
         # queried_error_knowledge = FactorQueriedGraphErrorKnowledge()
         for task_index, target_factor_task in enumerate(evo.sub_tasks):
-            target_factor_task_information = target_factor_task.get_factor_information()
+            target_factor_task_information = target_factor_task.get_task_information()
             factor_implementation_queried_graph_knowledge.error_with_success_task[target_factor_task_information] = {}
             if (
                 target_factor_task_information in self.knowledgebase.success_task_to_knowledge_dict

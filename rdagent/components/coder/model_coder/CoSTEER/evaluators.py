@@ -72,7 +72,7 @@ class ModelCodeEvaluator(Evaluator):
         if gt_implementation is not None:
             assert isinstance(gt_implementation, ModelImplementation)
 
-        model_task_information = target_task.get_information()
+        model_task_information = target_task.get_task_information()
         code = implementation.code
 
         system_prompt = (
@@ -146,7 +146,7 @@ class ModelFinalEvaluator(Evaluator):
                     evaluate_prompts["evaluator_final_feedback"]["user"],
                 )
                 .render(
-                    model_information=target_task.get_information(),
+                    model_information=target_task.get_task_information(),
                     model_execution_feedback=execution_feedback_to_render,
                     model_code_feedback=model_code_feedback,
                     model_value_feedback=model_value_feedback,
@@ -224,7 +224,7 @@ class ModelCoderEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> ModelCoderFeedback:
-        target_task_information = target_task.get_information()
+        target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict

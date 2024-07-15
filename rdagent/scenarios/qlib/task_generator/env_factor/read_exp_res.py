@@ -1,17 +1,19 @@
-from pathlib import Path
-import qlib
-from mlflow.tracking import MlflowClient
-from mlflow.entities import ViewType
-import pandas as pd
-import pickle
 import os
+import pickle
+from pathlib import Path
+
+import pandas as pd
+import qlib
+from mlflow.entities import ViewType
+from mlflow.tracking import MlflowClient
 
 qlib.init()
 
 from qlib.workflow import R
+
 # here is the documents of the https://qlib.readthedocs.io/en/latest/component/recorder.html
 
-# TODO: list all the recorder and metrics 
+# TODO: list all the recorder and metrics
 
 # Assuming you have already listed the experiments
 experiments = R.list_experiments()
@@ -26,8 +28,8 @@ for experiment in experiments:
         if recorder_id is not None:
             experiment_name = experiment
             recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=experiment)
-            end_time = recorder.info['end_time']
-            if latest_recorder is None or end_time > latest_recorder.info['end_time']:
+            end_time = recorder.info["end_time"]
+            if latest_recorder is None or end_time > latest_recorder.info["end_time"]:
                 latest_recorder = recorder
 
 # Check if the latest recorder is found
@@ -43,10 +45,9 @@ else:
     # Optionally convert to DataFrame if not already in DataFrame format
     if not isinstance(indicator_analysis_df, pd.DataFrame):
         indicator_analysis_df = pd.DataFrame(indicator_analysis_df)
-    
+
     output_path = os.path.join(str(Path(__file__).resolve().parent), "qlib_res.pkl")
     with open(output_path, "wb") as f:
         pickle.dump(indicator_analysis_df, f)
 
-    print("here2")
-    print(output_path)
+    print(f"Output has been saved to {output_path}")

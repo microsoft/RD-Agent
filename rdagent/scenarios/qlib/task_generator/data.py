@@ -1,20 +1,23 @@
-from pathlib import Path
-import shutil
-from typing import List
-import pandas as pd
 import pickle
-from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
-from rdagent.core.task_generator import TaskGenerator
-from rdagent.utils.env import QTDockerEnv, LocalConf, LocalEnv
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+import shutil
+from pathlib import Path
+from typing import List, Tuple
+
+import pandas as pd
+
 from rdagent.core.log import RDAgentLog
+from rdagent.core.task_generator import TaskGenerator
+from rdagent.oai.llm_utils import md5_hash
+from rdagent.scenarios.qlib.conf import Qlib_RD_AGENT_SETTINGS
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.utils.env import QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
 logger = RDAgentLog()
 
 # class QlibFactorExpWorkspace:
-           
+
 #     def prepare():
 #         # create a folder;
 #         # copy template
@@ -26,6 +29,7 @@ logger = RDAgentLog()
 
 # TODO: supporting multiprocessing and keep previous results
 
+
 class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     """
     Docker run
@@ -35,141 +39,95 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     - `data.py` + Adaptor to Factor implementation
     - results in `mlflow`
     """
-    
-    def FetchAlpha158ResultFromDocker(self):
-        """
-         Run Docker to get alpha158 result.
 
-        This method prepares the Qlib Docker environment, executes the necessary commands to 
-        run the backtest, and fetches the results stored in a pickle file.
+    def get_cache_key(self, exp: QlibFactorExperiment) -> str:
+        all_tasks = []
+        for based_exp in exp.based_experiments:
+            all_tasks.extend(based_exp.sub_tasks)
+        all_tasks.extend(exp.sub_tasks)
+        task_info_list = [task.get_task_information() for task in all_tasks]
+        task_info_str = "\n".join(task_info_list)
+        return md5_hash(task_info_str)
 
-        Returns:
-            Any: The alpha158 result. If successful, returns a pandas DataFrame. Otherwise, returns None.
-        """
-        # Initialize and prepare the Qlib Docker environment
-        qtde = QTDockerEnv()
-        qtde.prepare()
-        
-        # Clean up any previous run artifacts by deleting the mlruns directory
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="rm -r mlruns", env={"PYTHONPATH": "./"})
-        
-        # Run the Qlib backtest using the configuration file conf.yaml
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="qrun conf.yaml", env={"PYTHONPATH": "./"})
-        
-        # Execute a Python script to extract the experiment results
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="python read_exp_res.py")
-
-        pkl_path = DIRNAME / 'env_factor/qlib_res.pkl'
-
-        if not pkl_path.exists():
-            logger.error(f"File {pkl_path} does not exist.")
-            return None
-
-        with open(pkl_path, 'rb') as f:
-            result = pickle.load(f)
-
-        # Check if the loaded result is a pandas DataFrame and not empty
-        if isinstance(result, pd.DataFrame):
-            if not result.empty:
-                logger.info("Successfully retrieved alpha158 result.")
-                return result
-            else:
-                logger.error("Result DataFrame is empty.")
-                return None
+    def get_cache_result(self, exp: QlibFactorExperiment) -> Tuple[bool, object]:
+        task_info_key = self.get_cache_key(exp)
+        Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path).mkdir(parents=True, exist_ok=True)
+        cache_path = Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
+        if cache_path.exists():
+            return True, pickle.load(open(cache_path, "rb"))
         else:
-            logger.error("Data format error.")
-            return None
+            return False, None
 
+    def dump_cache_result(self, exp: QlibFactorExperiment, result: object):
+        task_info_key = self.get_cache_key(exp)
+        cache_path = Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
+        pickle.dump(result, open(cache_path, "wb"))
 
     def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         """
         Generate the experiment by processing and combining factor data,
         then passing the combined data to Docker for backtest results.
         """
-        SOTA_factor = None
-        if exp.based_experiments.__len__() != 1:
-            SOTA_factor = self.process_factor_data(exp.based_experiments)
-        
-        if exp.based_experiments[-1].result is None:
-            exp.based_experiments[-1].result = self.FetchAlpha158ResultFromDocker()
-        
-        # Process the new factors data
-        new_factors = self.process_factor_data(exp)
-        
-        # Combine the SOTA factor and new factors if SOTA factor exists
-        if SOTA_factor is not None:
-            combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
-        else:
-            combined_factors = new_factors
-        
-        # Sort and nest the combined factors under 'feature'
-        combined_factors = combined_factors.sort_index()
-        new_columns = pd.MultiIndex.from_product([['feature'], combined_factors.columns])
-        combined_factors.columns = new_columns
-        
-        # logger.info(combined_factors)
-        
-        # Save the combined factors to a pickle file
-        combined_factors_path = DIRNAME / 'env_factor/combined_factors_df.pkl'
-        with open(combined_factors_path, 'wb') as f:
-            pickle.dump(combined_factors, f)
+        if exp.based_experiments and exp.based_experiments[-1].result is None:
+            exp.based_experiments[-1] = self.generate(exp.based_experiments[-1])
+
+        if Qlib_RD_AGENT_SETTINGS.runner_cache_result:
+            cache_hit, result = self.get_cache_result(exp)
+            if cache_hit:
+                exp.result = result
+                return exp
+
+        if exp.based_experiments:
+            SOTA_factor = None
+            if exp.based_experiments.__len__() != 1:
+                SOTA_factor = self.process_factor_data(exp.based_experiments)
+
+            # Process the new factors data
+            new_factors = self.process_factor_data(exp)
+
+            # Combine the SOTA factor and new factors if SOTA factor exists
+            if SOTA_factor is not None and not SOTA_factor.empty:
+                combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
+            else:
+                combined_factors = new_factors
+
+            # Sort and nest the combined factors under 'feature'
+            combined_factors = combined_factors.sort_index()
+            new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
+            combined_factors.columns = new_columns
+
+            # Save the combined factors to a pickle file
+            combined_factors_path = DIRNAME / "env_factor/combined_factors_df.pkl"
+            with open(combined_factors_path, "wb") as f:
+                pickle.dump(combined_factors, f)
 
         #  Docker run
         # Call Docker, pass the combined factors to Docker, and generate backtest results
         qtde = QTDockerEnv()
         qtde.prepare()
-        
+
         # Run the Docker command
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="rm -r mlruns", env={"PYTHONPATH": "./"})
+        execute_log = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="rm -r mlruns")
         # Run the Qlib backtest
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="qrun conf_combined.yaml", env={"PYTHONPATH": "./"})
+        execute_log = qtde.run(
+            local_path=str(DIRNAME / "env_factor"),
+            entry=f"qrun conf.yaml" if len(exp.based_experiments) == 0 else "qrun conf_combined.yaml",
+        )
 
-        result = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="python read_exp_res.py")
+        execute_log = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="python read_exp_res.py")
 
-        pkl_path = DIRNAME / 'env_factor/qlib_res.pkl'
+        pkl_path = DIRNAME / "env_factor/qlib_res.pkl"
 
         if not pkl_path.exists():
             logger.error(f"File {pkl_path} does not exist.")
             return None
 
-        with open(pkl_path, 'rb') as f:
+        with open(pkl_path, "rb") as f:
             result = pickle.load(f)
-        
-        """
-        # TODO: Implement the Docker run in the following way
-        # Local run
-        # Clean up any previous run artifacts by deleting the mlruns directory
-        mlruns_path = DIRNAME_local / 'mlruns' / '1'
-        if mlruns_path.exists() and mlruns_path.is_dir():
-            shutil.rmtree(mlruns_path)
 
-        # Prepare local Qlib environment
-        local_conf = LocalConf(
-            py_bin=PROP_SETTING.py_bin,
-            default_entry="qrun conf_combined.yaml",
-        )
-        qle = LocalEnv(conf=local_conf)
-        qle.prepare()
-        conf_path = str(DIRNAME / "env_factor" / "conf_combined.yaml") 
-        qle.run(entry="qrun " + conf_path, local_path=PROP_SETTING.local_qlib_folder)
-
-        # Verify if the new folder is created
-        mlrun_p = DIRNAME_local / 'mlruns' / '1' 
-        assert mlrun_p.exists(), f"Expected output file {mlrun_p} not found"
-
-        # Locate the newly generated folder in mlruns/1/
-        new_folders = [folder for folder in mlrun_p.iterdir() if folder.is_dir()]
-        if not new_folders:
-            raise FileNotFoundError("No new folders found in 'mlruns/1/'.")
-
-        new_folder = new_folders[0]  # Assuming there's only one new folder
-        pickle_file = new_folder / 'artifacts' / 'portfolio_analysis' / 'port_analysis_1day.pkl'
-        assert pickle_file.exists(), f"Expected pickle file {pickle_file} not found"
-
-        with open(pickle_file, 'rb') as f:
-            result = pickle.load(f)
-        """
         exp.result = result
+        if Qlib_RD_AGENT_SETTINGS.runner_cache_result:
+            self.dump_cache_result(exp, result)
 
         # Check if the result is valid and is a DataFrame
         if isinstance(result, pd.DataFrame):
@@ -204,18 +162,14 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
                 message, df = implementation.execute()
 
                 # Check if factor generation was successful
-                if 'Execution succeeded without error.\nExpected output file found.' in message:
-                    factor_dfs.append(df)
+                if df is not None:
+                    time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+                    if pd.Timedelta(minutes=1) not in time_diff:
+                        factor_dfs.append(df)
 
         # Combine all successful factor data
         if factor_dfs:
-            combined_factors = pd.concat(factor_dfs, axis=1)
-
-            # Remove rows with NaN values
-            combined_factors = combined_factors.dropna()
-            
-            # print(combined_factors)
-            return combined_factors
+            return pd.concat(factor_dfs, axis=1)
         else:
             logger.error("No valid factor data found to merge.")
             return pd.DataFrame()  # Return an empty DataFrame if no valid data
