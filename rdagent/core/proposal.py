@@ -3,10 +3,10 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import ASpecificExp, ASpecificTask, Experiment
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
@@ -23,7 +23,7 @@ class Hypothesis:
     def __init__(self, hypothesis: str, reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
-    
+
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
 Reason: {self.reason}"""
@@ -64,6 +64,7 @@ class Trace(Generic[ASpecificScen]):
         last_result = last_experiment.result
         return last_hypothesis, last_task, last_result
 
+
 class HypothesisGen:
     def __init__(self, scen: Scenario):
         self.scen = scen
@@ -79,9 +80,6 @@ class HypothesisGen:
             - Original or derivative
         - Task information:
         """
-
-
-ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
@@ -101,9 +99,12 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 class HypothesisExperiment2Feedback:
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generateFeedback(self, ti: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def __init__(self, scen: Scenario):
+        self.scen = scen
+
+    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
+        The `exp` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
         raise NotImplementedError("generateFeedback method is not implemented.")

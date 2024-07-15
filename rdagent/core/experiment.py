@@ -7,17 +7,27 @@ This file contains the all the class about organizing the task in RD-Agent.
 """
 
 
-class Task:
+class Task(ABC):
     # TODO: 把name放在这里作为主键
     # Please refer to rdagent/model_implementation/task.py for the implementation
     # I think the task version applies to the base class.
-    pass
+
+    @abstractmethod
+    def get_task_information(self):
+        """
+        Get the task information string to build the unique key
+        """
+        pass
 
 
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 
 
 class Implementation(ABC, Generic[ASpecificTask]):
+    # TODO: workspace;
+    # - code or data(optional)
+    # - Execute logic
+    # - `env is not included`. It is a underlying infra
     def __init__(self, target_task: ASpecificTask) -> None:
         self.target_task = target_task
 
@@ -85,6 +95,7 @@ class FBImplementation(Implementation):
             typical usage of `*args, **kwargs`:
                 Different methods shares the same data. The data are passed by the arguments.
         """
+        # TODO: model and factor prepare;
 
     def inject_code(self, **files: str):
         """
@@ -118,7 +129,10 @@ class Experiment(ABC, Generic[ASpecificTask, ASpecificImp]):
         self.sub_implementations: Sequence[ASpecificImp] = [None for _ in self.sub_tasks]
         self.based_experiments: Sequence[Experiment] = []
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
+        self.exp_ws: ASpecificImp = None
 
+
+ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)
 
 TaskOrExperiment = TypeVar("TaskOrExperiment", Task, Experiment)
 

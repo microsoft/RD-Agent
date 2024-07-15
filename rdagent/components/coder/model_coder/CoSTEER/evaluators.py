@@ -72,7 +72,7 @@ class ModelCodeEvaluator(Evaluator):
         if gt_implementation is not None:
             assert isinstance(gt_implementation, ModelImplementation)
 
-        model_task_information = target_task.get_information()
+        model_task_information = target_task.get_task_information()
         code = implementation.code
 
         system_prompt = (
@@ -146,7 +146,7 @@ class ModelFinalEvaluator(Evaluator):
                     evaluate_prompts["evaluator_final_feedback"]["user"],
                 )
                 .render(
-                    model_information=target_task.get_information(),
+                    model_information=target_task.get_task_information(),
                     model_execution_feedback=execution_feedback_to_render,
                     model_code_feedback=model_code_feedback,
                     model_value_feedback=model_value_feedback,
@@ -224,7 +224,7 @@ class ModelCoderEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> ModelCoderFeedback:
-        target_task_information = target_task.get_information()
+        target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict
@@ -241,12 +241,12 @@ class ModelCoderEvaluator(Evaluator):
             )
         assert isinstance(target_task, ModelTask)
 
-        batch_size, num_features, num_timesteps = (
-            random.randint(6, 10),
-            random.randint(6, 10),
-            random.randint(6, 10),
-        )
-        input_value, param_init_value = random.random(), random.random()
+        # NOTE: Use fixed input to test the model to avoid randomness
+        batch_size = 8
+        num_features = 30
+        num_timesteps = 40
+        input_value = 0.4
+        param_init_value = 0.6
 
         assert isinstance(implementation, ModelImplementation)
         model_execution_feedback, gen_tensor = implementation.execute(
