@@ -7,9 +7,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import importlib.metadata
-import datetime
-import os
-import sys
 
 project = 'RDAgent'
 copyright = '2024, Microsoft'
@@ -41,16 +38,7 @@ author = 'Microsoft'
 
 # 8. sphinxext.opengraph
 # This extension is used to generate Open Graph metadata to provide a better preview when sharing documents on social media. By adding Open Graph tags, you can improve the visibility and presentation of your documents on social platforms.
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinxcontrib.spelling',
-    "sphinx_copybutton",
-    "sphinxext.opengraph",
-    ]
+extensions = []
 
 autodoc_member_order = "bysource"
 
