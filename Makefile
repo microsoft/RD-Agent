@@ -83,6 +83,11 @@ constraints: deepclean
 black:
 	$(PIPRUN) python -m black --check . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
+sphinx:
+	cd docs
+	$(PIPRUN) sphinx-build -W --keep-going -b html . _build
+	cd ..
+
 # Check lint with isort.
 isort:
 	$(PIPRUN) python -m isort --check . -s git_ignore_folder -s test/scripts
