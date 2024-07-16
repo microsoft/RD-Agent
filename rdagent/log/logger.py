@@ -76,7 +76,7 @@ class RDAgentLog(SingletonBaseClass):
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
         caller_info = get_caller_info()
-        tag = f"{self._tag}.{tag}".strip('.') + f".{self.get_pids()}"
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip('.')
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")
 
@@ -91,8 +91,8 @@ class RDAgentLog(SingletonBaseClass):
             logger.remove()
             logger.add(sys.stderr, format=lambda r: "{message}")
 
-        tag = f"{self._tag}.{tag}".strip('.') + f".{self.get_pids()}"
-        log_file_path = self.log_trace_path / tag.replace('.','/') /"common_logs.log"
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip('.')
+        log_file_path = self.log_trace_path / tag.replace('.','/') / "common_logs.log"
         if raw:
             file_handler_id = logger.add(log_file_path, format=partial(self.file_format, raw=True))
         else:
@@ -108,7 +108,7 @@ class RDAgentLog(SingletonBaseClass):
     def warning(self, msg: str, *, tag: str = "") -> None:
         caller_info = get_caller_info()
 
-        tag = f"{self._tag}.{tag}".strip('.') + f".{self.get_pids()}"
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip('.')
         file_handler_id = logger.add(self.log_trace_path / tag.replace('.','/') / "common_logs.log", format=self.file_format)
         logger.patch(lambda r: r.update(caller_info)).warning(msg)
         logger.remove(file_handler_id)
@@ -116,7 +116,7 @@ class RDAgentLog(SingletonBaseClass):
     def error(self, msg: str, *, tag: str = "") -> None:
         caller_info = get_caller_info()
         
-        tag = f"{self._tag}.{tag}".strip('.') + f".{self.get_pids()}"
+        tag = f"{self._tag}.{tag}.{self.get_pids()}".strip('.')
         file_handler_id = logger.add(self.log_trace_path / tag.replace('.','/') / "common_logs.log", format=self.file_format)
         logger.patch(lambda r: r.update(caller_info)).error(msg)
         logger.remove(file_handler_id)
