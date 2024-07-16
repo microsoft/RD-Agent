@@ -303,26 +303,21 @@ class ModelCoderMultiEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> List[ModelCoderFeedback]:
-        multi_implementation_feedback = []
-
-        calls = []
-        for index in range(len(evo.sub_tasks)):
-            corresponding_implementation = evo.sub_implementations[index]
-            corresponding_gt_implementation = (
-                evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-            )
-            calls.append(
+        multi_implementation_feedback = multiprocessing_wrapper(
+            [
                 (
                     ModelCoderEvaluator(scen=self.scen).evaluate,
                     (
                         evo.sub_tasks[index],
-                        corresponding_implementation,
-                        corresponding_gt_implementation,
+                        evo.sub_implementations[index],
+                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
                         queried_knowledge,
                     ),
-                ),
-            )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=MODEL_IMPL_SETTINGS.evo_multi_proc_n)
+                )
+                for index in range(len(evo.sub_tasks))
+            ],
+            n=MODEL_IMPL_SETTINGS.evo_multi_proc_n,
+        )
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision

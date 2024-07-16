@@ -134,11 +134,6 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         for index, target_index in enumerate(to_be_finished_task_index):
             new_evo.sub_implementations[target_index] = result[index]
 
-        # for target_index in to_be_finished_task_index:
-        #     new_evo.sub_implementations[target_index] = self.implement_one_model(
-        #         new_evo.sub_tasks[target_index], queried_knowledge
-        #     )
-
         new_evo.corresponding_selection = to_be_finished_task_index
 
         return new_evo

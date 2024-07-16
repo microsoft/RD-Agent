@@ -602,41 +602,21 @@ class FactorMultiEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorMultiFeedback:
-        multi_implementation_feedback = FactorMultiFeedback()
-
-        # for index in range(len(evo.sub_tasks)):
-        #     corresponding_implementation = evo.sub_implementations[index]
-        #     corresponding_gt_implementation = (
-        #         evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-        #     )
-
-        #     multi_implementation_feedback.append(
-        #         self.single_factor_implementation_evaluator.evaluate(
-        #             target_task=evo.sub_tasks[index],
-        #             implementation=corresponding_implementation,
-        #             gt_implementation=corresponding_gt_implementation,
-        #             queried_knowledge=queried_knowledge,
-        #         )
-        #     )
-
-        calls = []
-        for index in range(len(evo.sub_tasks)):
-            corresponding_implementation = evo.sub_implementations[index]
-            corresponding_gt_implementation = (
-                evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-            )
-            calls.append(
+        multi_implementation_feedback = multiprocessing_wrapper(
+            [
                 (
                     self.single_factor_implementation_evaluator.evaluate,
                     (
                         evo.sub_tasks[index],
-                        corresponding_implementation,
-                        corresponding_gt_implementation,
+                        evo.sub_implementations[index],
+                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
                         queried_knowledge,
                     ),
-                ),
-            )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n)
+                )
+                for index in range(len(evo.sub_tasks))
+            ],
+            n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
+        )
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
