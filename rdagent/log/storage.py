@@ -23,6 +23,7 @@ class FileStorage(Storage):
             save_type: Literal["json", "text", "pkl"] = "text",
             timestamp: datetime | None = None,
             ) -> Path:
+        # TODO: We can remove the timestamp after we implement PipeLog
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         else:

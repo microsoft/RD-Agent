@@ -87,6 +87,7 @@ class SQliteLazyCache(SingletonBaseClass):
         super().__init__()
         self.cache_location = cache_location
         db_file_exist = Path(cache_location).exists()
+        # TODO: sqlite3 does not support multiprocessing.
         self.conn = sqlite3.connect(cache_location)
         self.c = self.conn.cursor()
         if not db_file_exist:
@@ -550,6 +551,7 @@ class APIBackend:
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
     ) -> str:
+        # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if self.cfg.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
@@ -644,6 +646,7 @@ class APIBackend:
                 )
             if self.chat_stream:
                 resp = ""
+                # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
                 if self.cfg.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
                 
