@@ -588,7 +588,6 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                     value_feedback=factor_feedback.factor_value_feedback,
                     code_feedback=factor_feedback.code_feedback,
                 )
-            RDAgentLog().info(factor_feedback.final_decision)
             return factor_feedback
 
 
