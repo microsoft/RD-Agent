@@ -5,10 +5,11 @@ from typing import List, Tuple
 
 import pandas as pd
 
+from rdagent.components.runner import CachedRunner
+from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.log import RDAgentLog
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.scenarios.qlib.conf import Qlib_RD_AGENT_SETTINGS
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.utils.env import QTDockerEnv
 
@@ -30,7 +31,7 @@ logger = RDAgentLog()
 # TODO: supporting multiprocessing and keep previous results
 
 
-class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
+class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     """
     Docker run
     Everything in a folder
@@ -40,29 +41,6 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
     - results in `mlflow`
     """
 
-    def get_cache_key(self, exp: QlibFactorExperiment) -> str:
-        all_tasks = []
-        for based_exp in exp.based_experiments:
-            all_tasks.extend(based_exp.sub_tasks)
-        all_tasks.extend(exp.sub_tasks)
-        task_info_list = [task.get_task_information() for task in all_tasks]
-        task_info_str = "\n".join(task_info_list)
-        return md5_hash(task_info_str)
-
-    def get_cache_result(self, exp: QlibFactorExperiment) -> Tuple[bool, object]:
-        task_info_key = self.get_cache_key(exp)
-        Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path).mkdir(parents=True, exist_ok=True)
-        cache_path = Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
-        if cache_path.exists():
-            return True, pickle.load(open(cache_path, "rb"))
-        else:
-            return False, None
-
-    def dump_cache_result(self, exp: QlibFactorExperiment, result: object):
-        task_info_key = self.get_cache_key(exp)
-        cache_path = Path(Qlib_RD_AGENT_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
-        pickle.dump(result, open(cache_path, "wb"))
-
     def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         """
         Generate the experiment by processing and combining factor data,
@@ -71,7 +49,7 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.generate(exp.based_experiments[-1])
 
-        if Qlib_RD_AGENT_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.runner_cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:
                 exp.result = result
@@ -116,30 +94,19 @@ class QlibFactorRunner(TaskGenerator[QlibFactorExperiment]):
 
         execute_log = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="python read_exp_res.py")
 
-        pkl_path = DIRNAME / "env_factor/qlib_res.pkl"
+        csv_path = DIRNAME / "env_factor/qlib_res.csv"
 
-        if not pkl_path.exists():
-            logger.error(f"File {pkl_path} does not exist.")
+        if not csv_path.exists():
+            logger.error(f"File {csv_path} does not exist.")
             return None
 
-        with open(pkl_path, "rb") as f:
-            result = pickle.load(f)
+        result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
-        if Qlib_RD_AGENT_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.runner_cache_result:
             self.dump_cache_result(exp, result)
 
-        # Check if the result is valid and is a DataFrame
-        if isinstance(result, pd.DataFrame):
-            if not result.empty:
-                logger.info("Successfully retrieved experiment result.")
-                return exp
-            else:
-                logger.error("Result DataFrame is empty.")
-                return None
-        else:
-            logger.error("Data format error.")
-            return None
+        return exp
 
     def process_factor_data(self, exp_or_list: List[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
         """

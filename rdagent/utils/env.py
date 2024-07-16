@@ -122,6 +122,7 @@ class DockerConf(BaseSettings):
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
     network: str | None = "bridge"  # the network mode for the docker
+    shm_size: str | None = None
 
 
 class QlibDockerConf(DockerConf):
@@ -131,6 +132,7 @@ class QlibDockerConf(DockerConf):
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
+    shm_size: str | None = "16g"
 
 
 class DockerEnv(Env[DockerConf]):
@@ -180,6 +182,7 @@ class DockerEnv(Env[DockerConf]):
                 working_dir=self.conf.mount_path,
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
+                shm_size=self.conf.shm_size,
             )
             logs = container.logs(stream=True)
             for log in logs:

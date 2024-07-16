@@ -83,7 +83,9 @@ class ModelImplementation(FBImplementation):
         try:
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
-                target_file_name = md5_hash(self.code_dict["model.py"])
+                target_file_name = md5_hash(
+                    f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}_{self.code_dict['model.py']}"
+                )
                 cache_file_path = Path(MODEL_IMPL_SETTINGS.model_cache_location) / f"{target_file_name}.pkl"
                 Path(MODEL_IMPL_SETTINGS.model_cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
