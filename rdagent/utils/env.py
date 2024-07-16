@@ -112,7 +112,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Path  # the path to the dockerfile
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -143,7 +145,7 @@ class DockerEnv(Env[DockerConf]):
         Download image if it doesn't exist
         """
         client = docker.from_env()
-        if self.conf.build_from_dockerfile is not None and self.conf.dockerfile_folder_path.exists():
+        if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
             RDAgentLog().info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             image, logs = client.images.build(
                 path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
