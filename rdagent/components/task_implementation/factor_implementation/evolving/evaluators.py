@@ -20,13 +20,12 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
 from rdagent.core.experiment import Implementation
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
-
 
 class FactorImplementationEvaluator(Evaluator):
     # TODO:
@@ -457,7 +456,7 @@ class FactorImplementationValueEvaluator(Evaluator):
                         )
 
                 except Exception as e:
-                    RDAgentLog().warning(f"Error occurred when calculating the correlation: {str(e)}")
+                    logger.warning(f"Error occurred when calculating the correlation: {str(e)}")
                     conclusions.append(
                         f"Some error occurred when calculating the correlation. Investigate the factors that might be causing the discrepancies and ensure that the logic of the factor calculation is consistent. Error: {e}",
                     )
@@ -661,7 +660,7 @@ class FactorImplementationEvaluatorV1(FactorImplementationEvaluator):
                         value_decision,
                     ) = self.value_evaluator.evaluate(source_df=source_df, gt_df=gt_df)
                 except Exception as e:
-                    RDAgentLog().warning("Value evaluation failed with exception: %s", e)
+                    logger.warning("Value evaluation failed with exception: %s", e)
                     factor_feedback.factor_value_feedback = "Value evaluation failed."
                     value_decision = False
 
@@ -745,6 +744,6 @@ class FactorImplementationsMultiEvaluator(Evaluator):
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
         ]
-        RDAgentLog().info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
+        logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
 
         return multi_implementation_feedback

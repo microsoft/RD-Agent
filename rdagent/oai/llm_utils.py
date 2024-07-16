@@ -19,12 +19,10 @@ import numpy as np
 import tiktoken
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import LogColors, RDAgentLog
+from rdagent.log import LogColors, rdagent_logger as logger
 from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
-
-logger: RDAgentLog = RDAgentLog()
 
 def md5_hash(input_string: str) -> str:
     hash_md5 = hashlib.md5(usedforsecurity=False)
@@ -36,17 +34,17 @@ def md5_hash(input_string: str) -> str:
 try:
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 except ImportError:
-    logger.warning("azure.identity is not installed.")
+    logger.warning("azure.identity is not installed.", tag="gpt")
 
 try:
     import openai
 except ImportError:
-    logger.warning("openai is not installed.")
+    logger.warning("openai is not installed.", tag="gpt")
 
 try:
     from llama import Llama
 except ImportError:
-    logger.warning("llama is not installed.")
+    logger.warning("llama is not installed.", tag="gpt")
 
 
 class ConvManager:
@@ -204,12 +202,14 @@ class ChatSession:
         user prompt should always be provided
         """
         messages = self.build_chat_completion_message(user_prompt)
+        
+        with logger.tag(self.conversation_id):
+            response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
+                messages=messages,
+                chat_completion=True,
+                **kwargs,
+            )
 
-        response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
-            messages=messages,
-            chat_completion=True,
-            **kwargs,
-        )
         messages.append(
             {
                 "role": "assistant",
@@ -651,19 +651,24 @@ class APIBackend:
                 )
             if self.chat_stream:
                 resp = ""
-                with logger.log_stream:
+                if self.cfg.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{LogColors.END}")
-                    for chunk in response:
-                        content = (
-                            chunk.choices[0].delta.content
-                            if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None
-                            else ""
-                        )
-                        if self.cfg.log_llm_chat_content:
-                            logger.info(LogColors.CYAN + content + LogColors.END)
-                        resp += content
-                        if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
-                            finish_reason = chunk.choices[0].finish_reason
+                
+                for chunk in response:
+                    content = (
+                        chunk.choices[0].delta.content
+                        if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None
+                        else ""
+                    )
+                    if self.cfg.log_llm_chat_content:
+                        logger.info(LogColors.CYAN + content + LogColors.END, raw=True)
+                    resp += content
+                    if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
+                        finish_reason = chunk.choices[0].finish_reason
+                
+                if self.cfg.log_llm_chat_content:
+                    logger.info("\n", raw=True)
+                
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason

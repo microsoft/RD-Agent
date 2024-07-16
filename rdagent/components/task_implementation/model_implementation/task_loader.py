@@ -13,12 +13,11 @@ from rdagent.components.task_implementation.model_implementation.model import (
     ModelImplementationTaskLoaderFromDict,
     ModelTask,
 )
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
 
 def extract_model_from_doc(doc_content: str) -> dict:
     """
@@ -66,7 +65,7 @@ def extract_model_from_doc(doc_content: str) -> dict:
             else:
                 break
 
-    RDAgentLog().info(f"已经完成{len(model_dict)}个模型的提取")
+    logger.info(f"已经完成{len(model_dict)}个模型的提取")
 
     return model_dict
 
