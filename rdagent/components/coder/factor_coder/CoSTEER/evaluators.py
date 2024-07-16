@@ -344,7 +344,9 @@ class FactorValueEvaluator(FactorEvaluator):
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
 
-        feedback_str, _ = FactorDatetimeDailyEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        feedback_str, daily_check_result = FactorDatetimeDailyEvaluator(self.scen).evaluate(
+            implementation, gt_implementation
+        )
         conclusions.append(feedback_str)
 
         # Check if both dataframe have the same rows count
@@ -377,10 +379,13 @@ class FactorValueEvaluator(FactorEvaluator):
         # Combine all conclusions into a single string
         conclusion_str = "\n".join(conclusions)
 
-        same_value_or_high_correlation = (
-            ((equal_value_ratio_result > 0.99) or high_correlation_result) if gt_implementation is not None else False
-        )
-        return conclusion_str, same_value_or_high_correlation
+        if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
+            decision_from_value_check = True
+        elif daily_check_result is False:
+            decision_from_value_check = False
+        else:
+            decision_from_value_check = None
+        return conclusion_str, decision_from_value_check
 
 
 class FactorFinalDecisionEvaluator(Evaluator):
@@ -542,21 +547,27 @@ class FactorEvaluatorForCoder(FactorEvaluator):
             if gen_df is None:
                 factor_feedback.factor_value_feedback = "No factor value generated, skip value evaluation."
                 factor_feedback.value_generated_flag = False
-                same_value_or_high_correlation = None
+                decision_from_value_check = None
             else:
                 factor_feedback.value_generated_flag = True
                 (
                     factor_feedback.factor_value_feedback,
-                    same_value_or_high_correlation,
+                    decision_from_value_check,
                 ) = self.value_evaluator.evaluate(implementation=implementation, gt_implementation=gt_implementation)
 
             factor_feedback.final_decision_based_on_gt = gt_implementation is not None
 
-            if same_value_or_high_correlation is not None and same_value_or_high_correlation is True:
+            if decision_from_value_check is not None and decision_from_value_check is True:
                 # To avoid confusion, when same_value_or_high_correlation is True, we do not need code feedback
                 factor_feedback.code_feedback = "Final decision is True and there are no code critics."
-                factor_feedback.final_decision = same_value_or_high_correlation
+                factor_feedback.final_decision = decision_from_value_check
                 factor_feedback.final_feedback = "Value evaluation passed, skip final decision evaluation."
+            elif decision_from_value_check is not None and decision_from_value_check is False:
+                factor_feedback.code_feedback = (
+                    "Final decision is False because value evaluation gets a confident rejection to the result."
+                )
+                factor_feedback.final_decision = decision_from_value_check
+                factor_feedback.final_feedback = "Value evaluation failed, skip final decision evaluation."
             else:
                 factor_feedback.code_feedback, _ = self.code_evaluator.evaluate(
                     target_task=target_task,
@@ -574,6 +585,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                     value_feedback=factor_feedback.factor_value_feedback,
                     code_feedback=factor_feedback.code_feedback,
                 )
+            RDAgentLog().info(factor_feedback.final_decision)
             return factor_feedback
 
 
