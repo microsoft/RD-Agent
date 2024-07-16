@@ -19,11 +19,10 @@ import numpy as np
 import tiktoken
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import LogColors, RDAgentLog
+from rdagent.log import LogColors, rdagent_logger as logger
 from rdagent.core.utils import SingletonBaseClass
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
-
 
 def md5_hash(input_string: str) -> str:
     hash_md5 = hashlib.md5(usedforsecurity=False)
@@ -35,17 +34,17 @@ def md5_hash(input_string: str) -> str:
 try:
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 except ImportError:
-    RDAgentLog().warning("azure.identity is not installed.")
+    logger.warning("azure.identity is not installed.")
 
 try:
     import openai
 except ImportError:
-    RDAgentLog().warning("openai is not installed.")
+    logger.warning("openai is not installed.")
 
 try:
     from llama import Llama
 except ImportError:
-    RDAgentLog().warning("llama is not installed.")
+    logger.warning("llama is not installed.")
 
 
 class ConvManager:
@@ -88,6 +87,7 @@ class SQliteLazyCache(SingletonBaseClass):
         super().__init__()
         self.cache_location = cache_location
         db_file_exist = Path(cache_location).exists()
+        # TODO: sqlite3 does not support multiprocessing.
         self.conn = sqlite3.connect(cache_location)
         self.c = self.conn.cursor()
         if not db_file_exist:
@@ -150,11 +150,11 @@ class SessionChatHistoryCache(SingletonBaseClass):
         self.session_cache_location = Path(self.cfg.session_cache_folder_location)
         self.cache = {}
         if not self.session_cache_location.exists():
-            RDAgentLog().warning(f"Directory {self.session_cache_location} does not exist.")
+            logger.warning(f"Directory {self.session_cache_location} does not exist.")
             self.session_cache_location.mkdir(parents=True, exist_ok=True)
         json_files = [f for f in self.session_cache_location.iterdir() if f.suffix == ".json"]
         if not json_files:
-            RDAgentLog().info(f"No JSON files found in {self.session_cache_location}.")
+            logger.info(f"No JSON files found in {self.session_cache_location}.")
         for file_path in json_files:
             conversation_id = file_path.stem
             with file_path.open("r") as f:
@@ -203,12 +203,14 @@ class ChatSession:
         user prompt should always be provided
         """
         messages = self.build_chat_completion_message(user_prompt)
+        
+        with logger.tag(f"session_{self.conversation_id}"):
+            response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
+                messages=messages,
+                chat_completion=True,
+                **kwargs,
+            )
 
-        response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
-            messages=messages,
-            chat_completion=True,
-            **kwargs,
-        )
         messages.append(
             {
                 "role": "assistant",
@@ -478,8 +480,8 @@ class APIBackend:
                 if chat_completion:
                     return self._create_chat_completion_auto_continue(**kwargs)
             except openai.BadRequestError as e:  # noqa: PERF203
-                RDAgentLog().warning(e)
-                RDAgentLog().warning(f"Retrying {i+1}th time...")
+                logger.warning(e)
+                logger.warning(f"Retrying {i+1}th time...")
                 if "'messages' must contain the word 'json' in some form" in e.message:
                     kwargs["add_json_in_prompt"] = True
                 elif embedding and "maximum context length" in e.message:
@@ -487,8 +489,8 @@ class APIBackend:
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
             except Exception as e:  # noqa: BLE001
-                RDAgentLog().warning(e)
-                RDAgentLog().warning(f"Retrying {i+1}th time...")
+                logger.warning(e)
+                logger.warning(f"Retrying {i+1}th time...")
                 time.sleep(self.retry_wait_seconds)
         error_message = f"Failed to create chat completion after {max_retry} retries."
         raise RuntimeError(error_message)
@@ -526,7 +528,7 @@ class APIBackend:
                 self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
-    def _build_messages(self, messages: list[dict]) -> str:
+    def _build_log_messages(self, messages: list[dict]) -> str:
         log_messages = ""
         for m in messages:
             log_messages += (
@@ -536,17 +538,6 @@ class APIBackend:
                 f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
             )
         return log_messages
-
-    def log_messages(self, messages: list[dict]) -> None:
-        if self.cfg.log_llm_chat_content:
-            RDAgentLog().info(self._build_messages(messages))
-
-    def log_response(self, response: str | None = None, *, stream: bool = False) -> None:
-        if self.cfg.log_llm_chat_content:
-            if stream:
-                RDAgentLog().info(f"\n{LogColors.CYAN}Response:{LogColors.END}")
-            else:
-                RDAgentLog().info(f"\n{LogColors.CYAN}Response:{response}{LogColors.END}")
 
     def _create_chat_completion_inner_function(  # noqa: C901, PLR0912, PLR0915
         self,
@@ -560,7 +551,9 @@ class APIBackend:
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
     ) -> str:
-        self.log_messages(messages)
+        # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
+        if self.cfg.log_llm_chat_content:
+            logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
         input_content_json = json.dumps(messages)
         input_content_json = (
@@ -569,6 +562,8 @@ class APIBackend:
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
+                if self.cfg.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result, None
 
         if temperature is None:
@@ -588,7 +583,8 @@ class APIBackend:
                 temperature=temperature,
             )
             resp = response[0]["generation"]["content"]
-            self.log_response(resp)
+            if self.cfg.log_llm_chat_content:
+                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         elif self.use_gcr_endpoint:
             body = str.encode(
                 json.dumps(
@@ -609,7 +605,8 @@ class APIBackend:
             req = urllib.request.Request(self.gcr_endpoint, body, self.headers)  # noqa: S310
             response = urllib.request.urlopen(req)  # noqa: S310
             resp = json.loads(response.read().decode())["output"]
-            self.log_response(resp)
+            if self.cfg.log_llm_chat_content:
+                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             if self.use_azure:
                 if json_mode:
@@ -650,8 +647,11 @@ class APIBackend:
                     presence_penalty=presence_penalty,
                 )
             if self.chat_stream:
-                self.log_response(stream=True)
                 resp = ""
+                # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
+                if self.cfg.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
+                
                 for chunk in response:
                     content = (
                         chunk.choices[0].delta.content
@@ -659,24 +659,28 @@ class APIBackend:
                         else ""
                     )
                     if self.cfg.log_llm_chat_content:
-                        print(LogColors.CYAN + content, end="")
+                        logger.info(LogColors.CYAN + content + LogColors.END, raw=True, tag="llm_messages")
                     resp += content
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
+                
+                if self.cfg.log_llm_chat_content:
+                    logger.info("\n", raw=True, tag="llm_messages")
+                
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
-                self.log_response(resp)
+                if self.cfg.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
             if json_mode:
                 json.loads(resp)
         if self.dump_chat_cache:
             self.cache.chat_set(input_content_json, resp)
-        # TODO: fail to use loguru adaptor due to stream response
         return resp, finish_reason
 
     def calculate_token_from_messages(self, messages: list[dict]) -> int:
         if self.use_llama2 or self.use_gcr_endpoint:
-            RDAgentLog().warning("num_tokens_from_messages() is not implemented for model llama2.")
+            logger.warning("num_tokens_from_messages() is not implemented for model llama2.")
             return 0  # TODO implement this function for llama2
 
         if "gpt4" in self.chat_model or "gpt-4" in self.chat_model:

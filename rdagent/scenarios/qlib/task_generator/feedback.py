@@ -7,7 +7,7 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
@@ -19,7 +19,6 @@ from rdagent.oai.llm_utils import APIBackend
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
-logger = RDAgentLog()
 
 
 class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):

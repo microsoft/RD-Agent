@@ -4,7 +4,7 @@ from rdagent.components.coder.factor_coder.factor import (
     FileBasedFactorImplementation,
 )
 from rdagent.core.evolving_framework import EvolvableSubjects
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 
 
 class FactorEvolvingItem(FactorExperiment, EvolvableSubjects):
@@ -23,7 +23,7 @@ class FactorEvolvingItem(FactorExperiment, EvolvableSubjects):
             sub_gt_implementations,
         ) != len(self.sub_tasks):
             self.sub_gt_implementations = None
-            RDAgentLog().warning(
+            logger.warning(
                 "The length of sub_gt_implementations is not equal to the length of sub_tasks, set sub_gt_implementations to None",
             )
         else:

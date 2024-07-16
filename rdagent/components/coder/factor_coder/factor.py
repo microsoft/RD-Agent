@@ -16,7 +16,7 @@ from rdagent.core.exception import (
     RuntimeErrorException,
 )
 from rdagent.core.experiment import Experiment, FBImplementation, Task
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 
 
@@ -74,7 +74,7 @@ class FileBasedFactorImplementation(FBImplementation):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
-        self.logger = RDAgentLog()
+        self.logger = logger
         self.raise_exception = raise_exception
 
     @staticmethod

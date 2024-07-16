@@ -28,7 +28,7 @@ from rdagent.core.evolving_framework import (
     RAGStrategy,
 )
 from rdagent.core.experiment import Implementation
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import (
     APIBackend,
@@ -336,7 +336,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
             )["component_no_list"]
             return [all_component_nodes[index - 1] for index in sorted(list(set(component_no_list)))]
         except:
-            RDAgentLog().warning("Error when analyzing components.")
+            logger.warning("Error when analyzing components.")
             analyze_component_user_prompt = "Your response is not a valid component index list."
 
         return []
@@ -714,7 +714,7 @@ class FactorGraphKnowledgeBase(KnowledgeBase):
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
         self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
-        RDAgentLog().info(f"Knowledge Graph loaded, size={self.graph.size()}")
+        logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
             for component in init_component_list:

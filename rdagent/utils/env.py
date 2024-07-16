@@ -19,7 +19,7 @@ import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -146,11 +146,11 @@ class DockerEnv(Env[DockerConf]):
         """
         client = docker.from_env()
         if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
-            RDAgentLog().info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
+            logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             image, logs = client.images.build(
                 path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
             )
-            RDAgentLog().info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
+            logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
         try:
             client.images.get(self.conf.image)
         except docker.errors.ImageNotFound:
@@ -216,8 +216,8 @@ class QTDockerEnv(DockerEnv):
         super().prepare()
         qlib_data_path = next(iter(self.conf.extra_volumes.keys()))
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
-            RDAgentLog().info("We are downloading!")
+            logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
         else:
-            RDAgentLog().info("Data already exists. Download skipped.")
+            logger.info("Data already exists. Download skipped.")

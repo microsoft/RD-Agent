@@ -7,7 +7,7 @@ import pandas as pd
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
@@ -15,7 +15,6 @@ from rdagent.utils.env import QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
-logger = RDAgentLog()
 
 # class QlibFactorExpWorkspace:
 

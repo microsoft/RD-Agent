@@ -9,7 +9,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
 )
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -25,7 +25,7 @@ def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
         implementation_factors_per_round,
     )
 
-    RDAgentLog().info(f"The random selection is: {to_be_finished_task_index}")
+    logger.info(f"The random selection is: {to_be_finished_task_index}")
     return to_be_finished_task_index
 
 

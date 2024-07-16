@@ -16,7 +16,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Implementation, Task
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
@@ -328,6 +328,6 @@ class ModelCoderMultiEvaluator(Evaluator):
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
         ]
-        RDAgentLog().info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
+        logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
 
         return multi_implementation_feedback
