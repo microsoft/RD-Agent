@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+import uuid
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Generic, Optional, Sequence, TypeVar
+
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 """
 This file contains the all the class about organizing the task in RD-Agent.
@@ -8,10 +14,6 @@ This file contains the all the class about organizing the task in RD-Agent.
 
 
 class Task(ABC):
-    # TODO: 把name放在这里作为主键
-    # Please refer to rdagent/model_implementation/task.py for the implementation
-    # I think the task version applies to the base class.
-
     @abstractmethod
     def get_task_information(self):
         """
@@ -73,10 +75,12 @@ class FBWorkspace(Workspace):
     # Why not directly reuse FactorFBWorkspace.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
-    def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.code_dict = code_dict  # The code to be injected into the folder, store them in the variable
-        self.workspace_path: Optional[Path] = None
+        self.code_dict = (
+            {}
+        )  # The code injected into the folder, store them in the variable to reproduce the former result
+        self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
 
     @property
     def code(self) -> str:
@@ -85,28 +89,25 @@ class FBWorkspace(Workspace):
             code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
-    @abstractmethod
     def prepare(self, *args, **kwargs):
         """
-        Prepare all the files except the injected code
+        Prepare the workspace except the injected code
         - Data
         - Documentation
-        - TODO: env?  Env is implicitly defined by the document?
-
             typical usage of `*args, **kwargs`:
                 Different methods shares the same data. The data are passed by the arguments.
         """
-        # TODO: model and factor prepare;
+        self.workspace_path.mkdir(parents=True, exist_ok=True)
 
     def inject_code(self, **files: str):
         """
         Inject the code into the folder.
         {
-            "model.py": "<model code>"
+            <file name>: <code>
         }
         """
-        self.code_dict = files
         for k, v in files.items():
+            self.code_dict[k] = v
             with open(self.workspace_path / k, "w") as f:
                 f.write(v)
 
@@ -118,6 +119,14 @@ class FBWorkspace(Workspace):
         How to summarize the environment is the responsibility of the Developer.
         """
         return list(self.workspace_path.iterdir())
+
+    @abstractmethod
+    def execute(self, *args, **kwargs) -> object:
+        """
+        Before each execution, make sure to prepare and inject code
+        """
+        self.prepare()
+        self.inject_code(**self.code_dict)
 
 
 class Experiment(ABC, Generic[ASpecificTask, ASpecificImp]):

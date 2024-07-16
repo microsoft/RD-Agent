@@ -158,4 +158,7 @@ git_ignore_folder/
 env_factor/mlruns/
 env_tpl
 mlruns/
+
+# possible output from coder or runner
+*.pth
 *qlib_res.csv

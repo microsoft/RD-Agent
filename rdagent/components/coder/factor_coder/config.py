@@ -13,9 +13,6 @@ class FactorImplementSettings(BaseSettings):
     factor_data_folder_debug: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data_debug").absolute(),
     )
-    factor_execution_workspace: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_workspace").absolute(),
-    )
     factor_cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").absolute(),
     )

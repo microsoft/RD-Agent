@@ -60,18 +60,6 @@ class ModelFBWorkspace(FBWorkspace):
 
     """
 
-    def __init__(self, target_task: Task) -> None:
-        super().__init__(target_task)
-
-    def prepare(self) -> None:
-        """
-        Prepare for the workspace;
-        """
-        unique_id = uuid.uuid4()
-        self.workspace_path = Path(MODEL_IMPL_SETTINGS.model_execution_workspace) / f"M{unique_id}"
-        # start with `M` so that it can be imported via python
-        self.workspace_path.mkdir(parents=True, exist_ok=True)
-
     def execute(
         self,
         batch_size: int = 8,
@@ -80,6 +68,7 @@ class ModelFBWorkspace(FBWorkspace):
         input_value: float = 1.0,
         param_init_value: float = 1.0,
     ):
+        super().execute()
         try:
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code

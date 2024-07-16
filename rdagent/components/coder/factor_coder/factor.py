@@ -90,15 +90,6 @@ class FactorFBWorkspace(FBWorkspace):
                 check=False,
             )
 
-    def execute_desc(self):
-        raise NotImplementedError
-
-    def prepare(self, *args, **kwargs):
-        self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.factor_execution_workspace,
-        ) / str(uuid.uuid4())
-        self.workspace_path.mkdir(exist_ok=True, parents=True)
-
     def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
@@ -112,6 +103,7 @@ class FactorFBWorkspace(FBWorkspace):
         parameters:
         store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
+        super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
             if self.raise_exception:
                 raise CodeFormatException(self.FB_CODE_NOT_SET)

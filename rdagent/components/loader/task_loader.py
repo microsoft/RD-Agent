@@ -92,4 +92,3 @@ class ModelImpLoader(ImpLoader[ModelTask, ModelFBWorkspace]):
             code = f.read()
         mti.inject_code(**{"model.py": code})
         return mti
-        return mti
