@@ -16,14 +16,11 @@ from rdagent.components.coder.factor_coder.CoSTEER.scheduler import (
     LLMSelect,
     RandomSelect,
 )
-from rdagent.components.coder.factor_coder.factor import (
-    FactorTask,
-    FileBasedFactorImplementation,
-)
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from rdagent.core.experiment import Implementation
+from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
@@ -43,7 +40,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: QueriedKnowledge = None,
-    ) -> Implementation:
+    ) -> Workspace:
         raise NotImplementedError
 
     def evolve(
@@ -118,7 +115,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: FactorQueriedKnowledgeV1 = None,
-    ) -> Implementation:
+    ) -> Workspace:
         factor_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and factor_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -186,7 +183,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                 ),
             )["code"]
             # ast.parse(code)
-            factor_implementation = FileBasedFactorImplementation(
+            factor_implementation = FactorFBWorkspace(
                 target_task,
             )
             factor_implementation.prepare()
@@ -205,7 +202,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge,
-    ) -> Implementation:
+    ) -> Workspace:
         error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
         # 1. 提取因子的背景信息
         target_factor_task_information = target_task.get_task_information()
@@ -335,7 +332,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 json_mode=True,
             )
             code = json.loads(response)["code"]
-            factor_implementation = FileBasedFactorImplementation(target_task)
+            factor_implementation = FactorFBWorkspace(target_task)
             factor_implementation.prepare()
             factor_implementation.inject_code(**{"factor.py": code})
             return factor_implementation

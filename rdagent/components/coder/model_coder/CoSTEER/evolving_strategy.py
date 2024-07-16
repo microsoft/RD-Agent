@@ -11,7 +11,7 @@ from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
 from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelQueriedKnowledge,
 )
-from rdagent.components.coder.model_coder.model import ModelImplementation, ModelTask
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
@@ -26,7 +26,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
-    ) -> ModelImplementation:
+    ) -> ModelFBWorkspace:
         model_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -92,7 +92,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     json_mode=True,
                 ),
             )["code"]
-            model_implementation = ModelImplementation(
+            model_implementation = ModelFBWorkspace(
                 target_task,
             )
             model_implementation.prepare()

@@ -1,6 +1,6 @@
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
-    ModelImplementation,
+    ModelFBWorkspace,
     ModelTask,
 )
 from rdagent.core.evolving_framework import EvolvableSubjects
@@ -15,7 +15,7 @@ class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
     def __init__(
         self,
         sub_tasks: list[ModelTask],
-        sub_gt_implementations: list[ModelImplementation] = None,
+        sub_gt_implementations: list[ModelFBWorkspace] = None,
     ):
         ModelExperiment.__init__(self, sub_tasks=sub_tasks)
         if sub_gt_implementations is not None and len(

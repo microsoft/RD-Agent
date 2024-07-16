@@ -23,20 +23,21 @@ class Task(ABC):
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 
 
-class Implementation(ABC, Generic[ASpecificTask]):
-    # TODO: workspace;
-    # - code or data(optional)
-    # - Execute logic
-    # - `env is not included`. It is a underlying infra
+class Workspace(ABC, Generic[ASpecificTask]):
+    """
+    A workspace is a place to store the task implementation. It evolves as the developer implements the task.
+    To get a snapshot of the workspace, make sure call `freeze` to get a copy of the workspace.
+    """
+
     def __init__(self, target_task: ASpecificTask) -> None:
-        self.target_task = target_task
+        self.target_task: ASpecificTask = target_task
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> object:
         raise NotImplementedError("execute method is not implemented.")
 
 
-ASpecificImp = TypeVar("ASpecificImp", bound=Implementation)
+ASpecificImp = TypeVar("ASpecificImp", bound=Workspace)
 
 
 class ImpLoader(ABC, Generic[ASpecificTask, ASpecificImp]):
@@ -45,7 +46,7 @@ class ImpLoader(ABC, Generic[ASpecificTask, ASpecificImp]):
         raise NotImplementedError("load method is not implemented.")
 
 
-class FBImplementation(Implementation):
+class FBWorkspace(Workspace):
     """
     File-based task implementation
 
@@ -55,7 +56,7 @@ class FBImplementation(Implementation):
     - Output
         - After execution, it will generate the final output as file.
 
-    A typical way to run the pipeline of FBImplementation will be
+    A typical way to run the pipeline of FBWorkspace will be
     (We didn't add it as a method due to that we may pass arguments into `prepare` or `execute` based on our requirements.)
 
     .. code-block:: python
@@ -68,8 +69,8 @@ class FBImplementation(Implementation):
     """
 
     # TODO:
-    # FileBasedFactorImplementation should inherit from it.
-    # Why not directly reuse FileBasedFactorImplementation.
+    # FactorFBWorkspace should inherit from it.
+    # Why not directly reuse FactorFBWorkspace.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
     def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:

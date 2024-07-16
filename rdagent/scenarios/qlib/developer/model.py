@@ -4,10 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelImplementation,
-)
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBWorkspace
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.developer import Developer
@@ -15,7 +12,7 @@ from rdagent.core.log import RDAgentLog
 from rdagent.utils.env import QTDockerEnv
 
 
-class QlibModelRunner(CachedRunner[ModelImplementation]):
+class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
     """
     Docker run
     Everything in a folder
@@ -38,7 +35,7 @@ class QlibModelRunner(CachedRunner[ModelImplementation]):
         TEMPLATE_PATH = Path(__file__).parent / "model_template"  # Can be updated
 
         # To set the experiment level workspace and prepare the workspaces use the first task as the target task
-        exp.exp_ws = ModelImplementation(target_task=exp.sub_tasks[0])
+        exp.exp_ws = ModelFBWorkspace(target_task=exp.sub_tasks[0])
         exp.exp_ws.prepare()
 
         # to copy_template_to_workspace

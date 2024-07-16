@@ -15,7 +15,7 @@ from rdagent.core.exception import (
     NoOutputException,
     RuntimeErrorException,
 )
-from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.core.log import RDAgentLog
 from rdagent.oai.llm_utils import md5_hash
 
@@ -51,7 +51,7 @@ variables: {str(self.variables)}"""
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
 
-class FileBasedFactorImplementation(FBImplementation):
+class FactorFBWorkspace(FBWorkspace):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -215,7 +215,7 @@ class FileBasedFactorImplementation(FBImplementation):
         for file_path in path.iterdir():
             if file_path.suffix == ".py":
                 code_dict[file_path.name] = file_path.read_text()
-        return FileBasedFactorImplementation(target_task=task, code_dict=code_dict, **kwargs)
+        return FactorFBWorkspace(target_task=task, code_dict=code_dict, **kwargs)
 
 
-class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...
+class FactorExperiment(Experiment[FactorTask, FactorFBWorkspace]): ...

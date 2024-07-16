@@ -4,8 +4,8 @@ from pathlib import Path
 from rdagent.components.benchmark.eval_method import TestCase
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
+    FactorFBWorkspace,
     FactorTask,
-    FileBasedFactorImplementation,
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.experiment import Loader
@@ -54,7 +54,7 @@ class FactorTestCaseLoaderFromJsonFile:
                 factor_formulation=factor_data["formulation"],
                 variables=factor_data["variables"],
             )
-            gt = FileBasedFactorImplementation(task, code=factor_data["gt_code"])
+            gt = FactorFBWorkspace(task, code=factor_data["gt_code"])
             gt.execute()
             TestData.target_task.append(task)
             TestData.ground_truth.append(gt)

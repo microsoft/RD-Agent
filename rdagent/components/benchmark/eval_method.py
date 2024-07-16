@@ -15,10 +15,10 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
 )
-from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ImplementRunException
-from rdagent.core.experiment import Implementation, Task
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 
 
@@ -26,7 +26,7 @@ class TestCase:
     def __init__(
         self,
         target_task: list[Task] = [],
-        ground_truth: list[Implementation] = [],
+        ground_truth: list[Workspace] = [],
     ):
         self.ground_truth = ground_truth
         self.target_task = target_task
@@ -62,12 +62,12 @@ class BaseEval:
         self,
         path: Union[Path, str],
         **kwargs,
-    ) -> List[Implementation]:
+    ) -> List[Workspace]:
         path = Path(path)
         fi_l = []
         for tc in self.test_cases:
             try:
-                fi = FileBasedFactorImplementation.from_folder(tc.task, path, **kwargs)
+                fi = FactorFBWorkspace.from_folder(tc.task, path, **kwargs)
                 fi_l.append(fi)
             except FileNotFoundError:
                 print("Fail to load test case for factor: ", tc.task.factor_name)
@@ -75,8 +75,8 @@ class BaseEval:
 
     def eval_case(
         self,
-        case_gt: Implementation,
-        case_gen: Implementation,
+        case_gt: Workspace,
+        case_gen: Workspace,
     ) -> List[Union[Tuple[FactorEvaluator, object], Exception]]:
         """Parameters
         ----------
