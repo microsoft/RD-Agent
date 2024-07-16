@@ -562,6 +562,8 @@ class APIBackend:
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
+                if self.cfg.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result, None
 
         if temperature is None:
