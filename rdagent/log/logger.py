@@ -17,6 +17,27 @@ from .utils import LogColors, get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
+    """
+    The files are organized based on the tag & PID
+    Here is an example tag
+
+    .. code-block::
+        
+        a
+        - b
+        - c
+            - 123
+              - common_logs.log
+            - 1322
+              - common_logs.log
+            - 1233
+              - <timestamp>.pkl
+            - d
+                - 1233-673 ...
+                - 1233-4563 ...
+                - 1233-365 ...
+
+    """
     # TODO: Simplify it to introduce less concepts ( We may merge RDAgentLog, Storage &)
     # Solution:  Storage => PipeLog, View => PipeLogView, RDAgentLog is an instance of PipeLogger
     # PipeLogger.info(...) ,  PipeLogger.get_resp() to get feedback from frontend.
