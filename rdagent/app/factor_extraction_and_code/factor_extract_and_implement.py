@@ -13,7 +13,7 @@ assert load_dotenv()
 def extract_factors_and_implement(report_file_path: str) -> None:
     scenario = QlibFactorScenario()
     exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
-    exp = QlibFactorCoSTEER(scenario).generate(exp)
+    exp = QlibFactorCoSTEER(scenario).develop(exp)
     # Qlib to run the implementation in rd loop
     return exp
 

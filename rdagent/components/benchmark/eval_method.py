@@ -16,9 +16,9 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleColumnEvaluator,
 )
 from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
+from rdagent.core.developer import Developer
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.experiment import Implementation, Task
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import multiprocessing_wrapper
 
 
@@ -41,7 +41,7 @@ class BaseEval:
         self,
         evaluator_l: List[FactorEvaluator],
         test_cases: List[TestCase],
-        generate_method: TaskGenerator,
+        generate_method: Developer,
         catch_eval_except: bool = True,
     ):
         """Parameters
@@ -111,7 +111,7 @@ class FactorImplementEval(BaseEval):
     def __init__(
         self,
         test_cases: TestCase,
-        method: TaskGenerator,
+        method: Developer,
         *args,
         test_round: int = 10,
         **kwargs,
@@ -137,7 +137,7 @@ class FactorImplementEval(BaseEval):
             print(f"Eval {_}-th times...")
             print("========================================================\n")
             try:
-                gen_factor_l = self.generate_method.generate(self.test_cases.target_task)
+                gen_factor_l = self.generate_method.develop(self.test_cases.target_task)
             except KeyboardInterrupt:
                 # TODO: Why still need to save result after KeyboardInterrupt?
                 print("Manually interrupted the evaluation. Saving existing results")

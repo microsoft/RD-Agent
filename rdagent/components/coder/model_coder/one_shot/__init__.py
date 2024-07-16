@@ -7,15 +7,15 @@ from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelImplementation,
 )
+from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import APIBackend
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class ModelCodeWriter(TaskGenerator[ModelExperiment]):
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+class ModelCodeWriter(Developer[ModelExperiment]):
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
         mti_l = []
         for t in exp.sub_tasks:
             mti = ModelImplementation(t)

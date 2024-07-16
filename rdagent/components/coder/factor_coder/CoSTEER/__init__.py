@@ -18,12 +18,12 @@ from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
     FactorKnowledgeBaseV1,
 )
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
+from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.scenario import Scenario
-from rdagent.core.task_generator import TaskGenerator
 
 
-class FactorCoSTEER(TaskGenerator[FactorExperiment]):
+class FactorCoSTEER(Developer[FactorExperiment]):
     def __init__(
         self,
         *args,
@@ -72,7 +72,7 @@ class FactorCoSTEER(TaskGenerator[FactorExperiment]):
             )
         return factor_knowledge_base
 
-    def generate(self, exp: FactorExperiment) -> FactorExperiment:
+    def develop(self, exp: FactorExperiment) -> FactorExperiment:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,

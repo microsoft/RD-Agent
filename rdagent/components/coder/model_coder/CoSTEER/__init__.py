@@ -16,11 +16,11 @@ from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelRAGStrategy,
 )
 from rdagent.components.coder.model_coder.model import ModelExperiment
+from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.core.task_generator import TaskGenerator
 
 
-class ModelCoSTEER(TaskGenerator[ModelExperiment]):
+class ModelCoSTEER(Developer[ModelExperiment]):
     def __init__(
         self,
         *args,
@@ -57,7 +57,7 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
 
         return model_knowledge_base
 
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
         # init knowledge base
         model_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,

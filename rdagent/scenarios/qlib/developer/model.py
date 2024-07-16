@@ -10,8 +10,8 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
+from rdagent.core.developer import Developer
 from rdagent.core.log import RDAgentLog
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.utils.env import QTDockerEnv
 
 
@@ -28,7 +28,7 @@ class QlibModelRunner(CachedRunner[ModelImplementation]):
     - let LLM modify model.py
     """
 
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
 
         if RUNNER_SETTINGS.runner_cache_result:
             cache_hit, result = self.get_cache_result(exp)
@@ -75,7 +75,7 @@ class QlibModelRunner(CachedRunner[ModelImplementation]):
             RDAgentLog().error(f"File {csv_path} does not exist.")
             return None
 
-        result = pd.read_csv(csv_path, index_col=0).iloc[:,0]
+        result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
         if RUNNER_SETTINGS.runner_cache_result:

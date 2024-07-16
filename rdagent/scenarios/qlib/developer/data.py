@@ -7,8 +7,8 @@ import pandas as pd
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
+from rdagent.core.developer import Developer
 from rdagent.core.log import RDAgentLog
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.utils.env import QTDockerEnv
@@ -41,13 +41,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     - results in `mlflow`
     """
 
-    def generate(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
+    def develop(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         """
         Generate the experiment by processing and combining factor data,
         then passing the combined data to Docker for backtest results.
         """
         if exp.based_experiments and exp.based_experiments[-1].result is None:
-            exp.based_experiments[-1] = self.generate(exp.based_experiments[-1])
+            exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
         if RUNNER_SETTINGS.runner_cache_result:
             cache_hit, result = self.get_cache_result(exp)
