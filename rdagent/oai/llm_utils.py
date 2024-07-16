@@ -538,13 +538,6 @@ class APIBackend:
             )
         return log_messages
 
-    def log_response(self, response: str | None = None, *, stream: bool = False) -> None:
-        if self.cfg.log_llm_chat_content:
-            if stream:
-                logger.info(f"\n{LogColors.CYAN}Response:{LogColors.END}")
-            else:
-                logger.info(f"\n{LogColors.CYAN}Response:{response}{LogColors.END}")
-
     def _create_chat_completion_inner_function(  # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict],
