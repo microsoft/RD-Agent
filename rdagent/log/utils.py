@@ -47,10 +47,13 @@ class LogColors:
 
         return f"{style}{text}{self.END}"
 
-
-def remove_ansi_codes(s: str) -> str:
-    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', s)
+    @staticmethod
+    def remove_ansi_codes(s: str) -> str:
+        """
+        It is for removing ansi ctrl characters in the string(e.g. colored text)
+        """
+        ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+        return ansi_escape.sub('', s)
 
 
 def get_caller_info():

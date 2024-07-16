@@ -13,10 +13,17 @@ from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 
 from .storage import FileStorage
-from .utils import get_caller_info, remove_ansi_codes
+from .utils import LogColors, get_caller_info
 
 
 class RDAgentLog(SingletonBaseClass):
+    # TODO: Simplify it to introduce less concepts ( We may merge RDAgentLog, Storage &)
+    # Solution:  Storage => PipeLog, View => PipeLogView, RDAgentLog is an instance of PipeLogger
+    # PipeLogger.info(...) ,  PipeLogger.get_resp() to get feedback from frontend.
+    # def f():
+    #   logger = PipeLog()
+    #   logger.info("<code>")
+    #   feedback = logger.get_reps()
     _tag: str = ""
 
     def __init__(self, log_trace_path: str | None = RD_AGENT_SETTINGS.log_trace_path) -> None:
@@ -30,14 +37,7 @@ class RDAgentLog(SingletonBaseClass):
         
         self.storage = FileStorage(log_trace_path)
         
-        self.outter_conn, self.inner_conn = Pipe()
-        
         self.main_pid = os.getpid()
-
-    @property
-    def stream(self) -> Connection:
-        return self.outter_conn
-
 
     @contextmanager
     def tag(self, tag: str):
@@ -46,10 +46,10 @@ class RDAgentLog(SingletonBaseClass):
         if self._tag != "":
             tag = "." + tag
 
+        # TODO: It may result in error in mutithreading or co-routine
         self._tag = self._tag + tag
         yield
         self._tag = self._tag[:-len(tag)]
-
 
     def get_pids(self) -> str:
         '''
@@ -66,13 +66,11 @@ class RDAgentLog(SingletonBaseClass):
             process = parent_process
         return pid_chain
 
-
     def file_format(self, record, raw: bool=False):
-        record["message"] = remove_ansi_codes(record["message"])
+        record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:
             return "{message}"
         return "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n"
-
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
         caller_info = get_caller_info()
@@ -86,6 +84,7 @@ class RDAgentLog(SingletonBaseClass):
 
 
     def info(self, msg: str, *, tag: str = "", raw: bool=False) -> None:
+        # TODO: too much duplicated. due to we have no logger with stream context;
         caller_info = get_caller_info()
         if raw:
             logger.remove()
@@ -106,6 +105,9 @@ class RDAgentLog(SingletonBaseClass):
             logger.add(sys.stderr)
 
     def warning(self, msg: str, *, tag: str = "") -> None:
+        # TODO: reuse code
+        # _log(self, msg: str, *, tag: str = "", level=Literal["warning", "error", ..]) -> None:
+        # getattr(logger.patch(lambda r: r.update(caller_info)), level)(msg)
         caller_info = get_caller_info()
 
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip('.')
