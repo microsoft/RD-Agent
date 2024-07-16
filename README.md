@@ -1,22 +1,42 @@
-# Project
+TODO: Add badges.
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
-
-As the maintainer of this project, please make a few updates:
-
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+# News
+| 🗞️News        | 📝Description                 |
+| --            | ------                        |
+| First release | RDAgent are release on Github |
 
 
-# Motivation
-R&D Agent: Focusing on automating the most core and valuable part of the industrial R&D process.
+# Introduction
 
-Core method: Evolving;
+RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
+Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
+We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
+
+
+<!-- Tag Cloud -->
+R&D is a very general scenario. The advent of RDAgent can be your
+- [Automatic Quant Factory]()
+- Data mining copilot: iteratively proposing data & models and implementing them by gaining knowledge from data.
+- Research copilot: Auto read papers and implement model structures.
+- ...
+
+More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
+
+We have a quick demo for one use case of RDAgent.
+- TODO: Demo
+
+
+# Quick start
+You can try our demo by running the following command:
+
+```bash
+# prepare environment
+# installation
+# App entrance
+```
 
 # Scenarios
+
 
 ## Data-driven R&D
 TODO: importance justification
