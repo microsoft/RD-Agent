@@ -9,7 +9,7 @@ from rdagent.components.coder.model_coder.task_loader import (
 
 def extract_models_and_implement(report_file_path: str = "../test_doc") -> None:
     factor_tasks = ModelExperimentLoaderFromPDFfiles().load(report_file_path)
-    implementation_result = ModelCodeWriter().generate(factor_tasks)
+    implementation_result = ModelCodeWriter().develop(factor_tasks)
     return implementation_result
 
 

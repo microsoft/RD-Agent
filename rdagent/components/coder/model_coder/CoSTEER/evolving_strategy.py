@@ -11,7 +11,7 @@ from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
 from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelQueriedKnowledge,
 )
-from rdagent.components.coder.model_coder.model import ModelImplementation, ModelTask
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
@@ -26,7 +26,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
-    ) -> ModelImplementation:
+    ) -> str:
         model_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -92,13 +92,8 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     json_mode=True,
                 ),
             )["code"]
-            model_implementation = ModelImplementation(
-                target_task,
-            )
-            model_implementation.prepare()
-            model_implementation.inject_code(**{"model.py": code})
 
-            return model_implementation
+            return code
 
     def evolve(
         self,
@@ -132,12 +127,12 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            new_evo.sub_implementations[target_index] = result[index]
-
-        # for target_index in to_be_finished_task_index:
-        #     new_evo.sub_implementations[target_index] = self.implement_one_model(
-        #         new_evo.sub_tasks[target_index], queried_knowledge
-        #     )
+            if new_evo.sub_implementations[target_index] is None:
+                new_evo.sub_implementations[target_index] = ModelFBWorkspace(
+                    target_task=new_evo.sub_tasks[target_index],
+                )
+                new_evo.sub_implementations[target_index].prepare()
+            new_evo.sub_implementations[target_index].inject_code(**{"model.py": result[index]})
 
         new_evo.corresponding_selection = to_be_finished_task_index
 

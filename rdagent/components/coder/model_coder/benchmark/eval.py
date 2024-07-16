@@ -1,7 +1,7 @@
 # TODO: inherent from the benchmark base class
 import torch
 
-from rdagent.components.coder.model_coder.model import ModelImplementation
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace
 
 
 def get_data_conf(init_val):
@@ -32,7 +32,7 @@ class ModelImpValEval:
     For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
-    def evaluate(self, gt: ModelImplementation, gen: ModelImplementation):
+    def evaluate(self, gt: ModelFBWorkspace, gen: ModelFBWorkspace):
         round_n = 10
 
         eval_pairs: list[tuple] = []

@@ -27,7 +27,7 @@ from rdagent.core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from rdagent.core.experiment import Implementation
+from rdagent.core.experiment import Workspace
 from rdagent.core.log import RDAgentLog
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import (
@@ -40,7 +40,7 @@ class FactorKnowledge(Knowledge):
     def __init__(
         self,
         target_task: FactorTask,
-        implementation: Implementation,
+        implementation: Workspace,
         feedback: FactorSingleFeedback,
     ) -> None:
         """
@@ -53,7 +53,7 @@ class FactorKnowledge(Knowledge):
             None
         """
         self.target_task = target_task
-        self.implementation = implementation
+        self.implementation = implementation.freeze()
         self.feedback = feedback
 
     def get_implementation_and_feedback_str(self) -> str:

@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+import uuid
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Generic, Optional, Sequence, TypeVar
+from typing import Dict, Generic, Sequence, TypeVar
+
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 """
 This file contains the all the class about organizing the task in RD-Agent.
@@ -8,10 +14,6 @@ This file contains the all the class about organizing the task in RD-Agent.
 
 
 class Task(ABC):
-    # TODO: 把name放在这里作为主键
-    # Please refer to rdagent/model_implementation/task.py for the implementation
-    # I think the task version applies to the base class.
-
     @abstractmethod
     def get_task_information(self):
         """
@@ -23,29 +25,37 @@ class Task(ABC):
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 
 
-class Implementation(ABC, Generic[ASpecificTask]):
-    # TODO: workspace;
-    # - code or data(optional)
-    # - Execute logic
-    # - `env is not included`. It is a underlying infra
-    def __init__(self, target_task: ASpecificTask) -> None:
-        self.target_task = target_task
+class Workspace(ABC):
+    """
+    A workspace is a place to store the task implementation. It evolves as the developer implements the task.
+    To get a snapshot of the workspace, make sure call `freeze` to get a copy of the workspace.
+    """
+
+    def __init__(self, target_task: ASpecificTask = None) -> None:
+        self.target_task: ASpecificTask = target_task
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> object:
         raise NotImplementedError("execute method is not implemented.")
 
-
-ASpecificImp = TypeVar("ASpecificImp", bound=Implementation)
-
-
-class ImpLoader(ABC, Generic[ASpecificTask, ASpecificImp]):
     @abstractmethod
-    def load(self, task: ASpecificTask) -> ASpecificImp:
+    def freeze(self) -> Workspace:
+        """
+        Detach the workspace from the task
+        """
+        pass
+
+
+ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
+
+
+class ImpLoader(ABC, Generic[ASpecificTask, ASpecificWS]):
+    @abstractmethod
+    def load(self, task: ASpecificTask) -> ASpecificWS:
         raise NotImplementedError("load method is not implemented.")
 
 
-class FBImplementation(Implementation):
+class FBWorkspace(Workspace):
     """
     File-based task implementation
 
@@ -68,14 +78,14 @@ class FBImplementation(Implementation):
     """
 
     # TODO:
-    # FileBasedFactorImplementation should inherit from it.
-    # Why not directly reuse FileBasedFactorImplementation.
+    # FactorFBWorkspace should inherit from it.
+    # Why not directly reuse FactorFBWorkspace.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
-    def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.code_dict = code_dict  # The code to be injected into the folder, store them in the variable
-        self.workspace_path: Optional[Path] = None
+        self.code_dict = {}  # The code to be injected into the folder, store them in the variable
+        self.workspace_folder_path = RD_AGENT_SETTINGS.workspace_folder_path / uuid.uuid4().hex
 
     @property
     def code(self) -> str:
@@ -84,29 +94,26 @@ class FBImplementation(Implementation):
             code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
-    @abstractmethod
     def prepare(self, *args, **kwargs):
         """
-        Prepare all the files except the injected code
+        Prepare the workspace except the injected code
         - Data
         - Documentation
-        - TODO: env?  Env is implicitly defined by the document?
-
             typical usage of `*args, **kwargs`:
                 Different methods shares the same data. The data are passed by the arguments.
         """
-        # TODO: model and factor prepare;
+        self.workspace_folder_path.mkdir(parents=True, exist_ok=True)
 
     def inject_code(self, **files: str):
         """
         Inject the code into the folder.
         {
-            "model.py": "<model code>"
+            <file name>: <code>
         }
         """
-        self.code_dict = files
         for k, v in files.items():
-            with open(self.workspace_path / k, "w") as f:
+            self.code_dict[k] = v
+            with open(self.workspace_folder_path / k, "w") as f:
                 f.write(v)
 
     def get_files(self) -> list[Path]:
@@ -114,22 +121,36 @@ class FBImplementation(Implementation):
         Get the environment description.
 
         To be general, we only return a list of filenames.
-        How to summarize the environment is the responsibility of the TaskGenerator.
+        How to summarize the environment is the responsibility of the Developer.
         """
         return list(self.workspace_path.iterdir())
 
+    def freeze(self) -> FBWorkspace:
+        """
+        Detach the workspace from the task
+        """
+        return deepcopy(self)
 
-class Experiment(ABC, Generic[ASpecificTask, ASpecificImp]):
+    @abstractmethod
+    def execute(self, *args, **kwargs) -> object:
+        """
+        Before each execution, make sure to prepare and inject code
+        """
+        self.prepare()
+        self.inject_code(**self.code_dict)
+
+
+class Experiment(ABC, Generic[ASpecificTask, ASpecificWS]):
     """
-    The experiment is a sequence of tasks and the implementations of the tasks after generated by the TaskGenerator.
+    The experiment is a sequence of tasks and the implementations of the tasks after generated by the Developer.
     """
 
     def __init__(self, sub_tasks: Sequence[ASpecificTask]) -> None:
-        self.sub_tasks = sub_tasks
-        self.sub_implementations: Sequence[ASpecificImp] = [None for _ in self.sub_tasks]
+        self.sub_tasks: Sequence[ASpecificTask] = sub_tasks
+        self.experiment_workspace: ASpecificWS = None
+        self.sub_implementations: Sequence[ASpecificWS] = [None for _ in self.sub_tasks]
         self.based_experiments: Sequence[Experiment] = []
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
-        self.exp_ws: ASpecificImp = None
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

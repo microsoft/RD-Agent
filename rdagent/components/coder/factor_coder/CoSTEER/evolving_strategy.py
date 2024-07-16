@@ -16,14 +16,11 @@ from rdagent.components.coder.factor_coder.CoSTEER.scheduler import (
     LLMSelect,
     RandomSelect,
 )
-from rdagent.components.coder.factor_coder.factor import (
-    FactorTask,
-    FileBasedFactorImplementation,
-)
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from rdagent.core.experiment import Implementation
+from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
@@ -43,7 +40,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: QueriedKnowledge = None,
-    ) -> Implementation:
+    ) -> str:
         raise NotImplementedError
 
     def evolve(
@@ -53,9 +50,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: FactorQueriedKnowledge | None = None,
         **kwargs,
     ) -> FactorEvolvingItem:
-        self.num_loop += 1
         new_evo = deepcopy(evo)
-
         # 1.找出需要evolve的factor
         to_be_finished_task_index = []
         for index, target_factor_task in enumerate(new_evo.sub_tasks):
@@ -87,26 +82,26 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 to_be_finished_task_index = LLMSelect(
                     to_be_finished_task_index,
                     implementation_factors_per_round,
-                    new_evo,
+                    evo,
                     queried_knowledge.former_traces,
                     self.scen,
                 )
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_factor, (new_evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_factor, (evo.sub_tasks[target_index], queried_knowledge))
                 for target_index in to_be_finished_task_index
             ],
             n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            new_evo.sub_implementations[target_index] = result[index]
-
-        # for target_index in to_be_finished_task_index:
-        #     new_evo.sub_implementations[target_index] = self.implement_one_factor(
-        #         new_evo.sub_tasks[target_index], queried_knowledge
-        #     )
+            if new_evo.sub_implementations[target_index] is None:
+                new_evo.sub_implementations[target_index] = FactorFBWorkspace(
+                    target_task=new_evo.sub_tasks[target_index],
+                )
+                new_evo.sub_implementations[target_index].prepare()
+            new_evo.sub_implementations[target_index].inject_code(**{"factor.py": result[index]})
 
         new_evo.corresponding_selection = to_be_finished_task_index
 
@@ -118,7 +113,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: FactorQueriedKnowledgeV1 = None,
-    ) -> Implementation:
+    ) -> str:
         factor_information_str = target_task.get_task_information()
 
         if queried_knowledge is not None and factor_information_str in queried_knowledge.success_task_to_knowledge_dict:
@@ -149,9 +144,6 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 )
             )
-            session = APIBackend(use_chat_cache=False).build_chat_session(
-                session_system_prompt=system_prompt,
-            )
 
             queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
             for _ in range(10):  # max attempt to reduce the length of user_prompt
@@ -168,8 +160,9 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     .strip("\n")
                 )
                 if (
-                    session.build_chat_completion_message_and_calculate_token(
-                        user_prompt,
+                    APIBackend().build_messages_and_calculate_token(
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
                     )
                     < RD_AGENT_SETTINGS.chat_token_limit
                 ):
@@ -180,32 +173,22 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[1:]
 
             code = json.loads(
-                session.build_chat_completion(
+                APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
+                    system_prompt=system_prompt,
                     json_mode=True,
                 ),
             )["code"]
-            # ast.parse(code)
-            factor_implementation = FileBasedFactorImplementation(
-                target_task,
-            )
-            factor_implementation.prepare()
-            factor_implementation.inject_code(**{"factor.py": code})
 
-            return factor_implementation
+            return code
 
 
 class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.num_loop = 0
-        self.haveSelected = False
-
     def implement_one_factor(
         self,
         target_task: FactorTask,
         queried_knowledge,
-    ) -> Implementation:
+    ) -> str:
         error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
         # 1. 提取因子的背景信息
         target_factor_task_information = target_task.get_task_information()
@@ -249,10 +232,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 )
             )
 
-            session = APIBackend(use_chat_cache=False).build_chat_session(
-                session_system_prompt=system_prompt,
-            )
-
             queried_similar_component_knowledge_to_render = queried_similar_component_knowledge
             queried_similar_error_knowledge_to_render = queried_similar_error_knowledge
             error_summary_critics = ""
@@ -276,9 +255,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         )
                         .strip("\n")
                     )
-                    session_summary = APIBackend(use_chat_cache=False).build_chat_session(
-                        session_system_prompt=error_summary_system_prompt,
-                    )
                     for _ in range(10):  # max attempt to reduce the length of error_summary_user_prompt
                         error_summary_user_prompt = (
                             Environment(undefined=StrictUndefined)
@@ -289,14 +265,18 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                             .strip("\n")
                         )
                         if (
-                            session_summary.build_chat_completion_message_and_calculate_token(error_summary_user_prompt)
+                            APIBackend().build_messages_and_calculate_token(
+                                user_prompt=error_summary_user_prompt, system_prompt=error_summary_system_prompt
+                            )
                             < RD_AGENT_SETTINGS.chat_token_limit
                         ):
                             break
                         elif len(queried_similar_error_knowledge_to_render) > 0:
                             queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
-                    error_summary_critics = session_summary.build_chat_completion(
+
+                    error_summary_critics = APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(
                         user_prompt=error_summary_user_prompt,
+                        system_prompt=error_summary_system_prompt,
                         json_mode=False,
                     )
                 # 构建user_prompt。开始写代码
@@ -315,8 +295,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     .strip("\n")
                 )
                 if (
-                    session.build_chat_completion_message_and_calculate_token(
-                        user_prompt,
+                    APIBackend().build_messages_and_calculate_token(
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
                     )
                     < RD_AGENT_SETTINGS.chat_token_limit
                 ):
@@ -330,12 +311,10 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 elif len(queried_similar_error_knowledge_to_render) > 0:
                     queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
 
-            response = session.build_chat_completion(
+            response = APIBackend(use_chat_cache=False).build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
+                system_prompt=system_prompt,
                 json_mode=True,
             )
             code = json.loads(response)["code"]
-            factor_implementation = FileBasedFactorImplementation(target_task)
-            factor_implementation.prepare()
-            factor_implementation.inject_code(**{"factor.py": code})
-            return factor_implementation
+            return code

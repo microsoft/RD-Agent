@@ -23,7 +23,7 @@ model_experiment = QlibModelExperiment(sub_tasks=task_l)
 # mtg = ModelCodeWriter(scen=QlibModelScenario())
 mtg = ModelCoSTEER(scen=QlibModelScenario())
 
-model_experiment = mtg.generate(model_experiment)
+model_experiment = mtg.develop(model_experiment)
 
 # TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
 # Currently, we just handcraft a workflow for fast evaluation.

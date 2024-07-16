@@ -12,6 +12,7 @@ from rdagent.components.proposal.factor_proposal import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -75,8 +76,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
             tasks.append(FactorTask(factor_name, description, formulation, variables))
-        exp = FactorExperiment(tasks)
+        exp = QlibFactorExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         if len(exp.based_experiments) == 0:
-            exp.based_experiments.append(FactorExperiment(sub_tasks=[]))
+            exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
         return exp

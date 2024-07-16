@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Sequence
 
 from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro

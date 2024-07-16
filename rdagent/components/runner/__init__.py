@@ -4,11 +4,11 @@ from typing import Tuple
 
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.experiment import ASpecificExp, Experiment
-from rdagent.core.task_generator import TaskGenerator
+from rdagent.core.developer import Developer
 from rdagent.oai.llm_utils import md5_hash
 
 
-class CachedRunner(TaskGenerator[ASpecificExp]):
+class CachedRunner(Developer[ASpecificExp]):
     def get_cache_key(self, exp: Experiment) -> str:
         all_tasks = []
         for based_exp in exp.based_experiments:

@@ -95,5 +95,8 @@ class RDAgentSettings(BaseSettings):
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
 
+    # workspace conf
+    workspace_folder_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()

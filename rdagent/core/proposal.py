@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import ASpecificExp, ASpecificTask, Experiment
+from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
@@ -64,10 +64,11 @@ class Trace(Generic[ASpecificScen]):
         return None, None
 
 
-class HypothesisGen:
+class HypothesisGen(ABC):
     def __init__(self, scen: Scenario):
         self.scen = scen
 
+    @abstractmethod
     def gen(self, trace: Trace) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
@@ -107,5 +108,3 @@ class HypothesisExperiment2Feedback:
         For example: `mlflow` of Qlib will be included.
         """
         raise NotImplementedError("generateFeedback method is not implemented.")
-
-    # def generateResultComparison()

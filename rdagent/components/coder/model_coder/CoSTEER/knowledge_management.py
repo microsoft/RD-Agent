@@ -9,7 +9,7 @@ from rdagent.core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from rdagent.core.experiment import Implementation
+from rdagent.core.experiment import Workspace
 from rdagent.oai.llm_utils import calculate_embedding_distance_between_str_list
 
 
@@ -17,7 +17,7 @@ class ModelKnowledge(Knowledge):
     def __init__(
         self,
         target_task: ModelTask,
-        implementation: Implementation,
+        implementation: Workspace,
         feedback: ModelCoderFeedback,
     ) -> None:
         """

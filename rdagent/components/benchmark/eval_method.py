@@ -15,10 +15,10 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
 )
-from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
+from rdagent.core.developer import Developer
 from rdagent.core.exception import ImplementRunException
-from rdagent.core.experiment import Implementation, Task
-from rdagent.core.task_generator import TaskGenerator
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 
 
@@ -26,7 +26,7 @@ class TestCase:
     def __init__(
         self,
         target_task: list[Task] = [],
-        ground_truth: list[Implementation] = [],
+        ground_truth: list[Workspace] = [],
     ):
         self.ground_truth = ground_truth
         self.target_task = target_task
@@ -41,7 +41,7 @@ class BaseEval:
         self,
         evaluator_l: List[FactorEvaluator],
         test_cases: List[TestCase],
-        generate_method: TaskGenerator,
+        generate_method: Developer,
         catch_eval_except: bool = True,
     ):
         """Parameters
@@ -62,12 +62,12 @@ class BaseEval:
         self,
         path: Union[Path, str],
         **kwargs,
-    ) -> List[Implementation]:
+    ) -> List[Workspace]:
         path = Path(path)
         fi_l = []
         for tc in self.test_cases:
             try:
-                fi = FileBasedFactorImplementation.from_folder(tc.task, path, **kwargs)
+                fi = FactorFBWorkspace.from_folder(path, **kwargs)
                 fi_l.append(fi)
             except FileNotFoundError:
                 print("Fail to load test case for factor: ", tc.task.factor_name)
@@ -75,8 +75,8 @@ class BaseEval:
 
     def eval_case(
         self,
-        case_gt: Implementation,
-        case_gen: Implementation,
+        case_gt: Workspace,
+        case_gen: Workspace,
     ) -> List[Union[Tuple[FactorEvaluator, object], Exception]]:
         """Parameters
         ----------
@@ -111,7 +111,7 @@ class FactorImplementEval(BaseEval):
     def __init__(
         self,
         test_cases: TestCase,
-        method: TaskGenerator,
+        method: Developer,
         *args,
         test_round: int = 10,
         **kwargs,
@@ -137,7 +137,7 @@ class FactorImplementEval(BaseEval):
             print(f"Eval {_}-th times...")
             print("========================================================\n")
             try:
-                gen_factor_l = self.generate_method.generate(self.test_cases.target_task)
+                gen_factor_l = self.generate_method.develop(self.test_cases.target_task)
             except KeyboardInterrupt:
                 # TODO: Why still need to save result after KeyboardInterrupt?
                 print("Manually interrupted the evaluation. Saving existing results")

@@ -15,7 +15,7 @@ from rdagent.core.exception import (
     NoOutputException,
     RuntimeErrorException,
 )
-from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.core.log import RDAgentLog
 from rdagent.oai.llm_utils import md5_hash
 
@@ -51,7 +51,7 @@ variables: {str(self.variables)}"""
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
 
-class FileBasedFactorImplementation(FBImplementation):
+class FactorFBWorkspace(FBWorkspace):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -74,30 +74,18 @@ class FileBasedFactorImplementation(FBImplementation):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
-        self.logger = RDAgentLog()
         self.raise_exception = raise_exception
 
-    @staticmethod
-    def link_data_to_workspace(data_path: Path, workspace_path: Path):
+    def link_data_to_workspace(self, data_path: Path):
         data_path = Path(data_path)
-        workspace_path = Path(workspace_path)
         for data_file_path in data_path.iterdir():
-            workspace_data_file_path = workspace_path / data_file_path.name
+            workspace_data_file_path = self.workspace_folder_path / data_file_path.name
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
             subprocess.run(
                 ["ln", "-s", data_file_path, workspace_data_file_path],
                 check=False,
             )
-
-    def execute_desc(self):
-        raise NotImplementedError
-
-    def prepare(self, *args, **kwargs):
-        self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.factor_execution_workspace,
-        ) / str(uuid.uuid4())
-        self.workspace_path.mkdir(exist_ok=True, parents=True)
 
     def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
@@ -118,7 +106,7 @@ class FileBasedFactorImplementation(FBImplementation):
             else:
                 # TODO: to make the interface compatible with previous code. I kept the original behavior.
                 raise ValueError(self.FB_CODE_NOT_SET)
-        with FileLock(self.workspace_path / "execution.lock"):
+        with FileLock(self.workspace_folder_path / "execution.lock"):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code and same data type
                 target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
@@ -144,16 +132,15 @@ class FileBasedFactorImplementation(FBImplementation):
             )
 
             source_data_path.mkdir(exist_ok=True, parents=True)
-            code_path = self.workspace_path / f"factor.py"
-
-            self.link_data_to_workspace(source_data_path, self.workspace_path)
+            self.link_data_to_workspace(source_data_path)
+            code_path = self.workspace_folder_path / f"factor.py"
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             try:
                 subprocess.check_output(
                     f"python {code_path}",
                     shell=True,
-                    cwd=self.workspace_path,
+                    cwd=self.workspace_folder_path,
                     stderr=subprocess.STDOUT,
                     timeout=FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout,
                 )
@@ -176,7 +163,7 @@ class FileBasedFactorImplementation(FBImplementation):
                 if self.raise_exception:
                     raise RuntimeErrorException(execution_feedback)
 
-            workspace_output_file_path = self.workspace_path / "result.h5"
+            workspace_output_file_path = self.workspace_folder_path / "result.h5"
             if not workspace_output_file_path.exists():
                 execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
                 executed_factor_value_dataframe = None
@@ -203,19 +190,22 @@ class FileBasedFactorImplementation(FBImplementation):
     def __str__(self) -> str:
         # NOTE:
         # If the code cache works, the workspace will be None.
-        return f"File Factor[{self.target_task.factor_name}]: {self.workspace_path}"
+        return f"Factor workspace: {self.workspace_folder_path}"
 
     def __repr__(self) -> str:
         return self.__str__()
 
     @staticmethod
-    def from_folder(task: FactorTask, path: Union[str, Path], **kwargs):
+    def from_folder(path: Union[str, Path], **kwargs):
         path = Path(path)
         code_dict = {}
         for file_path in path.iterdir():
             if file_path.suffix == ".py":
                 code_dict[file_path.name] = file_path.read_text()
-        return FileBasedFactorImplementation(target_task=task, code_dict=code_dict, **kwargs)
+        workspace = FactorFBWorkspace()
+        workspace.prepare()
+        workspace.inject_code(**code_dict)
+        return workspace
 
 
-class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...
+class FactorExperiment(Experiment[FactorTask, FactorFBWorkspace]): ...

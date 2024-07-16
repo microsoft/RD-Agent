@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from rdagent.core.experiment import Implementation, Task
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.scenario import Scenario
 
 
@@ -19,8 +19,8 @@ class Evaluator(ABC):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         **kwargs,
     ):
         raise NotImplementedError

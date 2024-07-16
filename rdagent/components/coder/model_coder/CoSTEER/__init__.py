@@ -16,11 +16,11 @@ from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelRAGStrategy,
 )
 from rdagent.components.coder.model_coder.model import ModelExperiment
+from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.core.task_generator import TaskGenerator
 
 
-class ModelCoSTEER(TaskGenerator[ModelExperiment]):
+class ModelCoSTEER(Developer[ModelExperiment]):
     def __init__(
         self,
         *args,
@@ -57,7 +57,7 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
 
         return model_knowledge_base
 
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
         # init knowledge base
         model_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,
@@ -67,12 +67,12 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
         self.rag = ModelRAGStrategy(model_knowledge_base)
 
         # init intermediate items
-        model_experiment = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
+        model_evo_item = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
 
         self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
 
-        model_experiment = self.evolve_agent.multistep_evolve(
-            model_experiment,
+        model_evo_item = self.evolve_agent.multistep_evolve(
+            model_evo_item,
             self.model_evaluator,
             with_knowledge=self.with_knowledge,
             with_feedback=self.with_feedback,
@@ -83,5 +83,5 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
         if self.new_knowledge_base_path is not None:
             pickle.dump(model_knowledge_base, open(self.new_knowledge_base_path, "wb"))
         self.knowledge_base = model_knowledge_base
-        model_experiment.based_experiments = exp.based_experiments
-        return model_experiment
+        exp.sub_implementations = model_evo_item.sub_implementations
+        return exp
