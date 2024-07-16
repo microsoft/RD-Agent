@@ -10,7 +10,7 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.utils.env import QTDockerEnv
 
@@ -72,7 +72,7 @@ class QlibModelRunner(CachedRunner[ModelImplementation]):
         csv_path = exp.exp_ws.workspace_path / "qlib_res.csv"
 
         if not csv_path.exists():
-            RDAgentLog().error(f"File {csv_path} does not exist.")
+            logger.error(f"File {csv_path} does not exist.")
             return None
 
         result = pd.read_csv(csv_path, index_col=0).iloc[:,0]
