@@ -26,6 +26,11 @@ class WebView(View):
     |                              \
     info1 -> info2 -> ... -> info3 -> ...  overtime.
 
+    <message dispature>
+          |  | -  dispatch according to uri(e.g. `a.b.c. ...`)
+    Frontend is composed of windows.
+    Each window can individually display the message flow.
+
     Some design principles:
         session1.module(e.g. implement).
         `s.log(a.b.1.c) s.log(a.b.2.c)` should not handed over to users.
@@ -56,4 +61,32 @@ class WebView(View):
         # ...
 
     def display(s: Storage, watch: bool = False):
+        ui = STLUI()
+        for msg in s.iter_msg():  # iterate overtime
+            # NOTE:  iter_msg will correctly seperate the information.
+            # TODO: msg may support streaming mode.
+            ui.dispatch(msg)
         pass
+
+
+# TODO: Implement the following classes
+class STLWindow:
+    ...
+
+    def consume_msg(self, msg):
+        ... # update it's view
+
+
+class STLUI:
+    wd_l: list[STLWindow]
+
+    def __init__(self):
+        self.build_ui()
+
+    def build_ui(self):
+        # control the dispaly of windows
+        ...
+
+    def dispatch(self, msg):
+        # map the message to a specific window
+        ...
