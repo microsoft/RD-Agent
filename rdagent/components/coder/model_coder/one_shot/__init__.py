@@ -37,5 +37,5 @@ class ModelCodeWriter(Developer[ModelExperiment]):
             code = match.group(1)
             mti.inject_code(**{"model.py": code})
             mti_l.append(mti)
-        exp.sub_implementations = mti_l
+        exp.sub_workspace_list = mti_l
         return exp

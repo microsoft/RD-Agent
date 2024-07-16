@@ -64,9 +64,8 @@ Example: code standard, design. Lint
 1. Backbone/APIBackend of LLm are encapsulated in [src/finco/llm.py](src/finco/llm.py). All chat completion request are managed by this file.
 
 2. All frequently modified codes under tense development are included in the [src/scripts](src/scripts) folder.
-   + The most important task is to improve the agent's performance in the benchmark of factor implementation.
+   + The most important task is to improve the agent's performance in the benchmark of factor coder.
 
-3. Currently, factor implementation is the main task. We define basic class of factor implementation in [src/scripts/factor_implementation/share_modules] and implementation strategies in [src/scripts/factor_implementation/baselines].
 
 
 ### 🔮 Future Code Structure

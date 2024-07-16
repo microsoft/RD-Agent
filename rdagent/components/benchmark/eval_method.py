@@ -143,11 +143,11 @@ class FactorImplementEval(BaseEval):
                 print("Manually interrupted the evaluation. Saving existing results")
                 break
 
-            if len(gen_factor_l.sub_implementations) != len(self.test_cases.ground_truth):
+            if len(gen_factor_l.sub_workspace_list) != len(self.test_cases.ground_truth):
                 raise ValueError(
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
-            gen_factor_l_all_rounds.extend(gen_factor_l.sub_implementations)
+            gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
             test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
         eval_res_list = multiprocessing_wrapper(

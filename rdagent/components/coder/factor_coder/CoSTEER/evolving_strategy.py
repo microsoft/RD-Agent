@@ -56,7 +56,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         for index, target_factor_task in enumerate(new_evo.sub_tasks):
             target_factor_task_desc = target_factor_task.get_task_information()
             if target_factor_task_desc in queried_knowledge.success_task_to_knowledge_dict:
-                new_evo.sub_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
+                new_evo.sub_workspace_list[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_factor_task_desc
                 ].implementation
             elif (
@@ -94,12 +94,12 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            if new_evo.sub_implementations[target_index] is None:
-                new_evo.sub_implementations[target_index] = FactorFBWorkspace(
+            if new_evo.sub_workspace_list[target_index] is None:
+                new_evo.sub_workspace_list[target_index] = FactorFBWorkspace(
                     target_task=new_evo.sub_tasks[target_index],
                 )
-                new_evo.sub_implementations[target_index].prepare()
-            new_evo.sub_implementations[target_index].inject_code(**{"factor.py": result[index]})
+                new_evo.sub_workspace_list[target_index].prepare()
+            new_evo.sub_workspace_list[target_index].inject_code(**{"factor.py": result[index]})
 
         new_evo.corresponding_selection = to_be_finished_task_index
 

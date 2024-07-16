@@ -98,5 +98,5 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         if self.new_knowledge_base_path is not None:
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
         self.knowledge_base = factor_knowledge_base
-        exp.sub_implementations = factor_evo_item.sub_implementations
+        exp.sub_workspace_list = factor_evo_item.sub_workspace_list
         return exp

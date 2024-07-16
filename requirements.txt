@@ -13,7 +13,7 @@ pypdf
 azure-core
 azure-ai-formrecognizer
 
-# factor implementations
+# factor coder
 tables
 
 # azure identity related

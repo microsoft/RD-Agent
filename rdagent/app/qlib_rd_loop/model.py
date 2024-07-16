@@ -1,9 +1,12 @@
 """
 TODO: Model Structure RD-Loop
-TODO: move the following code to a new class: Model_RD_Agent
 """
 
-# import_from
+from dotenv import load_dotenv
+
+from rdagent.core.scenario import Scenario
+
+load_dotenv(override=True)
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
@@ -13,7 +16,6 @@ from rdagent.core.proposal import (
     HypothesisGen,
     Trace,
 )
-from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 
 scen: Scenario = import_class(PROP_SETTING.qlib_model_scen)()

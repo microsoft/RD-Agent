@@ -307,7 +307,7 @@ class ModelCoderMultiEvaluator(Evaluator):
 
         calls = []
         for index in range(len(evo.sub_tasks)):
-            corresponding_implementation = evo.sub_implementations[index]
+            corresponding_implementation = evo.sub_workspace_list[index]
             corresponding_gt_implementation = (
                 evo.sub_gt_workspace_list[index] if evo.sub_gt_workspace_list is not None else None
             )

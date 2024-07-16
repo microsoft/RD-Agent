@@ -87,7 +87,7 @@ class ModelRAGStrategy(RAGStrategy):
                 for task_index in range(len(implementations.sub_tasks)):
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
-                    implementation = implementations.sub_implementations[task_index]
+                    implementation = implementations.sub_workspace_list[task_index]
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
                         continue
