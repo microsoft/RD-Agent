@@ -34,17 +34,17 @@ def md5_hash(input_string: str) -> str:
 try:
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 except ImportError:
-    logger.warning("azure.identity is not installed.", tag="gpt")
+    logger.warning("azure.identity is not installed.")
 
 try:
     import openai
 except ImportError:
-    logger.warning("openai is not installed.", tag="gpt")
+    logger.warning("openai is not installed.")
 
 try:
     from llama import Llama
 except ImportError:
-    logger.warning("llama is not installed.", tag="gpt")
+    logger.warning("llama is not installed.")
 
 
 class ConvManager:
@@ -203,7 +203,7 @@ class ChatSession:
         """
         messages = self.build_chat_completion_message(user_prompt)
         
-        with logger.tag(self.conversation_id):
+        with logger.tag(f"session_{self.conversation_id}"):
             response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
                 messages=messages,
                 chat_completion=True,
@@ -551,7 +551,7 @@ class APIBackend:
         add_json_in_prompt: bool = False,
     ) -> str:
         if self.cfg.log_llm_chat_content:
-            logger.info(self._build_log_messages(messages))
+            logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
         input_content_json = json.dumps(messages)
         input_content_json = (
@@ -580,7 +580,7 @@ class APIBackend:
             )
             resp = response[0]["generation"]["content"]
             if self.cfg.log_llm_chat_content:
-                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}")
+                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         elif self.use_gcr_endpoint:
             body = str.encode(
                 json.dumps(
@@ -602,7 +602,7 @@ class APIBackend:
             response = urllib.request.urlopen(req)  # noqa: S310
             resp = json.loads(response.read().decode())["output"]
             if self.cfg.log_llm_chat_content:
-                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}")
+                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             if self.use_azure:
                 if json_mode:
@@ -645,7 +645,7 @@ class APIBackend:
             if self.chat_stream:
                 resp = ""
                 if self.cfg.log_llm_chat_content:
-                    logger.info(f"{LogColors.CYAN}Response:{LogColors.END}")
+                    logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
                 
                 for chunk in response:
                     content = (
@@ -654,19 +654,19 @@ class APIBackend:
                         else ""
                     )
                     if self.cfg.log_llm_chat_content:
-                        logger.info(LogColors.CYAN + content + LogColors.END, raw=True)
+                        logger.info(LogColors.CYAN + content + LogColors.END, raw=True, tag="llm_messages")
                     resp += content
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
                 
                 if self.cfg.log_llm_chat_content:
-                    logger.info("\n", raw=True)
+                    logger.info("\n", raw=True, tag="llm_messages")
                 
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
                 if self.cfg.log_llm_chat_content:
-                    logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}")
+                    logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
             if json_mode:
                 json.loads(resp)
         if self.dump_chat_cache:
