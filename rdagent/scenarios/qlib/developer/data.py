@@ -49,7 +49,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
-        if RUNNER_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:
                 exp.result = result
@@ -103,7 +103,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
-        if RUNNER_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
 
         return exp
@@ -129,7 +129,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 message, df = implementation.execute(data_type="All")
 
                 # Check if factor generation was successful
-                if df is not None:
+                if df is not None and "datetime" in df.index.names:
                     time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
                     if pd.Timedelta(minutes=1) not in time_diff:
                         factor_dfs.append(df)

@@ -27,7 +27,7 @@ class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
 
     def develop(self, exp: ModelExperiment) -> ModelExperiment:
 
-        if RUNNER_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:
                 exp.result = result
@@ -75,7 +75,7 @@ class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
         result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
-        if RUNNER_SETTINGS.runner_cache_result:
+        if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
 
         return exp

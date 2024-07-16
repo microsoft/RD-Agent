@@ -28,7 +28,7 @@ ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 class Workspace(ABC, Generic[ASpecificTask]):
     """
     A workspace is a place to store the task implementation. It evolves as the developer implements the task.
-    To get a snapshot of the workspace, make sure call `freeze` to get a copy of the workspace.
+    To get a snapshot of the workspace, make sure call `copy` to get a copy of the workspace.
     """
 
     def __init__(self, target_task: ASpecificTask) -> None:
@@ -70,11 +70,6 @@ class FBWorkspace(Workspace):
 
     """
 
-    # TODO:
-    # FactorFBWorkspace should inherit from it.
-    # Why not directly reuse FactorFBWorkspace.
-    #   Because it has too much concrete dependencies.
-    #   e.g.  dataframe, factors
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.code_dict = (
@@ -106,6 +101,7 @@ class FBWorkspace(Workspace):
             <file name>: <code>
         }
         """
+        self.prepare()
         for k, v in files.items():
             self.code_dict[k] = v
             with open(self.workspace_path / k, "w") as f:
@@ -119,6 +115,12 @@ class FBWorkspace(Workspace):
         How to summarize the environment is the responsibility of the Developer.
         """
         return list(self.workspace_path.iterdir())
+
+    def copy(self) -> FBWorkspace:
+        """
+        copy the workspace from the original one
+        """
+        return deepcopy(self)
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> object:

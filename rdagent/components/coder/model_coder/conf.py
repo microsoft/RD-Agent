@@ -6,7 +6,9 @@ from pydantic_settings import BaseSettings
 
 class ModelImplSettings(BaseSettings):
     class Config:
-        env_prefix = "MODEL_IMPL_"  # Use MODEL_IMPL_ as prefix for environment variables
+        env_prefix = "MODEL_CODER_"  # Use MODEL_CODER_ as prefix for environment variables
+
+    coder_use_cache: bool = False
 
     model_cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "model_implementation_execution_cache").absolute(),

@@ -30,7 +30,7 @@ class ModelKnowledge(Knowledge):
             None
         """
         self.target_task = target_task
-        self.implementation = implementation
+        self.implementation = implementation.copy()
         self.feedback = feedback
 
     def get_implementation_and_feedback_str(self) -> str:

@@ -7,6 +7,10 @@ SELECT_METHOD = Literal["random", "scheduler"]
 
 
 class FactorImplementSettings(BaseSettings):
+    class Config:
+        env_prefix = "FACTOR_CODER_"  # Use FACTOR_CODER_ as prefix for environment variables
+
+    coder_use_cache: bool = False
     factor_data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
     )
@@ -43,6 +47,8 @@ class FactorImplementSettings(BaseSettings):
 
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
+
+    python_bin: str = "python"
 
 
 FACTOR_IMPLEMENT_SETTINGS = FactorImplementSettings()

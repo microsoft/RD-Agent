@@ -20,8 +20,8 @@ class CachedRunner(Developer[ASpecificExp]):
 
     def get_cache_result(self, exp: Experiment) -> Tuple[bool, object]:
         task_info_key = self.get_cache_key(exp)
-        Path(RUNNER_SETTINGS.runner_cache_path).mkdir(parents=True, exist_ok=True)
-        cache_path = Path(RUNNER_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
+        Path(RUNNER_SETTINGS.cache_path).mkdir(parents=True, exist_ok=True)
+        cache_path = Path(RUNNER_SETTINGS.cache_path) / f"{task_info_key}.pkl"
         if cache_path.exists():
             return True, pickle.load(open(cache_path, "rb"))
         else:
@@ -29,5 +29,5 @@ class CachedRunner(Developer[ASpecificExp]):
 
     def dump_cache_result(self, exp: Experiment, result: object):
         task_info_key = self.get_cache_key(exp)
-        cache_path = Path(RUNNER_SETTINGS.runner_cache_path) / f"{task_info_key}.pkl"
+        cache_path = Path(RUNNER_SETTINGS.cache_path) / f"{task_info_key}.pkl"
         pickle.dump(result, open(cache_path, "wb"))

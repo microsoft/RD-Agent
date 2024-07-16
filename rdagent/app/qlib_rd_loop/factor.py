@@ -18,17 +18,17 @@ from rdagent.core.proposal import (
 )
 from rdagent.core.utils import import_class
 
-scen: Scenario = import_class(PROP_SETTING.qlib_factor_scen)()
+scen: Scenario = import_class(PROP_SETTING.factor_scen)()
 
-hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.qlib_factor_hypothesis_gen)(scen)
+hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.factor_hypothesis_gen)(scen)
 
-hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.qlib_factor_hypothesis2experiment)()
+hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.factor_hypothesis2experiment)()
 
-qlib_factor_coder: Developer = import_class(PROP_SETTING.qlib_factor_coder)(scen)
+qlib_factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
 
-qlib_factor_runner: Developer = import_class(PROP_SETTING.qlib_factor_runner)(scen)
+qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
 
-qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_factor_summarizer)(scen)
+qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
 
 
 trace = Trace(scen=scen)

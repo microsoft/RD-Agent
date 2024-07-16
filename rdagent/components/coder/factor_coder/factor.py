@@ -143,7 +143,7 @@ class FactorFBWorkspace(FBWorkspace):
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             try:
                 subprocess.check_output(
-                    f"python {code_path}",
+                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,

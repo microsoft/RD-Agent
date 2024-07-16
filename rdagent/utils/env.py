@@ -128,6 +128,9 @@ class DockerConf(BaseSettings):
 
 
 class QlibDockerConf(DockerConf):
+    class Config:
+        env_prefix = "QLIB_DOCKER_"  # Use QLIB_DOCKER_ as prefix for environment variables
+
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
     image: str = "local_qlib:latest"
