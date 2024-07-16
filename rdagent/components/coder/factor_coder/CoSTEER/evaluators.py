@@ -375,6 +375,9 @@ class FactorValueEvaluator(FactorEvaluator):
                 high_correlation_result = False
                 feedback_str = "The source dataframe and the ground truth dataframe have different index. Give up comparing the values and correlation because it's useless"
             conclusions.append(feedback_str)
+        else:
+            equal_value_ratio_result = 0
+            high_correlation_result = False
 
         # Combine all conclusions into a single string
         conclusion_str = "\n".join(conclusions)
