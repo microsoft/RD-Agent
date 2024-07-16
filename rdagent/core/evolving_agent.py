@@ -32,7 +32,7 @@ class RAGEvoAgent(EvoAgent):
         with_feedback: bool = True,
         knowledge_self_gen: bool = False,
     ) -> EvolvableSubjects:
-        for _ in tqdm(range(self.max_loop), "Implementing factors"):
+        for _ in tqdm(range(self.max_loop), "Implementing"):
             # 1. knowledge self-evolving
             if knowledge_self_gen and self.rag is not None:
                 self.rag.generate_knowledge(self.evolving_trace)

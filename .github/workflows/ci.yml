@@ -29,7 +29,7 @@ jobs:
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
         name: lint test docs and build
-        run: make lint test docs build
+        run: make lint test docs build sphinx
     strategy:
       matrix:
         python-version:

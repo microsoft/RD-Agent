@@ -5,9 +5,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-
-class Feedback:
-    pass
+from rdagent.core.evaluation import Feedback
+from rdagent.core.scenario import Scenario
 
 
 class Knowledge:
@@ -54,6 +53,9 @@ class EvoStep:
 
 
 class EvolvingStrategy(ABC):
+    def __init__(self, scen: Scenario) -> None:
+        self.scen = scen
+
     @abstractmethod
     def evolve(
         self,

@@ -1,0 +1,80 @@
+{
+    "PMLP": {
+        "description": "`PMLP` is identical to a standard MLP during training, but then adopts a GNN architecture (add message passing) during testing.",
+        "formulation": "\\hat{y}_u = \\psi(\\text{MP}(\\{h^{(l-1)}_v\\}_{v \\in N_u \\cup \\{u\\}}))",
+        "variables": {
+            "\\hat{y}_u": "The predicted output for node u",
+            "\\psi": "A function representing the feed-forward process, consisting of a linear feature transformation followed by a non-linear activation",
+            "\\text{MP}": "Message Passing operation that aggregates neighbored information",
+            "h^{(l-1)}_v": "The feature representation of node v at layer (l-1)",
+            "N_u": "The set of neighbored nodes centered at node u"
+        },
+        "key": "pmlp",
+        "model_type": "TimeSeries"
+    },
+    "LINKX": {
+        "description": "A scalable model for node classification that separately embeds adjacency and node features, combines them with MLPs, and applies simple transformations.",
+        "formulation": "Y = MLP_f(\\sigma(W[h_A; h_X] + h_A + h_X))",
+        "variables": {
+            "Y": "The output predictions",
+            "\\sigma": "Non-linear activation function",
+            "W": "Learned weight matrix",
+            "h_A": "Embedding of the adjacency matrix",
+            "h_X": "Embedding of the node features",
+            "MLP_f": "Final multilayer perceptron for prediction"
+        },
+        "key": "linkx",
+        "model_type": "TimeSeries"
+    },
+    "GPSConv": {
+        "description": "A scalable and powerful graph transformer with linear complexity, capable of handling large graphs with state-of-the-art results across diverse benchmarks.",
+        "formulation": "X^{(l+1)} = \\text{MPNN}^{(l)}(X^{(l)}, A) + \\text{GlobalAttn}^{(l)}(X^{(l)})",
+        "variables": {
+            "X^{(l)}": "The node features at layer l",
+            "A": "The adjacency matrix of the graph",
+            "X^{(l+1)}": "The updated node features at layer l+1",
+            "MPNN^{(l)}": "The message-passing neural network function at layer l",
+            "GlobalAttn^{(l)}": "The global attention function at layer l"
+        },
+        "key": "gpsconv",
+        "model_type": "TimeSeries"
+    },
+    "ViSNet": {
+        "description": "ViSNet is an equivariant geometry-enhanced graph neural network designed for efficient molecular modeling[^1^][1][^2^][2]. It utilizes a Vector-Scalar interactive message passing mechanism to extract and utilize geometric features with low computational costs, achieving state-of-the-art performance on multiple molecular dynamics benchmarks.",
+        "formulation": "\\text{ViSNet}(G) = \\sum_{u \\in G} f(\\mathbf{h}_u, \\mathbf{e}_u, \\mathbf{v}_u)",
+        "variables": {
+            "\\mathbf{h}_u": "Node embedding for atom u",
+            "\\mathbf{e}_u": "Edge embedding associated with atom u",
+            "\\mathbf{v}_u": "Direction unit vector for atom u"
+        },
+        "key": "visnet",
+        "model_type": "TimeSeries"
+    },
+    "Dir-GNN": {
+        "description": "A framework for deep learning on directed graphs that extends MPNNs to incorporate edge directionality.",
+        "formulation": "x^{(k)}_i = COM^{(k)}\\left(x^{(k-1)}_i, m^{(k)}_{i,\\leftarrow}, m^{(k)}_{i,\\rightarrow}\\right)",
+        "variables": {
+            "x^{(k)}_i": "The feature representation of node i at layer k",
+            "m^{(k)}_{i,\\leftarrow}": "The aggregated incoming messages to node i at layer k",
+            "m^{(k)}_{i,\\rightarrow}": "The aggregated outgoing messages from node i at layer k"
+        },
+        "key": "dirgnn",
+        "model_type": "TimeSeries"
+    },
+    "A-DGN": {
+        "description": "A framework for stable and non-dissipative DGN design, conceived through the lens of ordinary differential equations (ODEs). It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
+        "formulation": "\\frac{\\partial x_u(t)}{\\partial t} = \\sigma(W^T x_u(t) + \\Phi(X(t), N_u) + b)",
+        "variables": {
+            "x_u(t)": "The state of node u at time t",
+            "\\frac{\\partial x_u(t)}{\\partial t}": "The rate of change of the state of node u at time t",
+            "\\sigma": "A monotonically non-decreasing activation function",
+            "W": "A weight matrix",
+            "b": "A bias vector",
+            "\\Phi(X(t), N_u)": "The aggregation function for the states of the nodes in the neighborhood of u",
+            "X(t)": "The node feature matrix of the whole graph at time t",
+            "N_u": "The set of neighboring nodes of u"
+        },
+        "key": "A-DGN",
+        "model_type": "TimeSeries"
+    }
+}

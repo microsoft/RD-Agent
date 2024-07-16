@@ -11,7 +11,7 @@ hypothesis_output_format: |-
     "reason": "The reason why you generate this hypothesis."
   }
 
-experiment_output_format: |-
+factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
       "factor name 1": {
@@ -32,3 +32,85 @@ experiment_output_format: |-
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
+
+model_experiment_output_format: |-
+  So far please only design one model to test the hypothesis!
+  The output should follow JSON format. The schema is as follows:
+  {
+      "model name 1": {
+          "description": "detailed description of model 1",
+          "formulation": "latex formulation of model 1",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+          "model_type": "type of model 1, Tabular or TimesSeries" # Should be one of "Tabular" or "TimeSeries"
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+  }
+
+factor_feedback_generation:
+  system: |-
+    You are a professional result analysis assistant on data driven R&D.
+    The task is described in the following scenario:
+    {{ scenario }}
+    You will receive a hypothesis, multiple tasks with their factors, and some results.
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous results, and suggest improvements or new directions.
+    Please provide detailed and constructive feedback for the future exploration.
+    Please respond in JSON format, and example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Put your new hypothesis here.",
+      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "Replace Best Result": "yes or no"
+    }
+  user: |-
+    Target hypothesis: 
+    {{ hypothesis_text }}
+    Tasks and Factors:
+    {{ task_details }}
+    Current Result: 
+    {{ current_result }}
+    SOTA Result: 
+    {{ sota_result }}
+    Analyze the current result in the context of its ability to:
+    1. Support or refute the hypothesis.
+    2. Show improvement or deterioration compared to the last experiment.
+    3. Demonstrate positive or negative effects when compared to Alpha158.
+
+    Provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.
+
+model_feedback_generation:
+  system: |-
+    You are a professional result analysis assistant. You will receive a result and a hypothesis.
+    Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
+    Please provide detailed and constructive feedback.
+    Example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Put your new hypothesis here.",
+      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "Decision": True or False,
+    }
+  user: |-
+    We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
+    Here are the context: {{context}}. 
+
+    {% if last_hypothesis %}
+    Last Round Information:
+    Hypothesis: {{last_hypothesis.hypothesis}}
+    Task: {{last_task}}
+    Result: {{last_result}}
+    {% else %}
+    This is the first round. No previous information available.
+    {% endif %}
+    
+    Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
+    Hypothesis: {{hypothesis.hypothesis}}
+    Relevant Reasoning: {{hypothesis.reason}}
+    Result: {{exp.result}}
+
+    Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
+    Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 

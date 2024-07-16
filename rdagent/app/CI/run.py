@@ -13,6 +13,16 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tree_sitter_python
+from rich import print
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+from rich.prompt import Prompt
+from rich.rule import Rule
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+from tree_sitter import Language, Node, Parser
+
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_agent import EvoAgent
 from rdagent.core.evolving_framework import (
@@ -24,15 +34,6 @@ from rdagent.core.evolving_framework import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
-from rich import print
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
-from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
-from tree_sitter import Language, Node, Parser
 
 py_parser = Parser(Language(tree_sitter_python.language()))
 CI_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -355,7 +356,6 @@ class RuffEvaluator(Evaluator):
 
 
 class MypyEvaluator(Evaluator):
-
     def __init__(self, command: str | None = None) -> None:
         if command is None:
             self.command = "mypy . --pretty --no-error-summary --show-column-numbers"
@@ -411,12 +411,10 @@ class MypyEvaluator(Evaluator):
 
 
 class MultiEvaluator(Evaluator):
-
     def __init__(self, *evaluators: Evaluator) -> None:
         self.evaluators = evaluators
 
     def evaluate(self, evo: Repo, **kwargs: dict) -> CIFeedback:
-
         all_errors = defaultdict(list)
         for evaluator in self.evaluators:
             feedback: CIFeedback = evaluator.evaluate(evo, **kwargs)
@@ -438,7 +436,6 @@ class CIEvoStr(EvolvingStrategy):
         knowledge_l: list[Knowledge] | None = None,
         **kwargs: dict,
     ) -> Repo:
-
         @dataclass
         class CodeFixGroup:
             start_line: int
@@ -633,12 +630,16 @@ class CIEvoStr(EvolvingStrategy):
                         for i in diff:
                             if i.startswith("+"):
                                 table.add_row(
-                                    "", Text(str(diff_new_lineno), style="green bold"), Text(i, style="green"),
+                                    "",
+                                    Text(str(diff_new_lineno), style="green bold"),
+                                    Text(i, style="green"),
                                 )
                                 diff_new_lineno += 1
                             elif i.startswith("-"):
                                 table.add_row(
-                                    Text(str(diff_original_lineno), style="red bold"), "", Text(i, style="red"),
+                                    Text(str(diff_original_lineno), style="red bold"),
+                                    "",
+                                    Text(i, style="red"),
                                 )
                                 diff_original_lineno += 1
                             elif i.startswith("?"):
@@ -691,13 +692,13 @@ class CIEvoStr(EvolvingStrategy):
 
         return evo
 
+
 class CIEvoAgent(EvoAgent):
     def __init__(self, evolving_strategy: CIEvoStr) -> None:
         super().__init__(max_loop=1, evolving_strategy=evolving_strategy)
         self.evolving_trace = []
 
     def multistep_evolve(self, evo: Repo, eva: Evaluator, **kwargs: Any) -> Repo:
-
         evo = self.evolving_strategy.evolve(
             evo=evo,
             evolving_trace=self.evolving_trace,
@@ -706,6 +707,7 @@ class CIEvoAgent(EvoAgent):
         self.evolving_trace.append(EvoStep(evo, feedback=eva.evaluate(evo)))
 
         return evo
+
 
 DIR = None
 while DIR is None or not DIR.exists():

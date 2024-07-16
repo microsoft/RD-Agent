@@ -1,0 +1,27 @@
+
+
+code_implement_sys: |-
+  You are an assistant whose job is to answer user's question.
+code_implement_user: |-
+  With the following given information, write a python code using pytorch and torch_geometric to implement the model.
+  This model is in the graph learning field, only have one layer.
+  The input will be node_feature [num_nodes, dim_feature] and edge_index [2, num_edges]  (It would be the input of the forward model)
+  There is not edge attribute or edge weight as input. The model should detect the node_feature and edge_index shape, if there is Linear transformation layer in the model, the input and output shape should be consistent. The in_channels is the dimension of the node features.
+  Implement the model forward function based on the following information:model formula information.
+  1. model name:{{name}}
+  2. model description:{{description}}
+  3. model formulation:{{formulation}}
+  4. model variables:{{variables}}.
+  You must complete the forward function as far as you can do.
+  Execution Your implemented code will be executed in the follow way:
+  The the implemented code will be placed in a file like [uuid]/model.py
+  We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
+  - from model import model_cls (So you must have a variable named `model_cls` in the file)
+    - So your implemented code could follow the following pattern
+      ```Python
+      class XXXLayer(torch.nn.Module):
+          ...
+      model_cls = XXXLayer
+      ```
+  - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
+  - And then verify the model by comparing the output tensors by feeding specific input tensor.

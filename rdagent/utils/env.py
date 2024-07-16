@@ -5,12 +5,21 @@ Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
 
 """
+
 import os
-import docker
+import subprocess
+import sys
 from abc import abstractmethod
-from pydantic import BaseModel
-from typing import Generic, TypeVar
 from pathlib import Path
+from typing import Dict, Generic, Optional, TypeVar
+
+import docker
+import docker.models
+import docker.models.containers
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
+
+from rdagent.core.log import RDAgentLog
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -21,6 +30,7 @@ class Env(Generic[ASpecificBaseModel]):
     - It provides base typing and checking featurs.
     - loading and dumping the information will be easier: for example, we can use package like `pydantic-yaml`
     """
+
     conf: ASpecificBaseModel  # different env have different conf.
 
     def __init__(self, conf: ASpecificBaseModel):
@@ -33,10 +43,7 @@ class Env(Generic[ASpecificBaseModel]):
         """
 
     @abstractmethod
-    def run(self,
-            entry: str | None,
-            local_path: str | None = None,
-            env: dict | None = None) -> str:
+    def run(self, entry: str | None, local_path: str | None = None, env: dict | None = None) -> str:
         """
         Run the folder under the environment.
 
@@ -63,21 +70,52 @@ class Env(Generic[ASpecificBaseModel]):
 
 
 class LocalConf(BaseModel):
-    py_entry: str  # where you can find your python path
+    py_bin: str
+    default_entry: str
 
 
 class LocalEnv(Env[LocalConf]):
     """
     Sometimes local environment may be more convinient for testing
     """
-    conf: LocalConf
+
+    def prepare(self):
+        if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
+            self.run(
+                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
+            )
+        else:
+            print("Data already exists. Download skipped.")
+
+    def run(self, entry: str | None = None, local_path: Optional[str] = None, env: dict | None = None) -> str:
+        if env is None:
+            env = {}
+
+        if entry is None:
+            entry = self.conf.default_entry
+
+        command = str(Path(self.conf.py_bin).joinpath(entry)).split(" ")
+
+        cwd = None
+        if local_path:
+            cwd = Path(local_path).resolve()
+        result = subprocess.run(command, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Error while running the command: {result.stderr}")
+
+        return result.stdout
 
 
 ## Docker Environment -----
 
 
-class DockerConf(BaseModel):
-    image: str  # the image you want to run
+class DockerConf(BaseSettings):
+    build_from_dockerfile: bool = False
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
+    image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
 
@@ -85,12 +123,18 @@ class DockerConf(BaseModel):
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
+    network: str | None = "bridge"  # the network mode for the docker
+    shm_size: str | None = None
 
 
-QLIB_TORCH_IMAGE = DockerConf(image="linlanglv/qlib_image_nightly_pytorch:nightly",
-                              mount_path="/workspace",
-                              default_entry="qrun conf.yaml",
-                              extra_volumes={Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"})
+class QlibDockerConf(DockerConf):
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
+    image: str = "local_qlib:latest"
+    mount_path: str = "/workspace/qlib_workspace/"
+    default_entry: str = "qrun conf.yaml"
+    extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
+    shm_size: str | None = "16g"
 
 
 class DockerEnv(Env[DockerConf]):
@@ -101,6 +145,12 @@ class DockerEnv(Env[DockerConf]):
         Download image if it doesn't exist
         """
         client = docker.from_env()
+        if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
+            RDAgentLog().info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
+            image, logs = client.images.build(
+                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
+            )
+            RDAgentLog().info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
         try:
             client.images.get(self.conf.image)
         except docker.errors.ImageNotFound:
@@ -109,7 +159,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while pulling the image: {e}")
 
     def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
-
         if env is None:
             env = {}
         client = docker.from_env()
@@ -119,21 +168,23 @@ class DockerEnv(Env[DockerConf]):
         volumns = {}
         if local_path is not None:
             local_path = os.path.abspath(local_path)
-            volumns[local_path] = {'bind': self.conf.mount_path, 'mode': 'rw'}
+            volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumns[lp] = {'bind': rp, 'mode': 'rw'}
+                volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
         try:
-            container = client.containers.run(
+            container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
                 volumes=volumns,
                 environment=env,
                 detach=True,
                 working_dir=self.conf.mount_path,
-                auto_remove=True,
+                # auto_remove=True, # remove too fast might cause the logs not to be get
+                network=self.conf.network,
+                shm_size=self.conf.shm_size,
             )
             logs = container.logs(stream=True)
             for log in logs:
@@ -141,6 +192,8 @@ class DockerEnv(Env[DockerConf]):
                 print(decoded_log)
                 log_output += decoded_log + "\n"
             container.wait()
+            container.stop()
+            container.remove()
             return log_output
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
@@ -153,7 +206,7 @@ class DockerEnv(Env[DockerConf]):
 class QTDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, conf: DockerConf = QLIB_TORCH_IMAGE):
+    def __init__(self, conf: DockerConf = QlibDockerConf()):
         super().__init__(conf)
 
     def prepare(self):
@@ -163,7 +216,8 @@ class QTDockerEnv(DockerEnv):
         super().prepare()
         qlib_data_path = next(iter(self.conf.extra_volumes.keys()))
         if not (Path(qlib_data_path) / "qlib_data" / "cn_data").exists():
+            RDAgentLog().info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
         else:
-            print("Data already exists. Download skipped.")
+            RDAgentLog().info("Data already exists. Download skipped.")

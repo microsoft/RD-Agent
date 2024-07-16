@@ -1,7 +1,7 @@
 class ImplementRunException(Exception):
     """
     Exceptions raised when Implementing and running code.
-    - start: FactorImplementationTask => FactorGenerator
+    - start: FactorTask => FactorGenerator
     - end: Get dataframe after execution
 
     The more detailed evaluation in dataframe values are managed by the evaluator.

@@ -1,13 +1,9 @@
 from pathlib import Path
 
-from rdagent.components.task_implementation.factor_implementation.factor import (
-    FactorExperiment,
-)
-from rdagent.components.task_implementation.factor_implementation.utils import (
-    get_data_folder_intro,
-)
+from rdagent.components.coder.factor_coder.factor import FactorExperiment
+from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import Scenario
+from rdagent.core.scenario import Scenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -24,6 +20,10 @@ class QlibFactorScenario(Scenario):
         return get_data_folder_intro()
 
     @property
+    def output_format(self) -> str:
+        return prompt_dict["qlib_factor_output_format"]
+
+    @property
     def interface(self) -> str:
         return prompt_dict["qlib_factor_interface"]
 
@@ -38,6 +38,8 @@ The source data you can use:
 {self.source_data}
 The interface you should follow to write the runnable code:
 {self.interface}
+The output of your code should be in the format:
+{self.output_format}
 The simulator user can use to test your factor:
 {self.simulator}
 """
