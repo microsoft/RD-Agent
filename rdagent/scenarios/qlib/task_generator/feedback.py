@@ -141,5 +141,5 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             hypothesis_evaluation=response_json_hypothesis.get("Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=response_json_hypothesis.get("New Hypothesis", "No new hypothesis provided"),
             reason=response_json_hypothesis.get("Reasoning", "No reasoning provided"),
-            decision=response_json_hypothesis.get("Decision", "false").lower() == "true",
+            decision=str(response_json_hypothesis.get("Decision", "false")).lower() == "true",
         )

@@ -17,12 +17,12 @@ from rdagent.oai.llm_utils import APIBackend
 scheduler_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
+def RandomSelect(to_be_finished_task_index, factor_number_per_round):
     import random
 
     to_be_finished_task_index = random.sample(
         to_be_finished_task_index,
-        implementation_factors_per_round,
+        factor_number_per_round,
     )
 
     RDAgentLog().info(f"The random selection is: {to_be_finished_task_index}")
@@ -31,7 +31,7 @@ def RandomSelect(to_be_finished_task_index, implementation_factors_per_round):
 
 def LLMSelect(
     to_be_finished_task_index,
-    implementation_factors_per_round,
+    factor_number_per_round,
     evo: FactorEvolvingItem,
     former_trace: Dict,
     scen: Scenario,
@@ -60,7 +60,7 @@ def LLMSelect(
                 scheduler_prompts["select_implementable_factor_user"],
             )
             .render(
-                factor_num=implementation_factors_per_round,
+                factor_num=factor_number_per_round,
                 sub_tasks=tasks,
             )
         )
