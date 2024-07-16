@@ -18,11 +18,11 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
     - let LLM modify model.py
     """
     def generate(self, exp: ModelExperiment) -> ModelExperiment:
-        TEMPLATE_PATH = Path("/home/v-xisenwang/RD-Agent/test/utils/env_tpl")  #Can be updated 
+        TEMPLATE_PATH = Path("RD-Agent/test/utils/env_tpl")  #Can be updated 
 
         # To prepare
         unique_id = uuid.uuid4()
-        self.workspace_path = Path("/home/v-xisenwang/RD-Agent/test") / f"M{unique_id}"  # need to set base workspace path
+        self.workspace_path = Path("RD-Agent/test/testOutputs") / f"M{unique_id}"  # need to set base workspace path
         self.workspace_path.mkdir(parents=True, exist_ok=True)
 
         # to copy_template_to_workspace
@@ -32,20 +32,29 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
         # Assign it to exp.workspace's varaible 
 
         # to replace & inject code
-        code_implementation = exp.sub_implementations[0].code 
+        code_implementation = exp.sub_implementations[0].code_dict['model.py']
 
         exp.sub_implementations[0].inject_code(**{"model.py": code_implementation})
 
-        if exp.sub_tasks[0].model_type == "TimesSeries":
+        # Write the code implementation directly to the model.py file
+        with open(self.workspace_path / "model.py", "w") as f:
+            f.write(code_implementation)
+
+        env_to_use = {}
+
+        if exp.sub_tasks[0].model_type == "TimeSeries":
             env_to_use = {
             "dataset_cls": "TSDatasetH",
-            "step_len": 20
+            "step_len": 20,
+            "num_timesteps": 20
             }
 
         if exp.sub_tasks[0].model_type == "Tabular":
             env_to_use = {
             "dataset_cls": "DatasetH"
             }
+
+        print("Model Type is:", exp.sub_tasks[0].model_type)
 
         # to execute
         qtde = QTDockerEnv()
@@ -55,7 +64,7 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
         
         # Run the Docker container with the specified entry
         
-        result = qtde.run(local_path=self.workspace_path, entry="qrun conf.yaml", env={{"PYTHONPATH": "./"}, env_to_use})
+        result = qtde.run(local_path=self.workspace_path, entry="qrun conf.yaml", env={"PYTHONPATH": "./", **env_to_use})
         print(result)
         
         # Run the experiment analysis code
@@ -66,56 +75,3 @@ class QlibModelRunner(TaskGenerator[ModelImplementation]):
 
         return exp  
 
-    
-
-    # # def __init__(self, **kwargs):
-    # #     self.kwargs = kwargs
-    # #     self.prepare()
-
-    # def prepare(self) -> None:
-    #     """
-    #     Prepare for the workspace;
-    #     """
-        
-
-    # def copy_template_to_workspace(self):
-    #     """
-    #     Copy the template files to the new workspace.
-    #     """
-    #     for file_name in ["model.py", "read_exp.py", "conf.yaml"]:
-    #         shutil.copyfile(self.TEMPLATE_PATH / file_name, self.workspace_path / file_name)
-
-    # def execute(self):
-    #     """
-    #     Execute the Qlib model in the prepared workspace.
-    #     """
-    #     qtde = QTDockerEnv()
-        
-    #     # Preparing the Docker environment
-    #     qtde.prepare()
-        
-    #     # Run the Docker container with the specified entry
-    #     result = qtde.run(local_path=self.workspace_path, entry="qrun conf.yaml", env={"PYTHONPATH": "./"})
-    #     print(result)
-        
-    #     # Run the experiment analysis code
-    #     result = qtde.run(local_path=self.workspace_path, entry="python read_exp.py")
-    #     print(result)
-
-    # def clearFile(self):
-    #     qtde = QTDockerEnv()
-        
-    #     # Preparing the Docker environment
-    #     qtde.prepare()
-        
-    #     # Run the Docker container with the specified entry
-    #     result = qtde.run(local_path=self.workspace_path, entry="rm -r RD-Agent/test/Mbcee0d94-5e05-4c55-991b-4d64332edd93.yaml", env={"PYTHONPATH": "./"})
-    #     print(result)
-
-
-# Example usage
-# sampleImp = QlibModelRunner()
-# sampleImp.clearFile()
-
-# sampleImp = QlibModelImplementation()
-# sampleImp.execute()

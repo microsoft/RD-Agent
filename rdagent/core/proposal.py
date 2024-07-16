@@ -57,6 +57,8 @@ class Trace(Generic[ASpecificScen]):
 
     def get_last_experiment_info(self) -> Tuple[Hypothesis, ASpecificTask, Any]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
+        if not self.hist:
+            return None
         last_hypothesis, last_experiment, _ = self.hist[-1]
         last_task = last_experiment.sub_tasks[-1]
         last_result = last_experiment.result

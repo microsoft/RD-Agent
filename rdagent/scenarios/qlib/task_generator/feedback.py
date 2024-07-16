@@ -2,11 +2,8 @@ import json
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.core.proposal import HypothesisExperiment2Feedback, Trace, Hypothesis, HypothesisFeedback, Scenario
 from rdagent.core.experiment import Experiment
-from typing import Dict, List, Tuple
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment, QlibModelScenario
 
-
-class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback): 
+class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
     def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
@@ -28,15 +25,18 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Define the user prompt for hypothesis feedback
         context = trace.scen
-        print(context)
-        print("\n")
-        print(trace.get_last_experiment_info())
-        
+        last_experiment_info = trace.get_last_experiment_info()
+
+        if last_experiment_info:
+            last_hypothesis, last_task, last_result = last_experiment_info
+            last_info_str = f"Last Round Information:\nHypothesis: {last_hypothesis.hypothesis}\nTask: {last_task}\nResult: {last_result}\n"
+        else:
+            last_info_str = "This is the first round. No previous information available."
+
         usr_prompt_hypothesis = f'''
             We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
             Here are the context: {context}. 
-            Last Round Information is: 
-            {trace.get_last_experiment_info()}
+            {last_info_str}
             
             Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
             Hypothesis: {hypothesis.hypothesis}\n
@@ -68,8 +68,6 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 decision=response_json_hypothesis.get("Decision", "false").lower() == "true"
             )
 
-            # print("Generated Hypothesis Feedback:\n", hypothesis_feedback)
-
             return hypothesis_feedback
 
         except json.JSONDecodeError as e:
@@ -84,8 +82,3 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             reason="No reasoning",
             decision=False
         )
-
-class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback): ...
-
-
-

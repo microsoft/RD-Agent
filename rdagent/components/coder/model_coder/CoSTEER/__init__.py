@@ -21,7 +21,7 @@ from rdagent.core.task_generator import TaskGenerator
 
 
 class ModelCoSTEER(TaskGenerator[ModelExperiment]):
-    def __init__(
+    def __init__( 
         self,
         *args,
         with_knowledge: bool = True,
