@@ -1,3 +1,5 @@
+File: model.py
+
 import torch
 import torch.nn as nn
 
@@ -30,5 +32,6 @@ class Net(nn.Module):
         x = self.bn(x)
         x = self.activation(x)
         return x
-    
+
 model_cls = Net
+
