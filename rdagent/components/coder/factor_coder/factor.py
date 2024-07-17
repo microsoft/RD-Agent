@@ -15,7 +15,7 @@ from rdagent.core.exception import (
     NoOutputException,
     RuntimeErrorException,
 )
-from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 
@@ -51,7 +51,7 @@ variables: {str(self.variables)}"""
         return f"<{self.__class__.__name__}[{self.factor_name}]>"
 
 
-class FileBasedFactorImplementation(FBImplementation):
+class FactorFBWorkspace(FBWorkspace):
     """
     This class is used to implement a factor by writing the code to a file.
     Input data and output factor value are also written to files.
@@ -90,15 +90,6 @@ class FileBasedFactorImplementation(FBImplementation):
                 check=False,
             )
 
-    def execute_desc(self):
-        raise NotImplementedError
-
-    def prepare(self, *args, **kwargs):
-        self.workspace_path = Path(
-            FACTOR_IMPLEMENT_SETTINGS.factor_execution_workspace,
-        ) / str(uuid.uuid4())
-        self.workspace_path.mkdir(exist_ok=True, parents=True)
-
     def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
@@ -112,6 +103,7 @@ class FileBasedFactorImplementation(FBImplementation):
         parameters:
         store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
+        super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
             if self.raise_exception:
                 raise CodeFormatException(self.FB_CODE_NOT_SET)
@@ -122,8 +114,8 @@ class FileBasedFactorImplementation(FBImplementation):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code and same data type
                 target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
-                cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.factor_cache_location) / f"{target_file_name}.pkl"
-                Path(FACTOR_IMPLEMENT_SETTINGS.factor_cache_location).mkdir(exist_ok=True, parents=True)
+                cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
+                Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists() and not self.raise_exception:
                     cached_res = pickle.load(open(cache_file_path, "rb"))
                     if store_result and cached_res[1] is not None:
@@ -135,11 +127,11 @@ class FileBasedFactorImplementation(FBImplementation):
 
             source_data_path = (
                 Path(
-                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder_debug,
+                    FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
                 )
                 if data_type == "Debug"
                 else Path(
-                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder,
+                    FACTOR_IMPLEMENT_SETTINGS.data_folder,
                 )
             )
 
@@ -151,7 +143,7 @@ class FileBasedFactorImplementation(FBImplementation):
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             try:
                 subprocess.check_output(
-                    f"python {code_path}",
+                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
@@ -215,7 +207,7 @@ class FileBasedFactorImplementation(FBImplementation):
         for file_path in path.iterdir():
             if file_path.suffix == ".py":
                 code_dict[file_path.name] = file_path.read_text()
-        return FileBasedFactorImplementation(target_task=task, code_dict=code_dict, **kwargs)
+        return FactorFBWorkspace(target_task=task, code_dict=code_dict, **kwargs)
 
 
-class FactorExperiment(Experiment[FactorTask, FileBasedFactorImplementation]): ...
+FactorExperiment = Experiment

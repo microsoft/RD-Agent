@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
-from rdagent.components.loader.task_loader import ModelImpLoader, ModelTaskLoaderJson
+from rdagent.components.loader.task_loader import ModelTaskLoaderJson, ModelWsLoader
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -23,17 +23,17 @@ model_experiment = QlibModelExperiment(sub_tasks=task_l)
 # mtg = ModelCodeWriter(scen=QlibModelScenario())
 mtg = ModelCoSTEER(scen=QlibModelScenario())
 
-model_experiment = mtg.generate(model_experiment)
+model_experiment = mtg.develop(model_experiment)
 
 # TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
 # Currently, we just handcraft a workflow for fast evaluation.
 
-mil = ModelImpLoader(bench_folder / "gt_code")
+mil = ModelWsLoader(bench_folder / "gt_code")
 
 mie = ModelImpValEval()
 # Evaluation:
 eval_l = []
-for impl in model_experiment.sub_implementations:
+for impl in model_experiment.sub_workspace_list:
     print(impl.target_task)
     gt_impl = mil.load(impl.target_task)
     eval_l.append(mie.evaluate(gt_impl, impl))

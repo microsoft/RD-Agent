@@ -19,10 +19,12 @@ import numpy as np
 import tiktoken
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.log import LogColors, rdagent_logger as logger
 from rdagent.core.utils import SingletonBaseClass
+from rdagent.log import LogColors
+from rdagent.log import rdagent_logger as logger
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
+
 
 def md5_hash(input_string: str) -> str:
     hash_md5 = hashlib.md5(usedforsecurity=False)
@@ -203,7 +205,7 @@ class ChatSession:
         user prompt should always be provided
         """
         messages = self.build_chat_completion_message(user_prompt)
-        
+
         with logger.tag(f"session_{self.conversation_id}"):
             response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
                 messages=messages,
@@ -651,7 +653,7 @@ class APIBackend:
                 # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
                 if self.cfg.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
-                
+
                 for chunk in response:
                     content = (
                         chunk.choices[0].delta.content
@@ -663,10 +665,10 @@ class APIBackend:
                     resp += content
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
-                
+
                 if self.cfg.log_llm_chat_content:
                     logger.info("\n", raw=True, tag="llm_messages")
-                
+
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason

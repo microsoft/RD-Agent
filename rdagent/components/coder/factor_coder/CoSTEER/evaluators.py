@@ -8,7 +8,6 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
@@ -16,10 +15,10 @@ from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
-from rdagent.core.experiment import Implementation, Task
-from rdagent.log import rdagent_logger as logger
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -33,8 +32,8 @@ class FactorEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         **kwargs,
     ) -> Tuple[str, object]:
         """You can get the dataframe by
@@ -53,7 +52,7 @@ class FactorEvaluator(Evaluator):
         """
         raise NotImplementedError("Please implement the `evaluator` method")
 
-    def _get_df(self, gt_implementation: Implementation, implementation: Implementation):
+    def _get_df(self, gt_implementation: Workspace, implementation: Workspace):
         if gt_implementation is not None:
             _, gt_df = gt_implementation.execute()
             if isinstance(gt_df, pd.Series):
@@ -78,10 +77,10 @@ class FactorCodeEvaluator(FactorEvaluator):
     def evaluate(
         self,
         target_task: FactorTask,
-        implementation: Implementation,
+        implementation: Workspace,
         execution_feedback: str,
         factor_value_feedback: str = "",
-        gt_implementation: Implementation = None,
+        gt_implementation: Workspace = None,
         **kwargs,
     ):
         factor_information = target_task.get_task_information()
@@ -130,8 +129,8 @@ class FactorCodeEvaluator(FactorEvaluator):
 class FactorSingleColumnEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         _, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -147,8 +146,8 @@ class FactorSingleColumnEvaluator(FactorEvaluator):
 class FactorOutputFormatEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
         if gen_df is None:
@@ -184,8 +183,8 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
 class FactorDatetimeDailyEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str | object]:
         _, gen_df = self._get_df(gt_implementation, implementation)
         if gen_df is None:
@@ -214,8 +213,8 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
 class FactorRowCountEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -231,8 +230,8 @@ class FactorRowCountEvaluator(FactorEvaluator):
 class FactorIndexEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -248,8 +247,8 @@ class FactorIndexEvaluator(FactorEvaluator):
 class FactorMissingValuesEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -265,8 +264,8 @@ class FactorMissingValuesEvaluator(FactorEvaluator):
 class FactorEqualValueCountEvaluator(FactorEvaluator):
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -296,8 +295,8 @@ class FactorCorrelationEvaluator(FactorEvaluator):
 
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
 
@@ -327,11 +326,10 @@ class FactorCorrelationEvaluator(FactorEvaluator):
 
 
 class FactorValueEvaluator(FactorEvaluator):
-
     def evaluate(
         self,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         **kwargs,
     ) -> Tuple:
         conclusions = []
@@ -508,8 +506,8 @@ class FactorEvaluatorForCoder(FactorEvaluator):
     def evaluate(
         self,
         target_task: FactorTask,
-        implementation: Implementation,
-        gt_implementation: Implementation = None,
+        implementation: Workspace,
+        gt_implementation: Workspace = None,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorSingleFeedback:
@@ -603,41 +601,21 @@ class FactorMultiEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FactorMultiFeedback:
-        multi_implementation_feedback = FactorMultiFeedback()
-
-        # for index in range(len(evo.sub_tasks)):
-        #     corresponding_implementation = evo.sub_implementations[index]
-        #     corresponding_gt_implementation = (
-        #         evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-        #     )
-
-        #     multi_implementation_feedback.append(
-        #         self.single_factor_implementation_evaluator.evaluate(
-        #             target_task=evo.sub_tasks[index],
-        #             implementation=corresponding_implementation,
-        #             gt_implementation=corresponding_gt_implementation,
-        #             queried_knowledge=queried_knowledge,
-        #         )
-        #     )
-
-        calls = []
-        for index in range(len(evo.sub_tasks)):
-            corresponding_implementation = evo.sub_implementations[index]
-            corresponding_gt_implementation = (
-                evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-            )
-            calls.append(
+        multi_implementation_feedback = multiprocessing_wrapper(
+            [
                 (
                     self.single_factor_implementation_evaluator.evaluate,
                     (
                         evo.sub_tasks[index],
-                        corresponding_implementation,
-                        corresponding_gt_implementation,
+                        evo.sub_workspace_list[index],
+                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
                         queried_knowledge,
                     ),
-                ),
-            )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n)
+                )
+                for index in range(len(evo.sub_tasks))
+            ],
+            n=RD_AGENT_SETTINGS.multi_proc_n,
+        )
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision

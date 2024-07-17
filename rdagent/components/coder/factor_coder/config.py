@@ -7,16 +7,17 @@ SELECT_METHOD = Literal["random", "scheduler"]
 
 
 class FactorImplementSettings(BaseSettings):
-    factor_data_folder: str = str(
+    class Config:
+        env_prefix = "FACTOR_CODER_"  # Use FACTOR_CODER_ as prefix for environment variables
+
+    coder_use_cache: bool = False
+    data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
     )
-    factor_data_folder_debug: str = str(
+    data_folder_debug: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data_debug").absolute(),
     )
-    factor_execution_workspace: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_workspace").absolute(),
-    )
-    factor_cache_location: str = str(
+    cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").absolute(),
     )
     enable_execution_cache: bool = True  # whether to enable the execution cache
@@ -35,8 +36,6 @@ class FactorImplementSettings(BaseSettings):
     v2_error_summary: bool = False
     v2_knowledge_sampler: float = 1.0
 
-    evo_multi_proc_n: int = 16  # how many processes to use for evolving (including eval & generation)
-
     file_based_execution_timeout: int = 120  # seconds for each factor implementation execution
 
     select_method: SELECT_METHOD = "random"
@@ -46,6 +45,8 @@ class FactorImplementSettings(BaseSettings):
 
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
+
+    python_bin: str = "python"
 
 
 FACTOR_IMPLEMENT_SETTINGS = FactorImplementSettings()

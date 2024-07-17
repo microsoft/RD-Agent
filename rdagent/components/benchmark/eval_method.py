@@ -15,10 +15,11 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
 )
-from rdagent.components.coder.factor_coder.factor import FileBasedFactorImplementation
-from rdagent.core.exception import ImplementRunException
-from rdagent.core.experiment import Implementation, Task
-from rdagent.core.task_generator import TaskGenerator
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.developer import Developer
+from rdagent.core.exception import CoderException
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 
 
@@ -26,7 +27,7 @@ class TestCase:
     def __init__(
         self,
         target_task: list[Task] = [],
-        ground_truth: list[Implementation] = [],
+        ground_truth: list[Workspace] = [],
     ):
         self.ground_truth = ground_truth
         self.target_task = target_task
@@ -41,7 +42,7 @@ class BaseEval:
         self,
         evaluator_l: List[FactorEvaluator],
         test_cases: List[TestCase],
-        generate_method: TaskGenerator,
+        generate_method: Developer,
         catch_eval_except: bool = True,
     ):
         """Parameters
@@ -62,12 +63,12 @@ class BaseEval:
         self,
         path: Union[Path, str],
         **kwargs,
-    ) -> List[Implementation]:
+    ) -> List[Workspace]:
         path = Path(path)
         fi_l = []
         for tc in self.test_cases:
             try:
-                fi = FileBasedFactorImplementation.from_folder(tc.task, path, **kwargs)
+                fi = FactorFBWorkspace.from_folder(tc.task, path, **kwargs)
                 fi_l.append(fi)
             except FileNotFoundError:
                 print("Fail to load test case for factor: ", tc.task.factor_name)
@@ -75,8 +76,8 @@ class BaseEval:
 
     def eval_case(
         self,
-        case_gt: Implementation,
-        case_gen: Implementation,
+        case_gt: Workspace,
+        case_gen: Workspace,
     ) -> List[Union[Tuple[FactorEvaluator, object], Exception]]:
         """Parameters
         ----------
@@ -96,7 +97,7 @@ class BaseEval:
             try:
                 eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
-            except ImplementRunException as e:
+            except CoderException as e:
                 return e
             except Exception as e:
                 # exception when evaluation
@@ -111,7 +112,7 @@ class FactorImplementEval(BaseEval):
     def __init__(
         self,
         test_cases: TestCase,
-        method: TaskGenerator,
+        method: Developer,
         *args,
         test_round: int = 10,
         **kwargs,
@@ -137,17 +138,17 @@ class FactorImplementEval(BaseEval):
             print(f"Eval {_}-th times...")
             print("========================================================\n")
             try:
-                gen_factor_l = self.generate_method.generate(self.test_cases.target_task)
+                gen_factor_l = self.generate_method.develop(self.test_cases.target_task)
             except KeyboardInterrupt:
                 # TODO: Why still need to save result after KeyboardInterrupt?
                 print("Manually interrupted the evaluation. Saving existing results")
                 break
 
-            if len(gen_factor_l.sub_implementations) != len(self.test_cases.ground_truth):
+            if len(gen_factor_l.sub_workspace_list) != len(self.test_cases.ground_truth):
                 raise ValueError(
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
-            gen_factor_l_all_rounds.extend(gen_factor_l.sub_implementations)
+            gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
             test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
         eval_res_list = multiprocessing_wrapper(
@@ -155,7 +156,7 @@ class FactorImplementEval(BaseEval):
                 (self.eval_case, (gt_case, gen_factor))
                 for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
             ],
-            n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
         for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):

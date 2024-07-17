@@ -18,7 +18,7 @@ class RDAgentSettings(BaseSettings):
     # TODO: (xiao) I think LLMSetting may be a better name.
     # TODO: (xiao) I think most of the config should be in oai.config
     # Log configs
-    # TODO: (xiao) think it can be a seperate config.
+    # TODO: (xiao) think it can be a separate config.
     log_trace_path: str | None = None
     log_llm_chat_content: bool = True
 
@@ -99,6 +99,12 @@ class RDAgentSettings(BaseSettings):
     # factor extraction conf
     max_input_duplicate_factor_group: int = 600
     max_output_duplicate_factor_group: int = 20
+
+    # workspace conf
+    workspace_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
+
+    # multi processing conf
+    multi_proc_n: int = 1
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()

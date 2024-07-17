@@ -4,11 +4,12 @@ from pathlib import Path
 from rdagent.components.benchmark.eval_method import TestCase
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
+    FactorFBWorkspace,
     FactorTask,
-    FileBasedFactorImplementation,
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.experiment import Loader
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
 class FactorExperimentLoaderFromDict(FactorExperimentLoader):
@@ -23,7 +24,7 @@ class FactorExperimentLoaderFromDict(FactorExperimentLoader):
                 variables=factor_data["variables"],
             )
             task_l.append(task)
-        exp = FactorExperiment(sub_tasks=task_l)
+        exp = QlibFactorExperiment(sub_tasks=task_l)
         return exp
 
 
@@ -54,7 +55,7 @@ class FactorTestCaseLoaderFromJsonFile:
                 factor_formulation=factor_data["formulation"],
                 variables=factor_data["variables"],
             )
-            gt = FileBasedFactorImplementation(task, code=factor_data["gt_code"])
+            gt = FactorFBWorkspace(task, code=factor_data["gt_code"])
             gt.execute()
             TestData.target_task.append(task)
             TestData.ground_truth.append(gt)

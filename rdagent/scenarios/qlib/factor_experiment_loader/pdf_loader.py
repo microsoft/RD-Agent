@@ -18,14 +18,15 @@ from rdagent.components.document_reader.document_reader import (
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 def classify_report_from_dict(
     report_dict: Mapping[str, str],
@@ -182,7 +183,7 @@ def __extract_factors_formulation_from_content(
         except json.JSONDecodeError:
             parse_success = False
         if ret_json_str is None or not parse_success:
-            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
+            current_user_prompt = "Your response didn't follow the instruction might be wrong json format.\nRemember not to add any dots (...) in the json string which will cause json parse error!!!\nTry again."
         else:
             for name, formulation_and_description in ret_dict.items():
                 if name in factor_dict:
