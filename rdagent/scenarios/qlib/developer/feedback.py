@@ -77,25 +77,13 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = response_json.get("Replace Best Result", "no").lower() == "yes"
 
-        # Create HypothesisFeedback object
-        hypothesis_feedback = HypothesisFeedback(
+        return HypothesisFeedback(
             observations=observations,
             hypothesis_evaluation=hypothesis_evaluation,
             new_hypothesis=new_hypothesis,
             reason=reason,
             decision=decision,
         )
-
-        logger.info(
-            "Generated Hypothesis Feedback:\n"
-            f"Observations: {observations}\n"
-            f"Feedback for Hypothesis: {hypothesis_evaluation}\n"
-            f"New Hypothesis: {new_hypothesis}\n"
-            f"Reason: {reason}\n"
-            f"Replace Best Result: {'Yes' if decision else 'No'}"
-        )
-
-        return hypothesis_feedback
 
 
 class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):

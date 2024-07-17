@@ -45,6 +45,13 @@ class HypothesisFeedback(Feedback):
     def __bool__(self):
         return self.decision
 
+    def __str__(self) -> str:
+        return f"""Observations: {self.observations}
+Hypothesis Evaluation: {self.hypothesis_evaluation}
+New Hypothesis: {self.new_hypothesis}
+Decision: {self.decision}
+Reason: {self.reason}"""
+
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
 
