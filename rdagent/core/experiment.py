@@ -40,12 +40,9 @@ class Workspace(ABC, Generic[ASpecificTask]):
         raise NotImplementedError(error_message)
 
     @abstractmethod
-    def load(self, task: ASpecificTask) -> ASpecificImp:
-        error_message = "load method is not implemented."
-        raise NotImplementedError(error_message)
-
     def copy(self) -> Workspace:
-        raise NotImplementedError("copy method is not implemented.")
+        error_message = "copy method is not implemented."
+        raise NotImplementedError(error_message)
 
 
 ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
@@ -54,7 +51,8 @@ ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
 class WsLoader(ABC, Generic[ASpecificTask, ASpecificWS]):
     @abstractmethod
     def load(self, task: ASpecificTask) -> ASpecificWS:
-        raise NotImplementedError("load method is not implemented.")
+        error_message = "load method is not implemented."
+        raise NotImplementedError(error_message)
 
 
 class FBWorkspace(Workspace):
@@ -85,7 +83,7 @@ class FBWorkspace(Workspace):
     # Why not directly reuse FileBasedFactorImplementation.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.code_dict = (
             {}
@@ -132,12 +130,12 @@ class FBWorkspace(Workspace):
         """
         return list(self.workspace_path.iterdir())
 
-    def inject_code_from_folder(self, folder_path: Path):
+    def inject_code_from_folder(self, folder_path: Path) -> None:
         """
         Load the workspace from the folder
         """
         for file_path in folder_path.iterdir():
-            if file_path.suffix == ".py" or file_path.suffix == ".yaml":
+            if file_path.suffix in {".py", ".yaml"}:
                 self.inject_code(**{file_path.name: file_path.read_text()})
 
     def copy(self) -> FBWorkspace:
@@ -154,7 +152,7 @@ class FBWorkspace(Workspace):
         self.code_dict = {}
 
     @abstractmethod
-    def execute(self, *args, **kwargs) -> object:
+    def execute(self, *args: Any, **kwargs: Any) -> object:
         """
         Before each execution, make sure to prepare and inject code
         """

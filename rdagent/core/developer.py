@@ -22,4 +22,5 @@ class Developer(ABC, Generic[ASpecificExp]):
         due to it affects the learning process.
 
         """
-        raise NotImplementedError("generate method is not implemented.")
+        error_message = "generate method is not implemented."
+        raise NotImplementedError(error_message)

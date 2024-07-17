@@ -125,4 +125,5 @@ class HypothesisExperiment2Feedback:
         between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-        raise NotImplementedError("generateFeedback method is not implemented.")
+        error_message = "generateFeedback method is not implemented."
+        raise NotImplementedError(error_message)

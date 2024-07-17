@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from tqdm import tqdm
 
@@ -30,7 +30,7 @@ class RAGEvoAgent(EvoAgent):
     def __init__(self, max_loop: int, evolving_strategy: Any, rag: Any) -> None:
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
-        self.evolving_trace: List[EvoStep] = []
+        self.evolving_trace: list[EvoStep] = []
 
     def multistep_evolve(
         self,

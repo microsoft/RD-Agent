@@ -1,4 +1,4 @@
-class CoderException(Exception):  # noqa: E818
+class CoderException(Exception):  # noqa: N818
     """
     Exceptions raised when Implementing and running code.
     - start: FactorTask => FactorGenerator
@@ -26,19 +26,19 @@ class NoOutputException(CoderException):
     """
 
 
-class RunnerException(Exception):
+class RunnerException(Exception):  # noqa: N818
     """
     Exceptions raised when running the code output.
     """
 
 
-class FactorEmptyException(Exception):
+class FactorEmptyException(Exception):  # noqa: N818
     """
     Exceptions raised when no factor is generated correctly
     """
 
 
-class ModelEmptyException(Exception):
+class ModelEmptyException(Exception):  # noqa: N818
     """
     Exceptions raised when no model is generated correctly
     """
