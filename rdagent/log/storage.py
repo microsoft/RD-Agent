@@ -1,10 +1,11 @@
+import re
 import json
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from .base import Storage
+from .base import Message, Storage
 
 
 class FileStorage(Storage):
@@ -56,7 +57,45 @@ class FileStorage(Storage):
             return path
 
     def iter_msg(self, watch: bool = False):
-        for file in self.path.glob("**/*"):
-            if file.name.endswith(".log"):
-                # "2024-07-17 09:45:42.236 | INFO     | rdagent.oai.llm_utils:_create_chat_completion_inner_function:55"
+        log_pattern = re.compile(
+            r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| "
+            r"(?P<level>DEBUG|INFO|WARNING|ERROR|CRITICAL) *\| "
+            r"(?P<caller>.+:.+:\d+) - "
+        )
+        msg_l = []
+        for file in self.path.glob("**/*.log"):
+            tag = str(file.relative_to(self.path)).replace("/", ".").rsplit(".", 1)[0]
+            pid = file.parent.name
+
+            with file.open("r") as f:
+                content = f.read()
+
+            matches, next_matches = log_pattern.finditer(content), log_pattern.finditer(content)
+            next_match = next(next_matches, None)
+            # NOTE: the content will be the text between `match` and `next_match`
+            for match in matches:
+                next_match = next(next_matches, None)
+
+                timestamp_str = match.group("timestamp")
+                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+                level = match.group("level")
+                caller = match.group("caller")
+
+                # Extract the message content
+                message_start = match.end()
+                message_end = next_match.start() if next_match else len(content)
+                message_content = content[message_start:message_end].strip()
+
+                m = Message(
+                    tag=tag,
+                    level=level,
+                    timestamp=timestamp,
+                    caller=caller,
+                    pid_trace=pid,
+                    content=message_content
+                )
+                msg_l.append(m)
+        msg_l.sort(key=lambda x: x.timestamp)
+        for m in msg_l:
+            yield m
         # TODO: load the pickle based on the file path
