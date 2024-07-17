@@ -18,7 +18,7 @@ from rdagent.components.document_reader.document_reader import (
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
@@ -26,7 +26,6 @@ from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
 )
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
 
 def classify_report_from_dict(
     report_dict: Mapping[str, str],
@@ -69,7 +68,7 @@ def classify_report_from_dict(
         if isinstance(value, str):
             content = value
         else:
-            RDAgentLog().warning(f"输入格式不符合要求: {file_name}")
+            logger.warning(f"输入格式不符合要求: {file_name}")
             res_dict[file_name] = {"class": 0}
             continue
 
@@ -101,7 +100,7 @@ def classify_report_from_dict(
                 res = json.loads(res)
                 vote_list.append(int(res["class"]))
             except json.JSONDecodeError:
-                RDAgentLog().warning(f"返回值无法解析: {file_name}")
+                logger.warning(f"返回值无法解析: {file_name}")
                 res_dict[file_name] = {"class": 0}
             count_0 = vote_list.count(0)
             count_1 = vote_list.count(1)
@@ -246,7 +245,7 @@ def extract_factors_from_report_dict(
             if int(value.get("class")) == 1:
                 useful_report_dict[key] = report_dict[key]
         else:
-            RDAgentLog().warning(f"Invalid input format: {key}")
+            logger.warning(f"Invalid input format: {key}")
 
     final_report_factor_dict = {}
     # for file_name, content in useful_report_dict.items():
@@ -276,7 +275,7 @@ def extract_factors_from_report_dict(
                 file_name = file_names[index]
                 final_report_factor_dict.setdefault(file_name, {})
                 final_report_factor_dict[file_name] = result.get()
-        RDAgentLog().info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
+        logger.info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
 
     return final_report_factor_dict
 
@@ -499,7 +498,7 @@ Factor variables: {variables}
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
                 target_k = k
-                RDAgentLog().info(f"K-means group number: {k}")
+                logger.info(f"K-means group number: {k}")
                 break
     factor_name_groups = [[factor_names[index] for index in index_group] for index_group in kmeans_index_group]
 

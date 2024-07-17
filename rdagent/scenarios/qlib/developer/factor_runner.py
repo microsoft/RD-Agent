@@ -1,22 +1,17 @@
 import pickle
-import shutil
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import pandas as pd
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyException
-from rdagent.core.log import RDAgentLog
-from rdagent.oai.llm_utils import md5_hash
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-from rdagent.utils.env import QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
-logger = RDAgentLog()
 
 # class QlibFactorExpWorkspace:
 

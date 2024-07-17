@@ -16,10 +16,10 @@ from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
-from rdagent.core.experiment import Task, Workspace
-from rdagent.core.log import RDAgentLog
+from rdagent.core.experiment import Implementation, Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -588,6 +588,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                     value_feedback=factor_feedback.factor_value_feedback,
                     code_feedback=factor_feedback.code_feedback,
                 )
+            logger.info(factor_feedback.final_decision)
             return factor_feedback
 
 
@@ -622,7 +623,7 @@ class FactorMultiEvaluator(Evaluator):
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
         ]
-        RDAgentLog().info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
+        logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
 
         return multi_implementation_feedback
 

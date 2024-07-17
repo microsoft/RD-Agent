@@ -19,11 +19,15 @@ class RDAgentException(Exception):  # noqa: N818
 
 
 class SingletonMeta(type):
-    _instance_dict: ClassVar[dict] = {}
+    def __init__(cls, *args, **kwargs):
+        cls._instance_dict: dict = {}
+        # This must be the class variable instead of sharing one in all classes to avoid confliction like `A()`, `B()`
+        super().__init__(*args, **kwargs)
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
         if args:
+            # TODO: this restriction can be solved.
             exception_message = "Please only use kwargs in Singleton to avoid misunderstanding."
             raise RDAgentException(exception_message)
         kwargs_hash = hash(tuple(sorted(kwargs.items())))

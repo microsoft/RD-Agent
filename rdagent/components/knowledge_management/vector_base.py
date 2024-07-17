@@ -5,9 +5,8 @@ from typing import List, Tuple, Union
 import pandas as pd
 from scipy.spatial.distance import cosine
 
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-
 
 class KnowledgeMetaData:
     def __init__(self, content: str = "", label: str = None, embedding=None, identity=None):
@@ -127,7 +126,7 @@ class PDVectorBase(VectorBase):
         else:
             self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
 
-        RDAgentLog().info(f"VectorBase loaded, shape={self.vector_df.shape}")
+        logger.info(f"VectorBase loaded, shape={self.vector_df.shape}")
 
     def shape(self):
         return self.vector_df.shape
@@ -205,4 +204,4 @@ class PDVectorBase(VectorBase):
 
     def save(self, vector_df_path, **kwargs):
         self.vector_df.to_pickle(vector_df_path)
-        RDAgentLog().info(f"Save vectorBase vector_df to: {vector_df_path}")
+        logger.info(f"Save vectorBase vector_df to: {vector_df_path}")

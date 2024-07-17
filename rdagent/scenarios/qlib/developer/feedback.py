@@ -7,7 +7,7 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
