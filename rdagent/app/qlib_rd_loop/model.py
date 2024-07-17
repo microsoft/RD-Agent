@@ -15,6 +15,8 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import import_class
+from rdagent.log import rdagent_logger as logger
+
 
 scen: Scenario = import_class(PROP_SETTING.qlib_model_scen)()
 
@@ -28,11 +30,16 @@ qlib_model_runner: TaskGenerator = import_class(PROP_SETTING.qlib_model_runner)(
 qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_summarizer)(scen)
 
 trace = Trace(scen=scen)
-for _ in range(PROP_SETTING.evolving_n):
-    hypothesis = hypothesis_gen.gen(trace)
-    exp = hypothesis2experiment.convert(hypothesis, trace)
-    exp = qlib_model_coder.generate(exp)
-    exp = qlib_model_runner.generate(exp)
-    feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
 
-    trace.hist.append((hypothesis, exp, feedback))
+with logger.tag("model.loop"):
+    for _ in range(PROP_SETTING.evolving_n):
+        with logger.tag("r"): # research
+            hypothesis = hypothesis_gen.gen(trace)
+            exp = hypothesis2experiment.convert(hypothesis, trace)
+        with logger.tag("d"): # develop
+            exp = qlib_model_coder.generate(exp)
+        with logger.tag("ef"): # evaluate and feedback
+            exp = qlib_model_runner.generate(exp)
+            feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
+
+        trace.hist.append((hypothesis, exp, feedback))

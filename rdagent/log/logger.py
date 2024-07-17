@@ -22,7 +22,7 @@ class RDAgentLog(SingletonBaseClass):
     Here is an example tag
 
     .. code-block::
-        
+
         a
         - b
         - c

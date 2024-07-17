@@ -92,7 +92,7 @@ model_feedback_generation:
       "Feedback for Hypothesis": "Observations related to the hypothesis",
       "New Hypothesis": "Put your new hypothesis here.",
       "Reasoning": "Provide reasoning for the hypothesis here.",
-      "Decision": True or False,
+      "Decision": <true or false>,
     }
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
