@@ -1,9 +1,10 @@
-from rdagent.components.benchmark.conf import BenchmarkSettings
-from rdagent.components.benchmark.eval_method import FactorImplementEval
-from rdagent.core.utils import import_class
 from rdagent.scenarios.qlib.factor_task_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
 )
+
+from rdagent.components.benchmark.conf import BenchmarkSettings
+from rdagent.components.benchmark.eval_method import FactorImplementEval
+from rdagent.core.utils import import_class
 
 # 1.read the settings
 bs = BenchmarkSettings()

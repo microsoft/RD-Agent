@@ -21,7 +21,7 @@ data_handler_config: &data_handler_config
                             - ["LABEL0"]
                 - class: qlib.data.dataset.loader.StaticDataLoader
                   kwargs:
-                    # config: "/home/finco/v-yuanteli/RD-Agent/rdagent/scenarios/qlib/task_generator/env_factor/combined_factors_df.pkl"
+                    # config: "/home/finco/v-yuanteli/RD-Agent/rdagent/scenarios/qlib/task_generator/factor_template/combined_factors_df.pkl"
                     config: "combined_factors_df.pkl"
 
     learn_processors:

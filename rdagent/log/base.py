@@ -47,15 +47,16 @@ class View:
 
     Display the content in the storage
     """
+
     # TODO: pleas fix me
     @abstractmethod
-    def display(s: Storage, watch: bool=False):
+    def display(s: Storage, watch: bool = False):
         """
 
         Parameters
         ----------
         s : Storage
-            
+
         watch : bool
             should we watch the new content and display them
         """

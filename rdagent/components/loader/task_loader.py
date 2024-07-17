@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Sequence
 
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.components.coder.model_coder.model import ModelImplementation, ModelTask
-from rdagent.core.experiment import ImpLoader, Loader
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.core.experiment import Loader, WsLoader
 
 
 class FactorTaskLoader(Loader[FactorTask]):
@@ -80,16 +80,15 @@ class ModelTaskLoaderJson(ModelTaskLoader):
         return model_impl_task_list
 
 
-class ModelImpLoader(ImpLoader[ModelTask, ModelImplementation]):
+class ModelWsLoader(WsLoader[ModelTask, ModelFBWorkspace]):
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
 
-    def load(self, task: ModelTask) -> ModelImplementation:
+    def load(self, task: ModelTask) -> ModelFBWorkspace:
         assert task.name is not None
-        mti = ModelImplementation(task)
+        mti = ModelFBWorkspace(task)
         mti.prepare()
         with open(self.path / f"{task.name}.py", "r") as f:
             code = f.read()
         mti.inject_code(**{"model.py": code})
-        return mti
         return mti

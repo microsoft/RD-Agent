@@ -11,14 +11,14 @@ from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
     ModelEvolvingItem,
 )
-from rdagent.components.coder.model_coder.model import ModelImplementation, ModelTask
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import Implementation, Task
-from rdagent.log import rdagent_logger as logger
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -62,15 +62,15 @@ class ModelCodeEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         model_execution_feedback: str = "",
         model_value_feedback: str = "",
     ):
         assert isinstance(target_task, ModelTask)
-        assert isinstance(implementation, ModelImplementation)
+        assert isinstance(implementation, ModelFBWorkspace)
         if gt_implementation is not None:
-            assert isinstance(gt_implementation, ModelImplementation)
+            assert isinstance(gt_implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
         code = implementation.code
@@ -120,16 +120,16 @@ class ModelFinalEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         model_execution_feedback: str,
         model_value_feedback: str,
         model_code_feedback: str,
     ):
         assert isinstance(target_task, ModelTask)
-        assert isinstance(implementation, ModelImplementation)
+        assert isinstance(implementation, ModelFBWorkspace)
         if gt_implementation is not None:
-            assert isinstance(gt_implementation, ModelImplementation)
+            assert isinstance(gt_implementation, ModelFBWorkspace)
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
@@ -219,8 +219,8 @@ class ModelCoderEvaluator(Evaluator):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Implementation,
-        gt_implementation: Implementation,
+        implementation: Workspace,
+        gt_implementation: Workspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> ModelCoderFeedback:
@@ -248,7 +248,7 @@ class ModelCoderEvaluator(Evaluator):
         input_value = 0.4
         param_init_value = 0.6
 
-        assert isinstance(implementation, ModelImplementation)
+        assert isinstance(implementation, ModelFBWorkspace)
         model_execution_feedback, gen_tensor = implementation.execute(
             batch_size=batch_size,
             num_features=num_features,
@@ -257,7 +257,7 @@ class ModelCoderEvaluator(Evaluator):
             param_init_value=param_init_value,
         )
         if gt_implementation is not None:
-            assert isinstance(gt_implementation, ModelImplementation)
+            assert isinstance(gt_implementation, ModelFBWorkspace)
             _, gt_tensor = gt_implementation.execute(
                 batch_size=batch_size,
                 num_features=num_features,
@@ -303,26 +303,21 @@ class ModelCoderMultiEvaluator(Evaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> List[ModelCoderFeedback]:
-        multi_implementation_feedback = []
-
-        calls = []
-        for index in range(len(evo.sub_tasks)):
-            corresponding_implementation = evo.sub_implementations[index]
-            corresponding_gt_implementation = (
-                evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None
-            )
-            calls.append(
+        multi_implementation_feedback = multiprocessing_wrapper(
+            [
                 (
                     ModelCoderEvaluator(scen=self.scen).evaluate,
                     (
                         evo.sub_tasks[index],
-                        corresponding_implementation,
-                        corresponding_gt_implementation,
+                        evo.sub_workspace_list[index],
+                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
                         queried_knowledge,
                     ),
-                ),
-            )
-        multi_implementation_feedback = multiprocessing_wrapper(calls, n=MODEL_IMPL_SETTINGS.evo_multi_proc_n)
+                )
+                for index in range(len(evo.sub_tasks))
+            ],
+            n=RD_AGENT_SETTINGS.multi_proc_n,
+        )
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision

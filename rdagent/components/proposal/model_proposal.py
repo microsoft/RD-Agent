@@ -21,13 +21,14 @@ ModelHypothesis = Hypothesis
 
 
 class ModelHypothesisGen(HypothesisGen):
-
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]: ...
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> ModelHypothesis: ...
+    def convert_response(self, response: str) -> ModelHypothesis:
+        ...
 
     def gen(self, trace: Trace) -> ModelHypothesis:
         context_dict, json_flag = self.prepare_context(trace)
@@ -63,10 +64,12 @@ class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
         super().__init__()
 
     @abstractmethod
-    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def convert_response(self, response: str, trace: Trace) -> ModelExperiment: ...
+    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
+        ...
 
     def convert(self, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
         context, json_flag = self.prepare_context(hypothesis, trace)

@@ -3,22 +3,19 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelImplementation,
-)
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBWorkspace
+from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.oai.llm_utils import APIBackend
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class ModelCodeWriter(TaskGenerator[ModelExperiment]):
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+class ModelCodeWriter(Developer[ModelExperiment]):
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
         mti_l = []
         for t in exp.sub_tasks:
-            mti = ModelImplementation(t)
+            mti = ModelFBWorkspace(t)
             mti.prepare()
             pr = Prompts(file_path=DIRNAME / "prompt.yaml")
 
@@ -40,5 +37,5 @@ class ModelCodeWriter(TaskGenerator[ModelExperiment]):
             code = match.group(1)
             mti.inject_code(**{"model.py": code})
             mti_l.append(mti)
-        exp.sub_implementations = mti_l
+        exp.sub_workspace_list = mti_l
         return exp

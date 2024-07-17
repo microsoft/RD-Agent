@@ -9,7 +9,7 @@ import torch
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.exception import CodeFormatException
-from rdagent.core.experiment import Experiment, FBImplementation, Task
+from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils import get_module_by_module_path
 
@@ -40,7 +40,7 @@ model_type: {self.model_type}
         return f"<{self.__class__.__name__} {self.name}>"
 
 
-class ModelImplementation(FBImplementation):
+class ModelFBWorkspace(FBWorkspace):
     """
     It is a Pytorch model implementation task;
     All the things are placed in a folder.
@@ -60,18 +60,6 @@ class ModelImplementation(FBImplementation):
 
     """
 
-    def __init__(self, target_task: Task) -> None:
-        super().__init__(target_task)
-
-    def prepare(self) -> None:
-        """
-        Prepare for the workspace;
-        """
-        unique_id = uuid.uuid4()
-        self.workspace_path = Path(MODEL_IMPL_SETTINGS.model_execution_workspace) / f"M{unique_id}"
-        # start with `M` so that it can be imported via python
-        self.workspace_path.mkdir(parents=True, exist_ok=True)
-
     def execute(
         self,
         batch_size: int = 8,
@@ -80,14 +68,15 @@ class ModelImplementation(FBImplementation):
         input_value: float = 1.0,
         param_init_value: float = 1.0,
     ):
+        super().execute()
         try:
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
                 target_file_name = md5_hash(
                     f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}_{self.code_dict['model.py']}"
                 )
-                cache_file_path = Path(MODEL_IMPL_SETTINGS.model_cache_location) / f"{target_file_name}.pkl"
-                Path(MODEL_IMPL_SETTINGS.model_cache_location).mkdir(exist_ok=True, parents=True)
+                cache_file_path = Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
+                Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
@@ -115,4 +104,4 @@ class ModelImplementation(FBImplementation):
             return f"Execution error: {e}", None
 
 
-class ModelExperiment(Experiment[ModelTask, ModelImplementation]): ...
+ModelExperiment = Experiment

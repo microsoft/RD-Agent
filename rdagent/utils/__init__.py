@@ -35,3 +35,21 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
         else:
             module = importlib.import_module(module_path)
     return module
+
+
+def convert2bool(value: Union[str, bool]) -> bool:
+    """
+    Motivation: the return value of LLM is not stable. Try to convert the value into bool
+    """
+    # TODO: if we have more similar functions, we can build a library to converting unstable LLM response to stable results.
+    if isinstance(value, str):
+        v = value.lower().strip()
+        if v in ["true", "yes", "ok"]:
+            return True
+        if v in ["false", "no"]:
+            return False
+        raise ValueError(f"Can not convert {value} to bool")
+    elif isinstance(value, bool):
+        return value
+    else:
+        raise ValueError(f"Unknown value type {value} to bool")

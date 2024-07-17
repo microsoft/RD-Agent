@@ -10,6 +10,10 @@ import os
 import torch
 from dotenv import load_dotenv
 
+from rdagent.components.coder.model_coder.CoSTEER.evaluators import (
+    shape_evaluator,
+    value_evaluator,
+)
 from rdagent.oai.llm_utils import APIBackend
 
 assert load_dotenv()
@@ -68,8 +72,6 @@ for test_mode in ["zeros", "ones", "randn"]:
     os.system("rm node_features.pt")
     # load the output and print the shape
 
-    from evaluator import shape_evaluator, value_evaluator
-
     try:
         llm_output = torch.load("llm_output.pt")
     except:
@@ -80,7 +82,7 @@ for test_mode in ["zeros", "ones", "randn"]:
     average_value_eval.append(value_evaluator(llm_output, gt_output)[1])
 
     print("Shape evaluation: ", average_shape_eval[-1])
-    print("Value evaluation:super().generate(task_l) ", average_value_eval[-1])
+    print("Value evaluation:super().develop(task_l) ", average_value_eval[-1])
 
     os.system("rm llm_output.pt")
     os.system("rm gt_output.pt")

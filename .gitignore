@@ -64,6 +64,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+^log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -155,6 +156,10 @@ git_ignore_folder/
 *.db
 
 # Docker
-env_factor/mlruns/
+factor_template/mlruns/
 env_tpl
 mlruns/
+
+# possible output from coder or runner
+*.pth
+*qlib_res.csv

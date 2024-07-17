@@ -23,7 +23,7 @@ class LogColors:
     END = "\033[0m"
 
     @classmethod
-    def get_all_colors(cls: type['LogColors']) -> list:
+    def get_all_colors(cls: type["LogColors"]) -> list:
         names = dir(cls)
         names = [name for name in names if not name.startswith("__") and not callable(getattr(cls, name))]
         return [getattr(cls, name) for name in names]
@@ -52,8 +52,8 @@ class LogColors:
         """
         It is for removing ansi ctrl characters in the string(e.g. colored text)
         """
-        ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-        return ansi_escape.sub('', s)
+        ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+        return ansi_escape.sub("", s)
 
 
 def get_caller_info():
@@ -63,8 +63,8 @@ def get_caller_info():
     caller_info = stack[2]
     frame = caller_info[0]
     info = {
-        'line': caller_info.lineno,
-        'name': frame.f_globals['__name__'],  # Get the module name from the frame's globals
-        'function': frame.f_code.co_name,  # Get the caller's function name
+        "line": caller_info.lineno,
+        "name": frame.f_globals["__name__"],  # Get the module name from the frame's globals
+        "function": frame.f_code.co_name,  # Get the caller's function name
     }
     return info
