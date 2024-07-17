@@ -40,7 +40,7 @@ with logger.tag("model.loop"):
                 exp = qlib_model_coder.develop(exp)
             with logger.tag("ef"): # evaluate and feedback
                 exp = qlib_model_runner.develop(exp)
-                feedback = qlib_model_summarizer.generate_feedback(exp, hypothesis, trace)
+                feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
             trace.hist.append((hypothesis, exp, feedback))
         except ModelEmptyException as e:
             logger.warning(e)

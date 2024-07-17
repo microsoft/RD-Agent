@@ -119,7 +119,7 @@ class HypothesisExperiment2Feedback:
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:  # noqa: ARG002
+    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:  # noqa: ARG002,N802
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).
