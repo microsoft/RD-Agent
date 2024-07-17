@@ -183,7 +183,7 @@ def __extract_factors_formulation_from_content(
         except json.JSONDecodeError:
             parse_success = False
         if ret_json_str is None or not parse_success:
-            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
+            current_user_prompt = "Your response didn't follow the instruction might be wrong json format.\nRemember not to add any dots (...) in the json string which will cause json parse error!!!\nTry again."
         else:
             for name, formulation_and_description in ret_dict.items():
                 if name in factor_dict:
