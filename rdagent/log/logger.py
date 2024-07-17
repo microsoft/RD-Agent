@@ -70,8 +70,10 @@ class RDAgentLog(SingletonBaseClass):
 
         # TODO: It may result in error in mutithreading or co-routine
         self._tag = self._tag + tag
-        yield
-        self._tag = self._tag[: -len(tag)]
+        try:
+            yield
+        finally:
+            self._tag = self._tag[: -len(tag)]
 
     def get_pids(self) -> str:
         """
