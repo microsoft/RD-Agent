@@ -4,14 +4,17 @@ from abc import abstractmethod
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
+from dataclasses import dataclass
 
 
+@dataclass
 class Message:
     """The info unit of the storage"""
     tag: str  # namespace like like a.b.c
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]  # The level of the logging
     timestamp: datetime  # The time when the message is generated
-    caller: Optional[str] # The caller of the logging
+    caller: Optional[str] # The caller of the logging like `rdagent.oai.llm_utils:_create_chat_completion_inner_function:55`(file:func:line)
     pid_trace: Optional[str]  # The process id trace;  A-B-C represents A create B, B create C
     content: object  # The content
 
