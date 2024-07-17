@@ -149,9 +149,9 @@ class FactorRAGStrategyV1(RAGStrategy):
         for target_factor_task in evo.sub_tasks:
             target_factor_task_information = target_factor_task.get_task_information()
             if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
-                )
+                queried_knowledge.success_task_to_knowledge_dict[
+                    target_factor_task_information
+                ] = self.knowledgebase.implementation_trace[target_factor_task_information][-1]
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
@@ -163,12 +163,14 @@ class FactorRAGStrategyV1(RAGStrategy):
             ):
                 queried_knowledge.failed_task_info_set.add(target_factor_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
-                        [],
-                    )[-v1_query_former_trace_limit:]
-                )
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[
+                    target_factor_task_information
+                ] = self.knowledgebase.implementation_trace.setdefault(
+                    target_factor_task_information,
+                    [],
+                )[
+                    -v1_query_former_trace_limit:
+                ]
 
                 knowledge_base_success_task_list = list(
                     self.knowledgebase.success_task_info_set,
@@ -189,9 +191,9 @@ class FactorRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
-                    similar_successful_knowledge
-                )
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
+                    target_factor_task_information
+                ] = similar_successful_knowledge
         return queried_knowledge
 
 
@@ -425,9 +427,9 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
-                    former_trace_knowledge[-v2_query_former_trace_limit:]
-                )
+                factor_implementation_queried_graph_knowledge.former_traces[
+                    target_factor_task_information
+                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 

@@ -28,7 +28,6 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
     """
 
     def develop(self, exp: QlibModelExperiment) -> QlibModelExperiment:
-
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:

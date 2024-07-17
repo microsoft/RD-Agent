@@ -50,7 +50,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: FactorQueriedKnowledge | None = None,
         **kwargs,
     ) -> FactorEvolvingItem:
-
         # 1.找出需要evolve的factor
         to_be_finished_task_index = []
         for index, target_factor_task in enumerate(evo.sub_tasks):

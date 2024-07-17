@@ -326,7 +326,6 @@ class FactorCorrelationEvaluator(FactorEvaluator):
 
 
 class FactorValueEvaluator(FactorEvaluator):
-
     def evaluate(
         self,
         implementation: Workspace,

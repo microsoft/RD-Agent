@@ -1,9 +1,11 @@
 import qlib
-from mlflow.tracking import MlflowClient
 from mlflow.entities import ViewType
+from mlflow.tracking import MlflowClient
+
 qlib.init()
 
 from qlib.workflow import R
+
 # here is the documents of the https://qlib.readthedocs.io/en/latest/component/recorder.html
 
 # TODO: list all the recorder and metrics 

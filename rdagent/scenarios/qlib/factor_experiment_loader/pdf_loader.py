@@ -18,14 +18,15 @@ from rdagent.components.document_reader.document_reader import (
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 def classify_report_from_dict(
     report_dict: Mapping[str, str],

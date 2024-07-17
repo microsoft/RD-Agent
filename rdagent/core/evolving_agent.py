@@ -13,14 +13,12 @@ class EvoAgent(ABC):
         self.evolving_strategy = evolving_strategy
 
     @abstractmethod
-    def multistep_evolve(
-        self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any
-    ) -> EvolvableSubjects: ...
+    def multistep_evolve(self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any) -> EvolvableSubjects:
+        ...
 
     @abstractmethod
-    def filter_evolvable_subjects_by_feedback(
-        self, evo: EvolvableSubjects, feedback: Feedback
-    ) -> EvolvableSubjects: ...
+    def filter_evolvable_subjects_by_feedback(self, evo: EvolvableSubjects, feedback: Feedback) -> EvolvableSubjects:
+        ...
 
 
 class RAGEvoAgent(EvoAgent):

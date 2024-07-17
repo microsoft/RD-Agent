@@ -9,9 +9,9 @@ from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
 )
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 scheduler_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")

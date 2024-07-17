@@ -8,9 +8,9 @@
 
 import importlib.metadata
 
-project = 'RDAgent'
-copyright = '2024, Microsoft'
-author = 'Microsoft'
+project = "RDAgent"
+copyright = "2024, Microsoft"
+author = "Microsoft"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -20,13 +20,13 @@ extensions = []
 autodoc_member_order = "bysource"
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
-source_encoding = 'utf-8'
+source_encoding = "utf-8"
 
 # The main toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -42,21 +42,21 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['build']
+exclude_patterns = ["build"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 try:
     import furo
 
-    html_theme = 'furo'
+    html_theme = "furo"
     html_theme_options = {
         "navigation_with_keys": True,
     }
 except ImportError:
-    html_theme = 'default'
+    html_theme = "default"
 
-html_static_path = ['_static']
+html_static_path = ["_static"]

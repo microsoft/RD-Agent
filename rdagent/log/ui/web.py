@@ -1,18 +1,16 @@
-from rdagent.log.base import View, Storage
 from pathlib import Path
+
+from rdagent.log.base import Storage, View
+
 
 class ProcessView(View):
     def __init__(self, trace_path: Path):
-
-        
         # Save logs to your desired data structure
         # ...
         pass
 
-
     def display(s: Storage, watch: bool = False):
         pass
-
 
 
 class WebView(View):
@@ -55,6 +53,7 @@ class WebView(View):
     2. Map path like `a.b.c` to frontend components
     3. Display logic
     """
+
     def __init__(self, trace_path: Path):
         pass
         # Save logs to your desired data structure
@@ -74,7 +73,7 @@ class STLWindow:
     ...
 
     def consume_msg(self, msg):
-        ... # update it's view
+        ...  # update it's view
 
 
 class STLUI:

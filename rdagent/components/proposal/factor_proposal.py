@@ -27,10 +27,12 @@ class FactorHypothesisGen(HypothesisGen):
 
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]: ...
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> FactorHypothesis: ...
+    def convert_response(self, response: str) -> FactorHypothesis:
+        ...
 
     def gen(self, trace: Trace) -> FactorHypothesis:
         context_dict, json_flag = self.prepare_context(trace)
@@ -62,12 +64,13 @@ class FactorHypothesisGen(HypothesisGen):
 
 
 class FactorHypothesis2Experiment(Hypothesis2Experiment[FactorExperiment]):
+    @abstractmethod
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
+        ...
 
     @abstractmethod
-    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
-
-    @abstractmethod
-    def convert_response(self, response: str, trace: Trace) -> FactorExperiment: ...
+    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
+        ...
 
     def convert(self, hypothesis: Hypothesis, trace: Trace) -> FactorExperiment:
         context, json_flag = self.prepare_context(hypothesis, trace)
