@@ -98,5 +98,8 @@ class RDAgentSettings(BaseSettings):
     # workspace conf
     workspace_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
 
+    # multi processing conf
+    multi_proc_n: int = 1
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()

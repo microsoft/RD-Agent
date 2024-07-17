@@ -16,6 +16,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleColumnEvaluator,
 )
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ImplementRunException
 from rdagent.core.experiment import Task, Workspace
@@ -155,7 +156,7 @@ class FactorImplementEval(BaseEval):
                 (self.eval_case, (gt_case, gen_factor))
                 for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
             ],
-            n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
         for gt_case, eval_res, gen_factor in tqdm(zip(test_cases_all_rounds, eval_res_list, gen_factor_l_all_rounds)):

@@ -122,7 +122,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                 (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge))
                 for target_index in to_be_finished_task_index
             ],
-            n=MODEL_IMPL_SETTINGS.evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):

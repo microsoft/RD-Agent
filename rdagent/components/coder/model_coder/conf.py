@@ -23,8 +23,6 @@ class ModelImplSettings(BaseSettings):
     query_similar_success_limit: int = 5
     fail_task_trial_limit: int = 20
 
-    evo_multi_proc_n: int = 1
-
     enable_execution_cache: bool = True  # whether to enable the execution cache
 
 

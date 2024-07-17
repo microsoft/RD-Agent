@@ -36,8 +36,6 @@ class FactorImplementSettings(BaseSettings):
     v2_error_summary: bool = False
     v2_knowledge_sampler: float = 1.0
 
-    evo_multi_proc_n: int = 16  # how many processes to use for evolving (including eval & generation)
-
     file_based_execution_timeout: int = 120  # seconds for each factor implementation execution
 
     select_method: SELECT_METHOD = "random"

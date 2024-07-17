@@ -615,7 +615,7 @@ class FactorMultiEvaluator(Evaluator):
                 )
                 for index in range(len(evo.sub_tasks))
             ],
-            n=FACTOR_IMPLEMENT_SETTINGS.evo_multi_proc_n,
+            n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
         final_decision = [
