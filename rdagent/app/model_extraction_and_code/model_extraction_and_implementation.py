@@ -5,7 +5,7 @@ from rdagent.components.coder.model_coder.task_loader import (
     ModelExperimentLoaderFromPDFfiles,
 )
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelScenario
-from rdagent.scenarios.qlib.model_coder import QlibModelCoSTEER
+from rdagent.scenarios.qlib.developer.model_coder import QlibModelCoSTEER
 
 
 def extract_models_and_implement(report_file_path: str = "../test_doc") -> None:

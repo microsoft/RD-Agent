@@ -2,7 +2,7 @@
 from dotenv import load_dotenv
 
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
-from rdagent.scenarios.qlib.factor_coder import QlibFactorCoSTEER
+from rdagent.scenarios.qlib.developer.factor_coder import QlibFactorCoSTEER
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
 )

@@ -13,16 +13,16 @@ class PropSetting(BaseSettings):
     factor_hypothesis2experiment: str = (
         "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
     )
-    factor_coder: str = "rdagent.scenarios.qlib.factor_coder.QlibFactorCoSTEER"
-    factor_runner: str = "rdagent.scenarios.qlib.developer.data.QlibFactorRunner"
+    factor_coder: str = "rdagent.scenarios.qlib.developer.factor_coder.QlibFactorCoSTEER"
+    factor_runner: str = "rdagent.scenarios.qlib.developer.factor_runner.QlibFactorRunner"
     factor_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorHypothesisExperiment2Feedback"
 
     # TODO: model part is not finished yet
     model_scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
     model_hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesisGen"
     model_hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesis2Experiment"
-    model_coder: str = "rdagent.scenarios.qlib.model_coder.QlibModelCoSTEER"
-    model_runner: str = "rdagent.scenarios.qlib.developer.model.QlibModelRunner"
+    model_coder: str = "rdagent.scenarios.qlib.developer.model_coder.QlibModelCoSTEER"
+    model_runner: str = "rdagent.scenarios.qlib.developer.model_runner.QlibModelRunner"
     model_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelHypothesisExperiment2Feedback"
 
     evolving_n: int = 10
