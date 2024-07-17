@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Generic, Optional, Sequence, TypeVar
+from typing import Any, Generic, Sequence, TypeVar
 
 """
 This file contains the all the class about organizing the task in RD-Agent.
@@ -13,11 +15,10 @@ class Task(ABC):
     # I think the task version applies to the base class.
 
     @abstractmethod
-    def get_task_information(self):
+    def get_task_information(self) -> str:
         """
         Get the task information string to build the unique key
         """
-        pass
 
 
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
@@ -32,8 +33,9 @@ class Implementation(ABC, Generic[ASpecificTask]):
         self.target_task = target_task
 
     @abstractmethod
-    def execute(self, *args, **kwargs) -> object:
-        raise NotImplementedError("execute method is not implemented.")
+    def execute(self, *args: Any, **kwargs: Any) -> object:
+        error_message = "execute method is not implemented."
+        raise NotImplementedError(error_message)
 
 
 ASpecificImp = TypeVar("ASpecificImp", bound=Implementation)
@@ -42,7 +44,8 @@ ASpecificImp = TypeVar("ASpecificImp", bound=Implementation)
 class ImpLoader(ABC, Generic[ASpecificTask, ASpecificImp]):
     @abstractmethod
     def load(self, task: ASpecificTask) -> ASpecificImp:
-        raise NotImplementedError("load method is not implemented.")
+        error_message = "load method is not implemented."
+        raise NotImplementedError(error_message)
 
 
 class FBImplementation(Implementation):
@@ -55,8 +58,9 @@ class FBImplementation(Implementation):
     - Output
         - After execution, it will generate the final output as file.
 
-    A typical way to run the pipeline of FBImplementation will be
-    (We didn't add it as a method due to that we may pass arguments into `prepare` or `execute` based on our requirements.)
+    A typical way to run the pipeline of FBImplementation will be:
+    (We didn't add it as a method due to that we may pass arguments into
+    `prepare` or `execute` based on our requirements.)
 
     .. code-block:: python
 
@@ -72,10 +76,10 @@ class FBImplementation(Implementation):
     # Why not directly reuse FileBasedFactorImplementation.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
-    def __init__(self, *args, code_dict: Dict[str, str] = None, **kwargs) -> None:
+    def __init__(self, *args: Any, code_dict: dict[str, str] | None = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.code_dict = code_dict  # The code to be injected into the folder, store them in the variable
-        self.workspace_path: Optional[Path] = None
+        self.workspace_path: Path | None = None
 
     @property
     def code(self) -> str:
@@ -85,7 +89,7 @@ class FBImplementation(Implementation):
         return code_string
 
     @abstractmethod
-    def prepare(self, *args, **kwargs):
+    def prepare(self, *args: Any, **kwargs: Any) -> None:
         """
         Prepare all the files except the injected code
         - Data
@@ -97,7 +101,7 @@ class FBImplementation(Implementation):
         """
         # TODO: model and factor prepare;
 
-    def inject_code(self, **files: str):
+    def inject_code(self, **files: str) -> None:
         """
         Inject the code into the folder.
         {
@@ -106,7 +110,7 @@ class FBImplementation(Implementation):
         """
         self.code_dict = files
         for k, v in files.items():
-            with open(self.workspace_path / k, "w") as f:
+            with Path.open(self.workspace_path / k, "w") as f:
                 f.write(v)
 
     def get_files(self) -> list[Path]:
@@ -139,5 +143,6 @@ TaskOrExperiment = TypeVar("TaskOrExperiment", Task, Experiment)
 
 class Loader(ABC, Generic[TaskOrExperiment]):
     @abstractmethod
-    def load(self, *args, **kwargs) -> TaskOrExperiment:
-        raise NotImplementedError("load method is not implemented.")
+    def load(self, *args: Any, **kwargs: Any) -> TaskOrExperiment:
+        err_msg = "load method is not implemented."
+        raise NotImplementedError(err_msg)

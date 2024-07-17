@@ -1,4 +1,4 @@
-class ImplementRunException(Exception):
+class ImplementRunException(Exception):  # noqa: N818
     """
     Exceptions raised when Implementing and running code.
     - start: FactorTask => FactorGenerator

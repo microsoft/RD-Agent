@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from tqdm import tqdm
 
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_framework import EvolvableSubjects, EvoStep, Feedback
+if TYPE_CHECKING:
+    from rdagent.core.evaluation import Evaluator
+    from rdagent.core.evolving_framework import EvolvableSubjects
+
+from rdagent.core.evolving_framework import EvoStep, Feedback
 
 
 class EvoAgent(ABC):
-    def __init__(self, max_loop, evolving_strategy) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: Any) -> None:
         self.max_loop = max_loop
         self.evolving_strategy = evolving_strategy
 
@@ -18,7 +23,7 @@ class EvoAgent(ABC):
 
 
 class RAGEvoAgent(EvoAgent):
-    def __init__(self, max_loop, evolving_strategy, rag) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: Any, rag: Any) -> None:
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
         self.evolving_trace = []

@@ -37,6 +37,6 @@ for _ in range(PROP_SETTING.evolving_n):
     exp = hypothesis2experiment.convert(hypothesis, trace)
     exp = qlib_factor_coder.generate(exp)
     exp = qlib_factor_runner.generate(exp)
-    feedback = qlib_factor_summarizer.generateFeedback(exp, hypothesis, trace)
+    feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
 
     trace.hist.append((hypothesis, exp, feedback))

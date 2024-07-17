@@ -21,6 +21,6 @@ class Evaluator(ABC):
         target_task: Task,
         implementation: Implementation,
         gt_implementation: Implementation,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         raise NotImplementedError

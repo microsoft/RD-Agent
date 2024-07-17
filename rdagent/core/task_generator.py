@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Generic, List
+from typing import TYPE_CHECKING, Generic
 
 from rdagent.core.experiment import ASpecificExp
-from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.core.scenario import Scenario
 
 
 class TaskGenerator(ABC, Generic[ASpecificExp]):
@@ -18,9 +22,10 @@ class TaskGenerator(ABC, Generic[ASpecificExp]):
         due to it affects the learning process.
 
         """
-        raise NotImplementedError("generate method is not implemented.")
+        exc = NotImplementedError("generate method is not implemented.")
+        raise exc
 
-    def collect_feedback(self, feedback_obj_l: List[object]):
+    def collect_feedback(self, feedback_obj_l: list[object]) -> None:
         """
         When online evaluation.
         The previous feedbacks will be collected to support advanced factor generator
