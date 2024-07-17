@@ -608,7 +608,7 @@ class FactorMultiEvaluator(Evaluator):
                     self.single_factor_implementation_evaluator.evaluate,
                     (
                         evo.sub_tasks[index],
-                        evo.sub_implementations[index],
+                        evo.sub_workspace_list[index],
                         evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
                         queried_knowledge,
                     ),

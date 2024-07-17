@@ -33,7 +33,7 @@ mil = ModelWsLoader(bench_folder / "gt_code")
 mie = ModelImpValEval()
 # Evaluation:
 eval_l = []
-for impl in model_experiment.sub_implementations:
+for impl in model_experiment.sub_workspace_list:
     print(impl.target_task)
     gt_impl = mil.load(impl.target_task)
     eval_l.append(mie.evaluate(gt_impl, impl))

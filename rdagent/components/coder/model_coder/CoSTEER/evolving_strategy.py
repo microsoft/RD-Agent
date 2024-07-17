@@ -108,7 +108,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         for index, target_model_task in enumerate(evo.sub_tasks):
             target_model_task_desc = target_model_task.get_task_information()
             if target_model_task_desc in queried_knowledge.success_task_to_knowledge_dict:
-                evo.sub_implementations[index] = queried_knowledge.success_task_to_knowledge_dict[
+                evo.sub_workspace_list[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_model_task_desc
                 ].implementation
             elif (
@@ -126,9 +126,9 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            if evo.sub_implementations[target_index] is None:
-                evo.sub_implementations[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
-            evo.sub_implementations[target_index].inject_code(**{"model.py": result[index]})
+            if evo.sub_workspace_list[target_index] is None:
+                evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
+            evo.sub_workspace_list[target_index].inject_code(**{"model.py": result[index]})
 
         evo.corresponding_selection = to_be_finished_task_index
 

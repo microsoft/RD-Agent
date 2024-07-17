@@ -43,7 +43,7 @@ class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
             shutil.copyfile(file_path, exp.experiment_workspace.workspace_path / file_path.name)
 
         # to replace & inject code
-        exp.experiment_workspace.inject_code(**{"model.py": exp.sub_implementations[0].code_dict["model.py"]})
+        exp.experiment_workspace.inject_code(**{"model.py": exp.sub_workspace_list[0].code_dict["model.py"]})
 
         env_to_use = {}
 
