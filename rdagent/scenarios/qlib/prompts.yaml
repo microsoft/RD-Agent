@@ -1,7 +1,8 @@
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
-  Feedback: {{ feedback }}
+  Feedback Observation : {{ feedback.observations }}
+  New Feedback for Context: 
   {% endfor %}
 
 hypothesis_output_format: |-
