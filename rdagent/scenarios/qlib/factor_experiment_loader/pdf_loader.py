@@ -19,6 +19,7 @@ from rdagent.components.document_reader.document_reader import (
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
+from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
@@ -127,24 +128,15 @@ def __extract_factors_name_and_desc_from_content(
     for _ in range(10):
         extract_result_resp = session.build_chat_completion(
             user_prompt=current_user_prompt,
-            json_mode=False,
+            json_mode=True,
         )
-        re_search_res = re.search(r"```json(.*)```", extract_result_resp, re.S)
-        ret_json_str = re_search_res.group(1) if re_search_res is not None else ""
-        try:
-            ret_dict = json.loads(ret_json_str)
-            parse_success = bool(isinstance(ret_dict, dict)) and "factors" in ret_dict
-        except json.JSONDecodeError:
-            parse_success = False
-        if ret_json_str is None or not parse_success:
-            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
-        else:
-            factors = ret_dict["factors"]
-            if len(factors) == 0:
-                break
-            for factor_name, factor_description in factors.items():
-                extracted_factor_dict[factor_name] = factor_description
-            current_user_prompt = document_process_prompts["extract_factors_follow_user"]
+        ret_dict = json.loads(extract_result_resp)
+        factors = ret_dict["factors"]
+        if len(factors) == 0:
+            break
+        for factor_name, factor_description in factors.items():
+            extracted_factor_dict[factor_name] = factor_description
+        current_user_prompt = document_process_prompts["extract_factors_follow_user"]
 
     return extracted_factor_dict
 
@@ -173,31 +165,22 @@ def __extract_factors_formulation_from_content(
     for _ in range(10):
         extract_result_resp = session.build_chat_completion(
             user_prompt=current_user_prompt,
-            json_mode=False,
+            json_mode=True,
         )
-        re_search_res = re.search(r"```json(.*)```", extract_result_resp, re.S)
-        ret_json_str = re_search_res.group(1) if re_search_res is not None else ""
-        try:
-            ret_dict = json.loads(ret_json_str)
-            parse_success = bool(isinstance(ret_dict, dict))
-        except json.JSONDecodeError:
-            parse_success = False
-        if ret_json_str is None or not parse_success:
-            current_user_prompt = "Your response didn't follow the instruction might be wrong json format.\nRemember not to add any dots (...) in the json string which will cause json parse error!!!\nTry again."
+        ret_dict = json.loads(extract_result_resp)
+        for name, formulation_and_description in ret_dict.items():
+            if name in factor_dict:
+                factor_to_formulation[name] = formulation_and_description
+        if len(factor_to_formulation) != len(factor_dict):
+            remain_df = factor_dict_df[~factor_dict_df["factor_name"].isin(factor_to_formulation)]
+            current_user_prompt = (
+                "Some factors are missing. Please check the following"
+                " factors and their descriptions and continue extraction.\n"
+                "==========================Remaining factors"
+                "==========================\n" + remain_df.to_string()
+            )
         else:
-            for name, formulation_and_description in ret_dict.items():
-                if name in factor_dict:
-                    factor_to_formulation[name] = formulation_and_description
-            if len(factor_to_formulation) != len(factor_dict):
-                remain_df = factor_dict_df[~factor_dict_df["factor_name"].isin(factor_to_formulation)]
-                current_user_prompt = (
-                    "Some factors are missing. Please check the following"
-                    " factors and their descriptions and continue extraction.\n"
-                    "==========================Remaining factors"
-                    "==========================\n" + remain_df.to_string()
-                )
-            else:
-                break
+            break
 
     return factor_to_formulation
 
@@ -248,35 +231,19 @@ def extract_factors_from_report_dict(
         else:
             logger.warning(f"Invalid input format: {key}")
 
+    file_name_list = list(useful_report_dict.keys())
+
     final_report_factor_dict = {}
-    # for file_name, content in useful_report_dict.items():
-    #     final_report_factor_dict.setdefault(file_name, {})
-    #     final_report_factor_dict[file_name] = __extract_factor_and_formulation_from_one_report(content)
-
-    while len(final_report_factor_dict) != len(useful_report_dict):
-        pool = mp.Pool(n_proc)
-        pool_result_list = []
-        file_names = []
-        for file_name, content in useful_report_dict.items():
-            if file_name in final_report_factor_dict:
-                continue
-            file_names.append(file_name)
-            pool_result_list.append(
-                pool.apply_async(
-                    __extract_factor_and_formulation_from_one_report,
-                    (content,),
-                ),
-            )
-
-        pool.close()
-        pool.join()
-
-        for index, result in enumerate(pool_result_list):
-            if result.get is not None:
-                file_name = file_names[index]
-                final_report_factor_dict.setdefault(file_name, {})
-                final_report_factor_dict[file_name] = result.get()
-        logger.info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
+    factor_dict_list = multiprocessing_wrapper(
+        [
+            (__extract_factor_and_formulation_from_one_report, (useful_report_dict[file_name],))
+            for file_name in file_name_list
+        ],
+        n=RD_AGENT_SETTINGS.multi_proc_n,
+    )
+    for index, file_name in enumerate(file_name_list):
+        final_report_factor_dict[file_name] = factor_dict_list[index]
+    logger.info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
 
     return final_report_factor_dict
 
@@ -305,28 +272,13 @@ def merge_file_to_factor_dict_to_factor_dict(
 def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
-    session = APIBackend().build_chat_session(
-        session_system_prompt=document_process_prompts["factor_viability_system"],
-    )
-    current_user_prompt = factor_df_string
 
-    for _ in range(10):
-        extract_result_resp = session.build_chat_completion(
-            user_prompt=current_user_prompt,
-            json_mode=False,
-        )
-        re_search_res = re.search(r"```json(.*)```", extract_result_resp, re.S)
-        ret_json_str = re_search_res.group(1) if re_search_res is not None else ""
-        try:
-            ret_dict = json.loads(ret_json_str)
-            parse_success = bool(isinstance(ret_dict, dict))
-        except json.JSONDecodeError:
-            parse_success = False
-        if ret_json_str is None or not parse_success:
-            current_user_prompt = "Your response didn't follow the instruction might be wrong json format. Try again."
-        else:
-            return ret_dict
-    return {}
+    extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
+        system_prompt=document_process_prompts["factor_viability_system"],
+        user_prompt=factor_df_string,
+        json_mode=True,
+    )
+    return json.loads(extract_result_resp)
 
 
 def check_factor_viability(
@@ -338,36 +290,27 @@ def check_factor_viability(
     factor_df.index.names = ["factor_name"]
 
     while factor_df.shape[0] > 0:
-        pool = mp.Pool(8)
-
-        result_list = []
-        for i in range(0, factor_df.shape[0], 50):
-            target_factor_df_string = factor_df.iloc[i : i + 50, :].to_string()
-
-            result_list.append(
-                pool.apply_async(
-                    __check_factor_dict_viability_simulate_json_mode,
-                    (target_factor_df_string,),
-                ),
-            )
-
-        pool.close()
-        pool.join()
+        result_list = multiprocessing_wrapper(
+            [
+                (__check_factor_dict_viability_simulate_json_mode, (factor_df.iloc[i : i + 50, :].to_string(),))
+                for i in range(0, factor_df.shape[0], 50)
+            ],
+            n=RD_AGENT_SETTINGS.multi_proc_n,
+        )
 
         for result in result_list:
-            respond = result.get()
-            for factor_name, viability in respond.items():
+            for factor_name, viability in result.items():
                 factor_viability_dict[factor_name] = viability
 
         factor_df = factor_df[~factor_df.index.isin(factor_viability_dict)]
 
-    # filtered_factor_dict = {
-    #     factor_name: factor_dict[factor_name]
-    #     for factor_name in factor_dict
-    #     if factor_viability_dict[factor_name]["viability"]
-    # }
+    filtered_factor_dict = {
+        factor_name: factor_dict[factor_name]
+        for factor_name in factor_dict
+        if factor_viability_dict[factor_name]["viability"]
+    }
 
-    return factor_viability_dict
+    return factor_viability_dict, filtered_factor_dict
 
 
 def __check_factor_duplication_simulate_json_mode(
@@ -379,33 +322,17 @@ def __check_factor_duplication_simulate_json_mode(
     current_user_prompt = factor_df.to_string()
 
     generated_duplicated_groups = []
-    for _ in range(20):
+    for _ in range(10):
         extract_result_resp = session.build_chat_completion(
             user_prompt=current_user_prompt,
-            json_mode=False,
+            json_mode=True,
         )
-        re_search_res = re.search(r"```json(.*)```", extract_result_resp, re.S)
-        ret_json_str = re_search_res.group(1) if re_search_res is not None else ""
-        try:
-            ret_dict = json.loads(ret_json_str)
-            parse_success = bool(isinstance(ret_dict, list))
-        except json.JSONDecodeError:
-            parse_success = False
-        if ret_json_str is None or not parse_success:
-            current_user_prompt = (
-                "Your previous response didn't follow"
-                " the instruction might be wrong json"
-                " format. Try reducing the factors."
-            )
-        elif len(ret_dict) == 0:
+        ret_dict = json.loads(extract_result_resp)
+        if len(ret_dict) == 0:
             return generated_duplicated_groups
         else:
             generated_duplicated_groups.extend(ret_dict)
-            current_user_prompt = (
-                "Continue to extract duplicated"
-                " groups. If no more duplicated group"
-                " found please respond empty dict."
-            )
+            current_user_prompt = """Continue to extract duplicated groups. If no more duplicated group found please respond empty dict."""
     return generated_duplicated_groups
 
 
@@ -506,7 +433,6 @@ Factor variables: {variables}
     duplication_names_list = []
 
     pool = mp.Pool(target_k)
-    result_list = []
     result_list = [
         pool.apply_async(
             __check_factor_duplication_simulate_json_mode,
@@ -587,6 +513,6 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
         file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
         factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
 
-        factor_viability = check_factor_viability(factor_dict)
-        factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
-        return FactorExperimentLoaderFromDict().load(factor_dict)
+        factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
+        # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
+        return FactorExperimentLoaderFromDict().load(filtered_factor_dict)
