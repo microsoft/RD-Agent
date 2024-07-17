@@ -1,6 +1,8 @@
-from pathlib import Path
+import pickle
 
+from pathlib import Path
 from rdagent.log.base import Storage, View
+from rdagent.log.storage import FileStorage
 
 
 class ProcessView(View):
@@ -54,12 +56,34 @@ class WebView(View):
     3. Display logic
     """
 
-    def __init__(self, trace_path: Path):
+    def __init__(self):
         pass
         # Save logs to your desired data structure
         # ...
 
     def display(s: Storage, watch: bool = False):
+        if not isinstance(s, FileStorage):
+            raise ValueError("Only FileStorage is supported")
+        trace_path = s.path
+
+        for dir in trace_path.iterdir():
+            if dir.name.isdigit():
+                # Process folder
+                common_p = (dir / "common_logs.log")
+                if common_p.exists():
+                    # common log
+                    pass
+                
+                for file in dir.iterdir():
+                    if file != common_p:
+                        obj = pickle.load(file.open("rb"))
+                        pass
+            else:
+                # tag folder
+                
+                pass
+
+
         ui = STLUI()
         for msg in s.iter_msg():  # iterate overtime
             # NOTE:  iter_msg will correctly seperate the information.
@@ -89,3 +113,7 @@ class STLUI:
     def dispatch(self, msg):
         # map the message to a specific window
         ...
+
+
+if __name__ == "__main__":
+    WebView().display(FileStorage("./log/test_trace"))
