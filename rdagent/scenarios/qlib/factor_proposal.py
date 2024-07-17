@@ -79,5 +79,5 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         exp = QlibFactorExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         if len(exp.based_experiments) == 0:
-            exp.based_experiments.append(FactorExperiment(sub_tasks=[]))
+            exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
         return exp
