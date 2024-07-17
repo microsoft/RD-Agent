@@ -16,6 +16,7 @@ from rdagent.core.proposal import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils import convert2bool
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -74,7 +75,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         hypothesis_evaluation = response_json.get("Feedback for Hypothesis", "No feedback provided")
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
-        decision = response_json.get("Replace Best Result", "no").lower() == "yes"
+        decision = convert2bool(response_json.get("Replace Best Result", "no"))
 
         return HypothesisFeedback(
             observations=observations,
@@ -129,5 +130,5 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             hypothesis_evaluation=response_json_hypothesis.get("Feedback for Hypothesis", "No feedback provided"),
             new_hypothesis=response_json_hypothesis.get("New Hypothesis", "No new hypothesis provided"),
             reason=response_json_hypothesis.get("Reasoning", "No reasoning provided"),
-            decision=str(response_json_hypothesis.get("Decision", "false")).lower() == "true",
+            decision=convert2bool(response_json_hypothesis.get("Decision", "false")),
         )

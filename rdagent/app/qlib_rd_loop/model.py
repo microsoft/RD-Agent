@@ -30,15 +30,18 @@ qlib_model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
 qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
 
 trace = Trace(scen=scen)
-for _ in range(PROP_SETTING.evolving_n):
-    try:
-        hypothesis = hypothesis_gen.gen(trace)
-        exp = hypothesis2experiment.convert(hypothesis, trace)
-        exp = qlib_model_coder.develop(exp)
-        exp = qlib_model_runner.develop(exp)
-        feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
-
-        trace.hist.append((hypothesis, exp, feedback))
-    except ModelEmptyException as e:
-        logger.warning(e)
-        continue
+with logger.tag("model.loop"):
+    for _ in range(PROP_SETTING.evolving_n):
+        try:
+            with logger.tag("r"): # research
+                hypothesis = hypothesis_gen.gen(trace)
+                exp = hypothesis2experiment.convert(hypothesis, trace)
+            with logger.tag("d"): # develop
+                exp = qlib_model_coder.develop(exp)
+            with logger.tag("ef"): # evaluate and feedback
+                exp = qlib_model_runner.develop(exp)
+                feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
+            trace.hist.append((hypothesis, exp, feedback))
+        except ModelEmptyException as e:
+            logger.warning(e)
+            continue
