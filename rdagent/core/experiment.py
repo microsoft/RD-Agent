@@ -65,7 +65,7 @@ class FBWorkspace(Workspace):
     - Output
         - After execution, it will generate the final output as file.
 
-    A typical way to run the pipeline of FBImplementation will be:
+    A typical way to run the pipeline of FBWorkspace will be:
     (We didn't add it as a method due to that we may pass arguments into
     `prepare` or `execute` based on our requirements.)
 
@@ -79,8 +79,8 @@ class FBWorkspace(Workspace):
     """
 
     # TODO:
-    # FileBasedFactorImplementation should inherit from it.
-    # Why not directly reuse FileBasedFactorImplementation.
+    # FactorFBWorkspace should inherit from it.
+    # Why not directly reuse FactorFBWorkspace.
     #   Because it has too much concrete dependencies.
     #   e.g.  dataframe, factors
     def __init__(self, *args: Any, **kwargs: Any) -> None:
