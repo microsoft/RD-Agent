@@ -8,6 +8,7 @@ from scipy.spatial.distance import cosine
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
+
 class KnowledgeMetaData:
     def __init__(self, content: str = "", label: str = None, embedding=None, identity=None):
         self.label = label

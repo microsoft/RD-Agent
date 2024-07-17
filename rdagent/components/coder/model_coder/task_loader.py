@@ -9,11 +9,13 @@ from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.loader.task_loader import ModelTaskLoader
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 
 document_process_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 def extract_model_from_doc(doc_content: str) -> dict:
     """
@@ -107,7 +109,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
                 key=model_name,
             )
             task_l.append(task)
-        return ModelExperiment(sub_tasks=task_l)
+        return QlibModelExperiment(sub_tasks=task_l)
 
 
 class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):

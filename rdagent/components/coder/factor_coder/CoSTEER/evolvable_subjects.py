@@ -1,7 +1,7 @@
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
+    FactorFBWorkspace,
     FactorTask,
-    FileBasedFactorImplementation,
 )
 from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.log import rdagent_logger as logger
@@ -15,7 +15,7 @@ class FactorEvolvingItem(FactorExperiment, EvolvableSubjects):
     def __init__(
         self,
         sub_tasks: list[FactorTask],
-        sub_gt_implementations: list[FileBasedFactorImplementation] = None,
+        sub_gt_implementations: list[FactorFBWorkspace] = None,
     ):
         FactorExperiment.__init__(self, sub_tasks=sub_tasks)
         self.corresponding_selection: list = None

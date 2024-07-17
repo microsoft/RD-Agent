@@ -27,9 +27,9 @@ from rdagent.core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from rdagent.core.experiment import Implementation
-from rdagent.log import rdagent_logger as logger
+from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import (
     APIBackend,
     calculate_embedding_distance_between_str_list,
@@ -40,7 +40,7 @@ class FactorKnowledge(Knowledge):
     def __init__(
         self,
         target_task: FactorTask,
-        implementation: Implementation,
+        implementation: Workspace,
         feedback: FactorSingleFeedback,
     ) -> None:
         """
@@ -53,7 +53,7 @@ class FactorKnowledge(Knowledge):
             None
         """
         self.target_task = target_task
-        self.implementation = implementation
+        self.implementation = implementation.copy()
         self.feedback = feedback
 
     def get_implementation_and_feedback_str(self) -> str:
@@ -115,7 +115,7 @@ class FactorRAGStrategyV1(RAGStrategy):
                 for task_index in range(len(implementations.sub_tasks)):
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
-                    implementation = implementations.sub_implementations[task_index]
+                    implementation = implementations.sub_workspace_list[task_index]
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
                         continue
@@ -149,9 +149,9 @@ class FactorRAGStrategyV1(RAGStrategy):
         for target_factor_task in evo.sub_tasks:
             target_factor_task_information = target_factor_task.get_task_information()
             if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
-                )
+                queried_knowledge.success_task_to_knowledge_dict[
+                    target_factor_task_information
+                ] = self.knowledgebase.implementation_trace[target_factor_task_information][-1]
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
@@ -163,12 +163,14 @@ class FactorRAGStrategyV1(RAGStrategy):
             ):
                 queried_knowledge.failed_task_info_set.add(target_factor_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
-                        [],
-                    )[-v1_query_former_trace_limit:]
-                )
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[
+                    target_factor_task_information
+                ] = self.knowledgebase.implementation_trace.setdefault(
+                    target_factor_task_information,
+                    [],
+                )[
+                    -v1_query_former_trace_limit:
+                ]
 
                 knowledge_base_success_task_list = list(
                     self.knowledgebase.success_task_info_set,
@@ -189,9 +191,9 @@ class FactorRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
-                    similar_successful_knowledge
-                )
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
+                    target_factor_task_information
+                ] = similar_successful_knowledge
         return queried_knowledge
 
 
@@ -234,7 +236,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     single_feedback = feedback[task_index]
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
-                    implementation = implementations.sub_implementations[task_index]
+                    implementation = implementations.sub_workspace_list[task_index]
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
                         continue
@@ -425,9 +427,9 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
-                    former_trace_knowledge[-v2_query_former_trace_limit:]
-                )
+                factor_implementation_queried_graph_knowledge.former_traces[
+                    target_factor_task_information
+                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 

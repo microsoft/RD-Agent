@@ -1,13 +1,22 @@
 from pathlib import Path
 
-from rdagent.components.coder.factor_coder.factor import FactorExperiment
+from rdagent.components.coder.factor_coder.factor import (
+    FactorExperiment,
+    FactorFBWorkspace,
+    FactorTask,
+)
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-QlibFactorExperiment = FactorExperiment
+
+class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorFBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "factor_template")
 
 
 class QlibFactorScenario(Scenario):

@@ -1,12 +1,21 @@
 from pathlib import Path
 
-from rdagent.components.coder.model_coder.model import ModelExperiment
+from rdagent.components.coder.model_coder.model import (
+    ModelExperiment,
+    ModelFBWorkspace,
+    ModelTask,
+)
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-QlibModelExperiment = ModelExperiment
+
+class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
 
 
 class QlibModelScenario(Scenario):

@@ -4,21 +4,22 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
-from rdagent.components.proposal.factor_proposal import (
-    FactorHypothesis,
-    FactorHypothesis2Experiment,
-    FactorHypothesisGen,
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
+from rdagent.components.proposal.model_proposal import (
+    ModelHypothesis,
+    ModelHypothesis2Experiment,
+    ModelHypothesisGen,
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
-QlibFactorHypothesis = FactorHypothesis
+QlibModelHypothesis = ModelHypothesis
 
 
-class QlibFactorHypothesisGen(FactorHypothesisGen):
+class QlibModelHypothesisGen(ModelHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -35,16 +36,16 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         }
         return context_dict, True
 
-    def convert_response(self, response: str) -> FactorHypothesis:
+    def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibFactorHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
         return hypothesis
 
 
-class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
-    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
+class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
-        experiment_output_format = prompt_dict["factor_experiment_output_format"]
+        experiment_output_format = prompt_dict["model_experiment_output_format"]
 
         hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
@@ -52,31 +53,30 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             .render(trace=trace)
         )
 
-        experiment_list: List[FactorExperiment] = [t[1] for t in trace.hist]
+        experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
 
-        factor_list = []
+        model_list = []
         for experiment in experiment_list:
-            factor_list.extend(experiment.sub_tasks)
+            model_list.extend(experiment.sub_tasks)
 
         return {
             "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
-            "target_list": factor_list,
+            "target_list": model_list,
             "RAG": ...,
         }, True
 
-    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
+    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
         response_dict = json.loads(response)
         tasks = []
-        for factor_name in response_dict:
-            description = response_dict[factor_name]["description"]
-            formulation = response_dict[factor_name]["formulation"]
-            variables = response_dict[factor_name]["variables"]
-            tasks.append(FactorTask(factor_name, description, formulation, variables))
-        exp = FactorExperiment(tasks)
+        for model_name in response_dict:
+            description = response_dict[model_name]["description"]
+            formulation = response_dict[model_name]["formulation"]
+            variables = response_dict[model_name]["variables"]
+            model_type = response_dict[model_name]["model_type"]
+            tasks.append(ModelTask(model_name, description, formulation, variables, model_type))
+        exp = QlibModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-        if len(exp.based_experiments) == 0:
-            exp.based_experiments.append(FactorExperiment(sub_tasks=[]))
         return exp

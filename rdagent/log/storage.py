@@ -1,10 +1,11 @@
 import json
 import pickle
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Literal
 
-from pathlib import Path
-from datetime import datetime, timezone
 from .base import Storage
+
 
 class FileStorage(Storage):
     """
@@ -17,18 +18,19 @@ class FileStorage(Storage):
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
-    def log(self,
-            obj: object,
-            name: str = "",
-            save_type: Literal["json", "text", "pkl"] = "text",
-            timestamp: datetime | None = None,
-            ) -> Path:
+    def log(
+        self,
+        obj: object,
+        name: str = "",
+        save_type: Literal["json", "text", "pkl"] = "text",
+        timestamp: datetime | None = None,
+    ) -> Path:
         # TODO: We can remove the timestamp after we implement PipeLog
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
         else:
             timestamp = timestamp.astimezone(timezone.utc)
-        
+
         cur_p = self.path / name.replace(".", "/")
         cur_p.mkdir(parents=True, exist_ok=True)
 

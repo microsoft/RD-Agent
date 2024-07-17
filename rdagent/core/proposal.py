@@ -45,6 +45,13 @@ class HypothesisFeedback(Feedback):
     def __bool__(self):
         return self.decision
 
+    def __str__(self) -> str:
+        return f"""Observations: {self.observations}
+Hypothesis Evaluation: {self.hypothesis_evaluation}
+New Hypothesis: {self.new_hypothesis}
+Decision: {self.decision}
+Reason: {self.reason}"""
+
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
 
@@ -64,10 +71,11 @@ class Trace(Generic[ASpecificScen]):
         return None, None
 
 
-class HypothesisGen:
+class HypothesisGen(ABC):
     def __init__(self, scen: Scenario):
         self.scen = scen
 
+    @abstractmethod
     def gen(self, trace: Trace) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
@@ -107,5 +115,3 @@ class HypothesisExperiment2Feedback:
         For example: `mlflow` of Qlib will be included.
         """
         raise NotImplementedError("generateFeedback method is not implemented.")
-
-    # def generateResultComparison()

@@ -112,9 +112,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[Path] = (
-        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
-    )
+    dockerfile_folder_path: Optional[
+        Path
+    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -128,6 +128,9 @@ class DockerConf(BaseSettings):
 
 
 class QlibDockerConf(DockerConf):
+    class Config:
+        env_prefix = "QLIB_DOCKER_"  # Use QLIB_DOCKER_ as prefix for environment variables
+
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
     image: str = "local_qlib:latest"

@@ -8,6 +8,7 @@ from rdagent.components.coder.model_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
     ModelEvolvingItem,
 )
+from rdagent.components.coder.model_coder.CoSTEER.evolving_agent import ModelRAGEvoAgent
 from rdagent.components.coder.model_coder.CoSTEER.evolving_strategy import (
     ModelCoderEvolvingStrategy,
 )
@@ -16,17 +17,18 @@ from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelRAGStrategy,
 )
 from rdagent.components.coder.model_coder.model import ModelExperiment
+from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
-from rdagent.core.task_generator import TaskGenerator
 
 
-class ModelCoSTEER(TaskGenerator[ModelExperiment]):
+class ModelCoSTEER(Developer[ModelExperiment]):
     def __init__(
         self,
         *args,
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
+        filter_final_evo: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -44,6 +46,7 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
+        self.filter_final_evo = filter_final_evo
         self.evolving_strategy = ModelCoderEvolvingStrategy(scen=self.scen)
         self.model_evaluator = ModelCoderMultiEvaluator(scen=self.scen)
 
@@ -57,7 +60,7 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
 
         return model_knowledge_base
 
-    def generate(self, exp: ModelExperiment) -> ModelExperiment:
+    def develop(self, exp: ModelExperiment) -> ModelExperiment:
         # init knowledge base
         model_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,
@@ -69,7 +72,9 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
         # init intermediate items
         model_experiment = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
 
-        self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
+        self.evolve_agent = ModelRAGEvoAgent(
+            max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag
+        )
 
         model_experiment = self.evolve_agent.multistep_evolve(
             model_experiment,
@@ -77,11 +82,11 @@ class ModelCoSTEER(TaskGenerator[ModelExperiment]):
             with_knowledge=self.with_knowledge,
             with_feedback=self.with_feedback,
             knowledge_self_gen=self.knowledge_self_gen,
+            filter_final_evo=self.filter_final_evo,
         )
 
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
             pickle.dump(model_knowledge_base, open(self.new_knowledge_base_path, "wb"))
-        self.knowledge_base = model_knowledge_base
-        model_experiment.based_experiments = exp.based_experiments
-        return model_experiment
+        exp.sub_workspace_list = model_experiment.sub_workspace_list
+        return exp
