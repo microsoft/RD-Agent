@@ -54,3 +54,9 @@ class FileStorage(Storage):
             with path.open("w") as f:
                 f.write(obj)
             return path
+
+    def iter_msg(self, watch: bool = False):
+        for file in self.path.glob("**/*"):
+            if file.name.endswith(".log"):
+                # "2024-07-17 09:45:42.236 | INFO     | rdagent.oai.llm_utils:_create_chat_completion_inner_function:55"
+        # TODO: load the pickle based on the file path

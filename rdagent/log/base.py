@@ -1,7 +1,19 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Generator
+from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
+
+class Message:
+    """The info unit of the storage"""
+    tag: str  # namespace like like a.b.c
+    timestamp: datetime  # The time when the message is generated
+    caller: Optional[str] # The caller of the logging
+    pid_trace: Optional[str]  # The process id trace;  A-B-C represents A create B, B create C
+    content: object  # The content
 
 
 class Storage:
@@ -37,6 +49,16 @@ class Storage:
         -------
         str | Path
             The storage identifier of the object.
+        """
+        ...
+
+    @abstractmethod
+    def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
+        """
+        Parameters
+        ----------
+        watch : bool
+            should we watch the new content and display them
         """
         ...
 
