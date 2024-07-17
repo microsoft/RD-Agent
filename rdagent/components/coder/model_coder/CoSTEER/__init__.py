@@ -8,6 +8,7 @@ from rdagent.components.coder.model_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
     ModelEvolvingItem,
 )
+from rdagent.components.coder.model_coder.CoSTEER.evolving_agent import ModelRAGEvoAgent
 from rdagent.components.coder.model_coder.CoSTEER.evolving_strategy import (
     ModelCoderEvolvingStrategy,
 )
@@ -27,6 +28,7 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
+        filter_final_evo: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -44,6 +46,7 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
+        self.filter_final_evo = filter_final_evo
         self.evolving_strategy = ModelCoderEvolvingStrategy(scen=self.scen)
         self.model_evaluator = ModelCoderMultiEvaluator(scen=self.scen)
 
@@ -69,7 +72,9 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         # init intermediate items
         model_experiment = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
 
-        self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
+        self.evolve_agent = ModelRAGEvoAgent(
+            max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag
+        )
 
         model_experiment = self.evolve_agent.multistep_evolve(
             model_experiment,
@@ -77,6 +82,7 @@ class ModelCoSTEER(Developer[ModelExperiment]):
             with_knowledge=self.with_knowledge,
             with_feedback=self.with_feedback,
             knowledge_self_gen=self.knowledge_self_gen,
+            filter_final_evo=self.filter_final_evo,
         )
 
         # save new knowledge base

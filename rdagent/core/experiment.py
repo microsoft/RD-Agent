@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -133,6 +134,13 @@ class FBWorkspace(Workspace):
         copy the workspace from the original one
         """
         return deepcopy(self)
+
+    def clear(self) -> None:
+        """
+        Clear the workspace
+        """
+        shutil.rmtree(self.workspace_path)
+        self.code_dict = {}
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> object:

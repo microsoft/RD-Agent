@@ -127,11 +127,11 @@ class FactorFBWorkspace(FBWorkspace):
 
             source_data_path = (
                 Path(
-                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder_debug,
+                    FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
                 )
                 if data_type == "Debug"
                 else Path(
-                    FACTOR_IMPLEMENT_SETTINGS.factor_data_folder,
+                    FACTOR_IMPLEMENT_SETTINGS.data_folder,
                 )
             )
 

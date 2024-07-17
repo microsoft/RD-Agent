@@ -11,10 +11,10 @@ class FactorImplementSettings(BaseSettings):
         env_prefix = "FACTOR_CODER_"  # Use FACTOR_CODER_ as prefix for environment variables
 
     coder_use_cache: bool = False
-    factor_data_folder: str = str(
+    data_folder: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
     )
-    factor_data_folder_debug: str = str(
+    data_folder_debug: str = str(
         (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data_debug").absolute(),
     )
     cache_location: str = str(

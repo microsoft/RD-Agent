@@ -9,6 +9,9 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
+from rdagent.components.coder.factor_coder.CoSTEER.evolving_agent import (
+    FactorRAGEvoAgent,
+)
 from rdagent.components.coder.factor_coder.CoSTEER.evolving_strategy import (
     FactorEvolvingStrategyWithGraph,
 )
@@ -30,6 +33,7 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         with_knowledge: bool = True,
         with_feedback: bool = True,
         knowledge_self_gen: bool = True,
+        filter_final_evo: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -47,6 +51,7 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
+        self.filter_final_evo = filter_final_evo
         self.evolving_strategy = FactorEvolvingStrategyWithGraph(scen=self.scen)
         # declare the factor evaluator
         self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder(scen=self.scen), scen=self.scen)
@@ -84,7 +89,9 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         # init intermediate items
         factor_experiment = FactorEvolvingItem(sub_tasks=exp.sub_tasks)
 
-        self.evolve_agent = RAGEvoAgent(max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag)
+        self.evolve_agent = FactorRAGEvoAgent(
+            max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag
+        )
 
         factor_experiment = self.evolve_agent.multistep_evolve(
             factor_experiment,
@@ -92,6 +99,7 @@ class FactorCoSTEER(Developer[FactorExperiment]):
             with_knowledge=self.with_knowledge,
             with_feedback=self.with_feedback,
             knowledge_self_gen=self.knowledge_self_gen,
+            filter_final_evo=self.filter_final_evo,
         )
 
         # save new knowledge base
