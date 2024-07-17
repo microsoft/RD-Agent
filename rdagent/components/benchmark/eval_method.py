@@ -18,7 +18,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ImplementRunException
+from rdagent.core.exception import CoderException
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 
@@ -97,7 +97,7 @@ class BaseEval:
             try:
                 eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
-            except ImplementRunException as e:
+            except CoderException as e:
                 return e
             except Exception as e:
                 # exception when evaluation

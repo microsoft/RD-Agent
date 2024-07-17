@@ -7,6 +7,8 @@ TODO: move the following code to a new class: Model_RD_Agent
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
+from rdagent.core.exception import ModelEmptyException
+from rdagent.core.log import RDAgentLog
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -29,10 +31,14 @@ qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING
 
 trace = Trace(scen=scen)
 for _ in range(PROP_SETTING.evolving_n):
-    hypothesis = hypothesis_gen.gen(trace)
-    exp = hypothesis2experiment.convert(hypothesis, trace)
-    exp = qlib_model_coder.develop(exp)
-    exp = qlib_model_runner.develop(exp)
-    feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
+    try:
+        hypothesis = hypothesis_gen.gen(trace)
+        exp = hypothesis2experiment.convert(hypothesis, trace)
+        exp = qlib_model_coder.develop(exp)
+        exp = qlib_model_runner.develop(exp)
+        feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
 
-    trace.hist.append((hypothesis, exp, feedback))
+        trace.hist.append((hypothesis, exp, feedback))
+    except ModelEmptyException as e:
+        RDAgentLog().warning(e)
+        continue
