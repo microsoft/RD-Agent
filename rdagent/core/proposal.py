@@ -64,10 +64,11 @@ class Trace(Generic[ASpecificScen]):
         return None, None
 
 
-class HypothesisGen:
+class HypothesisGen(ABC):
     def __init__(self, scen: Scenario):
         self.scen = scen
 
+    @abstractmethod
     def gen(self, trace: Trace) -> Hypothesis:
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
