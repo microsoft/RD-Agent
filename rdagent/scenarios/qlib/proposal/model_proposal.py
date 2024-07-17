@@ -14,7 +14,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 QlibModelHypothesis = ModelHypothesis
 

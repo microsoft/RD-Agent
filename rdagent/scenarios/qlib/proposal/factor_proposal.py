@@ -14,7 +14,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 QlibFactorHypothesis = FactorHypothesis
 
