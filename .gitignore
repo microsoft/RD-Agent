@@ -155,7 +155,7 @@ git_ignore_folder/
 *.db
 
 # Docker
-env_factor/mlruns/
+factor_template/mlruns/
 env_tpl
 mlruns/
 

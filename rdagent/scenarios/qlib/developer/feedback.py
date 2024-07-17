@@ -19,7 +19,6 @@ from rdagent.oai.llm_utils import APIBackend
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
-logger = RDAgentLog()
 
 
 class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
@@ -35,7 +34,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
-        logger.info("Generating feedback...")
+        RDAgentLog().info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
         tasks_factors = [task.get_task_information() for task in exp.sub_tasks]
@@ -95,6 +94,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         For example: `mlflow` of Qlib will be included.
         """
 
+        RDAgentLog().info("Generating feedback...")
         # Define the system prompt for hypothesis feedback
         system_prompt = feedback_prompts["model_feedback_generation"]["system"]
 

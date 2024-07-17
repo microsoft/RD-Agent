@@ -9,6 +9,7 @@ from rdagent.components.coder.factor_coder.factor import (
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
 from rdagent.core.experiment import Loader
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
 class FactorExperimentLoaderFromDict(FactorExperimentLoader):
@@ -23,7 +24,7 @@ class FactorExperimentLoaderFromDict(FactorExperimentLoader):
                 variables=factor_data["variables"],
             )
             task_l.append(task)
-        exp = FactorExperiment(sub_tasks=task_l)
+        exp = QlibFactorExperiment(sub_tasks=task_l)
         return exp
 
 

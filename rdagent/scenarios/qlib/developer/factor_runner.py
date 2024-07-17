@@ -74,33 +74,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
 
-            # Save the combined factors to a pickle file
-            combined_factors_path = DIRNAME / "env_factor/combined_factors_df.pkl"
-            with open(combined_factors_path, "wb") as f:
+            # Save the combined factors to the workspace
+            with open(exp.experiment_workspace.workspace_path / "combined_factors_df.pkl", "wb") as f:
                 pickle.dump(combined_factors, f)
 
-        #  Docker run
-        # Call Docker, pass the combined factors to Docker, and generate backtest results
-        qtde = QTDockerEnv()
-        qtde.prepare()
-
-        # Run the Docker command
-        execute_log = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="rm -r mlruns")
-        # Run the Qlib backtest
-        execute_log = qtde.run(
-            local_path=str(DIRNAME / "env_factor"),
-            entry=f"qrun conf.yaml" if len(exp.based_experiments) == 0 else "qrun conf_combined.yaml",
+        result = exp.experiment_workspace.execute(
+            qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
         )
-
-        execute_log = qtde.run(local_path=str(DIRNAME / "env_factor"), entry="python read_exp_res.py")
-
-        csv_path = DIRNAME / "env_factor/qlib_res.csv"
-
-        if not csv_path.exists():
-            logger.error(f"File {csv_path} does not exist.")
-            return None
-
-        result = pd.read_csv(csv_path, index_col=0).iloc[:, 0]
 
         exp.result = result
         if RUNNER_SETTINGS.cache_result:

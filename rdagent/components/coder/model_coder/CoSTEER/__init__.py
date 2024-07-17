@@ -82,6 +82,5 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
             pickle.dump(model_knowledge_base, open(self.new_knowledge_base_path, "wb"))
-        self.knowledge_base = model_knowledge_base
-        model_experiment.based_experiments = exp.based_experiments
-        return model_experiment
+        exp.sub_workspace_list = model_experiment.sub_workspace_list
+        return exp

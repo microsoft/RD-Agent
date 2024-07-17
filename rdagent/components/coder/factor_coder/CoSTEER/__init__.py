@@ -97,6 +97,5 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
-        self.knowledge_base = factor_knowledge_base
-        factor_experiment.based_experiments = exp.based_experiments
-        return factor_experiment
+        exp.sub_workspace_list = factor_experiment.sub_workspace_list
+        return exp

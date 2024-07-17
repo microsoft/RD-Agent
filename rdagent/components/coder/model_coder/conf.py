@@ -10,7 +10,7 @@ class ModelImplSettings(BaseSettings):
 
     coder_use_cache: bool = False
 
-    model_cache_location: str = str(
+    cache_location: str = str(
         (Path().cwd() / "git_ignore_folder" / "model_implementation_execution_cache").absolute(),
     )
 
