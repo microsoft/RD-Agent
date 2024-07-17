@@ -27,3 +27,12 @@ eval_method = FactorImplementEval(
 
 # 5.run the eval
 res = eval_method.eval()
+
+# TODO:
+# - Run it:
+# - factor input data generator;
+#   - f_{gt}(input) => value_{gt}
+#   - f_{llm}(input) => value_{llm}
+#   - we have legal issue to release Input
+# - Eval result:
+#   -  check https://github.com/peteryang1/fincov2/blob/master/src/scripts/benchmark/analysis.py
