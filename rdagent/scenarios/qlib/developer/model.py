@@ -35,15 +35,15 @@ class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
         TEMPLATE_PATH = Path(__file__).parent / "model_template"  # Can be updated
 
         # To set the experiment level workspace and prepare the workspaces use the first task as the target task
-        exp.exp_ws = ModelFBWorkspace(target_task=exp.sub_tasks[0])
-        exp.exp_ws.prepare()
+        exp.experiment_workspace = ModelFBWorkspace(target_task=exp.sub_tasks[0])
+        exp.experiment_workspace.prepare()
 
         # to copy_template_to_workspace
         for file_path in TEMPLATE_PATH.iterdir():
-            shutil.copyfile(file_path, exp.exp_ws.workspace_path / file_path.name)
+            shutil.copyfile(file_path, exp.experiment_workspace.workspace_path / file_path.name)
 
         # to replace & inject code
-        exp.exp_ws.inject_code(**{"model.py": exp.sub_implementations[0].code_dict["model.py"]})
+        exp.experiment_workspace.inject_code(**{"model.py": exp.sub_implementations[0].code_dict["model.py"]})
 
         env_to_use = {}
 
@@ -60,13 +60,15 @@ class QlibModelRunner(CachedRunner[ModelFBWorkspace]):
         # Run the Docker container with the specified entry
 
         execute_log = qtde.run(
-            local_path=exp.exp_ws.workspace_path, entry="qrun conf.yaml", env={"PYTHONPATH": "./", **env_to_use}
+            local_path=exp.experiment_workspace.workspace_path,
+            entry="qrun conf.yaml",
+            env={"PYTHONPATH": "./", **env_to_use},
         )
 
         # Run the experiment analysis code
-        execute_log = qtde.run(local_path=exp.exp_ws.workspace_path, entry="python read_exp_res.py")
+        execute_log = qtde.run(local_path=exp.experiment_workspace.workspace_path, entry="python read_exp_res.py")
 
-        csv_path = exp.exp_ws.workspace_path / "qlib_res.csv"
+        csv_path = exp.experiment_workspace.workspace_path / "qlib_res.csv"
 
         if not csv_path.exists():
             RDAgentLog().error(f"File {csv_path} does not exist.")

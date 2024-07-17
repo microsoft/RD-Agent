@@ -57,7 +57,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
         if exp.based_experiments:
             SOTA_factor = None
-            if exp.based_experiments.__len__() != 1:
+            if len(exp.based_experiments) > 1:
                 SOTA_factor = self.process_factor_data(exp.based_experiments)
 
             # Process the new factors data
