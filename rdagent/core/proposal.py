@@ -108,5 +108,3 @@ class HypothesisExperiment2Feedback:
         For example: `mlflow` of Qlib will be included.
         """
         raise NotImplementedError("generateFeedback method is not implemented.")
-
-    # def generateResultComparison()
