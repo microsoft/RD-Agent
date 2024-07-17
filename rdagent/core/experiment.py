@@ -55,11 +55,11 @@ class WsLoader(ABC, Generic[ASpecificTask, ASpecificWS]):
 
 class FBWorkspace(Workspace):
     """
-    File-based task implementation
+    File-based task workspace
 
     The implemented task will be a folder which contains related elements.
     - Data
-    - Code Implementation
+    - Code Workspace
     - Output
         - After execution, it will generate the final output as file.
 

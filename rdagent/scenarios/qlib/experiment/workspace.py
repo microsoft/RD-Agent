@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.core.experiment import FBWorkspace
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import QTDockerEnv
 
 
@@ -38,7 +38,7 @@ class QlibFBWorkspace(FBWorkspace):
         csv_path = self.workspace_path / "qlib_res.csv"
 
         if not csv_path.exists():
-            RDAgentLog().error(f"File {csv_path} does not exist.")
+            logger.error(f"File {csv_path} does not exist.")
             return None
 
         return pd.read_csv(csv_path, index_col=0).iloc[:, 0]

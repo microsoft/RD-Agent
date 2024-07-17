@@ -5,8 +5,8 @@ TODO: Factor Structure RD-Loop
 from dotenv import load_dotenv
 
 from rdagent.core.exception import FactorEmptyException
-from rdagent.core.log import RDAgentLog
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 
 load_dotenv(override=True)
 
@@ -44,5 +44,5 @@ for _ in range(PROP_SETTING.evolving_n):
 
         trace.hist.append((hypothesis, exp, feedback))
     except FactorEmptyException as e:
-        RDAgentLog().warning(e)
+        logger.warning(e)
         continue

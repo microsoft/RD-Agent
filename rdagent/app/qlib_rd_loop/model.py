@@ -8,7 +8,6 @@ TODO: move the following code to a new class: Model_RD_Agent
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyException
-from rdagent.core.log import RDAgentLog
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -17,6 +16,7 @@ from rdagent.core.proposal import (
 )
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
+from rdagent.log import rdagent_logger as logger
 
 scen: Scenario = import_class(PROP_SETTING.model_scen)()
 
@@ -40,5 +40,5 @@ for _ in range(PROP_SETTING.evolving_n):
 
         trace.hist.append((hypothesis, exp, feedback))
     except ModelEmptyException as e:
-        RDAgentLog().warning(e)
+        logger.warning(e)
         continue

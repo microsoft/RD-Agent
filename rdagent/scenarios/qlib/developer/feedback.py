@@ -7,7 +7,6 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
@@ -15,6 +14,7 @@ from rdagent.core.proposal import (
     HypothesisFeedback,
     Trace,
 )
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -34,7 +34,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
-        RDAgentLog().info("Generating feedback...")
+        logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
         tasks_factors = [task.get_task_information() for task in exp.sub_tasks]
@@ -94,7 +94,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         For example: `mlflow` of Qlib will be included.
         """
 
-        RDAgentLog().info("Generating feedback...")
+        logger.info("Generating feedback...")
         # Define the system prompt for hypothesis feedback
         system_prompt = feedback_prompts["model_feedback_generation"]["system"]
 

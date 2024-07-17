@@ -8,7 +8,6 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
@@ -16,7 +15,7 @@ from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
-from rdagent.core.experiment import Implementation, Task, Workspace
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger

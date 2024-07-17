@@ -18,7 +18,7 @@ class RDAgentSettings(BaseSettings):
     # TODO: (xiao) I think LLMSetting may be a better name.
     # TODO: (xiao) I think most of the config should be in oai.config
     # Log configs
-    # TODO: (xiao) think it can be a seperate config.
+    # TODO: (xiao) think it can be a separate config.
     log_trace_path: str | None = None
     log_llm_chat_content: bool = True
 

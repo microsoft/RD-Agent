@@ -9,7 +9,7 @@ from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyException
-from rdagent.core.log import RDAgentLog
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.utils.env import QTDockerEnv
 
