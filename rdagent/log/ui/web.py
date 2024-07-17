@@ -1,10 +1,10 @@
 import pickle
-
+import streamlit as st
 from pathlib import Path
 from rdagent.log.base import Storage, View
 from rdagent.log.storage import FileStorage
-
-
+from rdagent.log.base import Message
+from datetime import timezone, datetime
 class ProcessView(View):
     def __init__(self, trace_path: Path):
         # Save logs to your desired data structure
@@ -94,14 +94,16 @@ class WebView(View):
 
 # TODO: Implement the following classes
 class STLWindow:
-    ...
 
-    def consume_msg(self, msg):
-        ...  # update it's view
+    def consume_msg(self, msg: Message):
+        msg_str = f"{msg.timestamp.astimezone(timezone.utc).isoformat()} | {msg.caller} - {msg.content}"
+        st.write(msg_str)
+
+
 
 
 class STLUI:
-    wd_l: list[STLWindow]
+    wd_l: dict[str, STLWindow]
 
     def __init__(self):
         self.build_ui()
@@ -110,8 +112,18 @@ class STLUI:
         # control the dispaly of windows
         ...
 
-    def dispatch(self, msg):
+    def dispatch(self, msg: Message):
         # map the message to a specific window
+        ...
+
+class QlibFactorUI(STLUI):
+    def __init__(self):
+        super().__init__()
+    
+    def build_ui(self):
+        ...
+    
+    def dispatch(self, msg: Message):
         ...
 
 
