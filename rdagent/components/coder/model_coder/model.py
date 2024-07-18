@@ -60,8 +60,8 @@ class ModelFBWorkspace(FBWorkspace):
 
     """
 
-    def prepare(self, *args: Any, **kwargs: Any) -> None:
-        return super().prepare(*args, **kwargs)
+    def prepare(self) -> None:
+        return super().prepare()
 
     def execute(
         self,

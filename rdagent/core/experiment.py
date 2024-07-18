@@ -93,7 +93,7 @@ class FBWorkspace(Workspace):
         return code_string
 
     @abstractmethod
-    def prepare(self, *args: Any, **kwargs: Any) -> None:
+    def prepare(self) -> None:
         """
         Prepare the workspace except the injected code
         - Data

@@ -112,14 +112,15 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 # Boolean, Reason, Confidence, etc.
 
 
-class HypothesisExperiment2Feedback:
+class HypothesisExperiment2Feedback(ABC):
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks
     & their comparisons with previous performances"""
 
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:  # noqa: ARG002
+    @abstractmethod
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).
