@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from rdagent.core.evaluation import Evaluator
 from rdagent.core.evolving_framework import EvolvableSubjects, EvoStep, Feedback
+from rdagent.log import rdagent_logger as logger
 
 
 class EvoAgent(ABC):
@@ -13,12 +14,14 @@ class EvoAgent(ABC):
         self.evolving_strategy = evolving_strategy
 
     @abstractmethod
-    def multistep_evolve(self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any) -> EvolvableSubjects:
-        ...
+    def multistep_evolve(
+        self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any
+    ) -> EvolvableSubjects: ...
 
     @abstractmethod
-    def filter_evolvable_subjects_by_feedback(self, evo: EvolvableSubjects, feedback: Feedback) -> EvolvableSubjects:
-        ...
+    def filter_evolvable_subjects_by_feedback(
+        self, evo: EvolvableSubjects, feedback: Feedback
+    ) -> EvolvableSubjects: ...
 
 
 class RAGEvoAgent(EvoAgent):
@@ -53,6 +56,7 @@ class RAGEvoAgent(EvoAgent):
                 evolving_trace=self.evolving_trace,
                 queried_knowledge=queried_knowledge,
             )
+            logger.log_object(evo.sub_workspace_list, tag=f"evolving code")
 
             # 4. Pack evolve results
             es = EvoStep(evo, queried_knowledge)
@@ -62,6 +66,7 @@ class RAGEvoAgent(EvoAgent):
                 es.feedback = (
                     eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
                 )
+                logger.log_object(es.feedback, tag=f"evolving feedback")
 
             # 6. update trace
             self.evolving_trace.append(es)
