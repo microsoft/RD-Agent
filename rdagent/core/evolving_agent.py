@@ -1,34 +1,45 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, Type
 
 from tqdm import tqdm
 
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_framework import EvolvableSubjects, EvoStep, Feedback
+if TYPE_CHECKING:
+    from rdagent.core.evaluation import Evaluator
+    from rdagent.core.evolving_framework import EvolvableSubjects
+
+from rdagent.core.evaluation import Feedback
+from rdagent.core.evolving_framework import EvoStep, EvolvingStrategy
 from rdagent.log import rdagent_logger as logger
 
 
 class EvoAgent(ABC):
-    def __init__(self, max_loop, evolving_strategy) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
         self.evolving_strategy = evolving_strategy
 
     @abstractmethod
     def multistep_evolve(
-        self, evo: EvolvableSubjects, eva: Evaluator | Feedback, **kwargs: Any
+        self,
+        evo: EvolvableSubjects,
+        eva: Evaluator | Feedback,
+        **kwargs: Any,
     ) -> EvolvableSubjects: ...
 
     @abstractmethod
     def filter_evolvable_subjects_by_feedback(
-        self, evo: EvolvableSubjects, feedback: Feedback
+        self,
+        evo: EvolvableSubjects,
+        feedback: Feedback,
     ) -> EvolvableSubjects: ...
 
 
 class RAGEvoAgent(EvoAgent):
-    def __init__(self, max_loop, evolving_strategy, rag) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy, rag: Any) -> None:
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
-        self.evolving_trace: List[EvoStep] = []
+        self.evolving_trace: list[EvoStep] = []
 
     def multistep_evolve(
         self,
@@ -56,7 +67,7 @@ class RAGEvoAgent(EvoAgent):
                 evolving_trace=self.evolving_trace,
                 queried_knowledge=queried_knowledge,
             )
-            logger.log_object(evo.sub_workspace_list, tag=f"evolving code")
+            logger.log_object(evo.sub_workspace_list, tag="evolving code")
 
             # 4. Pack evolve results
             es = EvoStep(evo, queried_knowledge)
@@ -66,7 +77,7 @@ class RAGEvoAgent(EvoAgent):
                 es.feedback = (
                     eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
                 )
-                logger.log_object(es.feedback, tag=f"evolving feedback")
+                logger.log_object(es.feedback, tag="evolving feedback")
 
             # 6. update trace
             self.evolving_trace.append(es)

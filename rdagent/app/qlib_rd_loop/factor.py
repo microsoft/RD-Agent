@@ -4,7 +4,7 @@ TODO: Factor Structure RD-Loop
 
 from dotenv import load_dotenv
 
-from rdagent.core.exception import FactorEmptyException
+from rdagent.core.exception import FactorEmptyError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 
@@ -50,10 +50,10 @@ for _ in range(PROP_SETTING.evolving_n):
         with logger.tag("ef"):
             exp = qlib_factor_runner.develop(exp)
             logger.log_object(exp, tag="factor runner result")
-            feedback = qlib_factor_summarizer.generateFeedback(exp, hypothesis, trace)
+            feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
             logger.log_object(feedback, tag="feedback")
 
         trace.hist.append((hypothesis, exp, feedback))
-    except FactorEmptyException as e:
+    except FactorEmptyError as e:
         logger.warning(e)
         continue

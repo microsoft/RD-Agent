@@ -6,7 +6,7 @@ import pandas as pd
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.exception import FactorEmptyException
+from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
@@ -60,7 +60,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                raise FactorEmptyException("No valid factor data found to merge.")
+                raise FactorEmptyError("No valid factor data found to merge.")
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
