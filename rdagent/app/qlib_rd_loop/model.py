@@ -7,7 +7,7 @@ TODO: move the following code to a new class: Model_RD_Agent
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ModelEmptyException
+from rdagent.core.exception import ModelEmptyError
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -42,6 +42,6 @@ with logger.tag("model.loop"):
                 exp = qlib_model_runner.develop(exp)
                 feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
             trace.hist.append((hypothesis, exp, feedback))
-        except ModelEmptyException as e:
+        except ModelEmptyError as e:
             logger.warning(e)
             continue

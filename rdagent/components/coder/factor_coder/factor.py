@@ -11,9 +11,9 @@ from filelock import FileLock
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import (
-    CodeFormatException,
-    NoOutputException,
-    RuntimeErrorException,
+    CodeFormatError,
+    NoOutputError,
+    RuntimeError,
 )
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -106,7 +106,7 @@ class FactorFBWorkspace(FBWorkspace):
         super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
             if self.raise_exception:
-                raise CodeFormatException(self.FB_CODE_NOT_SET)
+                raise CodeFormatError(self.FB_CODE_NOT_SET)
             else:
                 # TODO: to make the interface compatible with previous code. I kept the original behavior.
                 raise ValueError(self.FB_CODE_NOT_SET)
@@ -162,18 +162,18 @@ class FactorFBWorkspace(FBWorkspace):
                         execution_feedback[:1000] + "....hidden long error message...." + execution_feedback[-1000:]
                     )
                 if self.raise_exception:
-                    raise RuntimeErrorException(execution_feedback)
+                    raise RuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
                 execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
-                    raise RuntimeErrorException(execution_feedback)
+                    raise RuntimeError(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
             if not workspace_output_file_path.exists():
                 execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
                 executed_factor_value_dataframe = None
                 if self.raise_exception:
-                    raise NoOutputException(execution_feedback)
+                    raise NoOutputError(execution_feedback)
             else:
                 try:
                     executed_factor_value_dataframe = pd.read_hdf(workspace_output_file_path)

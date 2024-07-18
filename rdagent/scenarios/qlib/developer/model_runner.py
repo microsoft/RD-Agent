@@ -8,7 +8,7 @@ from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBW
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ModelEmptyException
+from rdagent.core.exception import ModelEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.utils.env import QTDockerEnv
@@ -35,7 +35,7 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
                 return exp
 
         if exp.sub_workspace_list[0].code_dict.get("model.py") is None:
-            raise ModelEmptyException("model.py is empty")
+            raise ModelEmptyError("model.py is empty")
         # to replace & inject code
         exp.experiment_workspace.inject_code(**{"model.py": exp.sub_workspace_list[0].code_dict["model.py"]})
 
