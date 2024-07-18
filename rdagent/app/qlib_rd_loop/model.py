@@ -33,14 +33,20 @@ trace = Trace(scen=scen)
 with logger.tag("model.loop"):
     for _ in range(PROP_SETTING.evolving_n):
         try:
-            with logger.tag("r"): # research
+            with logger.tag("r"):  # research
                 hypothesis = hypothesis_gen.gen(trace)
+                logger.log_object(hypothesis, tag="hypothesis generation")
+
                 exp = hypothesis2experiment.convert(hypothesis, trace)
-            with logger.tag("d"): # develop
+                logger.log_object(exp.sub_tasks, tag="experiment generation")
+            with logger.tag("d"):  # develop
                 exp = qlib_model_coder.develop(exp)
-            with logger.tag("ef"): # evaluate and feedback
+                logger.log_object(exp.sub_workspace_list, tag="model coder result")
+            with logger.tag("ef"):  # evaluate and feedback
                 exp = qlib_model_runner.develop(exp)
+                logger.log_object(exp, tag="model runner result")
                 feedback = qlib_model_summarizer.generateFeedback(exp, hypothesis, trace)
+                logger.log_object(feedback, tag="feedback")
             trace.hist.append((hypothesis, exp, feedback))
         except ModelEmptyException as e:
             logger.warning(e)

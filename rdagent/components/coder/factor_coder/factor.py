@@ -108,8 +108,7 @@ class FactorFBWorkspace(FBWorkspace):
             if self.raise_exception:
                 raise CodeFormatException(self.FB_CODE_NOT_SET)
             else:
-                # TODO: to make the interface compatible with previous code. I kept the original behavior.
-                raise ValueError(self.FB_CODE_NOT_SET)
+                return self.FB_CODE_NOT_SET, None
         with FileLock(self.workspace_path / "execution.lock"):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code and same data type
