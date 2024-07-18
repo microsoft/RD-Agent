@@ -64,7 +64,7 @@ class FileStorage(Storage):
         )
         msg_l = []
         for file in self.path.glob("**/*.log"):
-            tag = str(file.relative_to(self.path)).replace("/", ".").rsplit(".", 1)[0]
+            tag = str(file.relative_to(self.path)).replace("/", ".").rsplit(".", 3)[0]
             pid = file.parent.name
 
             with file.open("r") as f:
