@@ -9,7 +9,8 @@ if TYPE_CHECKING:
     from rdagent.core.evaluation import Evaluator
     from rdagent.core.evolving_framework import EvolvableSubjects
 
-from rdagent.core.evolving_framework import EvoStep, Feedback
+from rdagent.core.evolving_framework import EvoStep
+from rdagent.core.evaluation import Feedback
 
 
 class EvoAgent(ABC):

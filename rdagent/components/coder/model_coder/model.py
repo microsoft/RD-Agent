@@ -3,7 +3,7 @@ import pickle
 import site
 import uuid
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import torch
 
@@ -59,6 +59,9 @@ class ModelFBWorkspace(FBWorkspace):
     - And then verify the model.
 
     """
+
+    def prepare(self, *args: Any, **kwargs: Any) -> None:
+        return super().prepare(*args, **kwargs)
 
     def execute(
         self,
