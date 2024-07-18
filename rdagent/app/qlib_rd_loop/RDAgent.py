@@ -1,5 +1,7 @@
 import pickle
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
+from rdagent.core.developer import Developer
+from rdagent.core.exception import ModelEmptyException
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -7,17 +9,17 @@ from rdagent.core.proposal import (
     Trace,
 )
 from rdagent.core.scenario import Scenario
-from rdagent.core.task_generator import TaskGenerator
 from rdagent.core.utils import import_class
+from rdagent.log import rdagent_logger as logger
 
 class Model_RD_Agent:
     def __init__(self):
-        self.scen: Scenario = import_class(PROP_SETTING.qlib_model_scen)()
-        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.qlib_model_hypothesis_gen)(self.scen)
-        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.qlib_model_hypothesis2experiment)()
-        self.qlib_model_coder: TaskGenerator = import_class(PROP_SETTING.qlib_model_coder)(self.scen)
-        self.qlib_model_runner: TaskGenerator = import_class(PROP_SETTING.qlib_model_runner)(self.scen)
-        self.qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.qlib_model_summarizer)(self.scen)
+        self.scen: Scenario = import_class(PROP_SETTING.model_scen)()
+        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.model_hypothesis_gen)(self.scen)
+        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.model_hypothesis2experiment)()
+        self.qlib_model_coder: Developer = import_class(PROP_SETTING.model_coder)(self.scen)
+        self.qlib_model_runner: Developer = import_class(PROP_SETTING.model_runner)(self.scen)
+        self.qlib_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.model_summarizer)(self.scen)
         self.trace = Trace(scen=self.scen)
 
     def generate_hypothesis(self):
@@ -31,12 +33,12 @@ class Model_RD_Agent:
         return exp
 
     def generate_code(self, exp):
-        exp = self.qlib_model_coder.generate(exp)
+        exp = self.qlib_model_coder.develop(exp)
         self.dump_objects(exp=exp, trace=self.trace, filename='step_code.pkl')
         return exp
 
     def run_experiment(self, exp):
-        exp = self.qlib_model_runner.generate(exp)
+        exp = self.qlib_model_runner.develop(exp)
         self.dump_objects(exp=exp, trace=self.trace, filename='step_run.pkl')
         return exp
 
@@ -91,9 +93,6 @@ def process_steps(agent):
         exp = agent.run_experiment(exp)
 
     # Step 5: Generate feedback
-    # try:
-    #     _, _, feedback, _ = agent.load_objects('step_feedback.pkl')
-    # except FileNotFoundError:
     feedback = agent.generate_feedback(exp, hypothesis)
 
     # Step 6: Append to trace
