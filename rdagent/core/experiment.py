@@ -92,7 +92,6 @@ class FBWorkspace(Workspace):
             code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
-    @abstractmethod
     def prepare(self) -> None:
         """
         Prepare the workspace except the injected code

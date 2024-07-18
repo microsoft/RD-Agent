@@ -13,9 +13,6 @@ class QlibFBWorkspace(FBWorkspace):
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
 
-    def prepare(self) -> None:
-        return super().prepare()
-
     def execute(self, qlib_config_name: str = "conf.yaml", run_env: dict = {}, *args, **kwargs) -> str:
         qtde = QTDockerEnv()
         qtde.prepare()

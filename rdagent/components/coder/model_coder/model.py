@@ -60,9 +60,6 @@ class ModelFBWorkspace(FBWorkspace):
 
     """
 
-    def prepare(self) -> None:
-        return super().prepare()
-
     def execute(
         self,
         batch_size: int = 8,
