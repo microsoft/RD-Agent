@@ -15,7 +15,7 @@ from rdagent.log import rdagent_logger as logger
 
 
 class EvoAgent(ABC):
-    def __init__(self, max_loop: int, evolving_strategy: Type[EvolvingStrategy]) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
         self.evolving_strategy = evolving_strategy
 
@@ -36,7 +36,7 @@ class EvoAgent(ABC):
 
 
 class RAGEvoAgent(EvoAgent):
-    def __init__(self, max_loop: int, evolving_strategy: Type[EvolvingStrategy], rag: Any) -> None:
+    def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy, rag: Any) -> None:
         super().__init__(max_loop, evolving_strategy)
         self.rag = rag
         self.evolving_trace: list[EvoStep] = []
