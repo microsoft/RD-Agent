@@ -141,6 +141,7 @@ class FactorFBWorkspace(FBWorkspace):
             self.link_data_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
+            execution_success = False
             try:
                 subprocess.check_output(
                     f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
@@ -149,6 +150,7 @@ class FactorFBWorkspace(FBWorkspace):
                     stderr=subprocess.STDOUT,
                     timeout=FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout,
                 )
+                execution_success = True
             except subprocess.CalledProcessError as e:
                 import site
 
@@ -169,18 +171,18 @@ class FactorFBWorkspace(FBWorkspace):
                     raise RuntimeErrorException(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
-            if not workspace_output_file_path.exists():
-                execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
-                executed_factor_value_dataframe = None
-                if self.raise_exception:
-                    raise NoOutputException(execution_feedback)
-            else:
+            if workspace_output_file_path.exists() and execution_success:
                 try:
                     executed_factor_value_dataframe = pd.read_hdf(workspace_output_file_path)
                     execution_feedback += self.FB_OUTPUT_FILE_FOUND
                 except Exception as e:
                     execution_feedback += f"Error found when reading hdf file: {e}"[:1000]
                     executed_factor_value_dataframe = None
+            else:
+                execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
+                executed_factor_value_dataframe = None
+                if self.raise_exception:
+                    raise NoOutputException(execution_feedback)
 
             if store_result and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe

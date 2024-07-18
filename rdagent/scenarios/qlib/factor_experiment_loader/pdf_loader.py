@@ -196,7 +196,7 @@ def __extract_factor_and_formulation_from_one_report(
             factor_dict,
         )
     for factor_name in factor_dict:
-        if factor_name not in factor_to_formulation:
+        if factor_name not in factor_to_formulation or "formulation" not in factor_to_formulation[factor_name] or "variables" not in factor_to_formulation[factor_name]:
             continue
 
         final_factor_dict_to_one_report.setdefault(factor_name, {})
@@ -515,4 +515,5 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
 
         factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
         # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
+        
         return FactorExperimentLoaderFromDict().load(filtered_factor_dict)
