@@ -7,7 +7,6 @@ extract_factors_system: |-
     user will treat your factor name as key to store the factor, don't put any interaction message in the content. Just response the output without any interaction and explanation.
     All names should be in English.
     Respond with your analysis in JSON format. The JSON schema should include:
-    ```json
     {
         "summary": "The summary of this report",
         "factors": {
@@ -19,20 +18,17 @@ extract_factors_system: |-
             "Name of model 2": "Description to model 2"
         }
     }
-    ```
 
 extract_factors_follow_user: |-
     Please continue extracting the factors. Please ignore factors appeared in former messages. If no factor is found, please return an empty dict.
     Notice: You should not miss any factor in the report! Some factors might appear several times in the report. You can repeat them to avoid missing other factors.
     Respond with your analysis in JSON format. The JSON schema should include:
-    ```json
     {
         "factors": {
             "Name of factor 1": "Description to factor 1",
             "Name of factor 2": "Description to factor 2"
         }
     }
-    ```
 
 extract_factor_formulation_system: |-
     I have a financial engineering research report and a list of factors extracted from it. I need assistance in extracting specific information based on the report and the provided list of factors. The tasks are as follows:
@@ -50,8 +46,6 @@ extract_factor_formulation_system: |-
     Please expand the formulation to use the source data I have provided. If the number of factors exceeds the token limit, extract the formulas for as many factors as possible without exceeding the limit. Ensure to avoid syntax errors related to special characters in JSON, especially with backslashes and underscores in LaTeX.
 
     Provide your analysis in JSON format, using the following schema:
-
-    ```json
     {
         "factor name 1": {
             "formulation": "latex formulation of factor 1",
@@ -67,11 +61,7 @@ extract_factor_formulation_system: |-
                 "variable or function name 2": "description of variable or function 2"
             }
         }
-        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
     }
-    ```
-
-    Please only include the factors you've extracted in your response, without any additional messages or explanations. If you can only provide part of the factors, do not use ellipsis or any filler text that might cause JSON parsing errors.
 
 
 extract_factor_formulation_user: |-
@@ -135,7 +125,6 @@ factor_viability_system: |-
 
     Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
     The JSON schema should include:
-    ```json
     {
         "Name to factor 1":
         {
@@ -153,7 +142,6 @@ factor_viability_system: |-
             "reason": "The reason to the viability of this factor"
         }
     }
-    ```
 
 
 factor_duplicate_system: |-
@@ -179,7 +167,6 @@ factor_duplicate_system: |-
     You should always follow the above constraints to make your response valid. 
 
     Your response JSON schema should include:
-    ```json
     [
         [
             "factor name 1",
@@ -195,7 +182,6 @@ factor_duplicate_system: |-
             "factor name 9"
         ]
     ]
-    ```
     Your response is a list of lists. Each list represents a duplicate group containing all the factor names in this group. 
     The factor names in the list should be unique and the factor names should be the same as the user's factor name.
     To avoid reaching token limit, don't respond more than fifty groups in one response. You should respond the output json string without any interaction and explanation.
