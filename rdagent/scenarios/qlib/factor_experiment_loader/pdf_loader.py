@@ -196,7 +196,7 @@ def __extract_factor_and_formulation_from_one_report(
             factor_dict,
         )
     for factor_name in factor_dict:
-        if factor_name not in factor_to_formulation:
+        if factor_name not in factor_to_formulation or "formulation" not in factor_to_formulation[factor_name] or "variables" not in factor_to_formulation[factor_name]:
             continue
 
         final_factor_dict_to_one_report.setdefault(factor_name, {})
@@ -510,9 +510,11 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
         docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
+        # selected_report_dict = {'/home/finco/data/report/5322177.pdf': {'class': 1}}
         file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
         factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
 
         factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
         # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
+        
         return FactorExperimentLoaderFromDict().load(filtered_factor_dict)
