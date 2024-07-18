@@ -26,7 +26,7 @@ class NoOutputError(CoderError):
     """
 
 
-class RunnerError(Exception):
+class CustomRunnerError(Exception):
     """
     Exceptions raised when running the code output.
     """
