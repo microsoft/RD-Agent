@@ -349,7 +349,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         # Check if both dataframe have the same rows count
         if gt_implementation is not None:
-            feedback_str, _ = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
+            feedback_str, single_column_result = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
             feedback_str, same_index_result = FactorIndexEvaluator(self.scen).evaluate(
@@ -357,7 +357,7 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            feedback_str, _ = FactorMissingValuesEvaluator(self.scen).evaluate(implementation, gt_implementation)
+            feedback_str, output_format_result = FactorMissingValuesEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
             feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator(self.scen).evaluate(
@@ -382,7 +382,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif daily_check_result is False:
+        elif single_column_result is False or output_format_result is False or daily_check_result is False:
             decision_from_value_check = False
         else:
             decision_from_value_check = None
