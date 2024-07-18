@@ -119,11 +119,11 @@ class HypothesisExperiment2Feedback:
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
-    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:  # noqa: ARG002,N802
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:  # noqa: ARG002
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-        error_message = "generateFeedback method is not implemented."
+        error_message = "generate_feedback method is not implemented."
         raise NotImplementedError(error_message)

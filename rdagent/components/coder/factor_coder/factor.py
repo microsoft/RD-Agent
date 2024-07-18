@@ -13,7 +13,7 @@ from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTIN
 from rdagent.core.exception import (
     CodeFormatError,
     NoOutputError,
-    RuntimeError,
+    CustomRuntimeError,
 )
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -162,11 +162,11 @@ class FactorFBWorkspace(FBWorkspace):
                         execution_feedback[:1000] + "....hidden long error message...." + execution_feedback[-1000:]
                     )
                 if self.raise_exception:
-                    raise RuntimeError(execution_feedback)
+                    raise CustomRuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
                 execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
-                    raise RuntimeError(execution_feedback)
+                    raise CustomRuntimeError(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
             if not workspace_output_file_path.exists():

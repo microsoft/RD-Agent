@@ -78,11 +78,6 @@ class FBWorkspace(Workspace):
 
     """
 
-    # TODO:
-    # FactorFBWorkspace should inherit from it.
-    # Why not directly reuse FactorFBWorkspace.
-    #   Because it has too much concrete dependencies.
-    #   e.g.  dataframe, factors
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.code_dict = (

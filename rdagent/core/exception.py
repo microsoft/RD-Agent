@@ -14,7 +14,7 @@ class CodeFormatError(CoderError):
     """
 
 
-class RuntimeError(CoderError):
+class CustomRuntimeError(CoderError):
     """
     The generated code fail to execute the script.
     """
