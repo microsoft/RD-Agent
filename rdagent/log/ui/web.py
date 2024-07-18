@@ -5,6 +5,12 @@ from rdagent.log.base import Storage, View
 from rdagent.log.storage import FileStorage
 from rdagent.log.base import Message
 from datetime import timezone, datetime
+from collections import defaultdict
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from streamlit.delta_generator import DeltaGenerator
+
 class ProcessView(View):
     def __init__(self, trace_path: Path):
         # Save logs to your desired data structure
@@ -56,57 +62,76 @@ class WebView(View):
     3. Display logic
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, ui: 'STLUI'):
+        self.ui = ui
         # Save logs to your desired data structure
         # ...
 
-    def display(s: Storage, watch: bool = False):
-        if not isinstance(s, FileStorage):
-            raise ValueError("Only FileStorage is supported")
-        trace_path = s.path
+    def display(self, s: Storage, watch: bool = False):
 
-        for dir in trace_path.iterdir():
-            if dir.name.isdigit():
-                # Process folder
-                common_p = (dir / "common_logs.log")
-                if common_p.exists():
-                    # common log
-                    pass
-                
-                for file in dir.iterdir():
-                    if file != common_p:
-                        obj = pickle.load(file.open("rb"))
-                        pass
-            else:
-                # tag folder
-                
-                pass
-
-
-        ui = STLUI()
         for msg in s.iter_msg():  # iterate overtime
             # NOTE:  iter_msg will correctly seperate the information.
             # TODO: msg may support streaming mode.
-            ui.dispatch(msg)
-        pass
+            self.ui.dispatch(msg)
+
 
 
 # TODO: Implement the following classes
 class STLWindow:
 
-    def consume_msg(self, msg: Message):
-        msg_str = f"{msg.timestamp.astimezone(timezone.utc).isoformat()} | {msg.caller} - {msg.content}"
-        st.write(msg_str)
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container
 
+    def consume_msg(self, msg: Message):
+        msg_str = f"{msg.timestamp.astimezone(timezone.utc).isoformat()} | {msg.level} | {msg.caller} - {msg.content}"
+        self.container.write(msg_str)
+
+
+class LLMWindow(STLWindow):
+    def __init__(self, container: 'DeltaGenerator', session_name: str="common"):
+        self.container = container
+        self.container.subheader(f"{session_name} Messages")
+
+    def consume_msg(self, msg: Message):
+        self.container.chat_message('User').write(f"{msg.content}")
+
+
+class CodeWindow(STLWindow):
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container.empty()
+    
+    def consume_msg(self, msg: Message):
+        self.container.code(msg.content, language="python")
+
+
+class MultiProcessWindow(STLWindow):
+    def __init__(self, container: 'DeltaGenerator', inner_class: str = "STLWindow"):
+        '''
+        inner_class: STLWindow 子类名称, 用来实例化多进程窗口的内部窗口实例
+        '''
+        self.container = container.empty()
+        self.tabs_cache = defaultdict(list)
+        self.inner_class = eval(inner_class)
+        
+    
+    def consume_msg(self, msg: Message):
+        name = msg.pid_trace.split("-")[-1]
+        self.tabs_cache[name].append(msg)
+
+        tabs = self.container.tabs(list(self.tabs_cache.keys()))
+        for i, name in enumerate(self.tabs_cache):
+            inner_win: STLWindow = self.inner_class(tabs[i])
+            for m in self.tabs_cache[name]:
+                inner_win.consume_msg(m)
 
 
 
 class STLUI:
-    wd_l: dict[str, STLWindow]
+    wds: list[STLWindow] = []
 
     def __init__(self):
-        self.build_ui()
+        ...
+        # self.build_ui()
 
     def build_ui(self):
         # control the dispaly of windows
@@ -117,15 +142,26 @@ class STLUI:
         ...
 
 class QlibFactorUI(STLUI):
+
     def __init__(self):
         super().__init__()
-    
-    def build_ui(self):
-        ...
-    
+        self.pid_level = 0
+        self.tag_level = 0
+
     def dispatch(self, msg: Message):
-        ...
+        pid_level = msg.pid_trace.count("-")
+        tag_level = msg.tag.count(".")
+
+        if pid_level > self.pid_level:
+            self.pid_level = pid_level
+            self.wds.append(MultiProcessWindow(st.container(), "STLWindow"))
+        
+        if tag_level > self.tag_level:
+            self.tag_level = tag_level
+
+
+        self.wds[-1].consume_msg(msg)
 
 
 if __name__ == "__main__":
-    WebView().display(FileStorage("./log/test_trace"))
+    WebView(QlibFactorUI()).display(FileStorage("./log/test_trace"))
