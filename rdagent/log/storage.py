@@ -3,7 +3,7 @@ import json
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Generator
 
 from .base import Message, Storage
 
@@ -56,7 +56,7 @@ class FileStorage(Storage):
                 f.write(obj)
             return path
 
-    def iter_msg(self, watch: bool = False):
+    def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
         log_pattern = re.compile(
             r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| "
             r"(?P<level>DEBUG|INFO|WARNING|ERROR|CRITICAL) *\| "
@@ -94,8 +94,16 @@ class FileStorage(Storage):
                     pid_trace=pid,
                     content=message_content
                 )
+
+                if "Logging object in" in m.content:
+                    absolute_p = m.content.split("Logging object in ")[1]
+                    relative_p = "." + absolute_p.split(self.path.name)[1]
+                    pkl_path = self.path / relative_p
+                    with pkl_path.open("rb") as f:
+                        m.content = pickle.load(f)
+
                 msg_l.append(m)
+
         msg_l.sort(key=lambda x: x.timestamp)
         for m in msg_l:
             yield m
-        # TODO: load the pickle based on the file path
