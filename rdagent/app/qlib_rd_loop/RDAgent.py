@@ -12,6 +12,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 
+# TODO: we can design a workflow that can automatically save session and traceback in the future
 class Model_RD_Agent:
     def __init__(self):
         self.scen: Scenario = import_class(PROP_SETTING.model_scen)()
