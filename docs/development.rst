@@ -15,12 +15,12 @@ Code Structure
     📂 src
     ➥ 📂 <project name>: avoid namespace conflict
       ➥ 📁 core
-      ➥ 📁 component A
-      ➥ 📁 component B
-      ➥ 📁 component C
+      ➥ 📁 components/A
+      ➥ 📁 components/B
+      ➥ 📁 components/C
+      ➥ 📁 scenarios/X
+      ➥ 📁 scenarios/Y
       ➥ 📂 app
-        ➥ 📁 scenario1
-        ➥ 📁 scenario2
     ➥ 📁 scripts
 
 .. list-table::
@@ -30,12 +30,14 @@ Code Structure
      - Description
    * - 📁 core
      - The core framework of the system. All classes should be abstract and usually can't be used directly.
-   * - 📁 component X
+   * - 📁 component/A
      - Useful components that can be used by others (e.g., scenarios). Many subclasses of core classes are located here.
+   * - 📁 scenarios/X
+     - Concrete features for specific scenarios (usually built based on components or core). These modules are often unreusable across scenarios.
    * - 📁 app
-     - Applications for specific scenarios (usually built based on components). Removing any of them does not affect the system's completeness or other scenarios.
+     - Applications for specific scenarios (usually built based on components or scenarios). Removing any of them does not affect the system's completeness or other scenarios.
    * - 📁 scripts
-     - Quick and dirty things. These are candidates for core, components, and apps.
+     - Quick and dirty things. These are candidates for core, components, scenarios, and apps.
 
 
 title3

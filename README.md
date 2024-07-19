@@ -8,6 +8,8 @@ TODO: Add badges.
 
 # Introduction
 
+TODO: A piture to introduce the project scenario.
+
 RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
@@ -15,49 +17,58 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- [Automatic Quant Factory]()
-- Data mining copilot: iteratively proposing data & models and implementing them by gaining knowledge from data.
-- Research copilot: Auto read papers and implement model structures.
+- [🎥Automatic Quant Factory]()
+- Data mining copilot: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
+- Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
 - ...
 
-More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
+You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
 
-We have a quick demo for one use case of RDAgent.
+We have a quick 🎥demo for one use case of RDAgent.
 - TODO: Demo
 
 
-# Quick start
+# ⚡Quick start
 You can try our demo by running the following command:
 
 ```bash
+# TODO:
 # prepare environment
 # installation
 # App entrance
 ```
 
+The [🎥demo]() is implemented by the above commands.
+
 # Scenarios
 
+We have applied RD-Agent to multiple valuable data-driven industrial scenarios..
 
-## Data-driven R&D
-TODO: importance justification
 
-### 🎯 Goal
+## 🎯 Goal: Agent for Data-driven R&D
 
-In this project, we are aiming to build a Data-Centric R\&D Agent that can
-
-+ Read real-world material (reports, papers, etc.) and extract key formulas, descriptions of interested features, factors and models.
-
-+ Implement the extracted formulas, features, factors and models in runnable codes.
+In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
++ 📄Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
++ 🛠️**Implement** the extracted formulas, features, factors and models in runnable codes.
    + Due the limited ability for LLM in implementing in once, evolving the agent to be able to extend abilities by learn from feedback and knowledge and improve the agent's ability to implement more complex models.
-
-+ Further propose new ideas based on current knowledge and observations.
++ 💡Propose **new ideas** based on current knowledge and observations.
 
 ![Data-Centric R&D Overview](docs/_static/overview.png)
 
-### 🛣️ Brief Roadmap
-In this section, we will briefly introduce the roadmap/technical type of this project.
+## 📈 Scenarios Matrix 
+Here is our supported scenarios
 
-1. Backbone LLM: We use GPT series as main backbone of the agent. `.env` file uis used to config settings (such as APIkey, APIEndpoint and etc) in the environment variables way. Check this [Readme](src/scripts/benchmark/README.md) for environment set up.
+| Scenario/Target | Model Implementation                                                                     | Data Building                                                                            |
+| --              | --                                                                                       | --                                                                                       |
+| 💹Finance         | Auto paper/reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving | Auto paper/reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
+| 🩺Medical         | Iteratively Proposing Ideas & Evolving                                                   | -                                                                                        |
+
+Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
+
+# Framework
+
+TODO: a picture of the framework.
+
 
 2. KnowledgeGraph based evolving: We do not do any further pertain or fine-tune on the LLM model. Instead, we modify prompts like RAG, but use knowledge graph query information to evolve the agent's ability to implement more complex models. 
    + Typically, we build a knowledge consisted with `Error`, `Component`(you can think of it as a numeric operation or function), `Trail` and etc. We add nodes of these types to the knowledge graph with relationship while the agent tries to implement a model. For each attempts, the agent will query the knowledge graph to get the information of current status as prompt input. The agent will also update the knowledge graph with the new information after the attempt.
