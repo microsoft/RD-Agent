@@ -20,5 +20,3 @@ if [ $count -ge $max_retries ]; then
 else
   echo "$(date) - Script completed successfully." >> $log_file
 fi
-
-# chmod +x /home/finco/v-yuanteli/RD-Agent/rdagent/app/qlib_rd_loop/run_script.sh

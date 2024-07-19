@@ -27,7 +27,6 @@ from rdagent.core.proposal import (
     Trace,
 )
 
-from rdagent.core.exception import FactorEmptyException
 from rdagent.core.developer import Developer
 
 assert load_dotenv()
@@ -44,22 +43,19 @@ qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
 
 qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
 
-json_file_path = "/home/finco/v-yuanteli/RD-Agent/git_ignore_folder/res_dict.json"
-with open(json_file_path, 'r') as f:
+with open(PROP_SETTING.report_result_json_file_path, 'r') as f:
     judge_pdf_data = json.load(f)
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
 
-progress_file = "/home/finco/v-yuanteli/RD-Agent/git_ignore_folder/progress.pkl"
-
 def save_progress(trace, current_index):
-    with open(progress_file, "wb") as f:
+    with open(PROP_SETTING.progress_file, "wb") as f:
         pickle.dump((trace, current_index), f)
 
 def load_progress():
-    if Path(progress_file).exists():
-        with open(progress_file, "rb") as f:
+    if Path(PROP_SETTING.progress_file).exists():
+        with open(PROP_SETTING.progress_file, "rb") as f:
             return pickle.load(f)
     return Trace(scen=scen), 0
 
@@ -118,9 +114,9 @@ try:
             break
         file_path, attributes = judge_pdf_data_items[index]
         if attributes["class"] == 1:
-            report_file_path = Path(file_path.replace("/data/home/xiaoyang/data/ftp/amc_origin_file/report", "/home/finco/data/report"))
+            report_file_path = Path(file_path.replace(PROP_SETTING.origin_report_path, PROP_SETTING.local_report_path))
             if report_file_path.exists():
-                print(f"Processing {report_file_path}")
+                logger.info(f"Processing {report_file_path}")
                 exp, hypothesis = extract_factors_and_implement(str(report_file_path))
                 if exp is None:
                     continue
@@ -132,15 +128,15 @@ try:
                 if exp is None:
                     logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
                     continue
-                feedback = qlib_factor_summarizer.generateFeedback(exp, hypothesis, trace)
+                feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
 
                 trace.hist.append((hypothesis, exp, feedback))
-                print(f"Processed {report_file_path}: Result: {exp}")
+                logger.info(f"Processed {report_file_path}: Result: {exp}")
                 
                 # Save progress after processing each report
                 save_progress(trace, index + 1)
             else:
-                print(f"File not found: {report_file_path}")
+                looger.error(f"File not found: {report_file_path}")
 except Exception as e:
     logger.error(f"An error occurred: {e}")
     save_progress(trace, index)

@@ -27,7 +27,6 @@ from rdagent.core.proposal import (
     Trace,
 )
 
-from rdagent.core.exception import FactorEmptyException
 from rdagent.core.developer import Developer
 
 assert load_dotenv()
@@ -114,7 +113,7 @@ for file_path, attributes in judge_pdf_data.items():
             if exp is None:
                 logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
                 continue
-            feedback = qlib_factor_summarizer.generateFeedback(exp, hypothesis, trace)
+            feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
 
             trace.hist.append((hypothesis, exp, feedback))
             logger.info(f"Processed {report_file_path}: Result: {exp}")
