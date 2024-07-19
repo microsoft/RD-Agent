@@ -2,7 +2,7 @@ import json
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Union, Any
 
 from .base import Storage
 
@@ -22,9 +22,11 @@ class FileStorage(Storage):
         self,
         obj: object,
         name: str = "",
-        save_type: Literal["json", "text", "pkl"] = "text",
-        timestamp: datetime | None = None,
-    ) -> Path:
+        **kwargs: Any,
+    ) -> Union[str, Path]:
+        save_type: Literal["json", "text", "pkl"] = kwargs.get("save_type", "text")
+        timestamp: Union[datetime, None] = kwargs.get("timestamp", None)
+
         # TODO: We can remove the timestamp after we implement PipeLog
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)

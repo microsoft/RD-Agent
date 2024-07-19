@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Generic, Sequence, TypeVar
+from typing import Any, Generic, Sequence, TypeVar, Optional, Dict, List
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
@@ -31,8 +31,8 @@ class Workspace(ABC, Generic[ASpecificTask]):
     To get a snapshot of the workspace, make sure call `copy` to get a copy of the workspace.
     """
 
-    def __init__(self, target_task: ASpecificTask = None) -> None:
-        self.target_task: ASpecificTask = target_task
+    def __init__(self, target_task: Optional[ASpecificTask] = None) -> None:
+        self.target_task: Optional[ASpecificTask] = target_task
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> object:
@@ -80,6 +80,7 @@ class FBWorkspace(Workspace):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.code_dict: Dict[str, Any] = {}
         self.code_dict = (
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
@@ -152,6 +153,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         self.inject_code(**self.code_dict)
+        return object()
 
 
 ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
@@ -165,10 +167,10 @@ class Experiment(ABC, Generic[ASpecificTask, ASpecificWSForExperiment, ASpecific
 
     def __init__(self, sub_tasks: Sequence[ASpecificTask]) -> None:
         self.sub_tasks = sub_tasks
-        self.sub_workspace_list: Sequence[ASpecificWSForSubTasks] = [None for _ in self.sub_tasks]
+        self.sub_workspace_list: List[Optional[ASpecificWSForSubTasks]] = [None] * len(self.sub_tasks)
         self.based_experiments: Sequence[ASpecificWSForExperiment] = []
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
-        self.experiment_workspace: ASpecificWSForExperiment = None
+        self.experiment_workspace: Optional[ASpecificWSForExperiment] = None
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

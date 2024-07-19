@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from pathlib import Path
+from typing import Union
 
 
 class Storage:
@@ -22,7 +23,7 @@ class Storage:
     """
 
     @abstractmethod
-    def log(self, obj: object, name: str = "", **kwargs: dict) -> str | Path:
+    def log(self, obj: object, name: str = "", **kwargs: dict) -> Union[str, Path]:
         """
 
         Parameters
@@ -50,7 +51,7 @@ class View:
 
     # TODO: pleas fix me
     @abstractmethod
-    def display(s: Storage, watch: bool = False):
+    def display(self, s: Storage, watch: bool = False) -> None:
         """
 
         Parameters

@@ -6,7 +6,7 @@ import multiprocessing as mp
 from collections.abc import Callable
 from typing import Any
 
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
 
 class RDAgentException(Exception):  # noqa: N818
@@ -54,7 +54,7 @@ def similarity(text1: str, text2: str) -> int:
     text2 = text2 if isinstance(text2, str) else ""
 
     # Maybe we can use other similarity algorithm such as tfidf
-    return fuzz.ratio(text1, text2)
+    return int(fuzz.ratio(text1, text2))
 
 
 def import_class(class_path: str) -> Any:

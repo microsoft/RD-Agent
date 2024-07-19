@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from rdagent.core.evolving_framework import EvolvableSubjects
 
 from rdagent.core.evaluation import Feedback
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.evolving_framework import EvoStep, EvolvingStrategy
 from rdagent.log import rdagent_logger as logger
 
@@ -31,7 +32,7 @@ class EvoAgent(ABC):
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
-        feedback: Feedback,
+        feedback: Feedback | None,
     ) -> EvolvableSubjects: ...
 
 
@@ -45,12 +46,13 @@ class RAGEvoAgent(EvoAgent):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-        *,
-        with_knowledge: bool = False,
-        with_feedback: bool = True,
-        knowledge_self_gen: bool = False,
-        filter_final_evo: bool = False,
+        **kwargs: Any,
     ) -> EvolvableSubjects:
+        with_knowledge = kwargs.get('with_knowledge', False)
+        with_feedback = kwargs.get('with_feedback', True)
+        knowledge_self_gen = kwargs.get('knowledge_self_gen', False)
+        filter_final_evo = kwargs.get('filter_final_evo', False)
+
         for _ in tqdm(range(self.max_loop), "Implementing"):
             # 1. knowledge self-evolving
             if knowledge_self_gen and self.rag is not None:
@@ -75,7 +77,8 @@ class RAGEvoAgent(EvoAgent):
             # 5. Evaluation
             if with_feedback:
                 es.feedback = (
-                    eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
+                    # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator, it fails mypy's test here, so we'll ignore this error for now.
+                    eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
                 )
                 logger.log_object(es.feedback, tag="evolving feedback")
 

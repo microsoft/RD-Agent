@@ -28,6 +28,8 @@ class KnowledgeBase(ABC):
 
 class EvolvableSubjects:
     """The target object to be evolved"""
+    def __init__(self) -> None:
+        self.sub_workspace_list: list = []
 
     def clone(self) -> EvolvableSubjects:
         return copy.deepcopy(self)
