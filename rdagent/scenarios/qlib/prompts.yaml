@@ -2,7 +2,7 @@ hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
-  N:  {{ feedback.hypothesis_evaluation }}
+  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   New Feedback for Context (For you to agree or improve upon):  {{ feedback.new_hypothesis }}
   Reasoning for new hypothesis:  {{ feedback.reason }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
