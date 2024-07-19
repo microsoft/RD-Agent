@@ -138,6 +138,7 @@ class QlibDockerConf(DockerConf):
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
     shm_size: str | None = "16g"
+    enable_gpu: bool = True
 
 
 class DockerEnv(Env[DockerConf]):
@@ -178,6 +179,7 @@ class DockerEnv(Env[DockerConf]):
 
         log_output = ""
         try:
+            # TODO: add parameters like `--gpu 4` in command line in `docker run -it --gpus 1 --rm local_qlib:latest`
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
@@ -188,6 +190,9 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
+                device_requests=[
+                    docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
+                ] if self.conf.enable_gpu else None,
             )
             logs = container.logs(stream=True)
             for log in logs:
