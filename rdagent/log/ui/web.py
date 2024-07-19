@@ -7,7 +7,7 @@ from rdagent.log.base import Message
 from datetime import timezone, datetime
 from collections import defaultdict
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
     from rdagent.core.proposal import Hypothesis, HypothesisFeedback
@@ -93,11 +93,11 @@ class StWindow:
 
 class LLMWindow(StWindow):
     def __init__(self, container: 'DeltaGenerator', session_name: str="common"):
-        self.container = container
-        self.container.subheader(f"{session_name} Messages")
+        self.container = container.expander(f"{session_name} Messages")
 
     def consume_msg(self, msg: Message):
-        self.container.chat_message('User').write(f"{msg.content}")
+        role = 'user' if 'Role:user' in msg.content else 'assistant'
+        self.container.chat_message(role).write(f"{msg.content.split('Content: ')[1]}")
 
 
 class CodeWindow(StWindow):
@@ -108,25 +108,38 @@ class CodeWindow(StWindow):
         self.container.code(msg.content, language="python")
 
 
-class MultiProcessWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator', inner_class: str = "STLWindow"):
-        '''
-        inner_class: STLWindow 子类名称, 用来实例化多进程窗口的内部窗口实例
-        '''
-        self.container = container.empty()
-        self.tabs_cache = defaultdict(list)
+class TabsWindow(StWindow):
+    def __init__(self,
+                 container: 'DeltaGenerator',
+                 inner_class: str = "STLWindow",
+                 mapper: Callable[[Message], str] = lambda x: x.pid_trace):
+        
         self.inner_class = eval(inner_class)
+        self.mapper = mapper
+
+        self.container = container.empty()
+        self.tab_windows: dict[str, StWindow] = defaultdict(None)
+        self.tab_caches: dict[str, list[Message]] = defaultdict(list)
         
     
     def consume_msg(self, msg: Message):
-        name = msg.pid_trace.split("-")[-1]
-        self.tabs_cache[name].append(msg)
+        name = self.mapper(msg)
 
-        tabs = self.container.tabs(list(self.tabs_cache.keys()))
-        for i, name in enumerate(self.tabs_cache):
-            inner_win: StWindow = self.inner_class(tabs[i])
-            for m in self.tabs_cache[name]:
-                inner_win.consume_msg(m)
+        if name not in self.tab_windows:
+            # new tab need to be created, current streamlit container need to be updated.
+            names = list(self.tab_windows.keys()) + [name]
+            tabs = self.container.tabs(names)
+            for id, name in enumerate(names):
+                self.tab_windows[name] = self.inner_class(tabs[id])
+            
+            # consume the cache
+            for name in self.tab_caches:
+                for msg in self.tab_caches[name]:
+                    self.tab_windows[name].consume_msg(msg)
+        
+        self.tab_caches[name].append(msg)
+        self.tab_windows[name].consume_msg(msg)
+
 
 
 class HypothesisRelatedWindow(StWindow):
@@ -152,7 +165,7 @@ class QlibFactorUI(StWindow):
 
         if pid_level > self.pid_level:
             self.pid_level = pid_level
-            self.current_win = MultiProcessWindow(st.container(), "STLWindow")
+            self.current_win = TabsWindow(st.container(), "STLWindow")
         
         if tag_level > self.tag_level:
             self.tag_level = tag_level
