@@ -1,4 +1,4 @@
-FROM pytorch/pytorch: latest
+FROM pytorch/pytorch:latest
 
 # For GPU support, please choose the proper tag from https://hub.docker.com/r/pytorch/pytorch/tags
 
