@@ -3,10 +3,11 @@ hypothesis_gen:
     The user is trying to generate new hypothesis on the {{targets}} in data-driven research and development.
     The {{targets}} are used in a certain scenario, the scenario is as follows:
     {{ scenario }}
-    The user has made several hypothesis on this scenario and did several evaluation on them. The user will provide this information to you.
+    The user has made several hypothesis on this scenario and did several evaluation on them. The user will provide this information to you. Check if a new hypothesis has already been proposed. If it is already generated and you agree with it, just use it. If you don't agree, generate a better one.
     To help you generate new hypothesis, the user has prepared some additional information for you. You should use this information to help generate new {{targets}}.
-    Please generate the output following the format below:
+    Please generate the output following the format and specifications below:
     {{ hypothesis_output_format }}
+    Here are the specifications: {{ hypothesis_specification }}
   user_prompt: |-
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows:
