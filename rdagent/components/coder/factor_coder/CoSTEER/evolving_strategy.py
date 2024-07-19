@@ -71,6 +71,14 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             implementation_factors_per_round = int(
                 FACTOR_IMPLEMENT_SETTINGS.select_ratio * len(to_be_finished_task_index)
             )
+
+            # Ensure at least one task is selected
+            if implementation_factors_per_round == 0:
+                implementation_factors_per_round = 1
+
+            if implementation_factors_per_round > len(to_be_finished_task_index):
+                implementation_factors_per_round = len(to_be_finished_task_index)
+
             if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
