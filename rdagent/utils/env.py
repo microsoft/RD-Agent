@@ -162,6 +162,22 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
+    def _gpu_kwargs(self, client):
+        """get gpu kwargs based on its availability"""
+        if not self.conf.enable_gpu:
+            return {}
+        gpu_kwargs = {
+            "device_requests": [
+                docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
+            ] if self.conf.enable_gpu else None,
+        }
+        try:
+            client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+            logger.info("GPU Devices are available.")
+        except docker.errors.APIError as e:
+            return {}
+        return gpu_kwargs
+
     def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
         if env is None:
             env = {}
@@ -178,16 +194,8 @@ class DockerEnv(Env[DockerConf]):
                 volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
+
         try:
-            gpu_devices = client.info().get('Runtimes', {}).get('nvidia', None)
-            if gpu_devices:
-                gpu_kwargs = {
-                    "device_requests": [
-                        docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
-                    ] if self.conf.enable_gpu else None,
-                }
-            else:
-                gpu_kwargs = {}
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
@@ -198,7 +206,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
-                **gpu_kwargs
+                **self._gpu_kwargs(client)
             )
             logs = container.logs(stream=True)
             for log in logs:
