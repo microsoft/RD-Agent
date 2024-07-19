@@ -1,3 +1,4 @@
+# TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
 import json
 from pathlib import Path
 import pickle
@@ -136,7 +137,7 @@ try:
                 # Save progress after processing each report
                 save_progress(trace, index + 1)
             else:
-                looger.error(f"File not found: {report_file_path}")
+                logger.error(f"File not found: {report_file_path}")
 except Exception as e:
     logger.error(f"An error occurred: {e}")
     save_progress(trace, index)
