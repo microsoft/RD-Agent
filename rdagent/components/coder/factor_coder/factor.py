@@ -181,7 +181,7 @@ class FactorFBWorkspace(FBWorkspace):
                 execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
                 executed_factor_value_dataframe = None
                 if self.raise_exception:
-                    raise NoOutputException(execution_feedback)
+                    raise NoOutputError(execution_feedback)
 
             if store_result and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe

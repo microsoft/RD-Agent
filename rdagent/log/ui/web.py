@@ -1,4 +1,3 @@
-import pickle
 import streamlit as st
 from pathlib import Path
 from rdagent.log.base import Storage, View
@@ -14,16 +13,6 @@ if TYPE_CHECKING:
     from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
     from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
     from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
-
-class ProcessView(View):
-    def __init__(self, trace_path: Path):
-        # Save logs to your desired data structure
-        # ...
-        pass
-
-    def display(s: Storage, watch: bool = False):
-        pass
-
 
 class WebView(View):
     r"""
@@ -109,6 +98,9 @@ class CodeWindow(StWindow):
 
 
 class TabsWindow(StWindow):
+    '''
+    For windows with stream messages, will refresh when a new tab is created.
+    '''
     def __init__(self,
                  container: 'DeltaGenerator',
                  inner_class: str = "STLWindow",
@@ -128,7 +120,12 @@ class TabsWindow(StWindow):
         if name not in self.tab_windows:
             # new tab need to be created, current streamlit container need to be updated.
             names = list(self.tab_windows.keys()) + [name]
-            tabs = self.container.tabs(names)
+
+            if len(names) == 1:
+                tabs = [self.container.container()]
+            else:
+                tabs = self.container.tabs(names)
+
             for id, name in enumerate(names):
                 self.tab_windows[name] = self.inner_class(tabs[id])
             
@@ -151,28 +148,80 @@ class HypothesisRelatedWindow(StWindow):
         self.container.text(str(h))
 
 
-class QlibFactorUI(StWindow):
+class FactorTaskWindow(StWindow):
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container
+    
+    def consume_msg(self, msg: Message):
+        task: FactorTask = msg.content
+        self.container.text(str(task))
+
+
+class FactorFeedbackWindow(StWindow):
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container
+    
+    def consume_msg(self, msg: Message):
+        fb: FactorSingleFeedback = msg.content
+        self.container.text(str(fb))
+
+
+class FactorWorkspaceWindow(StWindow):
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container
+    
+    def consume_msg(self, msg: Message):
+        ws: FactorFBWorkspace = msg.content
+        self.container.text(str(ws))
+
+
+class QlibFactorExpWindow(StWindow):
+    def __init__(self, container: 'DeltaGenerator'):
+        self.container = container
+    
+    def consume_msg(self, msg: Message):
+        exp: QlibFactorExperiment = msg.content
+        self.container.text(str(exp))
+
+
+class QlibFactorTraceWindow(StWindow):
 
     def __init__(self, container: 'DeltaGenerator' = st.container()):
         super().__init__(container)
-        self.pid_level = 0
-        self.tag_level = 0
-        self.current_win = container.container()
+        self.pid_trace = ''
+        self.current_tag = ''
+        self.current_win = StWindow(self.container.container())
 
     def consume_msg(self, msg: Message):
-        pid_level = msg.pid_trace.count("-")
-        tag_level = msg.tag.count(".")
+        if len(msg.tag) > len(self.current_tag):
+            
+            # write a header about current task, if it is llm message, not write.
+            if not msg.tag.endswith('llm_messages'):
+                self.container.subheader(msg.tag.replace('.', ' > '), divider=True)
+            
+            self.current_tag = msg.tag
 
-        if pid_level > self.pid_level:
-            self.pid_level = pid_level
-            self.current_win = TabsWindow(st.container(), "STLWindow")
-        
-        if tag_level > self.tag_level:
-            self.tag_level = tag_level
+            if msg.tag.endswith('llm_messages'):
+                self.current_win = LLMWindow(self.container.container())
+            elif isinstance(msg.content, Hypothesis) or isinstance(msg.content, HypothesisFeedback):
+                self.current_win = HypothesisRelatedWindow(self.container.container())
+            elif isinstance(msg.content, FactorTask):
+                self.current_win = FactorTaskWindow(self.container.container())
+            elif isinstance(msg.content, FactorFBWorkspace):
+                self.current_win = FactorWorkspaceWindow(self.container.container())
+            elif isinstance(msg.content, FactorSingleFeedback):
+                self.current_win = FactorFeedbackWindow(self.container.container())
+            elif isinstance(msg.content, QlibFactorExperiment):
+                self.current_win = QlibFactorExpWindow(self.container.container())
+            else:
+                self.current_win = StWindow(self.container)
 
+        elif len(msg.tag) < len(self.current_tag):
+            # write a divider when the task is finished
+            self.container.markdown("---")
 
         self.current_win.consume_msg(msg)
 
 
 if __name__ == "__main__":
-    WebView(QlibFactorUI()).display(FileStorage("./log/test_trace"))
+    WebView(QlibFactorTraceWindow()).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
