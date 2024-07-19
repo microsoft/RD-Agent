@@ -3,10 +3,11 @@ from __future__ import annotations
 import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from rdagent.core.evaluation import Feedback
-from rdagent.core.scenario import Scenario
+if TYPE_CHECKING:
+    from rdagent.core.evaluation import Feedback
+    from rdagent.core.scenario import Scenario
 
 
 class Knowledge:

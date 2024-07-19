@@ -3,14 +3,9 @@ from __future__ import annotations
 import importlib
 import json
 import multiprocessing as mp
-import os
-import random
-import string
 from collections.abc import Callable
-from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
-import yaml
 from fuzzywuzzy import fuzz
 
 
@@ -19,7 +14,7 @@ class RDAgentException(Exception):  # noqa: N818
 
 
 class SingletonMeta(type):
-    def __init__(cls, *args, **kwargs):
+    def __init__(cls, *args: Any, **kwargs: Any) -> None:
         cls._instance_dict: dict = {}
         # This must be the class variable instead of sharing one in all classes to avoid confliction like `A()`, `B()`
         super().__init__(*args, **kwargs)

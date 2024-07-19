@@ -11,8 +11,6 @@ from pydantic_settings import BaseSettings
 # make sure that env variable is loaded while calling Config()
 load_dotenv(verbose=True, override=True)
 
-from pydantic_settings import BaseSettings
-
 
 class RDAgentSettings(BaseSettings):
     # TODO: (xiao) I think LLMSetting may be a better name.

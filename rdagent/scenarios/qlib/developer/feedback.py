@@ -54,7 +54,7 @@ def process_results(current_result, sota_result):
 
 
 class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
-    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         Generate feedback for the given experiment and hypothesis.
 
@@ -125,7 +125,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
@@ -137,7 +137,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Define the user prompt for hypothesis feedback
         context = trace.scen
-        SOTA_hypothesis, SOTA_experiment = trace.get_SOTA_hypothesis_and_experiment()
+        SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
 
         user_prompt = (
             Environment(undefined=StrictUndefined)

@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Generic, List
+from typing import TYPE_CHECKING, Generic
 
 from rdagent.core.experiment import ASpecificExp
-from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.core.scenario import Scenario
 
 
 class Developer(ABC, Generic[ASpecificExp]):
@@ -18,4 +22,5 @@ class Developer(ABC, Generic[ASpecificExp]):
         due to it affects the learning process.
 
         """
-        raise NotImplementedError("generate method is not implemented.")
+        error_message = "generate method is not implemented."
+        raise NotImplementedError(error_message)
