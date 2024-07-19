@@ -174,7 +174,7 @@ class DockerEnv(Env[DockerConf]):
         try:
             client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
             logger.info("GPU Devices are available.")
-        except docker.errors.APIError as e:
+        except docker.errors.APIError:
             return {}
         return gpu_kwargs
 
@@ -196,6 +196,7 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
+            # TODO: add parameters like `--gpu 4` in command line in `docker run -it --gpus 1 --rm local_qlib:latest`
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
