@@ -80,40 +80,6 @@ Example: code standard, design. Lint
    make lint
    ```
 
-### 📚 Code Structure
-1. Backbone/APIBackend of LLm are encapsulated in [src/finco/llm.py](src/finco/llm.py). All chat completion request are managed by this file.
-
-2. All frequently modified codes under tense development are included in the [src/scripts](src/scripts) folder.
-   + The most important task is to improve the agent's performance in the benchmark of factor implementation.
-
-3. Currently, factor implementation is the main task. We define basic class of factor implementation in [src/scripts/factor_implementation/share_modules] and implementation strategies in [src/scripts/factor_implementation/baselines].
-
-
-### 🔮 Future Code Structure
-
-Currently, the code structure is unstable and will frequently change for quick updates. The code will be refactored before a standard release. Please try to align with the following principles when developing to minimize the effort required for future refactoring.
-
-```
-📂 src
-➥ 📂 <project name>: avoid namespace
-  ➥ 📁 core
-  ➥ 📁 component A
-  ➥ 📁 component B
-  ➥ 📁 component C
-  ➥ 📂 app
-    ➥ 📁 scenario1
-    ➥ 📁 scenario2
-➥ 📁 scripts
-```
-
-| Folder Name    | Description                                                                                                                                                 |
-|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 📁 core        | The core framework of the system. All classes should be abstract and usually can't be used directly.                                                        |
-| 📁 component X | Useful components that can be used by others(e.g. scenario). Many subclasses of core classes are located here.                                                   |
-| 📁 app         | Applications for specific scenarios (usually built based on components). Removing any of them does not affect the system's completeness or other scenarios. |
-| 📁 scripts     | Quick and dirty things. These are candidates for core, components, and apps.                                                                                |
-
-
 
 # Configuration:
 

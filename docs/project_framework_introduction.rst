@@ -1,5 +1,5 @@
 ===============================
-Project framework introduction
+Framework Design & Components
 ===============================
 
 title1
@@ -7,12 +7,14 @@ title1
 
 content1
 
-title2
+Framework & Components
 =========================
 
 content2
 
-title3
+Detailed Design
 =========================
 
-content3
+Configuration
+-------------
+
