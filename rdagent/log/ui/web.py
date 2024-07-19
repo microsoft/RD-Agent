@@ -146,13 +146,21 @@ class HypothesisRelatedWindow(StWindow):
         self.container.text(str(h))
 
 
-class FactorTaskWindow(StWindow):
+class FactorTasksWindow(StWindow):
     def __init__(self, container: 'DeltaGenerator'):
         self.container = container
     
     def consume_msg(self, msg: Message):
-        task: FactorTask = msg.content
-        self.container.text(str(task))
+        factor_tasks: list[FactorTask] = msg.content
+        info_dict = {
+            f.factor_name: {
+                'description':f.factor_description,
+                'formulation':f.factor_formulation,
+                'variables':f.variables
+                }
+            for f in factor_tasks
+        }
+        self.container.table(info_dict)
 
 
 class FactorFeedbackWindow(StWindow):
@@ -203,8 +211,8 @@ class QlibFactorTraceWindow(StWindow):
                 self.current_win = LLMWindow(self.container.container())
             elif isinstance(msg.content, Hypothesis) or isinstance(msg.content, HypothesisFeedback):
                 self.current_win = HypothesisRelatedWindow(self.container.container())
-            elif isinstance(msg.content, FactorTask):
-                self.current_win = FactorTaskWindow(self.container.container())
+            elif isinstance(msg.content, list) and isinstance(msg.content[0], FactorTask):
+                self.current_win = FactorTasksWindow(self.container.container())
             elif isinstance(msg.content, FactorFBWorkspace):
                 self.current_win = FactorWorkspaceWindow(self.container.container())
             elif isinstance(msg.content, FactorSingleFeedback):
