@@ -179,7 +179,15 @@ class DockerEnv(Env[DockerConf]):
 
         log_output = ""
         try:
-            # TODO: add parameters like `--gpu 4` in command line in `docker run -it --gpus 1 --rm local_qlib:latest`
+            gpu_devices = client.info().get('Runtimes', {}).get('nvidia', None)
+            if gpu_devices:
+                gpu_kwargs = {
+                    "device_requests": [
+                        docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
+                    ] if self.conf.enable_gpu else None,
+                }
+            else:
+                gpu_kwargs = {}
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
@@ -190,9 +198,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
-                device_requests=[
-                    docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
-                ] if self.conf.enable_gpu else None,
+                **gpu_kwargs
             )
             logs = container.logs(stream=True)
             for log in logs:
