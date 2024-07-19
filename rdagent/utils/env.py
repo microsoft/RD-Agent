@@ -138,6 +138,7 @@ class QlibDockerConf(DockerConf):
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
     shm_size: str | None = "16g"
+    enable_gpu: bool = True
 
 
 class DockerEnv(Env[DockerConf]):
@@ -161,6 +162,22 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
+    def _gpu_kwargs(self, client):
+        """get gpu kwargs based on its availability"""
+        if not self.conf.enable_gpu:
+            return {}
+        gpu_kwargs = {
+            "device_requests": [
+                docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
+            ] if self.conf.enable_gpu else None,
+        }
+        try:
+            client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+            logger.info("GPU Devices are available.")
+        except docker.errors.APIError as e:
+            return {}
+        return gpu_kwargs
+
     def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
         if env is None:
             env = {}
@@ -177,6 +194,7 @@ class DockerEnv(Env[DockerConf]):
                 volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
+
         try:
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
@@ -188,6 +206,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
+                **self._gpu_kwargs(client)
             )
             logs = container.logs(stream=True)
             for log in logs:
