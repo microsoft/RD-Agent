@@ -6,7 +6,7 @@ from rdagent.log.base import Message
 from datetime import timezone, datetime
 from collections import defaultdict
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Type
 if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
     from rdagent.core.proposal import Hypothesis, HypothesisFeedback
@@ -103,10 +103,10 @@ class TabsWindow(StWindow):
     '''
     def __init__(self,
                  container: 'DeltaGenerator',
-                 inner_class: str = "STLWindow",
+                 inner_class: Type[StWindow] = StWindow,
                  mapper: Callable[[Message], str] = lambda x: x.pid_trace):
         
-        self.inner_class = eval(inner_class)
+        self.inner_class = inner_class
         self.mapper = mapper
 
         self.container = container.empty()
@@ -140,8 +140,6 @@ class TabsWindow(StWindow):
 
 
 class HypothesisRelatedWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
-        self.container = container
     
     def consume_msg(self, msg: Message):
         h: Hypothesis | HypothesisFeedback = msg.content
