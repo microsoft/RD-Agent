@@ -101,11 +101,11 @@ qlib_model_output_format: |-
   The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
 
 qlib_model_simulator: |-
-  The models will be sent into Qlib to train and evaluate their performance in predicting future returns based on historical factor values.
+  The models will be sent into Qlib to train and evaluate their performance in predicting future returns. Hypothesis is improved upon checking the feedback on the results. 
   Qlib is an AI-oriented quantitative investment platform that aims to realize the potential, empower research, and create value using AI technologies in quantitative investment, from exploring ideas to implementing productions. Qlib supports diverse machine learning modeling paradigms, including supervised learning, market dynamics modeling, and reinforcement learning (RL).
   User will use Qlib to automatically perform the following tasks:
   1. Generate a baseline factor table.
   2. Train the model defined in your class Net to predict the next several days' returns based on the factor values.
   3. Build a portfolio based on the predicted returns using a specific strategy.
   4. Evaluate the portfolio's performance, including metrics such as return, Sharpe ratio, max drawdown, and others.
-  5. Iterate on model improvements based on performance evaluations and feedback.
+  5. Iterate on growing the hypothesis to enable model improvements based on performance evaluations and feedback.
