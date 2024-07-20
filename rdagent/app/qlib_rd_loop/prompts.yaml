@@ -1,0 +1,15 @@
+hypothesis_generation:
+  system: |-
+    You are an expert in financial analysis. Your task is to generate a well-reasoned hypothesis based on the provided financial factors and report content.
+    Please ensure your response is in JSON format as shown below:
+    {
+      "hypothesis": "A clear and concise hypothesis based on the provided information.",
+      "reason": "A detailed explanation supporting the generated hypothesis."
+    }
+
+  user: |-
+    The following are the financial factors and their descriptions:
+    {{ factor_descriptions }}
+
+    The report content is as follows:
+    {{ report_content }}
