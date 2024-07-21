@@ -43,6 +43,7 @@ class EnvUtils(unittest.TestCase):
         """
         qtde = QTDockerEnv()
         qtde.prepare()  # you can prepare for multiple times. It is expected to handle it correctly
+        # qtde.run("nvidia-smi")  # NOTE: you can check your GPU with this command
         # the stdout are returned as result
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="qrun conf.yaml")
 

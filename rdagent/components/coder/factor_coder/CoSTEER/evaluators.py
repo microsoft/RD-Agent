@@ -13,8 +13,8 @@ from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
 )
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
+from rdagent.core.evaluation import Evaluator, Feedback
+from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
@@ -334,6 +334,13 @@ class FactorValueEvaluator(FactorEvaluator):
     ) -> Tuple:
         conclusions = []
 
+        # Initialize result variables
+        single_column_result = None
+        same_index_result = None
+        output_format_result = None
+        equal_value_ratio_result = 0
+        high_correlation_result = False
+
         # Check if both dataframe has only one columns
         feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
@@ -373,9 +380,6 @@ class FactorValueEvaluator(FactorEvaluator):
                 high_correlation_result = False
                 feedback_str = "The source dataframe and the ground truth dataframe have different index. Give up comparing the values and correlation because it's useless"
             conclusions.append(feedback_str)
-        else:
-            equal_value_ratio_result = 0
-            high_correlation_result = False
 
         # Combine all conclusions into a single string
         conclusion_str = "\n".join(conclusions)
