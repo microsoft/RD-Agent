@@ -7,16 +7,18 @@ Welcome to RDAgent's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Doctree:
 
+   demo_and_introduction
    installation
+   scenarios_and_quickstart
+   project_framework_introduction
    development
    api_reference
-   demo_and_introduction
-   project_framework_introduction
-   scenarios_and_quickstart
-   test_dropdown/test1
+   policy
+
+.. test_dropdown/test1
 
 
 Indices and tables

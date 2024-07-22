@@ -174,7 +174,7 @@ class DockerEnv(Env[DockerConf]):
         try:
             client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
             logger.info("GPU Devices are available.")
-        except docker.errors.APIError as e:
+        except docker.errors.APIError:
             return {}
         return gpu_kwargs
 
