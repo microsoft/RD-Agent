@@ -93,19 +93,23 @@ isort:
 	$(PIPRUN) python -m isort --check . -s git_ignore_folder -s test/scripts
 
 # Check lint with mypy.
+# First deal with the core folder, and then gradually increase the scope of detection,
+# and eventually realize the detection of the complete project.
 mypy:
-	$(PIPRUN) python -m mypy . --exclude rdagent/scripts --exclude git_ignore_folder
+	$(PIPRUN) python -m mypy rdagent/core
 
 # Check lint with ruff.
+# First deal with the core folder, and then gradually increase the scope of detection,
+# and eventually realize the detection of the complete project.
 ruff:
-	$(PIPRUN) ruff check .  --exclude rdagent/scripts,git_ignore_folder
+	$(PIPRUN) ruff check rdagent/core
 
 # Check lint with toml-sort.
 toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
-lint: black isort mypy ruff toml-sort
+lint: isort mypy ruff toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:
