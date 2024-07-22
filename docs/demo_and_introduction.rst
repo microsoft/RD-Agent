@@ -2,17 +2,17 @@
 Demo and Introduction
 =========================
 
-title1
-=========================
+Introduction
+============
 
-content1
+TODO: copy the content in the README.md
 
-title2
-=========================
+A Quick Demo
+============
 
-content2
+TODO:
+- copy the demo content in the README.md
+- Quick start for the demo.
 
-title3
-=========================
 
-content3
+TODO: link to more demos

@@ -2,15 +2,12 @@
 Framework Design & Components
 ===============================
 
-title1
-=========================
-
-content1
-
 Framework & Components
 =========================
 
-content2
+- TODO: Components & Feature Level
+
+- Class Level Figure
 
 Detailed Design
 =========================
@@ -28,15 +25,3 @@ export $(grep -v '^#' .env | xargs)
 python your_script.py
 ```
 
-
-
-Conventions
-===========
-
-## File naming convention
-
-| Name      | Description       |
-| --        | --                |
-| `conf.py` | The configuration for the module & app & project  | 
-
-<!-- TODO: renaming files -->

@@ -16,8 +16,9 @@ Welcome to RDAgent's documentation!
    project_framework_introduction
    development
    api_reference
-   test_dropdown/test1
    policy
+
+.. test_dropdown/test1
 
 
 Indices and tables

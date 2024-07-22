@@ -51,7 +51,20 @@ Code Structure
      - Quick and dirty things. These are candidates for core, components, scenarios, and apps.
 
 
-title3
-=========================
 
-content3
+Conventions
+===========
+
+
+File Naming Convention
+----------------------
+
+.. list-table::
+   :header-rows: 1
+
+   * - Name
+     - Description
+   * - `conf.py`
+     - The configuration for the module, app, and project.
+
+<!-- TODO: renaming files -->
