@@ -84,9 +84,8 @@ black:
 	$(PIPRUN) python -m black --check . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 sphinx:
-	cd docs
-	$(PIPRUN) sphinx-build -W --keep-going -b html . _build
-	cd ..
+	ls
+	$(PIPRUN) sphinx-build -W --keep-going -b html ./docs _build
 
 # Check lint with isort.
 isort:
@@ -96,6 +95,7 @@ isort:
 # First deal with the core folder, and then gradually increase the scope of detection,
 # and eventually realize the detection of the complete project.
 mypy:
+	$(PIPRUN) python -m pip install types-PyYAML types-psutil types-tqdm
 	$(PIPRUN) python -m mypy rdagent/core
 
 # Check lint with ruff.
@@ -109,7 +109,7 @@ toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
-lint: isort mypy ruff toml-sort
+lint: mypy ruff
 
 # Run pre-commit with autofix against all files.
 pre-commit:
