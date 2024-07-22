@@ -64,6 +64,21 @@ model_hypothesis_specification: |-
     }
   ]
 
+factor_hypothesis_specification: |-
+  Additional Specifications:
+    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually build up upon previous hypotheses and feedback.
+    Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance. Each hypothesis should address specific factor characteristics such as type (momentum, value, quality), calculation methods, or inclusion criteria. Avoid hypotheses related to model architecture or optimization processes.
+
+  Sample Hypotheses (Only learn from the format as these are not the knowledge):
+    - "Include a momentum factor based on the last 12 months' returns."
+    - "Add a value factor calculated as the book-to-market ratio."
+    - "Incorporate a quality factor derived from return on equity (ROE)."
+    - "Use a volatility factor based on the standard deviation of returns over the past 6 months."
+    - "Include a sentiment factor derived from news sentiment scores."
+    - "The momentum factor should be calculated using a 6-month look-back period."
+    - "Combine value and momentum factors using a weighted average approach."
+    - "Filter stocks by market capitalization before calculating the factors."
+
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
