@@ -196,7 +196,6 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
-            # TODO: add parameters like `--gpu 4` in command line in `docker run -it --gpus 1 --rm local_qlib:latest`
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
                 command=entry,
