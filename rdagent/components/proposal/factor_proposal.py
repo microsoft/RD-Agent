@@ -44,6 +44,7 @@ class FactorHypothesisGen(HypothesisGen):
                 targets="factors",
                 scenario=self.scen.get_scenario_all_desc(),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
+                hypothesis_specification=context_dict["hypothesis_specification"],
             )
         )
         user_prompt = (

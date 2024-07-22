@@ -163,3 +163,7 @@ mlruns/
 # possible output from coder or runner
 *.pth
 *qlib_res.csv
+
+# shell script
+*.out
+*.sh
