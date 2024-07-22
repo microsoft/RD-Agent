@@ -2,17 +2,14 @@
 Installation
 =========================
 
-title1
-=========================
+Installation
+============
 
-content1
+For different scenarios
+- for purely users:
+- for dev users: link to development
 
-title2
-=========================
+Configuration
+=============
 
-content2
-
-title3
-=========================
-
-content3
+Quick configuration
