@@ -17,6 +17,7 @@ Welcome to RDAgent's documentation!
    development
    api_reference
    test_dropdown/test1
+   policy
 
 
 Indices and tables

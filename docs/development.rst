@@ -2,10 +2,21 @@
 For Development
 =========================
 
-title1
+🔧Prepare for development
 =========================
 
-content1
+- Set up the development environment.
+
+   ```bash
+   make dev
+   ```
+
+- Run linting and formatting.
+
+   ```bash
+   make lint
+   ```
+
 
 Code Structure
 =========================

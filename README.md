@@ -8,7 +8,7 @@ TODO: Add badges.
 
 # Introduction
 
-TODO: A piture to introduce the project scenario.
+![](docs/_static/scen.jpg)
 
 RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
@@ -65,56 +65,23 @@ Here is our supported scenarios
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-# Framework
-
-TODO: a picture of the framework.
+# ⚙️Framework
 
 
-2. KnowledgeGraph based evolving: We do not do any further pertain or fine-tune on the LLM model. Instead, we modify prompts like RAG, but use knowledge graph query information to evolve the agent's ability to implement more complex models. 
-   + Typically, we build a knowledge consisted with `Error`, `Component`(you can think of it as a numeric operation or function), `Trail` and etc. We add nodes of these types to the knowledge graph with relationship while the agent tries to implement a model. For each attempts, the agent will query the knowledge graph to get the information of current status as prompt input. The agent will also update the knowledge graph with the new information after the attempt.
+- TODOs:
+  - Framework introdution
+  - Research problems.
 
 
-## Code Refinement
-Example: code standard, design. Lint
 
+# 📃Paper list
 
-# 🔧 Development
-- Set up the development environment.
+TODO: under review. Please check the.
 
-   ```bash
-   make dev
-   ```
-
-- Run linting and formatting.
-
-   ```bash
-   make lint
-   ```
-
-
-# Configuration:
-
-You can manually source the `.env` file in your shell before running the Python script:
-Most of the workflow are controlled by the environment variables.
-```sh
-# Export each variable in the .env file; Please note that it is different from `source .env` without export
-export $(grep -v '^#' .env | xargs)
-# Run the Python script
-python your_script.py
-```
-
-# Naming convention
-
-## File naming convention
-
-| Name      | Description       |
-| --        | --                |
-| `conf.py` | The configuration for the module & app & project  | 
-
-<!-- TODO: renaming files -->
- 
 
 # Contributing
+
+More documents can be found in the [📚readthedocs](). TODO: add link
 
 ## Guidance
 This project welcomes contributions and suggestions.
@@ -123,24 +90,7 @@ You can find issues in the issues list or simply running `grep -r "TODO:"`.
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
 
 
-## Policy
+<img src="https://img.shields.io/github/contributors-anon/microsoft/RD-Agent"/>
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+<a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=240&columns=18" /></a>
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-# Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
