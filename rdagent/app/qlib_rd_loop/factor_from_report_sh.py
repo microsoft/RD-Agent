@@ -51,12 +51,12 @@ prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
 
 def save_progress(trace, current_index):
-    with open(PROP_SETTING.progress_file, "wb") as f:
+    with open(PROP_SETTING.progress_file_path, "wb") as f:
         pickle.dump((trace, current_index), f)
 
 def load_progress():
-    if Path(PROP_SETTING.progress_file).exists():
-        with open(PROP_SETTING.progress_file, "rb") as f:
+    if Path(PROP_SETTING.progress_file_path).exists():
+        with open(PROP_SETTING.progress_file_path, "rb") as f:
             return pickle.load(f)
     return Trace(scen=scen), 0
 
