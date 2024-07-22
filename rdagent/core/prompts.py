@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Dict, Iterator, Tuple
+from typing import Iterator
 
 import yaml
 from rdagent.core.utils import SingletonBaseClass
@@ -7,7 +9,7 @@ from rdagent.core.utils import SingletonBaseClass
 
 class Prompts(SingletonBaseClass):
     def __init__(self, file_path: Path) -> None:
-        self._prompts: Dict[str, str] = {}
+        self._prompts: dict[str, str] = {}
         with file_path.open(encoding="utf8") as file:
             prompt_yaml_dict = yaml.safe_load(file)
 
@@ -30,7 +32,7 @@ class Prompts(SingletonBaseClass):
     def __len__(self) -> int:
         return len(self._prompts)
 
-    def items(self) -> Iterator[Tuple[str, str]]:
+    def items(self) -> Iterator[tuple[str, str]]:
         return iter(self._prompts.items())
 
     def keys(self) -> Iterator[str]:

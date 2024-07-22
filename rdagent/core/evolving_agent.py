@@ -76,7 +76,8 @@ class RAGEvoAgent(EvoAgent):
             # 5. Evaluation
             if with_feedback:
                 es.feedback = (
-                    # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator, it fails mypy's test here, so we'll ignore this error for now.
+                    # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator,
+                    # it fails mypy's test here, so we'll ignore this error for now.
                     eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
                 )
                 logger.log_object(es.feedback, tag="evolving feedback")

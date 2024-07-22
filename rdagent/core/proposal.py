@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
@@ -70,7 +70,7 @@ class Trace(Generic[ASpecificScen]):
         self.scen: ASpecificScen = scen
         self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
-    def get_sota_hypothesis_and_experiment(self) -> Tuple[Optional[Hypothesis], Optional[Experiment]]:
+    def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
         for hypothesis, experiment, feedback in self.hist[::-1]:
