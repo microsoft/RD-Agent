@@ -58,10 +58,11 @@ In this project, we are aiming to build a Agent to automate Data-Driven R\&D tha
 ## 📈 Scenarios Matrix 
 Here is our supported scenarios
 
-| Scenario/Target | Model Implementation                                                                     | Data Building                                                                            |
-| --              | --                                                                                       | --                                                                                       |
-| 💹Finance         | Auto paper/reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving | Auto paper/reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
-| 🩺Medical         | Iteratively Proposing Ideas & Evolving                                                   | -                                                                                        |
+| Scenario/Target | Model Implementation                   | Data Building                                                                      |
+| --              | --                                     | --                                                                                 |
+| 💹Finance       | Iteratively Proposing Ideas & Evolving | Auto reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
+| 🩺Medical       | Iteratively Proposing Ideas & Evolving | -                                                                                  |
+| General         | Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
