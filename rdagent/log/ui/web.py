@@ -1,18 +1,21 @@
+import pandas as pd
 import streamlit as st
-from pathlib import Path
-from rdagent.log.base import Storage, View
-from rdagent.log.storage import FileStorage
-from rdagent.log.base import Message
-from datetime import timezone, datetime
-from collections import defaultdict
+import plotly.express as px
 
-from typing import TYPE_CHECKING, Callable, Type
-if TYPE_CHECKING:
-    from streamlit.delta_generator import DeltaGenerator
-    from rdagent.core.proposal import Hypothesis, HypothesisFeedback
-    from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-    from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
-    from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
+from rdagent.log.base import Storage, View
+from rdagent.log.base import Message
+from datetime import timezone
+from collections import defaultdict
+from copy import deepcopy
+
+from typing import Callable, Type
+from streamlit.delta_generator import DeltaGenerator
+from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
+from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
+
+st.set_page_config(layout="wide")
 
 class WebView(View):
     r"""
@@ -69,7 +72,6 @@ class WebView(View):
 
 
 
-# TODO: Implement the following classes
 class StWindow:
 
     def __init__(self, container: 'DeltaGenerator'):
@@ -77,27 +79,25 @@ class StWindow:
 
     def consume_msg(self, msg: Message):
         msg_str = f"{msg.timestamp.astimezone(timezone.utc).isoformat()} | {msg.level} | {msg.caller} - {msg.content}"
-        self.container.write(msg_str)
+        self.container.code(msg_str, language="log")
 
 
 class LLMWindow(StWindow):
     def __init__(self, container: 'DeltaGenerator', session_name: str="common"):
-        self.container = container.expander(f"{session_name} Messages")
+        self.session_name = session_name
+        self.container = container.expander(f"{self.session_name} message")
 
     def consume_msg(self, msg: Message):
-        role = 'user' if 'Role:user' in msg.content else 'assistant'
-        self.container.chat_message(role).write(f"{msg.content.split('Content: ')[1]}")
+        self.container.chat_message('user').markdown(f"{msg.content}")
 
 
 class CodeWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
-        self.container = container.empty()
-    
+
     def consume_msg(self, msg: Message):
         self.container.code(msg.content, language="python")
 
 
-class TabsWindow(StWindow):
+class ProgressTabsWindow(StWindow):
     '''
     For windows with stream messages, will refresh when a new tab is created.
     '''
@@ -138,96 +138,192 @@ class TabsWindow(StWindow):
         self.tab_windows[name].consume_msg(msg)
 
 
-
-class HypothesisRelatedWindow(StWindow):
-    
-    def consume_msg(self, msg: Message):
-        h: Hypothesis | HypothesisFeedback = msg.content
-        self.container.text(str(h))
-
-
-class FactorTasksWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
+class ObjectsTabsWindow(StWindow):
+    def __init__(self,
+                 container: 'DeltaGenerator',
+                 inner_class: Type[StWindow] = StWindow,
+                 mapper: Callable[[object], str] = lambda x: str(x),
+                 tab_names: list[str] | None = None):
+        self.inner_class = inner_class
+        self.mapper = mapper
         self.container = container
+        self.tab_names = tab_names
     
     def consume_msg(self, msg: Message):
-        factor_tasks: list[FactorTask] = msg.content
-        info_dict = {
-            f.factor_name: {
-                'description':f.factor_description,
-                'formulation':f.factor_formulation,
-                'variables':f.variables
-                }
-            for f in factor_tasks
-        }
-        self.container.table(info_dict)
+        if isinstance(msg.content, list):
+            if self.tab_names:
+                assert len(self.tab_names) == len(msg.content), "List of objects should have the same length as provided tab names."
+                objs_dict = {self.tab_names[id]: obj for id, obj in enumerate(msg.content)}
+            else:
+                objs_dict = {self.mapper(obj): obj for obj in msg.content}
+        elif not isinstance(msg.content, dict):
+            raise ValueError("Message content should be a list or a dict of objects.")
+            
+        tabs = self.container.tabs(objs_dict.keys())
+        for id, obj in enumerate(objs_dict.values()):
+            splited_msg = Message(tag=msg.tag,
+                                    level=msg.level,
+                                    timestamp=msg.timestamp,
+                                    caller=msg.caller,
+                                    pid_trace=msg.pid_trace,
+                                    content=obj)
+            self.inner_class(tabs[id]).consume_msg(splited_msg)
+
+
+class HypothesisWindow(StWindow):
+    
+    def consume_msg(self, msg: Message):
+        h: Hypothesis = msg.content
+        self.container.subheader('Hypothesis')
+        self.container.markdown(f"""
+- **Hypothesis**: {h.hypothesis}
+- **Reason**: {h.reason}""")
+
+
+class HypothesisFeedbackWindow(StWindow):
+
+    def consume_msg(self, msg: Message):
+        h: HypothesisFeedback = msg.content
+        self.container.subheader('Hypothesis Feedback')
+        self.container.markdown(f"""
+- **Observations**: {h.observations}
+- **Hypothesis Evaluation**: {h.hypothesis_evaluation}
+- **New Hypothesis**: {h.new_hypothesis}
+- **Decision**: {h.decision}
+- **Reason**: {h.reason}""")
+
+class FactorTaskWindow(StWindow):
+
+    def consume_msg(self, msg: Message):
+        ft: FactorTask = msg.content
+
+        self.container.markdown(f"**Factor Name**: {ft.factor_name}")
+        self.container.markdown(f"**Description**: {ft.factor_description}")
+        self.container.latex(f"Formulation: {ft.factor_formulation}")
+
+        variables_df = pd.DataFrame(ft.variables, index=['Description']).T
+        variables_df.index.name = 'Variable'
+        self.container.table(variables_df)
+        self.container.text(f"Factor resources: {ft.factor_resources}")
 
 
 class FactorFeedbackWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
-        self.container = container
-    
+
     def consume_msg(self, msg: Message):
         fb: FactorSingleFeedback = msg.content
-        self.container.text(str(fb))
+        self.container.markdown(f"""### :blue[Factor Execution Feedback]
+{fb.execution_feedback}
+### :blue[Factor Code Feedback]
+{fb.code_feedback}
+### :blue[Factor Value Feedback]
+{fb.factor_value_feedback}
+### :blue[Factor Final Feedback]
+{fb.final_feedback}
+### :blue[Factor Final Decision]
+This implementation is {'SUCCESS' if fb.final_decision else 'FAIL'}.
+""")
 
 
 class FactorWorkspaceWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
-        self.container = container
-    
+
     def consume_msg(self, msg: Message):
-        ws: FactorFBWorkspace = msg.content
-        self.container.text(str(ws))
+        fws: FactorFBWorkspace = msg.content
+        
+        # factor info
+        self.container.subheader('Factor info')
+        factor_msg = deepcopy(msg)
+        factor_msg.content = fws.target_task
+        FactorTaskWindow(self.container.container()).consume_msg(factor_msg)
+
+        # factor codes
+        self.container.subheader('Codes')
+        for k,v in fws.code_dict.items():
+            self.container.markdown(f"`{k}`")
+            self.container.code(v, language="python")
+
+        # executed_factor_value_dataframe
+        self.container.subheader('Executed Factor Value Dataframe')
+        self.container.dataframe(fws.executed_factor_value_dataframe)
 
 
 class QlibFactorExpWindow(StWindow):
-    def __init__(self, container: 'DeltaGenerator'):
-        self.container = container
-    
+
     def consume_msg(self, msg: Message):
         exp: QlibFactorExperiment = msg.content
-        self.container.text(str(exp))
+
+        # factor tasks
+        ftm_msg = deepcopy(msg)
+        ftm_msg.content = exp.sub_workspace_list
+        ObjectsTabsWindow(self.container.expander('Factor Tasks'),
+                          inner_class=FactorWorkspaceWindow,
+                          mapper=lambda x: x.target_task.factor_name,
+                          ).consume_msg(ftm_msg)
+
+        # result
+        self.container.subheader('Results', divider=True)
+        results = pd.DataFrame({f'exp {id}':e.result for id, e in enumerate(exp.based_experiments)})
+        results['now'] = exp.result
+
+        self.container.expander('results table').table(results)
+        self.container.expander('results chart').plotly_chart(px.bar(results, orientation='h', barmode='group'))
 
 
 class QlibFactorTraceWindow(StWindow):
 
-    def __init__(self, container: 'DeltaGenerator' = st.container()):
+    def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = True):
         super().__init__(container)
+        self.show_llm = show_llm
+        self.show_common_logs = show_common_logs
         self.pid_trace = ''
         self.current_tag = ''
-        self.current_win = StWindow(self.container.container())
+
+        self.current_win = StWindow(self.container)
+        self.evolving_factors: list[str] = []
 
     def consume_msg(self, msg: Message):
+
+        # divide tag levels
         if len(msg.tag) > len(self.current_tag):
-            
             # write a header about current task, if it is llm message, not write.
             if not msg.tag.endswith('llm_messages'):
-                self.container.subheader(msg.tag.replace('.', ' > '), divider=True)
-            
-            self.current_tag = msg.tag
+                self.container.header(msg.tag.replace('.', ' ➡ '), divider=True)
+        
+        self.current_tag = msg.tag
 
-            if msg.tag.endswith('llm_messages'):
-                self.current_win = LLMWindow(self.container.container())
-            elif isinstance(msg.content, Hypothesis) or isinstance(msg.content, HypothesisFeedback):
-                self.current_win = HypothesisRelatedWindow(self.container.container())
-            elif isinstance(msg.content, list) and isinstance(msg.content[0], FactorTask):
-                self.current_win = FactorTasksWindow(self.container.container())
-            elif isinstance(msg.content, FactorFBWorkspace):
-                self.current_win = FactorWorkspaceWindow(self.container.container())
-            elif isinstance(msg.content, FactorSingleFeedback):
-                self.current_win = FactorFeedbackWindow(self.container.container())
-            elif isinstance(msg.content, QlibFactorExperiment):
-                self.current_win = QlibFactorExpWindow(self.container.container())
-            else:
-                self.current_win = StWindow(self.container)
-
-        elif len(msg.tag) < len(self.current_tag):
-            # write a divider when the task is finished
-            self.container.markdown("---")
+        # set log writer (window) according to msg
+        if msg.tag.endswith('llm_messages'):
+            # llm messages logs
+            if not self.show_llm:
+                return
+            if not isinstance(self.current_win, LLMWindow):
+                self.current_win = LLMWindow(self.container)
+        elif isinstance(msg.content, Hypothesis):
+            # hypothesis
+            self.current_win = HypothesisWindow(self.container)
+        elif isinstance(msg.content, HypothesisFeedback):
+            # hypothesis feedback
+            self.current_win = HypothesisFeedbackWindow(self.container)
+        elif isinstance(msg.content, QlibFactorExperiment):
+            # qlib exp logs
+            self.current_win = QlibFactorExpWindow(self.container)
+        elif isinstance(msg.content, list):
+            # factor logs
+            if isinstance(msg.content[0], FactorTask):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Factor Tasks'), FactorTaskWindow, lambda x: x.factor_name)
+            elif isinstance(msg.content[0], FactorFBWorkspace):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Factor Workspaces'),
+                                                        inner_class=FactorWorkspaceWindow,
+                                                        mapper=lambda x: x.target_task.factor_name)
+                self.evolving_factors = [m.target_task.factor_name for m in msg.content]
+            elif isinstance(msg.content[0], FactorSingleFeedback):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Factor Feedbacks'),
+                                                        inner_class=FactorFeedbackWindow,
+                                                        tab_names=self.evolving_factors)
+        else:
+            # common logs
+            if not self.show_common_logs:
+                return
+            self.current_win = StWindow(self.container)
 
         self.current_win.consume_msg(msg)
 
-
-if __name__ == "__main__":
-    WebView(QlibFactorTraceWindow()).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
