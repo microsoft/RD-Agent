@@ -332,7 +332,6 @@ class QlibFactorTraceWindow(StWindow):
 
         self.current_win.consume_msg(msg)
 
-
 def mock_msg(obj) -> Message:
     return Message(tag='mock', level='INFO', timestamp=datetime.now(), pid_trace='000', caller='mock',content=obj)
 
