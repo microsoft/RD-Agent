@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Generic, Sequence, TypeVar, Optional, Dict, List
+from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 

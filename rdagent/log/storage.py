@@ -97,7 +97,7 @@ class FileStorage(Storage):
                     content=message_content
                 )
 
-                if "Logging object in" in m.content:
+                if isinstance(m.content, str) and "Logging object in" in m.content:
                     absolute_p = m.content.split("Logging object in ")[1]
                     relative_p = "." + absolute_p.split(self.path.name)[1]
                     pkl_path = self.path / relative_p

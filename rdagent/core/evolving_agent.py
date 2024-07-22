@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Type
+from typing import TYPE_CHECKING, Any
 
 from tqdm import tqdm
 
@@ -10,8 +10,7 @@ if TYPE_CHECKING:
     from rdagent.core.evolving_framework import EvolvableSubjects
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import Task, Workspace
-from rdagent.core.evolving_framework import EvoStep, EvolvingStrategy
+from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
 
@@ -48,10 +47,10 @@ class RAGEvoAgent(EvoAgent):
         eva: Evaluator | Feedback,
         **kwargs: Any,
     ) -> EvolvableSubjects:
-        with_knowledge = kwargs.get('with_knowledge', False)
-        with_feedback = kwargs.get('with_feedback', True)
-        knowledge_self_gen = kwargs.get('knowledge_self_gen', False)
-        filter_final_evo = kwargs.get('filter_final_evo', False)
+        with_knowledge = kwargs.get("with_knowledge", False)
+        with_feedback = kwargs.get("with_feedback", True)
+        knowledge_self_gen = kwargs.get("knowledge_self_gen", False)
+        filter_final_evo = kwargs.get("filter_final_evo", False)
 
         for _ in tqdm(range(self.max_loop), "Implementing"):
             # 1. knowledge self-evolving
