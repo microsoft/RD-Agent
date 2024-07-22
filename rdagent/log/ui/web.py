@@ -11,9 +11,16 @@ from copy import deepcopy
 from typing import Callable, Type
 from streamlit.delta_generator import DeltaGenerator
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+
 from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
+from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
+from rdagent.components.coder.model_coder.model import ModelTask, ModelFBWorkspace
+
+
 
 st.set_page_config(layout="wide")
 
@@ -197,6 +204,7 @@ class HypothesisFeedbackWindow(StWindow):
 - **Decision**: {h.decision}
 - **Reason**: {h.reason}""")
 
+
 class FactorTaskWindow(StWindow):
 
     def consume_msg(self, msg: Message):
@@ -210,6 +218,21 @@ class FactorTaskWindow(StWindow):
         variables_df.index.name = 'Variable'
         self.container.table(variables_df)
         self.container.text(f"Factor resources: {ft.factor_resources}")
+
+
+class ModelTaskWindow(StWindow):
+
+    def consume_msg(self, msg: Message):
+        mt: ModelTask = msg.content
+
+        self.container.markdown(f"**Model Name**: {mt.name}")
+        self.container.markdown(f"**Model Type**: {mt.model_type}")
+        self.container.markdown(f"**Description**: {mt.description}")
+        self.container.markdown(f"**Formulation**: {mt.formulation}")
+        
+        variables_df = pd.DataFrame(mt.variables, index=['Value']).T
+        variables_df.index.name = 'Variable'
+        self.container.table(variables_df)
 
 
 class FactorFeedbackWindow(StWindow):
@@ -229,26 +252,50 @@ This implementation is {'SUCCESS' if fb.final_decision else 'FAIL'}.
 """)
 
 
-class FactorWorkspaceWindow(StWindow):
+class ModelFeedbackWindow(StWindow):
 
     def consume_msg(self, msg: Message):
-        fws: FactorFBWorkspace = msg.content
-        
-        # factor info
-        self.container.subheader('Factor info')
-        factor_msg = deepcopy(msg)
-        factor_msg.content = fws.target_task
-        FactorTaskWindow(self.container.container()).consume_msg(factor_msg)
+        mb: ModelCoderFeedback = msg.content
+        self.container.markdown(f"""### :blue[Model Execution Feedback]
+{mb.execution_feedback}
+### :blue[Model Shape Feedback]
+{mb.shape_feedback}
+### :blue[Model Value Feedback]
+{mb.value_feedback}
+### :blue[Model Code Feedback]
+{mb.code_feedback}
+### :blue[Model Final Feedback]
+{mb.final_feedback}
+### :blue[Model Final Decision]
+This implementation is {'SUCCESS' if mb.final_decision else 'FAIL'}.
+""")
 
-        # factor codes
+
+class WorkspaceWindow(StWindow):
+
+    def consume_msg(self, msg: Message):
+        ws: FactorFBWorkspace | ModelFBWorkspace = msg.content
+        
+        # task info
+        task_msg = deepcopy(msg)
+        task_msg.content = ws.target_task
+        if isinstance(ws, FactorFBWorkspace):
+            self.container.subheader('Factor Info')
+            FactorTaskWindow(self.container.container()).consume_msg(task_msg)
+        else:
+            self.container.subheader('Model Info')
+            ModelTaskWindow(self.container.container()).consume_msg(task_msg)
+
+        # task codes
         self.container.subheader('Codes')
-        for k,v in fws.code_dict.items():
+        for k,v in ws.code_dict.items():
             self.container.markdown(f"`{k}`")
             self.container.code(v, language="python")
 
         # executed_factor_value_dataframe
-        self.container.subheader('Executed Factor Value Dataframe')
-        self.container.dataframe(fws.executed_factor_value_dataframe)
+        if isinstance(ws, FactorFBWorkspace):
+            self.container.subheader('Executed Factor Value Dataframe')
+            self.container.dataframe(ws.executed_factor_value_dataframe)
 
 
 class QlibFactorExpWindow(StWindow):
@@ -260,20 +307,46 @@ class QlibFactorExpWindow(StWindow):
         ftm_msg = deepcopy(msg)
         ftm_msg.content = exp.sub_workspace_list
         ObjectsTabsWindow(self.container.expander('Factor Tasks'),
-                          inner_class=FactorWorkspaceWindow,
+                          inner_class=WorkspaceWindow,
                           mapper=lambda x: x.target_task.factor_name,
                           ).consume_msg(ftm_msg)
 
         # result
         self.container.subheader('Results', divider=True)
-        results = pd.DataFrame({f'exp {id}':e.result for id, e in enumerate(exp.based_experiments)})
+        results = pd.DataFrame({f'base_exp_{id}':e.result for id, e in enumerate(exp.based_experiments)})
         results['now'] = exp.result
 
         self.container.expander('results table').table(results)
-        self.container.expander('results chart').plotly_chart(px.bar(results, orientation='h', barmode='group'))
+
+        try:
+            bar_chart = px.bar(results, orientation='h', barmode='group')
+            self.container.expander('results chart').plotly_chart(bar_chart)
+        except:
+            self.container.text('Results are incomplete.')
 
 
-class QlibFactorTraceWindow(StWindow):
+class QlibModelExpWindow(StWindow):
+
+    def consume_msg(self, msg: Message):
+        exp: QlibModelExperiment = msg.content
+
+        # model tasks
+        _msg = deepcopy(msg)
+        _msg.content = exp.sub_workspace_list
+        ObjectsTabsWindow(self.container.expander('Model Tasks'),
+                          inner_class=WorkspaceWindow,
+                          mapper=lambda x: x.target_task.name,
+                          ).consume_msg(_msg)
+
+        # result
+        self.container.subheader('Results', divider=True)
+        results = pd.DataFrame({f'base_exp_{id}':e.result for id, e in enumerate(exp.based_experiments)})
+        results['now'] = exp.result
+
+        self.container.expander('results table').table(results)
+
+
+class QlibTraceWindow(StWindow):
 
     def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = True):
         super().__init__(container)
@@ -283,7 +356,7 @@ class QlibFactorTraceWindow(StWindow):
         self.current_tag = ''
 
         self.current_win = StWindow(self.container)
-        self.evolving_factors: list[str] = []
+        self.evolving_tasks: list[str] = []
 
     def consume_msg(self, msg: Message):
 
@@ -312,18 +385,31 @@ class QlibFactorTraceWindow(StWindow):
             # qlib exp logs
             self.current_win = QlibFactorExpWindow(self.container)
         elif isinstance(msg.content, list):
-            # factor logs
+
             if isinstance(msg.content[0], FactorTask):
                 self.current_win = ObjectsTabsWindow(self.container.expander('Factor Tasks'), FactorTaskWindow, lambda x: x.factor_name)
+            elif isinstance(msg.content[0], ModelTask):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Model Tasks'), ModelTaskWindow, lambda x: x.name)
+            
             elif isinstance(msg.content[0], FactorFBWorkspace):
                 self.current_win = ObjectsTabsWindow(self.container.expander('Factor Workspaces'),
-                                                        inner_class=FactorWorkspaceWindow,
+                                                        inner_class=WorkspaceWindow,
                                                         mapper=lambda x: x.target_task.factor_name)
-                self.evolving_factors = [m.target_task.factor_name for m in msg.content]
+                self.evolving_tasks = [m.target_task.factor_name for m in msg.content]
+            elif isinstance(msg.content[0], ModelFBWorkspace):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Model Workspaces'),
+                                                     inner_class=WorkspaceWindow,
+                                                     mapper=lambda x: x.target_task.name)
+                self.evolving_tasks = [m.target_task.name for m in msg.content]
+
             elif isinstance(msg.content[0], FactorSingleFeedback):
                 self.current_win = ObjectsTabsWindow(self.container.expander('Factor Feedbacks'),
                                                         inner_class=FactorFeedbackWindow,
-                                                        tab_names=self.evolving_factors)
+                                                        tab_names=self.evolving_tasks)
+            elif isinstance(msg.content[0], ModelCoderFeedback):
+                self.current_win = ObjectsTabsWindow(self.container.expander('Model Feedbacks'),
+                                                     inner_class=ModelFeedbackWindow,
+                                                     tab_names=self.evolving_tasks)
         else:
             # common logs
             if not self.show_common_logs:
@@ -332,12 +418,14 @@ class QlibFactorTraceWindow(StWindow):
 
         self.current_win.consume_msg(msg)
 
+
 def mock_msg(obj) -> Message:
     return Message(tag='mock', level='INFO', timestamp=datetime.now(), pid_trace='000', caller='mock',content=obj)
 
+
 from rdagent.core.proposal import Trace
 class ProposalTraceWindow(StWindow):
-    
+
     def __init__(self, container: 'DeltaGenerator' = st.container()):
         self.container = container
 
@@ -347,6 +435,9 @@ class ProposalTraceWindow(StWindow):
         for id, (h, e, hf) in enumerate(trace.hist):
             self.container.header(f'Trace History {id}', divider=True)
             HypothesisWindow(self.container).consume_msg(mock_msg(h))
-            QlibFactorExpWindow(self.container).consume_msg(mock_msg(e))
+            if isinstance(e, FactorFBWorkspace):
+                QlibFactorExpWindow(self.container).consume_msg(mock_msg(e))
+            else:
+                QlibModelExpWindow(self.container).consume_msg(mock_msg(e))
             HypothesisFeedbackWindow(self.container).consume_msg(mock_msg(hf))
 
