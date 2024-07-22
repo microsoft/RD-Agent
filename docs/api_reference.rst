@@ -1,18 +1,15 @@
-=========================
-API reference
-=========================
+=============
+API Reference
+=============
 
-title1
-=========================
+Here you can find all ``RDAgent``'s interfaces.
 
-content1
 
-title2
-=========================
+RD Loop
+=======
 
-content2
+Research
+--------
 
-title3
-=========================
-
-content3
+.. automodule:: rdagent.core.proposal
+    :members:

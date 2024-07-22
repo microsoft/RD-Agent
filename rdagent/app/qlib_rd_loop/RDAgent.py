@@ -44,7 +44,7 @@ class Model_RD_Agent:
         return exp
 
     def generate_feedback(self, exp, hypothesis):
-        feedback = self.qlib_model_summarizer.generateFeedback(exp, hypothesis, self.trace)
+        feedback = self.qlib_model_summarizer.generate_feedback(exp, hypothesis, self.trace)
         self.dump_objects(exp=exp, hypothesis=hypothesis, feedback=feedback, trace=self.trace, filename='step_feedback.pkl')
         return feedback
 

@@ -108,7 +108,7 @@ factor_feedback_generation:
     The task is described in the following scenario:
     {{ scenario }}
     You will receive a hypothesis, multiple tasks with their factors, and some results.
-    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous results, and suggest improvements or new directions.
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA results, and suggest improvements or new directions.
     Please provide detailed and constructive feedback for the future exploration.
     Please respond in JSON format, and example JSON Structure for Result Analysis:
     {
@@ -123,15 +123,26 @@ factor_feedback_generation:
     {{ hypothesis_text }}
     Tasks and Factors:
     {{ task_details }}
-    Current Result: 
-    {{ current_result }}
-    SOTA Result: 
-    {{ sota_result }}
-    Analyze the current result in the context of its ability to:
+    Combined Results: 
+    {{ combined_result }}
+    Analyze the combined result in the context of its ability to:
     1. Support or refute the hypothesis.
     2. Show improvement or deterioration compared to the last experiment.
     3. Demonstrate positive or negative effects when compared to Alpha158.
 
+    Evaluation Metrics Explanations:
+    Below are the financial meanings of each metric, which should be used to judge the results:
+
+    - Rank ICIR: Evaluates the stability and average level of Rank IC. Rank ICIR = mean(Rank IC) / std(Rank IC).
+    - 1day.excess_return_without_cost.max_drawdown: Measures the maximum loss from a peak to a trough without considering transaction costs.
+    - 1day.excess_return_without_cost.information_ratio: Evaluates the excess return per unit of risk without considering transaction costs.
+    - 1day.excess_return_with_cost.max_drawdown: Measures the maximum loss from a peak to a trough considering transaction costs.
+    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs.
+    - 1day.excess_return_with_cost.annualized_return: Annualized return considering transaction costs.
+    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation.
+    - 1day.excess_return_with_cost.information_ratio: Evaluates the excess return per unit of risk considering transaction costs.
+
+    When judging the results, prioritize metrics that consider transaction costs (with cost), as they provide a more accurate representation of real-world performance. Among these, the annualized return considering transaction costs is particularly important as it gives a clear picture of long-term profitability.
     Provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.
 
 model_feedback_generation:
