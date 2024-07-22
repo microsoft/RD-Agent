@@ -4,7 +4,7 @@ import plotly.express as px
 
 from rdagent.log.base import Storage, View
 from rdagent.log.base import Message
-from datetime import timezone
+from datetime import timezone, datetime
 from collections import defaultdict
 from copy import deepcopy
 
@@ -158,8 +158,13 @@ class ObjectsTabsWindow(StWindow):
                 objs_dict = {self.mapper(obj): obj for obj in msg.content}
         elif not isinstance(msg.content, dict):
             raise ValueError("Message content should be a list or a dict of objects.")
-            
-        tabs = self.container.tabs(objs_dict.keys())
+        
+        # two many tabs may cause display problem
+        tab_names = list(objs_dict.keys())
+        tabs = []
+        for i in range(0, len(tab_names), 10):
+            tabs.extend(self.container.tabs(tab_names[i:i+10]))
+        
         for id, obj in enumerate(objs_dict.values()):
             splited_msg = Message(tag=msg.tag,
                                     level=msg.level,
@@ -326,4 +331,23 @@ class QlibFactorTraceWindow(StWindow):
             self.current_win = StWindow(self.container)
 
         self.current_win.consume_msg(msg)
+
+
+def mock_msg(obj) -> Message:
+    return Message(tag='mock', level='INFO', timestamp=datetime.now(), pid_trace='000', caller='mock',content=obj)
+
+from rdagent.core.proposal import Trace
+class ProposalTraceWindow(StWindow):
+    
+    def __init__(self, container: 'DeltaGenerator' = st.container()):
+        self.container = container
+
+    def consume_msg(self, msg: Message):
+        trace:Trace = msg.content
+
+        for id, (h, e, hf) in enumerate(trace.hist):
+            self.container.header(f'Trace History {id}', divider=True)
+            HypothesisWindow(self.container).consume_msg(mock_msg(h))
+            QlibFactorExpWindow(self.container).consume_msg(mock_msg(e))
+            HypothesisFeedbackWindow(self.container).consume_msg(mock_msg(hf))
 
