@@ -19,17 +19,8 @@ from rdagent.log import rdagent_logger as logger
 
 
 class LoopMeta(type):
-    meta_attr = "meta attribute will become the attribute of class"
-    # But it will not present in __init__, __new__, __call__
 
     def __new__(cls, clsname, bases, attrs):
-        # MetaClass的new代表创建子类， Class的new代表创建实例
-        # cls 就类似于静态方法
-        # - 比较奇妙的地方是它虽然是静态方法，但是不需要静态方法装饰器
-        print("创建class之前可以做点什么", clsname, bases, attrs)
-
-        print("这里直接给子类加了个方法")
-        # attrs["foo"] = foo
 
         # move custommized steps into steps
         steps = []
@@ -39,17 +30,6 @@ class LoopMeta(type):
         attrs["steps"] = steps
 
         return super().__new__(cls, clsname, bases, attrs)
-
-    def __init__(self, clsname, bases, attrs):
-        # MetaClass的init代表初始化子类， Class的init代表初始化实例
-        print("创建class之后可以做点什么", clsname, bases, attrs)
-
-    def __call__(self, *args, **kwargs):
-        # MetaClass的call代表调用创建的子类( 即创建实例), Class的call代表调用创建的实例
-        # 比如 E("test") 会调用 <class '__main__.E'> ('test',) {}
-        print("在meta class创建出来实例初始化instance时会调用 `__call__`", self, args, kwargs)
-        # 到这一行时还没有初始化， 到下面一行才会初始化
-        return super().__call__(*args, **kwargs)
 
 
 @dataclass

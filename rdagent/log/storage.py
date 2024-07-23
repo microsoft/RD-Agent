@@ -120,6 +120,7 @@ class FileStorage(Storage):
 
             matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
 
+            next_match = next(next_matches, None)
             for match in matches:
                 next_match = next(next_matches, None)
                 timestamp_str = match.group("timestamp")
@@ -133,10 +134,9 @@ class FileStorage(Storage):
                     if "Logging object in" in msg:
                         absolute_p = msg.split("Logging object in ")[1]
                         p = Path(absolute_p)
-                        
-                        # p.unlink()
-                        print(f"Removing absolute path: {p}")
+                        p.unlink()
                     continue
 
                 new_content += content[log_start:log_end]
-                __import__('ipdb').set_trace()
+            with file.open("w") as f:
+                f.write(new_content)

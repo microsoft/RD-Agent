@@ -68,7 +68,7 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
 
 
 def main(path=None):
-    if path == None:
+    if path is None:
         model_loop = ModelLoop()
     else:
         model_loop = ModelLoop.load(path)
