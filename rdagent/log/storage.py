@@ -3,9 +3,11 @@ import json
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Generator, Union, Any
+from typing import Literal, Generator, Union, Any, cast
 
 from .base import Message, Storage
+
+LOG_LEVEL = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class FileStorage(Storage):
@@ -14,6 +16,7 @@ class FileStorage(Storage):
 
     TODO: describe the storage format
     """
+
 
     def __init__(self, path: str | Path = "./log/") -> None:
         self.path = Path(path)
@@ -80,7 +83,7 @@ class FileStorage(Storage):
 
                 timestamp_str = match.group("timestamp")
                 timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-                level = match.group("level")
+                level: LOG_LEVEL = cast(LOG_LEVEL, match.group("level"))
                 caller = match.group("caller")
 
                 # Extract the message content
