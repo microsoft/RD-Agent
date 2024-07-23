@@ -385,8 +385,9 @@ class QlibTraceWindow(StWindow):
             # hypothesis feedback
             self.current_win = HypothesisFeedbackWindow(self.container)
         elif isinstance(msg.content, QlibFactorExperiment):
-            # qlib exp logs
             self.current_win = QlibFactorExpWindow(self.container)
+        elif isinstance(msg.content, QlibModelExperiment):
+            self.current_win = QlibModelExpWindow(self.container)
         elif isinstance(msg.content, list):
 
             if isinstance(msg.content[0], FactorTask):
