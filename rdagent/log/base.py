@@ -37,7 +37,7 @@ class Storage:
     """
 
     @abstractmethod
-    def log(self, obj: object, name: str = "", **kwargs: dict) -> Union[str, Path]:
+    def log(self, obj: object, name: str = "", **kwargs: dict) -> str | Path:
         """
 
         Parameters

@@ -59,7 +59,7 @@ class RDAgentLog(SingletonBaseClass):
         self.log_trace_path: Path = Path(log_trace_path)
         self.log_trace_path.mkdir(parents=True, exist_ok=True)
 
-        self.storage = FileStorage(str(self.log_trace_path))
+        self.storage = FileStorage(self.log_trace_path)
 
         self.main_pid = os.getpid()
 

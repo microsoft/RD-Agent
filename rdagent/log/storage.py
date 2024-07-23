@@ -15,7 +15,7 @@ class FileStorage(Storage):
     TODO: describe the storage format
     """
 
-    def __init__(self, path: str = "./log/") -> None:
+    def __init__(self, path: str | Path = "./log/") -> None:
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 

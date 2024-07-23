@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Dict
+from collections import UserDict
 
 import yaml
 from rdagent.core.utils import SingletonBaseClass
