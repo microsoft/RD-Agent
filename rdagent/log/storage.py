@@ -26,11 +26,10 @@ class FileStorage(Storage):
         self,
         obj: object,
         name: str = "",
+        save_type: Literal["json", "text", "pkl"] = "text",
+        timestamp: datetime | None = None,
         **kwargs: Any,
     ) -> Union[str, Path]:
-        save_type: Literal["json", "text", "pkl"] = kwargs.get("save_type", "text")
-        timestamp: Union[datetime, None] = kwargs.get("timestamp", None)
-
         # TODO: We can remove the timestamp after we implement PipeLog
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)

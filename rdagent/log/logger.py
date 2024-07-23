@@ -54,9 +54,10 @@ class RDAgentLog(SingletonBaseClass):
     def __init__(self, log_trace_path: Union[str, None] = RD_AGENT_SETTINGS.log_trace_path) -> None:
         if log_trace_path is None:
             timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f")
-            log_trace_path = str(Path.cwd() / "log" / timestamp)
+            self.log_trace_path = Path.cwd() / "log" / timestamp
+        else:
+            self.log_trace_path = Path(log_trace_path)
 
-        self.log_trace_path: Path = Path(log_trace_path)
         self.log_trace_path.mkdir(parents=True, exist_ok=True)
 
         self.storage = FileStorage(self.log_trace_path)
