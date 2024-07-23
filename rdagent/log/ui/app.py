@@ -1,11 +1,18 @@
-from rdagent.log.ui.web import WebView, QlibFactorTraceWindow, ProposalTraceWindow, mock_msg
+from rdagent.log.ui.web import WebView, QlibTraceWindow, TraceWindow, mock_msg
 from rdagent.log.storage import FileStorage, Message
-
-# WebView(QlibFactorTraceWindow(show_common_logs=True, show_llm=True)).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
-
-
+from rdagent.core.proposal import Trace
 from pathlib import Path
 import pickle
-with Path('./log/progress.pkl').open('rb') as f:
+
+
+# show logs folder
+# WebView(QlibTraceWindow(show_common_logs=False, show_llm=False)).display(FileStorage("./log/2024-07-22_03-01-12-021659"))
+
+
+# load Trace obj
+with Path('./log/step_trace.pkl').open('rb') as f:
     obj = pickle.load(f)
-ProposalTraceWindow().consume_msg(mock_msg(obj[0]))
+    trace: Trace = obj[-1]
+
+# show Trace obj
+# TraceWindow().consume_msg(mock_msg(trace))

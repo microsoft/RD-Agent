@@ -275,7 +275,10 @@ class WorkspaceWindow(StWindow):
 
     def consume_msg(self, msg: Message):
         ws: FactorFBWorkspace | ModelFBWorkspace = msg.content
-        
+
+        # no workspace
+        if ws is None: return
+
         # task info
         task_msg = deepcopy(msg)
         task_msg.content = ws.target_task
@@ -335,7 +338,7 @@ class QlibModelExpWindow(StWindow):
         _msg.content = exp.sub_workspace_list
         ObjectsTabsWindow(self.container.expander('Model Tasks'),
                           inner_class=WorkspaceWindow,
-                          mapper=lambda x: x.target_task.name,
+                          mapper=lambda x: x.target_task.name if x else 'None',
                           ).consume_msg(_msg)
 
         # result
@@ -424,7 +427,7 @@ def mock_msg(obj) -> Message:
 
 
 from rdagent.core.proposal import Trace
-class ProposalTraceWindow(StWindow):
+class TraceWindow(StWindow):
 
     def __init__(self, container: 'DeltaGenerator' = st.container()):
         self.container = container
@@ -435,7 +438,7 @@ class ProposalTraceWindow(StWindow):
         for id, (h, e, hf) in enumerate(trace.hist):
             self.container.header(f'Trace History {id}', divider=True)
             HypothesisWindow(self.container).consume_msg(mock_msg(h))
-            if isinstance(e, FactorFBWorkspace):
+            if isinstance(e, QlibFactorExperiment):
                 QlibFactorExpWindow(self.container).consume_msg(mock_msg(e))
             else:
                 QlibModelExpWindow(self.container).consume_msg(mock_msg(e))
