@@ -3,6 +3,7 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
+import fire
 from typing import Any
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
@@ -65,6 +66,14 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
         logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["propose"],prev_out["running"] , feedback))
 
-if __name__ == "__main__":
-    model_loop = ModelLoop()
+
+def main(path=None):
+    if path == None:
+        model_loop = ModelLoop()
+    else:
+        model_loop = ModelLoop.load(path)
     model_loop.run()
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

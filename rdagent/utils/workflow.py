@@ -7,6 +7,7 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
+from pathlib import Path
 import pickle
 
 
@@ -59,7 +60,7 @@ class LoopTrace:
 
 
 class LoopBase:
-    steps: list[Callable]
+    steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
 
     def __init__(self):
@@ -73,13 +74,13 @@ class LoopBase:
         while True:
             li, si = self.loop_idx, self.step_idx
 
-            start = datetime.datetime.now()
+            start = datetime.datetime.now(datetime.timezone.utc)
 
             name = self.steps[si]
             func = getattr(self, name)
             self.loop_prev_out[name] = func(self.loop_prev_out)
 
-            end = datetime.datetime.now()
+            end = datetime.datetime.now(datetime.timezone.utc)
 
             self.loop_trace[li].append(LoopTrace(start, end))
 
@@ -89,9 +90,21 @@ class LoopBase:
                 self.loop_idx += 1
                 self.loop_prev_out = {}
 
-            self.dump_session(self.session_folder / f"{li}" / f"{si}_{name}") # save a snapshot after the session
+            self.dump(self.session_folder / f"{li}" / f"{si}_{name}") # save a snapshot after the session
 
-    def dump_session(self, path):
+    def dump(self, path: str | Path):
+        path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
             pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: str | Path):
+        path = Path(path)
+        with path.open("rb") as f:
+            session = pickle.load(f)
+        logger.set_trace_path(session.session_folder.parent)
+        
+        max_loop = max(session.loop_trace.keys())
+        logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+        return session
