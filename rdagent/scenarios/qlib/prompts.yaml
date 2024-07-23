@@ -152,6 +152,8 @@ model_feedback_generation:
       "Reasoning": "Provide reasoning for the hypothesis here.",
       "Decision": <true or false>,
     }
+
+    Focus on the changes in hypothesis and justify why do hypothesis evolve like this. Also, increase complexity as the hypothesis evolves  (give more layers, more neurons, and etc)
     
     Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 
