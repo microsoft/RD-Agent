@@ -47,4 +47,4 @@ qlib_model_output_format: |-
   The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
 
 qlib_model_simulator: |-
-  The models will be put to train on MIMIC-III dataset and evaluate their performance in terms of accuracy. Hypothesis is improved upon checking the feedback on the results. 
+  The models will be put to train on MIMIC-III dataset and evaluate their performance in terms of roc score (Area Under Curve Receiver Operating Characteristics Curve). Hypothesis is improved upon checking the feedback on the results. 

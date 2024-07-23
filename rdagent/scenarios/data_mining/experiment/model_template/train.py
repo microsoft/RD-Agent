@@ -9,11 +9,12 @@ import sparse
 import random
 import os
 from model import model_cls
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 import numpy as np
 
 # Set device for training
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 class MyDataset(Dataset):
     def __init__(self, x, label, device):
@@ -38,8 +39,8 @@ def collate_fn(batch):
     return torch.stack(x, 0), torch.stack(label, 0)
 
 
-# datapath = '/root/.data'
-datapath = '/home/v-suhancui/RD-Agent/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3'
+datapath = '/root/.data'
+# datapath = '/home/v-suhancui/RD-Agent/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3'
 
 
 X = sparse.load_npz(datapath+'/features/ARF_12h/X.npz').todense()
@@ -51,11 +52,10 @@ indices = [i for i in range(len(df_pop))]
 random.shuffle(indices)
 split_point = int(0.7 * len(df_pop))
 
-X_train, y_train = X[indices[:split_point]], df_pop[indices[:split_point]]
-X_test, y_test = X[indices[split_point:]], df_pop[indices[split_point:]]
+X_train, y_train = X[indices[:split_point]], np.array(df_pop[indices[:split_point]])
+X_test, y_test = X[indices[split_point:]], np.array(df_pop[indices[split_point:]])
 
-print(len(X_train))
-print(len(X_test))
+
 train_dataloader = DataLoader(MyDataset(X_train, y_train, device), collate_fn=collate_fn, shuffle=True, drop_last=True, batch_size=64)
 test_dataloader = DataLoader(MyDataset(X_test, y_test, device), collate_fn=collate_fn, shuffle=False, drop_last=False, batch_size=64)
 
@@ -69,12 +69,12 @@ criterion = nn.CrossEntropyLoss()
 
 # Train the model
 
-for i in range(1):
+for i in range(10):
     for data in train_dataloader:
         x, y = data
         out = model(x)
         optimizer.zero_grad()
-        loss = criterion(out, y)
+        loss = criterion(out.squeeze(), y)
         loss.backward()
         optimizer.step()
 
@@ -82,10 +82,11 @@ y_pred = []
 for data in test_dataloader:
     x, y = data
     out = model(x)
-    y_pred.append(np.array(out.item()))
+    y_pred.append(out.detach().numpy())
 
-acc = accuracy_score(np.concatenate(y_pred), y_test)
+acc = roc_auc_score(y_test, np.concatenate(y_pred))
 
+print(acc)
 # Save the predictions to submission.csv
 with open('./submission.txt', 'w') as f:
     f.write(str(acc))
