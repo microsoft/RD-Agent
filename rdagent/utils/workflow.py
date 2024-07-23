@@ -51,9 +51,22 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
-    def run(self):
+    def run(self, step_n: int | None = None):
+        """
+
+        Parameters
+        ----------
+        step_n : int | None
+            How many steps to run;
+            `None` indicates to run forever until error or KeyboardInterrupt
+        """
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
             while True:
+                if step_n is not None:
+                    if step_n <= 0:
+                        break
+                    step_n -= 1
+
                 li, si = self.loop_idx, self.step_idx
 
                 start = datetime.datetime.now(datetime.timezone.utc)

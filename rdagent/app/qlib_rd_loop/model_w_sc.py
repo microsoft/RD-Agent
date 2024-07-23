@@ -67,20 +67,20 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
         self.trace.hist.append((prev_out["propose"],prev_out["running"] , feedback))
 
 
-def main(path=None):
+def main(path=None, step_n=None):
     """
     You can continue running session by
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/model_w_sc.py $LOG_PATH/__session__/1/0_propose
+        dotenv run -- python rdagent/app/qlib_rd_loop/model_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
     """
     if path is None:
         model_loop = ModelLoop()
     else:
         model_loop = ModelLoop.load(path)
-    model_loop.run()
+    model_loop.run(step_n=step_n)
 
 
 if __name__ == "__main__":
