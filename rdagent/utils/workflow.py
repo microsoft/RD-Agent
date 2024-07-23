@@ -9,6 +9,7 @@ Postscripts:
 """
 from pathlib import Path
 import pickle
+from tqdm.auto import tqdm
 
 
 from collections import defaultdict
@@ -51,26 +52,32 @@ class LoopBase:
         self.session_folder = logger.log_trace_path / "__session__"
 
     def run(self):
-        while True:
-            li, si = self.loop_idx, self.step_idx
+        with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
+            while True:
+                li, si = self.loop_idx, self.step_idx
 
-            start = datetime.datetime.now(datetime.timezone.utc)
+                start = datetime.datetime.now(datetime.timezone.utc)
 
-            name = self.steps[si]
-            func = getattr(self, name)
-            self.loop_prev_out[name] = func(self.loop_prev_out)
+                name = self.steps[si]
+                func = getattr(self, name)
+                self.loop_prev_out[name] = func(self.loop_prev_out)
 
-            end = datetime.datetime.now(datetime.timezone.utc)
+                end = datetime.datetime.now(datetime.timezone.utc)
 
-            self.loop_trace[li].append(LoopTrace(start, end))
+                self.loop_trace[li].append(LoopTrace(start, end))
 
-            # index increase and save session
-            self.step_idx = (self.step_idx + 1) % len(self.steps)
-            if self.step_idx == 0:  # reduce to step 0 in next round
-                self.loop_idx += 1
-                self.loop_prev_out = {}
+                # Update tqdm progress bar
+                pbar.set_postfix(loop_index=li, step_index=si, step_name=name)
+                pbar.update(1)
 
-            self.dump(self.session_folder / f"{li}" / f"{si}_{name}") # save a snapshot after the session
+                # index increase and save session
+                self.step_idx = (self.step_idx + 1) % len(self.steps)
+                if self.step_idx == 0:  # reset to step 0 in next round
+                    self.loop_idx += 1
+                    self.loop_prev_out = {}
+                    pbar.reset()  # reset the progress bar for the next loop
+
+                self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
 
     def dump(self, path: str | Path):
         path = Path(path)
