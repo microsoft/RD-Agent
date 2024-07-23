@@ -140,6 +140,19 @@ class QlibDockerConf(DockerConf):
     shm_size: str | None = "16g"
 
 
+class DMDockerConf(DockerConf):
+    class Config:
+        env_prefix = "DM_DOCKER_"  
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
+    image: str = "local_dm:latest"
+    mount_path: str = "/workspace/dm_workspace/"
+    default_entry: str = "python train.py"
+    extra_volumes: dict = {Path("~/RD-Agent/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
+    shm_size: str | None = "16g"
+
+# physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
@@ -224,3 +237,24 @@ class QTDockerEnv(DockerEnv):
             self.run(entry=cmd)
         else:
             logger.info("Data already exists. Download skipped.")
+
+
+class DMDockerEnv(DockerEnv):
+    """Qlib Torch Docker"""
+
+    def __init__(self, conf: DockerConf = DMDockerConf()):
+        super().__init__(conf)
+
+    def prepare(self):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+        # data_path = next(iter(self.conf.extra_volumes.keys()))
+        # if not (Path(data_path) / 'physionet.org').exists():
+        #     print(os.path.join(Path(data_path), '/physionet.org/'))
+        #     logger.info("We are downloading!")
+        #     cmd = "wget -r -N -c -np --user suhan --ask-password https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/"
+        #     self.run(entry=cmd)
+        # else:
+        #     logger.info("Data already exists. Download skipped.")
