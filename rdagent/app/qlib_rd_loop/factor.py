@@ -1,5 +1,5 @@
 """
-TODO: Factor Structure RD-Loop
+Factor Structure RD-Loop
 """
 
 from dotenv import load_dotenv

@@ -55,20 +55,20 @@ task:
         class: GeneralPTNN
         module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
-            n_epochs: 10
-            lr: 2e-3
+            n_epochs: 100
+            lr: 1e-3
             early_stop: 10
-            batch_size: 800
+            batch_size: 2000
             metric: loss
             loss: mse
             n_jobs: 20
-            GPU: 0
+            GPU: 3
             # loss: mse
             # lr: 0.002
             # optimizer: adam
             # batch_size: 8192
             # GPU: 0
-            # weight_decay: 0.0002
+            weight_decay: 0.0001
             # pt_model_uri: "qlib.contrib.model.pytorch_nn.Net"
             # pt_model_uri: "env_tpl.model.Net"
             # pt_model_uri: "./model.py:Net"
