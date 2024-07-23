@@ -20,6 +20,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import CoderException
 from rdagent.core.experiment import Task, Workspace
+from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
 
@@ -114,17 +115,18 @@ class FactorImplementEval(BaseEval):
         test_cases: TestCase,
         method: Developer,
         *args,
+        scen: Scenario,
         test_round: int = 10,
         **kwargs,
     ):
         online_evaluator_l = [
-            FactorSingleColumnEvaluator(),
-            FactorOutputFormatEvaluator(),
-            FactorRowCountEvaluator(),
-            FactorIndexEvaluator(),
-            FactorMissingValuesEvaluator(),
-            FactorEqualValueCountEvaluator(),
-            FactorCorrelationEvaluator(hard_check=False),
+            FactorSingleColumnEvaluator(scen),
+            FactorOutputFormatEvaluator(scen),
+            FactorRowCountEvaluator(scen),
+            FactorIndexEvaluator(scen),
+            FactorMissingValuesEvaluator(scen),
+            FactorEqualValueCountEvaluator(scen),
+            FactorCorrelationEvaluator(hard_check=False, scen=scen),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round

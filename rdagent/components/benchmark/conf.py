@@ -18,7 +18,7 @@ class BenchmarkSettings(BaseSettings):
     bench_test_round: int = 10
     bench_test_case_n: Optional[int] = None  # how many test cases to run; If not given, all test cases will be run
 
-    bench_method_cls: str = "rdagent.factor_implementation.CoSTEER.CoSTEERFG"
+    bench_method_cls: str = "rdagent.components.coder.factor_coder.CoSTEER.FactorCoSTEER"
     bench_method_extra_kwargs: dict = field(
         default_factory=dict,
     )  # extra kwargs for the method to be tested except the task list
