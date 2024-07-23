@@ -68,6 +68,14 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
 
 
 def main(path=None):
+    """
+    You can continue running session by
+
+    .. code-block:: python
+
+        dotenv run -- python rdagent/app/qlib_rd_loop/model_w_sc.py $LOG_PATH/__session__/1/0_propose
+
+    """
     if path is None:
         model_loop = ModelLoop()
     else:
