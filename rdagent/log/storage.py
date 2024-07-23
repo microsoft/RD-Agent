@@ -56,12 +56,13 @@ class FileStorage(Storage):
                 f.write(obj)
             return path
 
+    log_pattern = re.compile(
+        r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| "
+        r"(?P<level>DEBUG|INFO|WARNING|ERROR|CRITICAL) *\| "
+        r"(?P<caller>.+:.+:\d+) - "
+    )
+
     def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
-        log_pattern = re.compile(
-            r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \| "
-            r"(?P<level>DEBUG|INFO|WARNING|ERROR|CRITICAL) *\| "
-            r"(?P<caller>.+:.+:\d+) - "
-        )
         msg_l = []
         for file in self.path.glob("**/*.log"):
             tag = '.'.join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
@@ -70,7 +71,7 @@ class FileStorage(Storage):
             with file.open("r") as f:
                 content = f.read()
 
-            matches, next_matches = log_pattern.finditer(content), log_pattern.finditer(content)
+            matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
             next_match = next(next_matches, None)
             # NOTE: the content will be the text between `match` and `next_match`
             for match in matches:
@@ -107,3 +108,35 @@ class FileStorage(Storage):
         msg_l.sort(key=lambda x: x.timestamp)
         for m in msg_l:
             yield m
+
+    def truncate(self, time: datetime) -> None:
+        # any message later than `time` will be removed
+        for file in self.path.glob("**/*.log"):
+
+            with file.open("r") as f:
+                content = f.read()
+
+            new_content = ""
+
+            matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
+
+            next_match = next(next_matches, None)
+            for match in matches:
+                next_match = next(next_matches, None)
+                timestamp_str = match.group("timestamp")
+                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+
+                log_start = match.start()
+                log_end = next_match.start() if next_match else len(content)
+                msg = content[match.end():log_end].strip()
+
+                if timestamp > time:
+                    if "Logging object in" in msg:
+                        absolute_p = msg.split("Logging object in ")[1]
+                        p = Path(absolute_p)
+                        p.unlink()
+                    continue
+
+                new_content += content[log_start:log_end]
+            with file.open("w") as f:
+                f.write(new_content)
