@@ -24,6 +24,8 @@ model_hypothesis_specification: |-
 
   Remember: if there is no hypothesis, start with something simple like MLP.
 
+  Usually, a larger model works better than a smaller one. 
+
   Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 
   Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
@@ -32,11 +34,13 @@ model_hypothesis_specification: |-
 
     2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
 
-    3rd Round Hypothesis (If second round worked): The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. (Similar Reasoning & Continuing to Grow to the activation function setup)
+    3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
 
-    4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5.
+    4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
+    
+    5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
-    5th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+    6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
@@ -61,7 +65,7 @@ factor_experiment_output_format: |-
   }
 
 model_experiment_output_format: |-
-  So far please only design one model to test the hypothesis!
+  So far please only design one model to test the hypothesis! 
   The output should follow JSON format. The schema is as follows: 
   {
     "model_name (The name of the model)": {
@@ -75,7 +79,8 @@ model_experiment_output_format: |-
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
     }
   }
-  
+  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
+
 factor_feedback_generation:
   system: |-
     You are a professional result analysis assistant on data driven R&D.
@@ -112,7 +117,7 @@ model_feedback_generation:
   system: |-
     You are a professional result analysis assistant. You will receive a result and a hypothesis.
     Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
-    Please provide detailed and constructive feedback.
+    Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
     {
       "Observations": "Your overall observations here",
@@ -121,6 +126,24 @@ model_feedback_generation:
       "Reasoning": "Provide reasoning for the hypothesis here.",
       "Decision": <true or false>,
     }
+    
+    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+
+    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
+
+      1st Round Hypothesis: The model should be a CNN. 
+
+      2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
+
+      3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
+
+      4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
+      
+      5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
+
+      6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+
+    
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
     Here are the context: {{context}}. 
@@ -131,7 +154,7 @@ model_feedback_generation:
     Task: {{last_task}}
     Result: {{last_result}}
     {% else %}
-    This is the first round. No previous information available. As long as the performance is reasonable （eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
+    This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
     {% endif %} 
     
     Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
