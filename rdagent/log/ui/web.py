@@ -308,7 +308,7 @@ class QlibFactorExpWindow(StWindow):
 
         # factor tasks
         ftm_msg = deepcopy(msg)
-        ftm_msg.content = exp.sub_workspace_list
+        ftm_msg.content = [ws for ws in exp.sub_workspace_list if ws]
         ObjectsTabsWindow(self.container.expander('Factor Tasks'),
                           inner_class=WorkspaceWindow,
                           mapper=lambda x: x.target_task.factor_name,
@@ -335,10 +335,10 @@ class QlibModelExpWindow(StWindow):
 
         # model tasks
         _msg = deepcopy(msg)
-        _msg.content = exp.sub_workspace_list
+        _msg.content = [ws for ws in exp.sub_workspace_list if ws]
         ObjectsTabsWindow(self.container.expander('Model Tasks'),
                           inner_class=WorkspaceWindow,
-                          mapper=lambda x: x.target_task.name if x else 'None',
+                          mapper=lambda x: x.target_task.name,
                           ).consume_msg(_msg)
 
         # result
@@ -389,7 +389,9 @@ class QlibTraceWindow(StWindow):
         elif isinstance(msg.content, QlibModelExperiment):
             self.current_win = QlibModelExpWindow(self.container)
         elif isinstance(msg.content, list):
-
+            msg.content = [m for m in msg.content if m]
+            if len(msg.content) == 0:
+                return
             if isinstance(msg.content[0], FactorTask):
                 self.current_win = ObjectsTabsWindow(self.container.expander('Factor Tasks'), FactorTaskWindow, lambda x: x.factor_name)
             elif isinstance(msg.content[0], ModelTask):
