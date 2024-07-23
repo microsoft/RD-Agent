@@ -1,4 +1,4 @@
-from rdagent.log.ui.web import WebView, QlibTraceWindow, TraceWindow, mock_msg
+from rdagent.log.ui.web import WebView, QlibTraceWindow, TraceObjWindow, mock_msg
 from rdagent.log.storage import FileStorage, Message
 from rdagent.core.proposal import Trace
 from pathlib import Path
@@ -15,4 +15,4 @@ with Path('./log/step_trace.pkl').open('rb') as f:
     trace: Trace = obj[-1]
 
 # show Trace obj
-# TraceWindow().consume_msg(mock_msg(trace))
+# TraceObjWindow().consume_msg(mock_msg(trace))

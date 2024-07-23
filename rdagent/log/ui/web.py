@@ -428,7 +428,7 @@ def mock_msg(obj) -> Message:
 
 
 from rdagent.core.proposal import Trace
-class TraceWindow(StWindow):
+class TraceObjWindow(StWindow):
 
     def __init__(self, container: 'DeltaGenerator' = st.container()):
         self.container = container
