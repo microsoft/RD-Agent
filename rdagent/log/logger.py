@@ -61,6 +61,10 @@ class RDAgentLog(SingletonBaseClass):
 
         self.main_pid = os.getpid()
 
+    def set_trace_path(self, log_trace_path):
+        self.log_trace_path = Path(log_trace_path)
+        self.storage = FileStorage(log_trace_path)
+
     @contextmanager
     def tag(self, tag: str):
         if tag.strip() == "":
