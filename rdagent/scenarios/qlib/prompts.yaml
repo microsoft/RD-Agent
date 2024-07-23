@@ -17,52 +17,30 @@ hypothesis_output_format: |-
 
 model_hypothesis_specification: |-
   Additional Specifications:
-    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually Build Up Upon previous hypothesis & feedbacks. 
-    Ensure that the hypothesis focuses on the architecture of a PyTorch model. Each hypothesis should address specific architectural choices such as the type of layers, activation functions, regularization techniques, and the overall structure of the model. Avoid hypotheses related to input features or optimization processes.
+    
+    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually Build Up Upon previous hypothesis & feedbacks. In each round, hypothesis is different. Pay attention to your previous hypothesis.
 
-  Sample Hypotheses (Only learn from the format as these are not the knowledge):
-    - "The model should use batch normalization to improve training stability."
-    - "The data has spatial dependencies, so we need a 3D CNN."
-    - "The model should include dropout layers to prevent overfitting."
-    - "The data exhibits long-term dependencies, so we need an LSTM/GRU model."
-    - "The model should have three layers. The model should be a ResNet."
-    - "The activation function should be ReLU for all hidden layers."
-    - "The model should include a fully connected layer at the end."
-    - "The model should use a combination of CNN and RNN layers for feature extraction and sequence modeling."
+    Ensure that the hypothesis focuses on the architecture of a PyTorch model. Each hypothesis should address specific architectural choices such as the type of layers, activation functions, regularization techniques, and the overall structure of the model. Avoid hypotheses related to input features or optimization processes.
 
   Remember: if there is no hypothesis, start with something simple like MLP.
 
+  Usually, a larger model works better than a smaller one. 
+
+  Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+
   Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
 
-  1st Round Hypothesis: The model should be a CNN.
+    1st Round Hypothesis: The model should be a CNN. 
 
-  2nd Round Hypothesis (If first round worked): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper)
+    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
 
-  3rd Round Hypothesis (If second round worked): The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. (Similar Reasoning & Continuing to Grow)
+    3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
 
-  4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5.
+    4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
+    
+    5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
-  5th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked)    
-
-  Sample JSON Output:
-  [
-    {
-      "hypothesis": "The CNN should have 3 convolutional layers.",
-      "reason": "Three convolutional layers are often sufficient to capture spatial features in the data without making the model overly complex."
-    },
-    {
-      "hypothesis": "The CNN should have 5 convolutional layers.",
-      "reason": "Five convolutional layers can help in capturing more intricate spatial features, potentially improving the model's performance on complex datasets."
-    },
-    {
-      "hypothesis": "The CNN should use residual connections.",
-      "reason": "Residual connections can help mitigate the vanishing gradient problem, facilitating the training of deeper networks."
-    },
-    {
-      "hypothesis": "The CNN should include a fully connected layer at the end.",
-      "reason": "A fully connected layer at the end can integrate features extracted by the convolutional layers and provide a robust output for classification tasks."
-    }
-  ]
+    6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
 factor_hypothesis_specification: |-
   Additional Specifications:
@@ -102,7 +80,7 @@ factor_experiment_output_format: |-
   }
 
 model_experiment_output_format: |-
-  So far please only design one model to test the hypothesis!
+  So far please only design one model to test the hypothesis! 
   The output should follow JSON format. The schema is as follows: 
   {
     "model_name (The name of the model)": {
@@ -116,7 +94,8 @@ model_experiment_output_format: |-
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
     }
   }
-  
+  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
+
 factor_feedback_generation:
   system: |-
     You are a professional result analysis assistant on data driven R&D.
@@ -164,7 +143,7 @@ model_feedback_generation:
   system: |-
     You are a professional result analysis assistant. You will receive a result and a hypothesis.
     Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
-    Please provide detailed and constructive feedback.
+    Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
     {
       "Observations": "Your overall observations here",
@@ -173,6 +152,24 @@ model_feedback_generation:
       "Reasoning": "Provide reasoning for the hypothesis here.",
       "Decision": <true or false>,
     }
+    
+    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+
+    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
+
+      1st Round Hypothesis: The model should be a CNN. 
+
+      2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
+
+      3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
+
+      4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
+      
+      5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
+
+      6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+
+    
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
     Here are the context: {{context}}. 
@@ -183,7 +180,7 @@ model_feedback_generation:
     Task: {{last_task}}
     Result: {{last_result}}
     {% else %}
-    This is the first round. No previous information available. As long as the performance is reasonable, treat it as successful. Do not set the threshold too high.  
+    This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
     {% endif %} 
     
     Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 

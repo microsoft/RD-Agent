@@ -1,7 +1,7 @@
 import pickle
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ModelEmptyException
+from rdagent.core.exception import ModelEmptyError
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -65,39 +65,39 @@ def process_steps(agent):
     try:
         _, _, _, trace = agent.load_objects('step_trace.pkl')
         agent.trace = trace
-        print(trace)
+        print(trace.get_sota_hypothesis_and_experiment())
     except FileNotFoundError:
         pass
 
-    # Step 1: Generate hypothesis
-    try:
-        _, hypothesis, _, _ = agent.load_objects('step_hypothesis.pkl')
-    except FileNotFoundError:
-        hypothesis = agent.generate_hypothesis()
+    # # # Step 1: Generate hypothesis
+    # try:
+    #     _, hypothesis, _, _ = agent.load_objects('step_hypothesis.pkl')
+    # except FileNotFoundError:
+    hypothesis = agent.generate_hypothesis()
 
-    # Step 2: Convert hypothesis
-    try:
-        exp, _, _, _ = agent.load_objects('step_experiment.pkl')
-    except FileNotFoundError:
-        exp = agent.convert_hypothesis(hypothesis)
+    # # # Step 2: Convert hypothesis
+    # try:
+    #     exp, _, _, _ = agent.load_objects('step_experiment.pkl')
+    # except FileNotFoundError:
+    #     exp = agent.convert_hypothesis(hypothesis)
 
-    # Step 3: Generate code
-    try:
-        exp, _, _, _ = agent.load_objects('step_code.pkl')
-    except FileNotFoundError:
-        exp = agent.generate_code(exp)
+    # # # Step 3: Generate code
+    # try:
+    #     exp, _, _, _ = agent.load_objects('step_code.pkl')
+    # except FileNotFoundError:
+    #     exp = agent.generate_code(exp)
 
-    # Step 4: Run experiment
-    try:
-        exp, _, _, _ = agent.load_objects('step_run.pkl')
-    except FileNotFoundError:
-        exp = agent.run_experiment(exp)
+    # # # Step 4: Run experiment
+    # try:
+    #     exp, _, _, _ = agent.load_objects('step_run.pkl')
+    # except FileNotFoundError:
+    #     exp = agent.run_experiment(exp)
 
-    # Step 5: Generate feedback
-    feedback = agent.generate_feedback(exp, hypothesis)
+    # # Step 5: Generate feedback
+    # feedback = agent.generate_feedback(exp, hypothesis)
 
-    # Step 6: Append to trace
-    agent.append_to_trace(hypothesis, exp, feedback)
+    # # Step 6: Append to trace
+    # agent.append_to_trace(hypothesis, exp, feedback)
 
 if __name__ == "__main__":
     agent = Model_RD_Agent()
