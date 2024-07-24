@@ -509,21 +509,21 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
     def load(self, file_or_folder_path: Path) -> dict:
         with logger.tag("docs"):
             docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
-            logger.log_object(docs_dict, tag="docs dict")
+            logger.log_object(docs_dict)
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
         
         with logger.tag("file_to_factor_result"):
             file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
-            logger.log_object(file_to_factor_result, tag="file_to_factor_result")
+            logger.log_object(file_to_factor_result)
         
         with logger.tag("factor_dict"):
             factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
-            logger.log_object(factor_dict, tag="factor_dict")
+            logger.log_object(factor_dict)
 
         with logger.tag("filtered_factor_dict"):
             factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
-            logger.log_object(filtered_factor_dict, tag="filtered_factor_dict")
+            logger.log_object(filtered_factor_dict)
 
         # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
         

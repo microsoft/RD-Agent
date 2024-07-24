@@ -91,7 +91,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
 
         with logger.tag("load_pdf_screenshot"):
             pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
-            logger.log_object(pdf_screenshot, tag="load_pdf_screenshot")
+            logger.log_object(pdf_screenshot)
 
     docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
 
