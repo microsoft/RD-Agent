@@ -4,7 +4,7 @@ import importlib
 import json
 import multiprocessing as mp
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
@@ -48,7 +48,7 @@ def similarity(text1: str, text2: str) -> int:
     text2 = text2 if isinstance(text2, str) else ""
 
     # Maybe we can use other similarity algorithm such as tfidf
-    return fuzz.ratio(text1, text2)  # type: ignore[no-any-return]
+    return cast(int, fuzz.ratio(text1, text2))  # mypy does not reguard it as int
 
 
 def import_class(class_path: str) -> Any:
