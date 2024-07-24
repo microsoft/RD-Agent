@@ -43,7 +43,7 @@ class HypothesisFeedback(Feedback):
         hypothesis_evaluation: str,
         new_hypothesis: str,
         reason: str,
-        decision: bool,  # noqa: FBT001
+        decision: bool,
     ) -> None:
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation

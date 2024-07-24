@@ -26,7 +26,6 @@ class EvoAgent(ABC):
         eva: Evaluator | Feedback,
         *,
         filter_final_evo: bool = False,
-        **kwargs: Any,
     ) -> EvolvableSubjects: ...
 
     @abstractmethod
@@ -43,7 +42,6 @@ class RAGEvoAgent(EvoAgent):
         max_loop: int,
         evolving_strategy: EvolvingStrategy,
         rag: Any,
-        *,
         with_knowledge: bool = False,
         with_feedback: bool = True,
         knowledge_self_gen: bool = False,
@@ -60,9 +58,7 @@ class RAGEvoAgent(EvoAgent):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-        *,
         filter_final_evo: bool = False,
-        **kwargs: Any,  # noqa: ARG002
     ) -> EvolvableSubjects:
         for _ in tqdm(range(self.max_loop), "Implementing"):
             # 1. knowledge self-evolving

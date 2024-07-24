@@ -1,12 +1,14 @@
 from pathlib import Path
 from typing import Dict
+from collections import UserDict
 
 import yaml
 from rdagent.core.utils import SingletonBaseClass
 
 
-class Prompts(SingletonBaseClass, Dict[str, str]):  # type: ignore[misc]
+class Prompts(SingletonBaseClass, UserDict[str, str]):
     def __init__(self, file_path: Path) -> None:
+        super().__init__()
         with file_path.open(encoding="utf8") as file:
             prompt_yaml_dict = yaml.safe_load(file)
 

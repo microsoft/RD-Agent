@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Generic, Sequence, TypeVar
+from typing import Any, Generic, Optional, Sequence, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
@@ -35,7 +35,7 @@ class Workspace(ABC, Generic[ASpecificTask]):
         self.target_task: ASpecificTask | None = target_task
 
     @abstractmethod
-    def execute(self, *args: Any, **kwargs: Any) -> object:
+    def execute(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         error_message = "execute method is not implemented."
         raise NotImplementedError(error_message)
 
@@ -146,14 +146,13 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path)
         self.code_dict = {}
 
-    @abstractmethod
-    def execute(self, *args: Any, **kwargs: Any) -> object:
+    def execute(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
         Before each execution, make sure to prepare and inject code
         """
         self.prepare()
         self.inject_code(**self.code_dict)
-        return object()
+        return None
 
 
 ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)

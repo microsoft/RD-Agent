@@ -12,7 +12,7 @@ from dataclasses import dataclass
 class Message:
     """The info unit of the storage"""
     tag: str  # namespace like like a.b.c
-    level: str | None  # The level of the logging
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]  # The level of the logging
     timestamp: datetime  # The time when the message is generated
     caller: Optional[str] # The caller of the logging like `rdagent.oai.llm_utils:_create_chat_completion_inner_function:55`(file:func:line)
     pid_trace: Optional[str]  # The process id trace;  A-B-C represents A create B, B create C
