@@ -3,8 +3,8 @@ The motiviation of the utils is for environment management
 
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
-
 """
+# TODO: move the scenario specific docker env into other folders.
 
 import os
 import subprocess
@@ -150,7 +150,7 @@ class DMDockerConf(DockerConf):
     image: str = "local_dm:latest"
     mount_path: str = "/workspace/dm_workspace/"
     default_entry: str = "python train.py"
-    extra_volumes: dict = {Path("~/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
+    extra_volumes: dict = {Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
     shm_size: str | None = "16g"
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -272,7 +272,7 @@ class DMDockerEnv(DockerEnv):
         data_path = next(iter(self.conf.extra_volumes.keys()))
         if not (Path(data_path)).exists():
             logger.info("We are downloading!")
-            cmd = 'wget -r -N -c -np --user={} --password={} -P ~/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/'.format(username, password)
+            cmd = 'wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/'.format(username, password)
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
