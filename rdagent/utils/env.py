@@ -125,6 +125,7 @@ class DockerConf(BaseSettings):
     # So we just want to download it once.
     network: str | None = "bridge"  # the network mode for the docker
     shm_size: str | None = None
+    enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
 
 
 class QlibDockerConf(DockerConf):
