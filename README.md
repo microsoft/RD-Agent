@@ -119,9 +119,9 @@ Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹Finance       | Iteratively Proposing Ideas & Evolving | Auto reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
-| 🩺Medical       | Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| General         | Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance       | Iteratively Proposing Ideas & Evolving | Auto reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
+| 🩺 Medical       | Iteratively Proposing Ideas & Evolving | -                                                                                  |
+| 🏭 General         | Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
