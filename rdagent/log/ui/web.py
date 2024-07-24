@@ -149,18 +149,18 @@ class RoundTabsWindow(StWindow):
                  title: str = 'Round tabs'):
 
         container.header(title)
-        self.container = container.empty()
         self.inner_class = inner_class
         self.new_tab_func = new_tab_func
         self.round = 0
 
         self.current_win = StWindow(self.container)
+        self.tabs_c = self.container.empty()
 
 
     def consume_msg(self, msg: Message):
         if self.new_tab_func(msg):
             self.round += 1
-            self.current_win = self.inner_class(self.container.tabs([str(i) for i in range(1, self.round+1)])[-1])
+            self.current_win = self.inner_class(self.tabs_c.tabs([str(i) for i in range(1, self.round+1)])[-1])
 
         self.current_win.consume_msg(msg)
 
@@ -350,7 +350,7 @@ class QlibModelExpWindow(StWindow):
 
 class SimpleTraceWindow(StWindow):
 
-    def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = True):
+    def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = False):
         super().__init__(container)
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
@@ -547,7 +547,10 @@ class SingleRDLoopWindow(StWindow):
 
 class TraceWindow(StWindow):
 
-    def __init__(self, container: 'DeltaGenerator' = st.container()):
+    def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = False):
+        self.show_llm = show_llm
+        self.show_common_logs = show_common_logs
+
         t_container = container.container(border=True)
         self.status_c = t_container.empty()
         col1, col2 = t_container.columns([3,2])
@@ -569,6 +572,11 @@ class TraceWindow(StWindow):
         self.results = []
 
     def consume_msg(self, msg: Message):
+        if not self.show_llm and 'llm_messages' in msg.tag:
+            return
+        if not self.show_common_logs and isinstance(msg.content, str):
+            return
+
         self.status_c.markdown(f"**Status**: {msg.tag}")
 
         if msg.tag.endswith('hypothesis generation'):
