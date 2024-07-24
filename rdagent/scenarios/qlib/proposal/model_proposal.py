@@ -39,7 +39,7 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
         return hypothesis
 
 
@@ -74,10 +74,12 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
         for model_name in response_dict:
             description = response_dict[model_name]["description"]
+            formulation = response_dict[model_name]["formulation"]
             architecture = response_dict[model_name]["architecture"]
+            variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
-            tasks.append(ModelTask(model_name, description, architecture, hyperparameters, model_type))
+            tasks.append(ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type))
         exp = QlibModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp

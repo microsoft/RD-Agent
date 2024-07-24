@@ -16,13 +16,14 @@ from rdagent.utils import get_module_by_module_path
 
 class ModelTask(Task):
     def __init__(
-        self, name: str, description: str, formulation: str, architecture: str, variables: Dict[str, str], model_type: Optional[str] = None
+        self, name: str, description: str, formulation: str, architecture: str, variables: Dict[str, str], hyperparameters: Dict[str, str], model_type: Optional[str] = None
     ) -> None:
         self.name: str = name
         self.description: str = description
         self.formulation: str = formulation
         self.architecture: str = architecture
         self.variables: str = variables
+        self.hyperparameters: str = hyperparameters
         self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model 
 
     def get_task_information(self):
@@ -31,6 +32,7 @@ description: {self.description}
 formulation: {self.formulation}
 architecture: {self.architecture}
 variables: {self.variables}
+hyperparameters: {self.hyperparameters}
 model_type: {self.model_type}
 """
 
