@@ -1,12 +1,12 @@
 TODO: Add badges.
 
-# News
+# 📰 News
 | 🗞️News        | 📝Description                 |
 | --            | ------                        |
 | First release | RDAgent are release on Github |
 
 
-# Introduction
+# 🌟 Introduction
 
 ![](docs/_static/scen.jpg)
 
@@ -30,6 +30,65 @@ We have a quick 🎥demo for one use case of RDAgent.
 
 # ⚡Quick start
 You can try our demo by running the following command:
+
+### 🐍 Create a Conda Environment
+- Create a new conda environment with Python 3.10:
+  ```sh
+  conda create -n rdagent python=3.10
+  ```
+- Activate the environment:
+  ```sh
+  conda activate rdagent
+  ```
+
+### 🛠️ Run Make Files
+- **Navigate to the directory containing the MakeFile** and set up the development environment:
+  ```sh
+  make dev
+  ```
+
+### 📦 Install Pytorch
+- Install Pytorch and related libraries:
+  ```sh
+  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+  pip3 install torch_geometric
+  ```
+
+### ⚙️ Environment Configuration
+- Place the `.env` file in the same directory as the `.env.example` file.
+- Export each variable in the `.env` file:
+  ```sh
+  export $(grep -v '^#' .env | xargs)
+  ```
+
+### ☁️ Azure Configuration
+- Install Azure CLI:
+  ```sh
+  curl -L https://aka.ms/InstallAzureCli | bash
+  ```
+- Log in to Azure:
+  ```sh
+  az login --use-device-code
+  ```
+
+- `exit` and re-login to your environment (this step may not be necessary).
+
+### 🚀 Run the Application
+- Run the factor extraction and implementation application based on financial reports:
+  ```sh
+  python rdagent/app/qlib_rd_loop/factor_from_report_sh.py
+  ```
+
+- Run the self-loop factor extraction and implementation application:
+  ```sh
+  python rdagent/app/qlib_rd_loop/factor.py
+  ```
+
+- Run the self-loop model extraction and implementation application:
+  ```sh
+  python rdagent/app/qlib_rd_loop/model.py
+  ```
+
 
 ```bash
 # TODO:
