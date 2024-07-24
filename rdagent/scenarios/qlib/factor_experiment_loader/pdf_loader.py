@@ -70,7 +70,7 @@ def classify_report_from_dict(
         if isinstance(value, str):
             content = value
         else:
-            logger.warning(f"输入格式不符合要求: {file_name}")
+            logger.warning(f"Input format does not meet the requirements: {file_name}")
             res_dict[file_name] = {"class": 0}
             continue
 
@@ -102,7 +102,7 @@ def classify_report_from_dict(
                 res = json.loads(res)
                 vote_list.append(int(res["class"]))
             except json.JSONDecodeError:
-                logger.warning(f"返回值无法解析: {file_name}")
+                logger.warning(f"Return value could not be parsed: {file_name}")
                 res_dict[file_name] = {"class": 0}
             count_0 = vote_list.count(0)
             count_1 = vote_list.count(1)
@@ -243,7 +243,7 @@ def extract_factors_from_report_dict(
     )
     for index, file_name in enumerate(file_name_list):
         final_report_factor_dict[file_name] = factor_dict_list[index]
-    logger.info(f"已经完成{len(final_report_factor_dict)}个报告的因子提取")
+    logger.info(f"Factor extraction completed for {len(final_report_factor_dict)} reports")
 
     return final_report_factor_dict
 
@@ -507,13 +507,24 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 
 class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
     def load(self, file_or_folder_path: Path) -> dict:
-        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+        with logger.tag("docs"):
+            docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+            logger.log_object(docs_dict, tag="docs dict")
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
-        file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
-        factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
+        
+        with logger.tag("file_to_factor_result"):
+            file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
+            logger.log_object(file_to_factor_result, tag="file_to_factor_result")
+        
+        with logger.tag("factor_dict"):
+            factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
+            logger.log_object(factor_dict, tag="factor_dict")
 
-        factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
+        with logger.tag("filtered_factor_dict"):
+            factor_viability, filtered_factor_dict = check_factor_viability(factor_dict)
+            logger.log_object(filtered_factor_dict, tag="filtered_factor_dict")
+
         # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
         
         return FactorExperimentLoaderFromDict().load(filtered_factor_dict)
