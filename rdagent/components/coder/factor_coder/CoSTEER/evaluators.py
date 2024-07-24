@@ -437,6 +437,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
             else:
                 break
 
+        # TODO:  with retry_context(retry_n=3, except_list=[KeyError]):
         final_evaluation_dict = None
         attempts = 0
         max_attempts = 3
