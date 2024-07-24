@@ -1,4 +1,4 @@
-qlib_model_background: |-
+dm_model_background: |-
   The model is a machine learning or deep learning structure used in clinical settings to predict whether the patient will suffer from acute respiratory failure (ARF) based on their vital signs monitored in ICU.
   The data is extracted from MIMIC-III using FIDDLE pipeline, and we focus on the ARF_12h prediction task, which means we use the first 12 hours data to predict the onset of ARF on discharge.
   The model is defined in the following parts:
@@ -7,7 +7,7 @@ qlib_model_background: |-
   3. Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
   The model should provide clear and detailed documentation of its architecture and hyperparameters. 
 
-qlib_model_interface: |-
+dm_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   You code should contain several parts:
   1. The import part: import the necessary libraries.
@@ -41,10 +41,10 @@ qlib_model_interface: |-
   Please notice that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
 
 
-qlib_model_output_format: |-
+dm_model_output_format: |-
   Your output should be a tensor with shape (batch_size, 1). 
   The output tensor should be saved in a file named "output.pth" in the same directory as your python file.
   The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
 
-qlib_model_simulator: |-
+dm_model_simulator: |-
   The models will be put to train on MIMIC-III dataset and evaluate their performance in terms of roc score (Area Under Curve Receiver Operating Characteristics Curve). Hypothesis is improved upon checking the feedback on the results. 

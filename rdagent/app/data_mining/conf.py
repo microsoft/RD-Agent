@@ -19,6 +19,10 @@ class PropSetting(BaseSettings):
     evolving_n: int = 10
 
     py_bin: str = "/usr/bin/python"
+    
+    #physionet account
+    username: str = ''
+    password: str = ''
 
 
 PROP_SETTING = PropSetting()

@@ -14,7 +14,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
 
 DMModelHypothesis = ModelHypothesis
 
@@ -31,7 +31,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         )
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.",
+            "RAG": "",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["model_hypothesis_specification"]
         }

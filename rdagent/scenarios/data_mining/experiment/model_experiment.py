@@ -21,23 +21,23 @@ class DMModelExperiment(ModelExperiment[ModelTask, DMFBWorkspace, ModelFBWorkspa
 class DMModelScenario(Scenario):
     @property
     def background(self) -> str:
-        return prompt_dict["qlib_model_background"]
-
+        return prompt_dict["dm_model_background"]
+    
     @property
     def source_data(self) -> str:
-        raise NotImplementedError("source_data of QlibModelScenario is not implemented")
-
+        raise NotImplementedError("source_data is not implemented")
+    
     @property
     def output_format(self) -> str:
-        return prompt_dict["qlib_model_output_format"]
+        return prompt_dict["dm_model_output_format"]
 
     @property
     def interface(self) -> str:
-        return prompt_dict["qlib_model_interface"]
+        return prompt_dict["dm_model_interface"]
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["qlib_model_simulator"]
+        return prompt_dict["dm_model_simulator"]
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:

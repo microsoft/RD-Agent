@@ -15,17 +15,6 @@ from rdagent.utils.env import DMDockerEnv
 
 
 class DMModelRunner(CachedRunner[DMModelExperiment]):
-    """
-    Docker run
-    Everything in a folder
-    - config.yaml
-    - Pytorch `model.py`
-    - results in `mlflow`
-
-    https://github.com/microsoft/qlib/blob/main/qlib/contrib/model/pytorch_nn.py
-    - pt_model_uri:  hard-code `model.py:Net` in the config
-    - let LLM modify model.py
-    """
 
     def develop(self, exp: DMModelExperiment) -> DMModelExperiment:
         if RUNNER_SETTINGS.cache_result:
@@ -41,12 +30,12 @@ class DMModelRunner(CachedRunner[DMModelExperiment]):
 
         env_to_use = {"PYTHONPATH": "./"}
 
-        if exp.sub_tasks[0].model_type == "TimeSeries":
-            env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
-        elif exp.sub_tasks[0].model_type == "Tabular":
-            env_to_use.update({"dataset_cls": "DatasetH"})
+        # if exp.sub_tasks[0].model_type == "TimeSeries":
+        #     env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
+        # elif exp.sub_tasks[0].model_type == "Tabular":
+        #     env_to_use.update({"dataset_cls": "DatasetH"})
 
-        result = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
+        result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
         if RUNNER_SETTINGS.cache_result:

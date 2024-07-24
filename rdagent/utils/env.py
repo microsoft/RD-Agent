@@ -149,7 +149,7 @@ class DMDockerConf(DockerConf):
     image: str = "local_dm:latest"
     mount_path: str = "/workspace/dm_workspace/"
     default_entry: str = "python train.py"
-    extra_volumes: dict = {Path("~/RD-Agent/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
+    extra_volumes: dict = {Path("~/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
     shm_size: str | None = "16g"
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -245,16 +245,15 @@ class DMDockerEnv(DockerEnv):
     def __init__(self, conf: DockerConf = DMDockerConf()):
         super().__init__(conf)
 
-    def prepare(self):
+    def prepare(self, username: str, password: str):
         """
         Download image & data if it doesn't exist
         """
         super().prepare()
-        # data_path = next(iter(self.conf.extra_volumes.keys()))
-        # if not (Path(data_path) / 'physionet.org').exists():
-        #     print(os.path.join(Path(data_path), '/physionet.org/'))
-        #     logger.info("We are downloading!")
-        #     cmd = "wget -r -N -c -np --user suhan --ask-password https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/"
-        #     self.run(entry=cmd)
-        # else:
-        #     logger.info("Data already exists. Download skipped.")
+        data_path = next(iter(self.conf.extra_volumes.keys()))
+        if not (Path(data_path)).exists():
+            logger.info("We are downloading!")
+            cmd = 'wget -r -N -c -np --user={} --password={} -P ~/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/'.format(username, password)
+            os.system(cmd)
+        else:
+            logger.info("Data already exists. Download skipped.")
