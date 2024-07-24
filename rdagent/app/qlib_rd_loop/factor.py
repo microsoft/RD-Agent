@@ -36,7 +36,7 @@ qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTIN
 trace = Trace(scen=scen)
 for _ in range(PROP_SETTING.evolving_n):
     try:
-        with logger.tag("r"):  # research
+        with logger.tag("r"):
             hypothesis = hypothesis_gen.gen(trace)
             logger.log_object(hypothesis, tag="hypothesis generation")
 
@@ -49,6 +49,9 @@ for _ in range(PROP_SETTING.evolving_n):
 
         with logger.tag("ef"):
             exp = qlib_factor_runner.develop(exp)
+            if exp is None:
+                logger.error(f"Factor extraction failed.")
+                continue
             logger.log_object(exp, tag="factor runner result")
             feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
             logger.log_object(feedback, tag="feedback")
