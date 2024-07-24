@@ -61,6 +61,10 @@ class RDAgentLog(SingletonBaseClass):
 
         self.main_pid = os.getpid()
 
+    def set_trace_path(self, log_trace_path):
+        self.log_trace_path = Path(log_trace_path)
+        self.storage = FileStorage(log_trace_path)
+
     @contextmanager
     def tag(self, tag: str):
         if tag.strip() == "":
@@ -91,12 +95,14 @@ class RDAgentLog(SingletonBaseClass):
         return pid_chain
 
     def file_format(self, record, raw: bool = False):
+        # FIXME: the formmat is tightly coupled with the message reading in storage.
         record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:
             return "{message}"
         return "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}\n"
 
     def log_object(self, obj: object, *, tag: str = "") -> None:
+        # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 

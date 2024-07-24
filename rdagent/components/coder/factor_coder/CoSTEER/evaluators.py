@@ -13,8 +13,8 @@ from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
 )
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_framework import Feedback, QueriedKnowledge
+from rdagent.core.evaluation import Evaluator, Feedback
+from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
@@ -334,6 +334,13 @@ class FactorValueEvaluator(FactorEvaluator):
     ) -> Tuple:
         conclusions = []
 
+        # Initialize result variables
+        single_column_result = None
+        same_index_result = None
+        output_format_result = None
+        equal_value_ratio_result = 0
+        high_correlation_result = False
+
         # Check if both dataframe has only one columns
         feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
@@ -373,9 +380,6 @@ class FactorValueEvaluator(FactorEvaluator):
                 high_correlation_result = False
                 feedback_str = "The source dataframe and the ground truth dataframe have different index. Give up comparing the values and correlation because it's useless"
             conclusions.append(feedback_str)
-        else:
-            equal_value_ratio_result = 0
-            high_correlation_result = False
 
         # Combine all conclusions into a single string
         conclusion_str = "\n".join(conclusions)
@@ -433,21 +437,36 @@ class FactorFinalDecisionEvaluator(Evaluator):
             else:
                 break
 
-        final_evaluation_dict = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-            ),
-        )
-        if isinstance(final_evaluation_dict["final_decision"], str) and final_evaluation_dict[
-            "final_decision"
-        ].lower() in ("true", "false"):
-            final_evaluation_dict["final_decision"] = bool(final_evaluation_dict["final_decision"])
-        return (
-            final_evaluation_dict["final_decision"],
-            final_evaluation_dict["final_feedback"],
-        )
+        # TODO:  with retry_context(retry_n=3, except_list=[KeyError]):
+        final_evaluation_dict = None
+        attempts = 0
+        max_attempts = 3
+
+        while attempts < max_attempts:
+            try:
+                final_evaluation_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
+                        json_mode=True,
+                    ),
+                )
+                final_decision = final_evaluation_dict["final_decision"]
+                final_feedback = final_evaluation_dict["final_feedback"]
+
+                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
+                    final_decision = bool(final_decision)
+
+                return final_decision, final_feedback
+
+            except json.JSONDecodeError as e:
+                raise ValueError("Failed to decode JSON response from API.") from e
+            except KeyError as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise KeyError("Response from API is missing 'final_decision' or 'final_feedback' key after multiple attempts.") from e
+        
+        return None, None
 
 
 class FactorSingleFeedback:

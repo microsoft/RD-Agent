@@ -30,5 +30,10 @@ class PropSetting(BaseSettings):
     py_bin: str = "/usr/bin/python"
     local_qlib_folder: Path = Path("/home/rdagent/qlib")
 
+    origin_report_path: str = "data/report_origin"
+    local_report_path: str = "data/report"
+    report_result_json_file_path: str = "git_ignore_folder/res_dict.json"
+    progress_file_path: str = "git_ignore_folder/progress.pkl"
+
 
 PROP_SETTING = PropSetting()

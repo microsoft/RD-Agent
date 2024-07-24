@@ -60,7 +60,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                raise FactorEmptyError("No valid factor data found to merge.")
+                # raise FactorEmptyException("No valid factor data found to merge.")
+                logger.error("No valid factor data found to merge.")
+                return None
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
