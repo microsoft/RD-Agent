@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import datetime
 from typing import Callable
 from rdagent.log import rdagent_logger as logger
@@ -21,15 +21,23 @@ from rdagent.log import rdagent_logger as logger
 
 class LoopMeta(type):
 
-    def __new__(cls, clsname, bases, attrs):
-
-        # move custommized steps into steps
+    @staticmethod
+    def _get_steps(bases):
+        """
+        get all the `steps` of base classes and combine them to a single one.
+        """
         steps = []
-        for name in attrs.keys():
-            if not name.startswith("__"):
+        for base in bases:
+            steps.extend(LoopMeta._get_steps(base.__bases__) + getattr(base,"steps", []))
+        return steps
+
+    def __new__(cls, clsname, bases, attrs):
+        # move custommized steps into steps
+        steps = LoopMeta._get_steps(bases)  # all the base classes of parents
+        for name, attr in attrs.items():
+            if not name.startswith("__") and isinstance(attr, Callable):
                 steps.append(name)
         attrs["steps"] = steps
-
         return super().__new__(cls, clsname, bases, attrs)
 
 
@@ -43,6 +51,8 @@ class LoopTrace:
 class LoopBase:
     steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
+
+    skip_loop_error: tuple[Exception]  = field(default_factory=tuple)  # you can define a list of error that will skip current loop
 
     def __init__(self):
         self.loop_idx = 0 # current loop index
@@ -73,7 +83,14 @@ class LoopBase:
 
                 name = self.steps[si]
                 func = getattr(self, name)
-                self.loop_prev_out[name] = func(self.loop_prev_out)
+                try:
+                    self.loop_prev_out[name] = func(self.loop_prev_out)
+                    # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
+                except self.skip_loop_error as e:
+                    logger.warning(f"Skip loop {li} due to {e}")
+                    self.loop_idx += 1
+                    self.step_index = 0
+                    continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)
 

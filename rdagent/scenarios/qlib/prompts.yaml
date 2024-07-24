@@ -138,7 +138,7 @@ model_experiment_output_format: |-
   So far please only design one model to test the hypothesis! 
   The output should follow JSON format. The schema is as follows: 
   {
-    "model_name (The name of the model)": {
+    "model_name 1 (The name of the model)": {
         "description": "A detailed description of the model",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
         "hyperparameters": {
@@ -147,6 +147,9 @@ model_experiment_output_format: |-
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
+    },
+    "model_name 2 (The name of the model)": {
+        ...
     }
   }
   Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
