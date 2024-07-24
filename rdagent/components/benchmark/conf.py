@@ -15,7 +15,7 @@ class BenchmarkSettings(BaseSettings):
 
     bench_data_path: Path = DIRNAME / "example.json"
 
-    bench_test_round: int = 10
+    bench_test_round: int = 1
     bench_test_case_n: Optional[int] = None  # how many test cases to run; If not given, all test cases will be run
 
     bench_method_cls: str = "rdagent.components.coder.factor_coder.CoSTEER.FactorCoSTEER"

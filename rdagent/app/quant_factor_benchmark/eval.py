@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+import pickle
+import time
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
@@ -11,6 +15,7 @@ from rdagent.core.utils import import_class
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 
+from pprint import pprint
 
 # 1.read the settings
 bs = BenchmarkSettings()
@@ -34,6 +39,25 @@ eval_method = FactorImplementEval(
 
 # 5.run the eval
 res = eval_method.eval()
+
+# 6.save the result
+pprint(res)
+
+res_workspace = (Path().cwd() / "git_ignore_folder" / "eval_results").absolute()
+print(str(res_workspace))
+
+# Save results
+timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
+
+if not os.path.exists(str(res_workspace)):
+    os.makedirs(str(res_workspace))
+
+df_file_path = res_workspace / ("result_" + timestamp + ".csv")
+res_pkl_path = res_workspace / ("res_promptV2" + timestamp + ".pkl")
+res_pkl_path = res_workspace / ("res_promptV2" + timestamp + ".pkl")
+with open(str(res_pkl_path), "wb") as file:
+    # file.write(str(res))
+    pickle.dump(res, file)
 
 # TODO:
 # - Run it:
