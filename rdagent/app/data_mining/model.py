@@ -1,6 +1,6 @@
 import fire
 from rdagent.app.data_mining.conf import PROP_SETTING
-from rdagent.components.workflow.model import RDLoop
+from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import ModelEmptyError
 
 class ModelRDLoop(RDLoop):

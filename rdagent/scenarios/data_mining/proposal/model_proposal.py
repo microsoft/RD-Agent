@@ -22,7 +22,7 @@ DMModelHypothesis = ModelHypothesis
 class DMModelHypothesisGen(ModelHypothesisGen):
     """
     # NOTE: we can share this class across different data mining scenarios
-    #
+    # It may better to move the class into components folder like `rdagent/components/proposal/model_proposal.py`
     # Here is the use case:
 
     .. code-block:: python
