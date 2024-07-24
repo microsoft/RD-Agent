@@ -27,6 +27,15 @@ class Scenario(ABC):
     def simulator(self) -> str:
         """Simulator description"""
 
+    @property
+    @abstractmethod
+    def rich_style_description(self) -> str:
+        """Rich style description to present"""
+
     @abstractmethod
     def get_scenario_all_desc(self) -> str:
         """Combine all the description together"""
+
+
+
+    
