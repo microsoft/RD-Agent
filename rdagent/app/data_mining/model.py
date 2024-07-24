@@ -4,7 +4,6 @@ from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import ModelEmptyError
 
 class ModelRDLoop(RDLoop):
-    # FIXME: RDLoop has a metaclass. How to make it only work on the baseclass instead of subclasses
     skip_loop_error = (ModelEmptyError,)
 
 
