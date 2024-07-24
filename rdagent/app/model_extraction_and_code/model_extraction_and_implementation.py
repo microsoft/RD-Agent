@@ -8,7 +8,7 @@ from rdagent.scenarios.qlib.developer.model_coder import QlibModelCoSTEER
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelScenario
 
 
-def extract_models_and_implement(report_file_path: str = "/home/xiaoyang/PaperImpBench/raw_paper/4096.pdf") -> None:
+def extract_models_and_implement(report_file_path: str = ".../test") -> None:
     scenario = QlibModelScenario()
     exp = ModelExperimentLoaderFromPDFfiles().load(report_file_path)
     exp = QlibModelCoSTEER(scenario).develop(exp)
