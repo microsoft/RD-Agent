@@ -64,7 +64,7 @@ coverage.xml
 
 # Django stuff:
 *.log
-^log
+log/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -163,3 +163,7 @@ mlruns/
 # possible output from coder or runner
 *.pth
 *qlib_res.csv
+
+# shell script
+*.out
+*.sh
