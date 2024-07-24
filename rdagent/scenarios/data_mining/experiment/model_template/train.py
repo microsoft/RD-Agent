@@ -82,7 +82,7 @@ y_pred = []
 for data in test_dataloader:
     x, y = data
     out = model(x)
-    y_pred.append(out.detach().numpy())
+    y_pred.append(out.cpu().detach().numpy())
 
 acc = roc_auc_score(y_test, np.concatenate(y_pred))
 
