@@ -15,12 +15,14 @@ from rdagent.core.proposal import (
 )
 from rdagent.oai.llm_utils import APIBackend
 
-prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 ModelHypothesis = Hypothesis
 
+prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 class ModelHypothesisGen(HypothesisGen):
+    prompts: Prompts = prompt_dict
+
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
@@ -35,7 +37,7 @@ class ModelHypothesisGen(HypothesisGen):
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_gen"]["system_prompt"])
+            .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["system_prompt"])
             .render(
                 targets="model",
                 scenario=self.scen.get_scenario_all_desc(),
@@ -45,7 +47,7 @@ class ModelHypothesisGen(HypothesisGen):
         )
         user_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_gen"]["user_prompt"])
+            .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["user_prompt"])
             .render(
                 targets="model",
                 hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
@@ -61,6 +63,8 @@ class ModelHypothesisGen(HypothesisGen):
 
 
 class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
+    prompts: Prompts = prompt_dict
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -76,7 +80,7 @@ class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
         context, json_flag = self.prepare_context(hypothesis, trace)
         system_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis2experiment"]["system_prompt"])
+            .from_string(ModelHypothesis2Experiment.prompts["hypothesis2experiment"]["system_prompt"])
             .render(
                 targets="model",
                 scenario=trace.scen.get_scenario_all_desc(),
@@ -85,7 +89,7 @@ class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
         )
         user_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis2experiment"]["user_prompt"])
+            .from_string(ModelHypothesis2Experiment.prompts["hypothesis2experiment"]["user_prompt"])
             .render(
                 targets="model",
                 target_hypothesis=context["target_hypothesis"],
