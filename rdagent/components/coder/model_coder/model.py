@@ -16,18 +16,20 @@ from rdagent.utils import get_module_by_module_path
 
 class ModelTask(Task):
     def __init__(
-        self, name: str, description: str, formulation: str, variables: Dict[str, str], model_type: Optional[str] = None
+        self, name: str, description: str, formulation: str, architecture: str, variables: Dict[str, str], model_type: Optional[str] = None
     ) -> None:
         self.name: str = name
         self.description: str = description
         self.formulation: str = formulation
+        self.architecture: str = architecture
         self.variables: str = variables
-        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model
+        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model 
 
     def get_task_information(self):
         return f"""name: {self.name}
 description: {self.description}
 formulation: {self.formulation}
+architecture: {self.architecture}
 variables: {self.variables}
 model_type: {self.model_type}
 """
@@ -65,6 +67,8 @@ class ModelFBWorkspace(FBWorkspace):
         batch_size: int = 8,
         num_features: int = 10,
         num_timesteps: int = 4,
+        num_nodes: int = 50,
+        num_edges: int = 100,
         input_value: float = 1.0,
         param_init_value: float = 1.0,
     ):
@@ -85,21 +89,37 @@ class ModelFBWorkspace(FBWorkspace):
             if self.target_task.model_type == "Tabular":
                 input_shape = (batch_size, num_features)
                 m = model_cls(num_features=input_shape[1])
+                data = torch.full(input_shape, input_value)
             elif self.target_task.model_type == "TimeSeries":
                 input_shape = (batch_size, num_features, num_timesteps)
                 m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
-            data = torch.full(input_shape, input_value)
+                data = torch.full(input_shape, input_value)
+            elif self.target_task.model_type == "Graph":
+                node_feature = torch.randn(batch_size, num_nodes, num_features)
+                edge_index = torch.randint(0, num_nodes, (2, num_edges))
+                m = model_cls(num_nodes=num_nodes, num_features=num_features)
+                data = (node_feature, edge_index)
+            else:
+                raise ValueError(f"Unsupported model type: {self.target_task.model_type}")
 
-            # initialize all parameters of `m` to `param_init_value`
+            # Initialize all parameters of `m` to `param_init_value`
             for _, param in m.named_parameters():
                 param.data.fill_(param_init_value)
-            out = m(data)
+            
+            # Execute the model
+            if self.target_task.model_type == "Graph":
+                out = m(*data)
+            else:
+                out = m(data)
+            
             execution_model_output = out.cpu().detach()
             execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
+            
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
+            
             return execution_feedback_str, execution_model_output
-
+        
         except Exception as e:
             return f"Execution error: {e}", None
 

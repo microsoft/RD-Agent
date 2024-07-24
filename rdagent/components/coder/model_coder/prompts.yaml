@@ -1,11 +1,24 @@
 extract_model_formulation_system: |-
-    offer description of the proposed model in this paper, write a latex formula with variable of the model. the format should be like 
-    "Model Name": {
+    offer description of the proposed model in this paper, write a latex formula with variable as well as the architecture of the model. the format should be like 
+    "Model Name (replace with a reasonable model type)": {
         "description": "",
         "formulation": "",
+        "architecture": "",
         "variables": {
         "\\hat{y}_u": "The predicted output for node u",
         }"
+        "model_type":"Tabular", "TimeSeries", or "Graph", (depending on which type of the model it is)
+        }
+    Eg. 
+    "ABC Model":{
+        "description": "",
+        "formulation": "",
+        "architecture": "",
+        "variables": {
+        "\\hat{y}_u": "The predicted output for node u",
+        }"
+        "model_type":"Tabular",
+    }
     such format content should be begin with ```json and end with ``` and the content should be in json format.
 
 evolving_strategy_model_coder:
