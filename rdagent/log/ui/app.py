@@ -1,4 +1,4 @@
-from rdagent.log.ui.web import WebView, QlibTraceWindow, TraceObjWindow, mock_msg
+from rdagent.log.ui.web import WebView, SimpleTraceWindow, TraceObjWindow, mock_msg
 from rdagent.log.storage import FileStorage, Message
 from rdagent.core.proposal import Trace
 from pathlib import Path
