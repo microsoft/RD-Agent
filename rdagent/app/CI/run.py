@@ -698,7 +698,7 @@ class CIEvoAgent(EvoAgent):
         super().__init__(max_loop=1, evolving_strategy=evolving_strategy)
         self.evolving_trace = []
 
-    def multistep_evolve(self, evo: Repo, eva: Evaluator, **kwargs: Any) -> Repo:
+    def multistep_evolve(self, evo: Repo, eva: Evaluator) -> Repo:
         evo = self.evolving_strategy.evolve(
             evo=evo,
             evolving_trace=self.evolving_trace,

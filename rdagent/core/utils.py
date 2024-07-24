@@ -4,7 +4,7 @@ import importlib
 import json
 import multiprocessing as mp
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
@@ -18,7 +18,7 @@ class SingletonBaseClass:
     Because we try to support defining Singleton with `class A(SingletonBaseClass)`
     instead of `A(metaclass=SingletonMeta)` this class becomes necessary.
     """
-    _instance_dict: dict = {}
+    _instance_dict: ClassVar[dict] = {}
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Any:
         # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton

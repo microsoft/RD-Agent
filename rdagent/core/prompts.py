@@ -1,8 +1,8 @@
-from pathlib import Path
+from pathlib import Path  # noqa: I001
 from typing import Dict
-from collections import UserDict
 
 import yaml
+
 from rdagent.core.utils import SingletonBaseClass
 
 
