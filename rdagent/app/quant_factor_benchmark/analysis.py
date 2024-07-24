@@ -1,15 +1,27 @@
 
+import json
 from pathlib import Path
 import pickle
 import pandas as pd
 
 from rdagent.app.quant_factor_benchmark.design.benchmark import summarize_res as summarize_res
+from rdagent.components.benchmark.conf import BenchmarkSettings
 
 
 results = {
     "1 round experiment": "git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
 }
 
+# Get index map from the json file
+index_map = {}
+bs = BenchmarkSettings()
+def load(json_file_path: Path) -> None:
+    with open(json_file_path, "r") as file:
+        factor_dict = json.load(file)
+    for factor_name, factor_data in factor_dict.items():
+        index_map[factor_name] = (factor_name, factor_data["Category"], factor_data["Difficulty"])
+
+load(bs.bench_data_path)
 
 def load_data(file_path):
     file_path = Path(file_path)
@@ -74,36 +86,6 @@ def load_data(file_path):
         UID                                0.00%
         Weighted_Earnings_Frequency       10.00%
         """
-        index_map = {
-            # =========================research benchmark===========================
-            "One_Month_Volatility": ("One_Month_Volatility", "Volume&Price", "Easy"),
-            "Vol20": ("Vol20", "Volume&Price", "Medium"),
-            "Alpha#70": ("Alpha#70", "Volume&Price", "Hard"),
-            "DailyRDvar": ("DailyRDvar", "High-Frequency", "Easy"),
-            "AdjRDvar": ("AdjRDvar", "High-Frequency", "Medium"),
-            "AdjRDskew": ("AdjRDskew", "High-Frequency", "Hard"),
-            "PEG": ("PEG", "Fundamentals", "Easy"),
-            "Turnover_STD_1M": ("Turnover_STD_1M", "Fundamentals", "Medium"),
-            "turnover_correlation_with_price": (
-                "turnover_correlation_with_price",
-                "Fundamentals",
-                "Hard",
-            ),
-            "minute_pv_corr": ("minute_pv_corr", "High-Frequency", "New Discovery"),
-            "Liquidity_Factor": ("Liquidity_Factor", "Fundamentals", "New Discovery"),
-            # =========================project benchmark===========================
-            "250-day_high_distance": ("250-day_high_distance", "Volume&Price", "Medium"),
-            "Corr_Close_Turnover": ("Corr_Close_Turnover", "Fundamentals", "Easy"),
-            "EP_TTM": ("EP_TTM", "Fundamentals", "Medium"),
-            "High_Frequency_Skewness": ("High_Frequency_Skewness", "High-Frequency", "Easy"),
-            "Momentum": ("Momentum", "Volume&Price", "Easy"),
-            "Morning_30-min_Return": ("Morning_30-min_Return", "High-Frequency", "Medium"),
-            "UID": ("UID", "High-Frequency", "Hard"),
-            "Weighted_Earnings_Frequency": ("Weighted_Earnings_Frequency", "Volume&Price", "Hard"),
-            "Turnover_Rate_Factor": ("Turnover_Rate_Factor", "Fundamentals", "New Discovery"),
-            "PctTurn20": ("PctTurn20", "Volume&Price", "New Discovery"),
-            "PB_ROE": ("PB_ROE", "Fundamentals", "New Discovery"),
-        }
 
         new_idx = []
         display_df = display_df[display_df.index.isin(index_map.keys())]
@@ -198,8 +180,6 @@ def load_data(file_path):
 
     df = result_all.sort_index(axis=1, key=result_all_key_order)
     print(df)
-
-    df["Selected Correlation"] = [0, 0, 0] # @TODO
 
     # Calculate the mean of each column
     mean_values = df.fillna(0.0).mean()
