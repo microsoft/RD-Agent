@@ -20,6 +20,16 @@ DMModelHypothesis = ModelHypothesis
 
 
 class DMModelHypothesisGen(ModelHypothesisGen):
+    """
+    # NOTE: we can share this class across different data mining scenarios
+    #
+    # Here is the use case:
+
+    .. code-block:: python
+
+        class XXXDMModelHypothesisGen(DMModelHypothesisGen):
+            prompts: Prompts = a_specifc_prompt_dict
+    """
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
