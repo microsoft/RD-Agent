@@ -1,47 +1,28 @@
-"""
-TODO: Model Structure RD-Loop
-TODO: move the following code to a new class: Model_RD_Agent
-"""
-
-# import_from
-
+import fire
 from rdagent.app.data_mining.conf import PROP_SETTING
-from rdagent.core.developer import Developer
+from rdagent.components.workflow.model import RDLoop
 from rdagent.core.exception import ModelEmptyError
-from rdagent.core.proposal import (
-    Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
-    HypothesisGen,
-    Trace,
-)
-from rdagent.core.scenario import Scenario
-from rdagent.core.utils import import_class
-from rdagent.log import rdagent_logger as logger
 
-scen: Scenario = import_class(PROP_SETTING.model_scen)()
+class ModelRDLoop(RDLoop):
+    # FIXME: RDLoop has a metaclass. How to make it only work on the baseclass instead of subclasses
+    skip_loop_error = (ModelEmptyError,)
 
-hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.model_hypothesis_gen)(scen)
 
-hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.model_hypothesis2experiment)()
+def main(path=None, step_n=None):
+    """
+    You can continue running session by
 
-dm_model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
-dm_model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
+    .. code-block:: python
 
-dm_model_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
+        dotenv run -- python rdagent/app/data_mining/model.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
-trace = Trace(scen=scen)
-with logger.tag("model.loop"):
-    for _ in range(PROP_SETTING.evolving_n):
-        try:
-            with logger.tag("r"): # research
-                hypothesis = hypothesis_gen.gen(trace)
-                exp = hypothesis2experiment.convert(hypothesis, trace)
-            with logger.tag("d"): # develop
-                exp = dm_model_coder.develop(exp)
-            with logger.tag("ef"): # evaluate and feedback
-                exp = dm_model_runner.develop(exp)
-                feedback = dm_model_summarizer.generate_feedback(exp, hypothesis, trace)
-            trace.hist.append((hypothesis, exp, feedback))
-        except ModelEmptyError as e:
-            logger.warning(e)
-            continue
+    """
+    if path is None:
+        model_loop = ModelRDLoop(PROP_SETTING)
+    else:
+        model_loop = ModelRDLoop.load(path)
+    model_loop.run(step_n=step_n)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)
