@@ -23,9 +23,10 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str) -> None:
+    def __init__(self, hypothesis: str, reason: str, concise_reason = str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
+        self.concise_reason: str = concise_reason
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
