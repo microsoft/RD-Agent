@@ -38,9 +38,9 @@ class DMModelScenario(Scenario):
     @property
     def simulator(self) -> str:
         return prompt_dict["dm_model_simulator"]
-    
+
     @property
-    def rich_style_description(self)->str:
+    def rich_style_description(self) -> str:
         return "Below is MIMIC Model Evolving Automatic R&D Demo."
 
     @property

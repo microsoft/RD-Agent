@@ -33,9 +33,5 @@ if __name__ == "__main__":
     fire.Fire(main)
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 30885254764a8ca6d8dec7998661959e5cd8b497
 if __name__ == "__main__":
     fire.Fire(main)

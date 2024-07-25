@@ -90,7 +90,9 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
-            tasks.append(ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type))
+            tasks.append(
+                ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
+            )
         exp = DMModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp
