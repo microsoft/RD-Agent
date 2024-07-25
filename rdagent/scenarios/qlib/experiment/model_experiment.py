@@ -40,8 +40,8 @@ class QlibModelScenario(Scenario):
         return prompt_dict["qlib_model_simulator"]
 
     @property
-    def rich_style_description(self) -> str:
-        return """
+    def rich_style_description(self)->str:
+        return '''
 ### Qlib Model Evolving Automatic R&D Demo
 
 #### Overview
@@ -75,7 +75,7 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
 
 To demonstrate the dynamic evolution of models through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting models.
 
-        """
+        '''
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
