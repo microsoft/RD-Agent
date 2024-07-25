@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Union, Generator, Dict, Any
 from logging import LogRecord
 
-from loguru import logger, Record
+from loguru import Record, logger
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS

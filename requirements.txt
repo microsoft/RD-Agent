@@ -7,6 +7,7 @@ scipy
 python-Levenshtein
 scikit-learn
 filelock
+loguru-mypy
 
 # PDF related
 pypdf
