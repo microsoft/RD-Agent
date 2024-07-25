@@ -84,6 +84,8 @@ black:
 	$(PIPRUN) python -m black --check --diff . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 sphinx:
+	echo $CHAT_MAX_TOKENS
+	echo $CHAT_TEMPERATURE
 	$(PIPRUN) sphinx-build -W --keep-going -b html ./docs _build
 
 # Check lint with isort.
