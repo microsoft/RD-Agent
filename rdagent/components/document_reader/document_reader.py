@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-import fitz
-from PIL import Image
 from typing import TYPE_CHECKING
 
+import fitz
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
+from PIL import Image
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
+
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
 

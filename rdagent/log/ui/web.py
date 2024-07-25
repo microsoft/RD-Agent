@@ -1,27 +1,24 @@
-import pandas as pd
-import streamlit as st
-import plotly.express as px
 import time
-
-from rdagent.log.base import Storage, View
-from rdagent.log.base import Message
-from datetime import timezone, datetime
 from collections import defaultdict
 from copy import deepcopy
-from rdagent.core.proposal import Trace
-
+from datetime import datetime, timezone
 from typing import Callable, Type
-from streamlit.delta_generator import DeltaGenerator
-from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
+
+from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
+    FactorSingleFeedback,
+)
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
+from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.core.proposal import Hypothesis, HypothesisFeedback, Trace
+from rdagent.log.base import Message, Storage, View
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-
-from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
-from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
-from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
-from rdagent.components.coder.model_coder.model import ModelTask, ModelFBWorkspace
-
 
 st.set_page_config(layout="wide")
 

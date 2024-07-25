@@ -1,7 +1,6 @@
 import inspect
 import re
-
-from typing import Union, Dict, TypedDict, Optional
+from typing import Dict, Optional, TypedDict, Union
 
 
 class LogColors:

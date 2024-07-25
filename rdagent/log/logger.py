@@ -3,13 +3,13 @@ import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
+from logging import LogRecord
 from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Union, Generator, Dict, Any
-from logging import LogRecord
+from typing import Any, Dict, Generator, Union
 
-from loguru import logger, Record
+from loguru import Record, logger
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS

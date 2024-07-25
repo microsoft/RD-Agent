@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from rdagent.app.data_mining.conf import PROP_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import DMDockerEnv
-from rdagent.app.data_mining.conf import PROP_SETTING
 
 
 class DMFBWorkspace(FBWorkspace):

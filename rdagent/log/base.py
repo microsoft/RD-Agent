@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Generator
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Optional, Union, Literal
-from dataclasses import dataclass
+from typing import Literal, Optional, Union
 
 
 @dataclass

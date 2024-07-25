@@ -7,15 +7,15 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
-from pathlib import Path
+import datetime
 import pickle
-from tqdm.auto import tqdm
-
-
 from collections import defaultdict
 from dataclasses import dataclass, field
-import datetime
+from pathlib import Path
 from typing import Callable
+
+from tqdm.auto import tqdm
+
 from rdagent.log import rdagent_logger as logger
 
 

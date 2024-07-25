@@ -4,6 +4,7 @@ It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/q
 """
 
 from typing import Any
+
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
@@ -15,8 +16,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-
-from rdagent.utils.workflow import LoopMeta, LoopBase
+from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):

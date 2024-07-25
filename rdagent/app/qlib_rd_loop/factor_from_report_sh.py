@@ -1,37 +1,39 @@
 # TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
 import json
-from pathlib import Path
 import pickle
+from pathlib import Path
+
+import pandas as pd
 from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
-import pandas as pd
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
 )
+from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
+from rdagent.core.proposal import (
+    Hypothesis,
+    Hypothesis2Experiment,
+    HypothesisExperiment2Feedback,
+    HypothesisGen,
+    Trace,
+)
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.developer.factor_coder import QlibFactorCoSTEER
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario, QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.factor_experiment import (
+    QlibFactorExperiment,
+    QlibFactorScenario,
+)
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
     classify_report_from_dict,
 )
-
-from rdagent.core.proposal import (
-    Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
-    HypothesisGen,
-    Hypothesis,
-    Trace,
-)
-
-from rdagent.core.developer import Developer
 
 assert load_dotenv()
 

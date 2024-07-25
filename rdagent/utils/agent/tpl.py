@@ -4,13 +4,12 @@ Here are some infrastruture to build a agent
 The motivation of tempalte and AgentOutput Design
 """
 
-from typing import Any
-from jinja2 import Environment, StrictUndefined
-
+import inspect
 from pathlib import Path
+from typing import Any
 
 import yaml
-import inspect
+from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.utils import SingletonBaseClass
 

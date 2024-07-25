@@ -3,8 +3,10 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
-import fire
 from typing import Any
+
+import fire
+
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyError
@@ -17,8 +19,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-
-from rdagent.utils.workflow import LoopMeta, LoopBase
+from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
 class ModelLoop(LoopBase, metaclass=LoopMeta):

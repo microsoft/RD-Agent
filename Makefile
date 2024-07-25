@@ -81,7 +81,7 @@ constraints: deepclean
 
 # Check lint with black.
 black:
-	$(PIPRUN) python -m black --check . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
+	$(PIPRUN) python -m black --check --diff . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 sphinx:
 	$(PIPRUN) sphinx-build -W --keep-going -b html ./docs _build
@@ -108,7 +108,7 @@ toml-sort:
 
 # Check lint with all linters.
 # lint: black isort mypy ruff toml-sort
-lint: mypy ruff black
+lint: mypy ruff black isort
 
 # Run pre-commit with autofix against all files.
 pre-commit:

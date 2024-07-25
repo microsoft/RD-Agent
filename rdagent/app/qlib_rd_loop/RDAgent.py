@@ -1,4 +1,5 @@
 import pickle
+
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
 from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyError

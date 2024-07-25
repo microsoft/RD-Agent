@@ -15,7 +15,6 @@ from rdagent.core.proposal import (
 )
 from rdagent.oai.llm_utils import APIBackend
 
-
 ModelHypothesis = Hypothesis
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")

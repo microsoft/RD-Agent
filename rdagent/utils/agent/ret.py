@@ -3,8 +3,8 @@ The output of a agent is very important.
 
 We think this part can be shared.
 """
-from abc import abstractclassmethod
 import re
+from abc import abstractclassmethod
 from typing import Any
 
 from rdagent.utils.agent.tpl import T

@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 from rdagent.components.workflow.conf import BasePropSetting
 
 
