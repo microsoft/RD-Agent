@@ -84,9 +84,9 @@ black:
 	$(PIPRUN) python -m black --check --diff . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 sphinx:
-	set
 	export CHAT_MAX_TOKENS=3000
 	export CHAT_TEMPERATURE=0.5
+	set
 	echo $CHAT_MAX_TOKENS
 	echo $CHAT_TEMPERATURE
 	$(PIPRUN) sphinx-build -W --keep-going -b html ./docs _build
