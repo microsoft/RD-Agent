@@ -1,11 +1,42 @@
 extract_model_formulation_system: |-
-    offer description of the proposed model in this paper, write a latex formula with variable of the model. the format should be like 
-    "Model Name": {
-        "description": "",
-        "formulation": "",
+    offer description of the proposed model in this paper, write a latex formula with variable as well as the architecture of the model. the format should be like 
+    {
+    "model_name (The name of the model)": {
+        "description": "A detailed description of the model",
+        "formulation": "A LaTeX formula representing the model's formulation",
+        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
         "variables": {
-        "\\hat{y}_u": "The predicted output for node u",
-        }"
+            "\\hat{y}_u": "The predicted output for node u",
+            "variable_name_2": "Description of variable 2",
+            "variable_name_3": "Description of variable 3"
+        },
+        "hyperparameters": {
+            "hyperparameter_name_1": "value of hyperparameter 1",
+            "hyperparameter_name_2": "value of hyperparameter 2",
+            "hyperparameter_name_3": "value of hyperparameter 3"
+        },
+        "model_type": "Tabular or TimeSeries or Graph"  # Should be one of "Tabular", "TimeSeries", or "Graph"
+    }
+    }
+    Eg. 
+    {
+    "ABC Model": {
+        "description": "A detailed description of the model",
+        "formulation": "A LaTeX formula representing the model's formulation",
+        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+        "variables": {
+            "\\hat{y}_u": "The predicted output for node u",
+            "variable_name_2": "Description of variable 2",
+            "variable_name_3": "Description of variable 3"
+        },
+        "hyperparameters": {
+            "hyperparameter_name_1": "value of hyperparameter 1",
+            "hyperparameter_name_2": "value of hyperparameter 2",
+            "hyperparameter_name_3": "value of hyperparameter 3"
+        },
+        "model_type": "Tabular or TimeSeries or Graph"  # Should be one of "Tabular", "TimeSeries", or "Graph"
+    }
+    }
     such format content should be begin with ```json and end with ``` and the content should be in json format.
 
 evolving_strategy_model_coder:

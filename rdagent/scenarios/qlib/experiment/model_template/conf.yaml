@@ -62,7 +62,7 @@ task:
             metric: loss
             loss: mse
             n_jobs: 20
-            GPU: 3
+            GPU: 2
             # loss: mse
             # lr: 0.002
             # optimizer: adam

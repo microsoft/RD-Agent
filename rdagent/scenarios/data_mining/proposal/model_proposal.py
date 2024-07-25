@@ -12,14 +12,24 @@ from rdagent.components.proposal.model_proposal import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
 
-QlibModelHypothesis = ModelHypothesis
+DMModelHypothesis = ModelHypothesis
 
 
-class QlibModelHypothesisGen(ModelHypothesisGen):
+class DMModelHypothesisGen(ModelHypothesisGen):
+    """
+    # NOTE: we can share this class across different data mining scenarios
+    # It may better to move the class into components folder like `rdagent/components/proposal/model_proposal.py`
+    # Here is the use case:
+
+    .. code-block:: python
+
+        class XXXDMModelHypothesisGen(DMModelHypothesisGen):
+            prompts: Prompts = a_specifc_prompt_dict
+    """
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -31,7 +41,7 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
         )
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.",
+            "RAG": "",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["model_hypothesis_specification"]
         }
@@ -39,11 +49,11 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
+        hypothesis = DMModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
         return hypothesis
 
 
-class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
+class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["model_experiment_output_format"]
@@ -74,12 +84,10 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
         for model_name in response_dict:
             description = response_dict[model_name]["description"]
-            formulation = response_dict[model_name]["formulation"]
             architecture = response_dict[model_name]["architecture"]
-            variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
-            tasks.append(ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type))
-        exp = QlibModelExperiment(tasks)
+            tasks.append(ModelTask(model_name, description, architecture, hyperparameters, model_type))
+        exp = DMModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp
