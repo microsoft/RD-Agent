@@ -147,6 +147,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 context=context,
                 last_hypothesis=SOTA_hypothesis,
                 last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
+                last_code=SOTA_experiment.sub_workspace_list[0].code_dict.get("model.py") if SOTA_hypothesis else None,
                 last_result=SOTA_experiment.result if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,
