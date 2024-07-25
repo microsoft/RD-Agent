@@ -6,7 +6,9 @@
             "20-day turnover rate": "Average turnover rate over the past 20 days.",
             "Market Capitalization": "Total market value of a company's outstanding shares."
         },
-        "gt_code": "import pandas as pd\n\ndata_f = pd.read_hdf('daily_f.h5')\n\ndata = data_f.reset_index()\nwindow_size = 20\n\nnominator=data.groupby('instrument')[['30\u65e5\u6362\u624b\u7387']].rolling(window=window_size).mean().reset_index(0, drop=True)\n# transfer to series\nnew=nominator['30\u65e5\u6362\u624b\u7387']\ndata['Turnover_Rate_Factor']=new/data['\u6d41\u901aA\u80a1']\n\n# # set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['Turnover_Rate_Factor']).set_index(data_f.index)\n\n# transfer the result to series\nresult=result['Turnover_Rate_Factor']\nresult.to_hdf(\"result.h5\", key=\"data\")\n"
+        "Category": "Fundamentals",
+        "Difficulty": "Easy",
+        "gt_code": "import pandas as pd\n\ndata_f = pd.read_hdf('daily_f.h5')\n\ndata = data_f.reset_index()\nwindow_size = 20\n\nnominator=data.groupby('instrument')[['TurnoverRate_30D']].rolling(window=window_size).mean().reset_index(0, drop=True)\n# transfer to series\nnew=nominator['TurnoverRate_30D']\ndata['Turnover_Rate_Factor']=new/data['TradableACapital']\n\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['Turnover_Rate_Factor']).set_index(data_f.index)\n\n# transfer the result to series\nresult=result['Turnover_Rate_Factor']\nresult.to_hdf(\"result.h5\", key=\"data\")" 
     },
     "PctTurn20": {
         "description": "A factor representing the percentage change in turnover rate over the past 20 trading days, market-value neutralized.",
@@ -16,7 +18,9 @@
             "Turnover_{i, t}": "Turnover of stock i at day t.",
             "Turnover_{i, t-20}": "Turnover of stock i at day t-20."
         },
-        "gt_code": "import pandas as pd\nfrom statsmodels import api as sm\n\n\ndef fill_mean(s: pd.Series) -> pd.Series:\n    return s.fillna(s.mean()).fillna(0.0)\n\n\ndef market_value_neutralize(s: pd.Series, mv: pd.Series) -> pd.Series:\n    s = s.groupby(\"datetime\", group_keys=False).apply(fill_mean)\n    mv = mv.groupby(\"datetime\", group_keys=False).apply(fill_mean)\n\n    df_f = mv.to_frame(\"\u5e02\u503c\")\n    df_f[\"const\"] = 1\n    X = df_f[[\"\u5e02\u503c\", \"const\"]]\n\n    # Perform the Ordinary Least Squares (OLS) regression\n    model = sm.OLS(s, X)\n    results = model.fit()\n\n    # Calculate the residuals\n    df_f[\"residual\"] = results.resid\n    df_f[\"norm_resi\"] = df_f.groupby(level=\"datetime\", group_keys=False)[\"residual\"].apply(\n        lambda x: (x - x.mean()) / x.std(),\n    )\n    return df_f[\"norm_resi\"]\n\n\n# get_turnover\ndf_pv = pd.read_hdf(\"daily_pv.h5\", key=\"data\")\ndf_f = pd.read_hdf(\"daily_f.h5\", key=\"data\")\nturnover = df_pv[\"$money\"] / df_f[\"\u6d41\u901a\u5e02\u503c\"]\n\nf = turnover.groupby(\"instrument\").pct_change(periods=20)\n\nf_neutralized = market_value_neutralize(f, df_f[\"\u6d41\u901a\u5e02\u503c\"])\n\nf_neutralized.to_hdf(\"result.h5\", key=\"data\")\n"
+        "Category": "Volume&Price",
+        "Difficulty": "Medium",
+        "gt_code": "import pandas as pd\nfrom statsmodels import api as sm\n\ndef fill_mean(s: pd.Series) -> pd.Series:\n    return s.fillna(s.mean()).fillna(0.0)\n\ndef market_value_neutralize(s: pd.Series, mv: pd.Series) -> pd.Series:\n    s = s.groupby(\"datetime\", group_keys=False).apply(fill_mean)\n    mv = mv.groupby(\"datetime\", group_keys=False).apply(fill_mean)\n\n    df_f = mv.to_frame(\"MarketValue\")\n    df_f[\"const\"] = 1\n    X = df_f[[\"MarketValue\", \"const\"]]\n\n    # Perform the Ordinary Least Squares (OLS) regression\n    model = sm.OLS(s, X)\n    results = model.fit()\n\n    # Calculate the residuals\n    df_f[\"residual\"] = results.resid\n    df_f[\"norm_resi\"] = df_f.groupby(level=\"datetime\", group_keys=False)[\"residual\"].apply(\n        lambda x: (x - x.mean()) / x.std(),\n    )\n    return df_f[\"norm_resi\"]\n\n\n# get_turnover\ndf_pv = pd.read_hdf(\"daily_pv.h5\", key=\"data\")\ndf_f = pd.read_hdf(\"daily_f.h5\", key=\"data\")\nturnover = df_pv[\"$money\"] / df_f[\"TradableMarketValue\"]\n\nf = turnover.groupby(\"instrument\").pct_change(periods=20)\n\nf_neutralized = market_value_neutralize(f, df_f[\"TradableMarketValue\"])\n\nf_neutralized.to_hdf(\"result.h5\", key=\"data\")"
     },
     "PB_ROE": {
         "description": "Constructed using the ranking difference between PB and ROE, with PB and ROE replacing original PB and ROE to obtain reconstructed factor values.",
@@ -25,6 +29,8 @@
             "\\text{rank}(PB_t)": "Ranking PB on cross-section at time t.",
             "\\text{rank}(ROE_t)": "Ranking single-quarter ROE on cross-section at time t."
         },
-        "gt_code": "#!/usr/bin/env python\n\nimport pandas as pd\n\ndata_f = pd.read_hdf('daily_f.h5')\n\ndata = data_f.reset_index()\n\n# Calculate the rank of PB and ROE\ndata['PB_rank'] = data.groupby('datetime')['B/P'].rank()\ndata['ROE_rank'] = data.groupby('datetime')['ROE'].rank()\n\n# Calculate the difference between the ranks\ndata['PB_ROE'] = data['PB_rank'] - data['ROE_rank']\n\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['PB_ROE']).set_index(data_f.index)\n\n# transfer the result to series\nresult=result['PB_ROE']\nresult.to_hdf(\"result.h5\", key=\"data\")\n"
+        "Category": "High-Frequency",
+        "Difficulty": "Hard",
+        "gt_code": "#!/usr/bin/env python\n\nimport pandas as pd\n\ndata_f = pd.read_hdf('daily_f.h5')\n\ndata = data_f.reset_index()\n\n# Calculate the rank of PB and ROE\ndata['PB_rank'] = data.groupby('datetime')['B/P'].rank()\ndata['ROE_rank'] = data.groupby('datetime')['ROE'].rank()\n\n# Calculate the difference between the ranks\ndata['PB_ROE'] = data['PB_rank'] - data['ROE_rank']\n\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['PB_ROE']).set_index(data_f.index)\n\n# transfer the result to series\nresult=result['PB_ROE']\nresult.to_hdf(\"result.h5\", key=\"data\")"
     }
 }
