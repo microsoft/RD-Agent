@@ -17,6 +17,7 @@ Welcome to RDAgent's documentation!
    development
    api_reference
    policy
+   test_dropdown/test1
 
 .. test_dropdown/test1
 
