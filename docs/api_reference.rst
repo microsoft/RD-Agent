@@ -12,4 +12,4 @@ Research
 --------
 
 .. automodule:: rdagent.core.proposal
-    :members:
+   :members:
