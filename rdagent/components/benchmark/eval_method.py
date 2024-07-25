@@ -19,6 +19,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
+
 from rdagent.core.exception import CoderException, RunnerException
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.scenario import Scenario
@@ -122,18 +123,10 @@ class FactorImplementEval(BaseEval):
         method: Developer,
         *args,
         scen: Scenario,
-        scen: Scenario,
         test_round: int = 10,
         **kwargs,
     ):
         online_evaluator_l = [
-            FactorSingleColumnEvaluator(scen),
-            FactorOutputFormatEvaluator(scen),
-            FactorRowCountEvaluator(scen),
-            FactorIndexEvaluator(scen),
-            FactorMissingValuesEvaluator(scen),
-            FactorEqualValueCountEvaluator(scen),
-            FactorCorrelationEvaluator(hard_check=False, scen=scen),
             FactorSingleColumnEvaluator(scen),
             FactorOutputFormatEvaluator(scen),
             FactorRowCountEvaluator(scen),
@@ -204,30 +197,3 @@ class FactorImplementEval(BaseEval):
                 sum_res[key] = val
 
         return pd.DataFrame(sum_res)
-
-
-    @staticmethod
-    def summarize_res(res: EVAL_RES) -> pd.DataFrame:
-        # None: indicate that it raises exception and get no results
-        sum_res = {}
-        for factor_name, runs in res.items():
-            for fi, err_or_res_l in runs:
-                # NOTE:  str(fi) may not be unique!!  Because the workspace can be skipped when hitting the cache.
-                uniq_key = f"{str(fi)},{id(fi)}"
-
-                key = (factor_name, uniq_key)
-                val = {}
-                if isinstance(err_or_res_l, Exception):
-                    val["run factor error"] = str(err_or_res_l.__class__)
-                else:
-                    val["run factor error"] = None
-                    for ev_obj, err_or_res in err_or_res_l:
-                        if isinstance(err_or_res, Exception):
-                            val[str(ev_obj)] = None
-                        else:
-                            feedback, metric = err_or_res
-                            val[str(ev_obj)] = metric
-                sum_res[key] = val
-
-        return pd.DataFrame(sum_res)
-

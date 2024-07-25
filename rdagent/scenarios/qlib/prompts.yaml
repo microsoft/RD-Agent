@@ -60,7 +60,6 @@ factor_hypothesis_specification: |-
 
 factor_hypothesis_specification: |-
   Specifications:
-  Specifications:
     - Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple.
     - Gradually build upon previous hypotheses and feedback.
     - Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance.
