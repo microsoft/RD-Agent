@@ -31,11 +31,11 @@ class Workspace(ABC, Generic[ASpecificTask]):
     To get a snapshot of the workspace, make sure call `copy` to get a copy of the workspace.
     """
 
-    def __init__(self, target_task: ASpecificTask = None) -> None:
-        self.target_task: ASpecificTask = target_task
+    def __init__(self, target_task: ASpecificTask | None = None) -> None:
+        self.target_task: ASpecificTask | None = target_task
 
     @abstractmethod
-    def execute(self, *args: Any, **kwargs: Any) -> object:
+    def execute(self, *args: Any, **kwargs: Any) -> object | None:
         error_message = "execute method is not implemented."
         raise NotImplementedError(error_message)
 
@@ -80,6 +80,7 @@ class FBWorkspace(Workspace):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.code_dict: dict[str, Any] = {}
         self.code_dict = (
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
@@ -145,13 +146,13 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path)
         self.code_dict = {}
 
-    @abstractmethod
-    def execute(self, *args: Any, **kwargs: Any) -> object:
+    def execute(self) -> object | None:
         """
         Before each execution, make sure to prepare and inject code
         """
         self.prepare()
         self.inject_code(**self.code_dict)
+        return None
 
 
 ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
@@ -165,10 +166,10 @@ class Experiment(ABC, Generic[ASpecificTask, ASpecificWSForExperiment, ASpecific
 
     def __init__(self, sub_tasks: Sequence[ASpecificTask]) -> None:
         self.sub_tasks = sub_tasks
-        self.sub_workspace_list: Sequence[ASpecificWSForSubTasks] = [None for _ in self.sub_tasks]
+        self.sub_workspace_list: list[ASpecificWSForSubTasks | None] = [None] * len(self.sub_tasks)
         self.based_experiments: Sequence[ASpecificWSForExperiment] = []
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
-        self.experiment_workspace: ASpecificWSForExperiment = None
+        self.experiment_workspace: ASpecificWSForExperiment | None = None
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

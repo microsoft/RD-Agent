@@ -1,34 +1,4 @@
 # Requirements for package.
-loguru
 build
 setuptools-scm
 twine
-fire
-fuzzywuzzy
-openai
-ruamel-yaml
-torch
-torch_geometric
-tabulate  # Convert pandas dataframe to markdown table to make it more readable to LLM
-tables  # we use hd5 as default data format. So we have to install pytables
-numpy # we use numpy as default data format. So we have to install numpy
-pandas # we use pandas as default data format. So we have to install pandas
-feedparser
-matplotlib
-langchain
-tiktoken
-scikit-learn
-docker
-fitz  # Extract shotsreens from pdf
-
-# azure identity related
-azure.identity
-
-# PDF related
-pypdf
-azure-core
-azure-ai-formrecognizer
-
-# TODO: dependencies for implementing factors.
-# I think it is for running insteading of implementing. The dependency should be in 
-statsmodels

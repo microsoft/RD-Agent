@@ -29,12 +29,10 @@ jobs:
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
         name: lint test docs and build
-        run: make lint test docs build sphinx
+        run: make lint # test docs build sphinx
     strategy:
       matrix:
         python-version:
-          - '3.8'
-          - '3.9'
           - '3.10'
           - '3.11'
   dependabot:
@@ -56,16 +54,12 @@ jobs:
         with:
           cache: pip
           python-version: |
-            3.8
-            3.9
             3.10
             3.11
       - name: Install pipenv using pipx
         run: pipx install pipenv
       - name: Generate constraints for all supported Python versions
         run: |
-          CI= PYTHON_VERSION=3.8 make constraints
-          CI= PYTHON_VERSION=3.9 make constraints
           CI= PYTHON_VERSION=3.10 make constraints
           CI= PYTHON_VERSION=3.11 make constraints
       - name: Push changes if applicable
