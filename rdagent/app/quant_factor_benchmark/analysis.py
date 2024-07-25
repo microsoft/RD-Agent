@@ -1,13 +1,12 @@
 import json
 import pickle
-from pathlib import Path
-
-import matplotlib.pyplot as plt
 import pandas as pd
+from pathlib import Path
+import matplotlib.pyplot as plt
 import seaborn as sns
 
-from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
+from rdagent.components.benchmark.conf import BenchmarkSettings
 
 
 class BenchmarkAnalyzer:
@@ -27,7 +26,7 @@ class BenchmarkAnalyzer:
         file_path = Path(file_path)
         if not (file_path.is_file() and file_path.suffix == ".pkl"):
             raise ValueError("Invalid file path")
-
+        
         with file_path.open("rb") as f:
             res = pickle.load(f)
 
@@ -54,9 +53,7 @@ class BenchmarkAnalyzer:
         )
         display_df = display_df.swaplevel(0, 2).swaplevel(0, 1).sort_index(axis=0)
 
-        return display_df.sort_index(
-            key=lambda x: [{"Easy": 0, "Medium": 1, "Hard": 2, "New Discovery": 3}.get(i, i) for i in x]
-        )
+        return display_df.sort_index(key=lambda x: [{"Easy": 0, "Medium": 1, "Hard": 2, "New Discovery": 3}.get(i, i) for i in x])
 
     def result_all_key_order(self, x):
         order_v = []
@@ -96,7 +93,9 @@ class BenchmarkAnalyzer:
 
         sum_df_clean["FactorRowCountEvaluator"]
 
-        format_issue = sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
+        format_issue = (
+            sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
+        )
         eval_series = format_issue.unstack()
         succ_rate = eval_series.T.fillna(False).astype(bool)  # false indicate failure
         format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
@@ -115,7 +114,10 @@ class BenchmarkAnalyzer:
         value_max_res = self.reformat_succ_rate(value_max)
 
         value_avg = (
-            (sum_df_clean["FactorMissingValuesEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
+            (sum_df_clean["FactorMissingValuesEvaluator"] * format_issue)
+            .unstack()
+            .T.mean(axis=0)
+            .to_frame("avg_value")
         )
         value_avg_res = self.reformat_succ_rate(value_avg)
 
