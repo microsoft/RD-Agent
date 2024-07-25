@@ -16,7 +16,14 @@ from rdagent.utils import get_module_by_module_path
 
 class ModelTask(Task):
     def __init__(
-        self, name: str, description: str, formulation: str, architecture: str, variables: Dict[str, str], hyperparameters: Dict[str, str], model_type: Optional[str] = None
+        self,
+        name: str,
+        description: str,
+        formulation: str,
+        architecture: str,
+        variables: Dict[str, str],
+        hyperparameters: Dict[str, str],
+        model_type: Optional[str] = None,
     ) -> None:
         self.name: str = name
         self.description: str = description
@@ -24,7 +31,9 @@ class ModelTask(Task):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
-        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model 
+        self.model_type: str = (
+            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model
+        )
 
     def get_task_information(self):
         return f"""name: {self.name}
@@ -107,21 +116,21 @@ class ModelFBWorkspace(FBWorkspace):
             # Initialize all parameters of `m` to `param_init_value`
             for _, param in m.named_parameters():
                 param.data.fill_(param_init_value)
-            
+
             # Execute the model
             if self.target_task.model_type == "Graph":
                 out = m(*data)
             else:
                 out = m(data)
-            
+
             execution_model_output = out.cpu().detach()
             execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
-            
+
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
-            
+
             return execution_feedback_str, execution_model_output
-        
+
         except Exception as e:
             return f"Execution error: {e}", None
 

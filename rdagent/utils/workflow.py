@@ -7,20 +7,19 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
-from pathlib import Path
+import datetime
 import pickle
-from tqdm.auto import tqdm
-
-
 from collections import defaultdict
 from dataclasses import dataclass, field
-import datetime
+from pathlib import Path
 from typing import Callable
+
+from tqdm.auto import tqdm
+
 from rdagent.log import rdagent_logger as logger
 
 
 class LoopMeta(type):
-
     @staticmethod
     def _get_steps(bases):
         """
@@ -28,7 +27,7 @@ class LoopMeta(type):
         """
         steps = []
         for base in bases:
-            steps.extend(LoopMeta._get_steps(base.__bases__) + getattr(base,"steps", []))
+            steps.extend(LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []))
         return steps
 
     def __new__(cls, clsname, bases, attrs):
@@ -52,12 +51,14 @@ class LoopBase:
     steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
 
-    skip_loop_error: tuple[Exception]  = field(default_factory=tuple)  # you can define a list of error that will skip current loop
+    skip_loop_error: tuple[Exception] = field(
+        default_factory=tuple
+    )  # you can define a list of error that will skip current loop
 
     def __init__(self):
-        self.loop_idx = 0 # current loop index
-        self.step_idx = 0 # the index of next step to be run
-        self.loop_prev_out = {} # the step results of current loop
+        self.loop_idx = 0  # current loop index
+        self.step_idx = 0  # the index of next step to be run
+        self.loop_prev_out = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
@@ -121,7 +122,7 @@ class LoopBase:
         with path.open("rb") as f:
             session = pickle.load(f)
         logger.set_trace_path(session.session_folder.parent)
-        
+
         max_loop = max(session.loop_trace.keys())
         logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
         return session

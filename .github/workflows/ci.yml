@@ -22,9 +22,9 @@ jobs:
       - env:
           CHAT_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
-          CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
+          # CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
           CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
-          CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
+          # CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
           EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}

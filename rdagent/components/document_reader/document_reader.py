@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-import fitz
-from PIL import Image
 from typing import TYPE_CHECKING
 
+import fitz
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
+from PIL import Image
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
+
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
@@ -99,10 +100,11 @@ def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str
                 )
     return content_dict
 
+
 def extract_first_page_screenshot_from_pdf(pdf_path: Path) -> Image:
     doc = fitz.open(pdf_path)
     page = doc.load_page(0)
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-    
+
     return image

@@ -9,7 +9,6 @@ class A(SingletonBaseClass):
 
 
 class MiscTest(unittest.TestCase):
-
     def test_singleton(self):
         a1 = A()
         a2 = A()

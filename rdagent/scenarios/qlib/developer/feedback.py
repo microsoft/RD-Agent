@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from jinja2 import Environment, StrictUndefined
 import pandas as pd
+from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
@@ -19,37 +19,38 @@ from rdagent.utils import convert2bool
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+
 def process_results(current_result, sota_result):
     # Convert the results to dataframes
     current_df = pd.DataFrame(current_result)
     sota_df = pd.DataFrame(sota_result)
-    
+
     # Set the metric as the index
-    current_df.index.name = 'metric'
-    sota_df.index.name = 'metric'
-    
+    current_df.index.name = "metric"
+    sota_df.index.name = "metric"
+
     # Rename the value column to reflect the result type
-    current_df.rename(columns={'0': 'Current Result'}, inplace=True)
-    sota_df.rename(columns={'0': 'SOTA Result'}, inplace=True)
-    
+    current_df.rename(columns={"0": "Current Result"}, inplace=True)
+    sota_df.rename(columns={"0": "SOTA Result"}, inplace=True)
+
     # Combine the dataframes on the Metric index
     combined_df = pd.concat([current_df, sota_df], axis=1)
-    
+
     # Select important metrics for comparison
     important_metrics = [
-        'Rank ICIR',
-        '1day.excess_return_without_cost.max_drawdown',
-        '1day.excess_return_without_cost.information_ratio',
-        '1day.excess_return_without_cost.annualized_return',
-        '1day.excess_return_with_cost.max_drawdown',
-        '1day.excess_return_with_cost.information_ratio',
-        '1day.excess_return_with_cost.annualized_return',
-        'IC',
+        "Rank ICIR",
+        "1day.excess_return_without_cost.max_drawdown",
+        "1day.excess_return_without_cost.information_ratio",
+        "1day.excess_return_without_cost.annualized_return",
+        "1day.excess_return_with_cost.max_drawdown",
+        "1day.excess_return_with_cost.information_ratio",
+        "1day.excess_return_with_cost.annualized_return",
+        "IC",
     ]
-    
+
     # Filter the combined DataFrame to retain only the important metrics
     filtered_combined_df = combined_df.loc[important_metrics]
-    
+
     return filtered_combined_df.to_dict()
 
 
