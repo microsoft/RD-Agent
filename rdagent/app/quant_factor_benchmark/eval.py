@@ -3,6 +3,7 @@ from pathlib import Path
 import pickle
 import time
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
+from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
 )
@@ -41,29 +42,4 @@ eval_method = FactorImplementEval(
 res = eval_method.eval()
 
 # 6.save the result
-pprint(res)
-
-res_workspace = (Path().cwd() / "git_ignore_folder" / "eval_results").absolute()
-print(str(res_workspace))
-
-# Save results
-timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
-
-if not os.path.exists(str(res_workspace)):
-    os.makedirs(str(res_workspace))
-
-df_file_path = res_workspace / ("result_" + timestamp + ".csv")
-res_pkl_path = res_workspace / ("res_promptV2" + timestamp + ".pkl")
-res_pkl_path = res_workspace / ("res_promptV2" + timestamp + ".pkl")
-with open(str(res_pkl_path), "wb") as file:
-    # file.write(str(res))
-    pickle.dump(res, file)
-
-# TODO:
-# - Run it:
-# - factor input data generator;
-#   - f_{gt}(input) => value_{gt}
-#   - f_{llm}(input) => value_{llm}
-#   - we have legal issue to release Input
-# - Eval result:
-#   -  check https://github.com/peteryang1/fincov2/blob/master/src/scripts/benchmark/analysis.py
+logger.log_object(res)

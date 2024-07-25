@@ -4,12 +4,12 @@ from pathlib import Path
 import pickle
 import pandas as pd
 
-from rdagent.app.quant_factor_benchmark.design.benchmark import summarize_res as summarize_res
+from rdagent.components.benchmark.eval_method import summarize_res as summarize_res
 from rdagent.components.benchmark.conf import BenchmarkSettings
 
 
 results = {
-    "1 round experiment": "git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+    "1 round experiment": "log/2024-07-25_02-32-24-552766/1445941/2024-07-25_02-48-07-756153.pkl",
 }
 
 # Get index map from the json file
