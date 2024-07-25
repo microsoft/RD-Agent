@@ -1,74 +1,16 @@
 """
 Factor workflow with session control
-It is from `rdagent/app/qlib_rd_loop/factor.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
-from typing import Any
-from dotenv import load_dotenv
 import fire
 
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
+from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import FactorEmptyError
-from rdagent.core.scenario import Scenario
-from rdagent.log import rdagent_logger as logger
 
-load_dotenv(override=True)
 
-from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
-from rdagent.core.developer import Developer
-from rdagent.core.proposal import (
-    Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
-    HypothesisGen,
-    Trace,
-)
-from rdagent.core.utils import import_class
-
-from rdagent.utils.workflow import LoopMeta, LoopBase
-
-class FactorLoop(LoopBase, metaclass=LoopMeta):
-
-    def __init__(self):
-        scen: Scenario = import_class(PROP_SETTING.factor_scen)()
-
-        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.factor_hypothesis_gen)(scen)
-
-        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.factor_hypothesis2experiment)()
-
-        self.qlib_factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
-        self.qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
-
-        self.qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
-        self.trace = Trace(scen=scen)
-        super().__init__()
-    
-    def propose(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):
-            hypothesis = self.hypothesis_gen.gen(self.trace)
-            logger.log_object(hypothesis, tag="hypothesis generation")
-        return hypothesis
-
-    def exp_gen(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):
-            exp = self.hypothesis2experiment.convert(prev_out["propose"], self.trace)
-            logger.log_object(exp.sub_tasks, tag="experiment generation")
-        return exp
-
-    def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):
-            exp = self.qlib_factor_coder.develop(prev_out["exp_gen"])
-            logger.log_object(exp.sub_workspace_list, tag="factor coder result")
-        return exp
-
-    def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):
-            exp = self.qlib_factor_runner.develop(prev_out["coding"])
-            logger.log_object(exp, tag="factor runner result")
-        return exp
-
-    def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.qlib_factor_summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
-        logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
+class FactorRDLoop(RDLoop):
+    skip_loop_error = (FactorEmptyError,)
 
 
 def main(path=None, step_n=None):
@@ -81,10 +23,15 @@ def main(path=None, step_n=None):
 
     """
     if path is None:
-        model_loop = FactorLoop()
+        model_loop = FactorRDLoop(FACTOR_PROP_SETTING)
     else:
-        model_loop = FactorLoop.load(path)
+        model_loop = FactorRDLoop.load(path)
     model_loop.run(step_n=step_n)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)
+
 
 
 if __name__ == "__main__":
