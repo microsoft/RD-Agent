@@ -107,6 +107,7 @@ toml-sort:
 	$(PIPRUN) toml-sort --check pyproject.toml
 
 # Check lint with all linters.
+# Prioritize fixing isort, then black, otherwise you'll get weird and unfixable black errors.
 # lint: black isort mypy ruff toml-sort
 lint: mypy ruff isort black toml-sort sphinx
 
