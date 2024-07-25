@@ -1,7 +1,8 @@
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
+import pandas as pd
 from tqdm import tqdm
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
@@ -18,10 +19,17 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
-from rdagent.core.exception import CoderError
+
+from rdagent.core.exception import CoderException, RunnerException
 from rdagent.core.experiment import Task, Workspace
+from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
+
+EVAL_RES = Dict[
+    str,
+    List[Tuple[FactorEvaluator, Union[object, RunnerException]]],
+]
 
 class TestCase:
     def __init__(
@@ -114,17 +122,18 @@ class FactorImplementEval(BaseEval):
         test_cases: TestCase,
         method: Developer,
         *args,
+        scen: Scenario,
         test_round: int = 10,
         **kwargs,
     ):
         online_evaluator_l = [
-            FactorSingleColumnEvaluator(),
-            FactorOutputFormatEvaluator(),
-            FactorRowCountEvaluator(),
-            FactorIndexEvaluator(),
-            FactorMissingValuesEvaluator(),
-            FactorEqualValueCountEvaluator(),
-            FactorCorrelationEvaluator(hard_check=False),
+            FactorSingleColumnEvaluator(scen),
+            FactorOutputFormatEvaluator(scen),
+            FactorRowCountEvaluator(scen),
+            FactorIndexEvaluator(scen),
+            FactorMissingValuesEvaluator(scen),
+            FactorEqualValueCountEvaluator(scen),
+            FactorCorrelationEvaluator(hard_check=False, scen=scen),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round
@@ -163,3 +172,29 @@ class FactorImplementEval(BaseEval):
             res[gt_case.target_task.factor_name].append((gen_factor, eval_res))
 
         return res
+
+    @staticmethod
+    def summarize_res(res: EVAL_RES) -> pd.DataFrame:
+        # None: indicate that it raises exception and get no results
+        sum_res = {}
+        for factor_name, runs in res.items():
+            for fi, err_or_res_l in runs:
+                # NOTE:  str(fi) may not be unique!!  Because the workspace can be skipped when hitting the cache.
+                uniq_key = f"{str(fi)},{id(fi)}"
+
+                key = (factor_name, uniq_key)
+                val = {}
+                if isinstance(err_or_res_l, Exception):
+                    val["run factor error"] = str(err_or_res_l.__class__)
+                else:
+                    val["run factor error"] = None
+                    for ev_obj, err_or_res in err_or_res_l:
+                        if isinstance(err_or_res, Exception):
+                            val[str(ev_obj)] = None
+                        else:
+                            feedback, metric = err_or_res
+                            val[str(ev_obj)] = metric
+                sum_res[key] = val
+
+        return pd.DataFrame(sum_res)
+
