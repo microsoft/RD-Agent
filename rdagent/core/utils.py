@@ -4,22 +4,23 @@ import importlib
 import json
 import multiprocessing as mp
 from collections.abc import Callable
-from typing import Any
+from typing import Any, ClassVar, cast
 
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
 
 class RDAgentException(Exception):  # noqa: N818
     pass
 
 
-class SingletonMeta(type):
-    def __init__(cls, *args: Any, **kwargs: Any) -> None:
-        cls._instance_dict: dict = {}
-        # This must be the class variable instead of sharing one in all classes to avoid confliction like `A()`, `B()`
-        super().__init__(*args, **kwargs)
+class SingletonBaseClass:
+    """
+    Because we try to support defining Singleton with `class A(SingletonBaseClass)`
+    instead of `A(metaclass=SingletonMeta)` this class becomes necessary.
+    """
+    _instance_dict: ClassVar[dict] = {}
 
-    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
         # Since it's hard to align the difference call using args and kwargs, we strictly ask to use kwargs in Singleton
         if args:
             # TODO: this restriction can be solved.
@@ -27,17 +28,10 @@ class SingletonMeta(type):
             raise RDAgentException(exception_message)
         kwargs_hash = hash(tuple(sorted(kwargs.items())))
         if kwargs_hash not in cls._instance_dict:
-            cls._instance_dict[kwargs_hash] = super().__call__(**kwargs)
+            cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
+            cls._instance_dict[kwargs_hash].__init__(**kwargs)  # Ensure __init__ is called
         return cls._instance_dict[kwargs_hash]
 
-
-class SingletonBaseClass(metaclass=SingletonMeta):
-    """
-    Because we try to support defining Singleton with `class A(SingletonBaseClass)`
-    instead of `A(metaclass=SingletonMeta)` this class becomes necessary.
-    """
-
-    # TODO: Add move this class to Qlib's general utils.
 
 
 def parse_json(response: str) -> Any:
@@ -54,7 +48,7 @@ def similarity(text1: str, text2: str) -> int:
     text2 = text2 if isinstance(text2, str) else ""
 
     # Maybe we can use other similarity algorithm such as tfidf
-    return fuzz.ratio(text1, text2)
+    return cast(int, fuzz.ratio(text1, text2))  # mypy does not reguard it as int
 
 
 def import_class(class_path: str) -> Any:

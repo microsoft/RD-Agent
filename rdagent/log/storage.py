@@ -3,9 +3,11 @@ import json
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Generator
+from typing import Literal, Generator, Union, Any, cast
 
 from .base import Message, Storage
+
+LOG_LEVEL = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class FileStorage(Storage):
@@ -15,7 +17,8 @@ class FileStorage(Storage):
     TODO: describe the storage format
     """
 
-    def __init__(self, path: str = "./log/") -> None:
+
+    def __init__(self, path: str | Path = "./log/") -> None:
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
 
@@ -25,7 +28,8 @@ class FileStorage(Storage):
         name: str = "",
         save_type: Literal["json", "text", "pkl"] = "text",
         timestamp: datetime | None = None,
-    ) -> Path:
+        **kwargs: Any,
+    ) -> Union[str, Path]:
         # TODO: We can remove the timestamp after we implement PipeLog
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
@@ -79,7 +83,7 @@ class FileStorage(Storage):
 
                 timestamp_str = match.group("timestamp")
                 timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
-                level = match.group("level")
+                level: LOG_LEVEL = cast(LOG_LEVEL, match.group("level"))
                 caller = match.group("caller")
 
                 # Extract the message content
@@ -96,7 +100,7 @@ class FileStorage(Storage):
                     content=message_content
                 )
 
-                if "Logging object in" in m.content:
+                if isinstance(m.content, str) and "Logging object in" in m.content:
                     absolute_p = m.content.split("Logging object in ")[1]
                     relative_p = "." + absolute_p.split(self.path.name)[1]
                     pkl_path = self.path / relative_p

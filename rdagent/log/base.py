@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Union, Literal
 from dataclasses import dataclass
 
 
@@ -37,7 +37,13 @@ class Storage:
     """
 
     @abstractmethod
-    def log(self, obj: object, name: str = "", **kwargs: dict) -> str | Path:
+    def log(
+        self,
+        obj: object, name: str = "",
+        save_type: Literal["json", "text", "pkl"] = "text",
+        timestamp: datetime | None = None,
+        **kwargs: dict,
+    ) -> str | Path:
         """
 
         Parameters
@@ -75,7 +81,7 @@ class View:
 
     # TODO: pleas fix me
     @abstractmethod
-    def display(s: Storage, watch: bool = False):
+    def display(self, s: Storage, watch: bool = False) -> None:
         """
 
         Parameters

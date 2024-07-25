@@ -73,15 +73,17 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         model_experiment = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
 
         self.evolve_agent = ModelRAGEvoAgent(
-            max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag
+            max_loop=self.max_loop,
+            evolving_strategy=self.evolving_strategy,
+            rag=self.rag,
+            with_knowledge=self.with_knowledge,
+            with_feedback=self.with_feedback,
+            knowledge_self_gen=self.knowledge_self_gen,
         )
 
         model_experiment = self.evolve_agent.multistep_evolve(
             model_experiment,
             self.model_evaluator,
-            with_knowledge=self.with_knowledge,
-            with_feedback=self.with_feedback,
-            knowledge_self_gen=self.knowledge_self_gen,
             filter_final_evo=self.filter_final_evo,
         )
 
