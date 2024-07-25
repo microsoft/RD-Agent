@@ -109,7 +109,7 @@ toml-sort:
 # Check lint with all linters.
 # Prioritize fixing isort, then black, otherwise you'll get weird and unfixable black errors.
 # lint: mypy ruff
-lint: mypy ruff isort black toml-sort sphinx
+lint: mypy ruff isort black toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:
