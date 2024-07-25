@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Union, Generator, Dict, Any
 from logging import LogRecord
 
-from loguru import logger
+from loguru import Record, logger
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -97,7 +97,7 @@ class RDAgentLog(SingletonBaseClass):
             process = parent_process
         return pid_chain
 
-    def file_format(self, record: dict, raw: bool = False) -> str:
+    def file_format(self, record: Record, raw: bool = False) -> str:
         # FIXME: the formmat is tightly coupled with the message reading in storage.
         record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:
