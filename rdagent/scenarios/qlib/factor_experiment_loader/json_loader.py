@@ -8,7 +8,7 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorTask,
 )
 from rdagent.components.loader.experiment_loader import FactorExperimentLoader
-from rdagent.core.experiment import Experiment, Loader
+from rdagent.core.experiment import Loader
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 
@@ -47,7 +47,7 @@ class FactorTestCaseLoaderFromJsonFile:
     def load(self, json_file_path: Path) -> list:
         with open(json_file_path, "r") as file:
             factor_dict = json.load(file)
-        TestData = TestCase(target_task=Experiment(sub_tasks=[]))
+        TestData = TestCase()
         for factor_name, factor_data in factor_dict.items():
             task = FactorTask(
                 factor_name=factor_name,
@@ -55,13 +55,9 @@ class FactorTestCaseLoaderFromJsonFile:
                 factor_formulation=factor_data["formulation"],
                 variables=factor_data["variables"],
             )
-            gt = FactorFBWorkspace(task)
-            code = {
-                "factor.py": factor_data["gt_code"]
-            }
-            gt.inject_code(**code)
+            gt = FactorFBWorkspace(task, code=factor_data["gt_code"])
             gt.execute()
-            TestData.target_task.sub_tasks.append(task)
+            TestData.target_task.append(task)
             TestData.ground_truth.append(gt)
 
         return TestData
