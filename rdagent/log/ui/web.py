@@ -309,7 +309,7 @@ class QlibFactorExpWindow(StWindow):
                             ).consume_msg(ftm_msg)
 
         # result
-        self.container.markdown('**Results**', divider=True)
+        self.container.markdown('**Results**')
         results = pd.DataFrame({f'base_exp_{id}':e.result for id, e in enumerate(exp.based_experiments)})
         results['now'] = exp.result
 
@@ -455,7 +455,7 @@ class ResearchWindow(StWindow):
         if msg.tag.endswith('hypothesis generation'):
             HypothesisWindow(self.container.container()).consume_msg(msg)
         elif msg.tag.endswith('experiment generation'):
-            if isinstance(msg, list):
+            if isinstance(msg.content, list):
                 if isinstance(msg.content[0], FactorTask):
                     self.container.markdown('**Factor Tasks**')
                     ObjectsTabsWindow(self.container.container(), FactorTaskWindow, lambda x: x.factor_name).consume_msg(msg)
