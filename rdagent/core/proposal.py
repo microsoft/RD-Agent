@@ -101,7 +101,7 @@ class HypothesisGen(ABC):
         Motivation of the variable `scenario_desc`:
         - Mocking a data-scientist is observing the scenario.
 
-        scenario_desc may conclude:
+        scenario_desc may include:
         - data observation:
             - Original or derivative
         - Task information:
