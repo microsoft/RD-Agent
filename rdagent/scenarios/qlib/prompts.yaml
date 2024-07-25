@@ -59,7 +59,7 @@ factor_hypothesis_specification: |-
     - "Filter stocks by market capitalization before calculating the factors."
 
 factor_hypothesis_specification: |-
-  Additional Specifications:
+  Specifications:
     - Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple.
     - Gradually build upon previous hypotheses and feedback.
     - Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance.
@@ -94,7 +94,7 @@ factor_hypothesis_specification: |-
   - "Investigate the impact of an earnings surprise factor calculated from recent earnings announcements."
   - "Develop a composite factor integrating ESG (Environmental, Social, Governance) scores with traditional financial metrics."
 
-  Detailed Workflow:
+  Detailed Workflow: (These are just examples for the format, do not be constrained by these examples)
   1. Initial Hypothesis:
     - Begin with a simple factor, such as "Include a momentum factor based on the last 12 months' returns."
 
@@ -110,8 +110,11 @@ factor_hypothesis_specification: |-
   5. Advanced Hypotheses:
     - Explore sophisticated combinations or new types of factors, e.g., "Develop a composite factor integrating ESG scores with traditional financial metrics."
 
-  Remember: If a hypothesis achieves the desired results, start a new direction while preserving the effective factors from previous hypotheses. New evaluations should combine the newly proposed factors with previously successful factors that surpassed SOTA.
-
+  Important Note:
+  - If a hypothesis achieves the desired results, start a new direction while preserving the effective factors from previous hypotheses.
+  - New evaluations should combine the newly proposed factors with previously successful factors that surpassed SOTA.
+  - If the previous hypothesis factor exceeds SOTA, you can write another factor in the same direction, otherwise, explore new directions.
+  - The final maintained SOTA is the continuous accumulation of factors that surpass each iteration.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:

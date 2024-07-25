@@ -60,5 +60,6 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def feedback(self, prev_out: dict[str, Any]):
         feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
-        logger.log_object(feedback, tag="feedback")
+        with logger.tag("ef"):  # evaluate and feedback
+            logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["propose"],prev_out["running"] , feedback))
