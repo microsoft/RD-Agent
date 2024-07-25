@@ -31,7 +31,7 @@ class QlibFBWorkspace(FBWorkspace):
         )
 
         ret_df = pd.read_pickle(self.workspace_path / "ret.pkl")
-        logger.log_object(ret_df, tag="returns")  # TODO: tag
+        logger.log_object(ret_df, tag="Quantitative Backtesting Chart")
 
         csv_path = self.workspace_path / "qlib_res.csv"
 
