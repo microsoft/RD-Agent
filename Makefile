@@ -108,7 +108,7 @@ toml-sort:
 
 # Check lint with all linters.
 # lint: black isort mypy ruff toml-sort
-lint: mypy ruff black isort
+lint: mypy ruff black isort toml-sort
 
 # Run pre-commit with autofix against all files.
 pre-commit:
