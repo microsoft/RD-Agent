@@ -18,7 +18,7 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
 - [🎥Automatic Quant Factory]()
-- Data mining copilot: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
+- Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
 - Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
 - ...
 
@@ -60,11 +60,14 @@ Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹Finance       | Iteratively Proposing Ideas & Evolving | Auto reports reading & implementation <br/> Iteratively Proposing Ideas & Evolving |
+| 💹Finance       | Iteratively Proposing Ideas & Evolving | - Auto reports reading & implementation <br/> - Iteratively Proposing Ideas & Evolving |
 | 🩺Medical       | Iteratively Proposing Ideas & Evolving | -                                                                                  |
 | General         | Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
+
+TODO: Scenario Gallary
+- map(scenario) => knowledge list;
 
 # ⚙️Framework
 
