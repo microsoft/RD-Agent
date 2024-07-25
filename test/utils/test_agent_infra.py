@@ -14,7 +14,7 @@ class TestAgentInfra(unittest.TestCase):
         # NOTE: It is not serious. It is just for testing
         sys_prompt = T("components.proposal.prompts:hypothesis_gen.system_prompt").r(
             targets="targets",
-            scenario=T("scenarios.qlib.experiment.prompts:qlib_model_background"),
+            scenario=T("scenarios.qlib.experiment.prompts:qlib_model_background").r(),
             hypothesis_output_format=PythonAgentOut.get_spec(),
             hypothesis_specification=PythonAgentOut.get_spec(),
         )
