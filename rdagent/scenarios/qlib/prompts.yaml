@@ -12,7 +12,8 @@ hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
     "hypothesis": "The new hypothesis generated based on the information provided.",
-    "reason": "The reason why you generate this hypothesis."
+    "reason": "The reason why you generate this hypothesis.",
+    "concise_reason": One line summary that focuses on the justification for the change that leads to the hypothesis (like a part of a knowledge that we are building),
   }
 
 model_hypothesis_specification: |-
@@ -140,7 +141,13 @@ model_experiment_output_format: |-
   {
     "model_name 1 (The name of the model)": {
         "description": "A detailed description of the model",
+        "formulation": "A LaTeX formula representing the model's formulation",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+        "variables": {
+            "\\hat{y}_u": "The predicted output for node u",
+            "variable_name_2": "Description of variable 2",
+            "variable_name_3": "Description of variable 3"
+        },
         "hyperparameters": {
             "hyperparameter_name_1": "value of hyperparameter 1",
             "hyperparameter_name_2": "value of hyperparameter 2",
@@ -218,6 +225,8 @@ model_feedback_generation:
       "Reasoning": "Provide reasoning for the hypothesis here.",
       "Decision": <true or false>,
     }
+
+    Focus on the changes in hypothesis and justify why do hypothesis evolve like this. Also, increase complexity as the hypothesis evolves  (give more layers, more neurons, and etc)
     
     Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 

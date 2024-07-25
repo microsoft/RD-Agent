@@ -30,6 +30,9 @@ class QlibFBWorkspace(FBWorkspace):
             env=run_env,
         )
 
+        ret_df = pd.read_pickle(self.workspace_path / "ret.pkl")
+        logger.log_object(ret_df, tag="returns")  # TODO: tag
+
         csv_path = self.workspace_path / "qlib_res.csv"
 
         if not csv_path.exists():

@@ -48,7 +48,7 @@ qlib_factor_simulator: |-
 
 qlib_model_background: |-
   The model is a machine learning or deep learning structure used in quantitative investment to predict the returns and risks of a portfolio or a single asset. Models are employed by investors to generate forecasts based on historical data and identified factors, which are central to many quantitative investment strategies.
-  Each model takes the factors as input and predicts the future returns.
+  Each model takes the factors as input and predicts the future returns. Usually, the bigger the model is, the better the performance would be.
   The model is defined in the following parts:
   1. Name: The name of the model.
   2. Description: The description of the model.
