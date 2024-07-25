@@ -122,10 +122,18 @@ class FactorImplementEval(BaseEval):
         method: Developer,
         *args,
         scen: Scenario,
+        scen: Scenario,
         test_round: int = 10,
         **kwargs,
     ):
         online_evaluator_l = [
+            FactorSingleColumnEvaluator(scen),
+            FactorOutputFormatEvaluator(scen),
+            FactorRowCountEvaluator(scen),
+            FactorIndexEvaluator(scen),
+            FactorMissingValuesEvaluator(scen),
+            FactorEqualValueCountEvaluator(scen),
+            FactorCorrelationEvaluator(hard_check=False, scen=scen),
             FactorSingleColumnEvaluator(scen),
             FactorOutputFormatEvaluator(scen),
             FactorRowCountEvaluator(scen),
@@ -171,6 +179,32 @@ class FactorImplementEval(BaseEval):
             res[gt_case.target_task.factor_name].append((gen_factor, eval_res))
 
         return res
+
+    @staticmethod
+    def summarize_res(res: EVAL_RES) -> pd.DataFrame:
+        # None: indicate that it raises exception and get no results
+        sum_res = {}
+        for factor_name, runs in res.items():
+            for fi, err_or_res_l in runs:
+                # NOTE:  str(fi) may not be unique!!  Because the workspace can be skipped when hitting the cache.
+                uniq_key = f"{str(fi)},{id(fi)}"
+
+                key = (factor_name, uniq_key)
+                val = {}
+                if isinstance(err_or_res_l, Exception):
+                    val["run factor error"] = str(err_or_res_l.__class__)
+                else:
+                    val["run factor error"] = None
+                    for ev_obj, err_or_res in err_or_res_l:
+                        if isinstance(err_or_res, Exception):
+                            val[str(ev_obj)] = None
+                        else:
+                            feedback, metric = err_or_res
+                            val[str(ev_obj)] = metric
+                sum_res[key] = val
+
+        return pd.DataFrame(sum_res)
+
 
     @staticmethod
     def summarize_res(res: EVAL_RES) -> pd.DataFrame:
