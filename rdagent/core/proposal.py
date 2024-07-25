@@ -9,8 +9,10 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.core.prompts import Prompts
 
 # class data_ana: XXX
 
@@ -23,7 +25,7 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str, concise_reason = str) -> None:
+    def __init__(self, hypothesis: str, reason: str, concise_reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
         self.concise_reason: str = concise_reason
