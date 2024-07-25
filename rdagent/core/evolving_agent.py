@@ -24,7 +24,6 @@ class EvoAgent(ABC):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-        *,
         filter_final_evo: bool = False,
     ) -> EvolvableSubjects: ...
 
