@@ -100,8 +100,11 @@ class FileStorage(Storage):
                     absolute_p = m.content.split("Logging object in ")[1]
                     relative_p = "." + absolute_p.split(self.path.name)[1]
                     pkl_path = self.path / relative_p
-                    with pkl_path.open("rb") as f:
-                        m.content = pickle.load(f)
+                    try:
+                        with pkl_path.open("rb") as f:
+                            m.content = pickle.load(f)
+                    except:
+                        continue
 
                 msg_l.append(m)
 
