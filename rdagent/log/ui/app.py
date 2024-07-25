@@ -6,9 +6,9 @@ import pickle
 
 
 # show logs folder
-# WebView(SimpleTraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/yuante/2024-07-24_04-03-33-691119"))
+WebView(TraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/yuante/2024-07-24_04-03-33-691119"))
 # WebView(TraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/2024-07-22_03-01-12-021659"))
-WebView(TraceWindow()).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
+# WebView(TraceWindow()).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
 
 
 # load Trace obj

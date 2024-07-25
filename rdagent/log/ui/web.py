@@ -25,7 +25,7 @@ from rdagent.components.coder.model_coder.model import ModelTask, ModelFBWorkspa
 
 st.set_page_config(layout="wide")
 
-TIME_DELAY = 0.01
+TIME_DELAY = 0.001
 
 class WebView(View):
 
@@ -148,19 +148,22 @@ class RoundTabsWindow(StWindow):
                  inner_class: Type[StWindow] = StWindow,
                  title: str = 'Round tabs'):
 
-        container.header(title)
+        container.markdown(f"### **{title}**")
         self.inner_class = inner_class
         self.new_tab_func = new_tab_func
         self.round = 0
 
-        self.current_win = StWindow(self.container)
-        self.tabs_c = self.container.empty()
+        self.current_win = StWindow(container)
+        self.tabs_c = container.empty()
 
 
     def consume_msg(self, msg: Message):
         if self.new_tab_func(msg):
             self.round += 1
             self.current_win = self.inner_class(self.tabs_c.tabs([str(i) for i in range(1, self.round+1)])[-1])
+
+        if self.round not in range(0, 3):
+            return
 
         self.current_win.consume_msg(msg)
 
@@ -170,7 +173,7 @@ class HypothesisWindow(StWindow):
     def consume_msg(self, msg: Message | Hypothesis):
         h: Hypothesis = msg.content if isinstance(msg, Message) else msg
 
-        self.container.subheader('Hypothesis')
+        self.container.markdown('#### **Hypothesis💡**')
         self.container.markdown(f"""
 - **Hypothesis**: {h.hypothesis}
 - **Reason**: {h.reason}""")
@@ -181,7 +184,7 @@ class HypothesisFeedbackWindow(StWindow):
     def consume_msg(self, msg: Message | HypothesisFeedback):
         h: HypothesisFeedback = msg.content if isinstance(msg, Message) else msg
 
-        self.container.subheader('Hypothesis Feedback')
+        self.container.markdown('#### **Hypothesis Feedback🔍**')
         self.container.markdown(f"""
 - **Observations**: {h.observations}
 - **Hypothesis Evaluation**: {h.hypothesis_evaluation}
@@ -281,15 +284,13 @@ class WorkspaceWindow(StWindow):
                 ModelTaskWindow(self.container.container()).consume_msg(task_msg)
 
         # task codes
-        self.container.subheader('Codes')
         for k,v in ws.code_dict.items():
             self.container.markdown(f"`{k}`")
             self.container.code(v, language="python")
 
         # executed_factor_value_dataframe
-        if isinstance(ws, FactorFBWorkspace):
-            self.container.subheader('Executed Factor Value Dataframe')
-            self.container.dataframe(ws.executed_factor_value_dataframe)
+        # if isinstance(ws, FactorFBWorkspace):
+        #     self.container.dataframe(ws.executed_factor_value_dataframe)
 
 
 class QlibFactorExpWindow(StWindow):
@@ -304,7 +305,8 @@ class QlibFactorExpWindow(StWindow):
         if self.show_task_info:
             ftm_msg = deepcopy(msg)
             ftm_msg.content = [ws for ws in exp.sub_workspace_list if ws]
-            ObjectsTabsWindow(self.container.expander('Factor Tasks'),
+            self.container.markdown('**Factor Tasks**')
+            ObjectsTabsWindow(self.container.container(),
                             inner_class=WorkspaceWindow,
                             mapper=lambda x: x.target_task.factor_name,
                             ).consume_msg(ftm_msg)
@@ -335,7 +337,8 @@ class QlibModelExpWindow(StWindow):
         if self.show_task_info:
             _msg = deepcopy(msg)
             _msg.content = [ws for ws in exp.sub_workspace_list if ws]
-            ObjectsTabsWindow(self.container.expander('Model Tasks'),
+            self.container.markdown('**Model Tasks**')
+            ObjectsTabsWindow(self.container.container(),
                             inner_class=WorkspaceWindow,
                             mapper=lambda x: x.target_task.name,
                             ).consume_msg(_msg)
@@ -455,10 +458,13 @@ class ResearchWindow(StWindow):
         if msg.tag.endswith('hypothesis generation'):
             HypothesisWindow(self.container.container()).consume_msg(msg)
         elif msg.tag.endswith('experiment generation'):
-            if isinstance(msg.content[0], FactorTask):
-                ObjectsTabsWindow(self.container.expander('Factor Tasks'), FactorTaskWindow, lambda x: x.factor_name).consume_msg(msg)
-            elif isinstance(msg.content[0], ModelTask):
-                ObjectsTabsWindow(self.container.expander('Model Tasks'), ModelTaskWindow, lambda x: x.name).consume_msg(msg)
+            if isinstance(msg, list):
+                if isinstance(msg.content[0], FactorTask):
+                    self.container.markdown('**Factor Tasks**')
+                    ObjectsTabsWindow(self.container.container(), FactorTaskWindow, lambda x: x.factor_name).consume_msg(msg)
+                elif isinstance(msg.content[0], ModelTask):
+                    self.container.markdown('**Model Tasks**')
+                    ObjectsTabsWindow(self.container.container(), ModelTaskWindow, lambda x: x.name).consume_msg(msg)
 
 
 class EvolvingWindow(StWindow):
@@ -468,25 +474,37 @@ class EvolvingWindow(StWindow):
 
     def consume_msg(self, msg: Message):
         if msg.tag.endswith('evolving code'):
-            if isinstance(msg.content[0], FactorFBWorkspace):
-                ObjectsTabsWindow(self.container.expander('Factor Workspaces'),
-                                    inner_class=WorkspaceWindow,
-                                    mapper=lambda x: x.target_task.factor_name).consume_msg(msg)
-                self.evolving_tasks = [m.target_task.factor_name for m in msg.content]
-            elif isinstance(msg.content[0], ModelFBWorkspace):
-                ObjectsTabsWindow(self.container.expander('Model Workspaces'),
-                                    inner_class=WorkspaceWindow,
-                                    mapper=lambda x: x.target_task.name).consume_msg(msg)
-                self.evolving_tasks = [m.target_task.name for m in msg.content]
+            if isinstance(msg.content, list):
+                msg.content = [m for m in msg.content if m]
+                if len(msg.content) == 0:
+                    return
+                if isinstance(msg.content[0], FactorFBWorkspace):
+                    self.container.markdown('**Factor Codes**')
+                    ObjectsTabsWindow(self.container.container(),
+                                        inner_class=WorkspaceWindow,
+                                        mapper=lambda x: x.target_task.factor_name).consume_msg(msg)
+                    self.evolving_tasks = [m.target_task.factor_name for m in msg.content]
+                elif isinstance(msg.content[0], ModelFBWorkspace):
+                    self.container.markdown('**Model Codes**')
+                    ObjectsTabsWindow(self.container.container(),
+                                        inner_class=WorkspaceWindow,
+                                        mapper=lambda x: x.target_task.name).consume_msg(msg)
+                    self.evolving_tasks = [m.target_task.name for m in msg.content]
         elif msg.tag.endswith('evolving feedback'):
-            if isinstance(msg.content[0], FactorSingleFeedback):
-                ObjectsTabsWindow(self.container.expander('Factor Feedbacks'),
-                                    inner_class=FactorFeedbackWindow,
-                                    tab_names=self.evolving_tasks).consume_msg(msg)
-            elif isinstance(msg.content[0], ModelCoderFeedback):
-                ObjectsTabsWindow(self.container.expander('Model Feedbacks'),
-                                    inner_class=ModelFeedbackWindow,
-                                    tab_names=self.evolving_tasks).consume_msg(msg)
+            if isinstance(msg.content, list):
+                msg.content = [m for m in msg.content if m]
+                if len(msg.content) == 0:
+                    return
+                if isinstance(msg.content[0], FactorSingleFeedback):
+                    self.container.markdown('**Factor Feedbacks🔍**')
+                    ObjectsTabsWindow(self.container.container(),
+                                        inner_class=FactorFeedbackWindow,
+                                        tab_names=self.evolving_tasks).consume_msg(msg)
+                elif isinstance(msg.content[0], ModelCoderFeedback):
+                    self.container.markdown('**Model Feedbacks🔍**')
+                    ObjectsTabsWindow(self.container.container(),
+                                        inner_class=ModelFeedbackWindow,
+                                        tab_names=self.evolving_tasks).consume_msg(msg)
 
 
 class DevelopmentWindow(StWindow):
@@ -495,7 +513,7 @@ class DevelopmentWindow(StWindow):
         self.E_win = RoundTabsWindow(container.container(),
                                      new_tab_func=lambda x: x.tag.endswith('evolving code'),
                                      inner_class=EvolvingWindow,
-                                     title='Evolving Round')
+                                     title='Evolving Loops🔧')
 
     def consume_msg(self, msg: Message):
         if 'evolving' in msg.tag:
@@ -551,20 +569,19 @@ class TraceWindow(StWindow):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
 
-        t_container = container.container(border=True)
-        self.status_c = t_container.empty()
-        col1, col2 = t_container.columns([3,2])
-        chart_c = col1.container(border=True)
-        chart_c.markdown('**Numerical indicators**')
+        top_container = container.container()
+        col1, col2 = top_container.columns([2,3])
+        chart_c = col2.container(border=True, height=300)
+        chart_c.markdown('**Metrics📈**')
         self.chart_c = chart_c.empty()
-        hypothesis_status_c = col2.container(border=True)
-        hypothesis_status_c.markdown('**Hypothesis Decisions**')
+        hypothesis_status_c = col1.container(border=True, height=300)
+        hypothesis_status_c.markdown('**Hypotheses🏅**')
         self.summary_c = hypothesis_status_c.empty()
 
         self.RDL_win = RoundTabsWindow(container.container(),
                                        new_tab_func=lambda x: x.tag.endswith('hypothesis generation'),
                                        inner_class=SingleRDLoopWindow,
-                                       title='Research-Development Loops')
+                                       title='R&D Loops♾️')
         
         self.hypothesis_decisions = defaultdict(bool)
         self.current_hypothesis = None
@@ -576,14 +593,13 @@ class TraceWindow(StWindow):
             return
         if not self.show_common_logs and isinstance(msg.content, str):
             return
-
-        self.status_c.markdown(f"**Status**: {msg.tag}")
-
+        if isinstance(msg.content, dict):
+            return
         if msg.tag.endswith('hypothesis generation'):
             self.current_hypothesis = msg.content.hypothesis
         elif msg.tag.endswith('ef.feedback'):
             self.hypothesis_decisions[self.current_hypothesis] = msg.content.decision
-            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{h}]\n" if d else f"{id+1}. :red[{h}]\n" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
+            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{h}]\n" if d else f"{id+1}. {h}\n" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
         elif msg.tag.endswith('ef.model runner result') or msg.tag.endswith('ef.factor runner result'):
             self.results.append(msg.content.result)
             if len(self.results) == 1:
@@ -594,4 +610,4 @@ class TraceWindow(StWindow):
                 self.chart_c.plotly_chart(fig)
 
         self.RDL_win.consume_msg(msg)
-        time.sleep(TIME_DELAY)
+        # time.sleep(TIME_DELAY)
