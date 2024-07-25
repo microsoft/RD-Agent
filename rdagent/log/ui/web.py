@@ -162,9 +162,6 @@ class RoundTabsWindow(StWindow):
             self.round += 1
             self.current_win = self.inner_class(self.tabs_c.tabs([str(i) for i in range(1, self.round+1)])[-1])
 
-        if self.round not in range(0, 3):
-            return
-
         self.current_win.consume_msg(msg)
 
 
@@ -312,7 +309,7 @@ class QlibFactorExpWindow(StWindow):
                             ).consume_msg(ftm_msg)
 
         # result
-        self.container.subheader('Results', divider=True)
+        self.container.markdown('**Results**', divider=True)
         results = pd.DataFrame({f'base_exp_{id}':e.result for id, e in enumerate(exp.based_experiments)})
         results['now'] = exp.result
 
