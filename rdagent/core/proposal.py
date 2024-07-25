@@ -5,12 +5,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.core.prompts import Prompts
 
 # class data_ana: XXX
 
@@ -23,7 +25,7 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str, concise_reason = str) -> None:
+    def __init__(self, hypothesis: str, reason: str, concise_reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
         self.concise_reason: str = concise_reason
@@ -45,7 +47,7 @@ class HypothesisFeedback(Feedback):
         hypothesis_evaluation: str,
         new_hypothesis: str,
         reason: str,
-        decision: bool,  # noqa: FBT001
+        decision: bool,
     ) -> None:
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
@@ -72,7 +74,7 @@ class Trace(Generic[ASpecificScen]):
         self.scen: ASpecificScen = scen
         self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
-    def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis, Experiment]:
+    def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
         for hypothesis, experiment, feedback in self.hist[::-1]:

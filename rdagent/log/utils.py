@@ -1,6 +1,8 @@
 import inspect
 import re
 
+from typing import Union, Dict, TypedDict, Optional
+
 
 class LogColors:
     """
@@ -56,13 +58,19 @@ class LogColors:
         return ansi_escape.sub("", s)
 
 
-def get_caller_info():
+class CallerInfo(TypedDict):
+    function: str
+    line: int
+    name: Optional[str]
+
+
+def get_caller_info() -> CallerInfo:
     # Get the current stack information
     stack = inspect.stack()
     # The second element is usually the caller's information
     caller_info = stack[2]
     frame = caller_info[0]
-    info = {
+    info: CallerInfo = {
         "line": caller_info.lineno,
         "name": frame.f_globals["__name__"],  # Get the module name from the frame's globals
         "function": frame.f_code.co_name,  # Get the caller's function name

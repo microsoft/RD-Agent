@@ -35,7 +35,3 @@ class Scenario(ABC):
     @abstractmethod
     def get_scenario_all_desc(self) -> str:
         """Combine all the description together"""
-
-
-
-    

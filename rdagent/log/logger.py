@@ -6,8 +6,10 @@ from functools import partial
 from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
+from typing import Union, Generator, Dict, Any
+from logging import LogRecord
 
-from loguru import logger
+from loguru import logger, Record
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -49,24 +51,25 @@ class RDAgentLog(SingletonBaseClass):
     #   feedback = logger.get_reps()
     _tag: str = ""
 
-    def __init__(self, log_trace_path: str | None = RD_AGENT_SETTINGS.log_trace_path) -> None:
+    def __init__(self, log_trace_path: Union[str, None] = RD_AGENT_SETTINGS.log_trace_path) -> None:
         if log_trace_path is None:
             timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S-%f")
-            log_trace_path: Path = Path.cwd() / "log" / timestamp
+            self.log_trace_path = Path.cwd() / "log" / timestamp
+        else:
+            self.log_trace_path = Path(log_trace_path)
 
-        self.log_trace_path = Path(log_trace_path)
         self.log_trace_path.mkdir(parents=True, exist_ok=True)
 
-        self.storage = FileStorage(log_trace_path)
+        self.storage = FileStorage(self.log_trace_path)
 
         self.main_pid = os.getpid()
 
-    def set_trace_path(self, log_trace_path):
+    def set_trace_path(self, log_trace_path: str | Path) -> None:
         self.log_trace_path = Path(log_trace_path)
         self.storage = FileStorage(log_trace_path)
 
     @contextmanager
-    def tag(self, tag: str):
+    def tag(self, tag: str) -> Generator[None, None, None]:
         if tag.strip() == "":
             raise ValueError("Tag cannot be empty.")
         if self._tag != "":
@@ -94,7 +97,7 @@ class RDAgentLog(SingletonBaseClass):
             process = parent_process
         return pid_chain
 
-    def file_format(self, record, raw: bool = False):
+    def file_format(self, record: Record, raw: bool = False) -> str:
         # FIXME: the formmat is tightly coupled with the message reading in storage.
         record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:
@@ -111,7 +114,7 @@ class RDAgentLog(SingletonBaseClass):
         file_handler_id = logger.add(
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
         )
-        logger.patch(lambda r: r.update(caller_info)).info(f"Logging object in {logp.absolute()}")
+        logger.patch(lambda r: r.update(caller_info)).info(f"Logging object in {Path(logp).absolute()}")
         logger.remove(file_handler_id)
 
     def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:
