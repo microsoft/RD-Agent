@@ -90,15 +90,17 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         factor_experiment = FactorEvolvingItem(sub_tasks=exp.sub_tasks)
 
         self.evolve_agent = FactorRAGEvoAgent(
-            max_loop=self.max_loop, evolving_strategy=self.evolving_strategy, rag=self.rag
+            max_loop=self.max_loop,
+            evolving_strategy=self.evolving_strategy,
+            rag=self.rag,
+            with_knowledge=self.with_knowledge,
+            with_feedback=self.with_feedback,
+            knowledge_self_gen=self.knowledge_self_gen,
         )
 
         factor_experiment = self.evolve_agent.multistep_evolve(
             factor_experiment,
             self.factor_evaluator,
-            with_knowledge=self.with_knowledge,
-            with_feedback=self.with_feedback,
-            knowledge_self_gen=self.knowledge_self_gen,
             filter_final_evo=self.filter_final_evo,
         )
 

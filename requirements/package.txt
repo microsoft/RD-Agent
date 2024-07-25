@@ -19,6 +19,7 @@ langchain
 tiktoken
 scikit-learn
 docker
+fitz  # Extract shotsreens from pdf
 
 # azure identity related
 azure.identity

@@ -11,9 +11,9 @@ from filelock import FileLock
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import (
-    CodeFormatException,
-    NoOutputException,
-    RuntimeErrorException,
+    CodeFormatError,
+    NoOutputError,
+    CustomRuntimeError,
 )
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -106,10 +106,9 @@ class FactorFBWorkspace(FBWorkspace):
         super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
             if self.raise_exception:
-                raise CodeFormatException(self.FB_CODE_NOT_SET)
+                raise CodeFormatError(self.FB_CODE_NOT_SET)
             else:
-                # TODO: to make the interface compatible with previous code. I kept the original behavior.
-                raise ValueError(self.FB_CODE_NOT_SET)
+                return self.FB_CODE_NOT_SET, None
         with FileLock(self.workspace_path / "execution.lock"):
             if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code and same data type
@@ -141,6 +140,7 @@ class FactorFBWorkspace(FBWorkspace):
             self.link_data_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
+            execution_success = False
             try:
                 subprocess.check_output(
                     f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
@@ -149,6 +149,7 @@ class FactorFBWorkspace(FBWorkspace):
                     stderr=subprocess.STDOUT,
                     timeout=FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout,
                 )
+                execution_success = True
             except subprocess.CalledProcessError as e:
                 import site
 
@@ -162,25 +163,25 @@ class FactorFBWorkspace(FBWorkspace):
                         execution_feedback[:1000] + "....hidden long error message...." + execution_feedback[-1000:]
                     )
                 if self.raise_exception:
-                    raise RuntimeErrorException(execution_feedback)
+                    raise CustomRuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
                 execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
-                    raise RuntimeErrorException(execution_feedback)
+                    raise CustomRuntimeError(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
-            if not workspace_output_file_path.exists():
-                execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
-                executed_factor_value_dataframe = None
-                if self.raise_exception:
-                    raise NoOutputException(execution_feedback)
-            else:
+            if workspace_output_file_path.exists() and execution_success:
                 try:
                     executed_factor_value_dataframe = pd.read_hdf(workspace_output_file_path)
                     execution_feedback += self.FB_OUTPUT_FILE_FOUND
                 except Exception as e:
                     execution_feedback += f"Error found when reading hdf file: {e}"[:1000]
                     executed_factor_value_dataframe = None
+            else:
+                execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND
+                executed_factor_value_dataframe = None
+                if self.raise_exception:
+                    raise NoOutputError(execution_feedback)
 
             if store_result and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe

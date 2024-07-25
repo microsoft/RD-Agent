@@ -3,8 +3,8 @@ The motiviation of the utils is for environment management
 
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
-
 """
+# TODO: move the scenario specific docker env into other folders.
 
 import os
 import subprocess
@@ -125,6 +125,7 @@ class DockerConf(BaseSettings):
     # So we just want to download it once.
     network: str | None = "bridge"  # the network mode for the docker
     shm_size: str | None = None
+    enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
 
 
 class QlibDockerConf(DockerConf):
@@ -138,8 +139,22 @@ class QlibDockerConf(DockerConf):
     default_entry: str = "qrun conf.yaml"
     extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
     shm_size: str | None = "16g"
+    enable_gpu: bool = True
 
 
+class DMDockerConf(DockerConf):
+    class Config:
+        env_prefix = "DM_DOCKER_"  
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
+    image: str = "local_dm:latest"
+    mount_path: str = "/workspace/dm_workspace/"
+    default_entry: str = "python train.py"
+    extra_volumes: dict = {Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
+    shm_size: str | None = "16g"
+
+# physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
@@ -161,6 +176,22 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
+    def _gpu_kwargs(self, client):
+        """get gpu kwargs based on its availability"""
+        if not self.conf.enable_gpu:
+            return {}
+        gpu_kwargs = {
+            "device_requests": [
+                docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
+            ] if self.conf.enable_gpu else None,
+        }
+        try:
+            client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+            logger.info("GPU Devices are available.")
+        except docker.errors.APIError:
+            return {}
+        return gpu_kwargs
+
     def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
         if env is None:
             env = {}
@@ -177,6 +208,7 @@ class DockerEnv(Env[DockerConf]):
                 volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
+
         try:
             container: docker.models.containers.Container = client.containers.run(
                 image=self.conf.image,
@@ -188,6 +220,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
+                **self._gpu_kwargs(client)
             )
             logs = container.logs(stream=True)
             for log in logs:
@@ -222,5 +255,25 @@ class QTDockerEnv(DockerEnv):
             logger.info("We are downloading!")
             cmd = "python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn --interval 1d --delete_old False"
             self.run(entry=cmd)
+        else:
+            logger.info("Data already exists. Download skipped.")
+
+
+class DMDockerEnv(DockerEnv):
+    """Qlib Torch Docker"""
+
+    def __init__(self, conf: DockerConf = DMDockerConf()):
+        super().__init__(conf)
+
+    def prepare(self, username: str, password: str):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+        data_path = next(iter(self.conf.extra_volumes.keys()))
+        if not (Path(data_path)).exists():
+            logger.info("We are downloading!")
+            cmd = 'wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/'.format(username, password)
+            os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")

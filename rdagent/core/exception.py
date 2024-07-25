@@ -1,4 +1,4 @@
-class CoderException(Exception):
+class CoderError(Exception):
     """
     Exceptions raised when Implementing and running code.
     - start: FactorTask => FactorGenerator
@@ -8,37 +8,37 @@ class CoderException(Exception):
     """
 
 
-class CodeFormatException(CoderException):
+class CodeFormatError(CoderError):
     """
     The generated code is not found due format error.
     """
 
 
-class RuntimeErrorException(CoderException):
+class CustomRuntimeError(CoderError):
     """
     The generated code fail to execute the script.
     """
 
 
-class NoOutputException(CoderException):
+class NoOutputError(CoderError):
     """
     The code fail to generate output file.
     """
 
 
-class RunnerException(Exception):
+class CustomRunnerError(Exception):
     """
     Exceptions raised when running the code output.
     """
 
 
-class FactorEmptyException(Exception):
+class FactorEmptyError(Exception):
     """
     Exceptions raised when no factor is generated correctly
     """
 
 
-class ModelEmptyException(Exception):
+class ModelEmptyError(Exception):
     """
     Exceptions raised when no model is generated correctly
     """

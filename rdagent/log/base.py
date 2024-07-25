@@ -1,7 +1,22 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Generator
+from datetime import datetime
 from pathlib import Path
+from typing import Literal, Optional, Union, Literal
+from dataclasses import dataclass
+
+
+@dataclass
+class Message:
+    """The info unit of the storage"""
+    tag: str  # namespace like like a.b.c
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]  # The level of the logging
+    timestamp: datetime  # The time when the message is generated
+    caller: Optional[str] # The caller of the logging like `rdagent.oai.llm_utils:_create_chat_completion_inner_function:55`(file:func:line)
+    pid_trace: Optional[str]  # The process id trace;  A-B-C represents A create B, B create C
+    content: object  # The content
 
 
 class Storage:
@@ -22,7 +37,13 @@ class Storage:
     """
 
     @abstractmethod
-    def log(self, obj: object, name: str = "", **kwargs: dict) -> str | Path:
+    def log(
+        self,
+        obj: object, name: str = "",
+        save_type: Literal["json", "text", "pkl"] = "text",
+        timestamp: datetime | None = None,
+        **kwargs: dict,
+    ) -> str | Path:
         """
 
         Parameters
@@ -40,6 +61,16 @@ class Storage:
         """
         ...
 
+    @abstractmethod
+    def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
+        """
+        Parameters
+        ----------
+        watch : bool
+            should we watch the new content and display them
+        """
+        ...
+
 
 class View:
     """
@@ -50,7 +81,7 @@ class View:
 
     # TODO: pleas fix me
     @abstractmethod
-    def display(s: Storage, watch: bool = False):
+    def display(self, s: Storage, watch: bool = False) -> None:
         """
 
         Parameters

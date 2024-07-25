@@ -2,12 +2,17 @@
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import ASpecificExp, ASpecificTask, Experiment
+from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.scenario import Scenario
+
+if TYPE_CHECKING:
+    from rdagent.core.prompts import Prompts
 
 # class data_ana: XXX
 
@@ -20,9 +25,10 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str) -> None:
+    def __init__(self, hypothesis: str, reason: str, concise_reason: str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
+        self.concise_reason: str = concise_reason
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
@@ -35,14 +41,21 @@ Reason: {self.reason}"""
 
 
 class HypothesisFeedback(Feedback):
-    def __init__(self, observations: str, hypothesis_evaluation: str, new_hypothesis: str, reason: str, decision: bool):
+    def __init__(
+        self,
+        observations: str,
+        hypothesis_evaluation: str,
+        new_hypothesis: str,
+        reason: str,
+        decision: bool,
+    ) -> None:
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
         self.reason = reason
         self.decision = decision
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.decision
 
     def __str__(self) -> str:
@@ -59,9 +72,9 @@ ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
 class Trace(Generic[ASpecificScen]):
     def __init__(self, scen: ASpecificScen) -> None:
         self.scen: ASpecificScen = scen
-        self.hist: list[Tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
+        self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
 
-    def get_SOTA_hypothesis_and_experiment(self) -> Tuple[Hypothesis, Experiment]:
+    def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
         for hypothesis, experiment, feedback in self.hist[::-1]:
@@ -72,7 +85,13 @@ class Trace(Generic[ASpecificScen]):
 
 
 class HypothesisGen(ABC):
-    def __init__(self, scen: Scenario):
+    # NOTE: the design is a little wierd
+    # - Sometimes we want accurate access the prompts in a specific level
+    #   - It renders the prompt to a specific abstract level
+    # - Sometimes we want to access the most recent level prompts
+    prompts: Prompts  # this is a class level prompt.
+
+    def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
     @abstractmethod
@@ -103,15 +122,19 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 # Boolean, Reason, Confidence, etc.
 
 
-class HypothesisExperiment2Feedback:
-    """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
+class HypothesisExperiment2Feedback(ABC):
+    """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks
+    & their comparisons with previous performances"""
 
-    def __init__(self, scen: Scenario):
+    def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
-    def generateFeedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    @abstractmethod
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
-        The `exp` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
+        The `exp` should be executed and the results should be included, as well as the comparison
+        between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-        raise NotImplementedError("generateFeedback method is not implemented.")
+        error_message = "generate_feedback method is not implemented."
+        raise NotImplementedError(error_message)

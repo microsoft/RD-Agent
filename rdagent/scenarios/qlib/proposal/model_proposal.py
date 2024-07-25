@@ -31,14 +31,15 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
         )
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": ...,
+            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
+            "hypothesis_specification": prompt_dict["model_hypothesis_specification"]
         }
         return context_dict, True
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = QlibModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
         return hypothesis
 
 
@@ -74,9 +75,11 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
         for model_name in response_dict:
             description = response_dict[model_name]["description"]
             formulation = response_dict[model_name]["formulation"]
+            architecture = response_dict[model_name]["architecture"]
             variables = response_dict[model_name]["variables"]
+            hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
-            tasks.append(ModelTask(model_name, description, formulation, variables, model_type))
+            tasks.append(ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type))
         exp = QlibModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp
