@@ -43,17 +43,21 @@ qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
 
 qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
 
-with open(PROP_SETTING.report_result_json_file_path, 'r') as f:
+with open(PROP_SETTING.report_result_json_file_path, "r") as f:
     judge_pdf_data = json.load(f)
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
 
+
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
-    system_prompt = Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
-    user_prompt = Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["user"]).render(
-        factor_descriptions=json.dumps(factor_result),
-        report_content=report_content
+    system_prompt = (
+        Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
+    )
+    user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompts["hypothesis_generation"]["user"])
+        .render(factor_descriptions=json.dumps(factor_result), report_content=report_content)
     )
 
     response = APIBackend().build_messages_and_create_chat_completion(
@@ -68,16 +72,16 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
 
     return Hypothesis(hypothesis=hypothesis_text, reason=reason_text)
 
+
 def extract_factors_and_implement(report_file_path: str) -> tuple:
     scenario = QlibFactorScenario()
 
     with logger.tag("extract_factors_and_implement"):
         with logger.tag("load_factor_tasks"):
-
             exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
             if exp is None or exp.sub_tasks == []:
                 return None, None
-            
+
     docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
 
     factor_result = {
@@ -85,7 +89,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
             "description": task.factor_description,
             "formulation": task.factor_formulation,
             "variables": task.variables,
-            "resources": task.factor_resources
+            "resources": task.factor_resources,
         }
         for task in exp.sub_tasks
     }
@@ -94,6 +98,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
     hypothesis = generate_hypothesis(factor_result, report_content)
 
     return exp, hypothesis
+
 
 trace = Trace(scen=scen)
 

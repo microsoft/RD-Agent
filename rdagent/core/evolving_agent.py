@@ -25,14 +25,16 @@ class EvoAgent(ABC):
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
         filter_final_evo: bool = False,
-    ) -> EvolvableSubjects: ...
+    ) -> EvolvableSubjects:
+        ...
 
     @abstractmethod
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
         feedback: Feedback | None,
-    ) -> EvolvableSubjects: ...
+    ) -> EvolvableSubjects:
+        ...
 
 
 class RAGEvoAgent(EvoAgent):
@@ -51,7 +53,6 @@ class RAGEvoAgent(EvoAgent):
         self.with_knowledge = with_knowledge
         self.with_feedback = with_feedback
         self.knowledge_self_gen = knowledge_self_gen
-
 
     def multistep_evolve(
         self,
@@ -86,7 +87,9 @@ class RAGEvoAgent(EvoAgent):
                 es.feedback = (
                     # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator,
                     # it fails mypy's test here, so we'll ignore this error for now.
-                    eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
+                    eva
+                    if isinstance(eva, Feedback)
+                    else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
                 )
                 logger.log_object(es.feedback, tag="evolving feedback")
 

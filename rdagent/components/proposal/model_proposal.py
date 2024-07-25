@@ -20,6 +20,7 @@ ModelHypothesis = Hypothesis
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+
 class ModelHypothesisGen(HypothesisGen):
     prompts: Prompts = prompt_dict
 

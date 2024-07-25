@@ -7,6 +7,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import DMDockerEnv
 from rdagent.app.data_mining.conf import PROP_SETTING
 
+
 class DMFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -27,5 +28,5 @@ class DMFBWorkspace(FBWorkspace):
         if not csv_path.exists():
             logger.error(f"File {csv_path} does not exist.")
             return None
-        with open(self.workspace_path / "submission.txt", 'r') as f:
+        with open(self.workspace_path / "submission.txt", "r") as f:
             return f.read()

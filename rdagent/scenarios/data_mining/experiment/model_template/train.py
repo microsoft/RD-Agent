@@ -16,6 +16,7 @@ import numpy as np
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
 
+
 class MyDataset(Dataset):
     def __init__(self, x, label, device):
         self.x1 = x
@@ -28,9 +29,11 @@ class MyDataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        return torch.FloatTensor(self.x1[idx]).to(self.device), \
-               torch.tensor(self.label[idx], dtype=torch.float).to(self.device)
-    
+        return torch.FloatTensor(self.x1[idx]).to(self.device), torch.tensor(self.label[idx], dtype=torch.float).to(
+            self.device
+        )
+
+
 def collate_fn(batch):
     x, label = [], []
     for data in batch:
@@ -39,12 +42,12 @@ def collate_fn(batch):
     return torch.stack(x, 0), torch.stack(label, 0)
 
 
-datapath = '/root/.data'
+datapath = "/root/.data"
 # datapath = '/home/v-suhancui/RD-Agent/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3'
 
 
-X = sparse.load_npz(datapath+'/features/ARF_12h/X.npz').todense()
-df_pop = pd.read_csv(datapath+'/population/ARF_12h.csv')['ARF_LABEL']
+X = sparse.load_npz(datapath + "/features/ARF_12h/X.npz").todense()
+df_pop = pd.read_csv(datapath + "/population/ARF_12h.csv")["ARF_LABEL"]
 
 X = X.transpose(0, 2, 1)
 
@@ -56,8 +59,12 @@ X_train, y_train = X[indices[:split_point]], np.array(df_pop[indices[:split_poin
 X_test, y_test = X[indices[split_point:]], np.array(df_pop[indices[split_point:]])
 
 
-train_dataloader = DataLoader(MyDataset(X_train, y_train, device), collate_fn=collate_fn, shuffle=True, drop_last=True, batch_size=64)
-test_dataloader = DataLoader(MyDataset(X_test, y_test, device), collate_fn=collate_fn, shuffle=False, drop_last=False, batch_size=64)
+train_dataloader = DataLoader(
+    MyDataset(X_train, y_train, device), collate_fn=collate_fn, shuffle=True, drop_last=True, batch_size=64
+)
+test_dataloader = DataLoader(
+    MyDataset(X_test, y_test, device), collate_fn=collate_fn, shuffle=False, drop_last=False, batch_size=64
+)
 
 num_features = 4816
 num_timesteps = 12
@@ -88,5 +95,5 @@ acc = roc_auc_score(y_test, np.concatenate(y_pred))
 
 print(acc)
 # Save the predictions to submission.csv
-with open('./submission.txt', 'w') as f:
+with open("./submission.txt", "w") as f:
     f.write(str(acc))

@@ -20,6 +20,7 @@ from rdagent.log import rdagent_logger as logger
 
 from rdagent.utils.workflow import LoopMeta, LoopBase
 
+
 class ModelLoop(LoopBase, metaclass=LoopMeta):
     # TODO: supporting customized loop control like catching `ModelEmptyError`
 
@@ -64,7 +65,7 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
     def feedback(self, prev_out: dict[str, Any]):
         feedback = self.qlib_model_summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
         logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["propose"],prev_out["running"] , feedback))
+        self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
 
 
 def main(path=None, step_n=None):

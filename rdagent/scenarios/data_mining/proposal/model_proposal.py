@@ -30,6 +30,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         class XXXDMModelHypothesisGen(DMModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
+
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -43,7 +44,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "hypothesis_and_feedback": hypothesis_feedback,
             "RAG": "",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": prompt_dict["model_hypothesis_specification"]
+            "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
         }
         return context_dict, True
 

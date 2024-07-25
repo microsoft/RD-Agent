@@ -22,11 +22,11 @@ class DMModelScenario(Scenario):
     @property
     def background(self) -> str:
         return prompt_dict["dm_model_background"]
-    
+
     @property
     def source_data(self) -> str:
         raise NotImplementedError("source_data is not implemented")
-    
+
     @property
     def output_format(self) -> str:
         return prompt_dict["dm_model_output_format"]
