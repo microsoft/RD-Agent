@@ -9,6 +9,7 @@ from typing import Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
+from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
@@ -82,6 +83,12 @@ class Trace(Generic[ASpecificScen]):
 
 
 class HypothesisGen(ABC):
+    # NOTE: the design is a little wierd
+    # - Sometimes we want accurate access the prompts in a specific level
+    #   - It renders the prompt to a specific abstract level
+    # - Sometimes we want to access the most recent level prompts
+    prompts: Prompts  # this is a class level prompt.
+
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 

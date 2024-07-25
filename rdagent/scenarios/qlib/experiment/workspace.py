@@ -17,12 +17,6 @@ class QlibFBWorkspace(FBWorkspace):
         qtde = QTDockerEnv()
         qtde.prepare()
 
-        # Run the Docker command
-        execute_log = qtde.run(
-            local_path=str(self.workspace_path),
-            entry="rm -r mlruns",
-            env=run_env,
-        )
         # Run the Qlib backtest
         execute_log = qtde.run(
             local_path=str(self.workspace_path),

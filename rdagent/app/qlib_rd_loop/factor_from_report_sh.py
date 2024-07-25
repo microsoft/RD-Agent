@@ -7,7 +7,7 @@ from jinja2 import Environment, StrictUndefined
 import pandas as pd
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
-from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.components.document_reader.document_reader import extract_first_page_screenshot_from_pdf, load_and_process_pdfs_by_langchain
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
@@ -88,7 +88,11 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
             exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
             if exp is None or exp.sub_tasks == []:
                 return None, None
-            
+
+        with logger.tag("load_pdf_screenshot"):
+            pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
+            logger.log_object(pdf_screenshot)
+
     docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
 
     factor_result = {
@@ -118,19 +122,30 @@ try:
             report_file_path = Path(file_path.replace(PROP_SETTING.origin_report_path, PROP_SETTING.local_report_path))
             if report_file_path.exists():
                 logger.info(f"Processing {report_file_path}")
-                exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                if exp is None:
-                    continue
-                exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-                if len(exp.based_experiments) == 0:
-                    exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
-                exp = qlib_factor_coder.develop(exp)
-                exp = qlib_factor_runner.develop(exp)
-                if exp is None:
-                    logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
-                    continue
-                feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
+                
+                with logger.tag("r"):
+                    exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                    if exp is None:
+                        continue
+                    exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+                    if len(exp.based_experiments) == 0:
+                        exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+                    logger.log_object(hypothesis, tag="hypothesis generation")
+                    logger.log_object(exp.sub_tasks, tag="experiment generation")
+                
+                with logger.tag("d"):
+                    exp = qlib_factor_coder.develop(exp)
+                    logger.log_object(exp.sub_workspace_list)
 
+                with logger.tag("ef"):
+                    exp = qlib_factor_runner.develop(exp)
+                    if exp is None:
+                        logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
+                        continue
+                    logger.log_object(exp, tag="factor runner result")
+                    feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
+                    logger.log_object(feedback, tag="feedback")
+                
                 trace.hist.append((hypothesis, exp, feedback))
                 logger.info(f"Processed {report_file_path}: Result: {exp}")
                 
