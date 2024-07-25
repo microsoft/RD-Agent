@@ -14,6 +14,6 @@ class FactorRAGEvoAgent(RAGEvoAgent):
         assert len(evo.sub_workspace_list) == len(feedback)
 
         for index in range(len(evo.sub_workspace_list)):
-            if feedback[index] is not None and not feedback[index].final_decision:
+            if feedback[index] and not feedback[index].final_decision:
                 evo.sub_workspace_list[index].clear()
         return evo
