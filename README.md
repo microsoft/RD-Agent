@@ -32,7 +32,7 @@ We have a quick 🎥demo for one use case of RDAgent.
 You can try our demo by running the following command:
 
 ### 🐍 Create a Conda Environment
-- Create a new conda environment with Python 3.10:
+- Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
   ```sh
   conda create -n rdagent python=3.10
   ```
@@ -42,12 +42,16 @@ You can try our demo by running the following command:
   ```
 
 ### 🛠️ Run Make Files
+TODO: `pip install rdagent` in the future.
+
 - **Navigate to the directory containing the MakeFile** and set up the development environment:
   ```sh
   make dev
   ```
 
 ### 📦 Install Pytorch
+TODO: use docker in quick start intead.
+
 - Install Pytorch and related libraries:
   ```sh
   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
@@ -56,24 +60,17 @@ You can try our demo by running the following command:
 
 ### ⚙️ Environment Configuration
 - Place the `.env` file in the same directory as the `.env.example` file.
+  - TOOD: please refer to ... for the detailed explanation of the `.env`
+  - TODO: simplify `.env.example`  only keep OpenAI or Azure Azure OpenAI
 - Export each variable in the `.env` file:
   ```sh
   export $(grep -v '^#' .env | xargs)
   ```
-
-### ☁️ Azure Configuration
-- Install Azure CLI:
-  ```sh
-  curl -L https://aka.ms/InstallAzureCli | bash
-  ```
-- Log in to Azure:
-  ```sh
-  az login --use-device-code
-  ```
-
-- `exit` and re-login to your environment (this step may not be necessary).
-
 ### 🚀 Run the Application
+TODO: run the front-page demo.
+
+The [🎥demo]() is implemented by the above commands.
+
 - Run the factor extraction and implementation application based on financial reports:
   ```sh
   python rdagent/app/qlib_rd_loop/factor_from_report_sh.py
@@ -89,15 +86,6 @@ You can try our demo by running the following command:
   python rdagent/app/qlib_rd_loop/model.py
   ```
 
-
-```bash
-# TODO:
-# prepare environment
-# installation
-# App entrance
-```
-
-The [🎥demo]() is implemented by the above commands.
 
 # Scenarios
 
