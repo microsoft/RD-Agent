@@ -1,39 +1,43 @@
-from pathlib import Path
-
-from pydantic_settings import BaseSettings
+from rdagent.components.workflow.conf import BasePropSetting
 
 
-class PropSetting(BaseSettings):
+class ModelBasePropSetting(BasePropSetting):
     class Config:
-        env_prefix = "QLIB_"  # Use MODEL_CODER_ as prefix for environment variables
+        env_prefix = "QLIB_MODEL_"  # Use MODEL_CODER_ as prefix for environment variables
         protected_namespaces = ()  # Add 'model_' to the protected namespaces
 
-    factor_scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
-    factor_hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesisGen"
-    factor_hypothesis2experiment: str = (
-        "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
-    )
-    factor_coder: str = "rdagent.scenarios.qlib.developer.factor_coder.QlibFactorCoSTEER"
-    factor_runner: str = "rdagent.scenarios.qlib.developer.factor_runner.QlibFactorRunner"
-    factor_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorHypothesisExperiment2Feedback"
-
-    # TODO: model part is not finished yet
-    model_scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
-    model_hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesisGen"
-    model_hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesis2Experiment"
-    model_coder: str = "rdagent.scenarios.qlib.developer.model_coder.QlibModelCoSTEER"
-    model_runner: str = "rdagent.scenarios.qlib.developer.model_runner.QlibModelRunner"
-    model_summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelHypothesisExperiment2Feedback"
+    scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
+    hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesisGen"
+    hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.model_proposal.QlibModelHypothesis2Experiment"
+    coder: str = "rdagent.scenarios.qlib.developer.model_coder.QlibModelCoSTEER"
+    runner: str = "rdagent.scenarios.qlib.developer.model_runner.QlibModelRunner"
+    summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibModelHypothesisExperiment2Feedback"
 
     evolving_n: int = 10
 
-    py_bin: str = "/usr/bin/python"
-    local_qlib_folder: Path = Path("/home/rdagent/qlib")
 
+class FactorBasePropSetting(BasePropSetting):
+    class Config:
+        env_prefix = "QLIB_FACTOR_"  # Use MODEL_CODER_ as prefix for environment variables
+        protected_namespaces = ()  # Add 'model_' to the protected namespaces
+
+    # 1) override base settings
+    # TODO: model part is not finished yet
+    scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
+    hypothesis_gen: str = "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesisGen"
+    hypothesis2experiment: str = "rdagent.scenarios.qlib.proposal.factor_proposal.QlibFactorHypothesis2Experiment"
+    coder: str = "rdagent.scenarios.qlib.developer.factor_coder.QlibFactorCoSTEER"
+    runner: str = "rdagent.scenarios.qlib.developer.factor_runner.QlibFactorRunner"
+    summarizer: str = "rdagent.scenarios.qlib.developer.feedback.QlibFactorHypothesisExperiment2Feedback"
+
+    evolving_n: int = 10
+
+    # 2) sub task specific:
     origin_report_path: str = "data/report_origin"
     local_report_path: str = "data/report"
     report_result_json_file_path: str = "git_ignore_folder/res_dict.json"
     progress_file_path: str = "git_ignore_folder/progress.pkl"
 
 
-PROP_SETTING = PropSetting()
+FACTOR_PROP_SETTING = FactorBasePropSetting()
+MODEL_PROP_SETTING = ModelBasePropSetting()
