@@ -9,9 +9,8 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
-
-if TYPE_CHECKING:
-    from rdagent.core.scenario import Scenario
+from rdagent.core.prompts import Prompts
+from rdagent.core.scenario import Scenario
 
 # class data_ana: XXX
 
@@ -24,9 +23,10 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str) -> None:
+    def __init__(self, hypothesis: str, reason: str, concise_reason = str) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
+        self.concise_reason: str = concise_reason
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
@@ -83,6 +83,12 @@ class Trace(Generic[ASpecificScen]):
 
 
 class HypothesisGen(ABC):
+    # NOTE: the design is a little wierd
+    # - Sometimes we want accurate access the prompts in a specific level
+    #   - It renders the prompt to a specific abstract level
+    # - Sometimes we want to access the most recent level prompts
+    prompts: Prompts  # this is a class level prompt.
+
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 

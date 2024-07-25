@@ -437,21 +437,36 @@ class FactorFinalDecisionEvaluator(Evaluator):
             else:
                 break
 
-        final_evaluation_dict = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-            ),
-        )
-        if isinstance(final_evaluation_dict["final_decision"], str) and final_evaluation_dict[
-            "final_decision"
-        ].lower() in ("true", "false"):
-            final_evaluation_dict["final_decision"] = bool(final_evaluation_dict["final_decision"])
-        return (
-            final_evaluation_dict["final_decision"],
-            final_evaluation_dict["final_feedback"],
-        )
+        # TODO:  with retry_context(retry_n=3, except_list=[KeyError]):
+        final_evaluation_dict = None
+        attempts = 0
+        max_attempts = 3
+
+        while attempts < max_attempts:
+            try:
+                final_evaluation_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
+                        json_mode=True,
+                    ),
+                )
+                final_decision = final_evaluation_dict["final_decision"]
+                final_feedback = final_evaluation_dict["final_feedback"]
+
+                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
+                    final_decision = bool(final_decision)
+
+                return final_decision, final_feedback
+
+            except json.JSONDecodeError as e:
+                raise ValueError("Failed to decode JSON response from API.") from e
+            except KeyError as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise KeyError("Response from API is missing 'final_decision' or 'final_feedback' key after multiple attempts.") from e
+        
+        return None, None
 
 
 class FactorSingleFeedback:

@@ -7,41 +7,37 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
-from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
+from rdagent.scenarios.data_mining.experiment.workspace import DMFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWorkspace]):
+class DMModelExperiment(ModelExperiment[ModelTask, DMFBWorkspace, ModelFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = QlibFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
+        self.experiment_workspace = DMFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
 
 
-class QlibModelScenario(Scenario):
+class DMModelScenario(Scenario):
     @property
     def background(self) -> str:
-        return prompt_dict["qlib_model_background"]
-
+        return prompt_dict["dm_model_background"]
+    
     @property
     def source_data(self) -> str:
-        raise NotImplementedError("source_data of QlibModelScenario is not implemented")
-
+        raise NotImplementedError("source_data is not implemented")
+    
     @property
     def output_format(self) -> str:
-        return prompt_dict["qlib_model_output_format"]
+        return prompt_dict["dm_model_output_format"]
 
     @property
     def interface(self) -> str:
-        return prompt_dict["qlib_model_interface"]
+        return prompt_dict["dm_model_interface"]
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["qlib_model_simulator"]
-    
-    @property
-    def rich_style_description(self)->str:
-        return "Below is QlibModel Evolving Automatic R&D Demo."
+        return prompt_dict["dm_model_simulator"]
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
