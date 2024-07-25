@@ -24,11 +24,11 @@ from rdagent.core.experiment import Task, Workspace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
-
 EVAL_RES = Dict[
     str,
     List[Tuple[FactorEvaluator, Union[object, RunnerException]]],
 ]
+
 
 class TestCase:
     def __init__(
@@ -196,4 +196,3 @@ class FactorImplementEval(BaseEval):
                 sum_res[key] = val
 
         return pd.DataFrame(sum_res)
-
