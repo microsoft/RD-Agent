@@ -650,7 +650,7 @@ class APIBackend:
                     presence_penalty=presence_penalty,
                 )
                 if json_mode:
-                    kwargs["response_format"]={"type": "json_object"}
+                    kwargs["response_format"] = {"type": "json_object"}
                 response = self.chat_client.chat.completions.create(**kwargs)
             else:
                 if json_mode:
