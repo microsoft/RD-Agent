@@ -213,7 +213,7 @@ class ModelTaskWindow(StWindow):
         self.container.markdown(f"**Model Name**: {mt.name}")
         self.container.markdown(f"**Model Type**: {mt.model_type}")
         self.container.markdown(f"**Description**: {mt.description}")
-        self.container.markdown(f"**Formulation**: {mt.formulation}")
+        self.container.latex(f"Formulation: {mt.formulation}")
         
         variables_df = pd.DataFrame(mt.variables, index=['Value']).T
         variables_df.index.name = 'Variable'
@@ -462,6 +462,10 @@ class ResearchWindow(StWindow):
                 elif isinstance(msg.content[0], ModelTask):
                     self.container.markdown('**Model Tasks**')
                     ObjectsTabsWindow(self.container.container(), ModelTaskWindow, lambda x: x.name).consume_msg(msg)
+        elif msg.tag.endswith('load_pdf_screenshot'):
+            self.container.image(msg.content)
+        elif msg.tag.endswith('load_factor_tasks'):
+            self.container.json(msg.content)
 
 
 class EvolvingWindow(StWindow):
