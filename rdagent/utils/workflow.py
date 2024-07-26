@@ -90,7 +90,7 @@ class LoopBase:
                 except self.skip_loop_error as e:
                     logger.warning(f"Skip loop {li} due to {e}")
                     self.loop_idx += 1
-                    self.step_index = 0
+                    self.step_idx = 0
                     continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)
