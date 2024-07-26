@@ -23,7 +23,7 @@ Scenario lists
      - 
 
 Scnarios' demo & quick start
-=========================
+============================
 
 Scen1
 -----
@@ -69,7 +69,7 @@ TODO: Show some examples:
 
 
 Scen2: 
------
+------
 📄 Research Report-Based Factor Extraction
 
 Scen2 Intro

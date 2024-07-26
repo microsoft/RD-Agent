@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class BasePropSetting(BaseSettings):
     """
     The common part of the config for RD Loop to propose and developement
@@ -11,6 +12,7 @@ class BasePropSetting(BaseSettings):
             env_prefix = "DM_MODEL_"  # Use MODEL_CODER_ as prefix for environment variables
             protected_namespaces = ()  # Add 'model_' to the protected namespaces
     """
+
     scen: str = ""
     hypothesis_gen: str = ""
     hypothesis2experiment: str = ""

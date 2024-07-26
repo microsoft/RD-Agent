@@ -4,7 +4,7 @@ requires = [
   "setuptools",
   "setuptools-scm",
 ]
-root= "rdagent"
+root = "rdagent"
 
 [project]
 authors = [
@@ -27,13 +27,12 @@ dynamic = [
 ]
 keywords = [
   "Autonomous Agents",
-  "Research and Development",
   "Large Language Models",
+  "Research and Development",
 ]
 name = "rdagent"
 readme = "README.md"
 requires-python = ">=3.8"
-
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
@@ -52,13 +51,13 @@ color_output = true
 profile = "black"
 
 [tool.mypy]
-explicit_package_bases = true
 check_untyped_defs = true
 disallow_any_unimported = true
 disallow_untyped_defs = true
 enable_error_code = [
   "ignore-without-code",
 ]
+explicit_package_bases = true
 warn_return_any = true
 warn_unused_ignores = true
 

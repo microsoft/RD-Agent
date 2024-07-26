@@ -3,13 +3,17 @@ import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
+from logging import LogRecord
 from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Union, Generator, Dict, Any
-from logging import LogRecord
+from typing import TYPE_CHECKING, Any, Dict, Generator, Union
 
-from loguru import Record, logger
+from loguru import logger
+
+if TYPE_CHECKING:
+    from loguru import Record
+
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -97,7 +101,7 @@ class RDAgentLog(SingletonBaseClass):
             process = parent_process
         return pid_chain
 
-    def file_format(self, record: Record, raw: bool = False) -> str:
+    def file_format(self, record: "Record", raw: bool = False) -> str:
         # FIXME: the formmat is tightly coupled with the message reading in storage.
         record["message"] = LogColors.remove_ansi_codes(record["message"])
         if raw:

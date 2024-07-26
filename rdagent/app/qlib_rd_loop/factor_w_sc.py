@@ -31,8 +31,3 @@ def main(path=None, step_n=None):
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-
-
-if __name__ == "__main__":
-    fire.Fire(main)

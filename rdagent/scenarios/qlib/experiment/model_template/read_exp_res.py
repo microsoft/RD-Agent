@@ -39,7 +39,6 @@ else:
     # Load the specified file from the latest recorder
     metrics = pd.Series(latest_recorder.list_metrics())
 
-
     output_path = Path(__file__).resolve().parent / "qlib_res.csv"
     metrics.to_csv(output_path)
 

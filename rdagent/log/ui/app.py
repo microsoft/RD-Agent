@@ -1,9 +1,15 @@
-from rdagent.log.ui.web import WebView, SimpleTraceWindow, TraceObjWindow, mock_msg, TraceWindow
-from rdagent.log.storage import FileStorage, Message
-from rdagent.core.proposal import Trace
-from pathlib import Path
 import pickle
+from pathlib import Path
 
+from rdagent.core.proposal import Trace
+from rdagent.log.storage import FileStorage, Message
+from rdagent.log.ui.web import (
+    SimpleTraceWindow,
+    TraceObjWindow,
+    TraceWindow,
+    WebView,
+    mock_msg,
+)
 
 # show logs folder
 WebView(TraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/yuante/2024-07-24_04-03-33-691119"))
