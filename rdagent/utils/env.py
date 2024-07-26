@@ -144,15 +144,20 @@ class QlibDockerConf(DockerConf):
 
 class DMDockerConf(DockerConf):
     class Config:
-        env_prefix = "DM_DOCKER_"  
+        env_prefix = "DM_DOCKER_"
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
     image: str = "local_dm:latest"
     mount_path: str = "/workspace/dm_workspace/"
     default_entry: str = "python train.py"
-    extra_volumes: dict = {Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(): "/root/.data/"}
+    extra_volumes: dict = {
+        Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
+        .expanduser()
+        .resolve(): "/root/.data/"
+    }
     shm_size: str | None = "16g"
+
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
@@ -181,9 +186,9 @@ class DockerEnv(Env[DockerConf]):
         if not self.conf.enable_gpu:
             return {}
         gpu_kwargs = {
-            "device_requests": [
-                docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
-            ] if self.conf.enable_gpu else None,
+            "device_requests": [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
+            if self.conf.enable_gpu
+            else None,
         }
         try:
             client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
@@ -220,7 +225,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
-                **self._gpu_kwargs(client)
+                **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
             for log in logs:
@@ -273,7 +278,9 @@ class DMDockerEnv(DockerEnv):
         data_path = next(iter(self.conf.extra_volumes.keys()))
         if not (Path(data_path)).exists():
             logger.info("We are downloading!")
-            cmd = 'wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/'.format(username, password)
+            cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
+                username, password
+            )
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")

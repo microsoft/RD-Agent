@@ -39,9 +39,9 @@ class QlibFactorScenario(Scenario):
     @property
     def simulator(self) -> str:
         return prompt_dict["qlib_factor_simulator"]
-    
+
     @property
-    def rich_style_description(self)->str:
+    def rich_style_description(self) -> str:
         return "Below is QlibFactor Evolving Automatic R&D Demo."
 
     def get_scenario_all_desc(self) -> str:

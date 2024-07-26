@@ -18,6 +18,7 @@ class SingletonBaseClass:
     Because we try to support defining Singleton with `class A(SingletonBaseClass)`
     instead of `A(metaclass=SingletonMeta)` this class becomes necessary.
     """
+
     _instance_dict: ClassVar[dict] = {}
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Any:
@@ -32,7 +33,6 @@ class SingletonBaseClass:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
             cls._instance_dict[kwargs_hash].__init__(**kwargs)  # Ensure __init__ is called
         return cls._instance_dict[kwargs_hash]
-
 
 
 def parse_json(response: str) -> Any:

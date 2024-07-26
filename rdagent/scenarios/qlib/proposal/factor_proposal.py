@@ -39,7 +39,11 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
     def convert_response(self, response: str) -> FactorHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibFactorHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
+        hypothesis = QlibFactorHypothesis(
+            hypothesis=response_dict["hypothesis"],
+            reason=response_dict["reason"],
+            concise_reason=response_dict["concise_reason"],
+        )
         return hypothesis
 
 
@@ -78,15 +82,15 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
             tasks.append(FactorTask(factor_name, description, formulation, variables))
-        
+
         exp = QlibFactorExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-        
+
         if len(exp.based_experiments) == 0:
             exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
 
         unique_tasks = []
-        
+
         for task in tasks:
             duplicate = False
             for based_exp in exp.based_experiments:

@@ -10,11 +10,7 @@ import pandas as pd
 from filelock import FileLock
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
-from rdagent.core.exception import (
-    CodeFormatError,
-    NoOutputError,
-    CustomRuntimeError,
-)
+from rdagent.core.exception import CodeFormatError, CustomRuntimeError, NoOutputError
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash

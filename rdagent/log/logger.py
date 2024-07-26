@@ -3,15 +3,17 @@ import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
+from logging import LogRecord
 from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import TYPE_CHECKING, Union, Generator, Dict, Any
-from logging import LogRecord
+from typing import TYPE_CHECKING, Any, Dict, Generator, Union
 
 from loguru import logger
+
 if TYPE_CHECKING:
     from loguru import Record
+
 from psutil import Process
 
 from rdagent.core.conf import RD_AGENT_SETTINGS

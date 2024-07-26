@@ -11,11 +11,17 @@ For Development
    make dev
    ```
 
-- Run linting and formatting.
+- Run linting and checking.
 
    ```bash
    make lint
    ```
+
+- Some linting issues can be fixed automatically. We have added a command in the Makefile for easy use.
+
+  ```bash
+  make auto-lint
+  ```
 
 
 Code Structure

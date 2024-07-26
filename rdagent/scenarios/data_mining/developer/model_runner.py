@@ -15,7 +15,6 @@ from rdagent.utils.env import DMDockerEnv
 
 
 class DMModelRunner(CachedRunner[DMModelExperiment]):
-
     def develop(self, exp: DMModelExperiment) -> DMModelExperiment:
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
