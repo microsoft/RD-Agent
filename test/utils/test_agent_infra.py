@@ -5,12 +5,8 @@ from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
 
-
-
 class TestAgentInfra(unittest.TestCase):
-
     def test_agent_infra(self):
-
         # NOTE: It is not serious. It is just for testing
         sys_prompt = T("components.proposal.prompts:hypothesis_gen.system_prompt").r(
             targets="targets",
