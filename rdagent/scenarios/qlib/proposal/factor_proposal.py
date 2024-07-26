@@ -39,7 +39,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
     def convert_response(self, response: str) -> FactorHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibFactorHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = QlibFactorHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
         return hypothesis
 
 
