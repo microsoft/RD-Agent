@@ -197,4 +197,3 @@ class FactorImplementEval(BaseEval):
                 sum_res[key] = val
 
         return pd.DataFrame(sum_res)
-
