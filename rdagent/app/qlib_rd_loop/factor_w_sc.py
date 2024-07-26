@@ -3,6 +3,7 @@ Factor workflow with session control
 """
 
 from typing import Any
+
 import fire
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
