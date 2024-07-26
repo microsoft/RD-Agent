@@ -27,9 +27,7 @@ class SingletonBaseClass:
             # TODO: this restriction can be solved.
             exception_message = "Please only use kwargs in Singleton to avoid misunderstanding."
             raise RDAgentException(exception_message)
-        all_args = (
-            [(-1, f"{cls.__module__}.{cls.__name__}")] + [(i, args[i]) for i in args] + list(sorted(kwargs.items()))
-        )
+        all_args = [(-1, f"{cls.__module__}.{cls.__name__}")] + [(i, args[i]) for i in args] + list(sorted(kwargs.items()))
         kwargs_hash = hash(tuple(all_args))
         if kwargs_hash not in cls._instance_dict:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
