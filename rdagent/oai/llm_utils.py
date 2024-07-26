@@ -639,6 +639,19 @@ class APIBackend:
                         frequency_penalty=frequency_penalty,
                         presence_penalty=presence_penalty,
                     )
+                kwargs = dict(
+                    model=self.chat_model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    stream=self.chat_stream,
+                    seed=self.chat_seed,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
+                )
+                if json_mode:
+                    kwargs["response_format"]={"type": "json_object"}
+                response = self.chat_client.chat.completions.create(**kwargs)
             else:
                 if json_mode:
                     if add_json_in_prompt:
