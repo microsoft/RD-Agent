@@ -81,7 +81,7 @@ constraints: deepclean
 
 # Check lint with black.
 black:
-	$(PIPRUN) python -m black --check . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
+	$(PIPRUN) python -m black --check --diff . --extend-exclude test/scripts --extend-exclude git_ignore_folder -l 120
 
 # Check lint with isort.
 isort:
