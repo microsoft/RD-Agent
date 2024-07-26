@@ -63,7 +63,7 @@ class ModelLoop(LoopBase, metaclass=LoopMeta):
 
     def feedback(self, prev_out: dict[str, Any]):
         feedback = self.qlib_model_summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
-        logger.log_object(feedback, tag="feedback")
+        logger.log_object(feedback, tag="ef.feedback")
         self.trace.hist.append((prev_out["propose"],prev_out["running"] , feedback))
 
 
