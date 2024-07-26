@@ -559,13 +559,15 @@ class TraceWindow(StWindow):
     def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = False):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
-        container.container(border=True).markdown(QlibModelScenario().rich_style_description)
+        image_c, scen_c = container.columns([2,3], vertical_alignment='center')
+        image_c.image('scen.jpg')
+        scen_c.container(border=True).markdown(QlibModelScenario().rich_style_description)
         top_container = container.container()
         col1, col2 = top_container.columns([2,3])
-        chart_c = col2.container(border=True, height=300)
+        chart_c = col2.container(border=True, height=500)
         chart_c.markdown('**Metrics📈**')
         self.chart_c = chart_c.empty()
-        hypothesis_status_c = col1.container(border=True, height=300)
+        hypothesis_status_c = col1.container(border=True, height=500)
         hypothesis_status_c.markdown('**Hypotheses🏅**')
         self.summary_c = hypothesis_status_c.empty()
 
@@ -590,7 +592,7 @@ class TraceWindow(StWindow):
             self.hypotheses.append(msg.content)
         elif msg.tag.endswith('ef.feedback'):
             self.hypothesis_decisions[self.hypotheses[-1]] = msg.content.decision
-            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{h}]\n\t>*{self.hypotheses[id].concise_reason}*" if d else f"{id+1}. {h}\n\t>*{self.hypotheses[id].concise_reason}*" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
+            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*" if d else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
         elif msg.tag.endswith('ef.model runner result') or msg.tag.endswith('ef.factor runner result'):
             self.results.append(msg.content.result)
             if len(self.results) == 1:
