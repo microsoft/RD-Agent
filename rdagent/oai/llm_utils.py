@@ -640,14 +640,34 @@ class APIBackend:
                         presence_penalty=presence_penalty,
                     )
             else:
-                response = self.chat_client.chat.completions.create(
-                    model=self.chat_model,
-                    messages=messages,
-                    stream=self.chat_stream,
-                    seed=self.chat_seed,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
+                if json_mode:
+                    if add_json_in_prompt:
+                        for message in messages[::-1]:
+                            message["content"] = message["content"] + "\nPlease respond in json format."
+                            if message["role"] == "system":
+                                break
+                    response = self.chat_client.chat.completions.create(
+                        model=self.chat_model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        response_format={"type": "json_object"},
+                        stream=self.chat_stream,
+                        seed=self.chat_seed,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                    )
+                else:
+                    response = self.chat_client.chat.completions.create(
+                        model=self.chat_model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        stream=self.chat_stream,
+                        seed=self.chat_seed,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                    )
             if self.chat_stream:
                 resp = ""
                 # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
