@@ -112,6 +112,26 @@ class FileStorage(Storage):
 
                 msg_l.append(m)
 
+        for file in self.path.glob("**/*.pkl"):
+            tag = '.'.join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            pid = file.parent.name
+
+            with file.open("rb") as f:
+                content = pickle.load(f)
+
+            timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
+
+            m = Message(
+                tag=tag,
+                level="INFO",
+                timestamp=timestamp,
+                caller="",
+                pid_trace=pid,
+                content=content
+            )
+
+            msg_l.append(m)
+
         msg_l.sort(key=lambda x: x.timestamp)
         for m in msg_l:
             yield m

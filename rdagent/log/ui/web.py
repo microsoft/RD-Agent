@@ -15,7 +15,7 @@ from streamlit.delta_generator import DeltaGenerator
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment, QlibModelScenario
 
 from rdagent.components.coder.factor_coder.factor import FactorTask, FactorFBWorkspace
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import FactorSingleFeedback
@@ -515,16 +515,6 @@ class DevelopmentWindow(StWindow):
     def consume_msg(self, msg: Message):
         if 'evolving' in msg.tag:
             self.E_win.consume_msg(msg)
-        # elif msg.tag.endswith('result'):
-        #     self.container.subheader('Results')
-        #     if isinstance(msg.content[0], FactorFBWorkspace):
-        #         ObjectsTabsWindow(self.container.expander('Factor Workspaces'),
-        #                             inner_class=WorkspaceWindow,
-        #                             mapper=lambda x: x.target_task.factor_name).consume_msg(msg)
-        #     elif isinstance(msg.content[0], ModelFBWorkspace):
-        #         ObjectsTabsWindow(self.container.expander('Model Workspaces'),
-        #                             inner_class=WorkspaceWindow,
-        #                             mapper=lambda x: x.target_task.name).consume_msg(msg)
 
 
 class FeedbackWindow(StWindow):
@@ -533,7 +523,11 @@ class FeedbackWindow(StWindow):
         self.container = container
 
     def consume_msg(self, msg: Message):
-        if isinstance(msg.content, HypothesisFeedback):
+        if msg.tag.endswith('returns'):
+            fig = px.line(msg.content)
+            self.container.markdown('**Returns📈**')
+            self.container.plotly_chart(fig)
+        elif isinstance(msg.content, HypothesisFeedback):
             HypothesisFeedbackWindow(self.container.container(border=True)).consume_msg(msg)
         elif isinstance(msg.content, QlibModelExperiment):
             QlibModelExpWindow(self.container.container(border=True)).consume_msg(msg)
@@ -565,7 +559,7 @@ class TraceWindow(StWindow):
     def __init__(self, container: 'DeltaGenerator' = st.container(), show_llm: bool = False, show_common_logs: bool = False):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
-
+        container.container(border=True).markdown(QlibModelScenario().rich_style_description)
         top_container = container.container()
         col1, col2 = top_container.columns([2,3])
         chart_c = col2.container(border=True, height=300)
@@ -581,7 +575,7 @@ class TraceWindow(StWindow):
                                        title='R&D Loops♾️')
         
         self.hypothesis_decisions = defaultdict(bool)
-        self.current_hypothesis = None
+        self.hypotheses: list[Hypothesis] = []
 
         self.results = []
 
@@ -593,10 +587,10 @@ class TraceWindow(StWindow):
         if isinstance(msg.content, dict):
             return
         if msg.tag.endswith('hypothesis generation'):
-            self.current_hypothesis = msg.content.hypothesis
+            self.hypotheses.append(msg.content)
         elif msg.tag.endswith('ef.feedback'):
-            self.hypothesis_decisions[self.current_hypothesis] = msg.content.decision
-            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{h}]\n" if d else f"{id+1}. {h}\n" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
+            self.hypothesis_decisions[self.hypotheses[-1]] = msg.content.decision
+            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{h}]\n\t>*{self.hypotheses[id].concise_reason}*" if d else f"{id+1}. {h}\n\t>*{self.hypotheses[id].concise_reason}*" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
         elif msg.tag.endswith('ef.model runner result') or msg.tag.endswith('ef.factor runner result'):
             self.results.append(msg.content.result)
             if len(self.results) == 1:
