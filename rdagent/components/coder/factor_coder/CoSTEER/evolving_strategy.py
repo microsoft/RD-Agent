@@ -68,8 +68,12 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
         if FACTOR_IMPLEMENT_SETTINGS.select_ratio < 1:
             # if the number of loops is equal to the select_loop, we need to select some of them
-            implementation_factors_per_round = round(FACTOR_IMPLEMENT_SETTINGS.select_ratio * len(to_be_finished_task_index) + 0.5)  # ceilling
-            implementation_factors_per_round = min(implementation_factors_per_round, len(to_be_finished_task_index))  # but not exceed the total number of tasks
+            implementation_factors_per_round = round(
+                FACTOR_IMPLEMENT_SETTINGS.select_ratio * len(to_be_finished_task_index) + 0.5
+            )  # ceilling
+            implementation_factors_per_round = min(
+                implementation_factors_per_round, len(to_be_finished_task_index)
+            )  # but not exceed the total number of tasks
 
             if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
                 to_be_finished_task_index = RandomSelect(

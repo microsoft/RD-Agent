@@ -16,7 +16,7 @@ author = "Microsoft"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
+    "sphinx.ext.autodoc",
 ]
 
 autodoc_member_order = "bysource"

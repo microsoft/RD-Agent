@@ -111,10 +111,20 @@ factor_hypothesis_specification: |-
     - Explore sophisticated combinations or new types of factors, e.g., "Develop a composite factor integrating ESG scores with traditional financial metrics."
 
   Important Note:
-  - If a hypothesis achieves the desired results, start a new direction while preserving the effective factors from previous hypotheses.
-  - New evaluations should combine the newly proposed factors with previously successful factors that surpassed SOTA.
-  - If the previous hypothesis factor exceeds SOTA, you can write another factor in the same direction, otherwise, explore new directions.
-  - The final maintained SOTA is the continuous accumulation of factors that surpass each iteration.
+    Logic Explanation:
+      - If the previous hypothesis factor exceeds SOTA, the SOTA factor library will include this factor.
+      - The new experiment will generate new factors, which will be combined with the factors in the SOTA library.
+      - These combined factors will be backtested and compared against the current SOTA to iterate continuously.
+    Development Directions:
+      - New Direction:
+          - Propose a new factor direction for exploration and construction.
+      - Optimization of Existing Direction:
+          - If the previous experiment's factor replaced SOTA, you can further improve upon that factor.
+          - Clearly specify the differences in name and improvements compared to the previous factor.
+      - Continued Research:
+          - If the previous experiment's factor did not replace SOTA, continue researching how to optimize and construct factors in this direction.
+    Final Goal:
+      - The final maintained SOTA should be the continuous accumulation of factors that surpass each iteration.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:

@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 from rdagent.components.workflow.conf import BasePropSetting
 
 
@@ -19,11 +18,11 @@ class PropSetting(BasePropSetting):
 
     evolving_n: int = 10
 
-    # 2) Extra config for the scenario 
+    # 2) Extra config for the scenario
     # physionet account
     # NOTE: You should apply the account in https://physionet.org/
-    username: str = ''
-    password: str = ''
+    username: str = ""
+    password: str = ""
 
 
 PROP_SETTING = PropSetting()

@@ -1,9 +1,9 @@
-import re
 import json
 import pickle
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Generator, Union, Any, cast
+from typing import Any, Generator, Literal, Union, cast
 
 from .base import Message, Storage
 
@@ -16,7 +16,6 @@ class FileStorage(Storage):
 
     TODO: describe the storage format
     """
-
 
     def __init__(self, path: str | Path = "./log/") -> None:
         self.path = Path(path)
@@ -69,7 +68,7 @@ class FileStorage(Storage):
     def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
         msg_l = []
         for file in self.path.glob("**/*.log"):
-            tag = '.'.join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            tag = ".".join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
             with file.open("r") as f:
@@ -92,12 +91,7 @@ class FileStorage(Storage):
                 message_content = content[message_start:message_end].strip()
 
                 m = Message(
-                    tag=tag,
-                    level=level,
-                    timestamp=timestamp,
-                    caller=caller,
-                    pid_trace=pid,
-                    content=message_content
+                    tag=tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
                 )
 
                 if isinstance(m.content, str) and "Logging object in" in m.content:
@@ -119,7 +113,6 @@ class FileStorage(Storage):
     def truncate(self, time: datetime) -> None:
         # any message later than `time` will be removed
         for file in self.path.glob("**/*.log"):
-
             with file.open("r") as f:
                 content = f.read()
 
@@ -135,7 +128,7 @@ class FileStorage(Storage):
 
                 log_start = match.start()
                 log_end = next_match.start() if next_match else len(content)
-                msg = content[match.end():log_end].strip()
+                msg = content[match.end() : log_end].strip()
 
                 if timestamp > time:
                     if "Logging object in" in msg:

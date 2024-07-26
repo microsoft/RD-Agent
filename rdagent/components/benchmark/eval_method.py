@@ -19,11 +19,15 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
-
 from rdagent.core.exception import CoderException, RunnerException
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
+
+EVAL_RES = Dict[
+    str,
+    List[Tuple[FactorEvaluator, Union[object, RunnerException]]],
+]
 
 
 EVAL_RES = Dict[
@@ -197,4 +201,3 @@ class FactorImplementEval(BaseEval):
                 sum_res[key] = val
 
         return pd.DataFrame(sum_res)
-
