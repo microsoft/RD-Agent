@@ -12,20 +12,45 @@ For different scenarios
 Configuration
 =============
 
-Quick configuration
+To run the application, please create a `.env` file in the root directory of the project and add the following environment variables according to your requirements.
 
 
+OpenAI API
+------------
 
+If you are using the OpenAI API, here are the related environment variables that you need to set:
+
+   .. code-block:: Properties
+
+      EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
+      EMBEDDING_OPENAI_MODEL=text-embedding-3-small
+
+      CHAT_MODEL=gpt-4-turbo
 
 Azure OpenAI
 ------------
 
+The following environment variables are standard configuration options for the user using the OpenAI API.
 
+   .. code-block:: Properties
+      
+      USE_AZURE=True
 
-USE_AZURE_TOKEN_PROVIDER
-~~~~~~~~~~~~~~~~~~~~~~~~
+      EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
+      EMBEDDING_OPENAI_MODEL=text-embedding-3-small
+      EMBEDDING_AZURE_API_BASE= # The base URL for the Azure OpenAI API.
+      EMBEDDING_AZURE_API_VERSION = # The version of the Azure OpenAI API.
 
-### ☁️ Azure Configuration
+      CHAT_MODEL=gpt-4-turbo
+      CHAT_AZURE_API_VERSION = # The version of the Azure OpenAI API.
+
+Use Azure Token Provider
+------------------------
+
+If you are using the Azure token provider, you need to set the `USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
+use the environment variables provided in the [Azure Configuration section](#azure-configuration).
+
+☁️ Azure Configuration
 - Install Azure CLI:
 
    ```sh
