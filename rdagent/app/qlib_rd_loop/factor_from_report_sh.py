@@ -132,7 +132,9 @@ for index in range(start_index, len(judge_pdf_data_items)):
         break
     file_path, attributes = judge_pdf_data_items[index]
     if attributes["class"] == 1:
-        report_file_path = Path(file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path))
+        report_file_path = Path(
+            file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
+        )
         if report_file_path.exists():
             logger.info(f"Processing {report_file_path}")
 

@@ -14,7 +14,7 @@ from rdagent.log import rdagent_logger as logger
 
 class FactorRDLoop(RDLoop):
     skip_loop_error = (FactorEmptyError,)
-    
+
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             exp = self.runner.develop(prev_out["coding"])
