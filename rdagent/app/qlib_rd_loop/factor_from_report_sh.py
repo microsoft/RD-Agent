@@ -125,50 +125,50 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
 
 trace, start_index = load_progress()
 
-# try:
-judge_pdf_data_items = list(judge_pdf_data.items())
-for index in range(start_index, len(judge_pdf_data_items)):
-    if index > 1000:
-        break
-    file_path, attributes = judge_pdf_data_items[index]
-    if attributes["class"] == 1:
-        report_file_path = Path(
-            file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
-        )
-        if report_file_path.exists():
-            logger.info(f"Processing {report_file_path}")
+try:
+    judge_pdf_data_items = list(judge_pdf_data.items())
+    for index in range(start_index, len(judge_pdf_data_items)):
+        if index > 1000:
+            break
+        file_path, attributes = judge_pdf_data_items[index]
+        if attributes["class"] == 1:
+            report_file_path = Path(
+                file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
+            )
+            if report_file_path.exists():
+                logger.info(f"Processing {report_file_path}")
 
-            with logger.tag("r"):
-                exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                if exp is None:
-                    continue
-                exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-                if len(exp.based_experiments) == 0:
-                    exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
-                logger.log_object(hypothesis, tag="hypothesis generation")
-                logger.log_object(exp.sub_tasks, tag="experiment generation")
+                with logger.tag("r"):
+                    exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                    if exp is None:
+                        continue
+                    exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+                    if len(exp.based_experiments) == 0:
+                        exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+                    logger.log_object(hypothesis, tag="hypothesis generation")
+                    logger.log_object(exp.sub_tasks, tag="experiment generation")
 
-            with logger.tag("d"):
-                exp = qlib_factor_coder.develop(exp)
-                logger.log_object(exp.sub_workspace_list)
+                with logger.tag("d"):
+                    exp = qlib_factor_coder.develop(exp)
+                    logger.log_object(exp.sub_workspace_list)
 
-            with logger.tag("ef"):
-                exp = qlib_factor_runner.develop(exp)
-                if exp is None:
-                    logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
-                    continue
-                logger.log_object(exp, tag="factor runner result")
-                feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
-                logger.log_object(feedback, tag="feedback")
+                with logger.tag("ef"):
+                    exp = qlib_factor_runner.develop(exp)
+                    if exp is None:
+                        logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
+                        continue
+                    logger.log_object(exp, tag="factor runner result")
+                    feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
+                    logger.log_object(feedback, tag="feedback")
 
-            trace.hist.append((hypothesis, exp, feedback))
-            logger.info(f"Processed {report_file_path}: Result: {exp}")
+                trace.hist.append((hypothesis, exp, feedback))
+                logger.info(f"Processed {report_file_path}: Result: {exp}")
 
-            # Save progress after processing each report
-            save_progress(trace, index + 1)
-        else:
-            logger.error(f"File not found: {report_file_path}")
-# except Exception as e:
-#     logger.error(f"An error occurred: {e}")
-#     save_progress(trace, index)
-#     raise
+                # Save progress after processing each report
+                save_progress(trace, index + 1)
+            else:
+                logger.error(f"File not found: {report_file_path}")
+except Exception as e:
+    logger.error(f"An error occurred: {e}")
+    save_progress(trace, index)
+    raise
