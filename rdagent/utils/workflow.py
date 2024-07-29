@@ -35,7 +35,10 @@ class LoopMeta(type):
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("__") and isinstance(attr, Callable):
-                steps.append(name)
+                if name not in steps:
+                    # NOTE: if we override the step in the subclass
+                    # Then it is not the new step. So we skip it.
+                    steps.append(name)
         attrs["steps"] = steps
         return super().__new__(cls, clsname, bases, attrs)
 

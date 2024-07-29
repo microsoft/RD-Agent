@@ -7,7 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
@@ -37,19 +37,19 @@ from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
 
 assert load_dotenv()
 
-scen: Scenario = import_class(PROP_SETTING.factor_scen)()
+scen: Scenario = import_class(FACTOR_PROP_SETTING.scen)()
 
-hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.factor_hypothesis_gen)(scen)
+hypothesis_gen: HypothesisGen = import_class(FACTOR_PROP_SETTING.hypothesis_gen)(scen)
 
-hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.factor_hypothesis2experiment)()
+hypothesis2experiment: Hypothesis2Experiment = import_class(FACTOR_PROP_SETTING.hypothesis2experiment)()
 
-qlib_factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
+qlib_factor_coder: Developer = import_class(FACTOR_PROP_SETTING.coder)(scen)
 
-qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
+qlib_factor_runner: Developer = import_class(FACTOR_PROP_SETTING.runner)(scen)
 
-qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
+qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(FACTOR_PROP_SETTING.summarizer)(scen)
 
-with open(PROP_SETTING.report_result_json_file_path, "r") as f:
+with open(FACTOR_PROP_SETTING.report_result_json_file_path, "r") as f:
     judge_pdf_data = json.load(f)
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
@@ -57,13 +57,13 @@ prompts = Prompts(file_path=prompts_path)
 
 
 def save_progress(trace, current_index):
-    with open(PROP_SETTING.progress_file_path, "wb") as f:
+    with open(FACTOR_PROP_SETTING.progress_file_path, "wb") as f:
         pickle.dump((trace, current_index), f)
 
 
 def load_progress():
-    if Path(PROP_SETTING.progress_file_path).exists():
-        with open(PROP_SETTING.progress_file_path, "rb") as f:
+    if Path(FACTOR_PROP_SETTING.progress_file_path).exists():
+        with open(FACTOR_PROP_SETTING.progress_file_path, "rb") as f:
             return pickle.load(f)
     return Trace(scen=scen), 0
 
@@ -87,8 +87,9 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     response_json = json.loads(response)
     hypothesis_text = response_json.get("hypothesis", "No hypothesis generated.")
     reason_text = response_json.get("reason", "No reason provided.")
+    concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
-    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text)
+    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
 
 
 def extract_factors_and_implement(report_file_path: str) -> tuple:
@@ -124,48 +125,48 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
 
 trace, start_index = load_progress()
 
-try:
-    judge_pdf_data_items = list(judge_pdf_data.items())
-    for index in range(start_index, len(judge_pdf_data_items)):
-        if index > 1000:
-            break
-        file_path, attributes = judge_pdf_data_items[index]
-        if attributes["class"] == 1:
-            report_file_path = Path(file_path.replace(PROP_SETTING.origin_report_path, PROP_SETTING.local_report_path))
-            if report_file_path.exists():
-                logger.info(f"Processing {report_file_path}")
+# try:
+judge_pdf_data_items = list(judge_pdf_data.items())
+for index in range(start_index, len(judge_pdf_data_items)):
+    if index > 1000:
+        break
+    file_path, attributes = judge_pdf_data_items[index]
+    if attributes["class"] == 1:
+        report_file_path = Path(file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path))
+        if report_file_path.exists():
+            logger.info(f"Processing {report_file_path}")
 
-                with logger.tag("r"):
-                    exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                    if exp is None:
-                        continue
-                    exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-                    if len(exp.based_experiments) == 0:
-                        exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
-                    logger.log_object(hypothesis, tag="hypothesis generation")
-                    logger.log_object(exp.sub_tasks, tag="experiment generation")
+            with logger.tag("r"):
+                exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                if exp is None:
+                    continue
+                exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+                if len(exp.based_experiments) == 0:
+                    exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+                logger.log_object(hypothesis, tag="hypothesis generation")
+                logger.log_object(exp.sub_tasks, tag="experiment generation")
 
-                with logger.tag("d"):
-                    exp = qlib_factor_coder.develop(exp)
-                    logger.log_object(exp.sub_workspace_list)
+            with logger.tag("d"):
+                exp = qlib_factor_coder.develop(exp)
+                logger.log_object(exp.sub_workspace_list)
 
-                with logger.tag("ef"):
-                    exp = qlib_factor_runner.develop(exp)
-                    if exp is None:
-                        logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
-                        continue
-                    logger.log_object(exp, tag="factor runner result")
-                    feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
-                    logger.log_object(feedback, tag="feedback")
+            with logger.tag("ef"):
+                exp = qlib_factor_runner.develop(exp)
+                if exp is None:
+                    logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
+                    continue
+                logger.log_object(exp, tag="factor runner result")
+                feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
+                logger.log_object(feedback, tag="feedback")
 
-                trace.hist.append((hypothesis, exp, feedback))
-                logger.info(f"Processed {report_file_path}: Result: {exp}")
+            trace.hist.append((hypothesis, exp, feedback))
+            logger.info(f"Processed {report_file_path}: Result: {exp}")
 
-                # Save progress after processing each report
-                save_progress(trace, index + 1)
-            else:
-                logger.error(f"File not found: {report_file_path}")
-except Exception as e:
-    logger.error(f"An error occurred: {e}")
-    save_progress(trace, index)
-    raise
+            # Save progress after processing each report
+            save_progress(trace, index + 1)
+        else:
+            logger.error(f"File not found: {report_file_path}")
+# except Exception as e:
+#     logger.error(f"An error occurred: {e}")
+#     save_progress(trace, index)
+#     raise
