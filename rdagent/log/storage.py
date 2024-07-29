@@ -100,15 +100,8 @@ class FileStorage(Storage):
                     content=message_content
                 )
 
-                if isinstance(m.content, str) and "Logging object in" in m.content:
-                    absolute_p = m.content.split("Logging object in ")[1]
-                    relative_p = "." + absolute_p.split(self.path.name)[1]
-                    pkl_path = self.path / relative_p
-                    try:
-                        with pkl_path.open("rb") as f:
-                            m.content = pickle.load(f)
-                    except:
-                        continue
+                if "Logging object in" in m.content:
+                    continue
 
                 msg_l.append(m)
 
