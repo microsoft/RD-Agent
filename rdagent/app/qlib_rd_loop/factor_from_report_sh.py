@@ -7,7 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
@@ -37,19 +37,19 @@ from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
 
 assert load_dotenv()
 
-scen: Scenario = import_class(PROP_SETTING.factor_scen)()
+scen: Scenario = import_class(FACTOR_PROP_SETTING.scen)()
 
-hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.factor_hypothesis_gen)(scen)
+hypothesis_gen: HypothesisGen = import_class(FACTOR_PROP_SETTING.hypothesis_gen)(scen)
 
-hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.factor_hypothesis2experiment)()
+hypothesis2experiment: Hypothesis2Experiment = import_class(FACTOR_PROP_SETTING.hypothesis2experiment)()
 
-qlib_factor_coder: Developer = import_class(PROP_SETTING.factor_coder)(scen)
+qlib_factor_coder: Developer = import_class(FACTOR_PROP_SETTING.coder)(scen)
 
-qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
+qlib_factor_runner: Developer = import_class(FACTOR_PROP_SETTING.runner)(scen)
 
-qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
+qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(FACTOR_PROP_SETTING.summarizer)(scen)
 
-with open(PROP_SETTING.report_result_json_file_path, "r") as f:
+with open(FACTOR_PROP_SETTING.report_result_json_file_path, "r") as f:
     judge_pdf_data = json.load(f)
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
@@ -57,13 +57,13 @@ prompts = Prompts(file_path=prompts_path)
 
 
 def save_progress(trace, current_index):
-    with open(PROP_SETTING.progress_file_path, "wb") as f:
+    with open(FACTOR_PROP_SETTING.progress_file_path, "wb") as f:
         pickle.dump((trace, current_index), f)
 
 
 def load_progress():
-    if Path(PROP_SETTING.progress_file_path).exists():
-        with open(PROP_SETTING.progress_file_path, "rb") as f:
+    if Path(FACTOR_PROP_SETTING.progress_file_path).exists():
+        with open(FACTOR_PROP_SETTING.progress_file_path, "rb") as f:
             return pickle.load(f)
     return Trace(scen=scen), 0
 
@@ -87,8 +87,9 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     response_json = json.loads(response)
     hypothesis_text = response_json.get("hypothesis", "No hypothesis generated.")
     reason_text = response_json.get("reason", "No reason provided.")
+    concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
-    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text)
+    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
 
 
 def extract_factors_and_implement(report_file_path: str) -> tuple:
@@ -131,7 +132,9 @@ try:
             break
         file_path, attributes = judge_pdf_data_items[index]
         if attributes["class"] == 1:
-            report_file_path = Path(file_path.replace(PROP_SETTING.origin_report_path, PROP_SETTING.local_report_path))
+            report_file_path = Path(
+                file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
+            )
             if report_file_path.exists():
                 logger.info(f"Processing {report_file_path}")
 
