@@ -33,23 +33,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git push --follow-tags
-      - name: Remove changelog to avoid file already exists error
-        run: rm -v docs/changelog.md
-      - name: Download changelog
-        uses: actions/download-artifact@v4
-        with:
-          name: changelog
-          path: docs/
+      - name: Generate changelog
+        run: make changelog
       - name: Prepare release notes
         run: make release-notes > release-notes.md
-      - id: prerelease
-        name: Determine prerelease
-        run: |
-          if [[ "${{ github.ref }}" =~ (a|b|rc)(0|[1-9][0-9]*)?$ ]]; then
-            echo "is_prerelease=true" > $GITHUB_OUTPUT
-          else
-            echo "is_prerelease=false" > $GITHUB_OUTPUT
-          fi
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         env:
@@ -58,7 +45,7 @@ jobs:
           tag_name: v${{ steps.bump_version.outputs.new_version }}
           release_name: Release ${{ steps.bump_version.outputs.new_version }}
           body_path: release-notes.md
-          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          prerelease: false
   package:
     needs: release
     runs-on: ubuntu-latest
