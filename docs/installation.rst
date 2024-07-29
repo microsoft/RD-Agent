@@ -48,7 +48,7 @@ Use Azure Token Provider
 ------------------------
 
 If you are using the Azure token provider, you need to set the `USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
-use the environment variables provided in the [Azure Configuration section](#azure-configuration).
+use the environment variables provided in the `Azure Configuration section <installation.html#azure-openai>`_.
 
 ☁️ Azure Configuration
 - Install Azure CLI:
