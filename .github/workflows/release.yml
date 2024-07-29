@@ -24,14 +24,14 @@ jobs:
           pip install setuptools wheel twine bump2version git-changelog
       - name: Bump version
         run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           bump2version patch
           echo "New version: $(cat VERSION)"
       - name: Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git push --follow-tags
       - name: Remove changelog to avoid file already exists error
         run: rm -v docs/changelog.md
