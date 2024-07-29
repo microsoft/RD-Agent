@@ -1,55 +1,9 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
 jobs:
-  package:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          cache: pip
-          python-version: '3.8'
-      - run: env | sort
-      - run: make dev-package
-      - run: make build
-      - env:
-          TWINE_NON_INTERACTIVE: true
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: ${{ vars.TWINE_USERNAME != '' && vars.TWINE_USERNAME || '__token__' }}
-        run: make upload
-  pages-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          cache: pip
-          python-version: '3.8'
-      - run: env | sort
-      - run: make dev-docs
-      - run: make docs
-      - name: Upload changelog
-        uses: actions/upload-artifact@v4
-        with:
-          name: changelog
-          path: docs/changelog.md
-      - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-  pages-deploy:
-    needs: release
-    permissions:
-      id-token: write
-      pages: write
-    runs-on: ubuntu-latest
-    steps:
-      - id: deployment
-        name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
   release:
     needs: pages-build
     permissions:
@@ -57,8 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install git-changelog using pipx
-        run: pipx install git-changelog
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine bump2version git-changelog
+      - name: Bump version
+        run: |
+          bump2version patch
+          echo "New version: $(cat VERSION)"
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git push --follow-tags
       - name: Remove changelog to avoid file already exists error
         run: rm -v docs/changelog.md
       - name: Download changelog
@@ -77,15 +49,32 @@ jobs:
             echo "is_prerelease=false" > $GITHUB_OUTPUT
           fi
       - name: Create GitHub release
+        permissions:
+            contents: write
+            pull-requests: read
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          release_name: Release ${{ steps.bump_version.outputs.new_version }}
           body_path: release-notes.md
           prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
-name: Release
-on:
-  push:
-    tags:
-      - v?[0-9]+.[0-9]+.[0-9]+
-      - v?[0-9]+.[0-9]+.[0-9]+-?a[0-9]*
-      - v?[0-9]+.[0-9]+.[0-9]+-?b[0-9]*
-      - v?[0-9]+.[0-9]+.[0-9]+-?rc[0-9]*
+  package:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
+          python-version: '3.10'
+      - run: env | sort
+      - run: make dev
+      - run: make build
+      - env:
+          TWINE_NON_INTERACTIVE: true
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+        run: make upload
