@@ -50,7 +50,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = DMModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = DMModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"], concise_reason=response_dict["concise_reason"])
         return hypothesis
 
 
