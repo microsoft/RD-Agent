@@ -124,6 +124,14 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if 'model runner result' in tags or 'factor runner result' in tags:
                         state.metric_series.append(msg.content.result)
+                    elif 'runner result' in tags:
+                        # FIXME: for suhan's scenario
+                        if msg.content.result is None:
+                            state.metric_series.append(pd.Series([0], index=['AUROC']))
+                        else:
+                            ps = msg.content.result
+                            ps.index = ['AUROC']
+                            state.metric_series.append(ps)
                     elif 'hypothesis generation' in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif 'ef' in tags and 'feedback' in tags:
