@@ -3,11 +3,13 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: read
 jobs:
   release:
-    needs: pages-build
     permissions:
       contents: write
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,9 +51,6 @@ jobs:
             echo "is_prerelease=false" > $GITHUB_OUTPUT
           fi
       - name: Create GitHub release
-        permissions:
-            contents: write
-            pull-requests: read
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
