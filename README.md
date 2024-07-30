@@ -100,7 +100,7 @@ In this project, we are aiming to build a Agent to automate Data-Driven R\&D tha
    + Due the limited ability for LLM in implementing in once, evolving the agent to be able to extend abilities by learn from feedback and knowledge and improve the agent's ability to implement more complex models.
 + 💡Propose **new ideas** based on current knowledge and observations.
 
-![Data-Centric R&D Overview](docs/_static/overview.png)
+<!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
 ## 📈 Scenarios Matrix 
 Here is our supported scenarios
