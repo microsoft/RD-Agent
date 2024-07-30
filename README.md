@@ -146,8 +146,6 @@ We believe that the key to delivering high-quality solutions lies in the ability
 ```
 ![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
 
-![image](https://github.com/user-attachments/assets/60cc2712-c32a-4492-a137-8aec59cdc66e)
-
 ## Research
 
 - We have implements agents equiped with  Evolvable Research ability to propose and refine ideas in our repo. [Demos](#📈 Scenarios/Demos) are released.
