@@ -1,37 +1,15 @@
-# from rdagent.log.ui.web import WebView, SimpleTraceWindow, TraceObjWindow, mock_msg, TraceWindow
-# from rdagent.log.storage import FileStorage, Message
-# from rdagent.core.proposal import Trace
-# from pathlib import Path
-# import pickle
-
-# show logs folder
-# WebView(TraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/xisen/1"))
-# WebView(TraceWindow()).display(FileStorage("/data/home/bowen/workspace/RD-Agent/log/2024-07-22_03-01-12-021659"))
-# WebView(TraceWindow()).display(FileStorage("./log/2024-07-18_08-37-00-477228"))
-
-
-# load Trace obj
-# with Path('./log/step_trace.pkl').open('rb') as f:
-#     obj = pickle.load(f)
-#     trace: Trace = obj[-1]
-
-# show Trace obj
-# TraceObjWindow().consume_msg(mock_msg(trace))
-
-
 import pandas as pd
 import streamlit as st
 from streamlit import session_state as state
 import plotly.express as px
 import time
-from rdagent.log.base import Storage, Message
+from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from datetime import timezone, datetime
 from collections import defaultdict
-from copy import deepcopy
-from rdagent.core.proposal import Trace
-
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from typing import Callable, Type
 from streamlit.delta_generator import DeltaGenerator
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
@@ -99,7 +77,7 @@ def should_display(msg: Message):
     for t in state.excluded_tags:
         if t in msg.tag.split('.'):
             return False
-    
+
     if type(msg.content).__name__ in state.excluded_types:
         return False
 
@@ -123,7 +101,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
                     # Update Summary Info
                     if 'model runner result' in tags or 'factor runner result' in tags:
-                        state.metric_series.append(msg.content.result)
+                        state.metric_series.append(msg.content.result.loc[['IC','1day.excess_return_without_cost.annualized_return','1day.excess_return_without_cost.information_ratio','1day.excess_return_without_cost.max_drawdown']])
                     elif 'runner result' in tags:
                         # FIXME: for suhan's scenario
                         if msg.content.result is None:
@@ -186,15 +164,27 @@ if debug:
 # Main Window
 
 # Project Info
+with st.container():
+    image_c, toc_c = st.columns([3,3], vertical_alignment='center')
+    with image_c:
+        st.image('./docs/_static/scen.jpg')
+    with toc_c:
+        st.markdown('''
+# RD-Agent🤖
+## [Scenario Description](#_scenario)
+## [Summary](#_summary)
+## [RD-Loops](#_rdloops)
+### [Research](#_research)
+### [Development](#_development)
+### [Feedback](#_feedback)
+''')
 with st.container(border=True):
-    image_c, scen_c = st.columns([2,3], vertical_alignment='center')
-    image_c.image('./docs/_static/scen.jpg')
-    with scen_c:
-        # TODO: other scenarios
-        if state.log_type == 'qlib_model':
-            st.markdown(QlibModelScenario().rich_style_description)
-        elif state.log_type == 'model_extraction_and_implementation':
-            st.markdown('''
+    st.header('Scenario Description📖', divider=True, anchor="_scenario")
+    # TODO: other scenarios
+    if state.log_type == 'qlib_model':
+        st.markdown(QlibModelScenario().rich_style_description)
+    elif state.log_type == 'model_extraction_and_implementation':
+        st.markdown('''
 # General Model Scenario
 
 ## Overview
@@ -231,7 +221,7 @@ This scenario automates the development of PyTorch models by reading academic pa
 def summary_window():
     if state.log_type in ['qlib_model', 'qlib_factor']:
         with st.container():
-            st.header('Summary📊', divider=True)
+            st.header('Summary📊', divider=True, anchor="_summary")
             hypotheses_c, chart_c = st.columns([2, 3])
             # TODO: not fixed height
             with hypotheses_c.container(height=600):
@@ -257,14 +247,24 @@ def summary_window():
                 elif df.shape[0] > 1:
                     # TODO: figure label
                     # TODO: separate into different figures
-                    fig = px.line(df, x=df.index, y=df.columns, markers=True)
-                    fig.update_layout(legend_title_text='Metrics', xaxis_title='Loop Round', yaxis_title=None)
+                    if df.shape[1] == 1:
+                        # suhan's scenario
+                        fig = px.line(df, x=df.index, y=df.columns, markers=True)
+                        fig.update_layout(legend_title_text='Metrics', xaxis_title='Loop Round', yaxis_title=None)
+                    else:
+                        # 2*2 figure
+                        fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
+                        for ci, col in enumerate(df.columns):
+                            row = ci // 2 + 1
+                            col_num = ci % 2 + 1
+                            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines+markers', name=col), row=row, col=col_num)
+                        fig.update_layout(title_text='Metrics', showlegend=False)
                     st.plotly_chart(fig)
 
 summary_window()
 
 # R&D Loops Window
-st.header('R&D Loops♾️', divider=True)
+st.header('R&D Loops♾️', divider=True, anchor="_rdloops")
 button_c1, button_c2, round_s_c = st.columns([2, 3, 18], vertical_alignment='center')
 with button_c1:
     if st.button('Run One Loop'):
@@ -286,7 +286,7 @@ with rf_c:
     if state.log_type in ['qlib_model', 'qlib_factor']:
         # Research Window
         with st.container(border=True):
-            st.subheader('Research🔍', divider=True)
+            st.subheader('Research🔍', divider=True, anchor="_research")
             # pdf image
             if pim := state.msgs[round]['r.extract_factors_and_implement.load_pdf_screenshot']:
                 for i in range(min(2, len(pim))):
@@ -331,7 +331,7 @@ with rf_c:
 
         # Feedback Window
         with st.container(border=True):
-            st.subheader('Feedback📝', divider=True)
+            st.subheader('Feedback📝', divider=True, anchor="_feedback")
             if fbr := state.msgs[round]['ef.returns']:
                 st.markdown('**Returns📈**')
                 fig = report_figure(fbr[0].content)
@@ -351,7 +351,7 @@ with rf_c:
         # Research Window
         with st.container(border=True):
             # pdf image
-            st.subheader('Research🔍', divider=True)
+            st.subheader('Research🔍', divider=True, anchor="_research")
             if pim := state.msgs[round]['r.pdf_image']:
                 for i in range(len(pim)):
                     st.image(pim[i].content)
@@ -374,7 +374,7 @@ with rf_c:
         
         # Feedback Window
         with st.container(border=True):
-            st.subheader('Feedback📝', divider=True)
+            st.subheader('Feedback📝', divider=True, anchor="_feedback")
             if fbr := state.msgs[round]['d.developed_experiment']:
                 st.markdown('**Returns📈**')
                 result_df = fbr[0].content.result
@@ -385,9 +385,9 @@ with rf_c:
                     st.markdown('Returns is None')
 
 
-# Devlopment Window (Evolving)
+# Development Window (Evolving)
 with d_c.container(border=True):
-    st.subheader('Development🛠️', divider=True)
+    st.subheader('Development🛠️', divider=True, anchor="_development")
     # Evolving Tabs
     if state.erounds[round] > 0:
         etabs = st.tabs([str(i) for i in range(1, state.erounds[round]+1)])
@@ -397,7 +397,9 @@ with d_c.container(border=True):
             ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]['d.evolving code'][i].content
             ws = [w for w in ws if w]
             # All Tasks
-            wtabs = st.tabs([w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws])
+            
+            tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
+            wtabs = st.tabs(tab_names)
             for j, w in enumerate(ws):
                 with wtabs[j]:
                     # Evolving Code
@@ -434,3 +436,7 @@ This implementation is {'SUCCESS' if wsf.final_decision else 'FAIL'}.
 #### :blue[Model Final Decision]
 This implementation is {'SUCCESS' if wsf.final_decision else 'FAIL'}.
 """)
+
+# TODO: evolving tabs -> slider
+# TODO: multi tasks SUCCESS/FAIL
+# TODO: evolving progress bar, diff colors
