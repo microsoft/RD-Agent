@@ -127,7 +127,7 @@ TODO: Scenario Gallary
 
 # 📃Paper list
 
-- TODO: adding;
+- TODO: adding link;
 ```BibTeX
 @article{chen2024rd2bench,
   title={RD2Bench: Toward Data-Centric Automatic R\&D},
@@ -136,6 +136,9 @@ TODO: Scenario Gallary
   year={2024}
 }
 ```
+![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
+
+
 
 - [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
 ```BibTeX
