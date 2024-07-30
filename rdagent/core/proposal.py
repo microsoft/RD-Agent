@@ -32,7 +32,9 @@ class Hypothesis:
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
-Reason: {self.reason}"""
+                Reason: {self.reason}
+                Concise Reason & Knowledge: {self.concise_reason}
+                """
 
     # source: data_ana | model_nan = None
 
@@ -110,7 +112,7 @@ class HypothesisGen(ABC):
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
-    [Abstract description => concrete description] => Code implement
+    [Abstract description => concrete description] => Code implementation Card 
     """
 
     @abstractmethod
