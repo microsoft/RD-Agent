@@ -96,8 +96,5 @@ acc = roc_auc_score(y_test, np.concatenate(y_pred))
 
 print(acc)
 
-res = pd.Series(data=[acc], index=['AUROC'])
+res = pd.Series(data=[acc], index=["AUROC"])
 res.to_csv("./submission.csv")
-# Save the predictions to submission.csv
-# with open("./submission.txt", "w") as f:
-#     f.write(str(acc))
