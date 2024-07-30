@@ -4,7 +4,8 @@ hypothesis_generation:
     Please ensure your response is in JSON format as shown below:
     {
       "hypothesis": "A clear and concise hypothesis based on the provided information.",
-      "reason": "A detailed explanation supporting the generated hypothesis."
+      "reason": "A detailed explanation supporting the generated hypothesis.",
+      "concise_reason": One line summary that focuses on the justification for the change that leads to the hypothesis (like a part of a knowledge that we are building)
     }
 
   user: |-
