@@ -298,7 +298,14 @@ class APIBackend:
             self.use_azure_token_provider = self.cfg.use_azure_token_provider
             self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
-            self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
+            if self.cfg.openai_api_key:
+                self.chat_api_key = self.cfg.openai_api_key
+                self.embedding_api_key = self.cfg.openai_api_key
+            else:
+                self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
+                self.embedding_api_key = (
+                    self.cfg.embedding_openai_api_key if embedding_api_key is None else embedding_api_key
+                )
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
             self.chat_api_base = self.cfg.chat_azure_api_base if chat_api_base is None else chat_api_base
@@ -306,9 +313,6 @@ class APIBackend:
             self.chat_stream = self.cfg.chat_stream
             self.chat_seed = self.cfg.chat_seed
 
-            self.embedding_api_key = (
-                self.cfg.embedding_openai_api_key if embedding_api_key is None else embedding_api_key
-            )
             self.embedding_model = self.cfg.embedding_model if embedding_model is None else embedding_model
             self.embedding_api_base = (
                 self.cfg.embedding_azure_api_base if embedding_api_base is None else embedding_api_base

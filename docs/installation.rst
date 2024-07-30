@@ -12,19 +12,23 @@ For different scenarios
 Configuration
 =============
 
-To run the application, please create a `.env` file in the root directory of the project and add the following environment variables according to your requirements.
+To run the application, please create a `.env` file in the root directory of the project and add environment variables according to your requirements.
 
+The standard configuration options for the user using the OpenAI API are provided in the `.env.example` file.
+
+Here are some other configuration options that you can use:
 
 OpenAI API
 ------------
 
-If you are using the OpenAI API, here are the related environment variables that you need to set:
+You can use different OpenAI API keys for embedding model and chat model.
 
    .. code-block:: Properties
 
       EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
       EMBEDDING_OPENAI_MODEL=text-embedding-3-small
 
+      CHAT_OPENAI_API_KEY=<replace_with_your_openai_api_key>
       CHAT_MODEL=gpt-4-turbo
 
 Azure OpenAI
@@ -36,7 +40,7 @@ The following environment variables are standard configuration options for the u
       
       USE_AZURE=True
 
-      EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
       EMBEDDING_OPENAI_MODEL=text-embedding-3-small
       EMBEDDING_AZURE_API_BASE= # The base URL for the Azure OpenAI API.
       EMBEDDING_AZURE_API_VERSION = # The version of the Azure OpenAI API.
