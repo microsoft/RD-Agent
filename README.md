@@ -96,13 +96,13 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios..
 
 In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
 + 📄Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
-+ 🛠️**Implement** the extracted formulas, features, factors and models in runnable codes.
-   + Due the limited ability for LLM in implementing in once, evolving the agent to be able to extend abilities by learn from feedback and knowledge and improve the agent's ability to implement more complex models.
++ 🛠️**Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
+   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
 + 💡Propose **new ideas** based on current knowledge and observations.
 
-![Data-Centric R&D Overview](docs/_static/overview.png)
+<!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
-## 📈 Scenarios Matrix 
+## 📈 Scenarios/Demos
 Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
@@ -118,16 +118,52 @@ TODO: Scenario Gallary
 
 # ⚙️Framework
 
+![image](https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736)
 
-- TODOs:
-  - Framework introdution
-  - Research problems.
+Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
+
+The research questions within this framework can be divided into three main categories:
+| Research Area | Paper/Work List |
+|--------------------|-----------------|
+| Benchmark the R&D abilities | [Benchmark](#benchmark) |
+| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
+| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
+
+We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
 
+# 📃Paper/Work list
 
-# 📃Paper list
+## Benchmark
+- TODO: adding link;
+```BibTeX
+@article{chen2024rd2bench,
+  title={RD2Bench: Toward Data-Centric Automatic R\&D},
+  author={Chen, Haotian and Shen, Xinjie and Ye, Zeqi and Yang, Xiao and Yang, Xu and Liu, Weiqing and Bian, Jiang},
+  journal={arXiv preprint arXiv:2404.11276},
+  year={2024}
+}
+```
+![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
 
-TODO: under review. Please check the.
+## Research
+
+- We have implements agents equiped with  Evolvable Research ability to propose and refine ideas in our repo. [Demos](#📈 Scenarios/Demos) are released.
+
+## Development
+
+- [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
+```BibTeX
+@misc{yang2024collaborative,
+    title={Collaborative Evolving Strategy for Automatic Data-Centric Development},
+    author={Xu Yang and Haotian Chen and Wenjun Feng and Haoxue Wang and Zeqi Ye and Xinjie Shen and Xiao Yang and Shizhao Sun and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2407.18690},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
 
 # Contributing
