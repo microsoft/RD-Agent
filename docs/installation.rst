@@ -26,7 +26,7 @@ You can use different OpenAI API keys for embedding model and chat model.
    .. code-block:: Properties
 
       EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
-      EMBEDDING_OPENAI_MODEL=text-embedding-3-small
+      EMBEDDING_MODEL=text-embedding-3-small
 
       CHAT_OPENAI_API_KEY=<replace_with_your_openai_api_key>
       CHAT_MODEL=gpt-4-turbo
@@ -41,7 +41,8 @@ The following environment variables are standard configuration options for the u
       USE_AZURE=True
 
       OPENAI_API_KEY=<replace_with_your_openai_api_key>
-      EMBEDDING_OPENAI_MODEL=text-embedding-3-small
+      
+      EMBEDDING_MODEL=text-embedding-3-small
       EMBEDDING_AZURE_API_BASE= # The base URL for the Azure OpenAI API.
       EMBEDDING_AZURE_API_VERSION = # The version of the Azure OpenAI API.
 
