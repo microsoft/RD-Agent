@@ -359,7 +359,7 @@ with rf_c:
         # Feedback Window
         with st.container(border=True):
             st.subheader("Feedback📝", divider=True, anchor="_feedback")
-            if fbr := state.msgs[round]["ef.returns"]:
+            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
                 st.plotly_chart(fig)
