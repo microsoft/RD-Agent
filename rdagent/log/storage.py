@@ -90,12 +90,12 @@ class FileStorage(Storage):
                 message_end = next_match.start() if next_match else len(content)
                 message_content = content[message_start:message_end].strip()
 
+                if "Logging object in" in message_content:
+                    continue
+
                 m = Message(
                     tag=tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
                 )
-
-                if "Logging object in" in m.content:
-                    continue
 
                 msg_l.append(m)
 
