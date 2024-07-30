@@ -100,7 +100,7 @@ class FileStorage(Storage):
                 msg_l.append(m)
 
         for file in self.path.glob("**/*.pkl"):
-            tag = '.'.join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            tag = ".".join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
             with file.open("rb") as f:
@@ -108,14 +108,7 @@ class FileStorage(Storage):
 
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
 
-            m = Message(
-                tag=tag,
-                level="INFO",
-                timestamp=timestamp,
-                caller="",
-                pid_trace=pid,
-                content=content
-            )
+            m = Message(tag=tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
 
             msg_l.append(m)
 

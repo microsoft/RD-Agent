@@ -1,8 +1,11 @@
-import pandas as pd
-import math
 import importlib
+import math
+
+import pandas as pd
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
+
+
 class BaseGraph:
     _name = None
 
@@ -118,7 +121,7 @@ class SubplotsGraph:
         sub_graph_layout: dict = None,
         sub_graph_data: list = None,
         subplots_kwargs: dict = None,
-        **kwargs
+        **kwargs,
     ):
         """
 
@@ -261,7 +264,7 @@ class SubplotsGraph:
                         y=self._df[column_name],
                         name=temp_name,
                         **_graph_kwargs,
-                    )
+                    ),
                 )
             else:
                 raise TypeError()
@@ -270,7 +273,6 @@ class SubplotsGraph:
             col = column_map["col"]
 
             self._figure.add_trace(_graph_obj, row=row, col=col)
-
 
         if self._sub_graph_layout is not None:
             for k, v in self._sub_graph_layout.items():
@@ -283,6 +285,7 @@ class SubplotsGraph:
     @property
     def figure(self):
         return self._figure
+
 
 def _calculate_maximum(df: pd.DataFrame, is_ex: bool = False):
     """
@@ -299,6 +302,7 @@ def _calculate_maximum(df: pd.DataFrame, is_ex: bool = False):
         start_date = df.loc[df.index <= end_date]["cum_return_wo_cost"].idxmax()
     return start_date, end_date
 
+
 def _calculate_mdd(series):
     """
     Calculate mdd
@@ -307,6 +311,7 @@ def _calculate_mdd(series):
     :return:
     """
     return series - series.cummax()
+
 
 def _calculate_report_data(raw_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -338,6 +343,7 @@ def _calculate_report_data(raw_df: pd.DataFrame) -> pd.DataFrame:
 
     report_df.index.names = index_names
     return report_df
+
 
 def report_figure(df: pd.DataFrame) -> list | tuple:
     """

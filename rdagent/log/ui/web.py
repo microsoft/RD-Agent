@@ -18,7 +18,10 @@ from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTa
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback, Trace
 from rdagent.log.base import Message, Storage, View
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment, QlibModelScenario
+from rdagent.scenarios.qlib.experiment.model_experiment import (
+    QlibModelExperiment,
+    QlibModelScenario,
+)
 
 st.set_page_config(layout="wide")
 
@@ -214,9 +217,9 @@ class ModelTaskWindow(StWindow):
         self.container.markdown(f"**Model Type**: {mt.model_type}")
         self.container.markdown(f"**Description**: {mt.description}")
         self.container.latex(f"Formulation: {mt.formulation}")
-        
-        variables_df = pd.DataFrame(mt.variables, index=['Value']).T
-        variables_df.index.name = 'Variable'
+
+        variables_df = pd.DataFrame(mt.variables, index=["Value"]).T
+        variables_df.index.name = "Variable"
         self.container.table(variables_df)
 
 
@@ -479,9 +482,9 @@ class ResearchWindow(StWindow):
                 elif isinstance(msg.content[0], ModelTask):
                     self.container.markdown("**Model Tasks**")
                     ObjectsTabsWindow(self.container.container(), ModelTaskWindow, lambda x: x.name).consume_msg(msg)
-        elif msg.tag.endswith('load_pdf_screenshot'):
+        elif msg.tag.endswith("load_pdf_screenshot"):
             self.container.image(msg.content)
-        elif msg.tag.endswith('load_factor_tasks'):
+        elif msg.tag.endswith("load_factor_tasks"):
             self.container.json(msg.content)
 
 
@@ -546,9 +549,9 @@ class FeedbackWindow(StWindow):
         self.container = container
 
     def consume_msg(self, msg: Message):
-        if msg.tag.endswith('returns'):
+        if msg.tag.endswith("returns"):
             fig = px.line(msg.content)
-            self.container.markdown('**Returns📈**')
+            self.container.markdown("**Returns📈**")
             self.container.plotly_chart(fig)
         elif isinstance(msg.content, HypothesisFeedback):
             HypothesisFeedbackWindow(self.container.container(border=True)).consume_msg(msg)
@@ -582,16 +585,16 @@ class TraceWindow(StWindow):
     ):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
-        image_c, scen_c = container.columns([2,3], vertical_alignment='center')
-        image_c.image('scen.jpg')
+        image_c, scen_c = container.columns([2, 3], vertical_alignment="center")
+        image_c.image("scen.jpg")
         scen_c.container(border=True).markdown(QlibModelScenario().rich_style_description)
         top_container = container.container()
-        col1, col2 = top_container.columns([2,3])
+        col1, col2 = top_container.columns([2, 3])
         chart_c = col2.container(border=True, height=500)
-        chart_c.markdown('**Metrics📈**')
+        chart_c.markdown("**Metrics📈**")
         self.chart_c = chart_c.empty()
         hypothesis_status_c = col1.container(border=True, height=500)
-        hypothesis_status_c.markdown('**Hypotheses🏅**')
+        hypothesis_status_c.markdown("**Hypotheses🏅**")
         self.summary_c = hypothesis_status_c.empty()
 
         self.RDL_win = RoundTabsWindow(
@@ -613,12 +616,19 @@ class TraceWindow(StWindow):
             return
         if isinstance(msg.content, dict):
             return
-        if msg.tag.endswith('hypothesis generation'):
+        if msg.tag.endswith("hypothesis generation"):
             self.hypotheses.append(msg.content)
-        elif msg.tag.endswith('ef.feedback'):
+        elif msg.tag.endswith("ef.feedback"):
             self.hypothesis_decisions[self.hypotheses[-1]] = msg.content.decision
-            self.summary_c.markdown('\n'.join(f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*" if d else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*" for id,(h,d) in enumerate(self.hypothesis_decisions.items())))
-        elif msg.tag.endswith('ef.model runner result') or msg.tag.endswith('ef.factor runner result'):
+            self.summary_c.markdown(
+                "\n".join(
+                    f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*"
+                    if d
+                    else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*"
+                    for id, (h, d) in enumerate(self.hypothesis_decisions.items())
+                )
+            )
+        elif msg.tag.endswith("ef.model runner result") or msg.tag.endswith("ef.factor runner result"):
             self.results.append(msg.content.result)
             if len(self.results) == 1:
                 self.chart_c.table(self.results[0])

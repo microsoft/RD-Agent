@@ -1,12 +1,11 @@
 from pathlib import Path
 
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-)
+from rdagent.components.coder.model_coder.model import ModelExperiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 class GeneralModelScenario(Scenario):
     @property
@@ -28,10 +27,10 @@ class GeneralModelScenario(Scenario):
     @property
     def simulator(self) -> str:
         return prompt_dict["general_model_simulator"]
-    
+
     @property
-    def rich_style_description(self)->str:
-        return '''
+    def rich_style_description(self) -> str:
+        return """
 # General Model Scenario
 
 ## Overview
@@ -61,7 +60,7 @@ This scenario automates the development of PyTorch models by reading academic pa
 - **Time-Series Data:** Sequential data points indexed in time order, useful for forecasting and temporal pattern recognition.
 - **Graph Data:** Data structured as nodes and edges, suitable for network analysis and relational tasks.
 
-        '''
+        """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
