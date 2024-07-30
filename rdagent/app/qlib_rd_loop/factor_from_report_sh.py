@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
@@ -68,7 +69,9 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     hypothesis_text = response_json.get("hypothesis", "No hypothesis generated.")
     reason_text = response_json.get("reason", "No reason provided.")
     concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
+    concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
+    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
     return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
 
 
