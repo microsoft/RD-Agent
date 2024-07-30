@@ -106,25 +106,25 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     state.msgs[state.lround][msg.tag].append(msg)
 
                     # Update Summary Info
-                    if "model runner result" in tags or "factor runner result" in tags:
-                        state.metric_series.append(
-                            msg.content.result.loc[
-                                [
-                                    "IC",
-                                    "1day.excess_return_without_cost.annualized_return",
-                                    "1day.excess_return_without_cost.information_ratio",
-                                    "1day.excess_return_without_cost.max_drawdown",
-                                ]
-                            ]
-                        )
-                    elif "runner result" in tags:
-                        # FIXME: for suhan's scenario
+                    if "model runner result" in tags or "factor runner result" in tags or 'runner result' in tags:
                         if msg.content.result is None:
-                            state.metric_series.append(pd.Series([0], index=["AUROC"]))
+                            state.metric_series.append(pd.Series([None], index=["AUROC"]))
                         else:
-                            ps = msg.content.result
-                            ps.index = ["AUROC"]
-                            state.metric_series.append(ps)
+                            if msg.content.result.name == "AUROC":
+                                ps = msg.content.result
+                                ps.index = ["AUROC"]
+                                state.metric_series.append(ps)
+                            else:
+                                state.metric_series.append(
+                                    msg.content.result.loc[
+                                        [
+                                            "IC",
+                                            "1day.excess_return_without_cost.annualized_return",
+                                            "1day.excess_return_without_cost.information_ratio",
+                                            "1day.excess_return_without_cost.max_drawdown",
+                                        ]
+                                    ]
+                                )
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
