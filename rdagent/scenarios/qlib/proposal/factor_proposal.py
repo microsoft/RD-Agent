@@ -33,7 +33,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
             "hypothesis_and_feedback": hypothesis_feedback,
             "RAG": ...,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
+            "hypothesis_specification": None,
         }
         return context_dict, True
 

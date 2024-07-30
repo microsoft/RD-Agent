@@ -40,6 +40,7 @@ class FactorImplementSettings(BaseSettings):
 
     select_method: SELECT_METHOD = "random"
     select_ratio: float = 0.5
+    select_threshold: int = 10
 
     max_loop: int = 10
 

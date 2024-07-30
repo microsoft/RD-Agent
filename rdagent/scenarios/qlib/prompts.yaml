@@ -43,73 +43,73 @@ model_hypothesis_specification: |-
 
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
-factor_hypothesis_specification: |-
-  Specifications:
-    - Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple.
-    - Gradually build upon previous hypotheses and feedback.
-    - Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance.
-    - Each hypothesis should address specific factor characteristics such as type (momentum, value, quality), calculation methods, or inclusion criteria.
-    - Avoid hypotheses related to model architecture or optimization processes.
-    - If a hypothesis can be improved further, refine it. If it achieves the desired results, explore a new direction. Previous factors exceeding SOTA (State of the Art) are preserved and combined with new factors for subsequent evaluations.
+# factor_hypothesis_specification: |-
+#   Specifications:
+#     - Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple.
+#     - Gradually build upon previous hypotheses and feedback.
+#     - Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance.
+#     - Each hypothesis should address specific factor characteristics such as type (momentum, value, quality), calculation methods, or inclusion criteria.
+#     - Avoid hypotheses related to model architecture or optimization processes.
+#     - If a hypothesis can be improved further, refine it. If it achieves the desired results, explore a new direction. Previous factors exceeding SOTA (State of the Art) are preserved and combined with new factors for subsequent evaluations.
 
-  Guiding Principles:
-  1. Diversity and Depth:
-    - Ensure a wide range of factor types, incorporating various financial dimensions (e.g., momentum, value, quality, volatility, sentiment).
-    - Explore different calculation methods and inclusion criteria to understand their impact.
-    - Consider combining multiple factors or filtering criteria for more sophisticated hypotheses.
+#   Guiding Principles:
+#   1. Diversity and Depth:
+#     - Ensure a wide range of factor types, incorporating various financial dimensions (e.g., momentum, value, quality, volatility, sentiment).
+#     - Explore different calculation methods and inclusion criteria to understand their impact.
+#     - Consider combining multiple factors or filtering criteria for more sophisticated hypotheses.
 
-  2. Iterative Improvement:
-    - Build upon previous hypotheses, incorporating feedback and observed results.
-    - Aim for continuous refinement and complexity over iterations, starting from basic factors to more advanced combinations and techniques.
+#   2. Iterative Improvement:
+#     - Build upon previous hypotheses, incorporating feedback and observed results.
+#     - Aim for continuous refinement and complexity over iterations, starting from basic factors to more advanced combinations and techniques.
 
-  3. Contextual Relevance:
-    - Tailor hypotheses to the specific financial context and current market conditions.
-    - Leverage domain knowledge and recent financial research to inform hypothesis creation.
+#   3. Contextual Relevance:
+#     - Tailor hypotheses to the specific financial context and current market conditions.
+#     - Leverage domain knowledge and recent financial research to inform hypothesis creation.
 
-  Sample Hypotheses (Use the format for guidance, not the specific content):
-  - "Include a momentum factor based on the last 12 months' returns."
-  - "Add a value factor calculated as the book-to-market ratio."
-  - "Incorporate a quality factor derived from return on equity (ROE)."
-  - "Use a volatility factor based on the standard deviation of returns over the past 6 months."
-  - "Include a sentiment factor derived from news sentiment scores."
-  - "The momentum factor should be calculated using a 6-month look-back period."
-  - "Combine value and momentum factors using a weighted average approach."
-  - "Filter stocks by market capitalization before calculating the factors."
-  - "Explore a liquidity factor based on the trading volume and bid-ask spread."
-  - "Investigate the impact of an earnings surprise factor calculated from recent earnings announcements."
-  - "Develop a composite factor integrating ESG (Environmental, Social, Governance) scores with traditional financial metrics."
+#   Sample Hypotheses (Use the format for guidance, not the specific content):
+#   - "Include a momentum factor based on the last 12 months' returns."
+#   - "Add a value factor calculated as the book-to-market ratio."
+#   - "Incorporate a quality factor derived from return on equity (ROE)."
+#   - "Use a volatility factor based on the standard deviation of returns over the past 6 months."
+#   - "Include a sentiment factor derived from news sentiment scores."
+#   - "The momentum factor should be calculated using a 6-month look-back period."
+#   - "Combine value and momentum factors using a weighted average approach."
+#   - "Filter stocks by market capitalization before calculating the factors."
+#   - "Explore a liquidity factor based on the trading volume and bid-ask spread."
+#   - "Investigate the impact of an earnings surprise factor calculated from recent earnings announcements."
+#   - "Develop a composite factor integrating ESG (Environmental, Social, Governance) scores with traditional financial metrics."
 
-  Detailed Workflow: (These are just examples for the format, do not be constrained by these examples)
-  1. Initial Hypothesis:
-    - Begin with a simple factor, such as "Include a momentum factor based on the last 12 months' returns."
+#   Detailed Workflow: (These are just examples for the format, do not be constrained by these examples)
+#   1. Initial Hypothesis:
+#     - Begin with a simple factor, such as "Include a momentum factor based on the last 12 months' returns."
 
-  2. Refine Hypothesis:
-    - If the initial hypothesis is promising, refine it further, e.g., "The momentum factor should be calculated using a 6-month look-back period."
+#   2. Refine Hypothesis:
+#     - If the initial hypothesis is promising, refine it further, e.g., "The momentum factor should be calculated using a 6-month look-back period."
 
-  3. Combine Factors:
-    - As individual factors show potential, combine them, e.g., "Combine value and momentum factors using a weighted average approach."
+#   3. Combine Factors:
+#     - As individual factors show potential, combine them, e.g., "Combine value and momentum factors using a weighted average approach."
 
-  4. Contextual Adjustments:
-    - Adjust factors based on market conditions or new financial insights, e.g., "Incorporate a quality factor derived from return on equity (ROE)."
+#   4. Contextual Adjustments:
+#     - Adjust factors based on market conditions or new financial insights, e.g., "Incorporate a quality factor derived from return on equity (ROE)."
 
-  5. Advanced Hypotheses:
-    - Explore sophisticated combinations or new types of factors, e.g., "Develop a composite factor integrating ESG scores with traditional financial metrics."
+#   5. Advanced Hypotheses:
+#     - Explore sophisticated combinations or new types of factors, e.g., "Develop a composite factor integrating ESG scores with traditional financial metrics."
 
-  Important Note:
-    Logic Explanation:
-      - If the previous hypothesis factor exceeds SOTA, the SOTA factor library will include this factor.
-      - The new experiment will generate new factors, which will be combined with the factors in the SOTA library.
-      - These combined factors will be backtested and compared against the current SOTA to iterate continuously.
-    Development Directions:
-      - New Direction:
-          - Propose a new factor direction for exploration and construction.
-      - Optimization of Existing Direction:
-          - If the previous experiment's factor replaced SOTA, you can further improve upon that factor.
-          - Clearly specify the differences in name and improvements compared to the previous factor.
-      - Continued Research:
-          - If the previous experiment's factor did not replace SOTA, continue researching how to optimize and construct factors in this direction.
-    Final Goal:
-      - The final maintained SOTA should be the continuous accumulation of factors that surpass each iteration.
+#   Important Note:
+#     Logic Explanation:
+#       - If the previous hypothesis factor exceeds SOTA, the SOTA factor library will include this factor.
+#       - The new experiment will generate new factors, which will be combined with the factors in the SOTA library.
+#       - These combined factors will be backtested and compared against the current SOTA to iterate continuously.
+#     Development Directions:
+#       - New Direction:
+#           - Propose a new factor direction for exploration and construction.
+#       - Optimization of Existing Direction:
+#           - If the previous experiment's factor replaced SOTA, you can further improve upon that factor.
+#           - Clearly specify the differences in name and improvements compared to the previous factor.
+#       - Continued Research:
+#           - If the previous experiment's factor did not replace SOTA, continue researching how to optimize and construct factors in this direction.
+#     Final Goal:
+#       - The final maintained SOTA should be the continuous accumulation of factors that surpass each iteration.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
