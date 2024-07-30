@@ -60,7 +60,7 @@ TODO: use docker in quick start intead.
 
 ### ⚙️ Environment Configuration
 - Place the `.env` file in the same directory as the `.env.example` file.
-  - The `.env.example` file contains the environment variables required for users using the OpenAI API
+  - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
   - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 - Export each variable in the `.env` file:
   ```sh
