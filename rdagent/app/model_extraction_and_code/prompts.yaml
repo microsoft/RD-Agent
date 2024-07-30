@@ -1,0 +1,74 @@
+general_model_background: |-
+  The general model is a flexible and comprehensive framework designed to integrate factor-based, model-based, and graph-based approaches in quantitative investment. It allows users to define custom models that leverage various financial factors to predict the returns and risks of portfolios or single assets. These models are central to many advanced quantitative investment strategies and can be adapted to a wide range of use cases, from factor-based alpha generation to complex deep learning predictions.
+
+  Each general model incorporates the following components:
+  1. Name: The name of the model.
+  2. Description: A detailed description of the model.
+  3. Factors: The financial factors used as inputs, including their definitions and formulations.
+  4. Architecture: The structure of the machine learning, deep learning, or graph-based model.
+  5. Hyperparameters: The hyperparameters used in the model, such as learning rate, number of epochs, etc.
+  6. ModelType: The type of the model, "Tabular" for tabular data, "TimeSeries" for time series data, or "Graph" for graph data.
+  The general model should provide clear and detailed documentation of its factors, architecture, and hyperparameters. Each model should have a fixed architecture and hyperparameters to ensure reproducibility and consistency.
+
+general_model_interface: |-
+  Your python code should follow the interface to better interact with the user's system. It should be a pytorch model. 
+  Your code should contain several parts:
+  1. The import part: import the necessary libraries.
+  2. A class which is a sub-class of pytorch.nn.Module. This class should have an init function and a forward function which inputs a tensor and outputs a tensor.
+  3. Set a variable called "model_cls" to the class you defined.
+
+  The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
+  ```python
+  from model import model_cls
+
+  So your python code should follow the pattern:
+
+  class XXXModel(torch.nn.Module):
+    ...
+  model_cls = XXXModel
+
+  The model has three types, "Tabular" for tabular data, "TimeSeries" for time series data, and "Graph" for graph data.
+
+  The input shape to a tabular model is (batch_size, num_features).
+  The input shape to a time series model is (batch_size, num_features, num_timesteps).
+  The input to a graph model are two tensors. 
+  node_feature: a tensor of shape (batch_size, num_nodes, num_features)
+  edge_index: a tensor of shape (2, num_edges) 
+  
+  The batch_size is a dynamic value which is determined by the input of the forward function.
+  
+  The output shape of the model should be (batch_size, 1).
+
+  The "num_features", "num_timesteps", and "num_nodes" are static and will be provided to the model through the init function.
+
+  User will initialize the tabular model with the following code:
+
+  model = model_cls(num_features=num_features)
+
+  User will initialize the time series model with the following code:
+
+  model = model_cls(num_features=num_features, num_timesteps=num_timesteps)
+
+  User will initialize the graph model with the following code:
+
+  model = model_cls(num_features=num_features, num_nodes=num_nodes)
+
+
+  No other parameters will be passed to the model, so give other parameters a default value or make them static.
+
+  When dealing with a time series model, remember to permute the input tensor since the input tensor is in the shape of (batch_size, num_features, num_timesteps) and a normal time series model is expecting the input tensor in the shape of (batch_size, num_timesteps, num_features).
+
+  Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write a main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
+
+  Please note that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
+
+general_model_output_format: |-
+  Your output should be a tensor with shape (batch_size, 1).
+  The output tensor should be saved in a file named "output.pth" in the same directory as your python file.
+  The user will evaluate the shape of the output tensor, so the tensor read from "output.pth" should be 8 numbers.
+
+general_model_simulator: |-
+  The models are not loaded and backtested. That said, pay attention to its architecture.
+
+
+  

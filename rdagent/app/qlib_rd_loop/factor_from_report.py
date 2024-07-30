@@ -1,33 +1,37 @@
 import json
-from pathlib import Path
 import pickle
+from pathlib import Path
+
+import pandas as pd
 from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
-import pandas as pd
 
 from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
-from rdagent.components.document_reader.document_reader import load_and_process_pdfs_by_langchain
+from rdagent.components.document_reader.document_reader import (
+    load_and_process_pdfs_by_langchain,
+)
+from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
+from rdagent.core.proposal import (
+    Hypothesis,
+    Hypothesis2Experiment,
+    HypothesisExperiment2Feedback,
+    HypothesisGen,
+    Trace,
+)
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.developer.factor_coder import QlibFactorCoSTEER
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario, QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.factor_experiment import (
+    QlibFactorExperiment,
+    QlibFactorScenario,
+)
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
     classify_report_from_dict,
 )
-
-from rdagent.core.proposal import (
-    Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
-    HypothesisGen,
-    Hypothesis,
-    Trace,
-)
-
-from rdagent.core.developer import Developer
 
 assert load_dotenv()
 
@@ -43,17 +47,21 @@ qlib_factor_runner: Developer = import_class(PROP_SETTING.factor_runner)(scen)
 
 qlib_factor_summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.factor_summarizer)(scen)
 
-with open(PROP_SETTING.report_result_json_file_path, 'r') as f:
+with open(PROP_SETTING.report_result_json_file_path, "r") as f:
     judge_pdf_data = json.load(f)
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
 
+
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
-    system_prompt = Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
-    user_prompt = Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["user"]).render(
-        factor_descriptions=json.dumps(factor_result),
-        report_content=report_content
+    system_prompt = (
+        Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
+    )
+    user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompts["hypothesis_generation"]["user"])
+        .render(factor_descriptions=json.dumps(factor_result), report_content=report_content)
     )
 
     response = APIBackend().build_messages_and_create_chat_completion(
@@ -68,16 +76,16 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
 
     return Hypothesis(hypothesis=hypothesis_text, reason=reason_text)
 
+
 def extract_factors_and_implement(report_file_path: str) -> tuple:
     scenario = QlibFactorScenario()
 
     with logger.tag("extract_factors_and_implement"):
         with logger.tag("load_factor_tasks"):
-
             exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
             if exp is None or exp.sub_tasks == []:
                 return None, None
-            
+
     docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
 
     factor_result = {
@@ -85,7 +93,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
             "description": task.factor_description,
             "formulation": task.factor_formulation,
             "variables": task.variables,
-            "resources": task.factor_resources
+            "resources": task.factor_resources,
         }
         for task in exp.sub_tasks
     }
@@ -94,6 +102,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
     hypothesis = generate_hypothesis(factor_result, report_content)
 
     return exp, hypothesis
+
 
 trace = Trace(scen=scen)
 

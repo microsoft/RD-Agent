@@ -32,7 +32,9 @@ class Hypothesis:
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
-Reason: {self.reason}"""
+                Reason: {self.reason}
+                Concise Reason & Knowledge: {self.concise_reason}
+                """
 
     # source: data_ana | model_nan = None
 
@@ -99,18 +101,18 @@ class HypothesisGen(ABC):
         # def gen(self, scenario_desc: str, ) -> Hypothesis:
         """
         Motivation of the variable `scenario_desc`:
-        - Mocking a data-scientist is observing the scenario.
+            - Mocking a data-scientist is observing the scenario.
 
-        scenario_desc may conclude:
-        - data observation:
-            - Original or derivative
-        - Task information:
+        scenario_desc may include:
+            - data observation:
+                - Original or derivative
+            - Task information:
         """
 
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
-    [Abstract description => concrete description] => Code implement
+    [Abstract description => concrete description] => Code implementation Card 
     """
 
     @abstractmethod

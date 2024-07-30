@@ -30,6 +30,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         class XXXDMModelHypothesisGen(DMModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
+
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -43,13 +44,17 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             "hypothesis_and_feedback": hypothesis_feedback,
             "RAG": "",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": prompt_dict["model_hypothesis_specification"]
+            "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
         }
         return context_dict, True
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
-        hypothesis = DMModelHypothesis(hypothesis=response_dict["hypothesis"], reason=response_dict["reason"])
+        hypothesis = DMModelHypothesis(
+            hypothesis=response_dict["hypothesis"],
+            reason=response_dict["reason"],
+            concise_reason=response_dict["concise_reason"],
+        )
         return hypothesis
 
 
@@ -89,7 +94,9 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
-            tasks.append(ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type))
+            tasks.append(
+                ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
+            )
         exp = DMModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp

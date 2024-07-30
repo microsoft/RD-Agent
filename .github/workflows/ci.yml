@@ -20,16 +20,17 @@ jobs:
       - run: env | sort
       - run: make dev
       - env:
+          # Two environment variables here can cause sphinx to fail to build in ci.
+          # CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
+          # CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
           CHAT_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           CHAT_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
-          CHAT_MAX_TOKENS: ${{ secrets.CHAT_MAX_TOKENS }}
           CHAT_MODEL: ${{ secrets.CHAT_MODEL }}
-          CHAT_TEMPERATURE: ${{ secrets.CHAT_TEMPERATURE }}
           EMBEDDING_AZURE_API_BASE: ${{ secrets.CHAT_AZURE_API_BASE }}
           EMBEDDING_AZURE_API_VERSION: ${{ secrets.CHAT_AZURE_API_VERSION }}
           EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
         name: lint test docs and build
-        run: make lint # test docs build sphinx
+        run: make lint docs-gen # test docs build
     strategy:
       matrix:
         python-version:

@@ -196,7 +196,11 @@ def __extract_factor_and_formulation_from_one_report(
             factor_dict,
         )
     for factor_name in factor_dict:
-        if factor_name not in factor_to_formulation or "formulation" not in factor_to_formulation[factor_name] or "variables" not in factor_to_formulation[factor_name]:
+        if (
+            factor_name not in factor_to_formulation
+            or "formulation" not in factor_to_formulation[factor_name]
+            or "variables" not in factor_to_formulation[factor_name]
+        ):
             continue
 
         final_factor_dict_to_one_report.setdefault(factor_name, {})
@@ -272,7 +276,6 @@ def merge_file_to_factor_dict_to_factor_dict(
 def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
-
     extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
         system_prompt=document_process_prompts["factor_viability_system"],
         user_prompt=factor_df_string,
@@ -512,11 +515,11 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
             logger.log_object(docs_dict)
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)
-        
+
         with logger.tag("file_to_factor_result"):
             file_to_factor_result = extract_factors_from_report_dict(docs_dict, selected_report_dict)
             logger.log_object(file_to_factor_result)
-        
+
         with logger.tag("factor_dict"):
             factor_dict = merge_file_to_factor_dict_to_factor_dict(file_to_factor_result)
             logger.log_object(factor_dict)
@@ -526,5 +529,5 @@ class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
             logger.log_object(filtered_factor_dict)
 
         # factor_dict, duplication_names_list = deduplicate_factors_by_llm(factor_dict, factor_viability)
-        
+
         return FactorExperimentLoaderFromDict().load(filtered_factor_dict)

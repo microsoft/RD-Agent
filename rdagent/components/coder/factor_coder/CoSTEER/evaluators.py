@@ -356,7 +356,9 @@ class FactorValueEvaluator(FactorEvaluator):
 
         # Check if both dataframe have the same rows count
         if gt_implementation is not None:
-            feedback_str, single_column_result = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
+            feedback_str, single_column_result = FactorRowCountEvaluator(self.scen).evaluate(
+                implementation, gt_implementation
+            )
             conclusions.append(feedback_str)
 
             feedback_str, same_index_result = FactorIndexEvaluator(self.scen).evaluate(
@@ -364,7 +366,9 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            feedback_str, output_format_result = FactorMissingValuesEvaluator(self.scen).evaluate(implementation, gt_implementation)
+            feedback_str, output_format_result = FactorMissingValuesEvaluator(self.scen).evaluate(
+                implementation, gt_implementation
+            )
             conclusions.append(feedback_str)
 
             feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator(self.scen).evaluate(
@@ -464,8 +468,10 @@ class FactorFinalDecisionEvaluator(Evaluator):
             except KeyError as e:
                 attempts += 1
                 if attempts >= max_attempts:
-                    raise KeyError("Response from API is missing 'final_decision' or 'final_feedback' key after multiple attempts.") from e
-        
+                    raise KeyError(
+                        "Response from API is missing 'final_decision' or 'final_feedback' key after multiple attempts."
+                    ) from e
+
         return None, None
 
 

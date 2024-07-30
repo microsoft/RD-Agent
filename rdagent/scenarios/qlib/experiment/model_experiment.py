@@ -38,7 +38,7 @@ class QlibModelScenario(Scenario):
     @property
     def simulator(self) -> str:
         return prompt_dict["qlib_model_simulator"]
-    
+
     @property
     def rich_style_description(self)->str:
         return '''
