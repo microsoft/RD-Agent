@@ -32,14 +32,14 @@ general_model_interface: |-
   The input shape to a tabular model is (batch_size, num_features).
   The input shape to a time series model is (batch_size, num_features, num_timesteps).
   The input to a graph model are two tensors. 
-  node_feature: a tensor of shape (batch_size, num_nodes, num_features)
+  node_feature: a tensor of shape (batch_size, num_features)
   edge_index: a tensor of shape (2, num_edges) 
   
   The batch_size is a dynamic value which is determined by the input of the forward function.
   
   The output shape of the model should be (batch_size, 1).
 
-  The "num_features", "num_timesteps", and "num_nodes" are static and will be provided to the model through the init function.
+  The "num_features", "num_timesteps" are static and will be provided to the model through the init function.
 
   User will initialize the tabular model with the following code:
 
@@ -51,7 +51,7 @@ general_model_interface: |-
 
   User will initialize the graph model with the following code:
 
-  model = model_cls(num_features=num_features, num_nodes=num_nodes)
+  model = model_cls(num_features=num_features)
 
 
   No other parameters will be passed to the model, so give other parameters a default value or make them static.
