@@ -2,7 +2,9 @@
 import json
 import pickle
 from pathlib import Path
+from typing import Any
 
+import fire
 import pandas as pd
 from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
@@ -138,7 +140,7 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
 
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["expo_hypo_exp"][1])
+            exp = self.coder.develop(prev_out["propose_hypo_exp"][1])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
@@ -149,49 +151,26 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
+        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose_hypo_exp"][0], self.trace)
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
+        self.trace.hist.append((prev_out["propose_hypo_exp"][0], prev_out["running"], feedback))
 
-try:
-    for index in range(0, len(judge_pdf_data_items)):
-        file_path, attributes = judge_pdf_data_items[index]
-        if attributes["class"] == 1:
-            report_file_path = Path(
-                file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
-            )
-            if report_file_path.exists():
-                logger.info(f"Processing {report_file_path}")
+def main(path=None, step_n=None):
+    """
+    You can continue running session by
 
-                with logger.tag("r"):
-                    exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                    if exp is None:
-                        continue
-                    exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-                    if len(exp.based_experiments) == 0:
-                        exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
-                    logger.log_object(hypothesis, tag="hypothesis generation")
-                    logger.log_object(exp.sub_tasks, tag="experiment generation")
+    .. code-block:: python
 
-                with logger.tag("d"):
-                    exp = qlib_factor_coder.develop(exp)
-                    logger.log_object(exp.sub_workspace_list)
+        dotenv run -- python rdagent/app/qlib_rd_loop/factor_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
-                with logger.tag("ef"):
-                    exp = qlib_factor_runner.develop(exp)
-                    if exp is None:
-                        logger.error(f"Factor extraction failed for {report_file_path}. Skipping to the next report.")
-                        continue
-                    logger.log_object(exp, tag="factor runner result")
-                    feedback = qlib_factor_summarizer.generate_feedback(exp, hypothesis, trace)
-                    logger.log_object(feedback, tag="feedback")
+    """
+    if path is None:
+        model_loop = FactorReportLoop(FACTOR_PROP_SETTING)
+    else:
+        model_loop = FactorReportLoop.load(path)
+    model_loop.run(step_n=step_n)
 
-                trace.hist.append((hypothesis, exp, feedback))
-                logger.info(f"Processed {report_file_path}: Result: {exp}")
 
-            else:
-                logger.error(f"File not found: {report_file_path}")
-except Exception as e:
-    logger.error(f"An error occurred: {e}")
-    raise
+if __name__ == "__main__":
+    fire.Fire(main)
