@@ -23,7 +23,7 @@ feedparser
 matplotlib
 langchain
 tiktoken
-fitz  # Extract shotsreens from pdf
+pymupdf  # Extract shotsreens from pdf
 
 # azure identity related
 azure.identity

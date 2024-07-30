@@ -35,7 +35,10 @@ class LoopMeta(type):
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("__") and isinstance(attr, Callable):
-                steps.append(name)
+                if name not in steps:
+                    # NOTE: if we override the step in the subclass
+                    # Then it is not the new step. So we skip it.
+                    steps.append(name)
         attrs["steps"] = steps
         return super().__new__(cls, clsname, bases, attrs)
 
@@ -90,7 +93,7 @@ class LoopBase:
                 except self.skip_loop_error as e:
                     logger.warning(f"Skip loop {li} due to {e}")
                     self.loop_idx += 1
-                    self.step_index = 0
+                    self.step_idx = 0
                     continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)

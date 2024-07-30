@@ -107,6 +107,7 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
                 formulation=model_data["formulation"],
                 architecture=model_data["architecture"],
                 variables=model_data["variables"],
+                hyperparameters=model_data["hyperparameters"],
                 model_type=model_data["model_type"],
             )
             task_l.append(task)

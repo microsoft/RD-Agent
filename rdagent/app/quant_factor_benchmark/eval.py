@@ -25,7 +25,6 @@ test_cases = FactorTestCaseLoaderFromJsonFile().load(bs.bench_data_path)
 
 scen: Scenario = import_class(FACTOR_PROP_SETTING.scen)()
 generate_method = import_class(bs.bench_method_cls)(scen=scen)
-
 # 4.declare the eval method and pass the arguments.
 eval_method = FactorImplementEval(
     method=generate_method,
