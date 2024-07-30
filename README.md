@@ -102,7 +102,7 @@ In this project, we are aiming to build a Agent to automate Data-Driven R\&D tha
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
-## 📈 Scenarios Matrix 
+## 📈 Scenarios/Demos
 Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
@@ -119,14 +119,21 @@ TODO: Scenario Gallary
 # ⚙️Framework
 
 
-- TODOs:
-  - Framework introdution
-  - Research problems.
+Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
+
+The research questions within this framework can be divided into three main categories:
+| Research Area | Paper/Work List |
+|--------------------|-----------------|
+| Benchmark the R&D abilities | [Benchmark](#benchmark) |
+| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
+| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
+
+We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
 
+# 📃Paper/Work list
 
-# 📃Paper list
-
+## Benchmark
 - TODO: adding link;
 ```BibTeX
 @article{chen2024rd2bench,
@@ -139,6 +146,11 @@ TODO: Scenario Gallary
 ![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
 
 
+## Research
+
+- We have implements agents equiped with  Evolvable Research ability to propose and refine ideas in our repo. [Demos](#📈 Scenarios/Demos) are released.
+
+## Development
 
 - [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
 ```BibTeX
