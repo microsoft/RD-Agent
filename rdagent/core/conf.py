@@ -34,6 +34,7 @@ class RDAgentSettings(BaseSettings):
     max_past_message_include: int = 10
 
     # Chat configs
+    openai_api_key: str = ""  # TODO: simplify the key design.
     chat_openai_api_key: str = ""
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""

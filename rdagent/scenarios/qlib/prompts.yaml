@@ -1,6 +1,7 @@
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
+  Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].code_dict.get("model.py")}}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   New Feedback for Context (For you to agree or improve upon):  {{ feedback.new_hypothesis }}
@@ -11,9 +12,9 @@ hypothesis_and_feedback: |-
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
-    "hypothesis": "The new hypothesis generated based on the information provided.",
+    "hypothesis": "The new hypothesis generated based on the information provided.", Note that this should focus on model architecture, not training process or feature engineering or anything else
     "reason": "The reason why you generate this hypothesis.",
-    "concise_reason": One line summary that focuses on the justification for the change that leads to the hypothesis (like a part of a knowledge that we are building),
+    "concise_reason": Two line summary. First line focuses on the a concise justification for the change. 2nd Line learns from first line and previous experiences (hypothesis & experiments & code & feedbacks) to generalise a knowledge statement (use tend to/because/if/generally/etc. ). 
   }
 
 model_hypothesis_specification: |-
@@ -42,21 +43,6 @@ model_hypothesis_specification: |-
     5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
-
-factor_hypothesis_specification: |-
-  Additional Specifications:
-    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually build up upon previous hypotheses and feedback.
-    Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance. Each hypothesis should address specific factor characteristics such as type (momentum, value, quality), calculation methods, or inclusion criteria. Avoid hypotheses related to model architecture or optimization processes.
-
-  Sample Hypotheses (Only learn from the format as these are not the knowledge):
-    - "Include a momentum factor based on the last 12 months' returns."
-    - "Add a value factor calculated as the book-to-market ratio."
-    - "Incorporate a quality factor derived from return on equity (ROE)."
-    - "Use a volatility factor based on the standard deviation of returns over the past 6 months."
-    - "Include a sentiment factor derived from news sentiment scores."
-    - "The momentum factor should be calculated using a 6-month look-back period."
-    - "Combine value and momentum factors using a weighted average approach."
-    - "Filter stocks by market capitalization before calculating the factors."
 
 factor_hypothesis_specification: |-
   Specifications:
@@ -266,6 +252,7 @@ model_feedback_generation:
     Last Round Information:
     Hypothesis: {{last_hypothesis.hypothesis}}
     Task: {{last_task}}
+    Code Implemented: {{last_code}}
     Result: {{last_result}}
     {% else %}
     This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
@@ -273,6 +260,8 @@ model_feedback_generation:
     
     Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
     Hypothesis: {{hypothesis.hypothesis}}
+    Experiment Setup: {{exp.sub_tasks[0]}}
+    Code Implemented: {{exp.sub_workspace_list[0].code_dict.get("model.py")}}
     Relevant Reasoning: {{hypothesis.reason}}
     Result: {{exp.result}}
 
