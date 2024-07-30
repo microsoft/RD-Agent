@@ -113,9 +113,7 @@ class FileStorage(Storage):
             msg_l.append(m)
 
         msg_l.sort(key=lambda x: x.timestamp)
-        import time
         for m in msg_l:
-            time.sleep(1)
             yield m
 
     def truncate(self, time: datetime) -> None:

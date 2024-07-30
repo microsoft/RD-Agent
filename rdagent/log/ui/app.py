@@ -161,7 +161,7 @@ with st.sidebar:
     debug = st.toggle("debug", value=False)
 
     if debug:
-        if st.button("Single Step Run", disabled=state.getting_msg):
+        if st.button("Single Step Run"):
             get_msgs_until()
 
 
