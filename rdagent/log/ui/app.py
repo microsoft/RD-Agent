@@ -106,7 +106,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     state.msgs[state.lround][msg.tag].append(msg)
 
                     # Update Summary Info
-                    if "model runner result" in tags or "factor runner result" in tags or 'runner result' in tags:
+                    if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         if msg.content.result is None:
                             state.metric_series.append(pd.Series([None], index=["AUROC"]))
                         else:
