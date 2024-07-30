@@ -96,8 +96,8 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios..
 
 In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
 + 📄Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
-+ 🛠️**Implement** the extracted formulas, features, factors and models in runnable codes.
-   + Due the limited ability for LLM in implementing in once, evolving the agent to be able to extend abilities by learn from feedback and knowledge and improve the agent's ability to implement more complex models.
++ 🛠️**Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
+   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
 + 💡Propose **new ideas** based on current knowledge and observations.
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
