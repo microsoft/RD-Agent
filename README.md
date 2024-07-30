@@ -127,7 +127,28 @@ TODO: Scenario Gallary
 
 # 📃Paper list
 
-TODO: under review. Please check the.
+- TODO: adding;
+```BibTeX
+@article{chen2024rd2bench,
+  title={RD2Bench: Toward Data-Centric Automatic R\&D},
+  author={Chen, Haotian and Shen, Xinjie and Ye, Zeqi and Yang, Xiao and Yang, Xu and Liu, Weiqing and Bian, Jiang},
+  journal={arXiv preprint arXiv:2404.11276},
+  year={2024}
+}
+```
+
+- [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
+```BibTeX
+@misc{yang2024collaborative,
+    title={Collaborative Evolving Strategy for Automatic Data-Centric Development},
+    author={Xu Yang and Haotian Chen and Wenjun Feng and Haoxue Wang and Zeqi Ye and Xinjie Shen and Xiao Yang and Shizhao Sun and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2407.18690},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
 
 # Contributing
