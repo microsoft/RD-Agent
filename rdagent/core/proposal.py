@@ -112,7 +112,7 @@ class HypothesisGen(ABC):
 
 class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
     """
-    [Abstract description => concrete description] => Code implementation Card 
+    [Abstract description => concrete description] => Code implementation Card
     """
 
     @abstractmethod
