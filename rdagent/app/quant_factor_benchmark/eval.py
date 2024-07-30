@@ -15,6 +15,12 @@ from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
 )
 
+from rdagent.core.utils import import_class
+from rdagent.core.scenario import Scenario
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
+
+from pprint import pprint
+
 # 1.read the settings
 bs = BenchmarkSettings()
 
@@ -25,7 +31,6 @@ test_cases = FactorTestCaseLoaderFromJsonFile().load(bs.bench_data_path)
 
 scen: Scenario = import_class(PROP_SETTING.factor_scen)()
 generate_method = import_class(bs.bench_method_cls)(scen=scen)
-
 # 4.declare the eval method and pass the arguments.
 eval_method = FactorImplementEval(
     method=generate_method,

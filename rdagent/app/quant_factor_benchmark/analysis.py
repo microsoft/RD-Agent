@@ -41,7 +41,6 @@ class BenchmarkAnalyzer:
             processed_data = self.analyze_data(summarized_data)
             final_res[experiment] = processed_data.iloc[-1, :]
         return final_res
-
     def reformat_succ_rate(self, display_df):
         new_idx = []
         display_df = display_df[display_df.index.isin(self.index_map.keys())]
@@ -166,7 +165,6 @@ class Plotter:
         plt.ylabel("Value")
         plt.title("Comparison of Different Methods")
         plt.savefig(file_name)
-
 
 if __name__ == "__main__":
     settings = BenchmarkSettings()
