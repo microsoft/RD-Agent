@@ -1,6 +1,8 @@
 # %%
 from dotenv import load_dotenv
 
+load_dotenv(override=True)
+
 from rdagent.components.coder.model_coder.task_loader import (
     ModelExperimentLoaderFromPDFfiles,
 )
@@ -10,7 +12,7 @@ from rdagent.components.document_reader.document_reader import extract_first_pag
 from rdagent.log import rdagent_logger as logger
 import fire
 
-def extract_models_and_implement(report_file_path: str = "/home/v-xisenwang/RD-Agent/rdagent/app/model_extraction_and_code/test_doc.pdf") -> None:
+def extract_models_and_implement(report_file_path: str = "/home/v-xisenwang/RD-Agent/rdagent/app/model_extraction_and_code/test_doc1.pdf") -> None:
     with logger.tag("r"):
     # Save Relevant Images 
         img = extract_first_page_screenshot_from_pdf(report_file_path)
