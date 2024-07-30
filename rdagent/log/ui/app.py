@@ -2,7 +2,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Callable, Type
-
+from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -29,6 +29,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
 
 st.set_page_config(layout="wide")
 
+main_log_path = Path('./log')
 
 if "log_path" not in state:
     state.log_path = ""
@@ -67,7 +68,7 @@ if "metric_series" not in state:
 
 
 def refresh():
-    state.fs = FileStorage(state.log_path).iter_msg()
+    state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
     state.msgs = defaultdict(lambda: defaultdict(list))
     state.lround = 0
     state.erounds = defaultdict(int)
@@ -139,13 +140,22 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
 # Config Sidebar
 with st.sidebar:
-    st.text_input("log path", key="log_path", on_change=refresh)
-    st.selectbox("trace type", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
+    with st.container(border=True):
+        st.markdown(":blue[**log path**]")
+        if st.checkbox("Manual Input"):
+            st.text_input("log path", key="log_path", on_change=refresh)
+        else:
+            folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+            st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
 
-    st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-    st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+        st.selectbox(":blue[**trace type**]", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
 
-    if st.button("refresh"):
+    with st.container(border=True):
+        st.markdown(":blue[**excluded configs**]")
+        st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+        st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+
+    if st.button("refresh logs", help="clear all log messages in cache"):
         refresh()
     debug = st.checkbox("debug", value=False)
 
