@@ -193,17 +193,18 @@ def summary_window():
                         else:
                             # 2*2 figure
                             fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
+                            colors = ['red', 'blue', 'orange', 'green']
                             for ci, col in enumerate(df.columns):
                                 row = ci // 2 + 1
                                 col_num = ci % 2 + 1
                                 fig.add_trace(
                                     go.Scatter(x=df.index,
-                                            y=df[col],
-                                            name=col,
-                                            mode="lines+markers",
-                                            connectgaps=True,
-                                            marker=dict(size=10),
-                                            ),
+                                               y=df[col],
+                                               name=col,
+                                               mode="lines+markers",
+                                               connectgaps=True,
+                                               marker=dict(size=10, color=colors[ci]),
+                                               ),
                                     row=row,
                                     col=col_num
                                 )
