@@ -90,21 +90,27 @@ class FileStorage(Storage):
                 message_end = next_match.start() if next_match else len(content)
                 message_content = content[message_start:message_end].strip()
 
+                if "Logging object in" in message_content:
+                    continue
+
                 m = Message(
                     tag=tag, level=level, timestamp=timestamp, caller=caller, pid_trace=pid, content=message_content
                 )
 
-                if isinstance(m.content, str) and "Logging object in" in m.content:
-                    absolute_p = m.content.split("Logging object in ")[1]
-                    relative_p = "." + absolute_p.split(self.path.name)[1]
-                    pkl_path = self.path / relative_p
-                    try:
-                        with pkl_path.open("rb") as f:
-                            m.content = pickle.load(f)
-                    except:
-                        continue
-
                 msg_l.append(m)
+
+        for file in self.path.glob("**/*.pkl"):
+            tag = ".".join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            pid = file.parent.name
+
+            with file.open("rb") as f:
+                content = pickle.load(f)
+
+            timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
+
+            m = Message(tag=tag, level="INFO", timestamp=timestamp, caller="", pid_trace=pid, content=content)
+
+            msg_l.append(m)
 
         msg_l.sort(key=lambda x: x.timestamp)
         for m in msg_l:
