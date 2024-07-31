@@ -7,7 +7,7 @@ Framework & Components
 
 .. NOTE: This depends on the correctness of `c-v` of github.
 
-.. image:: https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736
+.. image:: https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766
     :alt: Components & Feature Level
 
 The figure above is the overall framework of RDAgent.
