@@ -29,10 +29,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
 
 st.set_page_config(layout="wide")
 
-main_log_path = Path('./log')
-
-if "log_path" not in state:
-    state.log_path = ""
+main_log_path = Path('/data/userdata/share')
 
 if "log_type" not in state:
     state.log_type = "qlib_model"
@@ -111,7 +108,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         if msg.content.result is None:
                             state.metric_series.append(pd.Series([None], index=["AUROC"]))
                         else:
-                            if msg.content.result.name == "AUROC":
+                            if len(msg.content.result) < 4:
                                 ps = msg.content.result
                                 ps.index = ["AUROC"]
                                 state.metric_series.append(ps)
@@ -161,6 +158,8 @@ with st.sidebar:
 
     if debug:
         if st.button("Single Step Run"):
+            if not state.fs:
+                refresh()
             get_msgs_until()
 
 
@@ -193,7 +192,7 @@ if debug:
 with st.container():
     image_c, toc_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        st.image("./docs/_static/scen.jpg")
+        st.image("./docs/_static/flow.png")
     with toc_c:
         st.markdown(
             """
@@ -300,13 +299,18 @@ summary_window()
 
 # R&D Loops Window
 st.header("R&D Loops♾️", divider=True, anchor="_rdloops")
-button_c1, button_c2, round_s_c = st.columns([2, 3, 18], vertical_alignment="center")
-with button_c1:
-    if st.button("Run One Loop"):
+btc1, btc2, round_s_c = st.columns([2, 2, 18], vertical_alignment="center")
+with btc1:
+    if st.button("All Loops"):
+        if not state.fs:
+            refresh()
+        get_msgs_until(lambda m: False)
+with btc2:
+    if st.button("One Loop"):
+        if not state.fs:
+            refresh()
         get_msgs_until(lambda m: "ef.feedback" in m.tag)
-with button_c2:
-    if st.button("Run One Evolving Step"):
-        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+
 
 if len(state.msgs) > 1:
     with round_s_c:
@@ -426,6 +430,10 @@ with rf_c:
 # Development Window (Evolving)
 with d_c.container(border=True):
     st.subheader("Development🛠️", divider=True, anchor="_development")
+    if st.button("One Evolving"):
+        if not state.fs:
+            refresh()
+        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
     # Evolving Tabs
     if state.erounds[round] > 0:
         etabs = st.tabs([str(i) for i in range(1, state.erounds[round] + 1)])
