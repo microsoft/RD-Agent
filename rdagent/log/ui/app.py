@@ -355,75 +355,75 @@ else:
     round = 1
 
 
-# Research & Feedback Window
-rf_c, d_c = st.columns([2, 2])
-with rf_c:
+def research_window():
+    st.subheader("Research🔍", divider="blue", anchor="_research")
     if state.log_type in ["qlib_model", "qlib_factor"]:
-        # Research Window
-        with st.container(border=True):
-            st.subheader("Research🔍", divider="blue", anchor="_research")
-            # pdf image
-            if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
-                for i in range(min(2, len(pim))):
-                    st.image(pim[i].content, width=200)
+        # pdf image
+        if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
+            for i in range(min(2, len(pim))):
+                st.image(pim[i].content, width=200)
 
-            # Hypothesis
-            if hg := state.msgs[round]["r.hypothesis generation"]:
-                st.markdown("**Hypothesis💡**")  # 🧠
-                h: Hypothesis = hg[0].content
-                st.markdown(
-                    f"""
+        # Hypothesis
+        if hg := state.msgs[round]["r.hypothesis generation"]:
+            st.markdown("**Hypothesis💡**")  # 🧠
+            h: Hypothesis = hg[0].content
+            st.markdown(
+                f"""
 - **Hypothesis**: {h.hypothesis}
 - **Reason**: {h.reason}"""
-                )
+            )
 
-            if eg := state.msgs[round]["r.experiment generation"]:
-                tasks_window(eg[0].content)
+        if eg := state.msgs[round]["r.experiment generation"]:
+            tasks_window(eg[0].content)
 
-        # Feedback Window
-        with st.container(border=True):
-            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
-            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
-                st.markdown("**Returns📈**")
-                fig = report_figure(fbr[0].content)
-                st.plotly_chart(fig)
-            if fb := state.msgs[round]["ef.feedback"]:
-                st.markdown("**Hypothesis Feedback🔍**")
-                h: HypothesisFeedback = fb[0].content
-                st.markdown(
-                    f"""
+    elif state.log_type == "model_extraction_and_implementation":
+        # pdf image
+        if pim := state.msgs[round]["r.pdf_image"]:
+            for i in range(len(pim)):
+                st.image(pim[i].content, width=200)
+
+        # loaded model exp
+        if mem := state.msgs[round]["d.load_experiment"]:
+            me: QlibModelExperiment = mem[0].content
+            tasks_window(me.sub_tasks)
+
+
+def feedback_window():
+    st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+    if state.log_type in ["qlib_model", "qlib_factor"]:
+        if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
+            st.markdown("**Returns📈**")
+            fig = report_figure(fbr[0].content)
+            st.plotly_chart(fig)
+        if fb := state.msgs[round]["ef.feedback"]:
+            st.markdown("**Hypothesis Feedback🔍**")
+            h: HypothesisFeedback = fb[0].content
+            st.markdown(
+                f"""
 - **Observations**: {h.observations}
 - **Hypothesis Evaluation**: {h.hypothesis_evaluation}
 - **New Hypothesis**: {h.new_hypothesis}
 - **Decision**: {h.decision}
 - **Reason**: {h.reason}"""
-                )
-
+            )
     elif state.log_type == "model_extraction_and_implementation":
-        # Research Window
-        with st.container(border=True):
-            # pdf image
-            st.subheader("Research🔍", divider="blue", anchor="_research")
-            if pim := state.msgs[round]["r.pdf_image"]:
-                for i in range(len(pim)):
-                    st.image(pim[i].content, width=200)
+        if fbr := state.msgs[round]["d.developed_experiment"]:
+            st.markdown("**Returns📈**")
+            result_df = fbr[0].content.result
+            if result_df:
+                fig = report_figure(result_df)
+                st.plotly_chart(fig)
+            else:
+                st.markdown("Returns is None")
 
-            # loaded model exp
-            if mem := state.msgs[round]["d.load_experiment"]:
-                me: QlibModelExperiment = mem[0].content
-                tasks_window(me.sub_tasks)
+# Research & Feedback Window
+rf_c, d_c = st.columns([2, 2])
+with rf_c:
+    with st.container(border=True):
+        research_window()
 
-        # Feedback Window
-        with st.container(border=True):
-            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
-            if fbr := state.msgs[round]["d.developed_experiment"]:
-                st.markdown("**Returns📈**")
-                result_df = fbr[0].content.result
-                if result_df:
-                    fig = report_figure(result_df)
-                    st.plotly_chart(fig)
-                else:
-                    st.markdown("Returns is None")
+    with st.container(border=True):
+        feedback_window()
 
 
 # Development Window (Evolving)
