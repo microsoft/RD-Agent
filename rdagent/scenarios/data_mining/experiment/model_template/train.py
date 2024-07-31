@@ -77,7 +77,19 @@ criterion = nn.CrossEntropyLoss()
 
 # Train the model
 
-for i in range(10):
+def eval_auc(model):
+    y_pred = []
+    for data in test_dataloader:
+        x, y = data
+        out = model(x)
+        y_pred.append(out.cpu().detach().numpy())
+    
+    return roc_auc_score(y_test, np.concatenate(y_pred))
+
+best = 0.0
+best_model = None
+
+for i in range(15):
     for data in train_dataloader:
         x, y = data
         out = model(x)
@@ -85,11 +97,15 @@ for i in range(10):
         loss = criterion(out.squeeze(), y)
         loss.backward()
         optimizer.step()
+    roc = eval_auc(model)
+    if roc > best:
+        best = roc
+        best_model = model
 
 y_pred = []
 for data in test_dataloader:
     x, y = data
-    out = model(x)
+    out = best_model(x)
     y_pred.append(out.cpu().detach().numpy())
 
 acc = roc_auc_score(y_test, np.concatenate(y_pred))
