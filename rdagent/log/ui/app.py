@@ -108,7 +108,6 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
                     state.current_tags = tags
                     state.last_msg = msg
-                    state.msgs[state.lround][msg.tag].append(msg)
 
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
@@ -134,19 +133,26 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
                         state.h_decisions[state.lround] = msg.content.decision
-                    elif "d" in tags and "evolving feedback" in tags:
-                        right_num = 0
-                        for wsf in msg.content:
-                            if wsf.final_decision:
-                                right_num += 1
-                        wrong_num = len(msg.content) - right_num
-                        state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num)
+                    elif "d" in tags:
+                        if "evolving code" in tags:
+                            msg.content = [i for i in msg.content if i]
+                        if "evolving feedback" in tags:
+                            msg.content = [i for i in msg.content if i]
+                            if len(msg.content) != len(state.msgs[state.lround]["d.evolving code"][-1].content):
+                                st.toast(":red[**Evolving Feedback Length Error!**]", icon="‼️")
+                            right_num = 0
+                            for wsf in msg.content:
+                                if wsf.final_decision:
+                                    right_num += 1
+                            wrong_num = len(msg.content) - right_num
+                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num)
 
+                    state.msgs[state.lround][msg.tag].append(msg)
                     # Stop Getting Logs
                     if end_func(msg):
                         break
             except StopIteration:
-                st.toast(':red[**No More Logs to Show!**]', icon='❗')
+                st.toast(':red[**No More Logs to Show!**]', icon='🛑')
                 break
 
 
@@ -453,8 +459,6 @@ with d_c.container(border=True):
             evolving_round = 1
 
         ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][evolving_round-1].content
-        # TODO: process None case for factor
-        ws = [w for w in ws if w]
         # All Tasks
 
         tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
