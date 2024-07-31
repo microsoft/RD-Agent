@@ -118,7 +118,8 @@ TODO: Scenario Gallary
 
 # ⚙️Framework
 
-![image](https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736)
+![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
 
