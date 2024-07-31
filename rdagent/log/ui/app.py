@@ -498,5 +498,3 @@ with d_c.container(border=True):
                             st.markdown(wsf.shape_feedback)
                         with vfc:
                             st.markdown(wsf.value_feedback)
-
-# TODO: evolving progress bar, diff colors
