@@ -26,6 +26,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelScenario,
 )
 from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
+from st_btn_select import st_btn_select
 
 st.set_page_config(layout="wide")
 
@@ -54,6 +55,9 @@ if "lround" not in state:
 
 if "erounds" not in state:
     state.erounds = defaultdict(int)  # Evolving Rounds in each RD Loop
+
+if "e_decisions" not in state:
+    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
 
 # Summary Info
 if "hypotheses" not in state:
@@ -130,6 +134,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
                         state.h_decisions[state.lround] = msg.content.decision
+                    elif "d" in tags and "evolving feedback" in tags:
+                        right_num = 0
+                        for wsf in msg.content:
+                            if wsf.final_decision:
+                                right_num += 1
+                        wrong_num = len(msg.content) - right_num
+                        state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num)
 
                     # Stop Getting Logs
                     if end_func(msg):
@@ -275,7 +286,12 @@ with st.sidebar:
         if not state.fs:
             refresh()
         get_msgs_until(lambda m: "ef.feedback" in m.tag)
-            
+
+    if st.button("One Evolving"):
+        if not state.fs:
+            refresh()
+        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+
     if st.button("refresh logs", help="clear all log messages in cache"):
         refresh()
     debug = st.toggle("debug", value=False)
@@ -333,7 +349,7 @@ summary_window()
 st.header("R&D Loops♾️", divider=True, anchor="_rdloops")
 
 if len(state.msgs) > 1:
-    round = st.select_slider("Select RDLoop Round", options=state.msgs.keys(), value=state.lround, format_func=lambda x: f"Round {x}")
+    round = st_btn_select(options=state.msgs.keys(), index=state.lround-1)
 else:
     round = 1
 
@@ -412,21 +428,31 @@ with rf_c:
 # Development Window (Evolving)
 with d_c.container(border=True):
     st.subheader("Development🛠️", divider=True, anchor="_development")
-    if st.button("One Evolving"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+
+    # Evolving Status
+    if state.erounds[round] > 0:
+        st.markdown("**🔸Evolving Status🔸**")
+        es = state.e_decisions[round]
+        e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round]+1)) + "|\n"
+        e_status_mks += "|--" * state.erounds[round] + "|\n"
+        for ei, estatus in es.items():
+            if not estatus:
+                estatus = (0, 0)
+            e_status_mks += "| " + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
+        e_status_mks += "|\n"
+        st.markdown(e_status_mks, unsafe_allow_html=True)
+
+
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            evolving_round = st.select_slider("Select Evolving Round",
-                                            options=range(1, state.erounds[round]+1),
-                                            value=state.erounds[round],
-                                            format_func=lambda x: f"Evolving Round {x}")
+            st.markdown("**🔹Evolving Rounds🔹**")
+            evolving_round = st_btn_select(options=range(1, state.erounds[round]+1),index=state.erounds[round]-1)
         else:
             evolving_round = 1
 
         ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][evolving_round-1].content
+        # TODO: process None case for factor
         ws = [w for w in ws if w]
         # All Tasks
 
