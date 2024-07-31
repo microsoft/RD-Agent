@@ -354,9 +354,9 @@ if len(state.msgs) > 1:
 else:
     round = 1
 
-rf_c, d_c = st.columns([2, 2])
 
 # Research & Feedback Window
+rf_c, d_c = st.columns([2, 2])
 with rf_c:
     if state.log_type in ["qlib_model", "qlib_factor"]:
         # Research Window
@@ -365,7 +365,7 @@ with rf_c:
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
-                    st.image(pim[i].content)
+                    st.image(pim[i].content, width=200)
 
             # Hypothesis
             if hg := state.msgs[round]["r.hypothesis generation"]:
@@ -406,7 +406,7 @@ with rf_c:
             st.subheader("Research🔍", divider="blue", anchor="_research")
             if pim := state.msgs[round]["r.pdf_image"]:
                 for i in range(len(pim)):
-                    st.image(pim[i].content)
+                    st.image(pim[i].content, width=200)
 
             # loaded model exp
             if mem := state.msgs[round]["d.load_experiment"]:
