@@ -5,11 +5,20 @@ Framework Design & Components
 Framework & Components
 =========================
 
-- TODO: Components & Feature Level
-![image](https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736)
+.. NOTE: This depends on the correctness of `c-v` of github.
 
-- Class Level Figure
-![image](https://github.com/user-attachments/assets/60cc2712-c32a-4492-a137-8aec59cdc66e)
+.. image:: https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736
+    :alt: Components & Feature Level
+
+The figure above is the overall framework of RDAgent.
+The 
+
+
+.. image:: https://github.com/user-attachments/assets/60cc2712-c32a-4492-a137-8aec59cdc66e
+    :alt: Class Level Figure
+
+If you are interested in the more detailed code.  The above figure demonstrate the main classes and align them with the workflow. 
+
 
 Detailed Design
 =========================
