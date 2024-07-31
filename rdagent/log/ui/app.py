@@ -10,7 +10,6 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
 from streamlit.delta_generator import DeltaGenerator
-
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
 )
@@ -26,6 +25,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
+from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 
 st.set_page_config(layout="wide")
 
@@ -132,6 +132,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if end_func(msg):
                         break
             except StopIteration:
+                st.toast(':red[**No More Logs to Show!**]', icon='❗')
                 break
 
 
@@ -139,10 +140,10 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 with st.sidebar:
     with st.container(border=True):
         st.markdown(":blue[**log path**]")
-        if st.checkbox("Manual Input"):
+        if st.toggle("Manual Input"):
             st.text_input("log path", key="log_path", on_change=refresh)
         else:
-            folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+            folders = [""]+[folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
             st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
 
         st.selectbox(":blue[**trace type**]", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
@@ -154,7 +155,7 @@ with st.sidebar:
 
     if st.button("refresh logs", help="clear all log messages in cache"):
         refresh()
-    debug = st.checkbox("debug", value=False)
+    debug = st.toggle("debug", value=False)
 
     if debug:
         if st.button("Single Step Run"):
@@ -211,38 +212,7 @@ with st.container(border=True):
     if state.log_type == "qlib_model":
         st.markdown(QlibModelScenario().rich_style_description)
     elif state.log_type == "model_extraction_and_implementation":
-        st.markdown(
-            """
-# General Model Scenario
-
-## Overview
-
-This demo automates the extraction and iterative development of models from academic papers, ensuring functionality and correctness.
-
-### Scenario: Auto-Developing Model Code from Academic Papers
-
-#### Overview
-
-This scenario automates the development of PyTorch models by reading academic papers or other sources. It supports various data types, including tabular, time-series, and graph data. The primary workflow involves two main components: the Reader and the Coder.
-
-#### Workflow Components
-
-1. **Reader**
-- Parses and extracts relevant model information from academic papers or sources, including architectures, parameters, and implementation details.
-- Uses Large Language Models to convert content into a structured format for the Coder.
-
-2. **Evolving Coder**
-- Translates structured information from the Reader into executable PyTorch code.
-- Utilizes an evolving coding mechanism to ensure correct tensor shapes, verified with sample input tensors.
-- Iteratively refines the code to align with source material specifications.
-
-#### Supported Data Types
-
-- **Tabular Data:** Structured data with rows and columns, such as spreadsheets or databases.
-- **Time-Series Data:** Sequential data points indexed in time order, useful for forecasting and temporal pattern recognition.
-- **Graph Data:** Data structured as nodes and edges, suitable for network analysis and relational tasks.
-"""
-        )
+        st.markdown(GeneralModelScenario().rich_style_description)
 
 
 # Summary Window
@@ -267,7 +237,7 @@ def summary_window():
                 with mt_c:
                     st.markdown("**Metrics📈**")
                 with ms_c:
-                    show_true_only = st.checkbox("True Decisions Only", value=False)
+                    show_true_only = st.toggle("True Decisions Only", value=False)
 
                 labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
                 df = pd.DataFrame(state.metric_series, index=labels)
@@ -281,7 +251,7 @@ def summary_window():
                     if df.shape[1] == 1:
                         # suhan's scenario
                         fig = px.line(df, x=df.index, y=df.columns, markers=True)
-                        fig.update_layout(legend_title_text="Metrics", xaxis_title="Loop Round", yaxis_title=None)
+                        fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
                     else:
                         # 2*2 figure
                         fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
@@ -314,7 +284,7 @@ with btc2:
 
 if len(state.msgs) > 1:
     with round_s_c:
-        round = st.select_slider("Select RDLoop Round", options=state.msgs.keys(), value=state.lround)
+        round = st.select_slider("Select RDLoop Round", options=state.msgs.keys(), value=state.lround, format_func=lambda x: f"Round {x}")
 else:
     round = 1
 
@@ -436,61 +406,56 @@ with d_c.container(border=True):
         get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
     # Evolving Tabs
     if state.erounds[round] > 0:
-        etabs = st.tabs([str(i) for i in range(1, state.erounds[round] + 1)])
+        if state.erounds[round] > 1:
+            evolving_round = st.select_slider("Select Evolving Round",
+                                            options=range(1, state.erounds[round]+1),
+                                            value=state.erounds[round],
+                                            format_func=lambda x: f"Evolving Round {x}")
+        else:
+            evolving_round = 1
 
-    for i in range(0, state.erounds[round]):
-        with etabs[i]:
-            ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][i].content
-            ws = [w for w in ws if w]
-            # All Tasks
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][evolving_round-1].content
+        ws = [w for w in ws if w]
+        # All Tasks
 
-            tab_names = [
-                w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
-            ]
-            wtabs = st.tabs(tab_names)
-            for j, w in enumerate(ws):
-                with wtabs[j]:
-                    # Evolving Code
-                    for k, v in w.code_dict.items():
-                        with st.expander(f":green[`{k}`]", expanded=True):
-                            st.code(v, language="python")
+        tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
+        if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
+            for j in range(len(ws)):
+                if state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j].final_decision:
+                    tab_names[j] += "✅"
 
-                    # Evolving Feedback
-                    if len(state.msgs[round]["d.evolving feedback"]) > i:
-                        wsf: list[FactorSingleFeedback | ModelCoderFeedback] = state.msgs[round]["d.evolving feedback"][
-                            i
-                        ].content[j]
-                        if isinstance(wsf, FactorSingleFeedback):
-                            st.markdown(
-                                f"""#### :blue[Factor Execution Feedback]
-{wsf.execution_feedback}
-#### :blue[Factor Code Feedback]
-{wsf.code_feedback}
-#### :blue[Factor Value Feedback]
-{wsf.factor_value_feedback}
-#### :blue[Factor Final Feedback]
-{wsf.final_feedback}
-#### :blue[Factor Final Decision]
-This implementation is {'SUCCESS' if wsf.final_decision else 'FAIL'}.
-"""
-                            )
-                        elif isinstance(wsf, ModelCoderFeedback):
-                            st.markdown(
-                                f"""#### :blue[Model Execution Feedback]
-{wsf.execution_feedback}
-#### :blue[Model Shape Feedback]
-{wsf.shape_feedback}
-#### :blue[Model Value Feedback]
-{wsf.value_feedback}
-#### :blue[Model Code Feedback]
-{wsf.code_feedback}
-#### :blue[Model Final Feedback]
-{wsf.final_feedback}
-#### :blue[Model Final Decision]
-This implementation is {'SUCCESS' if wsf.final_decision else 'FAIL'}.
-"""
-                            )
+        wtabs = st.tabs(tab_names)
+        for j, w in enumerate(ws):
+            with wtabs[j]:
+                # Evolving Code
+                for k, v in w.code_dict.items():
+                    with st.expander(f":green[`{k}`]", expanded=True):
+                        st.code(v, language="python")
 
-# TODO: evolving tabs -> slider
-# TODO: multi tasks SUCCESS/FAIL
+                # Evolving Feedback
+                if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
+                    wsf: list[FactorSingleFeedback | ModelCoderFeedback] = state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j]
+                    if isinstance(wsf, FactorSingleFeedback):
+                        ffc, efc, cfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Value Feedback🔢'])
+                        with ffc:
+                            st.markdown(wsf.final_feedback)
+                        with efc:
+                            st.markdown(wsf.execution_feedback)
+                        with cfc:
+                            st.markdown(wsf.code_feedback)
+                        with vfc:
+                            st.markdown(wsf.factor_value_feedback)
+                    elif isinstance(wsf, ModelCoderFeedback):
+                        ffc, efc, cfc, msfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Model Shape Feedback📐', 'Value Feedback🔢'])
+                        with ffc:
+                            st.markdown(wsf.final_feedback)
+                        with efc:
+                            st.markdown(wsf.execution_feedback)
+                        with cfc:
+                            st.markdown(wsf.code_feedback)
+                        with msfc:
+                            st.markdown(wsf.shape_feedback)
+                        with vfc:
+                            st.markdown(wsf.value_feedback)
+
 # TODO: evolving progress bar, diff colors
