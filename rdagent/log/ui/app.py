@@ -28,7 +28,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
 from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 from st_btn_select import st_btn_select
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
 main_log_path = Path('/data/userdata/share')
 
