@@ -76,6 +76,7 @@ def refresh():
     state.msgs = defaultdict(lambda: defaultdict(list))
     state.lround = 0
     state.erounds = defaultdict(int)
+    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
     state.hypotheses = defaultdict(None)
     state.h_decisions = defaultdict(bool)
     state.metric_series = []
