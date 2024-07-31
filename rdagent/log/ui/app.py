@@ -34,6 +34,9 @@ main_log_path = Path('/data/userdata/share')
 if "log_type" not in state:
     state.log_type = "qlib_model"
 
+if "log_path" not in state:
+    state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
+
 if "fs" not in state:
     state.fs = None
 
@@ -136,23 +139,143 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                 break
 
 
+def summary_window():
+    if state.log_type in ["qlib_model", "qlib_factor"]:
+        with st.container():
+            st.header("Summary📊", divider=True, anchor="_summary")
+            # TODO: not fixed height
+            with st.container():
+                ac,bc,cc = st.columns([2,1,2], vertical_alignment="center")
+                with ac:
+                    st.subheader("Hypotheses🏅", anchor="_hypotheses")
+                with bc:
+                    st.subheader("Metrics📈", anchor="_metrics")
+                with cc:
+                    show_true_only = st.toggle("successfully hypothesis", value=False)
+            
+            hypotheses_c, chart_c = st.columns([2, 3])
+            with hypotheses_c:
+                with st.container(height=700):
+                    h_str = "\n".join(
+                        f"{id}. :green[**{h.hypothesis}**]\n\t>:green-background[*{h.__dict__.get('concise_reason', '')}*]"
+                        if state.h_decisions[id]
+                        else f"{id}. {h.hypothesis}\n\t>*{h.__dict__.get('concise_reason', '')}*"
+                        for id, h in state.hypotheses.items()
+                    )
+                    st.markdown(h_str)
+            
+            with chart_c:
+                with st.container(height=700):
+                    labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
+                    df = pd.DataFrame(state.metric_series, index=labels)
+                    if show_true_only and len(state.hypotheses) >= len(state.metric_series):
+                        df = df.iloc[[i for i in range(df.shape[0]) if state.h_decisions[i + 1]]]
+                    if df.shape[0] == 1:
+                        st.table(df.iloc[0])
+                    elif df.shape[0] > 1:
+                        # TODO: figure label
+                        # TODO: separate into different figures
+                        if df.shape[1] == 1:
+                            # suhan's scenario
+                            fig = px.line(df, x=df.index, y=df.columns, markers=True)
+                            fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
+                        else:
+                            # 2*2 figure
+                            fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
+                            for ci, col in enumerate(df.columns):
+                                row = ci // 2 + 1
+                                col_num = ci % 2 + 1
+                                fig.add_trace(
+                                    go.Scatter(x=df.index,
+                                            y=df[col],
+                                            name=col,
+                                            mode="lines+markers",
+                                            connectgaps=True,
+                                            marker=dict(size=10),
+                                            ),
+                                    row=row,
+                                    col=col_num
+                                )
+                            fig.update_layout(showlegend=False, height=650)
+                        st.plotly_chart(fig)
+
+
+def tasks_window(tasks: list[FactorTask | ModelTask]):
+    if isinstance(tasks[0], FactorTask):
+        st.markdown("**Factor Tasks**")
+        tabs = st.tabs([f.factor_name for f in tasks])
+        for i, ft in enumerate(tasks):
+            with tabs[i]:
+                # st.markdown(f"**Factor Name**: {ft.factor_name}")
+                st.markdown(f"**Description**: {ft.factor_description}")
+                st.latex("Formulation")
+                st.latex(f"{ft.factor_formulation}")
+
+                mks = "| Variable | Description |\n| --- | --- |\n"
+                for v,d in ft.variables.items():
+                    mks += f"| ${v}$ | {d} |\n"
+                st.markdown(mks)
+
+    elif isinstance(tasks[0], ModelTask):
+        st.markdown("**Model Tasks**")
+        tabs = st.tabs([m.name for m in tasks])
+        for i, mt in enumerate(tasks):
+            with tabs[i]:
+                # st.markdown(f"**Model Name**: {mt.name}")
+                st.markdown(f"**Model Type**: {mt.model_type}")
+                st.markdown(f"**Description**: {mt.description}")
+                st.latex("Formulation")
+                st.latex(f"{mt.formulation}")
+
+                mks = "| Variable | Description |\n| --- | --- |\n"
+                for v,d in mt.variables.items():
+                    mks += f"| ${v}$ | {d} |\n"
+                st.markdown(mks)
+
+
 # Config Sidebar
 with st.sidebar:
-    with st.container(border=True):
-        st.markdown(":blue[**log path**]")
-        if st.toggle("Manual Input"):
-            st.text_input("log path", key="log_path", on_change=refresh)
-        else:
-            folders = [""]+[folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
-            st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
 
-        st.selectbox(":blue[**trace type**]", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
+    with st.popover(":orange[**Config**]"):
+        with st.container(border=True):
+            st.markdown(":blue[**log path**]")
+            if st.toggle("Manual Input"):
+                st.text_input("log path", key="log_path", on_change=refresh)
+            else:
+                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
 
-    with st.container(border=True):
-        st.markdown(":blue[**excluded configs**]")
-        st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-        st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+            st.selectbox(":blue[**trace type**]", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
 
+        with st.container(border=True):
+            st.markdown(":blue[**excluded configs**]")
+            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+    
+    st.markdown("""
+# RD-Agent🤖
+## [Scenario Description](#_scenario)
+## [Summary](#_summary)
+- [**Hypotheses**](#_hypotheses)
+- [**Metrics**](#_metrics)
+## [RD-Loops](#_rdloops)
+- [**Research**](#_research)
+- [**Development**](#_development)
+- [**Feedback**](#_feedback)
+""")
+
+    st.divider()
+
+    if st.button("All Loops"):
+        if not state.fs:
+            refresh()
+        get_msgs_until(lambda m: False)
+    
+    if st.button("Next Loop"):
+        if not state.fs:
+            refresh()
+        get_msgs_until(lambda m: "ef.feedback" in m.tag)
+            
     if st.button("refresh logs", help="clear all log messages in cache"):
         refresh()
     debug = st.toggle("debug", value=False)
@@ -191,100 +314,26 @@ if debug:
 
 # Project Info
 with st.container():
-    image_c, toc_c = st.columns([3, 3], vertical_alignment="center")
+    image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
         st.image("./docs/_static/flow.png")
-    with toc_c:
-        st.markdown(
-            """
-# RD-Agent🤖
-## [Scenario Description](#_scenario)
-## [Summary](#_summary)
-## [RD-Loops](#_rdloops)
-### [Research](#_research)
-### [Development](#_development)
-### [Feedback](#_feedback)
-"""
-        )
-with st.container(border=True):
-    st.header("Scenario Description📖", divider=True, anchor="_scenario")
-    # TODO: other scenarios
-    if state.log_type == "qlib_model":
-        st.markdown(QlibModelScenario().rich_style_description)
-    elif state.log_type == "model_extraction_and_implementation":
-        st.markdown(GeneralModelScenario().rich_style_description)
+    with scen_c:
+        st.header("Scenario Description📖", divider=True, anchor="_scenario")
+        # TODO: other scenarios
+        if state.log_type == "qlib_model":
+            st.markdown(QlibModelScenario().rich_style_description)
+        elif state.log_type == "model_extraction_and_implementation":
+            st.markdown(GeneralModelScenario().rich_style_description)
 
 
 # Summary Window
-@st.experimental_fragment()
-def summary_window():
-    if state.log_type in ["qlib_model", "qlib_factor"]:
-        with st.container():
-            st.header("Summary📊", divider=True, anchor="_summary")
-            hypotheses_c, chart_c = st.columns([2, 3])
-            # TODO: not fixed height
-            with hypotheses_c.container(height=600):
-                st.markdown("**Hypotheses🏅**")
-                h_str = "\n".join(
-                    f"{id}. :green[**{h.hypothesis}**]\n\t>:green-background[*{h.__dict__.get('concise_reason', '')}*]"
-                    if state.h_decisions[id]
-                    else f"{id}. {h.hypothesis}\n\t>*{h.__dict__.get('concise_reason', '')}*"
-                    for id, h in state.hypotheses.items()
-                )
-                st.markdown(h_str)
-            with chart_c.container(height=600):
-                mt_c, ms_c = st.columns(2, vertical_alignment="center")
-                with mt_c:
-                    st.markdown("**Metrics📈**")
-                with ms_c:
-                    show_true_only = st.toggle("True Decisions Only", value=False)
-
-                labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
-                df = pd.DataFrame(state.metric_series, index=labels)
-                if show_true_only and len(state.hypotheses) >= len(state.metric_series):
-                    df = df.iloc[[i for i in range(df.shape[0]) if state.h_decisions[i + 1]]]
-                if df.shape[0] == 1:
-                    st.table(df.iloc[0])
-                elif df.shape[0] > 1:
-                    # TODO: figure label
-                    # TODO: separate into different figures
-                    if df.shape[1] == 1:
-                        # suhan's scenario
-                        fig = px.line(df, x=df.index, y=df.columns, markers=True)
-                        fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
-                    else:
-                        # 2*2 figure
-                        fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
-                        for ci, col in enumerate(df.columns):
-                            row = ci // 2 + 1
-                            col_num = ci % 2 + 1
-                            fig.add_trace(
-                                go.Scatter(x=df.index, y=df[col], mode="lines+markers", name=col), row=row, col=col_num
-                            )
-                        fig.update_layout(title_text="Metrics", showlegend=False)
-                    st.plotly_chart(fig)
-
-
 summary_window()
 
 # R&D Loops Window
 st.header("R&D Loops♾️", divider=True, anchor="_rdloops")
-btc1, btc2, round_s_c = st.columns([2, 2, 18], vertical_alignment="center")
-with btc1:
-    if st.button("All Loops"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: False)
-with btc2:
-    if st.button("One Loop"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "ef.feedback" in m.tag)
-
 
 if len(state.msgs) > 1:
-    with round_s_c:
-        round = st.select_slider("Select RDLoop Round", options=state.msgs.keys(), value=state.lround, format_func=lambda x: f"Round {x}")
+    round = st.select_slider("Select RDLoop Round", options=state.msgs.keys(), value=state.lround, format_func=lambda x: f"Round {x}")
 else:
     round = 1
 
@@ -312,33 +361,7 @@ with rf_c:
                 )
 
             if eg := state.msgs[round]["r.experiment generation"]:
-                if isinstance(eg[0].content[0], FactorTask):
-                    st.markdown("**Factor Tasks**")
-                    fts = eg[0].content
-                    tabs = st.tabs([f.factor_name for f in fts])
-                    for i, ft in enumerate(fts):
-                        with tabs[i]:
-                            # st.markdown(f"**Factor Name**: {ft.factor_name}")
-                            st.markdown(f"**Description**: {ft.factor_description}")
-                            st.latex(f"Formulation: {ft.factor_formulation}")
-
-                            variables_df = pd.DataFrame(ft.variables, index=["Description"]).T
-                            variables_df.index.name = "Variable"
-                            st.table(variables_df)
-                elif isinstance(eg[0].content[0], ModelTask):
-                    st.markdown("**Model Tasks**")
-                    mts = eg[0].content
-                    tabs = st.tabs([m.name for m in mts])
-                    for i, mt in enumerate(mts):
-                        with tabs[i]:
-                            # st.markdown(f"**Model Name**: {mt.name}")
-                            st.markdown(f"**Model Type**: {mt.model_type}")
-                            st.markdown(f"**Description**: {mt.description}")
-                            st.latex(f"Formulation: {mt.formulation}")
-
-                            variables_df = pd.DataFrame(mt.variables, index=["Value"]).T
-                            variables_df.index.name = "Variable"
-                            st.table(variables_df)
+                tasks_window(eg[0].content)
 
         # Feedback Window
         with st.container(border=True):
@@ -371,18 +394,7 @@ with rf_c:
             # loaded model exp
             if mem := state.msgs[round]["d.load_experiment"]:
                 me: QlibModelExperiment = mem[0].content
-                mts: list[ModelTask] = me.sub_tasks
-                tabs = st.tabs([m.name for m in mts])
-                for i, mt in enumerate(mts):
-                    with tabs[i]:
-                        # st.markdown(f"**Model Name**: {mt.name}")
-                        st.markdown(f"**Model Type**: {mt.model_type}")
-                        st.markdown(f"**Description**: {mt.description}")
-                        st.latex(f"Formulation: {mt.formulation}")
-
-                        variables_df = pd.DataFrame(mt.variables, index=["Value"]).T
-                        variables_df.index.name = "Variable"
-                        st.table(variables_df)
+                tasks_window(me.sub_tasks)
 
         # Feedback Window
         with st.container(border=True):
@@ -422,7 +434,9 @@ with d_c.container(border=True):
         if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
             for j in range(len(ws)):
                 if state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j].final_decision:
-                    tab_names[j] += "✅"
+                    tab_names[j] += "✔️"
+                else:
+                    tab_names[j] += "❌"
 
         wtabs = st.tabs(tab_names)
         for j, w in enumerate(ws):
@@ -440,7 +454,7 @@ with d_c.container(border=True):
                         with ffc:
                             st.markdown(wsf.final_feedback)
                         with efc:
-                            st.markdown(wsf.execution_feedback)
+                            st.code(wsf.execution_feedback, language="log")
                         with cfc:
                             st.markdown(wsf.code_feedback)
                         with vfc:
@@ -450,7 +464,7 @@ with d_c.container(border=True):
                         with ffc:
                             st.markdown(wsf.final_feedback)
                         with efc:
-                            st.markdown(wsf.execution_feedback)
+                            st.code(wsf.execution_feedback, language="log")
                         with cfc:
                             st.markdown(wsf.code_feedback)
                         with msfc:
