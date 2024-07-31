@@ -20,7 +20,7 @@ from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment, QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -345,6 +345,8 @@ with st.container():
         # TODO: other scenarios
         if state.log_type == "qlib_model":
             st.markdown(QlibModelScenario().rich_style_description)
+        elif state.log_type == "qlib_factor":
+            st.markdown(QlibFactorScenario().rich_style_description)
         elif state.log_type == "model_extraction_and_implementation":
             st.markdown(GeneralModelScenario().rich_style_description)
 
