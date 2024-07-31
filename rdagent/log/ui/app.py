@@ -153,7 +153,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 def summary_window():
     if state.log_type in ["qlib_model", "qlib_factor"]:
         with st.container():
-            st.header("Summary📊", divider=True, anchor="_summary")
+            st.header("Summary📊", divider="rainbow", anchor="_summary")
             # TODO: not fixed height
             with st.container():
                 ac,bc,cc = st.columns([2,1,2], vertical_alignment="center")
@@ -335,7 +335,7 @@ with st.container():
     with image_c:
         st.image("./docs/_static/flow.png")
     with scen_c:
-        st.header("Scenario Description📖", divider=True, anchor="_scenario")
+        st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         # TODO: other scenarios
         if state.log_type == "qlib_model":
             st.markdown(QlibModelScenario().rich_style_description)
@@ -347,7 +347,7 @@ with st.container():
 summary_window()
 
 # R&D Loops Window
-st.header("R&D Loops♾️", divider=True, anchor="_rdloops")
+st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
 
 if len(state.msgs) > 1:
     round = st_btn_select(options=state.msgs.keys(), index=state.lround-1)
@@ -361,7 +361,7 @@ with rf_c:
     if state.log_type in ["qlib_model", "qlib_factor"]:
         # Research Window
         with st.container(border=True):
-            st.subheader("Research🔍", divider=True, anchor="_research")
+            st.subheader("Research🔍", divider="blue", anchor="_research")
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -382,7 +382,7 @@ with rf_c:
 
         # Feedback Window
         with st.container(border=True):
-            st.subheader("Feedback📝", divider=True, anchor="_feedback")
+            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
@@ -403,7 +403,7 @@ with rf_c:
         # Research Window
         with st.container(border=True):
             # pdf image
-            st.subheader("Research🔍", divider=True, anchor="_research")
+            st.subheader("Research🔍", divider="blue", anchor="_research")
             if pim := state.msgs[round]["r.pdf_image"]:
                 for i in range(len(pim)):
                     st.image(pim[i].content)
@@ -415,7 +415,7 @@ with rf_c:
 
         # Feedback Window
         with st.container(border=True):
-            st.subheader("Feedback📝", divider=True, anchor="_feedback")
+            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
             if fbr := state.msgs[round]["d.developed_experiment"]:
                 st.markdown("**Returns📈**")
                 result_df = fbr[0].content.result
@@ -428,7 +428,7 @@ with rf_c:
 
 # Development Window (Evolving)
 with d_c.container(border=True):
-    st.subheader("Development🛠️", divider=True, anchor="_development")
+    st.subheader("Development🛠️", divider="green", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
