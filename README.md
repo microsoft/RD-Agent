@@ -18,8 +18,8 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
 - [🎥Automatic Quant Factory]()
-- Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
+- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
 - ...
 
 You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
@@ -107,9 +107,9 @@ Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | Iteratively Proposing Ideas & Evolving | - Auto reports reading & implementation <br/> - Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
+| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
+| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
@@ -118,7 +118,8 @@ TODO: Scenario Gallary
 
 # ⚙️Framework
 
-![image](https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736)
+![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
 
@@ -135,13 +136,15 @@ We believe that the key to delivering high-quality solutions lies in the ability
 # 📃Paper/Work list
 
 ## Benchmark
-- TODO: adding link;
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
 ```BibTeX
-@article{chen2024rd2bench,
-  title={RD2Bench: Toward Data-Centric Automatic R\&D},
-  author={Chen, Haotian and Shen, Xinjie and Ye, Zeqi and Yang, Xiao and Yang, Xu and Liu, Weiqing and Bian, Jiang},
-  journal={arXiv preprint arXiv:2404.11276},
-  year={2024}
+@misc{chen2024datacentric,
+    title={Towards Data-Centric Automatic R&D},
+    author={Haotian Chen and Xinjie Shen and Zeqi Ye and Wenjun Feng and Haoxue Wang and Xiao Yang and Xu Yang and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2404.11276},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
 }
 ```
 ![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
