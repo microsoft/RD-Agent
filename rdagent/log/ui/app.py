@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import textwrap
 import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
@@ -125,22 +126,23 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
                         if state.log_type == "qlib_factor" and state.alpha158_metrics is None:
-                            state.alpha158_metrics = msg.content.based_experiments[0].result.loc[
-                                SELECTED_METRICS
-                            ]
+                            sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
+                            sms.name = "alpha158"
+                            state.alpha158_metrics = sms
                         
                         # common metrics
                         if msg.content.result is None:
-                            state.metric_series.append(pd.Series([None], index=["AUROC"]))
+                            state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
                         else:
                             if len(msg.content.result) < 4:
                                 ps = msg.content.result
                                 ps.index = ["AUROC"]
+                                ps.name = f"Round {state.lround}"
                                 state.metric_series.append(ps)
                             else:
-                                state.metric_series.append(
-                                    msg.content.result.loc[SELECTED_METRICS]
-                                )
+                                sms = msg.content.result.loc[SELECTED_METRICS]
+                                sms.name = f"Round {state.lround}"
+                                state.metric_series.append(sms)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
@@ -168,10 +170,35 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                 break
 
 
+def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
+    if isinstance(wsf, FactorSingleFeedback):
+        ffc, efc, cfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Value Feedback🔢'])
+        with ffc:
+            st.markdown(wsf.final_feedback)
+        with efc:
+            st.code(wsf.execution_feedback, language="log")
+        with cfc:
+            st.markdown(wsf.code_feedback)
+        with vfc:
+            st.markdown(wsf.factor_value_feedback)
+    elif isinstance(wsf, ModelCoderFeedback):
+        ffc, efc, cfc, msfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Model Shape Feedback📐', 'Value Feedback🔢'])
+        with ffc:
+            st.markdown(wsf.final_feedback)
+        with efc:
+            st.code(wsf.execution_feedback, language="log")
+        with cfc:
+            st.markdown(wsf.code_feedback)
+        with msfc:
+            st.markdown(wsf.shape_feedback)
+        with vfc:
+            st.markdown(wsf.value_feedback)
+
+
 def summary_window():
     if state.log_type in ["qlib_model", "qlib_factor"]:
+        st.header("Summary📊", divider="rainbow", anchor="_summary")
         with st.container():
-            st.header("Summary📊", divider="rainbow", anchor="_summary")
             # TODO: not fixed height
             with st.container():
                 ac,bc,cc = st.columns([2,1,2], vertical_alignment="center")
@@ -180,33 +207,36 @@ def summary_window():
                 with bc:
                     st.subheader("Metrics📈", anchor="_metrics")
                 with cc:
-                    show_true_only = st.toggle("successfully hypothesis", value=False)
+                    show_true_only = st.toggle("successful hypotheses", value=False)
             
             hypotheses_c, chart_c = st.columns([2, 3])
             with hypotheses_c:
                 with st.container(height=700):
-                    h_str = "\n".join(
-                        f"{id}. :green[**{h.hypothesis}**]\n\t>:green-background[*{h.__dict__.get('concise_reason', '')}*]"
-                        if state.h_decisions[id]
-                        else f"{id}. {h.hypothesis}\n\t>*{h.__dict__.get('concise_reason', '')}*"
-                        for id, h in state.hypotheses.items()
-                    )
-                    st.markdown(h_str)
-            
+                    h_strs = []
+                    for id, h in state.hypotheses.items():
+                        if state.h_decisions[id]:
+                            h_strs.append(f"{id}. :green[**{h.hypothesis}**]\n\t>:green-background[*{h.__dict__.get('concise_reason', '')}*]")
+                        else:
+                            h_strs.append(f"{id}. {h.hypothesis}\n\t>*{h.__dict__.get('concise_reason', '')}*")
+
+                        if hasattr(h, "concise_observation"):
+                            h_strs[-1] += f"\n\n\t>:blue[**Observation**]: {h.concise_observation}"
+                            h_strs[-1] += f"\n\n\t>:blue[**Justification**]: {h.concise_justification}"
+                            h_strs[-1] += f"\n\n\t>:blue[**Knowledge**]: {h.concise_knowledge}"
+                    st.markdown("\n".join(h_strs))
+
             with chart_c:
                 with st.container(height=700):
                     if state.log_type == "qlib_factor":
-                        labels = ["alpha158"] + [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
-                        df = pd.DataFrame([state.alpha158_metrics] + state.metric_series, index=labels)
+                        df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                     else:
-                        labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
-                        df = pd.DataFrame(state.metric_series, index=labels)
+                        df = pd.DataFrame(state.metric_series)
                     if show_true_only and len(state.hypotheses) >= len(state.metric_series):
                         if state.alpha158_metrics is not None:
-                            selected = [0] + [i for i in range(df.shape[0]) if state.h_decisions[i]]
+                            selected = ["alpha158"] + [i for i in df.index if state.h_decisions[int(i[6:])]]
                         else:
-                            selected = [i for i in range(df.shape[0]) if state.h_decisions[i + 1]]
-                        df = df.iloc[selected]
+                            selected = [i for i in df.index if state.h_decisions[int(i[6:])]]
+                        df = df.loc[selected]
                     if df.shape[0] == 1:
                         st.table(df.iloc[0])
                     elif df.shape[0] > 1:
@@ -220,6 +250,12 @@ def summary_window():
                             # 2*2 figure
                             fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
                             colors = ['red', 'blue', 'orange', 'green']
+                            def hypothesis_hover_text(h: Hypothesis, d: bool = False):
+                                color = "green" if d else "black"
+                                text = h.hypothesis
+                                lines = textwrap.wrap(text, width=60)
+                                return f"<span style='color: {color};'>{'<br>'.join(lines)}</span>"
+                            hover_texts = [hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])]) for i in df.index]
                             for ci, col in enumerate(df.columns):
                                 row = ci // 2 + 1
                                 col_num = ci % 2 + 1
@@ -230,6 +266,8 @@ def summary_window():
                                                mode="lines+markers",
                                                connectgaps=True,
                                                marker=dict(size=10, color=colors[ci]),
+                                               hovertext=hover_texts,
+                                               hovertemplate="%{hovertext}<br><br><span style='color: black'>%{x} Value:</span> <span style='color: blue'>%{y}</span><extra></extra>",
                                                ),
                                     row=row,
                                     col=col_num
@@ -247,6 +285,31 @@ def summary_window():
                                         )
                         st.plotly_chart(fig)
 
+    elif state.log_type == "model_extraction_and_implementation" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+        with st.container(border=True):
+            st.subheader("Summary📊", divider="rainbow", anchor="_summary")
+
+            # pass
+            ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
+            # All Tasks
+
+            tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
+            for j in range(len(ws)):
+                if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
+                    tab_names[j] += "✔️"
+                else:
+                    tab_names[j] += "❌"
+
+            wtabs = st.tabs(tab_names)
+            for j, w in enumerate(ws):
+                with wtabs[j]:
+                    # Evolving Code
+                    for k, v in w.code_dict.items():
+                        with st.expander(f":green[`{k}`]", expanded=False):
+                            st.code(v, language="python")
+
+                    # Evolving Feedback
+                    evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
 # TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
@@ -386,80 +449,95 @@ with st.container():
 summary_window()
 
 # R&D Loops Window
-st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
+if state.log_type in ["qlib_model", "qlib_factor"]:
+    st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
 
-if len(state.msgs) > 1:
-    round = st_btn_select(options=state.msgs.keys(), index=state.lround-1)
+if state.log_type in ["qlib_model", "qlib_factor"]:
+    if len(state.msgs) > 1:
+        r_options = list(state.msgs.keys())
+        if 0 in r_options:
+            r_options.remove(0)
+        round = st_btn_select(options=r_options, index=state.lround-1)
+    else:
+        round = 1
 else:
     round = 1
 
-
 def research_window():
-    st.subheader("Research🔍", divider="blue", anchor="_research")
-    if state.log_type in ["qlib_model", "qlib_factor"]:
-        # pdf image
-        if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
-            for i in range(min(2, len(pim))):
-                st.image(pim[i].content, width=600)
+    with st.container(border=True):
+        title = "Research🔍" if state.log_type in ["qlib_model", "qlib_factor"] else "Research🔍 (reader)"
+        st.subheader(title, divider="blue", anchor="_research")
+        if state.log_type in ["qlib_model", "qlib_factor"]:
+            # pdf image
+            if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
+                for i in range(min(2, len(pim))):
+                    st.image(pim[i].content, use_column_width=True)
 
-        # Hypothesis
-        if hg := state.msgs[round]["r.hypothesis generation"]:
-            st.markdown("**Hypothesis💡**")  # 🧠
-            h: Hypothesis = hg[0].content
-            st.markdown(
-                f"""
+            # Hypothesis
+            if hg := state.msgs[round]["r.hypothesis generation"]:
+                st.markdown("**Hypothesis💡**")  # 🧠
+                h: Hypothesis = hg[0].content
+                st.markdown(
+                    f"""
 - **Hypothesis**: {h.hypothesis}
 - **Reason**: {h.reason}"""
-            )
+                )
 
-        if eg := state.msgs[round]["r.experiment generation"]:
-            tasks_window(eg[0].content)
+            if eg := state.msgs[round]["r.experiment generation"]:
+                tasks_window(eg[0].content)
 
-    elif state.log_type == "model_extraction_and_implementation":
-        # pdf image
-        if pim := state.msgs[round]["r.pdf_image"]:
-            for i in range(len(pim)):
-                st.image(pim[i].content, width=600)
+        elif state.log_type == "model_extraction_and_implementation":
+            # pdf image
+            c1, c2 = st.columns([2, 3])
+            with c1:
+                if pim := state.msgs[round]["r.pdf_image"]:
+                    for i in range(len(pim)):
+                        st.image(pim[i].content, use_column_width=True)
 
-        # loaded model exp
-        if mem := state.msgs[round]["d.load_experiment"]:
-            me: QlibModelExperiment = mem[0].content
-            tasks_window(me.sub_tasks)
+            # loaded model exp
+            with c2:
+                if mem := state.msgs[round]["d.load_experiment"]:
+                    me: QlibModelExperiment = mem[0].content
+                    tasks_window(me.sub_tasks)
 
 
 def feedback_window():
-    st.subheader("Feedback📝", divider="orange", anchor="_feedback")
     if state.log_type in ["qlib_model", "qlib_factor"]:
-        if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
-            st.markdown("**Returns📈**")
-            fig = report_figure(fbr[0].content)
-            st.plotly_chart(fig)
-        if fb := state.msgs[round]["ef.feedback"]:
-            st.markdown("**Hypothesis Feedback🔍**")
-            h: HypothesisFeedback = fb[0].content
-            st.markdown(
-                f"""
+        with st.container(border=True):
+            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
+                st.markdown("**Returns📈**")
+                fig = report_figure(fbr[0].content)
+                st.plotly_chart(fig)
+            if fb := state.msgs[round]["ef.feedback"]:
+                st.markdown("**Hypothesis Feedback🔍**")
+                h: HypothesisFeedback = fb[0].content
+                st.markdown(
+                    f"""
 - **Observations**: {h.observations}
 - **Hypothesis Evaluation**: {h.hypothesis_evaluation}
 - **New Hypothesis**: {h.new_hypothesis}
 - **Decision**: {h.decision}
 - **Reason**: {h.reason}"""
-            )
+                )
 
 
-# Research & Feedback Window
-rf_c, d_c = st.columns([2, 2])
+if state.log_type in ["qlib_model", "qlib_factor"]:
+    rf_c, d_c = st.columns([2, 2])
+elif state.log_type == "model_extraction_and_implementation":
+    rf_c = st.container()
+    d_c = st.container()
+
+
 with rf_c:
-    with st.container(border=True):
-        research_window()
-
-    with st.container(border=True):
-        feedback_window()
+    research_window()
+    feedback_window()
 
 
 # Development Window (Evolving)
 with d_c.container(border=True):
-    st.subheader("Development🛠️", divider="green", anchor="_development")
+    title = "Development🛠️" if state.log_type in ["qlib_model", "qlib_factor"] else "Development🛠️ (evolving coder)"
+    st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
@@ -479,7 +557,7 @@ with d_c.container(border=True):
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
             st.markdown("**🔹Evolving Rounds🔹**")
-            evolving_round = st_btn_select(options=range(1, state.erounds[round]+1),index=state.erounds[round]-1)
+            evolving_round = st_btn_select(options=range(1, state.erounds[round]+1), index=state.erounds[round]-1, key="show_eround")
         else:
             evolving_round = 1
 
@@ -504,26 +582,9 @@ with d_c.container(border=True):
 
                 # Evolving Feedback
                 if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
-                    wsf: list[FactorSingleFeedback | ModelCoderFeedback] = state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j]
-                    if isinstance(wsf, FactorSingleFeedback):
-                        ffc, efc, cfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Value Feedback🔢'])
-                        with ffc:
-                            st.markdown(wsf.final_feedback)
-                        with efc:
-                            st.code(wsf.execution_feedback, language="log")
-                        with cfc:
-                            st.markdown(wsf.code_feedback)
-                        with vfc:
-                            st.markdown(wsf.factor_value_feedback)
-                    elif isinstance(wsf, ModelCoderFeedback):
-                        ffc, efc, cfc, msfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Model Shape Feedback📐', 'Value Feedback🔢'])
-                        with ffc:
-                            st.markdown(wsf.final_feedback)
-                        with efc:
-                            st.code(wsf.execution_feedback, language="log")
-                        with cfc:
-                            st.markdown(wsf.code_feedback)
-                        with msfc:
-                            st.markdown(wsf.shape_feedback)
-                        with vfc:
-                            st.markdown(wsf.value_feedback)
+                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j])
+
+
+with st.container(border=True):
+    st.subheader("Disclaimer", divider="gray")
+    st.markdown("This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters.")
