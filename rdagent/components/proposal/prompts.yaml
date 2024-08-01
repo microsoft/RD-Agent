@@ -14,7 +14,7 @@ hypothesis_gen:
     {{ hypothesis_and_feedback }}
     To help you generate new {{targets}}, we have prepared the following information for you:
     {{ RAG }}
-    Please generate the new hypothesis based on the information above.
+    Please generate the new hypothesis based on the information above. Also generate the relevant keys for the reasoning and the distilled knowledge that follows. 
 
 hypothesis2experiment:
   system_prompt: |-
