@@ -445,15 +445,7 @@ def feedback_window():
 - **Decision**: {h.decision}
 - **Reason**: {h.reason}"""
             )
-    elif state.log_type == "model_extraction_and_implementation":
-        if fbr := state.msgs[round]["d.developed_experiment"]:
-            st.markdown("**Returns📈**")
-            result_df = fbr[0].content.result
-            if result_df:
-                fig = report_figure(result_df)
-                st.plotly_chart(fig)
-            else:
-                st.markdown("Returns is None")
+
 
 # Research & Feedback Window
 rf_c, d_c = st.columns([2, 2])
