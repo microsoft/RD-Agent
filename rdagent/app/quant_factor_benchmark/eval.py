@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from pprint import pprint
 
-from rdagent.app.qlib_rd_loop.conf import PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
 from rdagent.core.scenario import Scenario
@@ -23,7 +23,7 @@ test_cases = FactorTestCaseLoaderFromJsonFile().load(bs.bench_data_path)
 
 # 3.declare the method to be tested and pass the arguments.
 
-scen: Scenario = import_class(PROP_SETTING.factor_scen)()
+scen: Scenario = import_class(FACTOR_PROP_SETTING.scen)()
 generate_method = import_class(bs.bench_method_cls)(scen=scen)
 # 4.declare the eval method and pass the arguments.
 eval_method = FactorImplementEval(

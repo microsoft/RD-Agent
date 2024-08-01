@@ -43,39 +43,24 @@ class QlibModelScenario(Scenario):
     def rich_style_description(self) -> str:
         return """
 ### Qlib Model Evolving Automatic R&D Demo
-
-#### Overview
-
-The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how models evolve through continuous feedback and refinement.
-
-#### Key Steps
-
-1. **Hypothesis**
-   - Generate and propose initial hypotheses based on data and domain knowledge.
-
-2. **Knowledge Construction**
-   - Develop, test, and refine models to gather empirical results.
-   - Analyze feedback and incorporate new insights.
-
-3. **Decision Pair**
-   - Make data-driven decisions based on validated hypotheses and constructed knowledge.
-   - Iterate the process to evolve and improve models continuously.
-
-#### Automated R&D
-
-- **R (Research)**
+ 
+#### [Overview](#_summary)
+ 
+The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making in model construction in quantitative finance. It highlights how models evolve through continuous feedback and refinement.
+ 
+#### [Automated R&D](#_rdloops)
+ 
+- **[R (Research)](#_research)**
   - Iteration of ideas and hypotheses.
   - Continuous learning and knowledge construction.
-
-- **D (Development)**
+ 
+- **[D (Development)](#_development)**
   - Evolving code generation and model refinement.
   - Automated implementation and testing of models.
-
-#### Objective
-
-To demonstrate the dynamic evolution of models through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting models.
-
-        """
+ 
+#### [Objective](#_summary)
+ 
+To demonstrate the dynamic evolution of models through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting models.    """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:

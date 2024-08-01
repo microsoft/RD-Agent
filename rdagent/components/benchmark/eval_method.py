@@ -30,12 +30,6 @@ EVAL_RES = Dict[
 ]
 
 
-EVAL_RES = Dict[
-    str,
-    List[Tuple[FactorEvaluator, Union[object, RunnerException]]],
-]
-
-
 class TestCase:
     def __init__(
         self,

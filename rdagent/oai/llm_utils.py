@@ -298,7 +298,14 @@ class APIBackend:
             self.use_azure_token_provider = self.cfg.use_azure_token_provider
             self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
-            self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
+            if self.cfg.openai_api_key:
+                self.chat_api_key = self.cfg.openai_api_key
+                self.embedding_api_key = self.cfg.openai_api_key
+            else:
+                self.chat_api_key = self.cfg.chat_openai_api_key if chat_api_key is None else chat_api_key
+                self.embedding_api_key = (
+                    self.cfg.embedding_openai_api_key if embedding_api_key is None else embedding_api_key
+                )
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
             self.chat_api_base = self.cfg.chat_azure_api_base if chat_api_base is None else chat_api_base
@@ -306,9 +313,6 @@ class APIBackend:
             self.chat_stream = self.cfg.chat_stream
             self.chat_seed = self.cfg.chat_seed
 
-            self.embedding_api_key = (
-                self.cfg.embedding_openai_api_key if embedding_api_key is None else embedding_api_key
-            )
             self.embedding_model = self.cfg.embedding_model if embedding_model is None else embedding_model
             self.embedding_api_base = (
                 self.cfg.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
@@ -610,44 +614,25 @@ class APIBackend:
             if self.cfg.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
-            if self.use_azure:
-                if json_mode:
-                    if add_json_in_prompt:
-                        for message in messages[::-1]:
-                            message["content"] = message["content"] + "\nPlease respond in json format."
-                            if message["role"] == "system":
-                                break
-                    response = self.chat_client.chat.completions.create(
-                        model=self.chat_model,
-                        messages=messages,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                        response_format={"type": "json_object"},
-                        stream=self.chat_stream,
-                        seed=self.chat_seed,
-                        frequency_penalty=frequency_penalty,
-                        presence_penalty=presence_penalty,
-                    )
-                else:
-                    response = self.chat_client.chat.completions.create(
-                        model=self.chat_model,
-                        messages=messages,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                        stream=self.chat_stream,
-                        seed=self.chat_seed,
-                        frequency_penalty=frequency_penalty,
-                        presence_penalty=presence_penalty,
-                    )
-            else:
-                response = self.chat_client.chat.completions.create(
-                    model=self.chat_model,
-                    messages=messages,
-                    stream=self.chat_stream,
-                    seed=self.chat_seed,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
+            kwargs = dict(
+                model=self.chat_model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=self.chat_stream,
+                seed=self.chat_seed,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
+            if json_mode:
+                if add_json_in_prompt:
+                    for message in messages[::-1]:
+                        message["content"] = message["content"] + "\nPlease respond in json format."
+                        if message["role"] == "system":
+                            break
+                kwargs["response_format"] = {"type": "json_object"}
+            response = self.chat_client.chat.completions.create(**kwargs)
+
             if self.chat_stream:
                 resp = ""
                 # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.

@@ -18,8 +18,8 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
 - [🎥Automatic Quant Factory]()
-- Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
+- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
 - ...
 
 You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
@@ -60,8 +60,8 @@ TODO: use docker in quick start intead.
 
 ### ⚙️ Environment Configuration
 - Place the `.env` file in the same directory as the `.env.example` file.
-  - TOOD: please refer to ... for the detailed explanation of the `.env`
-  - TODO: simplify `.env.example`  only keep OpenAI or Azure Azure OpenAI
+  - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
+  - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 - Export each variable in the `.env` file:
   ```sh
   export $(grep -v '^#' .env | xargs)
@@ -96,20 +96,20 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios..
 
 In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
 + 📄Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
-+ 🛠️**Implement** the extracted formulas, features, factors and models in runnable codes.
-   + Due the limited ability for LLM in implementing in once, evolving the agent to be able to extend abilities by learn from feedback and knowledge and improve the agent's ability to implement more complex models.
++ 🛠️**Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
+   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
 + 💡Propose **new ideas** based on current knowledge and observations.
 
-![Data-Centric R&D Overview](docs/_static/overview.png)
+<!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
-## 📈 Scenarios Matrix 
+## 📈 Scenarios/Demos
 Here is our supported scenarios
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | Iteratively Proposing Ideas & Evolving | - Auto reports reading & implementation <br/> - Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
+| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
+| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
@@ -118,16 +118,55 @@ TODO: Scenario Gallary
 
 # ⚙️Framework
 
-
-- TODOs:
-  - Framework introdution
-  - Research problems.
+![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
 
 
+Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
 
-# 📃Paper list
+The research questions within this framework can be divided into three main categories:
+| Research Area | Paper/Work List |
+|--------------------|-----------------|
+| Benchmark the R&D abilities | [Benchmark](#benchmark) |
+| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
+| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
 
-TODO: under review. Please check the.
+We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
+
+
+# 📃Paper/Work list
+
+## Benchmark
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
+```BibTeX
+@misc{chen2024datacentric,
+    title={Towards Data-Centric Automatic R&D},
+    author={Haotian Chen and Xinjie Shen and Zeqi Ye and Wenjun Feng and Haoxue Wang and Xiao Yang and Xu Yang and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2404.11276},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
+
+## Research
+
+- We have implements agents equiped with  Evolvable Research ability to propose and refine ideas in our repo. [Demos](#📈 Scenarios/Demos) are released.
+
+## Development
+
+- [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
+```BibTeX
+@misc{yang2024collaborative,
+    title={Collaborative Evolving Strategy for Automatic Data-Centric Development},
+    author={Xu Yang and Haotian Chen and Wenjun Feng and Haoxue Wang and Zeqi Ye and Xinjie Shen and Xiao Yang and Shizhao Sun and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2407.18690},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
+}
+```
+![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
 
 # Contributing
@@ -140,6 +179,8 @@ You can find issues in the issues list or simply running `grep -r "TODO:"`.
 
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
 
+# Disclaimer
+**The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.**
 
 <img src="https://img.shields.io/github/contributors-anon/microsoft/RD-Agent"/>
 
