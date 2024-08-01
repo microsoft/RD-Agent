@@ -76,14 +76,12 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 criterion = nn.CrossEntropyLoss()
 
 # Train the model
-
 def eval_auc(model):
     y_pred = []
     for data in test_dataloader:
         x, y = data
         out = model(x)
         y_pred.append(out.cpu().detach().numpy())
-    
     return roc_auc_score(y_test, np.concatenate(y_pred))
 
 best = 0.0
