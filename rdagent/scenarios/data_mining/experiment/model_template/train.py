@@ -75,6 +75,7 @@ model = model_cls(num_features=num_features, num_timesteps=num_timesteps).to(dev
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 criterion = nn.CrossEntropyLoss()
 
+
 # Train the model
 def eval_auc(model):
     y_pred = []
@@ -83,6 +84,7 @@ def eval_auc(model):
         out = model(x)
         y_pred.append(out.cpu().detach().numpy())
     return roc_auc_score(y_test, np.concatenate(y_pred))
+
 
 best = 0.0
 best_model = None
@@ -112,4 +114,3 @@ print(acc)
 
 res = pd.Series(data=[acc], index=["AUROC"])
 res.to_csv("./submission.csv")
-
