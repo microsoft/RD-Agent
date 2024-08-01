@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pickle
 import importlib
 import json
 import multiprocessing as mp
@@ -31,8 +32,14 @@ class SingletonBaseClass:
         kwargs_hash = hash(tuple(all_args))
         if kwargs_hash not in cls._instance_dict:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
-            cls._instance_dict[kwargs_hash].__init__(**kwargs)  # Ensure __init__ is called
         return cls._instance_dict[kwargs_hash]
+
+    def __reduce__(self):
+        # NOTE:
+        # When loading an object from a pickle, the __new__ method does not receive the `kwargs` it was initialized with.
+        # This makes it difficult to retrieve the correct singleton object.
+        # Therefore, we have made it unpickable.
+        raise pickle.PicklingError(f"Instances of {self.__class__.__name__} cannot be pickled")
 
 
 def parse_json(response: str) -> Any:
