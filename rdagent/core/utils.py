@@ -36,7 +36,7 @@ class SingletonBaseClass:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
         return cls._instance_dict[kwargs_hash]
 
-    def __reduce__(self):
+    def __reduce__(self) -> None:
         # NOTE:
         # When loading an object from a pickle, the __new__ method does not receive the `kwargs` it was initialized with.
         # This makes it difficult to retrieve the correct singleton object.
