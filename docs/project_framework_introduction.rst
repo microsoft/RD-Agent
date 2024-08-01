@@ -10,14 +10,13 @@ Framework & Components
 .. image:: https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766
     :alt: Components & Feature Level
 
-The figure above is the overall framework of RDAgent.
-The 
+The image above shows the overall framework of RDAgent.
 
 
 .. image:: https://github.com/user-attachments/assets/60cc2712-c32a-4492-a137-8aec59cdc66e
     :alt: Class Level Figure
 
-If you are interested in the more detailed code.  The above figure demonstrate the main classes and align them with the workflow. 
+For those interested in the detailed code, the figure above illustrates the main classes and aligns them with the workflow.
 
 
 Detailed Design
