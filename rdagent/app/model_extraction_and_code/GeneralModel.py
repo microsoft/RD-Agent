@@ -31,34 +31,22 @@ class GeneralModelScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-# General Model Scenario
-
-## Overview
-
-This demo automates the extraction and iterative development of models from academic papers, ensuring functionality and correctness.
-
-### Scenario: Auto-Developing Model Code from Academic Papers
-
-#### Overview
-
-This scenario automates the development of PyTorch models by reading academic papers or other sources. It supports various data types, including tabular, time-series, and graph data. The primary workflow involves two main components: the Reader and the Coder.
-
-#### Workflow Components
-
-1. **Reader**
-    - Parses and extracts relevant model information from academic papers or sources, including architectures, parameters, and implementation details.
-    - Uses Large Language Models to convert content into a structured format for the Coder.
-
-2. **Evolving Coder**
-    - Translates structured information from the Reader into executable PyTorch code.
-    - Utilizes an evolving coding mechanism to ensure correct tensor shapes, verified with sample input tensors.
-    - Iteratively refines the code to align with source material specifications.
-
-#### Supported Data Types
-
-- **Tabular Data:** Structured data with rows and columns, such as spreadsheets or databases.
-- **Time-Series Data:** Sequential data points indexed in time order, useful for forecasting and temporal pattern recognition.
-- **Graph Data:** Data structured as nodes and edges, suitable for network analysis and relational tasks.
+# [General Model Research Co-Pilot] (#_scenario)
+ 
+## [Overview](#_summary)
+ 
+This demo automates the extraction and development of PyTorch models from academic papers. It supports various model types through two main components: Reader and Coder.
+ 
+#### [Workflow Components](#_rdloops)
+ 
+1. **[Reader](#_research)**
+    - Extracts model information from papers, including architectures and parameters.
+    - Converts content into a structured format using Large Language Models.
+ 
+2. **[Evolving Coder](#_development)**
+    - Translates structured information into executable PyTorch code.
+    - Ensures correct tensor shapes with an evolving coding mechanism.
+    - Refines the code to match source specifications.
 
         """
 

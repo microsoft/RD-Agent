@@ -43,6 +43,9 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
             concise_reason=response_dict["concise_reason"],
+            concise_observation=response_dict["concise_observation"],
+            concise_justification=response_dict["concise_justification"],
+            concise_knowledge=response_dict["concise_knowledge"],
         )
         return hypothesis
 
