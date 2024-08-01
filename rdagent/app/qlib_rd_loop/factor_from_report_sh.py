@@ -1,5 +1,6 @@
 # TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
 import json
+import csv
 import pickle
 from pathlib import Path
 from typing import Any
@@ -41,13 +42,12 @@ from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
 )
 from rdagent.utils.workflow import LoopBase, LoopMeta
 
-with open(FACTOR_PROP_SETTING.report_result_json_file_path, "r") as f:
-    judge_pdf_data = json.load(f)
+with open(FACTOR_PROP_SETTING.report_result_json_file_path, 'r') as input_file:
+    csv_reader = csv.reader(input_file)
+    judge_pdf_data = [row[0] for row in csv_reader]
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
-
-
 
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     system_prompt = (
@@ -69,11 +69,8 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     hypothesis_text = response_json.get("hypothesis", "No hypothesis generated.")
     reason_text = response_json.get("reason", "No reason provided.")
     concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
-    concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
     return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
-    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
-
 
 def extract_factors_and_implement(report_file_path: str) -> tuple:
     scenario = QlibFactorScenario()
@@ -116,30 +113,38 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         self.trace = Trace(scen=scen)
 
-        self.judge_pdf_data_items = list(judge_pdf_data.items())
+        self.judge_pdf_data_items = judge_pdf_data
         self.index = 0
+        self.hypo_exp_cache = pickle.load(open(FACTOR_PROP_SETTING.report_extract_result, "rb")) if Path(FACTOR_PROP_SETTING.report_extract_result).exists() else {}
         super().__init__()
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
-                file_path, attributes = self.judge_pdf_data_items[self.index]
+                if self.index > 100:
+                    break
+                report_file_path = self.judge_pdf_data_items[self.index]
                 self.index += 1
-                if attributes["class"] == 1:
-                    report_file_path = Path(
-                        file_path.replace(FACTOR_PROP_SETTING.origin_report_path, FACTOR_PROP_SETTING.local_report_path)
-                    )
-                    if report_file_path.exists():
-                        logger.info(f"Processing {report_file_path}")
-                    exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                    if exp is None:
-                        continue
-                    exp.based_experiments = [t[1] for t in self.trace.hist if t[2]]
-                    if len(exp.based_experiments) == 0:
-                        exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
-                    logger.log_object(hypothesis, tag="hypothesis generation")
-                    logger.log_object(exp.sub_tasks, tag="experiment generation")
-                    return hypothesis,  exp
+                if report_file_path in self.hypo_exp_cache:
+                    hypothesis, exp = self.hypo_exp_cache[report_file_path]
+                else:
+                    continue
+                # else:
+                #     exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                #     if exp is None:
+                #         continue
+                #     exp.based_experiments = [t[1] for t in self.trace.hist if t[2]]
+                #     if len(exp.based_experiments) == 0:
+                #         exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+                #     self.hypo_exp_cache[report_file_path] = (hypothesis, exp)
+                #     pickle.dump(self.hypo_exp_cache, open(FACTOR_PROP_SETTING.report_extract_result, "wb"))
+                with logger.tag("extract_factors_and_implement"):
+                    with logger.tag("load_pdf_screenshot"):
+                        pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
+                        logger.log_object(pdf_screenshot)
+                logger.log_object(hypothesis, tag="hypothesis generation")
+                logger.log_object(exp.sub_tasks, tag="experiment generation")
+                return hypothesis, exp
 
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
@@ -165,7 +170,7 @@ def main(path=None, step_n=None):
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_sh.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
     """
     if path is None:

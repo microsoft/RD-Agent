@@ -31,7 +31,6 @@ class SingletonBaseClass:
         kwargs_hash = hash(tuple(all_args))
         if kwargs_hash not in cls._instance_dict:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
-            cls._instance_dict[kwargs_hash].__init__(**kwargs)  # Ensure __init__ is called
         return cls._instance_dict[kwargs_hash]
 
 
