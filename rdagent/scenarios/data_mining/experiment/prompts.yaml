@@ -34,7 +34,11 @@ dm_model_interface: |-
   ```
   No other parameters will be passed to the model so give other parameters a default value or just make them static.
 
-  Remember to permute the input tensor since the input tensor is in the shape of (batch_size, num_features, num_timesteps) and a normal time series model is expecting the input tensor in the shape of (batch_size, num_timesteps, num_features).
+  The input tensor shape is (batch_size, num_features, num_timesteps) which is different from the normal time series input shape of (batch_size, num_timesteps, num_features). Please write code accordingly. 
+  
+  Note that for nn.Conv1d() layers, please do not permute the input tensor as the in_channel dimension should match the num_feature dimension.
+
+  The output shape should be (batch_size, 1) with sigmoid activation since we have binary labels. 
 
   Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
 
