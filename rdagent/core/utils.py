@@ -37,11 +37,14 @@ class SingletonBaseClass:
         return cls._instance_dict[kwargs_hash]
 
     def __reduce__(self) -> NoReturn:
-        # NOTE:
-        # When loading an object from a pickle, the __new__ method does not receive the `kwargs` it was initialized with.
-        # This makes it difficult to retrieve the correct singleton object.
-        # Therefore, we have made it unpickable.
-        raise pickle.PicklingError(f"Instances of {self.__class__.__name__} cannot be pickled")
+        """
+        NOTE:
+        When loading an object from a pickle, the __new__ method does not receive the `kwargs`
+        it was initialized with. This makes it difficult to retrieve the correct singleton object.
+        Therefore, we have made it unpickable.
+        """
+        msg = f"Instances of {self.__class__.__name__} cannot be pickled"
+        raise pickle.PicklingError(msg)
 
 
 def parse_json(response: str) -> Any:
