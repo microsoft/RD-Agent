@@ -19,6 +19,7 @@ from rdagent.components.document_reader.document_reader import (
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
+from rdagent.core.exception import FactorEmptyError
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
@@ -104,6 +105,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
 
 
 class FactorReportLoop(LoopBase, metaclass=LoopMeta):
+    skip_loop_error = (FactorEmptyError,)
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)()
 
@@ -155,6 +157,9 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             exp = self.runner.develop(prev_out["coding"])
+            if exp is None:
+                logger.error(f"Factor extraction failed.")
+                raise FactorEmptyError("Factor extraction failed.")
             logger.log_object(exp, tag="runner result")
         return exp
 

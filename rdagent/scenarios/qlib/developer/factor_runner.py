@@ -76,7 +76,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
 
-            print(exp.experiment_workspace.workspace_path)
             # Save the combined factors to the workspace
             with open(exp.experiment_workspace.workspace_path / "combined_factors_df.pkl", "wb") as f:
                 pickle.dump(combined_factors, f)

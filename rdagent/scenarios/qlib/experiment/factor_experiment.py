@@ -45,7 +45,7 @@ class QlibFactorScenario(Scenario):
         return """
 ### Qlib Factor Evolving Automatic R&D Demo
 
-#### Overview
+#### [Overview](#_summary)
 
 The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
 
@@ -76,17 +76,18 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
 
 6. **Hypothesis Refinement**
    - Refine hypotheses based on feedback and repeat the process.
-#### Automated R&D
 
-- **R (Research)**
+#### [Automated R&D](#_rdloops)
+
+- **[R (Research)](#_research)**
   - Iteration of ideas and hypotheses.
   - Continuous learning and knowledge construction.
 
-- **D (Development)**
+- **[D (Development)](#_development)*
   - Evolving code generation and model refinement.
   - Automated implementation and testing of financial factors.
 
-#### Objective
+#### [Objective](#_summary)
 
 To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
 
