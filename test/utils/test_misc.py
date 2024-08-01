@@ -54,6 +54,7 @@ class MiscTest(unittest.TestCase):
 
         # Test pickle
         import pickle
+
         with self.assertRaises(pickle.PicklingError):
             with open("a3.pkl", "wb") as f:
                 pickle.dump(a3, f)

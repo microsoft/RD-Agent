@@ -25,12 +25,20 @@ class Hypothesis:
     - Belief
     """
 
-    def __init__(self, hypothesis: str, reason: str, concise_reason: str, concise_observation: str, concise_justification: str, concise_knowledge: str) -> None:
+    def __init__(
+        self,
+        hypothesis: str,
+        reason: str,
+        concise_reason: str,
+        concise_observation: str,
+        concise_justification: str,
+        concise_knowledge: str,
+    ) -> None:
         self.hypothesis: str = hypothesis
         self.reason: str = reason
         self.concise_reason: str = concise_reason
         self.concise_observation: str = concise_observation
-        self.concise_justification: str = concise_justification 
+        self.concise_justification: str = concise_justification
         self.concise_knowledge: str = concise_knowledge
 
     def __str__(self) -> str:
