@@ -47,7 +47,6 @@ def value_evaluator(
     prediction: torch.Tensor,
     target: torch.Tensor,
 ) -> Tuple[torch.Tensor, bool]:
-
     if prediction is None:
         return "No output generated from the model. Skip value evaluation", False
     elif target is None:
