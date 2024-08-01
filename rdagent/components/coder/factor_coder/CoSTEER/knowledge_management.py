@@ -213,7 +213,6 @@ class FactorQueriedGraphKnowledge(FactorQueriedKnowledge):
 
 
 class FactorGraphRAGStrategy(RAGStrategy):
-
     prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
     def __init__(self, knowledgebase: FactorGraphKnowledgeBase) -> None:

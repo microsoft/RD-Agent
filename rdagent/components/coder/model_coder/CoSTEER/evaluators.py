@@ -47,8 +47,10 @@ def value_evaluator(
     prediction: torch.Tensor,
     target: torch.Tensor,
 ) -> Tuple[torch.Tensor, bool]:
-    if target is None or prediction is None:
-        return "No output generated from the model. No value evaluation conducted.", False
+    if prediction is None:
+        return "No output generated from the model. Skip value evaluation", False
+    elif target is None:
+        return "No ground truth output provided. Value evaluation not impractical", False
     else:
         # Calculate the mean absolute difference
         diff = torch.mean(torch.abs(target - prediction)).item()
