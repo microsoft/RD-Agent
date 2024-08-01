@@ -235,6 +235,16 @@ def summary_window():
                                     col=col_num
                                 )
                             fig.update_layout(showlegend=False, height=650)
+                            
+                            if state.alpha158_metrics is not None:
+                                for i in range(1, 3):  # 行
+                                    for j in range(1, 3):  # 列
+                                        fig.update_xaxes(
+                                            tickvals=[df.index[0]] + list(df.index[1:]),
+                                            ticktext=[f'<span style="color:blue; font-weight:bold">{df.index[0]}</span>'] + list(df.index[1:]),
+                                            row=i,
+                                            col=j
+                                        )
                         st.plotly_chart(fig)
 
 
