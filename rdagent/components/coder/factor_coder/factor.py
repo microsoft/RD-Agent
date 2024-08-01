@@ -70,7 +70,6 @@ class FactorFBWorkspace(FBWorkspace):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
-        self.logger = logger
         self.raise_exception = raise_exception
 
     @staticmethod
