@@ -31,6 +31,12 @@ from st_btn_select import st_btn_select
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
 main_log_path = Path('/data/userdata/share')
+SELECTED_METRICS = [
+    "IC",
+    "1day.excess_return_without_cost.annualized_return",
+    "1day.excess_return_without_cost.information_ratio",
+    "1day.excess_return_without_cost.max_drawdown",
+]
 
 if "log_type" not in state:
     state.log_type = "qlib_model"
@@ -70,6 +76,10 @@ if "h_decisions" not in state:
 if "metric_series" not in state:
     state.metric_series = []
 
+# Factor Task Baseline
+if "alpha158_metrics" not in state:
+    state.alpha158_metrics = None
+
 
 def refresh():
     state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
@@ -82,6 +92,7 @@ def refresh():
     state.metric_series = []
     state.last_msg = None
     state.current_tags = []
+    state.alpha158_metrics = None
 
 
 def should_display(msg: Message):
@@ -112,6 +123,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
+                        # factor baseline exp metrics
+                        if state.log_type == "qlib_factor" and state.alpha158_metrics is None:
+                            state.alpha158_metrics = msg.content.based_experiments[0].result.loc[
+                                SELECTED_METRICS
+                            ]
+                        
+                        # common metrics
                         if msg.content.result is None:
                             state.metric_series.append(pd.Series([None], index=["AUROC"]))
                         else:
@@ -121,14 +139,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 state.metric_series.append(ps)
                             else:
                                 state.metric_series.append(
-                                    msg.content.result.loc[
-                                        [
-                                            "IC",
-                                            "1day.excess_return_without_cost.annualized_return",
-                                            "1day.excess_return_without_cost.information_ratio",
-                                            "1day.excess_return_without_cost.max_drawdown",
-                                        ]
-                                    ]
+                                    msg.content.result.loc[SELECTED_METRICS]
                                 )
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
@@ -184,10 +195,18 @@ def summary_window():
             
             with chart_c:
                 with st.container(height=700):
-                    labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
-                    df = pd.DataFrame(state.metric_series, index=labels)
+                    if state.log_type == "qlib_factor":
+                        labels = ["alpha158"] + [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
+                        df = pd.DataFrame([state.alpha158_metrics] + state.metric_series, index=labels)
+                    else:
+                        labels = [f"Round {i}" for i in range(1, len(state.metric_series) + 1)]
+                        df = pd.DataFrame(state.metric_series, index=labels)
                     if show_true_only and len(state.hypotheses) >= len(state.metric_series):
-                        df = df.iloc[[i for i in range(df.shape[0]) if state.h_decisions[i + 1]]]
+                        if state.alpha158_metrics is not None:
+                            selected = [0] + [i for i in range(df.shape[0]) if state.h_decisions[i]]
+                        else:
+                            selected = [i for i in range(df.shape[0]) if state.h_decisions[i + 1]]
+                        df = df.iloc[selected]
                     if df.shape[0] == 1:
                         st.table(df.iloc[0])
                     elif df.shape[0] > 1:
@@ -219,6 +238,7 @@ def summary_window():
                         st.plotly_chart(fig)
 
 
+# TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
     if isinstance(tasks[0], FactorTask):
         st.markdown("**Factor Tasks**")
@@ -370,7 +390,7 @@ def research_window():
         # pdf image
         if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
             for i in range(min(2, len(pim))):
-                st.image(pim[i].content, width=200)
+                st.image(pim[i].content, width=600)
 
         # Hypothesis
         if hg := state.msgs[round]["r.hypothesis generation"]:
@@ -389,7 +409,7 @@ def research_window():
         # pdf image
         if pim := state.msgs[round]["r.pdf_image"]:
             for i in range(len(pim)):
-                st.image(pim[i].content, width=200)
+                st.image(pim[i].content, width=600)
 
         # loaded model exp
         if mem := state.msgs[round]["d.load_experiment"]:
