@@ -69,24 +69,20 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         if FACTOR_IMPLEMENT_SETTINGS.select_threshold < len(to_be_finished_task_index):
             # Select a fixed number of factors if the total exceeds the threshold
-            implementation_factors_per_round = FACTOR_IMPLEMENT_SETTINGS.select_threshold
-        else:
-            implementation_factors_per_round = len(to_be_finished_task_index)
+            if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
+                to_be_finished_task_index = RandomSelect(
+                    to_be_finished_task_index,
+                    FACTOR_IMPLEMENT_SETTINGS.select_threshold,
+                )
 
-        if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
-            to_be_finished_task_index = RandomSelect(
-                to_be_finished_task_index,
-                implementation_factors_per_round,
-            )
-
-        if FACTOR_IMPLEMENT_SETTINGS.select_method == "scheduler":
-            to_be_finished_task_index = LLMSelect(
-                to_be_finished_task_index,
-                implementation_factors_per_round,
-                evo,
-                queried_knowledge.former_traces,
-                self.scen,
-            )
+            if FACTOR_IMPLEMENT_SETTINGS.select_method == "scheduler":
+                to_be_finished_task_index = LLMSelect(
+                    to_be_finished_task_index,
+                    FACTOR_IMPLEMENT_SETTINGS.select_threshold,
+                    evo,
+                    queried_knowledge.former_traces,
+                    self.scen,
+                )
 
         result = multiprocessing_wrapper(
             [
