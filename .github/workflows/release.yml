@@ -43,7 +43,7 @@ jobs:
         run: |
           make changelog
       - name: Prepare release notes
-        run: make release-notes > release-notes2.md
+        run: make release-notes > release-notes.md
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         env:
@@ -51,23 +51,23 @@ jobs:
         with:
           tag_name: ${{ env.new_version }}
           release_name: Release ${{ env.new_version }}
-          body_path: release-notes2.md
+          body_path: release-notes.md
           prerelease: false
-  package:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          cache: pip
-          python-version: '3.10'
-      - run: env | sort
-      - run: make dev
-      - run: make build
-      - env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          make upload
+  # package:
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         cache: pip
+  #         python-version: '3.10'
+  #     - run: env | sort
+  #     - run: make dev
+  #     - run: make build
+  #     - env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+  #       run: |
+  #         make upload
