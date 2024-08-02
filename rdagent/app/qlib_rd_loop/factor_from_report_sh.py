@@ -67,11 +67,15 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     )
 
     response_json = json.loads(response)
-    hypothesis_text = response_json.get("hypothesis", "No hypothesis generated.")
-    reason_text = response_json.get("reason", "No reason provided.")
-    concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
-    return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
+    return Hypothesis(
+        hypothesis=response_json.get("hypothesis", "No hypothesis provided"),
+        reason=response_json.get("reason", "No reason provided"),
+        concise_reason=response_json.get("concise_reason", "No concise reason provided"),
+        concise_observation=response_json.get("concise_observation", "No concise observation provided"),
+        concise_justification=response_json.get("concise_justification", "No concise justification provided"),
+        concise_knowledge=response_json.get("concise_knowledge", "No concise knowledge provided"),
+    )
 
 
 def extract_factors_and_implement(report_file_path: str) -> tuple:
@@ -118,7 +122,7 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         self.trace = Trace(scen=scen)
 
         self.judge_pdf_data_items = judge_pdf_data
-        self.index = 0
+        self.pdf_file_index = 0
         self.hypo_exp_cache = (
             pickle.load(open(FACTOR_PROP_SETTING.report_extract_result, "rb"))
             if Path(FACTOR_PROP_SETTING.report_extract_result).exists()
@@ -129,28 +133,12 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
-                if self.index > 100:
-                    break
-                report_file_path = self.judge_pdf_data_items[self.index]
-                self.index += 1
-                if report_file_path in self.hypo_exp_cache:
-                    hypothesis, exp = self.hypo_exp_cache[report_file_path]
-                    exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
-                        t[1] for t in self.trace.hist if t[2]
-                    ]
-                else:
+                report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
+                self.pdf_file_index += 1
+                exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                if exp is None:
                     continue
-                # else:
-                #     exp, hypothesis = extract_factors_and_implement(str(report_file_path))
-                #     if exp is None:
-                #         continue
-                #     exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
-                #     self.hypo_exp_cache[report_file_path] = (hypothesis, exp)
-                #     pickle.dump(self.hypo_exp_cache, open(FACTOR_PROP_SETTING.report_extract_result, "wb"))
-                with logger.tag("extract_factors_and_implement"):
-                    with logger.tag("load_pdf_screenshot"):
-                        pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
-                        logger.log_object(pdf_screenshot)
+                exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
                 exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_PROP_SETTING.max_factor_per_report]
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_PROP_SETTING.max_factor_per_report]
                 logger.log_object(hypothesis, tag="hypothesis generation")
