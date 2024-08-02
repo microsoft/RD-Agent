@@ -114,7 +114,9 @@ In this project, we are aiming to build a Agent to automate Data-Driven R\&D tha
 
 ## 📈 Scenarios/Demos
 
-In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾copilot and 🤖agent. The 🦾copilot follows human instructions to automate repetitive tasks. The 🤖agent, being more autonomous, actively proposes ideas for better results in the future.
+In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾copilot and 🤖agent. 
+- The 🦾copilot follows human instructions to automate repetitive tasks. 
+- The 🤖agent, being more autonomous, actively proposes ideas for better results in the future.
 
 The supported scenarios are listed below:
 
