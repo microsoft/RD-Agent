@@ -16,6 +16,9 @@ To run the application, please create a `.env` file in the root directory of the
 
 The standard configuration options for the user using the OpenAI API are provided in the `.env.example` file.
 
+The naming principle of our environ ......  try fo follow   https://github.com/openai/openai-python/
+(but part of them is simplified.)
+
 Here are some other configuration options that you can use:
 
 OpenAI API
