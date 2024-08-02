@@ -11,7 +11,7 @@ Welcome to RDAgent's documentation!
    :caption: Doctree:
 
    demo_and_introduction
-   installation
+   installation_and_configuration
    scenarios_and_quickstart
    project_framework_introduction
    development
