@@ -43,6 +43,9 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
             concise_reason=response_dict["concise_reason"],
+            concise_observation=response_dict["concise_observation"],
+            concise_justification=response_dict["concise_justification"],
+            concise_knowledge=response_dict["concise_knowledge"],
         )
         return hypothesis
 
@@ -84,10 +87,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             tasks.append(FactorTask(factor_name, description, formulation, variables))
 
         exp = QlibFactorExperiment(tasks)
-        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
-
-        if len(exp.based_experiments) == 0:
-            exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
 
         unique_tasks = []
 

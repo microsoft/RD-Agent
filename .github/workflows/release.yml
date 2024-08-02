@@ -1,23 +1,15 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
 jobs:
-  package:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          cache: pip
-          python-version: '3.8'
-      - run: env | sort
-      - run: make dev-package
-      - run: make build
-      - env:
-          TWINE_NON_INTERACTIVE: true
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: ${{ vars.TWINE_USERNAME != '' && vars.TWINE_USERNAME || '__token__' }}
-        run: make upload
-  pages-build:
+  release:
+    permissions:
+      contents: write
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,65 +19,53 @@ jobs:
         uses: actions/setup-python@v5
         with:
           cache: pip
-          python-version: '3.8'
-      - run: env | sort
-      - run: make dev-docs
-      - run: make docs
-      - name: Upload changelog
-        uses: actions/upload-artifact@v4
-        with:
-          name: changelog
-          path: docs/changelog.md
-      - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-  pages-deploy:
-    needs: release
-    permissions:
-      id-token: write
-      pages: write
-    runs-on: ubuntu-latest
-    steps:
-      - id: deployment
-        name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-  release:
-    needs: pages-build
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install git-changelog using pipx
-        run: pipx install git-changelog
-      - name: Remove changelog to avoid file already exists error
-        run: rm -v docs/changelog.md
-      - name: Download changelog
-        uses: actions/download-artifact@v4
-        with:
-          name: changelog
-          path: docs/
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
+      - name: Bump version
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          bump2version patch
+          NEW_VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+          echo "New version: $NEW_VERSION"
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push --follow-tags
+      - name: Generate changelog
+        run: |
+          make changelog
       - name: Prepare release notes
         run: make release-notes > release-notes.md
-      - id: prerelease
-        name: Determine prerelease
-        run: |
-          if [[ "${{ github.ref }}" =~ (a|b|rc)(0|[1-9][0-9]*)?$ ]]; then
-            echo "is_prerelease=true" > $GITHUB_OUTPUT
-          else
-            echo "is_prerelease=false" > $GITHUB_OUTPUT
-          fi
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: ${{ env.new_version }}
+          release_name: Release ${{ env.new_version }}
           body_path: release-notes.md
-          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
-name: Release
-on:
-  push:
-    tags:
-      - v?[0-9]+.[0-9]+.[0-9]+
-      - v?[0-9]+.[0-9]+.[0-9]+-?a[0-9]*
-      - v?[0-9]+.[0-9]+.[0-9]+-?b[0-9]*
-      - v?[0-9]+.[0-9]+.[0-9]+-?rc[0-9]*
+          prerelease: false
+  # package:
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         cache: pip
+  #         python-version: '3.10'
+  #     - run: env | sort
+  #     - run: make dev
+  #     - run: make build
+  #     - env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+  #       run: |
+  #         make upload

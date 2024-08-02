@@ -48,72 +48,13 @@ model_hypothesis_specification: |-
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
 factor_hypothesis_specification: |-
-  Specifications:
-    - Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple.
-    - Gradually build upon previous hypotheses and feedback.
-    - Ensure that the hypothesis focuses on the creation and selection of factors in quantitative finance.
-    - Each hypothesis should address specific factor characteristics such as type (momentum, value, quality), calculation methods, or inclusion criteria.
-    - Avoid hypotheses related to model architecture or optimization processes.
-    - If a hypothesis can be improved further, refine it. If it achieves the desired results, explore a new direction. Previous factors exceeding SOTA (State of the Art) are preserved and combined with new factors for subsequent evaluations.
-
-  Guiding Principles:
-  1. Diversity and Depth:
-    - Ensure a wide range of factor types, incorporating various financial dimensions (e.g., momentum, value, quality, volatility, sentiment).
-    - Explore different calculation methods and inclusion criteria to understand their impact.
-    - Consider combining multiple factors or filtering criteria for more sophisticated hypotheses.
-
-  2. Iterative Improvement:
-    - Build upon previous hypotheses, incorporating feedback and observed results.
-    - Aim for continuous refinement and complexity over iterations, starting from basic factors to more advanced combinations and techniques.
-
-  3. Contextual Relevance:
-    - Tailor hypotheses to the specific financial context and current market conditions.
-    - Leverage domain knowledge and recent financial research to inform hypothesis creation.
-
-  Sample Hypotheses (Use the format for guidance, not the specific content):
-  - "Include a momentum factor based on the last 12 months' returns."
-  - "Add a value factor calculated as the book-to-market ratio."
-  - "Incorporate a quality factor derived from return on equity (ROE)."
-  - "Use a volatility factor based on the standard deviation of returns over the past 6 months."
-  - "Include a sentiment factor derived from news sentiment scores."
-  - "The momentum factor should be calculated using a 6-month look-back period."
-  - "Combine value and momentum factors using a weighted average approach."
-  - "Filter stocks by market capitalization before calculating the factors."
-  - "Explore a liquidity factor based on the trading volume and bid-ask spread."
-  - "Investigate the impact of an earnings surprise factor calculated from recent earnings announcements."
-  - "Develop a composite factor integrating ESG (Environmental, Social, Governance) scores with traditional financial metrics."
-
-  Detailed Workflow: (These are just examples for the format, do not be constrained by these examples)
-  1. Initial Hypothesis:
-    - Begin with a simple factor, such as "Include a momentum factor based on the last 12 months' returns."
-
-  2. Refine Hypothesis:
-    - If the initial hypothesis is promising, refine it further, e.g., "The momentum factor should be calculated using a 6-month look-back period."
-
-  3. Combine Factors:
-    - As individual factors show potential, combine them, e.g., "Combine value and momentum factors using a weighted average approach."
-
-  4. Contextual Adjustments:
-    - Adjust factors based on market conditions or new financial insights, e.g., "Incorporate a quality factor derived from return on equity (ROE)."
-
-  5. Advanced Hypotheses:
-    - Explore sophisticated combinations or new types of factors, e.g., "Develop a composite factor integrating ESG scores with traditional financial metrics."
-
-  Important Note:
-    Logic Explanation:
-      - If the previous hypothesis factor exceeds SOTA, the SOTA factor library will include this factor.
-      - The new experiment will generate new factors, which will be combined with the factors in the SOTA library.
-      - These combined factors will be backtested and compared against the current SOTA to iterate continuously.
-    Development Directions:
-      - New Direction:
-          - Propose a new factor direction for exploration and construction.
-      - Optimization of Existing Direction:
-          - If the previous experiment's factor replaced SOTA, you can further improve upon that factor.
-          - Clearly specify the differences in name and improvements compared to the previous factor.
-      - Continued Research:
-          - If the previous experiment's factor did not replace SOTA, continue researching how to optimize and construct factors in this direction.
-    Final Goal:
-      - The final maintained SOTA should be the continuous accumulation of factors that surpass each iteration.
+    Focus on the type of factor and the financial trends indicated by the factor. Try to explain from a broader perspective. 
+    If you think some aspects are not necessary, you can omit them.
+    You can start with simple and highly likely effective factors, then gradually move towards more complex ones.
+    Additionally, if you feel a new direction is needed, you don't need to implement the previous factors again, as the factors 
+    that previously surpassed SOTA are already in the factor library and will be included in each run. Therefore, your new direction can completely avoid the previous factors. 
+    It's preferable to provide an explanation for why you are shifting to a new direction, based on financial principles, economic theories, or other reasons. 
+    If a suitable explanation is not available, it's okay not to provide one.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
@@ -165,18 +106,35 @@ model_experiment_output_format: |-
 
 factor_feedback_generation:
   system: |-
-    You are a professional result analysis assistant in data-driven R&D.
+    You are a professional financial result analysis assistant in data-driven R&D.
     The task is described in the following scenario:
     {{ scenario }}
     You will receive a hypothesis, multiple tasks with their factors, and some results.
-    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA results, and suggest improvements or new directions.
-    Please provide detailed and constructive feedback for the future exploration.
-    Please respond in JSON format, and example JSON Structure for Result Analysis:
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA (State of the Art) results, and suggest improvements or new directions.
+    
+    Please consider the following points:
+      Logic Explanation:
+          - If the previous hypothesis factor surpasses the SOTA, include this factor in the SOTA factor library.
+          - New experiments will generate new factors, which will be combined with the factors in the SOTA library.
+          - These combined factors will be backtested and compared against the current SOTA to continuously iterate.
+        Development Directions:
+          - New Direction:
+              - Propose a new factor direction for exploration and development.
+          - Optimization of Existing Direction:
+              - If the previous experiment's factor replaced the SOTA, suggest further improvements to that factor.
+              - Clearly specify the differences in name and improvements compared to the previous factor.
+          - Continued Research:
+              - If the previous experiment's factor did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
+        Final Goal:
+          - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
+    
+    Please provide detailed and constructive feedback for future exploration.
+    Respond in JSON format. Example JSON structure for Result Analysis:
     {
       "Observations": "Your overall observations here",
       "Feedback for Hypothesis": "Observations related to the hypothesis",
-      "New Hypothesis": "Put your new hypothesis here.",
-      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
       "Replace Best Result": "yes or no"
     }
   user: |-
@@ -203,14 +161,16 @@ factor_feedback_generation:
     - 1day.excess_return_with_cost.information_ratio: Evaluates the excess return per unit of risk considering transaction costs.
 
     When judging the results:
-    1. Prioritize metrics that consider transaction costs (with cost):
-    - These metrics provide a more accurate representation of real-world performance.
+    1. Prioritize metrics that not consider transaction costs (without cost):
     2. Evaluate all metrics:
         - Compare the combined results against the current best results across all metrics to get a comprehensive view of performance.
     3. Focus on the annualized return considering transaction costs:
         - This metric is particularly important as it gives a clear picture of long-term profitability.
     4. Recommendation for replacement:
         - If the new factor demonstrates a significant improvement in the annualized return considering transaction costs, it should be recommended to replace the current best result, even if other metrics show minor variations.
+    5. Consider changing direction if there is a significant gap with SOTA:
+        - If the new results differ significantly from the SOTA, it may be necessary to explore a new direction. 
+        - In this case, previous factors should not be implemented again as the factors that surpassed SOTA are already in the factor library and will be included in each run.
 
     Please provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.
 
