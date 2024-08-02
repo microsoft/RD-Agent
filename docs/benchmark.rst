@@ -48,7 +48,7 @@ Modify the python code in ``rdagent/app/quant_factor_benchmark/analysis.py`` to 
 
 A png file will be saved to the designated path as shown below.
 
-.. image:: docs/_static/benchmark.png
+.. image:: _static/benchmark.png
 
 
 
