@@ -19,7 +19,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: env | sort
       - run: make dev
-        name: lint test docs and build
+      - name: lint test docs and build
         run: make lint docs-gen # test docs build
     strategy:
       matrix:
