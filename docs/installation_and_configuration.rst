@@ -24,6 +24,7 @@ OpenAI API
 Here is a standard configuration for the user using the OpenAI API.
 
    .. code-block:: Properties
+
       OPENAI_API_KEY=<your_api_key>
       EMBEDDING_MODEL=text-embedding-3-small
       CHAT_MODEL=gpt-4-turbo
@@ -81,7 +82,7 @@ Configuration List
 +=============================+==================================================+=========================+
 | OPENAI_API_KEY              | API key for both chat and embedding models       | None                    |
 +-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_OPENAI_API_KEY    | Use a different API key for embedding model      | None                  |
+| EMBEDDING_OPENAI_API_KEY    | Use a different API key for embedding model      | None                    |
 +-----------------------------+--------------------------------------------------+-------------------------+
 | CHAT_OPENAI_API_KEY         | Set to use a different API key for chat model    | None                    |
 +-----------------------------+--------------------------------------------------+-------------------------+
