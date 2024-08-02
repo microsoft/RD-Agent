@@ -11,15 +11,12 @@ Welcome to RDAgent's documentation!
    :caption: Doctree:
 
    demo_and_introduction
-   installation
-   scenarios_and_quickstart
+   installation_and_configuration
+   scens/catalog
    project_framework_introduction
    development
    api_reference
    policy
-   test_dropdown/test1
-
-.. test_dropdown/test1
 
 
 Indices and tables

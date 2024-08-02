@@ -1,4 +1,4 @@
-<!--- Thank you for submitting a Pull Request! In order to make our work smoother, please make sure your Pull Request meets the following requirements: 1. Provide a general summary of your changes in the Title above; 2. Add appropriate prefixes to titles, such as `build:`, `chore:`, `ci:`, `deps:`, `doc`, `docs`, `feat`, `fix`, `perf`, `ref`, `refactor`, `revert`, `style`, `test`, `tests`. -->
+<!--- Thank you for submitting a Pull Request! In order to make our work smoother, please make sure your Pull Request meets the following requirements: 1. Provide a general summary of your changes in the Title above; 2. Add appropriate prefixes to titles, such as `build:`, `chore:`, `ci:`, `deps:`, `doc:`, `docs:`, `feat:`, `fix:`, `perf:`, `ref:`, `refactor:`, `revert:`, `style:`, `test:`, `tests:`. -->
 
 ## Description
 <!--- Describe your changes in detail -->
