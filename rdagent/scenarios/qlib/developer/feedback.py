@@ -97,8 +97,6 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(
                 hypothesis_text=hypothesis_text,
                 task_details=tasks_factors,
-                # current_result=current_result,
-                # sota_result=sota_result,
                 combined_result=combined_result,
             )
         )

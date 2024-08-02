@@ -104,6 +104,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
             # Sort and nest the combined factors under 'feature'
             combined_factors = combined_factors.sort_index()
+            combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
 
@@ -151,5 +152,4 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            logger.error("No valid factor data found to merge.")
-            return pd.DataFrame()  # Return an empty DataFrame if no valid data
+            raise FactorEmptyError("No valid factor data found to merge.")

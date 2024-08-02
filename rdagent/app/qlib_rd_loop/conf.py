@@ -35,8 +35,10 @@ class FactorBasePropSetting(BasePropSetting):
     # 2) sub task specific:
     origin_report_path: str = "data/report_origin"
     local_report_path: str = "data/report"
-    report_result_json_file_path: str = "git_ignore_folder/res_dict.json"
+    report_result_json_file_path: str = "git_ignore_folder/res_dict.csv"
     progress_file_path: str = "git_ignore_folder/progress.pkl"
+    report_extract_result: str = "git_ignore_folder/hypo_exp_cache.pkl"
+    max_factor_per_report: int = 10000
 
 
 FACTOR_PROP_SETTING = FactorBasePropSetting()

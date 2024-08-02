@@ -165,19 +165,43 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
             .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
         )
-        resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
-        )
-        resp_dict = json.loads(resp)
-        if isinstance(resp_dict["output_format_decision"], str) and resp_dict["output_format_decision"].lower() in (
-            "true",
-            "false",
-        ):
-            resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
-        return (
-            resp_dict["output_format_feedback"],
-            resp_dict["output_format_decision"],
-        )
+
+        # TODO: with retry_context(retry_n=3, except_list=[KeyError]):
+        max_attempts = 3
+        attempts = 0
+        final_evaluation_dict = None
+
+        while attempts < max_attempts:
+            try:
+                resp = APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
+                )
+                resp_dict = json.loads(resp)
+
+                if isinstance(resp_dict["output_format_decision"], str) and resp_dict[
+                    "output_format_decision"
+                ].lower() in (
+                    "true",
+                    "false",
+                ):
+                    resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
+
+                return (
+                    resp_dict["output_format_feedback"],
+                    resp_dict["output_format_decision"],
+                )
+
+            except json.JSONDecodeError as e:
+                raise ValueError("Failed to decode JSON response from API.") from e
+
+            except KeyError as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    raise KeyError(
+                        "Response from API is missing 'output_format_decision' or 'output_format_feedback' key after multiple attempts."
+                    ) from e
+
+        return "Failed to evaluate output format after multiple attempts.", False
 
 
 class FactorDatetimeDailyEvaluator(FactorEvaluator):
