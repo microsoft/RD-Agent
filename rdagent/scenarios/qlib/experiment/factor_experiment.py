@@ -42,7 +42,56 @@ class QlibFactorScenario(Scenario):
 
     @property
     def rich_style_description(self) -> str:
-        return "Below is QlibFactor Evolving Automatic R&D Demo."
+        return """
+### Qlib Factor Evolving Automatic R&D Demo
+
+#### [Overview](#_summary)
+
+The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
+
+#### Key Steps
+
+1. **Hypothesis Generation**
+   - Generate and propose initial hypotheses based on data and domain knowledge.
+
+2. **Factor Creation**
+   - Develop, define, and write new financial factors.
+   - Test these factors to gather empirical results.
+
+3. **Factor Validation**
+   - Validate the newly created factors quantitatively.
+
+4. **Backtesting with Qlib**
+   - **Dataset**: CSI300
+   - **Model**: LGBModel
+   - **Factors**: Alpha158 +
+   - **Data Split**:
+     - **Train**: 2008-01-01 to 2014-12-31
+     - **Valid**: 2015-01-01 to 2016-12-31
+     - **Test**: 2017-01-01 to 2020-08-01
+
+5. **Feedback Analysis**
+   - Analyze backtest results.
+   - Incorporate feedback to refine hypotheses.
+
+6. **Hypothesis Refinement**
+   - Refine hypotheses based on feedback and repeat the process.
+
+#### [Automated R&D](#_rdloops)
+
+- **[R (Research)](#_research)**
+  - Iteration of ideas and hypotheses.
+  - Continuous learning and knowledge construction.
+
+- **[D (Development)](#_development)*
+  - Evolving code generation and model refinement.
+  - Automated implementation and testing of financial factors.
+
+#### [Objective](#_summary)
+
+To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
+
+        """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
