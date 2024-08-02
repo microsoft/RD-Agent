@@ -88,30 +88,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 self.scen,
             )
 
-        # if FACTOR_IMPLEMENT_SETTINGS.select_ratio < 1:
-        #     # if the number of loops is equal to the select_loop, we need to select some of them
-        #     implementation_factors_per_round = round(
-        #         FACTOR_IMPLEMENT_SETTINGS.select_ratio * len(to_be_finished_task_index) + 0.5
-        #     )  # ceilling
-        #     implementation_factors_per_round = min(
-        #         implementation_factors_per_round, len(to_be_finished_task_index)
-        #     )  # but not exceed the total number of tasks
-
-        #     if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
-        #         to_be_finished_task_index = RandomSelect(
-        #             to_be_finished_task_index,
-        #             implementation_factors_per_round,
-        #         )
-
-        #     if FACTOR_IMPLEMENT_SETTINGS.select_method == "scheduler":
-        #         to_be_finished_task_index = LLMSelect(
-        #             to_be_finished_task_index,
-        #             implementation_factors_per_round,
-        #             evo,
-        #             queried_knowledge.former_traces,
-        #             self.scen,
-        #         )
-
         result = multiprocessing_wrapper(
             [
                 (self.implement_one_factor, (evo.sub_tasks[target_index], queried_knowledge))

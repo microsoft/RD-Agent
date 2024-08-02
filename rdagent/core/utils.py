@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pickle
 import importlib
 import json
 import multiprocessing as mp

@@ -1,6 +1,6 @@
 # TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
-import json
 import csv
+import json
 import pickle
 from pathlib import Path
 from typing import Any
@@ -42,12 +42,13 @@ from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
 )
 from rdagent.utils.workflow import LoopBase, LoopMeta
 
-with open(FACTOR_PROP_SETTING.report_result_json_file_path, 'r') as input_file:
+with open(FACTOR_PROP_SETTING.report_result_json_file_path, "r") as input_file:
     csv_reader = csv.reader(input_file)
     judge_pdf_data = [row[0] for row in csv_reader]
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
+
 
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     system_prompt = (
@@ -71,6 +72,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     concise_reason_text = response_json.get("concise_reason", "No concise reason provided.")
 
     return Hypothesis(hypothesis=hypothesis_text, reason=reason_text, concise_reason=concise_reason_text)
+
 
 def extract_factors_and_implement(report_file_path: str) -> tuple:
     scenario = QlibFactorScenario()
@@ -105,6 +107,7 @@ def extract_factors_and_implement(report_file_path: str) -> tuple:
 
 class FactorReportLoop(LoopBase, metaclass=LoopMeta):
     skip_loop_error = (FactorEmptyError,)
+
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)()
 
@@ -116,7 +119,11 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
 
         self.judge_pdf_data_items = judge_pdf_data
         self.index = 0
-        self.hypo_exp_cache = pickle.load(open(FACTOR_PROP_SETTING.report_extract_result, "rb")) if Path(FACTOR_PROP_SETTING.report_extract_result).exists() else {}
+        self.hypo_exp_cache = (
+            pickle.load(open(FACTOR_PROP_SETTING.report_extract_result, "rb"))
+            if Path(FACTOR_PROP_SETTING.report_extract_result).exists()
+            else {}
+        )
         super().__init__()
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
@@ -128,7 +135,9 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                 self.index += 1
                 if report_file_path in self.hypo_exp_cache:
                     hypothesis, exp = self.hypo_exp_cache[report_file_path]
-                    exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
+                    exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
+                        t[1] for t in self.trace.hist if t[2]
+                    ]
                 else:
                     continue
                 # else:
@@ -142,8 +151,8 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                     with logger.tag("load_pdf_screenshot"):
                         pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
                         logger.log_object(pdf_screenshot)
-                exp.sub_workspace_list = exp.sub_workspace_list[:FACTOR_PROP_SETTING.max_factor_per_report]
-                exp.sub_tasks = exp.sub_tasks[:FACTOR_PROP_SETTING.max_factor_per_report]
+                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_PROP_SETTING.max_factor_per_report]
+                exp.sub_tasks = exp.sub_tasks[: FACTOR_PROP_SETTING.max_factor_per_report]
                 logger.log_object(hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 return hypothesis, exp
@@ -168,6 +177,7 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["propose_hypo_exp"][0], prev_out["running"], feedback))
+
 
 def main(path=None, step_n=None):
     """
