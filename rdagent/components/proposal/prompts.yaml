@@ -7,9 +7,8 @@ hypothesis_gen:
     To help you generate new hypothesis, the user has prepared some additional information for you. You should use this information to help generate new {{targets}}.
     Please generate the output following the format and specifications below:
     {{ hypothesis_output_format }}
-    {% if hypothesis_specification %}
     Here are the specifications: {{ hypothesis_specification }}
-    {% endif %}
+
   user_prompt: |-
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
