@@ -26,6 +26,7 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
+from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 from st_btn_select import st_btn_select
 
@@ -260,7 +261,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 
 def summary_window():
-    if state.log_type in ["qlib_model", "qlib_factor"]:
+    if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         with st.container():
             # TODO: not fixed height
@@ -328,11 +329,17 @@ def summary_window():
                     # Evolving Feedback
                     evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
+def tabs_hint():
+    st.markdown("<p style='font-size: small; color: #888888;'>You can navigate through the tabs using ⬅️ ➡️ or by holding Shift and scrolling with the mouse wheel🖱️.</p>", unsafe_allow_html=True)
+
 # TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
     if isinstance(tasks[0], FactorTask):
-        st.markdown("**Factor Tasks**")
-        tabs = st.tabs([f.factor_name for f in tasks])
+        st.markdown("**Factor Tasks🚩**")
+        tnames = [f.factor_name for f in tasks]
+        if sum(len(tn) for tn in tnames) > 100:
+            tabs_hint()
+        tabs = st.tabs(tnames)
         for i, ft in enumerate(tasks):
             with tabs[i]:
                 # st.markdown(f"**Factor Name**: {ft.factor_name}")
@@ -346,8 +353,11 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.markdown(mks)
 
     elif isinstance(tasks[0], ModelTask):
-        st.markdown("**Model Tasks**")
-        tabs = st.tabs([m.name for m in tasks])
+        st.markdown("**Model Tasks🚩**")
+        tnames = [m.name for m in tasks]
+        if sum(len(tn) for tn in tnames) > 100:
+            tabs_hint()
+        tabs = st.tabs(tnames)
         for i, mt in enumerate(tasks):
             with tabs[i]:
                 # st.markdown(f"**Model Name**: {mt.name}")
@@ -374,7 +384,7 @@ with st.sidebar:
                 folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
                 st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
 
-            st.selectbox(":blue[**trace type**]", ["qlib_model", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
+            st.selectbox(":blue[**trace type**]", ["qlib_model", "data_mining", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
 
         with st.container(border=True):
             st.markdown(":blue[**excluded configs**]")
@@ -469,6 +479,8 @@ with st.container():
         # TODO: other scenarios
         if state.log_type == "qlib_model":
             st.markdown(QlibModelScenario().rich_style_description)
+        elif state.log_type == "data_mining":
+            st.markdown(DMModelScenario().rich_style_description)
         elif state.log_type == "qlib_factor":
             st.markdown(QlibFactorScenario().rich_style_description)
         elif state.log_type == "model_extraction_and_implementation":
@@ -479,10 +491,10 @@ with st.container():
 summary_window()
 
 # R&D Loops Window
-if state.log_type in ["qlib_model", "qlib_factor"]:
+if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
     st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
 
-if state.log_type in ["qlib_model", "qlib_factor"]:
+if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
     if len(state.msgs) > 1:
         r_options = list(state.msgs.keys())
         if 0 in r_options:
@@ -495,9 +507,9 @@ else:
 
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if state.log_type in ["qlib_model", "qlib_factor"] else "Research🔍 (reader)"
+        title = "Research🔍" if state.log_type in ["qlib_model", "data_mining", "qlib_factor"] else "Research🔍 (reader)"
         st.subheader(title, divider="blue", anchor="_research")
-        if state.log_type in ["qlib_model", "qlib_factor"]:
+        if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -532,7 +544,7 @@ def research_window():
 
 
 def feedback_window():
-    if state.log_type in ["qlib_model", "qlib_factor"]:
+    if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
@@ -552,7 +564,7 @@ def feedback_window():
                 )
 
 
-if state.log_type in ["qlib_model", "qlib_factor"]:
+if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
     rf_c, d_c = st.columns([2, 2])
 elif state.log_type == "model_extraction_and_implementation":
     rf_c = st.container()
@@ -566,12 +578,12 @@ with rf_c:
 
 # Development Window (Evolving)
 with d_c.container(border=True):
-    title = "Development🛠️" if state.log_type in ["qlib_model", "qlib_factor"] else "Development🛠️ (evolving coder)"
+    title = "Development🛠️" if state.log_type in ["qlib_model", "data_mining", "qlib_factor"] else "Development🛠️ (evolving coder)"
     st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
-        st.markdown("**🔸Evolving Status🔸**")
+        st.markdown("**☑️ Evolving Status**")
         es = state.e_decisions[round]
         e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round]+1)) + "|\n"
         e_status_mks += "|--" * state.erounds[round] + "|\n"
@@ -586,7 +598,7 @@ with d_c.container(border=True):
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            st.markdown("**🔹Evolving Rounds🔹**")
+            st.markdown("**🔄️Evolving Rounds**")
             evolving_round = st_btn_select(options=range(1, state.erounds[round]+1), index=state.erounds[round]-1, key="show_eround")
         else:
             evolving_round = 1
@@ -601,7 +613,8 @@ with d_c.container(border=True):
                     tab_names[j] += "✔️"
                 else:
                     tab_names[j] += "❌"
-
+        if sum(len(tn) for tn in tab_names) > 100:
+            tabs_hint()
         wtabs = st.tabs(tab_names)
         for j, w in enumerate(ws):
             with wtabs[j]:
