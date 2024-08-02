@@ -4,7 +4,6 @@ requires = [
   "setuptools",
   "setuptools-scm",
 ]
-root = "rdagent"
 
 [project]
 authors = [
@@ -16,23 +15,22 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
 ]
 description = "Research & Development Agent"
 dynamic = [
   "dependencies",
   "optional-dependencies",
-  "version",
 ]
 keywords = [
   "Autonomous Agents",
   "Large Language Models",
   "Research and Development",
 ]
+license = {text = "MIT License"}
 name = "rdagent"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
+version = "v0.0.1"
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
