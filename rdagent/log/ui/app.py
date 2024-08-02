@@ -41,7 +41,7 @@ SELECTED_METRICS = [
 ]
 
 if "log_type" not in state:
-    state.log_type = "qlib_model"
+    state.log_type = "Qlib Model"
 
 if "log_path" not in state:
     state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
@@ -126,7 +126,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if state.log_type == "qlib_factor" and state.alpha158_metrics is None:
+                        if state.log_type == "Qlib Factor" and state.alpha158_metrics is None:
                             sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -261,7 +261,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 
 def summary_window():
-    if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         with st.container():
             # TODO: not fixed height
@@ -281,7 +281,7 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if state.log_type == "qlib_factor" and state.alpha158_metrics is not None:
+                if state.log_type == "Qlib Factor" and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
@@ -303,7 +303,7 @@ def summary_window():
                         metrics_window(df, 1, 4, height=300, colors=['red', 'blue', 'orange', 'green'])
 
 
-    elif state.log_type == "model_extraction_and_implementation" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+    elif state.log_type == "Model from Paper" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
 
@@ -374,22 +374,6 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
 
 # Config Sidebar
 with st.sidebar:
-
-    with st.popover(":orange[**Config**]"):
-        with st.container(border=True):
-            st.markdown(":blue[**log path**]")
-            if st.toggle("Manual Input"):
-                st.text_input("log path", key="log_path", on_change=refresh)
-            else:
-                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
-                st.selectbox("Select from `ep03:/data/userdata/share`", folders, key="log_path", on_change=refresh)
-
-            st.selectbox(":blue[**trace type**]", ["qlib_model", "data_mining", "qlib_factor", "model_extraction_and_implementation"], key="log_type")
-
-        with st.container(border=True):
-            st.markdown(":blue[**excluded configs**]")
-            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
     
     st.markdown("""
 # RD-Agent🤖
@@ -403,7 +387,22 @@ with st.sidebar:
 - [**Feedback**](#_feedback)
 """)
 
-    st.divider()
+    st.selectbox(":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper"], key="log_type")
+
+    with st.popover(":orange[**Config⚙️**]"):
+        with st.container(border=True):
+            st.markdown(":blue[**log path**]")
+            if st.toggle("Manual Input"):
+                st.text_input("log path", key="log_path", on_change=refresh)
+            else:
+                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
+
+
+        with st.container(border=True):
+            st.markdown(":blue[**excluded configs**]")
+            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
 
     if st.button("All Loops"):
         if not state.fs:
@@ -477,13 +476,13 @@ with st.container():
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         # TODO: other scenarios
-        if state.log_type == "qlib_model":
+        if state.log_type == "Qlib Model":
             st.markdown(QlibModelScenario().rich_style_description)
-        elif state.log_type == "data_mining":
+        elif state.log_type == "Data Mining":
             st.markdown(DMModelScenario().rich_style_description)
-        elif state.log_type == "qlib_factor":
+        elif state.log_type == "Qlib Factor":
             st.markdown(QlibFactorScenario().rich_style_description)
-        elif state.log_type == "model_extraction_and_implementation":
+        elif state.log_type == "Model from Paper":
             st.markdown(GeneralModelScenario().rich_style_description)
 
 
@@ -491,10 +490,10 @@ with st.container():
 summary_window()
 
 # R&D Loops Window
-if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
     st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
 
-if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
     if len(state.msgs) > 1:
         r_options = list(state.msgs.keys())
         if 0 in r_options:
@@ -507,9 +506,9 @@ else:
 
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if state.log_type in ["qlib_model", "data_mining", "qlib_factor"] else "Research🔍 (reader)"
+        title = "Research🔍" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"] else "Research🔍 (reader)"
         st.subheader(title, divider="blue", anchor="_research")
-        if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -528,7 +527,7 @@ def research_window():
             if eg := state.msgs[round]["r.experiment generation"]:
                 tasks_window(eg[0].content)
 
-        elif state.log_type == "model_extraction_and_implementation":
+        elif state.log_type == "Model from Paper":
             # pdf image
             c1, c2 = st.columns([2, 3])
             with c1:
@@ -544,7 +543,7 @@ def research_window():
 
 
 def feedback_window():
-    if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
@@ -564,9 +563,9 @@ def feedback_window():
                 )
 
 
-if state.log_type in ["qlib_model", "data_mining", "qlib_factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
     rf_c, d_c = st.columns([2, 2])
-elif state.log_type == "model_extraction_and_implementation":
+elif state.log_type == "Model from Paper":
     rf_c = st.container()
     d_c = st.container()
 
@@ -578,7 +577,7 @@ with rf_c:
 
 # Development Window (Evolving)
 with d_c.container(border=True):
-    title = "Development🛠️" if state.log_type in ["qlib_model", "data_mining", "qlib_factor"] else "Development🛠️ (evolving coder)"
+    title = "Development🛠️" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"] else "Development🛠️ (evolving coder)"
     st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
