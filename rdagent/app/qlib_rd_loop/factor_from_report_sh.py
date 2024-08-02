@@ -1,13 +1,9 @@
 # TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
-import csv
 import json
-import pickle
 from pathlib import Path
-from typing import Any
+from typing import Any, Tuple
 
 import fire
-import pandas as pd
-from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
@@ -16,35 +12,22 @@ from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import (
-    Hypothesis,
-    Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
-    HypothesisGen,
-    Trace,
-)
+from rdagent.core.proposal import Hypothesis, HypothesisExperiment2Feedback, Trace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.qlib.developer.factor_coder import QlibFactorCoSTEER
 from rdagent.scenarios.qlib.experiment.factor_experiment import (
     QlibFactorExperiment,
     QlibFactorScenario,
 )
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
-    classify_report_from_dict,
 )
 from rdagent.utils.workflow import LoopBase, LoopMeta
-
-with open(FACTOR_PROP_SETTING.report_result_json_file_path, "r") as input_file:
-    csv_reader = csv.reader(input_file)
-    judge_pdf_data = [row[0] for row in csv_reader]
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
@@ -78,7 +61,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
     )
 
 
-def extract_factors_and_implement(report_file_path: str) -> tuple:
+def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[QlibFactorExperiment, Hypothesis]:
     scenario = QlibFactorScenario()
 
     with logger.tag("extract_factors_and_implement"):
@@ -121,21 +104,18 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         self.trace = Trace(scen=scen)
 
-        self.judge_pdf_data_items = judge_pdf_data
+        self.judge_pdf_data_items = json.load(open(FACTOR_PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
-        self.hypo_exp_cache = (
-            pickle.load(open(FACTOR_PROP_SETTING.report_extract_result, "rb"))
-            if Path(FACTOR_PROP_SETTING.report_extract_result).exists()
-            else {}
-        )
         super().__init__()
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
+                if self.pdf_file_index > 100:
+                    break
                 report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
                 self.pdf_file_index += 1
-                exp, hypothesis = extract_factors_and_implement(str(report_file_path))
+                exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
                 if exp is None:
                     continue
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
