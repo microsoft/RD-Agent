@@ -129,21 +129,22 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                 self.index += 1
                 if report_file_path in self.hypo_exp_cache:
                     hypothesis, exp = self.hypo_exp_cache[report_file_path]
+                    exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
                 else:
                     continue
                 # else:
                 #     exp, hypothesis = extract_factors_and_implement(str(report_file_path))
                 #     if exp is None:
                 #         continue
-                #     exp.based_experiments = [t[1] for t in self.trace.hist if t[2]]
-                #     if len(exp.based_experiments) == 0:
-                #         exp.based_experiments.append(QlibFactorExperiment(sub_tasks=[]))
+                #     exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
                 #     self.hypo_exp_cache[report_file_path] = (hypothesis, exp)
                 #     pickle.dump(self.hypo_exp_cache, open(FACTOR_PROP_SETTING.report_extract_result, "wb"))
                 with logger.tag("extract_factors_and_implement"):
                     with logger.tag("load_pdf_screenshot"):
                         pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
                         logger.log_object(pdf_screenshot)
+                exp.sub_workspace_list = exp.sub_workspace_list[:FACTOR_PROP_SETTING.max_factor_per_report]
+                exp.sub_tasks = exp.sub_tasks[:FACTOR_PROP_SETTING.max_factor_per_report]
                 logger.log_object(hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 return hypothesis, exp
