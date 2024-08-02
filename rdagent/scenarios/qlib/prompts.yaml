@@ -14,10 +14,10 @@ hypothesis_output_format: |-
   {
     "hypothesis": "The new hypothesis generated based on the information provided.",
     "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
-    "concise_reason": Two line summary. First line focuses on the a concise justification for the change. 2nd Line learns from first line and previous experiences (hypothesis & experiments & code & feedbacks) to generalise a knowledge statement (use tend to/because/if/generally/etc. ). This is the summary of the three keys below. 
-    "concise_observation": One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).
-    "concise_justification": One line summary. It focuses on the justification for the change in new hypothesis and the route of exploration supporting the growth of the hypothesis, based on the observation. 
-    "concise_knowledge": One line summary. It focuses on a transferable knowledege that comes with the new hypothesis. Use conditional grammar. eg. "If...., ..; When..., .; and etc"
+    "concise_reason": "Two line summary. First line focuses on the a concise justification for the change. 2nd Line learns from first line and previous experiences (hypothesis & experiments & code & feedbacks) to generalise a knowledge statement (use tend to/because/if/generally/etc. ). This is the summary of the three keys below. ",
+    "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
+    "concise_justification": "One line summary. It focuses on the justification for the change in new hypothesis and the route of exploration supporting the growth of the hypothesis, based on the observation. ",
+    "concise_knowledge": "One line summary. It focuses on a transferable knowledege that comes with the new hypothesis. Use conditional grammar. eg. "If...., ..; When..., .; and etc"
   }
 
 model_hypothesis_specification: |-
@@ -48,13 +48,33 @@ model_hypothesis_specification: |-
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
 factor_hypothesis_specification: |-
-    Focus on the type of factor and the financial trends indicated by the factor. Try to explain from a broader perspective. 
-    If you think some aspects are not necessary, you can omit them.
-    You can start with simple and highly likely effective factors, then gradually move towards more complex ones.
-    Additionally, if you feel a new direction is needed, you don't need to implement the previous factors again, as the factors 
-    that previously surpassed SOTA are already in the factor library and will be included in each run. Therefore, your new direction can completely avoid the previous factors. 
-    It's preferable to provide an explanation for why you are shifting to a new direction, based on financial principles, economic theories, or other reasons. 
-    If a suitable explanation is not available, it's okay not to provide one.
+  1. Focus on the Type of Factor and Financial Trends:
+    - Clearly define the type of factor you are introducing.
+    - Explain the financial trends or market behaviors indicated by this factor from a broader perspective.
+    - If certain aspects seem unnecessary or redundant, feel free to omit them.
+
+  2. Begin with Simple and Effective Factors:
+    - Start with factors that are **simple and highly likely to be effective**.
+    - Provide a concise explanation of why these factors are expected to be effective.
+
+  3. Gradually Introduce More Complex Factors:
+    - Move towards more complex and sophisticated factors.
+    - Discuss the potential advantages and the complexities involved with these factors.
+
+  4. Consider New Directions if Necessary:
+    - If you believe a new direction is needed, explain why based on financial principles, economic theories, or observed market behaviors.
+    - If proposing **a new direction**, try to suggest only one new direction at a time to maintain focus and clarity.
+    - Highlight that the factors previously surpassing SOTA are already included in the factor library, so you can completely avoid re-implementing these factors.
+
+  5. Provide Explanations for Shifting Directions:
+    - Offer a rationale for shifting to new directions, if applicable.
+    - Use financial principles, economic theories, or market analysis to support your reasoning.
+    - If no suitable explanation is available, it's okay to proceed without one.
+
+  6. Ensure Generations Include 1-5 Factors:
+    - Each generation should produce **1-3 factors**.
+    - Maintain a balance between simplicity and complexity to ensure a robust and comprehensive factor library.
+
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
