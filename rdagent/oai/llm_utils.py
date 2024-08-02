@@ -299,8 +299,18 @@ class APIBackend:
             self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
-            self.chat_api_key = chat_api_key or self.cfg.chat_openai_api_key or self.cfg.openai_api_key or os.environ.get("OPENAI_API_KEY")
-            self.embedding_api_key = embedding_api_key or self.cfg.embedding_openai_api_key or self.cfg.openai_api_key or os.environ.get("OPENAI_API_KEY")
+            self.chat_api_key = (
+                chat_api_key
+                or self.cfg.chat_openai_api_key
+                or self.cfg.openai_api_key
+                or os.environ.get("OPENAI_API_KEY")
+            )
+            self.embedding_api_key = (
+                embedding_api_key
+                or self.cfg.embedding_openai_api_key
+                or self.cfg.openai_api_key
+                or os.environ.get("OPENAI_API_KEY")
+            )
 
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
