@@ -48,7 +48,7 @@ class RDAgentSettings(BaseSettings):
     chat_token_limit: int = (
         100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
     )
-    default_system_prompt: str = "You are an AI assistant who helps to answer user's questions about finance."
+    default_system_prompt: str = "You are an AI assistant who helps to answer user's questions."
 
     # Embedding configs
     embedding_openai_api_key: str = ""

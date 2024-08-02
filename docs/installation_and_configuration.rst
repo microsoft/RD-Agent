@@ -21,7 +21,7 @@ Here are some other configuration options that you can use:
 OpenAI API
 ------------
 
-You can use different OpenAI API keys for embedding model and chat model.
+You can Use `OPENAI_API_KEY` to set the API key for the OpenAI API, or use different API keys for embedding model and chat model.
 
    .. code-block:: Properties
 
@@ -53,38 +53,7 @@ Use Azure Token Provider
 ------------------------
 
 If you are using the Azure token provider, you need to set the `USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
-use the environment variables provided in the `Azure Configuration section <installation.html#azure-openai>`_.
-
-
-Configuration List
-------------------
-
-- LLM API Setting
-
-+-----------------------------+--------------------------------------------------+-------------------------+
-| Configuration Option        | Meaning                                          | Default Value           |
-+=============================+==================================================+=========================+
-| OPENAI_API_KEY              | API key for the OpenAI API                       | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_OPENAI_API_KEY    | API key for the embedding model                  | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_OPENAI_API_KEY         | API key for the chat model                       | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_MODEL             | Name of the embedding model                      | text-embedding-3-small  |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_MODEL                  | Name of the chat model                           | gpt-4-turbo             |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| USE_AZURE                   | Flag to indicate if Azure OpenAI is being used   | False                   |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_AZURE_API_BASE    | Base URL for the Azure OpenAI API                | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_AZURE_API_VERSION | Version of the Azure OpenAI API                  | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_AZURE_API_VERSION      | Version of the Azure OpenAI API                  | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| USE_AZURE_TOKEN_PROVIDER    | Flag to indicate if Azure token provider is used | False                   |
-+-----------------------------+--------------------------------------------------+-------------------------+
-
+use the environment variables provided in the `Azure Configuration section <installation_and_configuration.html#azure-openai>`_.
 
 
 ☁️ Azure Configuration
@@ -101,4 +70,71 @@ Configuration List
    ```
 
 - `exit` and re-login to your environment (this step may not be necessary).
+
+
+Configuration List
+------------------
+
+- OpenAI API Setting
+
++-----------------------------+--------------------------------------------------+-------------------------+
+| Configuration Option        | Meaning                                          | Default Value           |
++=============================+==================================================+=========================+
+| OPENAI_API_KEY              | API key for both chat and embedding models       | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| EMBEDDING_OPENAI_API_KEY    | Set to use a different API key for embedding model | None                  |
++-----------------------------+--------------------------------------------------+-------------------------+
+| CHAT_OPENAI_API_KEY         | Set to use a different API key for chat model    | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| EMBEDDING_MODEL             | Name of the embedding model                      | text-embedding-3-small  |
++-----------------------------+--------------------------------------------------+-------------------------+
+| CHAT_MODEL                  | Name of the chat model                           | gpt-4-turbo             |
++-----------------------------+--------------------------------------------------+-------------------------+
+| EMBEDDING_AZURE_API_BASE    | Base URL for the Azure OpenAI API                | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| EMBEDDING_AZURE_API_VERSION | Version of the Azure OpenAI API                  | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| CHAT_AZURE_API_BASE         | Base URL for the Azure OpenAI API                | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| CHAT_AZURE_API_VERSION      | Version of the Azure OpenAI API                  | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+| USE_AZURE                   | True if you are using Azure OpenAI               | False                   |
++-----------------------------+--------------------------------------------------+-------------------------+
+| USE_AZURE_TOKEN_PROVIDER    | True if you are using a Azure Token Provider     | False                   |
++-----------------------------+--------------------------------------------------+-------------------------+
+
+- Globol Setting
+
++-----------------------------+--------------------------------------------------+-------------------------+
+| Configuration Option        | Meaning                                          | Default Value           |
++=============================+==================================================+=========================+
+| max_retry                   | Maximum number of times to retry                 | 10                      |
++-----------------------------+--------------------------------------------------+-------------------------+
+| retry_wait_seconds          | Number of seconds to wait before retrying        | 1                       |
++-----------------------------+--------------------------------------------------+-------------------------+
++ log_trace_path              | Path to log trace file                           | None                    |
++-----------------------------+--------------------------------------------------+-------------------------+
++ log_llm_chat_content        | Flag to indicate if chat content is logged       | True                    |
++-----------------------------+--------------------------------------------------+-------------------------+
+
+
+- Cache Setting
+
++------------------------------+--------------------------------------------------+-------------------------+
+| Configuration Option         | Meaning                                          | Default Value           |
++==============================+==================================================+=========================+
+| dump_chat_cache              | Flag to indicate if chat cache is dumped         | False                   |
++------------------------------+--------------------------------------------------+-------------------------+
+| dump_embedding_cache         | Flag to indicate if embedding cache is dumped    | False                   |
++------------------------------+--------------------------------------------------+-------------------------+
+| use_chat_cache               | Flag to indicate if chat cache is used           | False                   |
++------------------------------+--------------------------------------------------+-------------------------+
+| use_embedding_cache          | Flag to indicate if embedding cache is used      | False                   |
++------------------------------+--------------------------------------------------+-------------------------+
+| prompt_cache_path            | Path to prompt cache                             | ./prompt_cache.db       |
++------------------------------+--------------------------------------------------+-------------------------+
+| session_cache_folder_location| Path to session cache                            | ./session_cache_folder  |
++------------------------------+--------------------------------------------------+-------------------------+
+| max_past_message_include     | Maximum number of past messages to include       | 10                      |
++------------------------------+--------------------------------------------------+-------------------------+
 
