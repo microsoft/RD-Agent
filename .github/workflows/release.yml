@@ -38,7 +38,6 @@ jobs:
         run: |
           git push --follow-tags
       - name: Generate changelog
-        env:
           BETTER_EXCEPTIONS: 1
         run: |
           make changelog
