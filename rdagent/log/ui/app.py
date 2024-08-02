@@ -280,7 +280,7 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if state.log_type == "qlib_factor":
+                if state.log_type == "qlib_factor" and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
