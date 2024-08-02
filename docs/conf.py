@@ -17,6 +17,7 @@ author = "Microsoft"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinxcontrib.autodoc_pydantic"
 ]
 
 autodoc_member_order = "bysource"

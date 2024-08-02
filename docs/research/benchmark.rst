@@ -17,16 +17,6 @@ Development Capability Benchmarking
 ===================================
 
 
-.. TODO:
-   Setting.
-   https://autodoc-pydantic.readthedocs.io/en/stable/users/faq.html
-
-
-.. autopydantic_model:: target.faq.inherited_members.WithoutInheritedMembers
-
-
-
-
 Benchmark is used to evaluate the effectiveness of code with fixed data.
 
 It mainly includes the following steps:
@@ -40,6 +30,12 @@ It mainly includes the following steps:
 4.run the eval
 
 5.save and show the result
+
+Configuration 
+-------------
+
+.. autopydantic_settings:: rdagent.components.benchmark.conf.BenchmarkSettings
+
 
 
 Run Benchmark
@@ -70,7 +66,7 @@ Modify the python code in ``rdagent/app/quant_factor_benchmark/analysis.py`` to 
 
 A png file will be saved to the designated path as shown below.
 
-.. image:: _static/benchmark.png
+.. image:: ../_static/benchmark.png
 
 
 
