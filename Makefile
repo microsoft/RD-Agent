@@ -181,7 +181,7 @@ changelog:
 		wget -q -O $(CHANGELOG_PATH) $(CHANGELOG_URL); \
 	fi
 	$(PIPRUN) LATEST_TAG=$$(git tag --sort=-creatordate | head -n 1); \
-	git-changelog --bump $$LATEST_TAG -Tio docs/changelog.md -s add,fix,change,remove,merge,doc
+	git-changelog --bump $$LATEST_TAG -Tio docs/changelog.md -c conventional -s build,chore,ci,deps,doc,docs,feat,fix,perf,ref,refactor,revert,style,test,tests
 
 # Generate release notes from changelog.
 release-notes:
