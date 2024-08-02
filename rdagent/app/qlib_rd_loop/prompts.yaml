@@ -5,7 +5,10 @@ hypothesis_generation:
     {
       "hypothesis": "A clear and concise hypothesis based on the provided information.",
       "reason": "A detailed explanation supporting the generated hypothesis.",
-      "concise_reason": One line summary that focuses on the justification for the change that leads to the hypothesis (like a part of a knowledge that we are building)
+      "concise_reason": "One line summary that focuses on the justification for the change that leads to the hypothesis (like a part of a knowledge that we are building)",
+      "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
+      "concise_justification": "One line summary. It focuses on the justification for the change in new hypothesis and the route of exploration supporting the growth of the hypothesis, based on the observation. ",
+      "concise_knowledge": "One line summary. It focuses on a transferable knowledege that comes with the new hypothesis. Use conditional grammar. eg. "If...., ..; When..., .; and etc"
     }
 
   user: |-

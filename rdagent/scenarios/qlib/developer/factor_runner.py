@@ -152,5 +152,4 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            logger.error("No valid factor data found to merge.")
-            return pd.DataFrame()  # Return an empty DataFrame if no valid data
+            raise FactorEmptyError("No valid factor data found to merge.")
