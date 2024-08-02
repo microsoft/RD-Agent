@@ -78,6 +78,8 @@ use the environment variables provided in the `Azure Configuration section <inst
 Configuration List
 ------------------
 
+.. TODO: use `autodoc-pydantic` .
+
 - OpenAI API Setting
 
 +-----------------------------+--------------------------------------------------+-------------------------+
