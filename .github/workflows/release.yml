@@ -24,6 +24,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
       - name: Bump version
         run: |
           git config --global user.name 'github-actions[bot]'
