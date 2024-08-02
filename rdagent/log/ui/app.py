@@ -1,16 +1,20 @@
 import argparse
+import textwrap
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Callable, Type
 from pathlib import Path
+from typing import Callable, Type
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import textwrap
 import streamlit as st
 from plotly.subplots import make_subplots
+from st_btn_select import st_btn_select
 from streamlit import session_state as state
 from streamlit.delta_generator import DeltaGenerator
+
+from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
 )
@@ -21,14 +25,15 @@ from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment, QlibFactorScenario
+from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
+from rdagent.scenarios.qlib.experiment.factor_experiment import (
+    QlibFactorExperiment,
+    QlibFactorScenario,
+)
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
-from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
-from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
-from st_btn_select import st_btn_select
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -149,7 +154,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
-                        
+
                         # common metrics
                         if msg.content.result is None:
                             state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
@@ -186,13 +191,15 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if end_func(msg):
                         break
             except StopIteration:
-                st.toast(':red[**No More Logs to Show!**]', icon='🛑')
+                st.toast(":red[**No More Logs to Show!**]", icon="🛑")
                 break
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
     if isinstance(wsf, FactorSingleFeedback):
-        ffc, efc, cfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Value Feedback🔢'])
+        ffc, efc, cfc, vfc = st.tabs(
+            ["**Final Feedback🏁**", "Execution Feedback🖥️", "Code Feedback📄", "Value Feedback🔢"]
+        )
         with ffc:
             st.markdown(wsf.final_feedback)
         with efc:
@@ -202,7 +209,15 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
         with vfc:
             st.markdown(wsf.factor_value_feedback)
     elif isinstance(wsf, ModelCoderFeedback):
-        ffc, efc, cfc, msfc, vfc = st.tabs(['**Final Feedback🏁**', 'Execution Feedback🖥️', 'Code Feedback📄', 'Model Shape Feedback📐', 'Value Feedback🔢'])
+        ffc, efc, cfc, msfc, vfc = st.tabs(
+            [
+                "**Final Feedback🏁**",
+                "Execution Feedback🖥️",
+                "Code Feedback📄",
+                "Model Shape Feedback📐",
+                "Value Feedback🔢",
+            ]
+        )
         with ffc:
             st.markdown(wsf.final_feedback)
         with efc:
@@ -227,13 +242,13 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
     def style_rows(row):
         if decisions[row.name]:
-            return ['color: green;'] * len(row)
-        return [''] * len(row)
+            return ["color: green;"] * len(row)
+        return [""] * len(row)
 
     def style_columns(col):
-        if col.name != 'Hypothesis':
-            return ['font-style: italic;'] * len(col)
-        return ['font-weight: bold;'] * len(col)
+        if col.name != "Hypothesis":
+            return ["font-style: italic;"] * len(col)
+        return ["font-weight: bold;"] * len(col)
 
     # st.dataframe(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0))
     st.markdown(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0).to_html(), unsafe_allow_html=True)
@@ -241,40 +256,47 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
     fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
+
     def hypothesis_hover_text(h: Hypothesis, d: bool = False):
         color = "green" if d else "black"
         text = h.hypothesis
         lines = textwrap.wrap(text, width=60)
         return f"<span style='color: {color};'>{'<br>'.join(lines)}</span>"
-    hover_texts = [hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])]) for i in df.index if i != "alpha158"]
+
+    hover_texts = [
+        hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
+        for i in df.index
+        if i != "alpha158"
+    ]
     if state.alpha158_metrics is not None:
         hover_texts = ["Baseline: alpha158"] + hover_texts
     for ci, col in enumerate(df.columns):
         row = ci // C + 1
         col_num = ci % C + 1
         fig.add_trace(
-            go.Scatter(x=df.index,
-                    y=df[col],
-                    name=col,
-                    mode="lines+markers",
-                    connectgaps=True,
-                    marker=dict(size=10, color=colors[ci]) if colors else dict(size=10),
-                    hovertext=hover_texts,
-                    hovertemplate="%{hovertext}<br><br><span style='color: black'>%{x} Value:</span> <span style='color: blue'>%{y}</span><extra></extra>",
-                    ),
+            go.Scatter(
+                x=df.index,
+                y=df[col],
+                name=col,
+                mode="lines+markers",
+                connectgaps=True,
+                marker=dict(size=10, color=colors[ci]) if colors else dict(size=10),
+                hovertext=hover_texts,
+                hovertemplate="%{hovertext}<br><br><span style='color: black'>%{x} Value:</span> <span style='color: blue'>%{y}</span><extra></extra>",
+            ),
             row=row,
-            col=col_num
+            col=col_num,
         )
     fig.update_layout(showlegend=False, height=height)
 
     if state.alpha158_metrics is not None:
-        for i in range(1, R+1):  # 行
-            for j in range(1, C+1):  # 列
+        for i in range(1, R + 1):  # 行
+            for j in range(1, C + 1):  # 列
                 fig.update_xaxes(
                     tickvals=[df.index[0]] + list(df.index[1:]),
                     ticktext=[f'<span style="color:blue; font-weight:bold">{df.index[0]}</span>'] + list(df.index[1:]),
                     row=i,
-                    col=j
+                    col=j,
                 )
     st.plotly_chart(fig)
 
@@ -285,12 +307,12 @@ def summary_window():
         with st.container():
             # TODO: not fixed height
             with st.container():
-                bc,cc = st.columns([2,2], vertical_alignment="center")
+                bc, cc = st.columns([2, 2], vertical_alignment="center")
                 with bc:
                     st.subheader("Metrics📈", anchor="_metrics")
                 with cc:
                     show_true_only = st.toggle("successful hypotheses", value=False)
-            
+
             # hypotheses_c, chart_c = st.columns([2, 3])
             chart_c = st.container()
             hypotheses_c = st.container()
@@ -319,8 +341,7 @@ def summary_window():
                         fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
                         st.plotly_chart(fig)
                     else:
-                        metrics_window(df, 1, 4, height=300, colors=['red', 'blue', 'orange', 'green'])
-
+                        metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
     elif state.log_type == "Model from Paper" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
         with st.container(border=True):
@@ -330,7 +351,9 @@ def summary_window():
             ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
             # All Tasks
 
-            tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
+            tab_names = [
+                w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+            ]
             for j in range(len(ws)):
                 if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
                     tab_names[j] += "✔️"
@@ -348,8 +371,13 @@ def summary_window():
                     # Evolving Feedback
                     evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
+
 def tabs_hint():
-    st.markdown("<p style='font-size: small; color: #888888;'>You can navigate through the tabs using ⬅️ ➡️ or by holding Shift and scrolling with the mouse wheel🖱️.</p>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='font-size: small; color: #888888;'>You can navigate through the tabs using ⬅️ ➡️ or by holding Shift and scrolling with the mouse wheel🖱️.</p>",
+        unsafe_allow_html=True,
+    )
+
 
 # TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
@@ -367,7 +395,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(f"{ft.factor_formulation}")
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v,d in ft.variables.items():
+                for v, d in ft.variables.items():
                     mks += f"| ${v}$ | {d} |\n"
                 st.markdown(mks)
 
@@ -386,15 +414,15 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(f"{mt.formulation}")
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v,d in mt.variables.items():
+                for v, d in mt.variables.items():
                     mks += f"| ${v}$ | {d} |\n"
                 st.markdown(mks)
 
 
 # Config Sidebar
 with st.sidebar:
-    
-    st.markdown("""
+    st.markdown(
+        """
 # RD-Agent🤖
 ## [Scenario Description](#_scenario)
 ## [Summary](#_summary)
@@ -404,9 +432,12 @@ with st.sidebar:
 - [**Research**](#_research)
 - [**Development**](#_development)
 - [**Feedback**](#_feedback)
-""")
+"""
+    )
 
-    st.selectbox(":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper"], key="log_type")
+    st.selectbox(
+        ":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper"], key="log_type"
+    )
 
     with st.popover(":orange[**Config⚙️**]"):
         with st.container(border=True):
@@ -415,11 +446,12 @@ with st.sidebar:
                 if st.toggle("Manual Input"):
                     st.text_input("log path", key="log_path", on_change=refresh)
                 else:
-                    folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                    folders = [
+                        folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
+                    ]
                     st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
             else:
                 st.text_input("log path", key="log_path", on_change=refresh)
-
 
         with st.container(border=True):
             st.markdown(":blue[**excluded configs**]")
@@ -430,7 +462,7 @@ with st.sidebar:
         if not state.fs:
             refresh()
         get_msgs_until(lambda m: False)
-    
+
     if st.button("Next Loop"):
         if not state.fs:
             refresh()
@@ -482,12 +514,12 @@ with st.container():
         st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
     with header_c3:
         st.markdown(
-        """
+            """
         <h1>
             RD-Agent:<br>LLM-based autonomous evolving agents for industrial data-driven R&D
         </h1>
         """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
 # Project Info
@@ -520,11 +552,12 @@ if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
         r_options = list(state.msgs.keys())
         if 0 in r_options:
             r_options.remove(0)
-        round = st_btn_select(options=r_options, index=state.lround-1)
+        round = st_btn_select(options=r_options, index=state.lround - 1)
     else:
         round = 1
 else:
     round = 1
+
 
 def research_window():
     with st.container(border=True):
@@ -599,14 +632,18 @@ with rf_c:
 
 # Development Window (Evolving)
 with d_c.container(border=True):
-    title = "Development🛠️" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"] else "Development🛠️ (evolving coder)"
+    title = (
+        "Development🛠️"
+        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]
+        else "Development🛠️ (evolving coder)"
+    )
     st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
         st.markdown("**☑️ Evolving Status**")
         es = state.e_decisions[round]
-        e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round]+1)) + "|\n"
+        e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round] + 1)) + "|\n"
         e_status_mks += "|--" * state.erounds[round] + "|\n"
         for ei, estatus in es.items():
             if not estatus:
@@ -615,22 +652,27 @@ with d_c.container(border=True):
         e_status_mks += "|\n"
         st.markdown(e_status_mks, unsafe_allow_html=True)
 
-
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
             st.markdown("**🔄️Evolving Rounds**")
-            evolving_round = st_btn_select(options=range(1, state.erounds[round]+1), index=state.erounds[round]-1, key="show_eround")
+            evolving_round = st_btn_select(
+                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
+            )
         else:
             evolving_round = 1
 
-        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][evolving_round-1].content
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][
+            evolving_round - 1
+        ].content
         # All Tasks
 
-        tab_names = [w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws]
+        tab_names = [
+            w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+        ]
         if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
             for j in range(len(ws)):
-                if state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j].final_decision:
+                if state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j].final_decision:
                     tab_names[j] += "✔️"
                 else:
                     tab_names[j] += "❌"
@@ -646,9 +688,11 @@ with d_c.container(border=True):
 
                 # Evolving Feedback
                 if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
-                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round-1].content[j])
+                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
 
 with st.container(border=True):
     st.subheader("Disclaimer", divider="gray")
-    st.markdown("This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters.")
+    st.markdown(
+        "This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters."
+    )
