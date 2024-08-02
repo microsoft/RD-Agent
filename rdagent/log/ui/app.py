@@ -35,12 +35,12 @@ st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initi
 
 # 获取log_path参数
 parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
-parser.add_argument("--log_path", type=str, help="Path to the log directory")
+parser.add_argument("--log_dir", type=str, help="Path to the log directory")
 args = parser.parse_args()
-if args.log_path:
-    main_log_path = Path(args.log_path)
+if args.log_dir:
+    main_log_path = Path(args.log_dir)
     if not main_log_path.exists():
-        st.error(f"Log path `{main_log_path}` does not exist!")
+        st.error(f"Log dir `{main_log_path}` does not exist!")
         st.stop()
 else:
     main_log_path = None
