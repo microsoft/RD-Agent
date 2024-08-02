@@ -1,4 +1,4 @@
-import time
+import argparse
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Callable, Type
@@ -32,7 +32,20 @@ from st_btn_select import st_btn_select
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
-main_log_path = Path('/data/userdata/share')
+
+# 获取log_path参数
+parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
+parser.add_argument("--log_path", type=str, help="Path to the log directory")
+args = parser.parse_args()
+if args.log_path:
+    main_log_path = Path(args.log_path)
+    if not main_log_path.exists():
+        st.error(f"Log path `{main_log_path}` does not exist!")
+        st.stop()
+else:
+    main_log_path = Path('/data/userdata/share')
+
+
 SELECTED_METRICS = [
     "IC",
     "1day.excess_return_without_cost.annualized_return",
