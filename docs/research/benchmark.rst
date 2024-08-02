@@ -22,6 +22,10 @@ Development Capability Benchmarking
    https://autodoc-pydantic.readthedocs.io/en/stable/users/faq.html
 
 
+.. autopydantic_model:: target.faq.inherited_members.WithoutInheritedMembers
+
+
+
 
 Benchmark is used to evaluate the effectiveness of code with fixed data.
 
