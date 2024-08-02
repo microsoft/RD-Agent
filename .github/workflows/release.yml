@@ -25,7 +25,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
       - name: Set up SSH
-        env:
           SSH_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
           rm -rf ~/.ssh
