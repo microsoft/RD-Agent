@@ -1,0 +1,22 @@
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+  lint-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Title for Conventional Commit Format
+        run: |
+          if ! echo "${{ github.event.pull_request.title }}" | grep -Pq '^(build|chore|ci|deps|doc|docs|feat|fix|perf|ref|refactor|revert|style|test|tests)(\(\w+\))?!?:\s.*'; then
+            echo 'The title does not conform to the Conventional Commit.'
+            echo 'Please refer to "https://www.conventionalcommits.org/"'
+            exit 1
+          fi
+name: Lint pull request title
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
