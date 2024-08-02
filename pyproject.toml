@@ -30,7 +30,7 @@ license = {text = "MIT License"}
 name = "rdagent"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "v0.0.1"
+version = "v0.0.2"
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
