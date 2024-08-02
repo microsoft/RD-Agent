@@ -43,7 +43,7 @@ if args.log_path:
         st.error(f"Log path `{main_log_path}` does not exist!")
         st.stop()
 else:
-    main_log_path = Path('/data/userdata/share')
+    main_log_path = None
 
 
 SELECTED_METRICS = [
@@ -57,7 +57,10 @@ if "log_type" not in state:
     state.log_type = "Qlib Model"
 
 if "log_path" not in state:
-    state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
+    if main_log_path:
+        state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
+    else:
+        state.log_path = ""
 
 if "fs" not in state:
     state.fs = None
@@ -97,7 +100,10 @@ if "alpha158_metrics" not in state:
 
 
 def refresh():
-    state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
+    if main_log_path:
+        state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
+    else:
+        state.fs = FileStorage(state.log_path).iter_msg()
     state.msgs = defaultdict(lambda: defaultdict(list))
     state.lround = 0
     state.erounds = defaultdict(int)
@@ -405,11 +411,14 @@ with st.sidebar:
     with st.popover(":orange[**Config⚙️**]"):
         with st.container(border=True):
             st.markdown(":blue[**log path**]")
-            if st.toggle("Manual Input"):
-                st.text_input("log path", key="log_path", on_change=refresh)
+            if main_log_path:
+                if st.toggle("Manual Input"):
+                    st.text_input("log path", key="log_path", on_change=refresh)
+                else:
+                    folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                    st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
             else:
-                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
-                st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
+                st.text_input("log path", key="log_path", on_change=refresh)
 
 
         with st.container(border=True):
