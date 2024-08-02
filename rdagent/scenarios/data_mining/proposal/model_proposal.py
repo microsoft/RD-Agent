@@ -56,7 +56,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
             concise_reason=response_dict["concise_reason"],
             concise_observation=response_dict["concise_observation"],
             concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"]
+            concise_knowledge=response_dict["concise_knowledge"],
         )
         return hypothesis
 
