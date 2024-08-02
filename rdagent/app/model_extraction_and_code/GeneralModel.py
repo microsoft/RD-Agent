@@ -31,9 +31,9 @@ class GeneralModelScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-# [General Model Research Co-Pilot](#_scenario)
+### [General Model Research Co-Pilot](#_scenario)
  
-## [Overview](#_summary)
+#### [Overview](#_summary)
  
 This demo automates the extraction and development of PyTorch models from academic papers. It supports various model types through two main components: Reader and Coder.
  
