@@ -104,6 +104,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
             # Sort and nest the combined factors under 'feature'
             combined_factors = combined_factors.sort_index()
+            combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
 
