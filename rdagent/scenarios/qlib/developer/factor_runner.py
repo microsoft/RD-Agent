@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
+from pandarallel import pandarallel
+
+pandarallel.initialize(verbose=1)
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
@@ -56,7 +59,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         concat_feature = pd.concat([SOTA_feature, new_feature], axis=1)
         IC_max = (
             concat_feature.groupby("datetime")
-            .apply(lambda x: self.calculate_information_coefficient(x, SOTA_feature.shape[1], new_feature.shape[1]))
+            .parallel_apply(
+                lambda x: self.calculate_information_coefficient(x, SOTA_feature.shape[1], new_feature.shape[1])
+            )
             .mean()
         )
         IC_max.index = pd.MultiIndex.from_product([range(SOTA_feature.shape[1]), range(new_feature.shape[1])])
