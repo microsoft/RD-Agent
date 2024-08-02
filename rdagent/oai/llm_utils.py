@@ -299,6 +299,7 @@ class APIBackend:
             self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
+            # TODO: Simplify the key design. Consider Pandatic
             self.chat_api_key = (
                 chat_api_key
                 or self.cfg.chat_openai_api_key
