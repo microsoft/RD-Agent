@@ -195,6 +195,61 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
             st.markdown(wsf.value_feedback)
 
 
+def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, bool]):
+    shd = {k: v.__dict__ for k, v in hypotheses.items()}
+    df = pd.DataFrame(shd).T
+
+    def highlight_rows(row):
+        if decisions[row.name]:
+            return ['color: green; font-weight: bold;'] * len(row)
+
+    def background_color_columns(col):
+        if col.name == 'hypothesis':
+            return ['background-color: lightgrey'] * len(col)
+
+    st.dataframe(df.style.apply(highlight_rows, axis=1).apply(background_color_columns, axis=0))
+
+    st.markdown(df.style.apply(highlight_rows, axis=1).apply(background_color_columns, axis=0).to_html(), unsafe_allow_html=True)
+
+
+def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
+    fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
+    def hypothesis_hover_text(h: Hypothesis, d: bool = False):
+        color = "green" if d else "black"
+        text = h.hypothesis
+        lines = textwrap.wrap(text, width=60)
+        return f"<span style='color: {color};'>{'<br>'.join(lines)}</span>"
+    hover_texts = [hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])]) for i in df.index]
+    for ci, col in enumerate(df.columns):
+        row = ci // C + 1
+        col_num = ci % C + 1
+        fig.add_trace(
+            go.Scatter(x=df.index,
+                    y=df[col],
+                    name=col,
+                    mode="lines+markers",
+                    connectgaps=True,
+                    marker=dict(size=10, color=colors[ci]) if colors else dict(size=10),
+                    hovertext=hover_texts,
+                    hovertemplate="%{hovertext}<br><br><span style='color: black'>%{x} Value:</span> <span style='color: blue'>%{y}</span><extra></extra>",
+                    ),
+            row=row,
+            col=col_num
+        )
+    fig.update_layout(showlegend=False, height=height)
+
+    if state.alpha158_metrics is not None:
+        for i in range(1, R+1):  # 行
+            for j in range(1, C+1):  # 列
+                fig.update_xaxes(
+                    tickvals=[df.index[0]] + list(df.index[1:]),
+                    ticktext=[f'<span style="color:blue; font-weight:bold">{df.index[0]}</span>'] + list(df.index[1:]),
+                    row=i,
+                    col=j
+                )
+    st.plotly_chart(fig)
+
+
 def summary_window():
     if state.log_type in ["qlib_model", "qlib_factor"]:
         st.header("Summary📊", divider="rainbow", anchor="_summary")
@@ -240,50 +295,14 @@ def summary_window():
                     if df.shape[0] == 1:
                         st.table(df.iloc[0])
                     elif df.shape[0] > 1:
-                        # TODO: figure label
-                        # TODO: separate into different figures
                         if df.shape[1] == 1:
                             # suhan's scenario
                             fig = px.line(df, x=df.index, y=df.columns, markers=True)
                             fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
+                            st.plotly_chart(fig)
                         else:
-                            # 2*2 figure
-                            fig = make_subplots(rows=2, cols=2, subplot_titles=df.columns)
-                            colors = ['red', 'blue', 'orange', 'green']
-                            def hypothesis_hover_text(h: Hypothesis, d: bool = False):
-                                color = "green" if d else "black"
-                                text = h.hypothesis
-                                lines = textwrap.wrap(text, width=60)
-                                return f"<span style='color: {color};'>{'<br>'.join(lines)}</span>"
-                            hover_texts = [hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])]) for i in df.index]
-                            for ci, col in enumerate(df.columns):
-                                row = ci // 2 + 1
-                                col_num = ci % 2 + 1
-                                fig.add_trace(
-                                    go.Scatter(x=df.index,
-                                               y=df[col],
-                                               name=col,
-                                               mode="lines+markers",
-                                               connectgaps=True,
-                                               marker=dict(size=10, color=colors[ci]),
-                                               hovertext=hover_texts,
-                                               hovertemplate="%{hovertext}<br><br><span style='color: black'>%{x} Value:</span> <span style='color: blue'>%{y}</span><extra></extra>",
-                                               ),
-                                    row=row,
-                                    col=col_num
-                                )
-                            fig.update_layout(showlegend=False, height=650)
-                            
-                            if state.alpha158_metrics is not None:
-                                for i in range(1, 3):  # 行
-                                    for j in range(1, 3):  # 列
-                                        fig.update_xaxes(
-                                            tickvals=[df.index[0]] + list(df.index[1:]),
-                                            ticktext=[f'<span style="color:blue; font-weight:bold">{df.index[0]}</span>'] + list(df.index[1:]),
-                                            row=i,
-                                            col=j
-                                        )
-                        st.plotly_chart(fig)
+                            metrics_window(df, 2, 2, height=650, colors=['red', 'blue', 'orange', 'green'])
+
 
     elif state.log_type == "model_extraction_and_implementation" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
         with st.container(border=True):
