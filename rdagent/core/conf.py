@@ -20,7 +20,7 @@ class RDAgentSettings(BaseSettings):
     log_trace_path: str | None = None
     log_llm_chat_content: bool = True
 
-    use_azure: bool = True
+    use_azure: bool = False
     use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
     max_retry: int = 10
@@ -48,7 +48,7 @@ class RDAgentSettings(BaseSettings):
     chat_token_limit: int = (
         100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
     )
-    default_system_prompt: str = "You are an AI assistant who helps to answer user's questions about finance."
+    default_system_prompt: str = "You are an AI assistant who helps to answer user's questions."
 
     # Embedding configs
     embedding_openai_api_key: str = ""
