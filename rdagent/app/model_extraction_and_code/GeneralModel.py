@@ -31,7 +31,7 @@ class GeneralModelScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-# [General Model Research Co-Pilot] (#_scenario)
+# [Model Research & Development Co-Pilot] (#_scenario)
  
 ## [Overview](#_summary)
  

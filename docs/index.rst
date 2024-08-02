@@ -12,14 +12,11 @@ Welcome to RDAgent's documentation!
 
    demo_and_introduction
    installation_and_configuration
-   scenarios_and_quickstart
+   scens/catalog
    project_framework_introduction
    development
    api_reference
    policy
-   test_dropdown/test1
-
-.. test_dropdown/test1
 
 
 Indices and tables

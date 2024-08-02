@@ -10,12 +10,12 @@ hypothesis_gen:
     Here are the specifications: {{ hypothesis_specification }}
 
   user_prompt: |-
-    The user has made several hypothesis on this scenario and did several evaluation on them.
+    If it is not the first round, then the user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
     {{ hypothesis_and_feedback }}
     To help you generate new {{targets}}, we have prepared the following information for you:
     {{ RAG }}
-    Please generate the new hypothesis based on the information above. Also generate the relevant keys for the reasoning and the distilled knowledge that follows. 
+    Please generate the new hypothesis based on the information above. Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than genearl knowledge.
 
 hypothesis2experiment:
   system_prompt: |-
