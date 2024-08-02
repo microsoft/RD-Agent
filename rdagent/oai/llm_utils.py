@@ -298,6 +298,7 @@ class APIBackend:
             self.use_azure_token_provider = self.cfg.use_azure_token_provider
             self.managed_identity_client_id = self.cfg.managed_identity_client_id
 
+            # Priority: openai_api_key > chat_api_key/embedding_api_key > os.environ.get("OPENAI_API_KEY")
             if self.cfg.openai_api_key:
                 self.chat_api_key = self.cfg.openai_api_key
                 self.embedding_api_key = self.cfg.openai_api_key
@@ -306,6 +307,10 @@ class APIBackend:
                 self.embedding_api_key = (
                     self.cfg.embedding_openai_api_key if embedding_api_key is None else embedding_api_key
                 )
+            if self.chat_api_key is None:
+                self.chat_api_key = os.environ.get("OPENAI_API_KEY")
+            if self.embedding_api_key is None:
+                self.embedding_api_key = os.environ.get("OPENAI_API_KEY")
             self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
             self.chat_api_base = self.cfg.chat_azure_api_base if chat_api_base is None else chat_api_base

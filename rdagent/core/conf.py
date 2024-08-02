@@ -20,7 +20,7 @@ class RDAgentSettings(BaseSettings):
     log_trace_path: str | None = None
     log_llm_chat_content: bool = True
 
-    use_azure: bool = True
+    use_azure: bool = False
     use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
     max_retry: int = 10
