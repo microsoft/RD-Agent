@@ -165,19 +165,8 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
             .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
         )
-        # resp = APIBackend().build_messages_and_create_chat_completion(
-        #     user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
-        # )
-        # resp_dict = json.loads(resp)
-        # if isinstance(resp_dict["output_format_decision"], str) and resp_dict["output_format_decision"].lower() in (
-        #     "true",
-        #     "false",
-        # ):
-        #     resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
-        # return (
-        #     resp_dict["output_format_feedback"],
-        #     resp_dict["output_format_decision"],
-        # )
+
+        # TODO: with retry_context(retry_n=3, except_list=[KeyError]):
         max_attempts = 3
         attempts = 0
         final_evaluation_dict = None

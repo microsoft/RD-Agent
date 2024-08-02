@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
-from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
