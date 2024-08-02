@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine bump2version git-changelog better-exceptions
+          pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
       - name: Bump version
         run: |
           git config --global user.name 'github-actions[bot]'
