@@ -19,6 +19,7 @@ torch_geometric
 tabulate  # Convert pandas dataframe to markdown table to make it more readable to LLM
 numpy # we use numpy as default data format. So we have to install numpy
 pandas # we use pandas as default data format. So we have to install pandas
+pandarallel # parallelize pandas
 feedparser
 matplotlib
 langchain
@@ -59,4 +60,5 @@ python-dotenv
 
 # infrastructure related.
 docker
+
 
