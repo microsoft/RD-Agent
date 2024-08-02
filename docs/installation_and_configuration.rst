@@ -7,7 +7,7 @@ Installation
 
 For different scenarios
 - for purely users:
-- for dev users: link to development
+- for dev users: `See development <development.html>`_
 
 Configuration
 =============
@@ -16,22 +16,16 @@ To run the application, please create a `.env` file in the root directory of the
 
 The standard configuration options for the user using the OpenAI API are provided in the `.env.example` file.
 
-The naming principle of our environ ......  try fo follow   https://github.com/openai/openai-python/
-(but part of them is simplified.)
-
 Here are some other configuration options that you can use:
 
 OpenAI API
 ------------
 
-You can Use `OPENAI_API_KEY` to set the API key for the OpenAI API, or use different API keys for embedding model and chat model.
+Here is a standard configuration for the user using the OpenAI API.
 
    .. code-block:: Properties
-
-      EMBEDDING_OPENAI_API_KEY=<replace_with_your_openai_api_key>
+      OPENAI_API_KEY=<your_api_key>
       EMBEDDING_MODEL=text-embedding-3-small
-
-      CHAT_OPENAI_API_KEY=<replace_with_your_openai_api_key>
       CHAT_MODEL=gpt-4-turbo
 
 Azure OpenAI
@@ -87,7 +81,7 @@ Configuration List
 +=============================+==================================================+=========================+
 | OPENAI_API_KEY              | API key for both chat and embedding models       | None                    |
 +-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_OPENAI_API_KEY    | Set to use a different API key for embedding model | None                  |
+| EMBEDDING_OPENAI_API_KEY    | Use a different API key for embedding model      | None                  |
 +-----------------------------+--------------------------------------------------+-------------------------+
 | CHAT_OPENAI_API_KEY         | Set to use a different API key for chat model    | None                    |
 +-----------------------------+--------------------------------------------------+-------------------------+
