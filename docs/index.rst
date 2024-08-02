@@ -14,6 +14,7 @@ Welcome to RDAgent's documentation!
    installation_and_configuration
    scens/catalog
    project_framework_introduction
+   research/research
    development
    api_reference
    policy
