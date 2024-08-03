@@ -5,6 +5,9 @@ from typing import List
 import pandas as pd
 from pandarallel import pandarallel
 
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.utils import multiprocessing_wrapper
+
 pandarallel.initialize(verbose=1)
 
 from rdagent.components.runner import CachedRunner
@@ -139,9 +142,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         # Collect all exp's dataframes
         for exp in exp_or_list:
             # Iterate over sub-implementations and execute them to get each factor data
-            for implementation in exp.sub_workspace_list:
-                message, df = implementation.execute(data_type="All")
-
+            message_and_df_list = multiprocessing_wrapper(
+                [(implementation.execute, (False, "All")) for implementation in exp.sub_workspace_list],
+                n=RD_AGENT_SETTINGS.multi_proc_n,
+            )
+            for message, df in message_and_df_list:
                 # Check if factor generation was successful
                 if df is not None and "datetime" in df.index.names:
                     time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()

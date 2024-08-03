@@ -114,6 +114,7 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                 if self.pdf_file_index > 100:
                     break
                 report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
+                logger.info(f"Processing number {self.pdf_file_index} report: {report_file_path}")
                 self.pdf_file_index += 1
                 exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
                 if exp is None:
@@ -153,7 +154,7 @@ def main(path=None, step_n=None):
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_sh.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_sh.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
 
     """
     if path is None:
