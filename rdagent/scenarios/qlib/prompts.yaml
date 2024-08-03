@@ -149,7 +149,7 @@ factor_feedback_generation:
       3. Final Goal:
           - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
     
-    When judging the results:
+      When judging the results:
       1. **Recommendation for Replacement:**
         - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
         - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
@@ -158,7 +158,6 @@ factor_feedback_generation:
     Consider Changing Direction for Significant Gaps with SOTA:
       - If the new results significantly differ from the SOTA, consider exploring a new direction.
       - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
-
 
     Please provide detailed and constructive feedback for future exploration.
     Respond in JSON format. Example JSON structure for Result Analysis:
@@ -187,7 +186,7 @@ factor_feedback_generation:
     - 1day.excess_return_without_cost.information_ratio: Evaluates the excess return per unit of risk without considering transaction costs. (the bigger the better)
     - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs. (the bigger the better)
     - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation. (the bigger the better)
-    
+
     When judging the results:
       1. **Recommendation for Replacement:**
         - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
