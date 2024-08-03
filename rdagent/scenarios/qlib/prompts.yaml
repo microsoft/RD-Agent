@@ -12,13 +12,15 @@ hypothesis_and_feedback: |-
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
-    "hypothesis": "The new hypothesis generated based on the information provided.",  # Note that this should focus on model architecture, not training process or feature engineering or anything else
-    "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
-    "concise_reason": Two line summary. First line focuses on the a concise justification for the change. 2nd Line learns from first line and previous experiences (hypothesis & experiments & code & feedbacks) to generalise a knowledge statement (use tend to/because/if/generally/etc. ). This is the summary of the three keys below. 
-    "concise_observation": One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).
-    "concise_justification": One line summary. It focuses on the justification for the change in new hypothesis and the route of exploration supporting the growth of the hypothesis, based on the observation. 
-    "concise_knowledge": One line summary. It focuses on a transferable knowledege that comes with the new hypothesis. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is.
+  "hypothesis": "The new hypothesis generated based on the information provided.",
+  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
+  "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
+  "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
+  "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
+  "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
+
+
 
 model_hypothesis_specification: |-
   Additional Specifications:
@@ -48,13 +50,30 @@ model_hypothesis_specification: |-
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
 factor_hypothesis_specification: |-
-    Focus on the type of factor and the financial trends indicated by the factor. Try to explain from a broader perspective. 
-    If you think some aspects are not necessary, you can omit them.
-    You can start with simple and highly likely effective factors, then gradually move towards more complex ones.
-    Additionally, if you feel a new direction is needed, you don't need to implement the previous factors again, as the factors 
-    that previously surpassed SOTA are already in the factor library and will be included in each run. Therefore, your new direction can completely avoid the previous factors. 
-    It's preferable to provide an explanation for why you are shifting to a new direction, based on financial principles, economic theories, or other reasons. 
-    If a suitable explanation is not available, it's okay not to provide one.
+  1. **Type of Factor and Financial Trends:**
+    - Define the type of factor introduced.
+    - Explain the financial trends or market behaviors indicated by this factor.
+    - Omit unnecessary or redundant details.
+
+  2. **Simple and Effective Factors First:**
+    - Start with factors that are simple and likely effective.
+    - Concisely explain why these factors are expected to work.
+    - Avoid complex or combined factors initially.
+
+  3. **Gradual Complexity Increase:**
+    - Introduce more complex factors as more experimental results are gathered.
+    - Discuss potential advantages and complexities.
+    - Combine factors only after simpler ones are tested and validated.
+
+  4. **New Directions and Optimizations:**
+    - If a new direction is needed, explain why based on financial principles, economic theories, or market behaviors.
+    - Suggest only one new direction at a time for clarity.
+    - If a previous hypothesis did not surpass SOTA but seems optimizable, you may continue in the same direction.
+    - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
+
+  5. **1-3 Factors per Generation:**
+    - Ensure each generation produces 1-3 factors.
+    - Balance simplicity and complexity to build a robust factor library.
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
@@ -106,18 +125,20 @@ model_experiment_output_format: |-
 
 factor_feedback_generation:
   system: |-
-    You are a professional financial result analysis assistant in data-driven R&D.
+    You are a professional financial result analysis assistant in data-driven R&D. 
     The task is described in the following scenario:
+
     {{ scenario }}
-    You will receive a hypothesis, multiple tasks with their factors, and some results.
+    
+    You will receive a hypothesis, multiple tasks with their factors, their results, and the SOTA result. 
     Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA (State of the Art) results, and suggest improvements or new directions.
     
-    Please consider the following points:
-      Logic Explanation:
+    Please understand the following operation logic and then make your feedback that is suitable for the scenario:
+      1. Logic Explanation:
           - If the previous hypothesis factor surpasses the SOTA, include this factor in the SOTA factor library.
           - New experiments will generate new factors, which will be combined with the factors in the SOTA library.
           - These combined factors will be backtested and compared against the current SOTA to continuously iterate.
-        Development Directions:
+      2. Development Directions:
           - New Direction:
               - Propose a new factor direction for exploration and development.
           - Optimization of Existing Direction:
@@ -125,9 +146,19 @@ factor_feedback_generation:
               - Clearly specify the differences in name and improvements compared to the previous factor.
           - Continued Research:
               - If the previous experiment's factor did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
-        Final Goal:
+      3. Final Goal:
           - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
     
+      When judging the results:
+      1. **Recommendation for Replacement:**
+        - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
+        - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
+        - Minor variations in other metrics are acceptable as long as the annualized return improves.
+
+    Consider Changing Direction for Significant Gaps with SOTA:
+      - If the new results significantly differ from the SOTA, consider exploring a new direction.
+      - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
+
     Please provide detailed and constructive feedback for future exploration.
     Respond in JSON format. Example JSON structure for Result Analysis:
     {
@@ -151,28 +182,20 @@ factor_feedback_generation:
     Evaluation Metrics Explanations:
     Below are the financial meanings of each metric, which should be used to judge the results:
 
-    - Rank ICIR: Evaluates the stability and average level of Rank IC. Rank ICIR = mean(Rank IC) / std(Rank IC).
-    - 1day.excess_return_without_cost.max_drawdown: Measures the maximum loss from a peak to a trough without considering transaction costs.
-    - 1day.excess_return_without_cost.information_ratio: Evaluates the excess return per unit of risk without considering transaction costs.
-    - 1day.excess_return_with_cost.max_drawdown: Measures the maximum loss from a peak to a trough considering transaction costs.
-    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs.
-    - 1day.excess_return_with_cost.annualized_return: Annualized return considering transaction costs.
-    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation.
-    - 1day.excess_return_with_cost.information_ratio: Evaluates the excess return per unit of risk considering transaction costs.
+    - 1day.excess_return_without_cost.max_drawdown: Measures the maximum loss from a peak to a trough without considering transaction costs. (the smaller the better)
+    - 1day.excess_return_without_cost.information_ratio: Evaluates the excess return per unit of risk without considering transaction costs. (the bigger the better)
+    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs. (the bigger the better)
+    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation. (the bigger the better)
 
     When judging the results:
-    1. Prioritize metrics that not consider transaction costs (without cost):
-    2. Evaluate all metrics:
-        - Compare the combined results against the current best results across all metrics to get a comprehensive view of performance.
-    3. Focus on the annualized return considering transaction costs:
-        - This metric is particularly important as it gives a clear picture of long-term profitability.
-    4. Recommendation for replacement:
-        - If the new factor demonstrates a significant improvement in the annualized return considering transaction costs, it should be recommended to replace the current best result, even if other metrics show minor variations.
-    5. Consider changing direction if there is a significant gap with SOTA:
-        - If the new results differ significantly from the SOTA, it may be necessary to explore a new direction. 
-        - In this case, previous factors should not be implemented again as the factors that surpassed SOTA are already in the factor library and will be included in each run.
+      1. **Recommendation for Replacement:**
+        - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
+        - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
+        - Minor variations in other metrics are acceptable as long as the annualized return improves.
 
-    Please provide detailed feedback and recommend whether to replace the best result if the new factor proves superior.
+    Consider Changing Direction for Significant Gaps with SOTA:
+      - If the new results significantly differ from the SOTA, consider exploring a new direction.
+      - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
 
 model_feedback_generation:
   system: |-
