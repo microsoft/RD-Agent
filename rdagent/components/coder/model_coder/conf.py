@@ -15,7 +15,7 @@ class ModelImplSettings(BaseSettings):
     )
 
     knowledge_base_path: Union[str, None] = None
-    new_knowledge_base_path: Union[str, None] = knowledge_base_path
+    new_knowledge_base_path: Union[str, None] = None
 
     max_loop: int = 10
 
