@@ -6,6 +6,7 @@ import fire
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
 from rdagent.app.qlib_rd_loop.factor_w_sc import FactorRDLoop
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
