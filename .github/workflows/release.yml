@@ -33,6 +33,8 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
           echo "New version: $NEW_VERSION"
       - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "${{ secrets.PRIVATE_KEY }}" >> ~/private_key
           chmod 600 ~/private_key
