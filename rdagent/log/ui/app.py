@@ -10,7 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
-from st_btn_select import st_btn_select
 from streamlit import session_state as state
 from streamlit.delta_generator import DeltaGenerator
 
@@ -553,25 +552,8 @@ with st.container():
             st.markdown(QlibFactorScenario().rich_style_description)
         elif state.log_type == "Model from Paper":
             st.markdown(GeneralModelScenario().rich_style_description)
-
-
-# Summary Window
-summary_window()
-
-# R&D Loops Window
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
-
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    if len(state.msgs) > 1:
-        r_options = list(state.msgs.keys())
-        if 0 in r_options:
-            r_options.remove(0)
-        round = st_btn_select(options=r_options, index=state.lround - 1)
-    else:
-        round = 1
-else:
-    round = 1
+        elif state.log_type == "Factors from Report":
+            pass
 
 
 def research_window():
@@ -632,21 +614,8 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
-
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    rf_c, d_c = st.columns([2, 2])
-elif state.log_type == "Model from Paper":
-    rf_c = st.container()
-    d_c = st.container()
-
-
-with rf_c:
-    research_window()
-    feedback_window()
-
-
-# Development Window (Evolving)
-with d_c.container(border=True):
+@st.experimental_fragment
+def evolving_window():
     title = (
         "Development🛠️"
         if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]
@@ -670,8 +639,7 @@ with d_c.container(border=True):
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            st.markdown("**🔄️Evolving Rounds**")
-            evolving_round = st_btn_select(
+            evolving_round = st.radio("**🔄️Evolving Rounds**", horizontal=True,
                 options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
             )
         else:
@@ -705,6 +673,36 @@ with d_c.container(border=True):
                 if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
                     evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
+
+summary_window()
+
+# R&D Loops Window
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
+
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    if len(state.msgs) > 1:
+        r_options = list(state.msgs.keys())
+        if 0 in r_options:
+            r_options.remove(0)
+        round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
+    else:
+        round = 1
+else:
+    round = 1
+
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    rf_c, d_c = st.columns([2, 2])
+elif state.log_type == "Model from Paper":
+    rf_c = st.container()
+    d_c = st.container()
+
+with rf_c:
+    research_window()
+    feedback_window()
+
+with d_c.container(border=True):
+    evolving_window()
 
 with st.container(border=True):
     st.subheader("Disclaimer", divider="gray")
