@@ -231,14 +231,25 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
 
 
 def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, bool], success_only: bool = False):
+    name_dict = {
+        "hypothesis": "RD-Agent proposes the hypothesis⬇️",
+        "concise_justification": "because the reason⬇️",
+        "concise_observation": "based on the observation⬇️",
+        "concise_knowledge": "Knowledge⬇️ gained after practice",
+    }
     if success_only:
         shd = {k: v.__dict__ for k, v in hypotheses.items() if decisions[k]}
     else:
         shd = {k: v.__dict__ for k, v in hypotheses.items()}
     df = pd.DataFrame(shd).T
+    df['concise_observation'], df['concise_justification'] = df['concise_justification'], df['concise_observation']
+    df.rename(columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"}, inplace=True)
     if "reason" in df.columns:
         df.drop(["reason"], axis=1, inplace=True)
-    df.columns = df.columns.map(lambda x: x.replace("_", " ").capitalize())
+    if "concise_reason" in df.columns:
+        df.drop(["concise_reason"], axis=1, inplace=True)
+
+    df.columns = df.columns.map(lambda x: name_dict.get(x, x))
 
     def style_rows(row):
         if decisions[row.name]:
