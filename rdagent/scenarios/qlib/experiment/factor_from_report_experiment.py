@@ -13,6 +13,7 @@ from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+
 class QlibFactorFromReportScenario(QlibFactorScenario):
     @property
     def rich_style_description(self) -> str:
