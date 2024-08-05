@@ -30,8 +30,8 @@ jobs:
           pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
       - name: Bump version
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.name "SunsetWolf"
+          git config user.email "Lv.Linlang@hotmail.com"
           bump2version patch
           NEW_VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
