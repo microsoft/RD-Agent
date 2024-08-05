@@ -41,7 +41,26 @@ class DMModelScenario(Scenario):
 
     @property
     def rich_style_description(self) -> str:
-        return "Below is MIMIC Model Evolving Automatic R&D Demo."
+        return """
+### MIMIC-III Model Evolving Automatic R&D Demo
+ 
+#### [Overview](#_summary)
+ 
+The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making in model construction in a clinical prediction task. The model should predict whether a patient would suffer from Acute Respiratory Failure (ARF) based on first 12 hours ICU monitoring data. 
+ 
+#### [Automated R&D](#_rdloops)
+ 
+- **[R (Research)](#_research)**
+  - Iteration of ideas and hypotheses.
+  - Continuous learning and knowledge construction.
+ 
+- **[D (Development)](#_development)**
+  - Evolving code generation and model refinement.
+  - Automated implementation and testing of models.
+ 
+#### [Objective](#_summary)
+ 
+To demonstrate the dynamic evolution of models through the R&D loop, emphasizing how each iteration enhances the model performance and reliability. The performane is measured by the AUROC score (Area Under the Receiver Operating Characteristic), which is a commonly used metric for binary classification.   """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:

@@ -6,7 +6,7 @@ from typing import Any, Tuple
 import fire
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
@@ -20,9 +20,9 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.qlib.experiment.factor_experiment import (
-    QlibFactorExperiment,
-    QlibFactorScenario,
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
+    QlibFactorFromReportScenario,
 )
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
@@ -62,7 +62,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
 
 
 def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[QlibFactorExperiment, Hypothesis]:
-    scenario = QlibFactorScenario()
+    scenario = QlibFactorFromReportScenario()
 
     with logger.tag("extract_factors_and_implement"):
         with logger.tag("load_factor_tasks"):
@@ -104,7 +104,7 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
         self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         self.trace = Trace(scen=scen)
 
-        self.judge_pdf_data_items = json.load(open(FACTOR_PROP_SETTING.report_result_json_file_path, "r"))
+        self.judge_pdf_data_items = json.load(open(FACTOR_FROM_REPORT_PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
         super().__init__()
 
@@ -120,8 +120,8 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                 if exp is None:
                     continue
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
-                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_PROP_SETTING.max_factor_per_report]
-                exp.sub_tasks = exp.sub_tasks[: FACTOR_PROP_SETTING.max_factor_per_report]
+                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
+                exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
                 logger.log_object(hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 return hypothesis, exp
@@ -158,7 +158,7 @@ def main(path=None, step_n=None):
 
     """
     if path is None:
-        model_loop = FactorReportLoop(FACTOR_PROP_SETTING)
+        model_loop = FactorReportLoop(FACTOR_FROM_REPORT_PROP_SETTING)
     else:
         model_loop = FactorReportLoop.load(path)
     model_loop.run(step_n=step_n)
