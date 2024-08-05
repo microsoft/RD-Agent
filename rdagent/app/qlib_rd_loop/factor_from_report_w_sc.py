@@ -105,7 +105,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
     skip_loop_error = (FactorEmptyError,)
 
-    def __init__(self, PROP_SETTING: FactorBasePropSetting):
+    def __init__(self, PROP_SETTING: FACTOR_FROM_REPORT_PROP_SETTING):
         super().__init__(PROP_SETTING=PROP_SETTING)
         self.judge_pdf_data_items = json.load(open(PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
