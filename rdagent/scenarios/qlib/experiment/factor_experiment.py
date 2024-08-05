@@ -43,7 +43,7 @@ class QlibFactorScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-### Qlib Factor Evolving Automatic R&D Demo
+### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factor Evolution Demo
 
 #### [Overview](#_summary)
 
@@ -55,20 +55,17 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
    - Generate and propose initial hypotheses based on data and domain knowledge.
 
 2. **Factor Creation**
-   - Develop, define, and write new financial factors.
+   - Develop, define, and implement new financial factors.
    - Test these factors to gather empirical results.
 
 3. **Factor Validation**
-   - Validate the newly created factors quantitatively.
+   - Quantitatively validate the newly created factors.
 
 4. **Backtesting with Qlib**
-   - **Dataset**: CSI300
-   - **Model**: LGBModel
-   - **Factors**: Alpha158 +
-   - **Data Split**:
-     - **Train**: 2008-01-01 to 2014-12-31
-     - **Valid**: 2015-01-01 to 2016-12-31
-     - **Test**: 2017-01-01 to 2020-08-01
+    | **Dataset**      | **Model**   | **Factors**    |
+    |------------------|-------------|----------------|
+    | 📊 CSI300        | 🤖 LGBModel | 🌟 Alpha158 Plus|
+
 
 5. **Feedback Analysis**
    - Analyze backtest results.
@@ -80,12 +77,12 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
 #### [Automated R&D](#_rdloops)
 
 - **[R (Research)](#_research)**
-  - Iteration of ideas and hypotheses.
+  - Iterative development of ideas and hypotheses.
   - Continuous learning and knowledge construction.
 
-- **[D (Development)](#_development)*
-  - Evolving code generation and model refinement.
-  - Automated implementation and testing of financial factors.
+- **[D (Development)](#_development)**
+  - Progressive implementation and code generation of factors.
+  - Automated testing and validation of financial factors.
 
 #### [Objective](#_summary)
 

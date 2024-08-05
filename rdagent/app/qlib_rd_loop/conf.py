@@ -35,11 +35,17 @@ class FactorBasePropSetting(BasePropSetting):
     # 2) sub task specific:
     origin_report_path: str = "data/report_origin"
     local_report_path: str = "data/report"
-    report_result_json_file_path: str = "git_ignore_folder/report_list.json"
+    report_result_json_file_path: str = "git_ignore_folder/report_list_new.json"
     progress_file_path: str = "git_ignore_folder/progress.pkl"
     report_extract_result: str = "git_ignore_folder/hypo_exp_cache.pkl"
     max_factor_per_report: int = 10000
 
 
+class FactorFromReportPropSetting(FactorBasePropSetting):
+    # Override the scen attribute
+    scen: str = "rdagent.scenarios.qlib.experiment.factor_from_report_experiment.QlibFactorFromReportScenario"
+
+
 FACTOR_PROP_SETTING = FactorBasePropSetting()
+FACTOR_FROM_REPORT_PROP_SETTING = FactorFromReportPropSetting()
 MODEL_PROP_SETTING = ModelBasePropSetting()
