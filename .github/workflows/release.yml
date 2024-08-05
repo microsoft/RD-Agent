@@ -40,9 +40,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          ls -l ~
           echo "${{ secrets.PRIVATE_KEY }}" >> ~/private_key
           chmod 600 ~/private_key
-          cat ~/private_key
+          ls -l ~
           GIT_SSH_COMMAND="ssh -i ~/private_key" git push --follow-tags origin HEAD:main
       - name: Generate changelog
         run: |
