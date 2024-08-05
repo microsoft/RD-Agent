@@ -6,12 +6,13 @@ from typing import Any, Tuple
 import fire
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
+from rdagent.app.qlib_rd_loop.conf import FactorBasePropSetting
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
 )
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError
 from rdagent.core.prompts import Prompts
@@ -62,8 +63,6 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
 
 
 def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[QlibFactorExperiment, Hypothesis]:
-    scenario = QlibFactorFromReportScenario()
-
     with logger.tag("extract_factors_and_implement"):
         with logger.tag("load_factor_tasks"):
             exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
@@ -88,30 +87,22 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 
     report_content = "\n".join(docs_dict.values())
     hypothesis = generate_hypothesis(factor_result, report_content)
-
     return exp, hypothesis
 
 
-class FactorReportLoop(LoopBase, metaclass=LoopMeta):
+class FactorReportLoop(RDLoop, metaclass=LoopMeta):
     skip_loop_error = (FactorEmptyError,)
 
-    def __init__(self, PROP_SETTING: BasePropSetting):
-        scen: Scenario = import_class(PROP_SETTING.scen)()
-
-        self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-        self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
-
-        self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        self.trace = Trace(scen=scen)
-
-        self.judge_pdf_data_items = json.load(open(FACTOR_FROM_REPORT_PROP_SETTING.report_result_json_file_path, "r"))
+    def __init__(self, PROP_SETTING: FactorBasePropSetting):
+        self.judge_pdf_data_items = json.load(open(PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
-        super().__init__()
+        self.valid_pdf_file_count = 0
+        super().__init__(PROP_SETTING=PROP_SETTING)
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
-                if self.pdf_file_index > 100:
+                if self.valid_pdf_file_count > 15:
                     break
                 report_file_path = self.judge_pdf_data_items[self.pdf_file_index]
                 logger.info(f"Processing number {self.pdf_file_index} report: {report_file_path}")
@@ -119,33 +110,21 @@ class FactorReportLoop(LoopBase, metaclass=LoopMeta):
                 exp, hypothesis = extract_hypothesis_and_exp_from_reports(str(report_file_path))
                 if exp is None:
                     continue
+                self.valid_pdf_file_count += 1
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
                 exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
                 logger.log_object(hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
-                return hypothesis, exp
+                self.current_loop_hypothesis = hypothesis
+                self.current_loop_exp = exp
+                return None
 
-    def coding(self, prev_out: dict[str, Any]):
-        with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["propose_hypo_exp"][1])
-            logger.log_object(exp.sub_workspace_list, tag="coder result")
-        return exp
+    def propose(self, prev_out: dict[str, Any]):
+        return self.current_loop_hypothesis
 
-    def running(self, prev_out: dict[str, Any]):
-        with logger.tag("ef"):  # evaluate and feedback
-            exp = self.runner.develop(prev_out["coding"])
-            if exp is None:
-                logger.error(f"Factor extraction failed.")
-                raise FactorEmptyError("Factor extraction failed.")
-            logger.log_object(exp, tag="runner result")
-        return exp
-
-    def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose_hypo_exp"][0], self.trace)
-        with logger.tag("ef"):  # evaluate and feedback
-            logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["propose_hypo_exp"][0], prev_out["running"], feedback))
+    def exp_gen(self, prev_out: dict[str, Any]):
+        return self.current_loop_exp
 
 
 def main(path=None, step_n=None):

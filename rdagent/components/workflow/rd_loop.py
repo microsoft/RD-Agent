@@ -21,18 +21,25 @@ from rdagent.utils.workflow import LoopBase, LoopMeta
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
     def __init__(self, PROP_SETTING: BasePropSetting):
-        scen: Scenario = import_class(PROP_SETTING.scen)()
+        with logger.tag("init"):
+            scen: Scenario = import_class(PROP_SETTING.scen)()
+            logger.log_object(scen, tag="scenario")
 
-        self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+            self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+            logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
 
-        self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+            self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
+            logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
 
-        self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-        self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
+            self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
+            logger.log_object(self.coder, tag="coder")
+            self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
+            logger.log_object(self.runner, tag="runner")
 
-        self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
-        self.trace = Trace(scen=scen)
-        super().__init__()
+            self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+            logger.log_object(self.summarizer, tag="summarizer")
+            self.trace = Trace(scen=scen)
+            super().__init__()
 
     def propose(self, prev_out: dict[str, Any]):
         with logger.tag("r"):  # research
