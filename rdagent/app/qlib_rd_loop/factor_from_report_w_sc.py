@@ -6,29 +6,26 @@ from typing import Any, Tuple
 import fire
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import FactorBasePropSetting
+from rdagent.app.qlib_rd_loop.conf import (
+    FACTOR_FROM_REPORT_PROP_SETTING,
+    FactorBasePropSetting,
+)
+from rdagent.app.qlib_rd_loop.factor_w_sc import FactorRDLoop
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
 )
-from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
-from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import Hypothesis, HypothesisExperiment2Feedback, Trace
-from rdagent.core.scenario import Scenario
-from rdagent.core.utils import import_class
+from rdagent.core.proposal import Hypothesis
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
-from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
-    QlibFactorFromReportScenario,
-)
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
 )
-from rdagent.utils.workflow import LoopBase, LoopMeta
+from rdagent.utils.workflow import LoopMeta
 
 prompts_path = Path(__file__).parent / "prompts.yaml"
 prompts = Prompts(file_path=prompts_path)
@@ -90,14 +87,14 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
     return exp, hypothesis
 
 
-class FactorReportLoop(RDLoop, metaclass=LoopMeta):
+class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
     skip_loop_error = (FactorEmptyError,)
 
     def __init__(self, PROP_SETTING: FactorBasePropSetting):
+        super().__init__(PROP_SETTING=PROP_SETTING)
         self.judge_pdf_data_items = json.load(open(PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
         self.valid_pdf_file_count = 0
-        super().__init__(PROP_SETTING=PROP_SETTING)
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):

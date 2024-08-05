@@ -7,6 +7,7 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
+
 import datetime
 import pickle
 from collections import defaultdict
@@ -27,7 +28,9 @@ class LoopMeta(type):
         """
         steps = []
         for base in bases:
-            steps.extend(LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []))
+            for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
+                if step not in steps:
+                    steps.append(step)
         return steps
 
     def __new__(cls, clsname, bases, attrs):
