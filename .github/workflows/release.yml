@@ -40,6 +40,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cd ~
+          pwd
           ls -l ~
           echo "${{ secrets.PRIVATE_KEY }}" >> ~/private_key
           chmod 600 ~/private_key
