@@ -1,6 +1,6 @@
+from dataclasses import field
 from pathlib import Path
 from typing import Optional
-from dataclasses import field
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
