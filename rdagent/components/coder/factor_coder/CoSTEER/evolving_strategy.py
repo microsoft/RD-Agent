@@ -17,7 +17,6 @@ from rdagent.components.coder.factor_coder.CoSTEER.scheduler import (
     RandomSelect,
 )
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
-from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import Workspace
