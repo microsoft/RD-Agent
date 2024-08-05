@@ -29,6 +29,9 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import (
     QlibFactorExperiment,
     QlibFactorScenario,
 )
+from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
+    QlibFactorFromReportScenario,
+)
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -230,7 +233,6 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
         with vfc:
             st.markdown(wsf.value_feedback)
 
-
 def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, bool], success_only: bool = False):
     name_dict = {
         "hypothesis": "RD-Agent proposes the hypothesis⬇️",
@@ -266,7 +268,6 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
     # st.dataframe(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0))
     st.markdown(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0).to_html(), unsafe_allow_html=True)
-
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
     fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
@@ -314,9 +315,8 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
                 )
     st.plotly_chart(fig)
 
-
 def summary_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         with st.container():
             # TODO: not fixed height
@@ -385,15 +385,12 @@ def summary_window():
                     # Evolving Feedback
                     evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
-
 def tabs_hint():
     st.markdown(
         "<p style='font-size: small; color: #888888;'>You can navigate through the tabs using ⬅️ ➡️ or by holding Shift and scrolling with the mouse wheel🖱️.</p>",
         unsafe_allow_html=True,
     )
 
-
-# TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
     if isinstance(tasks[0], FactorTask):
         st.markdown("**Factor Tasks🚩**")
@@ -432,6 +429,122 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                     mks += f"| ${v}$ | {d} |\n"
                 st.markdown(mks)
 
+def research_window():
+    with st.container(border=True):
+        title = "Research🔍" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"] else "Research🔍 (reader)"
+        st.subheader(title, divider="blue", anchor="_research")
+        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
+            # pdf image
+            if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
+                for i in range(min(2, len(pim))):
+                    st.image(pim[i].content, use_column_width=True)
+
+            # Hypothesis
+            if hg := state.msgs[round]["r.hypothesis generation"]:
+                st.markdown("**Hypothesis💡**")  # 🧠
+                h: Hypothesis = hg[0].content
+                st.markdown(
+                    f"""
+- **Hypothesis**: {h.hypothesis}
+- **Reason**: {h.reason}"""
+                )
+
+            if eg := state.msgs[round]["r.experiment generation"]:
+                tasks_window(eg[0].content)
+
+        elif state.log_type == "Model from Paper":
+            # pdf image
+            c1, c2 = st.columns([2, 3])
+            with c1:
+                if pim := state.msgs[round]["r.pdf_image"]:
+                    for i in range(len(pim)):
+                        st.image(pim[i].content, use_column_width=True)
+
+            # loaded model exp
+            with c2:
+                if mem := state.msgs[round]["d.load_experiment"]:
+                    me: QlibModelExperiment = mem[0].content
+                    tasks_window(me.sub_tasks)
+
+def feedback_window():
+    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
+        with st.container(border=True):
+            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
+                st.markdown("**Returns📈**")
+                fig = report_figure(fbr[0].content)
+                st.plotly_chart(fig)
+            if fb := state.msgs[round]["ef.feedback"]:
+                st.markdown("**Hypothesis Feedback🔍**")
+                h: HypothesisFeedback = fb[0].content
+                st.markdown(
+                    f"""
+- **Observations**: {h.observations}
+- **Hypothesis Evaluation**: {h.hypothesis_evaluation}
+- **New Hypothesis**: {h.new_hypothesis}
+- **Decision**: {h.decision}
+- **Reason**: {h.reason}"""
+                )
+
+@st.experimental_fragment
+def evolving_window():
+    title = (
+        "Development🛠️"
+        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]
+        else "Development🛠️ (evolving coder)"
+    )
+    st.subheader(title, divider="green", anchor="_development")
+
+    # Evolving Status
+    if state.erounds[round] > 0:
+        st.markdown("**☑️ Evolving Status**")
+        es = state.e_decisions[round]
+        e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round] + 1)) + "|\n"
+        e_status_mks += "|--" * state.erounds[round] + "|\n"
+        for ei, estatus in es.items():
+            if not estatus:
+                estatus = (0, 0, 0)
+            e_status_mks += "| " + "🕙<br>" * estatus[2] + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
+        e_status_mks += "|\n"
+        st.markdown(e_status_mks, unsafe_allow_html=True)
+
+    # Evolving Tabs
+    if state.erounds[round] > 0:
+        if state.erounds[round] > 1:
+            evolving_round = st.radio("**🔄️Evolving Rounds**", horizontal=True,
+                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
+            )
+        else:
+            evolving_round = 1
+
+        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][
+            evolving_round - 1
+        ].content
+        # All Tasks
+
+        tab_names = [
+            w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+        ]
+        if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
+            for j in range(len(ws)):
+                if state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j].final_decision:
+                    tab_names[j] += "✔️"
+                else:
+                    tab_names[j] += "❌"
+        if sum(len(tn) for tn in tab_names) > 100:
+            tabs_hint()
+        wtabs = st.tabs(tab_names)
+        for j, w in enumerate(ws):
+            with wtabs[j]:
+                # Evolving Code
+                for k, v in w.code_dict.items():
+                    with st.expander(f":green[`{k}`]", expanded=True):
+                        st.code(v, language="python")
+
+                # Evolving Feedback
+                if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
+                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
+
 
 # Config Sidebar
 with st.sidebar:
@@ -450,7 +563,7 @@ with st.sidebar:
     )
 
     st.selectbox(
-        ":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper"], key="log_type"
+        ":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper", "Factors from Report"], key="log_type"
     )
 
     with st.popover(":orange[**Config⚙️**]"):
@@ -520,7 +633,6 @@ if debug:
                 elif not isinstance(state.last_msg.content, str):
                     st.write(state.last_msg.content.__dict__)
 
-
 # Main Window
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with st.container():
@@ -553,134 +665,15 @@ with st.container():
         elif state.log_type == "Model from Paper":
             st.markdown(GeneralModelScenario().rich_style_description)
         elif state.log_type == "Factors from Report":
-            pass
-
-
-def research_window():
-    with st.container(border=True):
-        title = "Research🔍" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"] else "Research🔍 (reader)"
-        st.subheader(title, divider="blue", anchor="_research")
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-            # pdf image
-            if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
-                for i in range(min(2, len(pim))):
-                    st.image(pim[i].content, use_column_width=True)
-
-            # Hypothesis
-            if hg := state.msgs[round]["r.hypothesis generation"]:
-                st.markdown("**Hypothesis💡**")  # 🧠
-                h: Hypothesis = hg[0].content
-                st.markdown(
-                    f"""
-- **Hypothesis**: {h.hypothesis}
-- **Reason**: {h.reason}"""
-                )
-
-            if eg := state.msgs[round]["r.experiment generation"]:
-                tasks_window(eg[0].content)
-
-        elif state.log_type == "Model from Paper":
-            # pdf image
-            c1, c2 = st.columns([2, 3])
-            with c1:
-                if pim := state.msgs[round]["r.pdf_image"]:
-                    for i in range(len(pim)):
-                        st.image(pim[i].content, use_column_width=True)
-
-            # loaded model exp
-            with c2:
-                if mem := state.msgs[round]["d.load_experiment"]:
-                    me: QlibModelExperiment = mem[0].content
-                    tasks_window(me.sub_tasks)
-
-
-def feedback_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-        with st.container(border=True):
-            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
-            if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
-                st.markdown("**Returns📈**")
-                fig = report_figure(fbr[0].content)
-                st.plotly_chart(fig)
-            if fb := state.msgs[round]["ef.feedback"]:
-                st.markdown("**Hypothesis Feedback🔍**")
-                h: HypothesisFeedback = fb[0].content
-                st.markdown(
-                    f"""
-- **Observations**: {h.observations}
-- **Hypothesis Evaluation**: {h.hypothesis_evaluation}
-- **New Hypothesis**: {h.new_hypothesis}
-- **Decision**: {h.decision}
-- **Reason**: {h.reason}"""
-                )
-
-@st.experimental_fragment
-def evolving_window():
-    title = (
-        "Development🛠️"
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]
-        else "Development🛠️ (evolving coder)"
-    )
-    st.subheader(title, divider="green", anchor="_development")
-
-    # Evolving Status
-    if state.erounds[round] > 0:
-        st.markdown("**☑️ Evolving Status**")
-        es = state.e_decisions[round]
-        e_status_mks = "".join(f"| {ei} " for ei in range(1, state.erounds[round] + 1)) + "|\n"
-        e_status_mks += "|--" * state.erounds[round] + "|\n"
-        for ei, estatus in es.items():
-            if not estatus:
-                estatus = (0, 0, 0)
-            e_status_mks += "| " + "🕙<br>" * estatus[2] + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
-        e_status_mks += "|\n"
-        st.markdown(e_status_mks, unsafe_allow_html=True)
-
-    # Evolving Tabs
-    if state.erounds[round] > 0:
-        if state.erounds[round] > 1:
-            evolving_round = st.radio("**🔄️Evolving Rounds**", horizontal=True,
-                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
-            )
-        else:
-            evolving_round = 1
-
-        ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.evolving code"][
-            evolving_round - 1
-        ].content
-        # All Tasks
-
-        tab_names = [
-            w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
-        ]
-        if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
-            for j in range(len(ws)):
-                if state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j].final_decision:
-                    tab_names[j] += "✔️"
-                else:
-                    tab_names[j] += "❌"
-        if sum(len(tn) for tn in tab_names) > 100:
-            tabs_hint()
-        wtabs = st.tabs(tab_names)
-        for j, w in enumerate(ws):
-            with wtabs[j]:
-                # Evolving Code
-                for k, v in w.code_dict.items():
-                    with st.expander(f":green[`{k}`]", expanded=True):
-                        st.code(v, language="python")
-
-                # Evolving Feedback
-                if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
-                    evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
-
+            st.markdown(QlibFactorFromReportScenario().rich_style_description)
 
 summary_window()
 
 # R&D Loops Window
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
     st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
 
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
     if len(state.msgs) > 1:
         r_options = list(state.msgs.keys())
         if 0 in r_options:
@@ -691,7 +684,7 @@ if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
 else:
     round = 1
 
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
     rf_c, d_c = st.columns([2, 2])
 elif state.log_type == "Model from Paper":
     rf_c = st.container()
