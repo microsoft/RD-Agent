@@ -10,7 +10,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
 from rdagent.scenarios.qlib.experiment.factor_experiment import (
-   QlibFactorScenario
+   QlibFactorScenario,
 )
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")

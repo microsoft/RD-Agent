@@ -24,7 +24,7 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import (
     QlibFactorExperiment,
 )
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
-    QlibFactorFromReportScenario
+    QlibFactorFromReportScenario,
 )
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
