@@ -5,7 +5,6 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
 )
-from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario

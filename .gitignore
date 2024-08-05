@@ -139,6 +139,9 @@ dmypy.json
 # all pkl files
 *.pkl
 
+# all h5 files
+*.h5
+
 # all vs-code files
 .vscode/
 
