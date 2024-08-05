@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class BasePropSetting(BaseSettings):
     """
-    The common part of the config for RD Loop to propose and developement
+    The common part of the config for RD Loop to propose and development
     You can add following config in the subclass to distinguish the environment variables.
 
     .. code-block:: python

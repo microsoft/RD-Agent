@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from rdagent.components.coder.model_coder.model import ModelExperiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 
