@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "${{ secrets.PRIVATE_KEY }}" >> private_key
           chmod 600 private_key
-          GIT_SSH_COMMAND="ssh -i private_key.pem" git push --follow-tags
+          GIT_SSH_COMMAND="ssh -i private_key" git push --follow-tags
       - name: Generate changelog
         run: |
           make changelog
