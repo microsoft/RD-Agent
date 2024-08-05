@@ -8,16 +8,12 @@ from rdagent.components.coder.factor_coder.factor import (
 from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
-from rdagent.scenarios.qlib.experiment.factor_experiment import (
-   QlibFactorScenario,
-)
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-
 class QlibFactorFromReportScenario(QlibFactorScenario):
-
     @property
     def rich_style_description(self) -> str:
         return """
