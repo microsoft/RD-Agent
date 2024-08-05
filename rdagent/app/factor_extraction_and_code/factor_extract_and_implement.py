@@ -3,7 +3,9 @@ from dotenv import load_dotenv
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.developer.factor_coder import QlibFactorCoSTEER
-from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import QlibFactorFromReportScenario
+from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
+    QlibFactorFromReportScenario
+)
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
     FactorExperimentLoaderFromPDFfiles,
 )
