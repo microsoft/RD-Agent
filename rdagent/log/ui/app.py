@@ -176,7 +176,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         if "evolving code" in tags:
                             msg.content = [i for i in msg.content if i]
                         if "evolving feedback" in tags:
+                            total_len = len(msg.content)
                             msg.content = [i for i in msg.content if i]
+                            none_num = total_len - len(msg.content)
                             if len(msg.content) != len(state.msgs[state.lround]["d.evolving code"][-1].content):
                                 st.toast(":red[**Evolving Feedback Length Error!**]", icon="‼️")
                             right_num = 0
@@ -184,7 +186,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 if wsf.final_decision:
                                     right_num += 1
                             wrong_num = len(msg.content) - right_num
-                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num)
+                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num, none_num)
 
                     state.msgs[state.lround][msg.tag].append(msg)
                     # Stop Getting Logs
@@ -242,8 +244,10 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
     else:
         shd = {k: v.__dict__ for k, v in hypotheses.items()}
     df = pd.DataFrame(shd).T
-    df['concise_observation'], df['concise_justification'] = df['concise_justification'], df['concise_observation']
-    df.rename(columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"}, inplace=True)
+
+    if 'concise_observation' in df.columns and 'concise_justification' in df.columns:
+        df['concise_observation'], df['concise_justification'] = df['concise_justification'], df['concise_observation']
+        df.rename(columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"}, inplace=True)
     if "reason" in df.columns:
         df.drop(["reason"], axis=1, inplace=True)
     if "concise_reason" in df.columns:
@@ -658,8 +662,8 @@ with d_c.container(border=True):
         e_status_mks += "|--" * state.erounds[round] + "|\n"
         for ei, estatus in es.items():
             if not estatus:
-                estatus = (0, 0)
-            e_status_mks += "| " + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
+                estatus = (0, 0, 0)
+            e_status_mks += "| " + "🕙<br>" * estatus[2] + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
         e_status_mks += "|\n"
         st.markdown(e_status_mks, unsafe_allow_html=True)
 
