@@ -12,6 +12,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
 from streamlit.delta_generator import DeltaGenerator
+from rdagent.core.scenario import Scenario
 
 from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
@@ -60,14 +61,15 @@ SELECTED_METRICS = [
     "1day.excess_return_without_cost.max_drawdown",
 ]
 
-if "log_type" not in state:
-    state.log_type = "Qlib Model"
-
 if "log_path" not in state:
     if main_log_path:
         state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
         state.log_path = ""
+        st.toast(":orange[**Please Set Log Path**]", icon="⚠️")
+
+if 'scenario' not in state:
+    state.scenario = None
 
 if "fs" not in state:
     state.fs = None
@@ -106,23 +108,6 @@ if "alpha158_metrics" not in state:
     state.alpha158_metrics = None
 
 
-def refresh():
-    if main_log_path:
-        state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
-    else:
-        state.fs = FileStorage(state.log_path).iter_msg()
-    state.msgs = defaultdict(lambda: defaultdict(list))
-    state.lround = 0
-    state.erounds = defaultdict(int)
-    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
-    state.hypotheses = defaultdict(None)
-    state.h_decisions = defaultdict(bool)
-    state.metric_series = []
-    state.last_msg = None
-    state.current_tags = []
-    state.alpha158_metrics = None
-
-
 def should_display(msg: Message):
     for t in state.excluded_tags:
         if t in msg.tag.split("."):
@@ -152,7 +137,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if state.log_type == "Qlib Factor" and state.alpha158_metrics is None:
+                        if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
                             sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -197,6 +182,34 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
             except StopIteration:
                 st.toast(":red[**No More Logs to Show!**]", icon="🛑")
                 break
+
+
+def refresh(same_trace: bool = False):
+    if main_log_path:
+        state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
+    else:
+        state.fs = FileStorage(state.log_path).iter_msg()
+    
+    # detect scenario
+    if not same_trace:
+        get_msgs_until(lambda m: not isinstance(m.content, str))
+        if state.last_msg is None or not isinstance(state.last_msg.content, Scenario):
+            st.toast(":red[**No Scenario Info detected**]", icon="❗")
+            state.scenario = None
+        else:
+            state.scenario = state.last_msg.content
+            st.toast(f":green[**Scenario Info detected**] *{type(state.scenario).__name__}*", icon="✅")
+
+    state.msgs = defaultdict(lambda: defaultdict(list))
+    state.lround = 0
+    state.erounds = defaultdict(int)
+    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
+    state.hypotheses = defaultdict(None)
+    state.h_decisions = defaultdict(bool)
+    state.metric_series = []
+    state.last_msg = None
+    state.current_tags = []
+    state.alpha158_metrics = None
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
@@ -316,7 +329,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     st.plotly_chart(fig)
 
 def summary_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
+    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         with st.container():
             # TODO: not fixed height
@@ -336,7 +349,7 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if state.log_type == "Qlib Factor" and state.alpha158_metrics is not None:
+                if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
@@ -357,7 +370,7 @@ def summary_window():
                     else:
                         metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
-    elif state.log_type == "Model from Paper" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+    elif isinstance(state.scenario, GeneralModelScenario) and len(state.msgs[state.lround]["d.evolving code"]) > 0:
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
 
@@ -431,9 +444,9 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
 
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"] else "Research🔍 (reader)"
+        title = "Research🔍" if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)) else "Research🔍 (reader)"
         st.subheader(title, divider="blue", anchor="_research")
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
+        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -452,7 +465,7 @@ def research_window():
             if eg := state.msgs[round]["r.experiment generation"]:
                 tasks_window(eg[0].content)
 
-        elif state.log_type == "Model from Paper":
+        elif isinstance(state.scenario, GeneralModelScenario):
             # pdf image
             c1, c2 = st.columns([2, 3])
             with c1:
@@ -467,7 +480,7 @@ def research_window():
                     tasks_window(me.sub_tasks)
 
 def feedback_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
+    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
@@ -490,7 +503,7 @@ def feedback_window():
 def evolving_window():
     title = (
         "Development🛠️"
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]
+        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario))
         else "Development🛠️ (evolving coder)"
     )
     st.subheader(title, divider="green", anchor="_development")
@@ -546,6 +559,7 @@ def evolving_window():
                     evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
 
+
 # Config Sidebar
 with st.sidebar:
     st.markdown(
@@ -560,10 +574,6 @@ with st.sidebar:
 - [**Development**](#_development)
 - [**Feedback**](#_feedback)
 """
-    )
-
-    st.selectbox(
-        ":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper", "Factors from Report"], key="log_type"
     )
 
     with st.popover(":orange[**Config⚙️**]"):
@@ -601,7 +611,7 @@ with st.sidebar:
         get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
     if st.button("refresh logs", help="clear all log messages in cache"):
-        refresh()
+        refresh(same_trace=True)
     debug = st.toggle("debug", value=False)
 
     if debug:
@@ -611,13 +621,13 @@ with st.sidebar:
             get_msgs_until()
 
 
+
 # Debug Info Window
 if debug:
     with st.expander(":red[**Debug Info**]", expanded=True):
         dcol1, dcol2 = st.columns([1, 3])
         with dcol1:
             st.markdown(
-                f"**trace type**: {state.log_type}\n\n"
                 f"**log path**: {state.log_path}\n\n"
                 f"**excluded tags**: {state.excluded_tags}\n\n"
                 f"**excluded types**: {state.excluded_types}\n\n"
@@ -633,7 +643,12 @@ if debug:
                 elif not isinstance(state.last_msg.content, str):
                     st.write(state.last_msg.content.__dict__)
 
+
+
 # Main Window
+if state.fs is None:
+    refresh()
+
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with st.container():
     with header_c1:
@@ -655,47 +670,39 @@ with st.container():
         st.image("./docs/_static/flow.png")
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
-        # TODO: other scenarios
-        if state.log_type == "Qlib Model":
-            st.markdown(QlibModelScenario().rich_style_description)
-        elif state.log_type == "Data Mining":
-            st.markdown(DMModelScenario().rich_style_description)
-        elif state.log_type == "Qlib Factor":
-            st.markdown(QlibFactorScenario().rich_style_description)
-        elif state.log_type == "Model from Paper":
-            st.markdown(GeneralModelScenario().rich_style_description)
-        elif state.log_type == "Factors from Report":
-            st.markdown(QlibFactorFromReportScenario().rich_style_description)
+        if state.scenario is not None:
+            st.markdown(state.scenario.rich_style_description)
 
-summary_window()
 
-# R&D Loops Window
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
-    st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
+if state.scenario is not None:
+    summary_window()
 
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
-    if len(state.msgs) > 1:
-        r_options = list(state.msgs.keys())
-        if 0 in r_options:
-            r_options.remove(0)
-        round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
-    else:
+    # R&D Loops Window
+    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+        st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
+        if len(state.msgs) > 1:
+            r_options = list(state.msgs.keys())
+            if 0 in r_options:
+                r_options.remove(0)
+            round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
+        else:
+            round = 1
+        rf_c, d_c = st.columns([2, 2])
+    elif isinstance(state.scenario, GeneralModelScenario):
+        rf_c = st.container()
+        d_c = st.container()
         round = 1
-else:
-    round = 1
+    else:
+        st.error("Unknown Scenario!")
+        st.stop()
 
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor", "Factors from Report"]:
-    rf_c, d_c = st.columns([2, 2])
-elif state.log_type == "Model from Paper":
-    rf_c = st.container()
-    d_c = st.container()
+    with rf_c:
+        research_window()
+        feedback_window()
 
-with rf_c:
-    research_window()
-    feedback_window()
+    with d_c.container(border=True):
+        evolving_window()
 
-with d_c.container(border=True):
-    evolving_window()
 
 with st.container(border=True):
     st.subheader("Disclaimer", divider="gray")
