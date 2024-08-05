@@ -14,7 +14,7 @@ DIRNAME = Path("./")
 
 class BenchmarkSettings(BaseSettings):
     class Config:
-        env_prefix = "BENCHMARK_"  
+        env_prefix = "BENCHMARK_"
         """Use `BENCHMARK_` as prefix for environment variables"""
 
     ground_truth_dir: Path = DIRNAME / "ground_truth"
