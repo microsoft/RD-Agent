@@ -110,6 +110,9 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         self.judge_pdf_data_items = json.load(open(PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
         self.valid_pdf_file_count = 0
+        self.current_loop_hypothesis = None
+        self.current_loop_exp = None
+        self.steps = ['propose_hypo_exp', 'propose', 'exp_gen', 'coding', 'running', 'feedback']
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
