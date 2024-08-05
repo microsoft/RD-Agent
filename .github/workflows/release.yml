@@ -34,9 +34,9 @@ jobs:
           echo "New version: $NEW_VERSION"
       - name: Push changes
         run: |
-          echo "${{ secrets.PRIVATE_KEY }}" >> private_key
-          chmod 600 private_key
-          GIT_SSH_COMMAND="ssh -i private_key" git push --follow-tags
+          echo "${{ secrets.PRIVATE_KEY }}" >> ~/private_key
+          chmod 600 ~/private_key
+          GIT_SSH_COMMAND="ssh -i ~/private_key" git push --follow-tags
       - name: Generate changelog
         run: |
           make changelog
