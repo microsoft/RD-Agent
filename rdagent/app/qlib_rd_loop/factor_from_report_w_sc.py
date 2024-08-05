@@ -1,4 +1,3 @@
-# TODO: we should have more advanced mechanism to handle such requirements for saving sessions.
 import json
 from pathlib import Path
 from typing import Any, Tuple
@@ -6,10 +5,7 @@ from typing import Any, Tuple
 import fire
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.app.qlib_rd_loop.conf import (
-    FACTOR_FROM_REPORT_PROP_SETTING,
-    FactorBasePropSetting,
-)
+from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
 from rdagent.app.qlib_rd_loop.factor_w_sc import FactorRDLoop
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
@@ -32,6 +28,16 @@ prompts = Prompts(file_path=prompts_path)
 
 
 def generate_hypothesis(factor_result: dict, report_content: str) -> str:
+    """
+    Generate a hypothesis based on factor results and report content.
+
+    Args:
+        factor_result (dict): The results of the factor analysis.
+        report_content (str): The content of the report.
+
+    Returns:
+        str: The generated hypothesis.
+    """
     system_prompt = (
         Environment(undefined=StrictUndefined).from_string(prompts["hypothesis_generation"]["system"]).render()
     )
@@ -60,6 +66,15 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
 
 
 def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[QlibFactorExperiment, Hypothesis]:
+    """
+    Extract hypothesis and experiment details from report files.
+
+    Args:
+        report_file_path (str): Path to the report file.
+
+    Returns:
+        Tuple[QlibFactorExperiment, Hypothesis]: The extracted experiment and generated hypothesis.
+    """
     with logger.tag("extract_factors_and_implement"):
         with logger.tag("load_factor_tasks"):
             exp = FactorExperimentLoaderFromPDFfiles().load(report_file_path)
@@ -88,13 +103,14 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 
 
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
-    skip_loop_error = (FactorEmptyError,)
-
-    def __init__(self, PROP_SETTING: FactorBasePropSetting):
+    def __init__(self, PROP_SETTING: FACTOR_FROM_REPORT_PROP_SETTING):
         super().__init__(PROP_SETTING=PROP_SETTING)
         self.judge_pdf_data_items = json.load(open(PROP_SETTING.report_result_json_file_path, "r"))
         self.pdf_file_index = 0
         self.valid_pdf_file_count = 0
+        self.current_loop_hypothesis = None
+        self.current_loop_exp = None
+        self.steps = ["propose_hypo_exp", "propose", "exp_gen", "coding", "running", "feedback"]
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
@@ -109,8 +125,8 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                     continue
                 self.valid_pdf_file_count += 1
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
-                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
-                exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factor_per_report]
+                exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
+                exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 logger.log_object(hypothesis, tag="hypothesis generation")
                 logger.log_object(exp.sub_tasks, tag="experiment generation")
                 self.current_loop_hypothesis = hypothesis
@@ -130,7 +146,7 @@ def main(path=None, step_n=None):
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_sh.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
+        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
 
     """
     if path is None:

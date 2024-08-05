@@ -34,7 +34,7 @@ class FactorBasePropSetting(BasePropSetting):
 
     # 2) sub task specific:
     report_result_json_file_path: str = "git_ignore_folder/report_list.json"
-    max_factor_per_report: int = 10000
+    max_factors_per_exp: int = 10000
 
 
 class FactorFromReportPropSetting(FactorBasePropSetting):
