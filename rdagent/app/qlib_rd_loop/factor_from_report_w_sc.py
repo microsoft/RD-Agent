@@ -115,8 +115,8 @@ class FactorReportLoop(FactorRDLoop):
         self.valid_pdf_file_count = 0
         self.current_loop_hypothesis = None
         self.current_loop_exp = None
-        self.steps = ['propose_hypo_exp', 'propose', 'exp_gen', 'coding', 'running', 'feedback']
         super().__init__(PROP_SETTING=PROP_SETTING)
+        self.steps = ["propose_hypo_exp", "propose", "exp_gen", "coding", "running", "feedback"]
 
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
