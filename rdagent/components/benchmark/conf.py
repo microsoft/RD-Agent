@@ -7,6 +7,7 @@ from typing import Optional
 
 from pydantic_settings import BaseSettings
 
+
 DIRNAME = Path("./")
 
 
@@ -24,7 +25,7 @@ class BenchmarkSettings(BaseSettings):
     bench_test_round: int = 10
     """how many rounds to run, each round may cost 10 minutes"""
 
-    bench_test_case_n: Optional[int] = None  
+    bench_test_case_n: Optional[int] = None
     """how many test cases to run; If not given, all test cases will be run"""
 
     bench_method_cls: str = "rdagent.components.coder.factor_coder.CoSTEER.FactorCoSTEER"
