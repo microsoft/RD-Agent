@@ -39,7 +39,7 @@ class FactorImplementSettings(BaseSettings):
     file_based_execution_timeout: int = 120  # seconds for each factor implementation execution
 
     select_method: SELECT_METHOD = "random"
-    select_ratio: float = 0.5
+    select_threshold: int = 10
 
     max_loop: int = 10
 

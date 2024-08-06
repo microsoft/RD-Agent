@@ -38,20 +38,22 @@ def process_results(current_result, sota_result):
 
     # Select important metrics for comparison
     important_metrics = [
-        "Rank ICIR",
         "1day.excess_return_without_cost.max_drawdown",
         "1day.excess_return_without_cost.information_ratio",
         "1day.excess_return_without_cost.annualized_return",
-        "1day.excess_return_with_cost.max_drawdown",
-        "1day.excess_return_with_cost.information_ratio",
-        "1day.excess_return_with_cost.annualized_return",
         "IC",
     ]
 
     # Filter the combined DataFrame to retain only the important metrics
     filtered_combined_df = combined_df.loc[important_metrics]
 
-    return filtered_combined_df.to_dict()
+    filtered_combined_df[
+        "Bigger columns name (Didn't consider the direction of the metric, you should judge it by yourself that bigger is better or smaller is better)"
+    ] = filtered_combined_df.apply(
+        lambda row: "Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result", axis=1
+    )
+
+    return filtered_combined_df.to_string()
 
 
 class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
@@ -75,7 +77,6 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Process the results to filter important metrics
         combined_result = process_results(current_result, sota_result)
-        logger.info(f"combined_result: {combined_result}")
 
         # Generate the system prompt
         sys_prompt = (
@@ -91,8 +92,6 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(
                 hypothesis_text=hypothesis_text,
                 task_details=tasks_factors,
-                # current_result=current_result,
-                # sota_result=sota_result,
                 combined_result=combined_result,
             )
         )

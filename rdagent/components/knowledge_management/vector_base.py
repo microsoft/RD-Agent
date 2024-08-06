@@ -127,8 +127,6 @@ class PDVectorBase(VectorBase):
         else:
             self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
 
-        logger.info(f"VectorBase loaded, shape={self.vector_df.shape}")
-
     def shape(self):
         return self.vector_df.shape
 
@@ -205,4 +203,3 @@ class PDVectorBase(VectorBase):
 
     def save(self, vector_df_path, **kwargs):
         self.vector_df.to_pickle(vector_df_path)
-        logger.info(f"Save vectorBase vector_df to: {vector_df_path}")

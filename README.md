@@ -1,4 +1,14 @@
-TODO: Add badges.
+[![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates)
+[![Lint PR Title](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml)
+[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml)
+[![Release.yml](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/releases)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+<!-- TODO: License / pypi / PyPI - Python Version  --> 
 
 # 📰 News
 | 🗞️News        | 📝Description                 |
@@ -18,8 +28,8 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
 - [🎥Automatic Quant Factory]()
-- Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
+- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
 - ...
 
 You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
@@ -103,13 +113,16 @@ In this project, we are aiming to build a Agent to automate Data-Driven R\&D tha
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
 ## 📈 Scenarios/Demos
-Here is our supported scenarios
+
+In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾copilot and 🤖agent. The 🦾copilot follows human instructions to automate repetitive tasks. The 🤖agent, being more autonomous, actively proposes ideas for better results in the future.
+
+The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | Iteratively Proposing Ideas & Evolving | - Auto reports reading & implementation <br/> - Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
+| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
+| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
@@ -118,7 +131,8 @@ TODO: Scenario Gallary
 
 # ⚙️Framework
 
-![image](https://github.com/user-attachments/assets/c622704c-377a-4361-b956-c1eb9cf6a736)
+![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
 
@@ -135,13 +149,15 @@ We believe that the key to delivering high-quality solutions lies in the ability
 # 📃Paper/Work list
 
 ## Benchmark
-- TODO: adding link;
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
 ```BibTeX
-@article{chen2024rd2bench,
-  title={RD2Bench: Toward Data-Centric Automatic R\&D},
-  author={Chen, Haotian and Shen, Xinjie and Ye, Zeqi and Yang, Xiao and Yang, Xu and Liu, Weiqing and Bian, Jiang},
-  journal={arXiv preprint arXiv:2404.11276},
-  year={2024}
+@misc{chen2024datacentric,
+    title={Towards Data-Centric Automatic R&D},
+    author={Haotian Chen and Xinjie Shen and Zeqi Ye and Wenjun Feng and Haoxue Wang and Xiao Yang and Xu Yang and Weiqing Liu and Jiang Bian},
+    year={2024},
+    eprint={2404.11276},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI}
 }
 ```
 ![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
@@ -176,6 +192,8 @@ You can find issues in the issues list or simply running `grep -r "TODO:"`.
 
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
 
+# Disclaimer
+**The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.**
 
 <img src="https://img.shields.io/github/contributors-anon/microsoft/RD-Agent"/>
 

@@ -5,9 +5,9 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
 )
-from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -42,7 +42,28 @@ class QlibFactorScenario(Scenario):
 
     @property
     def rich_style_description(self) -> str:
-        return "Below is QlibFactor Evolving Automatic R&D Demo."
+        return """
+### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factor Evolution Demo
+
+#### [Overview](#_summary)
+
+The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
+
+#### [Automated R&D](#_rdloops)
+
+- **[R (Research)](#_research)**
+  - Iterative development of ideas and hypotheses.
+  - Continuous learning and knowledge construction.
+
+- **[D (Development)](#_development)**
+  - Progressive implementation and code generation of factors.
+  - Automated testing and validation of financial factors.
+
+#### [Objective](#_summary)
+
+To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
+
+        """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:

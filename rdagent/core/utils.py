@@ -3,8 +3,9 @@ from __future__ import annotations
 import importlib
 import json
 import multiprocessing as mp
+import pickle
 from collections.abc import Callable
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar, NoReturn, cast
 
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
@@ -27,12 +28,24 @@ class SingletonBaseClass:
             # TODO: this restriction can be solved.
             exception_message = "Please only use kwargs in Singleton to avoid misunderstanding."
             raise RDAgentException(exception_message)
-        all_args = [(-1, f"{cls.__module__}.{cls.__name__}")] + [(i, args[i]) for i in args] + list(sorted(kwargs.items()))
+        class_name = [(-1, f"{cls.__module__}.{cls.__name__}")]
+        args_l = [(i, args[i]) for i in args]
+        kwargs_l = list(sorted(kwargs.items()))
+        all_args = class_name + args_l + kwargs_l
         kwargs_hash = hash(tuple(all_args))
         if kwargs_hash not in cls._instance_dict:
             cls._instance_dict[kwargs_hash] = super().__new__(cls)  # Corrected call
-            cls._instance_dict[kwargs_hash].__init__(**kwargs)  # Ensure __init__ is called
         return cls._instance_dict[kwargs_hash]
+
+    def __reduce__(self) -> NoReturn:
+        """
+        NOTE:
+        When loading an object from a pickle, the __new__ method does not receive the `kwargs`
+        it was initialized with. This makes it difficult to retrieve the correct singleton object.
+        Therefore, we have made it unpickable.
+        """
+        msg = f"Instances of {self.__class__.__name__} cannot be pickled"
+        raise pickle.PicklingError(msg)
 
 
 def parse_json(response: str) -> Any:

@@ -17,7 +17,6 @@ from rdagent.components.coder.factor_coder.CoSTEER.scheduler import (
     RandomSelect,
 )
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
-from rdagent.components.coder.factor_coder.utils import get_data_folder_intro
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import Workspace
@@ -66,25 +65,19 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         # 2. 选择selection方法
         # if the number of factors to be implemented is larger than the limit, we need to select some of them
-        if FACTOR_IMPLEMENT_SETTINGS.select_ratio < 1:
-            # if the number of loops is equal to the select_loop, we need to select some of them
-            implementation_factors_per_round = round(
-                FACTOR_IMPLEMENT_SETTINGS.select_ratio * len(to_be_finished_task_index) + 0.5
-            )  # ceilling
-            implementation_factors_per_round = min(
-                implementation_factors_per_round, len(to_be_finished_task_index)
-            )  # but not exceed the total number of tasks
 
+        if FACTOR_IMPLEMENT_SETTINGS.select_threshold < len(to_be_finished_task_index):
+            # Select a fixed number of factors if the total exceeds the threshold
             if FACTOR_IMPLEMENT_SETTINGS.select_method == "random":
                 to_be_finished_task_index = RandomSelect(
                     to_be_finished_task_index,
-                    implementation_factors_per_round,
+                    FACTOR_IMPLEMENT_SETTINGS.select_threshold,
                 )
 
             if FACTOR_IMPLEMENT_SETTINGS.select_method == "scheduler":
                 to_be_finished_task_index = LLMSelect(
                     to_be_finished_task_index,
-                    implementation_factors_per_round,
+                    FACTOR_IMPLEMENT_SETTINGS.select_threshold,
                     evo,
                     queried_knowledge.former_traces,
                     self.scen,

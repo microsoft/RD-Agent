@@ -3,6 +3,12 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
+from pandarallel import pandarallel
+
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.utils import multiprocessing_wrapper
+
+pandarallel.initialize(verbose=1)
 
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
@@ -37,6 +43,34 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     - results in `mlflow`
     """
 
+    def calculate_information_coefficient(
+        self, concat_feature: pd.DataFrame, SOTA_feature_column_size: int, new_feature_columns_size: int
+    ) -> pd.DataFrame:
+        res = pd.Series(index=range(SOTA_feature_column_size * new_feature_columns_size))
+        for col1 in range(SOTA_feature_column_size):
+            for col2 in range(SOTA_feature_column_size, SOTA_feature_column_size + new_feature_columns_size):
+                res.loc[col1 * new_feature_columns_size + col2 - SOTA_feature_column_size] = concat_feature.iloc[
+                    :, col1
+                ].corr(concat_feature.iloc[:, col2])
+        return res
+
+    def deduplicate_new_factors(self, SOTA_feature: pd.DataFrame, new_feature: pd.DataFrame) -> pd.DataFrame:
+        # calculate the IC between each column of SOTA_feature and new_feature
+        # if the IC is larger than a threshold, remove the new_feature column
+        # return the new_feature
+
+        concat_feature = pd.concat([SOTA_feature, new_feature], axis=1)
+        IC_max = (
+            concat_feature.groupby("datetime")
+            .parallel_apply(
+                lambda x: self.calculate_information_coefficient(x, SOTA_feature.shape[1], new_feature.shape[1])
+            )
+            .mean()
+        )
+        IC_max.index = pd.MultiIndex.from_product([range(SOTA_feature.shape[1]), range(new_feature.shape[1])])
+        IC_max = IC_max.unstack().max(axis=0)
+        return new_feature.iloc[:, IC_max[IC_max < 0.99].index]
+
     def develop(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         """
         Generate the experiment by processing and combining factor data,
@@ -60,18 +94,20 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                # raise FactorEmptyException("No valid factor data found to merge.")
-                logger.error("No valid factor data found to merge.")
-                return None
+                raise FactorEmptyError("No valid factor data found to merge.")
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
+                new_factors = self.deduplicate_new_factors(SOTA_factor, new_factors)
+                if new_factors.empty:
+                    raise FactorEmptyError("No valid factor data found to merge.")
                 combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
             else:
                 combined_factors = new_factors
 
             # Sort and nest the combined factors under 'feature'
             combined_factors = combined_factors.sort_index()
+            combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
 
@@ -106,9 +142,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         # Collect all exp's dataframes
         for exp in exp_or_list:
             # Iterate over sub-implementations and execute them to get each factor data
-            for implementation in exp.sub_workspace_list:
-                message, df = implementation.execute(data_type="All")
-
+            message_and_df_list = multiprocessing_wrapper(
+                [(implementation.execute, (False, "All")) for implementation in exp.sub_workspace_list],
+                n=RD_AGENT_SETTINGS.multi_proc_n,
+            )
+            for message, df in message_and_df_list:
                 # Check if factor generation was successful
                 if df is not None and "datetime" in df.index.names:
                     time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
@@ -119,5 +157,4 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            logger.error("No valid factor data found to merge.")
-            return pd.DataFrame()  # Return an empty DataFrame if no valid data
+            raise FactorEmptyError("No valid factor data found to merge.")
