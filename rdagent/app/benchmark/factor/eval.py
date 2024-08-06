@@ -14,7 +14,6 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenar
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
 )
-from pprint import pprint
 
 # 1.read the settings
 bs = BenchmarkSettings()
