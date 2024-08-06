@@ -12,7 +12,8 @@ Background
 ~~~~~~~~~~
 In the dynamic world of quantitative trading, **factors** are the secret weapons that traders use to harness market inefficiencies. 
 
-These powerful tools—ranging from straightforward metrics like price-to-earnings ratios to intricate discounted cash flow models—unlock the potential to predict stock prices with remarkable precision. By tapping into this rich vein of data, quantitative traders craft sophisticated strategies that not only capitalize on market patterns but also drastically enhance trading efficiency and accuracy. 
+These powerful tools—ranging from straightforward metrics like price-to-earnings ratios to intricate discounted cash flow models—unlock the potential to predict stock prices with remarkable precision. 
+By tapping into this rich vein of data, quantitative traders craft sophisticated strategies that not only capitalize on market patterns but also drastically enhance trading efficiency and accuracy. 
 
 Embrace the power of factors, and you're not just trading; you're strategically outsmarting the market.
 

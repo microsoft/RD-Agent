@@ -10,23 +10,27 @@ Finance Data Copilot
 
 Background
 ~~~~~~~~~~
-Research reports often provide valuable insights into potential factors for quantitative trading. However, with a vast number of research reports available, how can we efficiently extract the most valuable insights?
+**Research reports** are treasure troves of insights, often unveiling potential **factors** that can drive successful quantitative trading strategies. 
+Yet, with the sheer volume of reports available, extracting the most valuable insights efficiently becomes a daunting task.
 
-Before diving into replicating the factors mentioned in a report, it's crucial to first understand the logic behind their construction. Does the factor capture the fundamental dynamics of the market? How similar is it to the factors already in your factor library? Many factors proposed in research reports are often redundant. 
+Furthermore, rather than hastily replicating factors from a report, it's essential to delve into the underlying logic of their construction. 
+Does the factor capture the essential market dynamics? How unique is it compared to the factors already in your library?
 
-By identifying and eliminating these redundancies, we can improve the efficiency of factor replication. The more diverse and less correlated the factors are, the more robust the resulting strategy will be.
+Therefore, there is an urgent need for a systematic approach to design a framework that can effectively manage this process. 
+This is where our R&D Agent comes into play.
 
 
 
 Introduction
 ~~~~~~~~~~~~
-In this scenario, our agent demonstrates the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting. This process continually expands and refines the factor library.
+In this scenario, our agent demonstrates the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting. 
+This process continually expands and refines the factor library.
 
 Here's an enhanced outline of the steps:
 
 **Step 1 : Hypothesis Generation 🔍**
 
-- Generate and propose initial hypotheses based on insights from financial reports.
+- Generate and propose initial hypotheses based on insights from financial reports with thorough reasoning and financial justification.
 
 **Step 2 : Factor Creation ✨**
 
