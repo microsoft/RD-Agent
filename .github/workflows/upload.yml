@@ -1,12 +1,11 @@
 name: Package and upload to pypi
 on:
-  pull_request:
-    types:
-      - closed
+  push:
+    branches:
+      - main
 jobs:
   # package:
   #   if: |
-  #     github.event.pull_request.merged == true &&
   #     startsWith(github.event.pull_request.title, 'chore(main): release')
   #   needs: release
   #   runs-on: ubuntu-latest
