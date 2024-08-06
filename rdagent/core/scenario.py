@@ -37,6 +37,6 @@ class Scenario(ABC):
         """Combine all the description together"""
 
     @property
-    @abstractmethod
-    def get_experiment_setting(self) -> str:
+    def experiment_setting(self) -> str | None:
         """Get experiment setting and return as rich text string"""
+        return None

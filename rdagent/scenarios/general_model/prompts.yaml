@@ -70,5 +70,20 @@ general_model_output_format: |-
 general_model_simulator: |-
   The models are not loaded and backtested. That said, pay attention to its architecture.
 
+general_model_rich_style_description: |-
+  ### [Model Research & Development Co-Pilot](#_scenario)
 
+  #### [Overview](#_summary)
+
+  This demo automates the extraction and development of PyTorch models from academic papers. It supports various model types through two main components: Reader and Coder.
   
+  #### [Workflow Components](#_rdloops)
+  
+  1. **[Reader](#_research)**
+      - Extracts model information from papers, including architectures and parameters.
+      - Converts content into a structured format using Large Language Models.
+  
+  2. **[Evolving Coder](#_development)**
+      - Translates structured information into executable PyTorch code.
+      - Ensures correct tensor shapes with an evolving coding mechanism.
+      - Refines the code to match source specifications.
