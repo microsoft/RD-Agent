@@ -7,6 +7,7 @@ Postscripts:
   However, Python generator is not picklable (dill does not support pickle as well)
 
 """
+
 import datetime
 import pickle
 from collections import defaultdict
@@ -23,15 +24,33 @@ class LoopMeta(type):
     @staticmethod
     def _get_steps(bases):
         """
-        get all the `steps` of base classes and combine them to a single one.
+        Recursively get all the `steps` from the base classes and combine them into a single list.
+
+        Args:
+            bases (tuple): A tuple of base classes.
+
+        Returns:
+            List[Callable]: A list of steps combined from all base classes.
         """
         steps = []
         for base in bases:
-            steps.extend(LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []))
+            for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
+                if step not in steps:
+                    steps.append(step)
         return steps
 
     def __new__(cls, clsname, bases, attrs):
-        # move custommized steps into steps
+        """
+        Create a new class with combined steps from base classes and current class.
+
+        Args:
+            clsname (str): Name of the new class.
+            bases (tuple): Base classes.
+            attrs (dict): Attributes of the new class.
+
+        Returns:
+            LoopMeta: A new instance of LoopMeta.
+        """
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("__") and isinstance(attr, Callable):

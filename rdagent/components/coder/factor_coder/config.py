@@ -44,7 +44,7 @@ class FactorImplementSettings(BaseSettings):
     max_loop: int = 10
 
     knowledge_base_path: Union[str, None] = None
-    new_knowledge_base_path: Union[str, None] = knowledge_base_path
+    new_knowledge_base_path: Union[str, None] = None
 
     python_bin: str = "python"
 

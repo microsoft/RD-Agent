@@ -24,6 +24,7 @@ from rdagent.components.coder.factor_coder.factor import FactorExperiment
 from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 
 
 class FactorCoSTEER(Developer[FactorExperiment]):
@@ -107,5 +108,6 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
             pickle.dump(factor_knowledge_base, open(self.new_knowledge_base_path, "wb"))
+            logger.info(f"New knowledge base saved to {self.new_knowledge_base_path}")
         exp.sub_workspace_list = factor_experiment.sub_workspace_list
         return exp

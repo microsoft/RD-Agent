@@ -61,4 +61,7 @@ python-dotenv
 # infrastructure related.
 docker
 
-
+# demo related
+streamlit
+plotly
+st-btn-select

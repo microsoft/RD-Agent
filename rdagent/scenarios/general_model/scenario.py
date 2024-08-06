@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from rdagent.components.coder.model_coder.model import ModelExperiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 
@@ -31,10 +30,10 @@ class GeneralModelScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-# [Model Research & Development Co-Pilot] (#_scenario)
- 
-## [Overview](#_summary)
- 
+### [Model Research & Development Co-Pilot](#_scenario)
+
+#### [Overview](#_summary)
+
 This demo automates the extraction and development of PyTorch models from academic papers. It supports various model types through two main components: Reader and Coder.
  
 #### [Workflow Components](#_rdloops)
