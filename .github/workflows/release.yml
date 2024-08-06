@@ -30,35 +30,17 @@ jobs:
           pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
       - name: Bump version
         run: |
-          git config user.name "SunsetWolf"
-          git config user.email "Lv.Linlang@hotmail.com"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           bump2version patch
           NEW_VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
           echo "New version: $NEW_VERSION"
-      - name: Push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ls -l /home/runner
-          echo "${{ secrets.PRIVATE_KEY }}" >> /home/runner/private_key
-          chmod 600 /home/runner/private_key
-          ls -l /home/runner
-          GIT_SSH_COMMAND="ssh -i /home/runner/private_key" git push --follow-tags origin HEAD:main
-      - name: Generate changelog
-        run: |
-          make changelog
-      - name: Prepare release notes
-        run: make release-notes > release-notes.md
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release please
+        uses: google-github-actions/release-please-action@v4
         with:
-          tag_name: ${{ env.new_version }}
-          release_name: Release ${{ env.new_version }}
-          body_path: release-notes.md
-          prerelease: false
+          token: ${{ secrets.PAT }}
+          release-type: simple
   # package:
   #   needs: release
   #   runs-on: ubuntu-latest
