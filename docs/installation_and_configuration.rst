@@ -5,9 +5,12 @@ Installation and Configuration
 Installation
 ============
 
-For different scenarios
-- for purely users:
+**Install RDAgent**: For different scenarios
+
+- for purely users: please use ``pip install rdagent`` to install RDAgent
 - for dev users: `See development <development.html>`_
+
+**Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 
 Configuration
 =============

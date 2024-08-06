@@ -97,3 +97,22 @@ A png file will be saved to the designated path as shown below.
 
 .. image:: ../_static/benchmark.png
 
+
+Related Paper
+-------------
+
+- `Towards Data-Centric Automatic R&D <https://arxiv.org/abs/2404.11276>`_:
+  We have developed a comprehensive benchmark called RD2Bench to assess data and model R&D capabilities. This benchmark includes a series of tasks that outline the features or structures of models. These tasks are used to evaluate the ability of LLM-Agents to implement them.
+
+.. code-block:: bibtex
+
+    @misc{chen2024datacentric,
+        title={Towards Data-Centric Automatic R&D},
+        author={Haotian Chen and Xinjie Shen and Zeqi Ye and Wenjun Feng and Haoxue Wang and Xiao Yang and Xu Yang and Weiqing Liu and Jiang Bian},
+        year={2024},
+        eprint={2404.11276},
+        archivePrefix={arXiv},
+        primaryClass={cs.AI}
+    }
+
+.. image:: https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841

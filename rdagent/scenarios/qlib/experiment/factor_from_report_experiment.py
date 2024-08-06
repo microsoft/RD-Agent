@@ -19,6 +19,7 @@ class QlibFactorFromReportScenario(QlibFactorScenario):
       return """
 ### R&D Agent-Qlib: Automated Quantitative Trading & Factor Extraction from Financial Reports Demo
 
+
 #### [Overview](#_summary)
 
 This demo showcases the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting, continually expanding and refining the factor library.
