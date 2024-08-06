@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from rdagent.components.coder.factor_coder.factor import (
@@ -20,49 +21,43 @@ class QlibFactorExperiment(FactorExperiment[FactorTask, QlibFBWorkspace, FactorF
 
 
 class QlibFactorScenario(Scenario):
+    def __init__(self) -> None:
+        super().__init__()
+        self._background = deepcopy(prompt_dict["qlib_factor_background"])
+        self._source_data = deepcopy(get_data_folder_intro())
+        self._output_format = deepcopy(prompt_dict["qlib_factor_output_format"])
+        self._interface = deepcopy(prompt_dict["qlib_factor_interface"])
+        self._simulator = deepcopy(prompt_dict["qlib_factor_simulator"])
+        self._rich_style_description = deepcopy(prompt_dict["qlib_factor_rich_style_description"])
+        self._experiment_setting = deepcopy(prompt_dict["qlib_factor_experiment_setting"])
+
     @property
     def background(self) -> str:
-        return prompt_dict["qlib_factor_background"]
+        return self._background
 
     @property
     def source_data(self) -> str:
-        return get_data_folder_intro()
+        return self._source_data
 
     @property
     def output_format(self) -> str:
-        return prompt_dict["qlib_factor_output_format"]
+        return self._output_format
 
     @property
     def interface(self) -> str:
-        return prompt_dict["qlib_factor_interface"]
+        return self._interface
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["qlib_factor_simulator"]
+        return self._simulator
 
     @property
     def rich_style_description(self) -> str:
-        return """
-### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factors Evolution Demo
+        return self._rich_style_description
 
-#### [Overview](#_summary)
-
-The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
-
-#### [Automated R&D](#_rdloops)
-
-- **[R (Research)](#_research)**
-  - Iterative development of ideas and hypotheses.
-  - Continuous learning and knowledge construction.
-
-- **[D (Development)](#_development)**
-  - Progressive implementation and code generation of factors.
-  - Automated testing and validation of financial factors.
-
-#### [Objective](#_summary)
-
-To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
-        """
+    @property
+    def experiment_setting(self) -> str:
+        return self._experiment_setting
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
@@ -76,11 +71,3 @@ The output of your code should be in the format:
 The simulator user can use to test your factor:
 {self.simulator}
 """
-
-    @property
-    def get_experiment_setting(self) -> str:
-        return """
-| Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
-|---------|----------|---------------|-------------------------------------------------|
-| CSI300  | LGBModel | Alpha158 Plus | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
-        """
