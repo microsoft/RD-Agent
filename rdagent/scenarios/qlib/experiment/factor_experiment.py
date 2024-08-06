@@ -76,6 +76,7 @@ The output of your code should be in the format:
 The simulator user can use to test your factor:
 {self.simulator}
 """
+
     @property
     def get_experiment_setting(self) -> str:
         return """
