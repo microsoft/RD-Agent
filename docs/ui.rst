@@ -1,11 +1,12 @@
-=========================
-Demo and Introduction
-=========================
+==============
+User Interface
+==============
+
 
 Introduction
 ============
 
-RD-Agent will generate some logs during the R&D process. These logs are very useful for debugging and understanding the R&D process. However, just viewing the terminal log is not intuitive enough. RD-Agent provides a web app to visualize the R&D process. You can easily view the R&D process and understand the R&D process better.
+RD-Agent will generate some logs during the R&D process. These logs are very useful for debugging and understanding the R&D process. However, just viewing the terminal log is not intuitive enough. RD-Agent provides a web app as UI to visualize the R&D process. You can easily view the R&D process and understand the R&D process better.
 
 A Quick Demo
 ============
