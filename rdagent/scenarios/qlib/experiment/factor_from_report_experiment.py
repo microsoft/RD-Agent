@@ -17,7 +17,7 @@ class QlibFactorFromReportScenario(QlibFactorScenario):
     @property
     def rich_style_description(self) -> str:
         return """
-### R&D Agent-Qlib: Automated Quantitative Trading & Factor Extraction from Financial Reports Demo
+### R&D Agent-Qlib: Automated Quantitative Trading & Factors Extraction from Financial Reports Demo
 
 #### [Overview](#_summary)
 

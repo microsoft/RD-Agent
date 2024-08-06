@@ -43,7 +43,7 @@ class QlibFactorScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return """
-### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factor Evolution Demo
+### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factors Evolution Demo
 
 #### [Overview](#_summary)
 
