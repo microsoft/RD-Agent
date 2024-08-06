@@ -53,7 +53,7 @@ Then prepare relevant files (in pdf format) by uploading papers to the directory
 
 .. code-block:: sh
 
-    /home/v-xisenwang/RD-Agent/rdagent/scenarios/general_model
+    rdagent/scenarios/general_model
 
 Run the following command in your terminal within the same virtual environment:
 
