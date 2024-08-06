@@ -62,7 +62,6 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
 #### [Objective](#_summary)
 
 To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
-
         """
 
     def get_scenario_all_desc(self) -> str:
@@ -77,3 +76,11 @@ The output of your code should be in the format:
 The simulator user can use to test your factor:
 {self.simulator}
 """
+
+    @property
+    def get_experiment_setting(self) -> str:
+        return """
+| Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
+|---------|----------|---------------|-------------------------------------------------|
+| CSI300  | LGBModel | Alpha158 Plus | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
+        """

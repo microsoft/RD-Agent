@@ -17,7 +17,8 @@ class QlibFactorFromReportScenario(QlibFactorScenario):
     @property
     def rich_style_description(self) -> str:
         return """
-### R&D Agent-Qlib: Automated Quantitative Trading & Factors Extraction from Financial Reports Demo
+### R&D Agent-Qlib: Automated Quantitative Trading & Factor Extraction from Financial Reports Demo
+
 
 #### [Overview](#_summary)
 
@@ -35,10 +36,26 @@ This demo showcases the process of extracting factors from financial research re
 
 #### [Objective](#_summary)
 
-| Objective         | Description                                                                                             |
-|-------------------|---------------------------------------------------------------------------------------------------------|
-| **Convenience**   | Provide a tool for financial and quantitative practitioners or enthusiasts to quickly extract and test factors from research reports. |
-| **Efficiency**    | Enable rapid identification of factors from a vast number of reports that could enhance the current factor library.                  |
-| **Research Facilitation** | Support further research by continuously expanding and refining the factor library.                                      |
-| **Innovation**    | Foster innovation in financial analysis by leveraging automated R&D processes to iterate and improve financial factors.             |
+<table border="1" style="width:100%; border-collapse: collapse;">
+  <tr>
+    <td>💡 <strong>Innovation </strong></td>
+    <td>Tool to quickly extract and test factors from research reports.</td>
+  </tr>
+  <tr>
+    <td>⚡ <strong>Efficiency </strong></td>
+    <td>Rapid identification of valuable factors from numerous reports.</td>
+  </tr>
+  <tr>
+    <td>🗃️ <strong>Outputs </strong></td>
+    <td>Expand and refine the factor library to support further research.</td>
+  </tr>
+</table>
+        """
+
+    @property
+    def get_experiment_setting(self) -> str:
+        return """
+| Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
+|---------|----------|---------------|-------------------------------------------------|
+| CSI300  | LGBModel | Alpha158 Plus | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
         """

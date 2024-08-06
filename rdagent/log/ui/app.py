@@ -531,13 +531,13 @@ with st.container():
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         # TODO: other scenarios
         if state.log_type == "Qlib Model":
-            st.markdown(QlibModelScenario().rich_style_description)
+            st.markdown(QlibModelScenario().rich_style_description, unsafe_allow_html=True)
         elif state.log_type == "Data Mining":
             st.markdown(DMModelScenario().rich_style_description)
         elif state.log_type == "Qlib Factor":
-            st.markdown(QlibFactorScenario().rich_style_description)
+            st.markdown(QlibFactorScenario().rich_style_description, unsafe_allow_html=True)
         elif state.log_type == "Model from Paper":
-            st.markdown(GeneralModelScenario().rich_style_description)
+            st.markdown(GeneralModelScenario().rich_style_description, unsafe_allow_html=True)
 
 
 # Summary Window
