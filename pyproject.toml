@@ -109,8 +109,8 @@ package = {file = ["requirements/package.txt"]}
 test = {file = ["requirements/test.txt"]}
 
 [tool.setuptools_scm]
-version_scheme = "post-release"
 local_scheme = "no-local-version"
+version_scheme = "post-release"
 
 [tool.tomlsort]
 all = true
