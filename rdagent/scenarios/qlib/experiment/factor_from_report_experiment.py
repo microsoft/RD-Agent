@@ -23,27 +23,6 @@ class QlibFactorFromReportScenario(QlibFactorScenario):
 
 This demo showcases the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting, continually expanding and refining the factor library.
 
-#### Key Steps
-
-1. **Hypothesis Generation**
-   - Generate and propose initial hypotheses based on insights from financial reports.
-
-2. **Factor Creation**
-   - Develop, define, and codify new financial factors derived from the reports.
-   - Conduct empirical tests to evaluate these factors.
-
-3. **Factor Validation**
-   - Quantitatively validate the newly created factors.
-
-4. **Backtesting with Qlib**
-    | **Dataset**      | **Model**   | **Factors**    |
-    |------------------|-------------|----------------|
-    | 📊 CSI300        | 🤖 LGBModel | 🌟 Alpha158 Plus|
-
-5. **Feedback Analysis**
-   - Analyze backtest results.
-   - Incorporate feedback to refine and enhance the factor hypotheses.
-
 #### [Automated R&D](#_rdloops)
 
 - **[R (Research)](#_research)**
