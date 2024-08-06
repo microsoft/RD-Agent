@@ -14,7 +14,6 @@ from streamlit import session_state as state
 from streamlit.delta_generator import DeltaGenerator
 from rdagent.core.scenario import Scenario
 
-from rdagent.app.model_extraction_and_code.GeneralModel import GeneralModelScenario
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
 )
@@ -26,6 +25,7 @@ from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
+from rdagent.scenarios.general_model.scenario import GeneralModelScenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import (
     QlibFactorExperiment,
     QlibFactorScenario,
@@ -671,7 +671,7 @@ with st.container():
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         if state.scenario is not None:
-            st.markdown(state.scenario.rich_style_description)
+            st.markdown(state.scenario.rich_style_description, unsafe_allow_html=True)
 
 
 if state.scenario is not None:

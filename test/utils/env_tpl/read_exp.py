@@ -8,7 +8,7 @@ from qlib.workflow import R
 
 # here is the documents of the https://qlib.readthedocs.io/en/latest/component/recorder.html
 
-# TODO: list all the recorder and metrics 
+# TODO: list all the recorder and metrics
 
 # Assuming you have already listed the experiments
 experiments = R.list_experiments()
@@ -30,7 +30,7 @@ for experiment in experiments:
 # TODO: get the latest recorder
 
 recorder_list = R.list_recorders(experiment_name="workflow")
-end_times = {key: value.info['end_time'] for key, value in recorder_list.items()}
+end_times = {key: value.info["end_time"] for key, value in recorder_list.items()}
 sorted_end_times = dict(sorted(end_times.items(), key=lambda item: item[1], reverse=True))
 
 latest_recorder_id = next(iter(sorted_end_times))
