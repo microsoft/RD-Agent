@@ -27,15 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine bump2version git-changelog  #  better-exceptions(optional for debug)
-      - name: Bump version
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          bump2version patch
-          NEW_VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
-          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-          echo "New version: $NEW_VERSION"
+          pip install setuptools wheel twine  #  better-exceptions(optional for debug)
       - name: Release please
         uses: google-github-actions/release-please-action@v4
         with:
