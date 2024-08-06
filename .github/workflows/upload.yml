@@ -1,0 +1,27 @@
+name: Package and upload to pypi
+on:
+  pull_request:
+    types:
+      - closed
+jobs:
+  # package:
+  #   if: |
+  #     github.event.pull_request.merged == true &&
+  #     startsWith(github.event.pull_request.title, 'chore(main): release')
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         cache: pip
+  #         python-version: '3.10'
+  #     - run: env | sort
+  #     - run: make dev
+  #     - run: make build
+  #     - env:
+  #         TWINE_USERNAME: __token__
+  #         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+  #       run: |
+  #         make upload
