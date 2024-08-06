@@ -15,8 +15,4 @@ Our RDAgent is designed to automate the most critical industrial R&D processes, 
 Methodologically, we propose an autonomous agent framework that consists of two key parts: (R)esearch stands for actively exploring by proposing new ideas, and (D)evelopment stands for realizing these ideas. The effectiveness of these two components will ultimately get feedbacks through practice, and both research and development capabilities can continuously learn and grow in the process.
 
 
-Please refer to  for a ⚡quick start.  If you alreadly read it and want to knoow more details, please continue reading.
-
-
-
 For a quick start, visit `our GitHub home page <https://github.com/microsoft/RD-Agent>`_ ⚡. If you've already checked it out and want more details, please keep reading.
