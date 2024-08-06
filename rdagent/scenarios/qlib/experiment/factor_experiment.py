@@ -49,31 +49,6 @@ class QlibFactorScenario(Scenario):
 
 The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
 
-#### Key Steps
-
-1. **Hypothesis Generation**
-   - Generate and propose initial hypotheses based on data and domain knowledge.
-
-2. **Factor Creation**
-   - Develop, define, and implement new financial factors.
-   - Test these factors to gather empirical results.
-
-3. **Factor Validation**
-   - Quantitatively validate the newly created factors.
-
-4. **Backtesting with Qlib**
-    | **Dataset**      | **Model**   | **Factors**    |
-    |------------------|-------------|----------------|
-    | 📊 CSI300        | 🤖 LGBModel | 🌟 Alpha158 Plus|
-
-
-5. **Feedback Analysis**
-   - Analyze backtest results.
-   - Incorporate feedback to refine hypotheses.
-
-6. **Hypothesis Refinement**
-   - Refine hypotheses based on feedback and repeat the process.
-
 #### [Automated R&D](#_rdloops)
 
 - **[R (Research)](#_research)**
