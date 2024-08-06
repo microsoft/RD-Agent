@@ -14,9 +14,9 @@ prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
 class QlibFactorFromReportScenario(QlibFactorScenario):
-   @property
-   def rich_style_description(self) -> str:
-      return """
+    @property
+    def rich_style_description(self) -> str:
+        return """
 ### R&D Agent-Qlib: Automated Quantitative Trading & Factor Extraction from Financial Reports Demo
 
 
@@ -50,11 +50,12 @@ This demo showcases the process of extracting factors from financial research re
     <td>Expand and refine the factor library to support further research.</td>
   </tr>
 </table>
-      """
+        """
 
-   def get_experiment_setting(self) -> str:
-      return """
+    @property
+    def get_experiment_setting(self) -> str:
+        return """
 | Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
 |---------|----------|---------------|-------------------------------------------------|
 | CSI300  | LGBModel | Alpha158 Plus | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
-      """
+        """
