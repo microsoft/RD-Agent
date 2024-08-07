@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
-from streamlit.delta_generator import DeltaGenerator
+from streamlit_theme import st_theme
 from rdagent.core.scenario import Scenario
 
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
@@ -416,7 +416,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 # st.markdown(f"**Factor Name**: {ft.factor_name}")
                 st.markdown(f"**Description**: {ft.factor_description}")
                 st.latex("Formulation")
-                st.latex(f"{ft.factor_formulation}")
+                st.latex(ft.factor_formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
                 for v, d in ft.variables.items():
@@ -435,7 +435,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.markdown(f"**Model Type**: {mt.model_type}")
                 st.markdown(f"**Description**: {mt.description}")
                 st.latex("Formulation")
-                st.latex(f"{mt.formulation}")
+                st.latex(mt.formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
                 for v, d in mt.variables.items():
@@ -483,6 +483,11 @@ def feedback_window():
     if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+
+            if isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
+                with st.expander("**Config⚙️**", expanded=True):
+                    st.markdown(state.scenario.get_experiment_setting, unsafe_allow_html=True)
+            
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
@@ -671,7 +676,14 @@ with st.container():
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         if state.scenario is not None:
-            st.markdown(state.scenario.rich_style_description, unsafe_allow_html=True)
+            css = f"""
+<style>
+    a[href="#_rdloops"], a[href="#_research"], a[href="#_development"], a[href="#_summary"], a[href="#_objective"] {{
+        color: {"black" if st_theme()["base"] == "light" else "white"};
+    }}
+</style>
+"""
+            st.markdown(state.scenario.rich_style_description+css, unsafe_allow_html=True)
 
 
 if state.scenario is not None:
