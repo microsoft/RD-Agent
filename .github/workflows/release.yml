@@ -36,24 +36,9 @@ jobs:
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
-      - name: test
-        if: ${{ steps.release.outputs.release_created }}
-        run: echo "Release created " ${{ steps.release_please.outputs.release_created }}
       - if: ${{ steps.release.outputs.release_created }}
         run: env | sort
-      # - run: make dev
-      # - run: make build
-
-
-      #   if: ${{ steps.release.outputs.release_created }}
-      # - run: env | sort
-      #   if: ${{ steps.release.outputs.release_created }}
-      # - run: make dev
-      #   if: ${{ steps.release.outputs.release_created }}
-      # - run: make build
-      #   if: ${{ steps.release.outputs.release_created }}
-      # - env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     make upload
+      - if: ${{ steps.release.outputs.release_created }}
+        run: make dev
+      - if: ${{ steps.release.outputs.release_created }}
+        run: make build
