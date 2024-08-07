@@ -20,17 +20,17 @@ description = "Research & Development Agent"
 dynamic = [
   "dependencies",
   "optional-dependencies",
+  "version",
 ]
 keywords = [
   "Autonomous Agents",
-  "Large Language Models",
   "Research and Development",
+  "Large Language Models",
 ]
-license = {text = "MIT License"}
 name = "rdagent"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "v0.0.0"
+
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
@@ -49,13 +49,13 @@ color_output = true
 profile = "black"
 
 [tool.mypy]
+explicit_package_bases = true
 check_untyped_defs = true
 disallow_any_unimported = true
 disallow_untyped_defs = true
 enable_error_code = [
   "ignore-without-code",
 ]
-explicit_package_bases = true
 warn_return_any = true
 warn_unused_ignores = true
 
@@ -109,7 +109,7 @@ test = {file = ["requirements/test.txt"]}
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
-version_scheme = "post-release"
+version_scheme = "guess-next-dev"
 
 [tool.tomlsort]
 all = true
