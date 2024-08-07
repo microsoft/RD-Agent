@@ -72,7 +72,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
-        tasks_factors = [task.get_task_information() for task in exp.sub_tasks]
+        tasks_factors = [task.get_task_information_and_implementation_result() for task in exp.sub_tasks]
         sota_result = exp.based_experiments[-1].result
 
         # Process the results to filter important metrics
