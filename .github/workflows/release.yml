@@ -29,25 +29,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine  #  better-exceptions(optional for debug)
       - name: Release please
+        id: release_please
         uses: googleapis/release-please-action@v4
         with:
           # The current PAT (personal access token) was created on 2024-08-05,
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
-
-
-  package:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.PAT }}
-          release-type: python
       - name: test
-        run: echo ${{ steps.release.outputs.release_created }}
+        run: echo "Release created ${{ steps.release_please.outputs.release_created }}"
+
+
+  # package:
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: googleapis/release-please-action@v4
+  #       id: release
+  #       with:
+  #         token: ${{ secrets.PAT }}
+  #         release-type: python
+  #     - name: test
+  #       run: echo ${{ steps.release.outputs.release_created }}
       # - uses: actions/checkout@v4
       # - name: Set up Python
       #   uses: actions/setup-python@v5
