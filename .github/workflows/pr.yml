@@ -7,7 +7,7 @@ jobs:
     steps:
       - name: Check PR Title for Conventional Commit Format
         run: |
-          if ! echo "${{ github.event.pull_request.title }}" | grep -Pq '^(build|chore|ci|deps|doc|docs|feat|fix|perf|ref|refactor|revert|style|test|tests|Bump version)(\(\w+\))?!?:\s.*'; then
+          if ! echo "${{ github.event.pull_request.title }}" | grep -Pq '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(\w+\))?!?:\s.*'; then
             echo 'The title does not conform to the Conventional Commit.'
             echo 'Please refer to "https://www.conventionalcommits.org/"'
             exit 1
