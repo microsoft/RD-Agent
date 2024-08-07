@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
 permissions:
   contents: read
 jobs:
@@ -31,6 +35,9 @@ jobs:
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
+  package:
+    runs-on: ubuntu-latest
+    steps:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
