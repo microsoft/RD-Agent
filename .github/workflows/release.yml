@@ -36,6 +36,7 @@ jobs:
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
+        if: ${{ steps.release.outputs.release_created }}
       - name: test
         run: echo "Release created " ${{ steps.release_please.outputs.release_created }}
 
