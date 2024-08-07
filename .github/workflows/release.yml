@@ -36,9 +36,9 @@ jobs:
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
-        run: env | sort
-        run: make dev
-        run: make build
+      - run: env | sort
+      - run: make dev
+      - run: make build
       - name: upload
         if: ${{ steps.release.outputs.release_created }}
         env:
