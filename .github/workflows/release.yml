@@ -39,26 +39,8 @@ jobs:
       - name: test
         if: ${{ steps.release.outputs.release_created }}
         run: echo "Release created " ${{ steps.release_please.outputs.release_created }}
-
-
-  # package:
-  #   needs: release
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: googleapis/release-please-action@v4
-  #       id: release
-  #       with:
-  #         token: ${{ secrets.PAT }}
-  #         release-type: python
-  #     - name: test
-  #       run: echo ${{ steps.release.outputs.release_created }}
-      # - uses: actions/checkout@v4
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     cache: pip
-      #     python-version: '3.10'
-      # - run: env | sort
+      - if: ${{ steps.release.outputs.release_created }}
+        run: env | sort
       # - run: make dev
       # - run: make build
 
