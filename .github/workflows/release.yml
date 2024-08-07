@@ -45,7 +45,7 @@ jobs:
         id: release
         with:
           token: ${{ secrets.PAT }}
-          release-type: node
+          release-type: python
       - name: test
         run: echo ${{ steps.release.outputs.release_created }}
       # - uses: actions/checkout@v4
