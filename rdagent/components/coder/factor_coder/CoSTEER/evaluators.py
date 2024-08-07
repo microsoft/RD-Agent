@@ -674,7 +674,7 @@ class FactorMultiEvaluator(Evaluator):
         for index in range(len(evo.sub_tasks)):
             if final_decision[index]:
                 evo.sub_tasks[index].factor_implementation = True
-                
+
         return multi_implementation_feedback
 
 
