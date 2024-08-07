@@ -37,7 +37,7 @@ jobs:
           token: ${{ secrets.PAT }}
           release-type: simple
       - name: test
-        run: echo "Release created ${{ steps.release_please.outputs.release_created }}"
+        run: echo "Release created " ${{ steps.release_please.outputs.release_created }}
 
 
   # package:
