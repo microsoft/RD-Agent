@@ -16,6 +16,9 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -32,9 +35,6 @@ jobs:
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
           token: ${{ secrets.PAT }}
           release-type: simple
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
         if: ${{ steps.release.outputs.release_created }}
       - run: env | sort
         if: ${{ steps.release.outputs.release_created }}
