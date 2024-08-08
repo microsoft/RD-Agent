@@ -12,7 +12,7 @@
 <!-- [![Release](https://img.shields.io/github/v/release/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/releases) -->
 <!-- [![GitHub](https://img.shields.io/github/license/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/blob/main/LICENSE) -->
 
-<!-- TODO: License / pypi / PyPI - Python Version  --> 
+<!-- Comment badge to wait until the project is publicly available. --> 
 
 # 📰 News
 | 🗞️News        | 📝Description                 |
