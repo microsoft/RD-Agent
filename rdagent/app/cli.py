@@ -26,6 +26,6 @@ def app():
             "fin_factor_report": fin_factor_report,
             "fin_model": fin_model,
             "med_model": med_model,
-            "gemeral_model": general_model,
+            "general_model": general_model,
         }
     )
