@@ -26,10 +26,7 @@ from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
-from rdagent.scenarios.qlib.experiment.factor_experiment import (
-    QlibFactorExperiment,
-    QlibFactorScenario,
-)
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
 )
@@ -486,7 +483,7 @@ def feedback_window():
 
             if isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
                 with st.expander("**Config⚙️**", expanded=True):
-                    st.markdown(state.scenario.get_experiment_setting, unsafe_allow_html=True)
+                    st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
             
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
@@ -504,6 +501,7 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
+@st.fragment
 def evolving_window():
     title = (
         "Development🛠️"
