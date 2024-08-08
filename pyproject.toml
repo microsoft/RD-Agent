@@ -32,7 +32,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.scripts]
-rdagent = "rdagent.app.cli"
+rdagent = "rdagent.app.cli:app"
 
 [project.urls]
 homepage = "https://github.com/microsoft/RD-Agent/"
