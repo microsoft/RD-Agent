@@ -15,11 +15,13 @@ class ModelRDLoop(RDLoop):
 
 def main(path=None, step_n=None):
     """
+    Auto R&D Evolving loop for fintech models
+
     You can continue running session by
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/model_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/qlib_rd_loop/model.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
     """
     if path is None:

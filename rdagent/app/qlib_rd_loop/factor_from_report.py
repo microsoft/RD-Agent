@@ -6,7 +6,7 @@ import fire
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.qlib_rd_loop.conf import FACTOR_FROM_REPORT_PROP_SETTING
-from rdagent.app.qlib_rd_loop.factor_w_sc import FactorRDLoop
+from rdagent.app.qlib_rd_loop.factor import FactorRDLoop
 from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
     load_and_process_pdfs_by_langchain,
@@ -142,11 +142,13 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
 
 def main(path=None, step_n=None):
     """
+    Auto R&D Evolving loop for fintech factors (the factors are extracted from finance report).
+
     You can continue running session by
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report_w_sc.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
+        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
 
     """
     if path is None:
