@@ -27,12 +27,12 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- [🎥Automatic Quant Factory]()
-- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- [🎥Automatic Quant Factory](https://rdagent.azurewebsites.net/factor_loop)
+- 🤖Data mining agent: iteratively proposing [🎥data](https://rdagent.azurewebsites.net/dmm) & [models](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
+- 🦾Research copilot: Auto read [🎥research papers](https://rdagent.azurewebsites.net/report_model)/[🎥reports](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
 - ...
 
-You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
+You can click the [🎥link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
 
 We have a quick 🎥demo for one use case of RDAgent.
 - TODO: Demo
@@ -79,7 +79,7 @@ TODO: use docker in quick start intead.
 ### 🚀 Run the Application
 TODO: run the front-page demo.
 
-The [🎥demo]() is implemented by the above commands.
+The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the above commands.
 
 - Run the factor extraction and implementation application based on financial reports:
   ```sh
@@ -122,9 +122,9 @@ The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance      | 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) | - 🦾[Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor) <br/> - 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) |
+| 🩺 Medical      | 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
+| 🏭 General      | 🦾[Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
