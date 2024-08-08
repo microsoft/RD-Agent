@@ -115,8 +115,8 @@ class ModelExperimentLoaderFromDict(ModelTaskLoader):
 
 
 class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
-    def load(self, file_or_folder_path: Path) -> dict:
-        docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))  # dict{file_path:content}
+    def load(self, file_or_folder_path: str) -> dict:
+        docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)  # dict{file_path:content}
         model_dict = extract_model_from_docs(
             docs_dict
         )  # dict{file_name: dict{model_name: dict{description, formulation, variables}}}
@@ -124,14 +124,3 @@ class ModelExperimentLoaderFromPDFfiles(ModelTaskLoader):
             model_dict
         )  # dict {model_name: dict{description, formulation, variables}}
         return ModelExperimentLoaderFromDict().load(model_dict)
-
-
-def main(path="../test_doc"):
-    doc_dict = load_and_process_pdfs_by_langchain(Path(path))
-    print(doc_dict.keys())  # if you run code like "python -u", the print content will be truncated
-
-
-import fire
-
-if __name__ == "__main__":
-    fire.Fire(main)
