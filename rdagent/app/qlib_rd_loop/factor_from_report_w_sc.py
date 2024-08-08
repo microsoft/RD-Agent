@@ -85,7 +85,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
             pdf_screenshot = extract_first_page_screenshot_from_pdf(report_file_path)
             logger.log_object(pdf_screenshot)
 
-    docs_dict = load_and_process_pdfs_by_langchain(Path(report_file_path))
+    docs_dict = load_and_process_pdfs_by_langchain(report_file_path)
 
     factor_result = {
         task.factor_name: {
