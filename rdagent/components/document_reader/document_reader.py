@@ -48,7 +48,10 @@ def process_documents_by_langchain(docs: list[Document]) -> dict[str, str]:
     content_dict = {}
 
     for doc in docs:
-        doc_name = str(Path(doc.metadata["source"]).resolve())
+        if Path(doc.metadata["source"]).exists():
+            doc_name = str(Path(doc.metadata["source"]).resolve())
+        else:
+            doc_name = doc.metadata["source"]
         doc_content = doc.page_content
 
         if doc_name not in content_dict:
