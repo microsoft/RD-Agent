@@ -509,9 +509,9 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 
 
 class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
-    def load(self, file_or_folder_path: Path) -> dict:
+    def load(self, file_or_folder_path: str) -> dict:
         with logger.tag("docs"):
-            docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+            docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)
             logger.log_object(docs_dict)
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)

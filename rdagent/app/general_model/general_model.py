@@ -20,6 +20,22 @@ from rdagent.scenarios.qlib.developer.model_coder import QlibModelCoSTEER
 def extract_models_and_implement(
     report_file_path: str,
 ) -> None:
+    """
+    Extracts models from a given PDF report file and implements the necessary operations.
+
+    Parameters:
+    report_file_path (str): The path to the report file. The file must be a PDF file.
+
+    Example URLs of PDF reports:
+    - https://arxiv.org/pdf/2210.09789
+    - https://arxiv.org/pdf/2305.10498
+    - https://arxiv.org/pdf/2110.14446
+    - https://arxiv.org/pdf/2205.12454
+    - https://arxiv.org/pdf/2210.16518
+
+    Returns:
+    None
+    """
     with logger.tag("init"):
         scenario = GeneralModelScenario()
         logger.log_object(scenario, tag="scenario")
