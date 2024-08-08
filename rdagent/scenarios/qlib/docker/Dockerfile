@@ -20,3 +20,4 @@ RUN python -m pip install -e .
 
 RUN pip install catboost
 RUN pip install xgboost
+RUN pip install scipy==1.11.4
