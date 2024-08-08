@@ -27,6 +27,8 @@ class FactorRDLoop(RDLoop):
 
 def main(path=None, step_n=None):
     """
+    Auto R&D Evolving loop for fintech factors.
+
     You can continue running session by
 
     .. code-block:: python

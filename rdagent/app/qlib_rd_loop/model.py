@@ -15,6 +15,8 @@ class ModelRDLoop(RDLoop):
 
 def main(path=None, step_n=None):
     """
+    Auto R&D Evolving loop for fintech models
+
     You can continue running session by
 
     .. code-block:: python

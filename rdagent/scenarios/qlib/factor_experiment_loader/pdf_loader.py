@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import re
+from tqdm.auto import tqdm
 from pathlib import Path
 from typing import Mapping
 
@@ -62,7 +63,7 @@ def classify_report_from_dict(
     res_dict = {}
     classify_prompt = document_process_prompts["classify_system"]
 
-    for key, value in report_dict.items():
+    for key, value in tqdm(report_dict.items()):
         if not key.endswith(".pdf"):
             continue
         file_name = key
