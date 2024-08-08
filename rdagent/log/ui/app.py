@@ -41,6 +41,7 @@ st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initi
 # 获取log_path参数
 parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
 parser.add_argument("--log_dir", type=str, help="Path to the log directory")
+parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 args = parser.parse_args()
 if args.log_dir:
     main_log_path = Path(args.log_dir)
@@ -272,7 +273,7 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
         return [""] * len(row)
 
     def style_columns(col):
-        if col.name != "Hypothesis":
+        if col.name != name_dict.get("hypothesis", "hypothesis"):
             return ["font-style: italic;"] * len(col)
         return ["font-weight: bold;"] * len(col)
 
@@ -481,7 +482,7 @@ def feedback_window():
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
-            if isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
+            if state.lround > 0 and isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
             
@@ -614,14 +615,16 @@ with st.sidebar:
 
     if st.button("refresh logs", help="clear all log messages in cache"):
         refresh(same_trace=True)
-    debug = st.toggle("debug", value=False)
+    if args.debug:
+        debug = st.toggle("debug", value=False)
 
-    if debug:
-        if st.button("Single Step Run"):
-            if not state.fs:
-                refresh()
-            get_msgs_until()
-
+        if debug:
+            if st.button("Single Step Run"):
+                if not state.fs:
+                    refresh()
+                get_msgs_until()
+    else:
+        debug = False
 
 
 # Debug Info Window
