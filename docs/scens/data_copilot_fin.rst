@@ -5,11 +5,11 @@ Finance Data Copilot
 =====================
 
 
-**Automated Quantitative Trading & Factors Extraction from Financial Reports📄**
+**🤖 Automated Quantitative Trading & Factors Extraction from Financial Reports**
 ---------------------------------------------------------------------------------
 
-Background
-~~~~~~~~~~
+📖 Background
+~~~~~~~~~~~~~~
 **Research reports** are treasure troves of insights, often unveiling potential **factors** that can drive successful quantitative trading strategies. 
 Yet, with the sheer volume of reports available, extracting the most valuable insights efficiently becomes a daunting task.
 
@@ -17,13 +17,17 @@ Furthermore, rather than hastily replicating factors from a report, it's essenti
 Does the factor capture the essential market dynamics? How unique is it compared to the factors already in your library?
 
 Therefore, there is an urgent need for a systematic approach to design a framework that can effectively manage this process. 
-This is where our R&D Agent comes into play.
+This is where our RDAgent comes into play.
 
 
+🎥 Demo
+~~~~~~~~~~
+TODO: Here should put a video of the demo.
 
-Introduction
-~~~~~~~~~~~~
-In this scenario, our agent demonstrates the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting. 
+
+🌟 Introduction
+~~~~~~~~~~~~~~~~
+In this scenario, RDAgent demonstrates the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting. 
 This process continually expands and refines the factor library.
 
 Here's an enhanced outline of the steps:
@@ -45,7 +49,7 @@ Here's an enhanced outline of the steps:
 **Step 4 : Backtesting with Qlib 📉**
 
 - Integrate the full dataset into the factor implementation code and prepare the factor library.
-- Perform backtesting using the Alpha158+ model in Qlib to assess the factor's effectiveness and performance.
+- Conduct backtesting using the Alpha158 plus newly developed factors and LGBModel in Qlib to evaluate the new factors' effectiveness and performance.
 
 +----------------+------------+----------------+----------------------------------------------------+
 | Dataset        | Model      | Factors        | Data Split                                         |
@@ -59,29 +63,102 @@ Here's an enhanced outline of the steps:
 |                |            |                | +-----------+--------------------------+           |
 +----------------+------------+----------------+----------------------------------------------------+
 
-
 **Step 5 : Feedback Analysis 🔍**
-   - Analyze backtest results.
-   - Incorporate feedback to refine hypotheses.
 
-**Step 6 : Knowledge Base Refinement ♻️**
-   - Refine the knowledge base based on feedback and repeat the process.
+- Analyze backtest results to assess performance.
+- Incorporate feedback to refine hypotheses and improve the model.
 
-Demo
-~~~~~~~~~~
-.. TODO
+**Step 6 :Hypothesis Refinement ♻️**
 
-Scen2 Quick Start
+- Refine hypotheses based on feedback from backtesting.
+- Repeat the process to continuously improve the model.
+
+⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
 
-To quickly start the factor extraction process, run the following command in your terminal within the  `rdagent` virtual environment:
+You can try our demo by running the following command:
 
-.. code-block:: sh
+- 🐍 Create a Conda Environment
+    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+    
+      .. code-block:: sh
+      
+          conda create -n rdagent python=3.10
 
-    python rdagent/app/qlib_rd_loop/factor_from_report_w_sc.py.py
+    - Activate the environment:
+
+      .. code-block:: sh
+
+          conda activate rdagent
+
+- 🛠️ Run Make Files
+    - Navigate to the directory containing the MakeFile and set up the development environment:
+
+      .. code-block:: sh
+
+          make dev
+
+- 📦 Install Pytorch
+    - Install Pytorch and related libraries:
+
+      .. code-block:: sh
+
+          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip3 install torch_geometric
+
+- ⚙️ Environment Configuration
+    - Place the `.env` file in the same directory as the `.env.example` file.
+        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
+
+    - Export each variable in the .env file:
+
+      .. code-block:: sh
+
+          export $(grep -v '^#' .env | xargs)
+    
+    - If you want to change the default environment variables, you can refer to `Env Config`_ below
+
+- 🚀 Run the Application
+    .. code-block:: sh
+
+        python rdagent/app/qlib_rd_loop/factor_from_report_w_sc.py
 
 
-Usage of modules
-~~~~~~~~~~~~~~~~~
-TODO: Show some examples:
 
+🛠️ Usage of modules
+~~~~~~~~~~~~~~~~~~~~~
+
+.. _Env Config: 
+
+- **Env Config**
+
+The following environment variables can be set in the `.env` file to customize the application's behavior:
+    - **Path to the folder containing research reports:**
+
+      .. code-block:: sh
+
+          QLIB_FACTOR_LOCAL_REPORT_PATH=/path/to/research/reports
+
+    - **Path to the JSON file listing research reports for factor extraction:**
+
+      .. code-block:: sh
+
+          QLIB_FACTOR_REPORT_RESULT_JSON_FILE_PATH=/path/to/reports/list.json
+
+    - **Maximum time (in seconds) for writing factor code:**
+
+      .. code-block:: sh
+
+          FACTOR_CODER_FILE_BASED_EXECUTION_TIMEOUT=300
+
+    - **Maximum number of factors to write in one experiment:**
+
+      .. code-block:: sh
+
+          FACTOR_CODER_SELECT_THRESHOLD=5
+
+    - **Number of developing loops for writing factors:**
+
+      .. code-block:: sh
+
+          FACTOR_CODER_MAX_LOOP=10

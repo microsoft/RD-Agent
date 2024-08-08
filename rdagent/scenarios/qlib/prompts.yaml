@@ -172,9 +172,18 @@ factor_feedback_generation:
     Target hypothesis: 
     {{ hypothesis_text }}
     Tasks and Factors:
-    {{ task_details }}
+    {% for task in task_details %}
+      - {{ task.factor_name }}: {{ task.factor_description }}
+        - Factor Formulation: {{ task.factor_formulation }}
+        - Variables: {{ task.variables }}
+        - Factor Implementation: {{ task.factor_implementation }}
+        {% if task.factor_implementation == "False" %}
+        **Note: This factor was not implemented in the current experiment. Only the hypothesis for implemented factors can be verified.**
+        {% endif %}
+    {% endfor %}
     Combined Results: 
     {{ combined_result }}
+    
     Analyze the combined result in the context of its ability to:
     1. Support or refute the hypothesis.
     2. Show improvement or deterioration compared to the SOTA experiment.
@@ -196,6 +205,8 @@ factor_feedback_generation:
     Consider Changing Direction for Significant Gaps with SOTA:
       - If the new results significantly differ from the SOTA, consider exploring a new direction.
       - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
+
+    Note: Only factors with 'Factor Implementation' as True are implemented and tested in this experiment. If 'Factor Implementation' is False, the hypothesis for that factor cannot be verified in this run.
 
 model_feedback_generation:
   system: |-

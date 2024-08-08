@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from rdagent.components.coder.model_coder.model import (
@@ -19,9 +20,18 @@ class QlibModelExperiment(ModelExperiment[ModelTask, QlibFBWorkspace, ModelFBWor
 
 
 class QlibModelScenario(Scenario):
+    def __init__(self) -> None:
+        super().__init__()
+        self._background = deepcopy(prompt_dict["qlib_model_background"])
+        self._output_format = deepcopy(prompt_dict["qlib_model_output_format"])
+        self._interface = deepcopy(prompt_dict["qlib_model_interface"])
+        self._simulator = deepcopy(prompt_dict["qlib_model_simulator"])
+        self._rich_style_description = deepcopy(prompt_dict["qlib_model_rich_style_description"])
+        self._experiment_setting = deepcopy(prompt_dict["qlib_model_experiment_setting"])
+
     @property
     def background(self) -> str:
-        return prompt_dict["qlib_model_background"]
+        return self._background
 
     @property
     def source_data(self) -> str:
@@ -29,39 +39,23 @@ class QlibModelScenario(Scenario):
 
     @property
     def output_format(self) -> str:
-        return prompt_dict["qlib_model_output_format"]
+        return self._output_format
 
     @property
     def interface(self) -> str:
-        return prompt_dict["qlib_model_interface"]
+        return self._interface
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["qlib_model_simulator"]
+        return self._simulator
 
     @property
     def rich_style_description(self) -> str:
-        return """
-### Qlib Model Evolving Automatic R&D Demo
- 
-#### [Overview](#_summary)
- 
-The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making in model construction in quantitative finance. It highlights how models evolve through continuous feedback and refinement.
- 
-#### [Automated R&D](#_rdloops)
- 
-- **[R (Research)](#_research)**
-  - Iteration of ideas and hypotheses.
-  - Continuous learning and knowledge construction.
- 
-- **[D (Development)](#_development)**
-  - Evolving code generation and model refinement.
-  - Automated implementation and testing of models.
- 
-#### [Objective](#_summary)
- 
-To demonstrate the dynamic evolution of models through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting models.    
-    """
+        return self._rich_style_description
+
+    @property
+    def experiment_setting(self) -> str:
+        return self._experiment_setting
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
@@ -73,10 +67,3 @@ The output of your code should be in the format:
 The simulator user can use to test your model:
 {self.simulator}
 """
-
-    def get_experiment_setting(self) -> str:
-        return """
-| Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
-|---------|----------|---------------|-------------------------------------------------|
-| CSI300  | RDAgent-dev | 20 factors (Alpha158)  | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
-        """

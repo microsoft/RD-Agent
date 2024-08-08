@@ -26,18 +26,29 @@ class FactorTask(Task):
         factor_formulation,
         variables: dict = {},
         resource: str = None,
+        factor_implementation: bool = False,
     ) -> None:
         self.factor_name = factor_name
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.variables = variables
         self.factor_resources = resource
+        self.factor_implementation = factor_implementation
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}
 factor_description: {self.factor_description}
 factor_formulation: {self.factor_formulation}
 variables: {str(self.variables)}"""
+
+    def get_task_information_and_implementation_result(self):
+        return {
+            "factor_name": self.factor_name,
+            "factor_description": self.factor_description,
+            "factor_formulation": self.factor_formulation,
+            "variables": str(self.variables),
+            "factor_implementation": str(self.factor_implementation),
+        }
 
     @staticmethod
     def from_dict(dict):

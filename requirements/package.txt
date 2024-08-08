@@ -2,3 +2,4 @@
 build
 setuptools-scm
 twine
+wheel
