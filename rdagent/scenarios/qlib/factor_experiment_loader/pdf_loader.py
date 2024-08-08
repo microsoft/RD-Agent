@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import re
-from tqdm.auto import tqdm
 from pathlib import Path
 from typing import Mapping
 
@@ -13,6 +12,7 @@ from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
+from tqdm.auto import tqdm
 
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
