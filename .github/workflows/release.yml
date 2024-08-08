@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  release:
+  release_and_publish:
     permissions:
       contents: write
       pull-requests: read
