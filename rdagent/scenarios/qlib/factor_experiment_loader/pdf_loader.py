@@ -12,6 +12,7 @@ from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
+from tqdm.auto import tqdm
 
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
@@ -62,7 +63,7 @@ def classify_report_from_dict(
     res_dict = {}
     classify_prompt = document_process_prompts["classify_system"]
 
-    for key, value in report_dict.items():
+    for key, value in tqdm(report_dict.items()):
         if not key.endswith(".pdf"):
             continue
         file_name = key
