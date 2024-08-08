@@ -79,7 +79,7 @@ TODO: use docker in quick start intead.
 ### 🚀 Run the Application
 TODO: run the front-page demo.
 
-The [🎥demo]() is implemented by the above commands.
+The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the above commands.
 
 - Run the factor extraction and implementation application based on financial reports:
   ```sh
