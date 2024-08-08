@@ -678,7 +678,7 @@ with st.container():
                 theme = theme.get("base", "light")
             css = f"""
 <style>
-    a[href="#_rdloops"], a[href="#_research"], a[href="#_development"], a[href="#_summary"], a[href="#_objective"] {{
+    a[href="#_rdloops"], a[href="#_research"], a[href="#_development"], a[href="#_feedback"], a[href="#_scenario"], a[href="#_summary"], a[href="#_hypotheses"], a[href="#_metrics"] {{
         color: {"black" if theme == "light" else "white"};
     }}
 </style>
