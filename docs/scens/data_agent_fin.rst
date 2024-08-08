@@ -82,7 +82,7 @@ You can try our demo by running the following command:
     - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
     
       .. code-block:: sh
-      
+
           conda create -n rdagent python=3.10
 
     - Activate the environment:
@@ -132,33 +132,9 @@ You can try our demo by running the following command:
 - **Env Config**
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
-    - **Path to the folder containing private data (default fundamental data in Qlib):**
 
-        .. code-block:: sh
+.. autopydantic_settings:: rdagent.app.qlib_rd_loop.conf.FactorBasePropSetting
 
-          FACTOR_CODER_DATA_FOLDER=/path/to/data/factor_implementation_source_data_all
-
-    - **Path to the folder containing partial private data (for debugging):**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_DATA_FOLDER_DEBUG=/path/to/data/factor_implementation_source_data_debug
-
-    - **Maximum time (in seconds) for writing factor code:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_FILE_BASED_EXECUTION_TIMEOUT=300
-
-    - **Maximum number of factors to write in one experiment:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_SELECT_THRESHOLD=5
-
-    - **Number of developing loops for writing factors:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_MAX_LOOP=10
-
+.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+    :members: coder_use_cache, data_folder, data_folder_debug, cache_location, enable_execution_cache, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
+    :exclude-members: fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler
