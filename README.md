@@ -17,7 +17,7 @@
 # 📰 News
 | 🗞️News        | 📝Description                 |
 | --            | ------                        |
-| First release | RDAgent are released on Github |
+| First release | RDAgent is released on Github |
 
 
 # 🌟 Introduction
