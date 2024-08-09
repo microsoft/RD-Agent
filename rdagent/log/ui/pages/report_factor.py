@@ -33,4 +33,4 @@ with lc:
 """)
 with rc:
     st.subheader("💹Finance Data Building (from Reports) Demo")
-    st.video("videos/Factor_Report_Loop.mp4")
+    st.video("videos/factor_report_loop_cn.mp4")
