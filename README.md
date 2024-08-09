@@ -55,13 +55,16 @@ You can try our demo by running the following command:
   conda activate rdagent
   ```
 
-### 🛠️ Install from pip
+### 🛠️ Install the RDAgent
+- You can directly install the RDAgent package from PyPI:
   ```sh
   pip install rdagent
   ```
+  
+  
 ### 🛠️ Run Make Files
 
-- **Navigate to the directory containing the MakeFile** and set up the development environment:
+- If you want to use our project in development mode. **Navigate to the directory containing the MakeFile** and set up the development environment:
   ```sh
   make dev
   ```
@@ -79,31 +82,30 @@ You can try our demo by running the following command:
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
-- Run the Qlib factor extraction and implementation application based on financial reports:
-  ```sh
-  rdagent fin_factor_report <Your report folder>
-  ```
-
-- Run the Qlib self-loop factor proposal and implementation application:
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  Qlib self-loop factor proposal and implementation application
   ```sh
   rdagent fin_factor
   ```
 
-- Run the Qlib self-loop model proposal and implementation application:
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**: Qlib self-loop model proposal and implementation application
   ```sh
-  rdagent fin_model
+  python fin_model
   ```
 
-- Run the model extraction and implementation application:
+- Run the **Automated Medical Predtion Model Evolution**: medical self-loop model proposal and implementation application
   ```sh
-  rdagent general_model <Your paper url>
+  python med_model
   ```
 
-- Run the medical self-loop model proposal and implementation application:
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
   ```sh
-  rdagent med_model 
+  rdagent fin_factor_report <Your report folder>
   ```
-  
+
+- Run the **Automated Model Research & Development Co-Pilot**: model extraction and implementation application
+  ```sh
+  rdagent general_model  <Your paper url>
+  ```
 
 ### 🚀 Monitor the Application
 - You can serve our demo app to monitor the RD loop by running the following command:
