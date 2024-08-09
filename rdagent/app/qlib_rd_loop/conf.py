@@ -1,5 +1,5 @@
-from rdagent.components.workflow.conf import BasePropSetting
 from pydantic_settings import BaseSettings
+from rdagent.components.workflow.conf import BasePropSetting
 
 
 class ModelBasePropSetting(BasePropSetting):

@@ -80,6 +80,11 @@ You can try our demo by running the following command:
 
           pip install rdagent
 
+- 📦 Request PhysioNet Account
+    - Apply for an account at `PhysioNet <https://physionet.org/>`_.
+    - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
+    - Place your username and password in `.rdagent.app.data_mining.conf`.
+
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
         - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
@@ -105,3 +110,7 @@ You can try our demo by running the following command:
 - **Env Config**
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
+
+.. autopydantic_settings:: rdagent.app.data_mining.conf.PropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config
