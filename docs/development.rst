@@ -73,4 +73,4 @@ File Naming Convention
    * - `conf.py`
      - The configuration for the module, app, and project.
 
-<!-- TODO: renaming files -->
+.. <!-- TODO: renaming files -->
