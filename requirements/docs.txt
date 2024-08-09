@@ -10,4 +10,3 @@ Sphinx
 sphinx-autobuild
 sphinx-click
 sphinx-togglebutton
-setuptools_scm
