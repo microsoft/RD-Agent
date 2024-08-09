@@ -63,8 +63,7 @@ if "log_path" not in state:
     if main_log_path:
         state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
-        state.log_path = ""
-        st.toast(":orange[**Please Set Log Path**]", icon="⚠️")
+        state.log_path = None
 
 if 'scenario' not in state:
     state.scenario = None
@@ -183,6 +182,10 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
 
 def refresh(same_trace: bool = False):
+    if state.log_path is None:
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
+        return
+
     if main_log_path:
         state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
     else:
@@ -599,18 +602,12 @@ with st.sidebar:
             st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
 
     if st.button("All Loops"):
-        if not state.fs:
-            refresh()
         get_msgs_until(lambda m: False)
 
     if st.button("Next Loop"):
-        if not state.fs:
-            refresh()
         get_msgs_until(lambda m: "ef.feedback" in m.tag)
 
     if st.button("One Evolving"):
-        if not state.fs:
-            refresh()
         get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
     if st.button("refresh logs", help="clear all log messages in cache"):
@@ -620,8 +617,6 @@ with st.sidebar:
 
         if debug:
             if st.button("Single Step Run"):
-                if not state.fs:
-                    refresh()
                 get_msgs_until()
     else:
         debug = False
@@ -651,9 +646,6 @@ if debug:
 
 
 # Main Window
-if state.fs is None:
-    refresh()
-
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with st.container():
     with header_c1:
