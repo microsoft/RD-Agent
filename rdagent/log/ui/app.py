@@ -2,6 +2,7 @@ import argparse
 import textwrap
 from collections import defaultdict
 from datetime import datetime, timezone
+from importlib.resources import files as rfiles
 from pathlib import Path
 from typing import Callable, Type
 
@@ -526,7 +527,8 @@ with st.container():
 with st.container():
     image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        st.image("./docs/_static/flow.png")
+        img_path = rfiles("rdagent.log.ui").joinpath("flow.png")
+        st.image(str(img_path), use_column_width=True)
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         # TODO: other scenarios
