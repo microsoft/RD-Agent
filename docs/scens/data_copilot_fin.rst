@@ -101,12 +101,6 @@ You can try our demo by running the following command:
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
         - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-
-    - Export each variable in the .env file:
-
-      .. code-block:: sh
-
-          export $(grep -v '^#' .env | xargs)
     
     - If you want to change the default environment variables, you can refer to `Env Config`_ below
 

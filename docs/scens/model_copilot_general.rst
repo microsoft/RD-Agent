@@ -71,15 +71,10 @@ You can try our demo by running the following command:
 
           pip install rdagent
 
+
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
         - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-
-    - Export each variable in the .env file:
-
-      .. code-block:: sh
-
-          export $(grep -v '^#' .env | xargs)
 
 - 🚀 Run the Application
     - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.

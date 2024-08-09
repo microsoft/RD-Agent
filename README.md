@@ -63,31 +63,19 @@ TODO: `pip install rdagent` in the future.
   make dev
   ```
 
-### 📦 Install Pytorch
-TODO: use docker in quick start intead.
-
-- Install Pytorch and related libraries:
-  ```sh
-  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-  pip3 install torch_geometric
-  ```
 
 ### ⚙️ Environment Configuration
 - Place the `.env` file in the same directory as the `.env.example` file.
   - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
   - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
-- Export each variable in the `.env` file:
-  ```sh
-  export $(grep -v '^#' .env | xargs)
-  ```
 ### 🚀 Run the Application
 TODO: run the front-page demo.
 
-The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the above commands.
+The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
 - Run the factor extraction and implementation application based on financial reports:
   ```sh
-  python rdagent/app/qlib_rd_loop/factor_from_report_sh.py
+  rdagent fin_factor_report
   ```
 
 - Run the self-loop factor extraction and implementation application:
@@ -205,5 +193,5 @@ Making contributions is not a hard thing. Solving an issue(maybe just answering 
 
 <a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=240&columns=18" /></a>
 
-# Disclaimer
-The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.
+# Legal disclaimer
+<p style="line-height: 1; font-style: italic;">The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>
