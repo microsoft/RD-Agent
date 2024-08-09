@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import fitz
+import requests
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 from langchain.document_loaders import (
@@ -111,8 +113,11 @@ def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str
     return content_dict
 
 
-def extract_first_page_screenshot_from_pdf(pdf_path: Path) -> Image:
-    doc = fitz.open(pdf_path)
+def extract_first_page_screenshot_from_pdf(pdf_path: str) -> Image:
+    if not Path(pdf_path).exists():
+        doc = fitz.open(stream=io.BytesIO(requests.get(pdf_path).content), filetype="pdf")
+    else:
+        doc = fitz.open(pdf_path)
     page = doc.load_page(0)
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)

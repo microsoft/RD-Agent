@@ -155,8 +155,6 @@ class SessionChatHistoryCache(SingletonBaseClass):
             logger.warning(f"Directory {self.session_cache_location} does not exist.")
             self.session_cache_location.mkdir(parents=True, exist_ok=True)
         json_files = [f for f in self.session_cache_location.iterdir() if f.suffix == ".json"]
-        if not json_files:
-            logger.info(f"No JSON files found in {self.session_cache_location}.")
         for file_path in json_files:
             conversation_id = file_path.stem
             with file_path.open("r") as f:
