@@ -41,9 +41,13 @@ You can click the [🎥link](https://rdagent.azurewebsites.net) above to view th
 - TODO: Demo: it fails to display the video in the README.md.
 We have a quick 🎥demo for one use case of RDAgent.
 [![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
+ <p align="center">
+  <a href="https://rdagent.azurewebsites.net/"> <img src="docs/_static/img/logo/1.png" /> </a>
+ </p>
  -->
-
-
+ 
+ [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
+ 
 
 # ⚡Quick start
 You can try above demos by running the following command:
@@ -218,7 +222,7 @@ You can find issues in the issues list or simply running `grep -r "TODO:"`.
 Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
 <img src="https://img.shields.io/github/contributors-anon/microsoft/RD-Agent"/>
 
-<a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=240&columns=18" /></a>
+<a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent" /></a>
 
 # Legal disclaimer
 <p style="line-height: 1; font-style: italic;">The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>
