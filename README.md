@@ -69,7 +69,10 @@ TODO: `pip install rdagent` in the future.
   - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
   - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 ### 🚀 Run the Application
-TODO: run the front-page demo.
+- Start streamlit web app to show log traces.
+  ```sh
+  streamlit run rdagent/log/ui/app.py --server.port 8080 -- --log_dir <your log folder>
+  ```
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
