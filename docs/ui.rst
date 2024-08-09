@@ -18,7 +18,7 @@ In `RD-Agent/` folder, run:
 
 .. code-block:: bash
 
-    rdagent ui --port <port> --log_dir <log_dir>
+    rdagent ui --port <port> --log_dir <log_dir> [--debug]
 
 This will start a web app on `http://localhost:<port>`.
 
