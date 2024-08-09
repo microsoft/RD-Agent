@@ -111,9 +111,21 @@ You can try our demo by running the following command:
     - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
-    .. code-block:: sh
+    - Store the factors you want to extract from the financial reports in your desired folder. Then, save the paths of the reports in the `report_result_json_file_path`. The format should be as follows:
 
-        rdagent fin_factor_report
+      .. code-block:: json
+
+          [
+              "git_ignore_folder/report/fin_report1.pdf",
+              "git_ignore_folder/report/fin_report2.pdf",
+              "git_ignore_folder/report/fin_report3.pdf"
+          ]
+
+    - Run the application using the following command:
+    
+      .. code-block:: sh
+
+          rdagent fin_factor_report
 
 
 
