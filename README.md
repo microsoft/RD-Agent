@@ -37,10 +37,10 @@ R&D is a very general scenario. The advent of RDAgent can be your
 - ...
 
 You can click the [🎥link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
-
+<!-- 
 We have a quick 🎥demo for one use case of RDAgent.
 - TODO: Demo
-
+ -->
 
 # ⚡Quick start
 You can try our demo by running the following command:
@@ -60,6 +60,9 @@ You can try our demo by running the following command:
   ```sh
   pip install rdagent
   ```
+  
+  
+### 🛠️ Run Make Files
 
 - If you want to use our project in development mode. **Navigate to the directory containing the MakeFile** and set up the development environment:
   ```sh
@@ -72,35 +75,43 @@ You can try our demo by running the following command:
   - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
   - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 ### 🚀 Run the Application
-TODO: run the front-page demo.
+- Start web app to show log traces:
+  ```sh
+  rdagent ui --port 80 --log_dir <your log folder>
+  ```
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
-- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  Qlib self-loop factor proposal and implementation application
   ```sh
   rdagent fin_factor
   ```
 
-- Run the **Automated Quantitative Trading & Iterative Model Evolution**:
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**: Qlib self-loop model proposal and implementation application
   ```sh
   python fin_model
   ```
 
-- Run the **Automated Medical Predtion Model Evolution**:
+- Run the **Automated Medical Predtion Model Evolution**: medical self-loop model proposal and implementation application
   ```sh
   python med_model
   ```
 
-- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
   ```sh
-  rdagent fin_factor_report
+  rdagent fin_factor_report <Your report folder>
   ```
 
-- Run the **Automated Model Research & Development Co-Pilot**:
+- Run the **Automated Model Research & Development Co-Pilot**: model extraction and implementation application
   ```sh
-  rdagent general_model
+  rdagent general_model  <Your paper url>
   ```
 
+### 🚀 Monitor the Application
+- You can serve our demo app to monitor the RD loop by running the following command:
+  ```sh
+  rdagent ui --port 80 --log_dir <your log folder>
+  ```
 
 # Scenarios
 
