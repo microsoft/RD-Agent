@@ -72,6 +72,10 @@ You can try our demo by running the following command:
   - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
   - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 ### 🚀 Run the Application
+- Start streamlit web app to show log traces:
+  ```sh
+  streamlit run rdagent/log/ui/app.py --server.port 8080 -- --log_dir <your log folder>
+  ```
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
@@ -102,10 +106,10 @@ The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the followin
   
 
 ### 🚀 Monitor the Application
-You can serve our demo app to monitor the RD loop by running the following command:
-```sh
-TODO: run the front-page demo.
-```
+- You can serve our demo app to monitor the RD loop by running the following command:
+  ```sh
+  streamlit run rdagent/log/ui/app.py --server.port 8080 -- --log_dir <your log folder>
+  ```
 
 # Scenarios
 
