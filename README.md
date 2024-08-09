@@ -1,3 +1,4 @@
+<p align="center">
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates)
@@ -11,6 +12,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 <!-- [![Release](https://img.shields.io/github/v/release/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/releases) -->
 <!-- [![GitHub](https://img.shields.io/github/license/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/blob/main/LICENSE) -->
+</p>
 
 <!-- Comment badge to wait until the project is publicly available. --> 
 
@@ -43,9 +45,9 @@ We have a quick 🎥demo for one use case of RDAgent.
 [![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
  -->
  
+ <p align="center">
  [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
-
-
+ </p>
 
 
 # ⚡Quick start
