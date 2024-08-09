@@ -64,6 +64,7 @@ if "log_path" not in state:
         state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
         state.log_path = None
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
 
 if 'scenario' not in state:
     state.scenario = None
@@ -644,6 +645,8 @@ if debug:
                     st.write(state.last_msg.content.__dict__)
 
 
+if state.log_path and state.fs is None:
+    refresh()
 
 # Main Window
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
