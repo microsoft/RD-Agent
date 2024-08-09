@@ -11,9 +11,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
-from st_btn_select import st_btn_select
 from streamlit import session_state as state
-from streamlit.delta_generator import DeltaGenerator
+from streamlit_theme import st_theme
 
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
@@ -22,14 +21,15 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, Fact
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+from rdagent.core.scenario import Scenario
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
-from rdagent.scenarios.qlib.experiment.factor_experiment import (
-    QlibFactorExperiment,
-    QlibFactorScenario,
+from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
+from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
+    QlibFactorFromReportScenario,
 )
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
@@ -42,6 +42,7 @@ st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initi
 # 获取log_path参数
 parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
 parser.add_argument("--log_dir", type=str, help="Path to the log directory")
+parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 args = parser.parse_args()
 if args.log_dir:
     main_log_path = Path(args.log_dir)
@@ -59,14 +60,15 @@ SELECTED_METRICS = [
     "1day.excess_return_without_cost.max_drawdown",
 ]
 
-if "log_type" not in state:
-    state.log_type = "Qlib Model"
-
 if "log_path" not in state:
     if main_log_path:
         state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
-        state.log_path = ""
+        state.log_path = None
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
+
+if "scenario" not in state:
+    state.scenario = None
 
 if "fs" not in state:
     state.fs = None
@@ -105,23 +107,6 @@ if "alpha158_metrics" not in state:
     state.alpha158_metrics = None
 
 
-def refresh():
-    if main_log_path:
-        state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
-    else:
-        state.fs = FileStorage(state.log_path).iter_msg()
-    state.msgs = defaultdict(lambda: defaultdict(list))
-    state.lround = 0
-    state.erounds = defaultdict(int)
-    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
-    state.hypotheses = defaultdict(None)
-    state.h_decisions = defaultdict(bool)
-    state.metric_series = []
-    state.last_msg = None
-    state.current_tags = []
-    state.alpha158_metrics = None
-
-
 def should_display(msg: Message):
     for t in state.excluded_tags:
         if t in msg.tag.split("."):
@@ -151,7 +136,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if state.log_type == "Qlib Factor" and state.alpha158_metrics is None:
+                        if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
                             sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -177,7 +162,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         if "evolving code" in tags:
                             msg.content = [i for i in msg.content if i]
                         if "evolving feedback" in tags:
+                            total_len = len(msg.content)
                             msg.content = [i for i in msg.content if i]
+                            none_num = total_len - len(msg.content)
                             if len(msg.content) != len(state.msgs[state.lround]["d.evolving code"][-1].content):
                                 st.toast(":red[**Evolving Feedback Length Error!**]", icon="‼️")
                             right_num = 0
@@ -185,7 +172,11 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 if wsf.final_decision:
                                     right_num += 1
                             wrong_num = len(msg.content) - right_num
-                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num)
+                            state.e_decisions[state.lround][state.erounds[state.lround]] = (
+                                right_num,
+                                wrong_num,
+                                none_num,
+                            )
 
                     state.msgs[state.lround][msg.tag].append(msg)
                     # Stop Getting Logs
@@ -194,6 +185,38 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
             except StopIteration:
                 st.toast(":red[**No More Logs to Show!**]", icon="🛑")
                 break
+
+
+def refresh(same_trace: bool = False):
+    if state.log_path is None:
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
+        return
+
+    if main_log_path:
+        state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
+    else:
+        state.fs = FileStorage(state.log_path).iter_msg()
+
+    # detect scenario
+    if not same_trace:
+        get_msgs_until(lambda m: not isinstance(m.content, str))
+        if state.last_msg is None or not isinstance(state.last_msg.content, Scenario):
+            st.toast(":red[**No Scenario Info detected**]", icon="❗")
+            state.scenario = None
+        else:
+            state.scenario = state.last_msg.content
+            st.toast(f":green[**Scenario Info detected**] *{type(state.scenario).__name__}*", icon="✅")
+
+    state.msgs = defaultdict(lambda: defaultdict(list))
+    state.lround = 0
+    state.erounds = defaultdict(int)
+    state.e_decisions = defaultdict(lambda: defaultdict(tuple))
+    state.hypotheses = defaultdict(None)
+    state.h_decisions = defaultdict(bool)
+    state.metric_series = []
+    state.last_msg = None
+    state.current_tags = []
+    state.alpha158_metrics = None
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
@@ -232,14 +255,30 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
 
 
 def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, bool], success_only: bool = False):
+    name_dict = {
+        "hypothesis": "RD-Agent proposes the hypothesis⬇️",
+        "concise_justification": "because the reason⬇️",
+        "concise_observation": "based on the observation⬇️",
+        "concise_knowledge": "Knowledge⬇️ gained after practice",
+    }
     if success_only:
         shd = {k: v.__dict__ for k, v in hypotheses.items() if decisions[k]}
     else:
         shd = {k: v.__dict__ for k, v in hypotheses.items()}
     df = pd.DataFrame(shd).T
+
+    if "concise_observation" in df.columns and "concise_justification" in df.columns:
+        df["concise_observation"], df["concise_justification"] = df["concise_justification"], df["concise_observation"]
+        df.rename(
+            columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"},
+            inplace=True,
+        )
     if "reason" in df.columns:
         df.drop(["reason"], axis=1, inplace=True)
-    df.columns = df.columns.map(lambda x: x.replace("_", " ").capitalize())
+    if "concise_reason" in df.columns:
+        df.drop(["concise_reason"], axis=1, inplace=True)
+
+    df.columns = df.columns.map(lambda x: name_dict.get(x, x))
 
     def style_rows(row):
         if decisions[row.name]:
@@ -247,7 +286,7 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
         return [""] * len(row)
 
     def style_columns(col):
-        if col.name != "Hypothesis":
+        if col.name != name_dict.get("hypothesis", "hypothesis"):
             return ["font-style: italic;"] * len(col)
         return ["font-weight: bold;"] * len(col)
 
@@ -303,8 +342,12 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 
 def summary_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
+        if state.lround == 0:
+            return
         with st.container():
             # TODO: not fixed height
             with st.container():
@@ -323,7 +366,7 @@ def summary_window():
                 display_hypotheses(state.hypotheses, state.h_decisions, show_true_only)
 
             with chart_c:
-                if state.log_type == "Qlib Factor" and state.alpha158_metrics is not None:
+                if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
@@ -344,33 +387,34 @@ def summary_window():
                     else:
                         metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
-    elif state.log_type == "Model from Paper" and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+    elif isinstance(state.scenario, GeneralModelScenario):
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
+            if len(state.msgs[state.lround]["d.evolving code"]) > 0:
+                # pass
+                ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
+                # All Tasks
 
-            # pass
-            ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
-            # All Tasks
+                tab_names = [
+                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name
+                    for w in ws
+                ]
+                for j in range(len(ws)):
+                    if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
+                        tab_names[j] += "✔️"
+                    else:
+                        tab_names[j] += "❌"
 
-            tab_names = [
-                w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
-            ]
-            for j in range(len(ws)):
-                if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
-                    tab_names[j] += "✔️"
-                else:
-                    tab_names[j] += "❌"
+                wtabs = st.tabs(tab_names)
+                for j, w in enumerate(ws):
+                    with wtabs[j]:
+                        # Evolving Code
+                        for k, v in w.code_dict.items():
+                            with st.expander(f":green[`{k}`]", expanded=False):
+                                st.code(v, language="python")
 
-            wtabs = st.tabs(tab_names)
-            for j, w in enumerate(ws):
-                with wtabs[j]:
-                    # Evolving Code
-                    for k, v in w.code_dict.items():
-                        with st.expander(f":green[`{k}`]", expanded=False):
-                            st.code(v, language="python")
-
-                    # Evolving Feedback
-                    evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
+                        # Evolving Feedback
+                        evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
 
 def tabs_hint():
@@ -380,7 +424,6 @@ def tabs_hint():
     )
 
 
-# TODO: when tab names are too long, some tabs are not shown
 def tasks_window(tasks: list[FactorTask | ModelTask]):
     if isinstance(tasks[0], FactorTask):
         st.markdown("**Factor Tasks🚩**")
@@ -393,7 +436,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 # st.markdown(f"**Factor Name**: {ft.factor_name}")
                 st.markdown(f"**Description**: {ft.factor_description}")
                 st.latex("Formulation")
-                st.latex(f"{ft.factor_formulation}")
+                st.latex(ft.factor_formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
                 for v, d in ft.variables.items():
@@ -412,7 +455,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.markdown(f"**Model Type**: {mt.model_type}")
                 st.markdown(f"**Description**: {mt.description}")
                 st.latex("Formulation")
-                st.latex(f"{mt.formulation}")
+                st.latex(mt.formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
                 for v, d in mt.variables.items():
@@ -420,152 +463,19 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.markdown(mks)
 
 
-# Config Sidebar
-with st.sidebar:
-    st.markdown(
-        """
-# RD-Agent🤖
-## [Scenario Description](#_scenario)
-## [Summary](#_summary)
-- [**Hypotheses**](#_hypotheses)
-- [**Metrics**](#_metrics)
-## [RD-Loops](#_rdloops)
-- [**Research**](#_research)
-- [**Development**](#_development)
-- [**Feedback**](#_feedback)
-"""
-    )
-
-    st.selectbox(
-        ":green[**Scenario**]", ["Qlib Model", "Data Mining", "Qlib Factor", "Model from Paper"], key="log_type"
-    )
-
-    with st.popover(":orange[**Config⚙️**]"):
-        with st.container(border=True):
-            st.markdown(":blue[**log path**]")
-            if main_log_path:
-                if st.toggle("Manual Input"):
-                    st.text_input("log path", key="log_path", on_change=refresh)
-                else:
-                    folders = [
-                        folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
-                    ]
-                    st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
-            else:
-                st.text_input("log path", key="log_path", on_change=refresh)
-
-        with st.container(border=True):
-            st.markdown(":blue[**excluded configs**]")
-            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
-
-    if st.button("All Loops"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: False)
-
-    if st.button("Next Loop"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "ef.feedback" in m.tag)
-
-    if st.button("One Evolving"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
-
-    if st.button("refresh logs", help="clear all log messages in cache"):
-        refresh()
-    debug = st.toggle("debug", value=False)
-
-    if debug:
-        if st.button("Single Step Run"):
-            if not state.fs:
-                refresh()
-            get_msgs_until()
-
-
-# Debug Info Window
-if debug:
-    with st.expander(":red[**Debug Info**]", expanded=True):
-        dcol1, dcol2 = st.columns([1, 3])
-        with dcol1:
-            st.markdown(
-                f"**trace type**: {state.log_type}\n\n"
-                f"**log path**: {state.log_path}\n\n"
-                f"**excluded tags**: {state.excluded_tags}\n\n"
-                f"**excluded types**: {state.excluded_types}\n\n"
-                f":blue[**message id**]: {sum(sum(len(tmsgs) for tmsgs in rmsgs.values()) for rmsgs in state.msgs.values())}\n\n"
-                f":blue[**round**]: {state.lround}\n\n"
-                f":blue[**evolving round**]: {state.erounds[state.lround]}\n\n"
-            )
-        with dcol2:
-            if state.last_msg:
-                st.write(state.last_msg)
-                if isinstance(state.last_msg.content, list):
-                    st.write(state.last_msg.content[0])
-                elif not isinstance(state.last_msg.content, str):
-                    st.write(state.last_msg.content.__dict__)
-
-
-# Main Window
-header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
-with st.container():
-    with header_c1:
-        st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
-    with header_c3:
-        st.markdown(
-            """
-        <h1>
-            RD-Agent:<br>LLM-based autonomous evolving agents for industrial data-driven R&D
-        </h1>
-        """,
-            unsafe_allow_html=True,
-        )
-
-# Project Info
-with st.container():
-    image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
-    with image_c:
-        img_path = rfiles("rdagent.log.ui").joinpath("flow.png")
-        st.image(str(img_path), use_column_width=True)
-    with scen_c:
-        st.header("Scenario Description📖", divider="violet", anchor="_scenario")
-        # TODO: other scenarios
-        if state.log_type == "Qlib Model":
-            st.markdown(QlibModelScenario().rich_style_description, unsafe_allow_html=True)
-        elif state.log_type == "Data Mining":
-            st.markdown(DMModelScenario().rich_style_description)
-        elif state.log_type == "Qlib Factor":
-            st.markdown(QlibFactorScenario().rich_style_description, unsafe_allow_html=True)
-        elif state.log_type == "Model from Paper":
-            st.markdown(GeneralModelScenario().rich_style_description, unsafe_allow_html=True)
-
-
-# Summary Window
-summary_window()
-
-# R&D Loops Window
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
-
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    if len(state.msgs) > 1:
-        r_options = list(state.msgs.keys())
-        if 0 in r_options:
-            r_options.remove(0)
-        round = st_btn_select(options=r_options, index=state.lround - 1)
-    else:
-        round = 1
-else:
-    round = 1
-
-
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"] else "Research🔍 (reader)"
+        title = (
+            "Research🔍"
+            if isinstance(
+                state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            )
+            else "Research🔍 (reader)"
+        )
         st.subheader(title, divider="blue", anchor="_research")
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+        if isinstance(
+            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        ):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -584,7 +494,7 @@ def research_window():
             if eg := state.msgs[round]["r.experiment generation"]:
                 tasks_window(eg[0].content)
 
-        elif state.log_type == "Model from Paper":
+        elif isinstance(state.scenario, GeneralModelScenario):
             # pdf image
             c1, c2 = st.columns([2, 3])
             with c1:
@@ -600,9 +510,18 @@ def research_window():
 
 
 def feedback_window():
-    if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+
+            if state.lround > 0 and isinstance(
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            ):
+                with st.expander("**Config⚙️**", expanded=True):
+                    st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
+
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
@@ -620,23 +539,13 @@ def feedback_window():
                 )
 
 
-if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]:
-    rf_c, d_c = st.columns([2, 2])
-elif state.log_type == "Model from Paper":
-    rf_c = st.container()
-    d_c = st.container()
-
-
-with rf_c:
-    research_window()
-    feedback_window()
-
-
-# Development Window (Evolving)
-with d_c.container(border=True):
+@st.fragment
+def evolving_window():
     title = (
         "Development🛠️"
-        if state.log_type in ["Qlib Model", "Data Mining", "Qlib Factor"]
+        if isinstance(
+            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        )
         else "Development🛠️ (evolving coder)"
     )
     st.subheader(title, divider="green", anchor="_development")
@@ -649,17 +558,20 @@ with d_c.container(border=True):
         e_status_mks += "|--" * state.erounds[round] + "|\n"
         for ei, estatus in es.items():
             if not estatus:
-                estatus = (0, 0)
-            e_status_mks += "| " + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
+                estatus = (0, 0, 0)
+            e_status_mks += "| " + "🕙<br>" * estatus[2] + "✔️<br>" * estatus[0] + "❌<br>" * estatus[1] + " "
         e_status_mks += "|\n"
         st.markdown(e_status_mks, unsafe_allow_html=True)
 
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            st.markdown("**🔄️Evolving Rounds**")
-            evolving_round = st_btn_select(
-                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
+            evolving_round = st.radio(
+                "**🔄️Evolving Rounds**",
+                horizontal=True,
+                options=range(1, state.erounds[round] + 1),
+                index=state.erounds[round] - 1,
+                key="show_eround",
             )
         else:
             evolving_round = 1
@@ -693,8 +605,175 @@ with d_c.container(border=True):
                     evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
 
-with st.container(border=True):
-    st.subheader("Disclaimer", divider="gray")
-    st.markdown(
-        "This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters."
-    )
+toc = """
+## [Scenario Description📖](#_scenario)
+## [Summary📊](#_summary)
+- [**Metrics📈**](#_metrics)
+- [**Hypotheses🏅**](#_hypotheses)
+## [RD-Loops♾️](#_rdloops)
+- [**Research🔍**](#_research)
+- [**Development🛠️**](#_development)
+- [**Feedback📝**](#_feedback)
+"""
+if isinstance(state.scenario, GeneralModelScenario):
+    toc = """
+## [Scenario Description📖](#_scenario)
+### [Summary📊](#_summary)
+### [Research🔍](#_research)
+### [Development🛠️](#_development)
+"""
+# Config Sidebar
+with st.sidebar:
+    st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
+    st.subheader(":blue[Table of Content]", divider="blue")
+    st.markdown(toc)
+    st.subheader(":orange[Control Panel]", divider="red")
+
+    with st.container(border=True):
+        if main_log_path:
+            lc1, lc2 = st.columns([1, 2], vertical_alignment="center")
+            with lc1:
+                st.markdown(":blue[**Log Path**]")
+            with lc2:
+                manually = st.toggle("Manual Input")
+            if manually:
+                st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
+            else:
+                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
+        else:
+            st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
+
+    c1, c2 = st.columns([1, 1], vertical_alignment="center")
+    with c1:
+        if st.button(":green[**All Loops**]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: False)
+        if st.button("**Reset**", use_container_width=True):
+            refresh(same_trace=True)
+    with c2:
+        if st.button(":green[Next Loop]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "ef.feedback" in m.tag)
+
+        if st.button("Next Step", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+
+    with st.popover(":orange[**Config⚙️**]", use_container_width=True):
+        st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+        st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+
+    if args.debug:
+        debug = st.toggle("debug", value=False)
+
+        if debug:
+            if st.button("Single Step Run", use_container_width=True):
+                get_msgs_until()
+    else:
+        debug = False
+
+
+# Debug Info Window
+if debug:
+    with st.expander(":red[**Debug Info**]", expanded=True):
+        dcol1, dcol2 = st.columns([1, 3])
+        with dcol1:
+            st.markdown(
+                f"**log path**: {state.log_path}\n\n"
+                f"**excluded tags**: {state.excluded_tags}\n\n"
+                f"**excluded types**: {state.excluded_types}\n\n"
+                f":blue[**message id**]: {sum(sum(len(tmsgs) for tmsgs in rmsgs.values()) for rmsgs in state.msgs.values())}\n\n"
+                f":blue[**round**]: {state.lround}\n\n"
+                f":blue[**evolving round**]: {state.erounds[state.lround]}\n\n"
+            )
+        with dcol2:
+            if state.last_msg:
+                st.write(state.last_msg)
+                if isinstance(state.last_msg.content, list):
+                    st.write(state.last_msg.content[0])
+                elif not isinstance(state.last_msg.content, str):
+                    st.write(state.last_msg.content.__dict__)
+
+
+if state.log_path and state.fs is None:
+    refresh()
+
+# Main Window
+header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
+with st.container():
+    with header_c1:
+        st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
+    with header_c3:
+        st.markdown(
+            """
+        <h1>
+            RD-Agent:<br>LLM-based autonomous evolving agents for industrial data-driven R&D
+        </h1>
+        """,
+            unsafe_allow_html=True,
+        )
+
+# Project Info
+with st.container():
+    image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
+    with image_c:
+        img_path = rfiles("rdagent.log.ui").joinpath("flow.png")
+        st.image(str(img_path), use_column_width=True)
+    with scen_c:
+        st.header("Scenario Description📖", divider="violet", anchor="_scenario")
+        if state.scenario is not None:
+            theme = st_theme()
+            if theme:
+                theme = theme.get("base", "light")
+            css = f"""
+<style>
+    a[href="#_rdloops"], a[href="#_research"], a[href="#_development"], a[href="#_feedback"], a[href="#_scenario"], a[href="#_summary"], a[href="#_hypotheses"], a[href="#_metrics"] {{
+        color: {"black" if theme == "light" else "white"};
+    }}
+</style>
+"""
+            st.markdown(state.scenario.rich_style_description + css, unsafe_allow_html=True)
+
+
+if state.scenario is not None:
+    summary_window()
+
+    # R&D Loops Window
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
+        st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
+        if len(state.msgs) > 1:
+            r_options = list(state.msgs.keys())
+            if 0 in r_options:
+                r_options.remove(0)
+            round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
+        else:
+            round = 1
+        rf_c, d_c = st.columns([2, 2])
+    elif isinstance(state.scenario, GeneralModelScenario):
+        rf_c = st.container()
+        d_c = st.container()
+        round = 1
+    else:
+        st.error("Unknown Scenario!")
+        st.stop()
+
+    with rf_c:
+        research_window()
+        feedback_window()
+
+    with d_c.container(border=True):
+        evolving_window()
+
+
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("#### Disclaimer")
+st.markdown(
+    "*This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters.*",
+    unsafe_allow_html=True,
+)

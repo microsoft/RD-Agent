@@ -18,11 +18,13 @@ In `RD-Agent/` folder, run:
 
 .. code-block:: bash
 
-    rdagent ui --port <port> --log_dir <log_dir>
+    rdagent ui --port <port> --log_dir <log_dir> [--debug]
 
 This will start a web app on `http://localhost:<port>`.
 
 **NOTE**: The log_dir parameter is not required. You can manually enter the log_path in the web app. If you set the log_dir parameter, you can easily select a different log_path in the web app.
+
+--debug is optional, it will show a "Single Step Run" button in sidebar and saved objects info in the web app.
 
 Use Web App
 -----------
