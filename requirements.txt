@@ -64,4 +64,4 @@ docker
 # demo related
 streamlit
 plotly
-st-btn-select
+st-theme

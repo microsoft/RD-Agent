@@ -22,12 +22,19 @@ from rdagent.app.qlib_rd_loop.model import main as fin_model
 load_dotenv()
 
 
-def ui(port=80, log_dir="./log"):
+def ui(port=80, log_dir="", debug=False):
     """
     start web app to show the log traces.
     """
     with rpath("rdagent.log.ui", "app.py") as app_path:
-        subprocess.run(["streamlit", "run", app_path, f"--server.port={port}", "--", f"--log_dir={log_dir}"])
+        cmds = ["streamlit", "run", app_path, f"--server.port={port}"]
+        if log_dir or debug:
+            cmds.append("--")
+        if log_dir:
+            cmds.append(f"--log_dir={log_dir}")
+        if debug:
+            cmds.append("--debug")
+        subprocess.run(cmds)
 
 
 def app():
