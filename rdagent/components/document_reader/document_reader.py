@@ -114,7 +114,7 @@ def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str
 
 
 def extract_first_page_screenshot_from_pdf(pdf_path: str) -> Image:
-    if not pdf_path.exists():
+    if not Path(pdf_path).exists():
         doc = fitz.open(stream=io.BytesIO(requests.get(pdf_path).content), filetype="pdf")
     else:
         doc = fitz.open(pdf_path)
