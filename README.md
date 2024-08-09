@@ -41,13 +41,13 @@ You can click the [🎥link](https://rdagent.azurewebsites.net) above to view th
 - TODO: Demo: it fails to display the video in the README.md.
 We have a quick 🎥demo for one use case of RDAgent.
 [![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
- [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
- -->
- 
  <p align="center">
   <a href="https://rdagent.azurewebsites.net/"> <img src="docs/_static/img/logo/1.png" /> </a>
  </p>
-
+ -->
+ 
+ [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
+ 
 
 # ⚡Quick start
 You can try above demos by running the following command:
