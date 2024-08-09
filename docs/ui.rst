@@ -30,6 +30,7 @@ Use Web App
 1. Open the sidebar.
 
 .. TODO: update these
+
 2. Select the scenario you want to show. There are some pre-defined scenarios:
     - Qlib Model
     - Qlib Factor
