@@ -1,8 +1,8 @@
 import argparse
 import textwrap
-from importlib.resources import files as rfiles
 from collections import defaultdict
 from datetime import datetime, timezone
+from importlib.resources import files as rfiles
 from pathlib import Path
 from typing import Callable, Type
 
