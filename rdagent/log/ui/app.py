@@ -107,11 +107,11 @@ if "alpha158_metrics" not in state:
 
 
 def should_display(msg: Message):
-    for t in state.excluded_tags:
-        if t in msg.tag.split("."):
-            return False
+    # for t in state.excluded_tags:
+    #     if t in msg.tag.split("."):
+    #         return False
 
-    if type(msg.content).__name__ in state.excluded_types:
+    if type(msg.content).__name__ in ["str", "dict"]:
         return False
 
     return True
@@ -178,7 +178,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if end_func(msg):
                         break
             except StopIteration:
-                st.toast(":red[**No More Logs to Show!**]", icon="🛑")
+                st.toast(":red[**No More Logs to Show!**]", icon="⚠️")
                 break
 
 
@@ -329,6 +329,8 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 def summary_window():
     if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
+        if state.lround == 0:
+            return
         with st.container():
             # TODO: not fixed height
             with st.container():
@@ -368,33 +370,33 @@ def summary_window():
                     else:
                         metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
-    elif isinstance(state.scenario, GeneralModelScenario) and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+    elif isinstance(state.scenario, GeneralModelScenario):
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
+            if len(state.msgs[state.lround]["d.evolving code"]) > 0:
+                # pass
+                ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
+                # All Tasks
 
-            # pass
-            ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
-            # All Tasks
+                tab_names = [
+                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+                ]
+                for j in range(len(ws)):
+                    if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
+                        tab_names[j] += "✔️"
+                    else:
+                        tab_names[j] += "❌"
 
-            tab_names = [
-                w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
-            ]
-            for j in range(len(ws)):
-                if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
-                    tab_names[j] += "✔️"
-                else:
-                    tab_names[j] += "❌"
+                wtabs = st.tabs(tab_names)
+                for j, w in enumerate(ws):
+                    with wtabs[j]:
+                        # Evolving Code
+                        for k, v in w.code_dict.items():
+                            with st.expander(f":green[`{k}`]", expanded=False):
+                                st.code(v, language="python")
 
-            wtabs = st.tabs(tab_names)
-            for j, w in enumerate(ws):
-                with wtabs[j]:
-                    # Evolving Code
-                    for k, v in w.code_dict.items():
-                        with st.expander(f":green[`{k}`]", expanded=False):
-                            st.code(v, language="python")
-
-                    # Evolving Feedback
-                    evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
+                        # Evolving Feedback
+                        evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
 def tabs_hint():
     st.markdown(
@@ -561,60 +563,73 @@ def evolving_window():
                 if len(state.msgs[round]["d.evolving feedback"]) >= evolving_round:
                     evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
-
-
+toc = """
+## [Scenario Description📖](#_scenario)
+## [Summary📊](#_summary)
+- [**Metrics📈**](#_metrics)
+- [**Hypotheses🏅**](#_hypotheses)
+## [RD-Loops♾️](#_rdloops)
+- [**Research🔍**](#_research)
+- [**Development🛠️**](#_development)
+- [**Feedback📝**](#_feedback)
+"""
+if isinstance(state.scenario, GeneralModelScenario):
+    toc = """
+## [Scenario Description📖](#_scenario)
+### [Summary📊](#_summary)
+### [Research🔍](#_research)
+### [Development🛠️](#_development)
+"""
 # Config Sidebar
 with st.sidebar:
-    st.markdown(
-        """
-# RD-Agent🤖
-## [Scenario Description](#_scenario)
-## [Summary](#_summary)
-- [**Hypotheses**](#_hypotheses)
-- [**Metrics**](#_metrics)
-## [RD-Loops](#_rdloops)
-- [**Research**](#_research)
-- [**Development**](#_development)
-- [**Feedback**](#_feedback)
-"""
-    )
+    st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
+    # st.markdown("")
+    st.subheader(":blue[Table of Content]", divider='blue')
+    st.markdown(toc)
 
-    with st.popover(":orange[**Config⚙️**]"):
-        with st.container(border=True):
-            st.markdown(":blue[**log path**]")
-            if main_log_path:
-                if st.toggle("Manual Input"):
-                    st.text_input("log path", key="log_path", on_change=refresh)
-                else:
-                    folders = [
-                        folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
-                    ]
-                    st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
-            else:
-                st.text_input("log path", key="log_path", on_change=refresh)
+    # with st.popover(":orange[**Config⚙️**]"):
+    # with st.container(border=True):
+        # st.markdown(":blue[**log path**]")
+        # if main_log_path:
+            # if st.toggle("Manual Input"):
+            #     st.text_input("log path", key="log_path", on_change=refresh)
+            # else:
+    folders = [
+        folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
+    ]
+    st.subheader(":orange[Control Panel]", divider='red')
+    # cc1, cc2 = st.columns([2, 1])
+    with st.popover(":blue[**Sample Logs**]", use_container_width=True):
+        st.radio("samples", folders, key="log_path", on_change=refresh, label_visibility="collapsed", format_func=lambda x: f"**{x}**\n")
 
-        with st.container(border=True):
-            st.markdown(":blue[**excluded configs**]")
-            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+    # st.selectbox(f":blue[**Sample Logs**]", folders, key="log_path", on_change=refresh)
+        # else:
+        #     st.text_input("log path", key="log_path", on_change=refresh)
 
-    if st.button("All Loops"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: False)
+        # with st.container(border=True):
+        #     st.markdown(":blue[**excluded configs**]")
+        #     st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+        #     st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
 
-    if st.button("Next Loop"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "ef.feedback" in m.tag)
+    c1, c2 = st.columns([1, 1], vertical_alignment="center")
+    with c1:
+        if st.button(":green[**All Loops**]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: False)
+        if st.button("**Reset**", use_container_width=True):
+            refresh(same_trace=True)
+    with c2:
+        if st.button(":green[Next Loop]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "ef.feedback" in m.tag)
 
-    if st.button("One Evolving"):
-        if not state.fs:
-            refresh()
-        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+        if st.button("Next Step", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
-    if st.button("refresh logs", help="clear all log messages in cache"):
-        refresh(same_trace=True)
     if args.debug:
         debug = st.toggle("debug", value=False)
 
@@ -625,7 +640,20 @@ with st.sidebar:
                 get_msgs_until()
     else:
         debug = False
+    
+    st.subheader("Demo videos🎥", divider='violet')
+    st.markdown("""
+- 💹[**Finance Model Implementation**](model_loop)
 
+- 💹[**Finance Data Building**](factor_loop)
+
+- 💹[**Finance Data Building (from Reports)**](report_factor)
+
+- 🏭[**General Model Implementation**](report_model)
+
+- 🩺[**Medical Model Implementation**](dmm)
+
+""")
 
 # Debug Info Window
 if debug:
@@ -654,15 +682,17 @@ if debug:
 if state.fs is None:
     refresh()
 
-header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
+header_c1, header_c3 = st.columns([1, 5], vertical_alignment="center")
 with st.container():
     with header_c1:
         st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
     with header_c3:
+        # st.title("RD-Agent:")
+        # st.header("LLM-based autonomous evolving agents for industrial data-driven R&D", anchor="_title")
         st.markdown(
             """
         <h1>
-            RD-Agent:<br>LLM-based autonomous evolving agents for industrial data-driven R&D
+            RD-Agent:<br><span style="font-size: 32px;">LLM-based autonomous evolving agents for industrial data-driven R&D</span>
         </h1>
         """,
             unsafe_allow_html=True,
@@ -719,8 +749,11 @@ if state.scenario is not None:
         evolving_window()
 
 
-with st.container(border=True):
-    st.subheader("Disclaimer", divider="gray")
-    st.markdown(
-        "This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters."
-    )
+# with st.container(border=True):
+    # st.subheader("Disclaimer", divider="gray")
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("#### Disclaimer")
+st.markdown(
+    "*This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters.*",
+    unsafe_allow_html=True,
+)
