@@ -18,7 +18,7 @@ In `RD-Agent/` folder, run:
 
 .. code-block:: bash
 
-    streamlit run rdagent/log/ui/app.py --server.port <port> -- --log_dir <log_dir>
+    rdagent ui --port <port> --log_dir <log_dir>
 
 This will start a web app on `http://localhost:<port>`.
 
