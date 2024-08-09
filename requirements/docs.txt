@@ -10,3 +10,4 @@ Sphinx
 sphinx-autobuild
 sphinx-click
 sphinx-togglebutton
+sphinx_rtd_theme
