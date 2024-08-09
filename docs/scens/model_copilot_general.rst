@@ -9,7 +9,11 @@ General Model Copilot
 
 📖 Background
 ~~~~~~~~~~~~~~
-TODO:
+In the fast-paced field of artificial intelligence, the number of academic papers published each year is skyrocketing. 
+These papers introduce new models, techniques, and approaches that can significantly advance the state of the art. 
+However, reproducing and implementing these models can be a daunting task, requiring substantial time and expertise. 
+Researchers often face challenges in extracting the essential details from these papers and converting them into functional code.
+And this is where the **General Model Copilot** steps in.
 
 🎥 Demo
 ~~~~~~~~~~
@@ -60,12 +64,13 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
+          pip install rdagent
+
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
@@ -79,31 +84,7 @@ You can try our demo by running the following command:
           rdagent/scenarios/general_model
     
     - Run the following command in your terminal within the same virtual environment:
-
+    
       .. code-block:: sh
 
-          python rdagent/app/general_model/general_model.py report_file_path 
-
-🛠️ Usage of modules
-~~~~~~~~~~~~~~~~~~~~~
-There are mainly two modules in this scenario: one that reads the paper and returns a model card & one that reads the model card and returns functional code. The moduldes can also be used separately as components for developers to build up new scenarios.
-
-
-- Configurations
-    - The `config.yaml` file located in the `model_template` folder contains the relevant configurations for running the developed model in Qlib. The default settings include key information such as:
-        - **market**: Specifies the market, which is set to `csi300`.
-        - **fields_group**: Defines the fields group, with the value `feature`.
-        - **col_list**: A list of columns used, including various indicators such as `RESI5`, `WVMA5`, `RSQR5`, and others.
-        - **start_time**: The start date for the data, set to `2008-01-01`.
-        - **end_time**: The end date for the data, set to `2020-08-01`.
-        - **fit_start_time**: The start date for fitting the model, set to `2008-01-01`.
-        - **fit_end_time**: The end date for fitting the model, set to `2014-12-31`.
-
-    - The default hyperparameters used in the configuration are as follows:
-        - **n_epochs**: The number of epochs, set to `100`.
-        - **lr**: The learning rate, set to `1e-3`.
-        - **early_stop**: The early stopping criterion, set to `10`.
-        - **batch_size**: The batch size, set to `2000`.
-        - **metric**: The evaluation metric, set to `loss`.
-        - **loss**: The loss function, set to `mse`.
-        - **n_jobs**: The number of parallel jobs, set to `20`.
+          rdagent general_model --report_file_path=<path_to_pdf_file>

@@ -9,7 +9,12 @@ Finance Model Agent
 
 📖 Background
 ~~~~~~~~~~~~~~
-TODO
+In the realm of quantitative finance, both factor discovery and model development play crucial roles in driving performance. 
+While much attention is often given to the discovery of new financial factors, the **models** that leverage these factors are equally important. 
+The effectiveness of a quantitative strategy depends not only on the factors used but also on how well these factors are integrated into robust, predictive models.
+
+However, the process of developing and optimizing these models can be labor-intensive and complex, requiring continuous refinement and adaptation to ever-changing market conditions. 
+And this is where the **Finance Model Agent** steps in.
 
 🎥 Demo
 ~~~~~~~~~~
@@ -19,9 +24,9 @@ TODO: Here should put a video of the demo.
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
 
-In this scenario, our automated system proposes hypothesis, constructs model, implements code, receives back-testing, and uses feedbacks. 
-Hypothesis is iterated in this continuous process. 
-The system aims to automatically optimise performance metrics from Qlib library thereby finding the optimised code through autonomous research and development.
+In this scenario, our automated system proposes hypothesis, constructs model, implements code, conducts back-testing, and utilizes feedback in a continuous, iterative process.
+
+The goal is to automatically optimize performance metrics within the Qlib library, ultimately discovering the most efficient code through autonomous research and development.
 
 Here's an enhanced outline of the steps:
 
@@ -84,16 +89,24 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
+          pip install rdagent
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
         - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
+
+    - Export each variable in the .env file:
+
+      .. code-block:: sh
+
+          export $(grep -v '^#' .env | xargs)
+    
+    - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
     .. code-block:: sh
@@ -102,4 +115,32 @@ You can try our demo by running the following command:
 
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~
-TODO: Show some examples:
+
+.. _Env Config: 
+
+- **Env Config**
+
+The following environment variables can be set in the `.env` file to customize the application's behavior:
+
+.. autopydantic_settings:: rdagent.app.qlib_rd_loop.conf.ModelBasePropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config
+
+- **Qlib Config**
+    - The `config.yaml` file located in the `model_template` folder contains the relevant configurations for running the developed model in Qlib. The default settings include key information such as:
+        - **market**: Specifies the market, which is set to `csi300`.
+        - **fields_group**: Defines the fields group, with the value `feature`.
+        - **col_list**: A list of columns used, including various indicators such as `RESI5`, `WVMA5`, `RSQR5`, and others.
+        - **start_time**: The start date for the data, set to `2008-01-01`.
+        - **end_time**: The end date for the data, set to `2020-08-01`.
+        - **fit_start_time**: The start date for fitting the model, set to `2008-01-01`.
+        - **fit_end_time**: The end date for fitting the model, set to `2014-12-31`.
+
+    - The default hyperparameters used in the configuration are as follows:
+        - **n_epochs**: The number of epochs, set to `100`.
+        - **lr**: The learning rate, set to `1e-3`.
+        - **early_stop**: The early stopping criterion, set to `10`.
+        - **batch_size**: The batch size, set to `2000`.
+        - **metric**: The evaluation metric, set to `loss`.
+        - **loss**: The loss function, set to `mse`.
+        - **n_jobs**: The number of parallel jobs, set to `20`.

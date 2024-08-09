@@ -17,7 +17,7 @@ Furthermore, rather than hastily replicating factors from a report, it's essenti
 Does the factor capture the essential market dynamics? How unique is it compared to the factors already in your library?
 
 Therefore, there is an urgent need for a systematic approach to design a framework that can effectively manage this process. 
-This is where our RDAgent comes into play.
+And this is where the **Finance Data Copilot** steps in.
 
 
 🎥 Demo
@@ -91,12 +91,12 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
+          pip install rdagent
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
@@ -105,11 +105,21 @@ You can try our demo by running the following command:
     - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
-    .. code-block:: sh
+    - Store the factors you want to extract from the financial reports in your desired folder. Then, save the paths of the reports in the `report_result_json_file_path`. The format should be as follows:
 
-        rdagent fin_factor_report
+      .. code-block:: json
 
+          [
+              "git_ignore_folder/report/fin_report1.pdf",
+              "git_ignore_folder/report/fin_report2.pdf",
+              "git_ignore_folder/report/fin_report3.pdf"
+          ]
 
+    - Run the application using the following command:
+    
+      .. code-block:: sh
+
+          rdagent fin_factor_report
 
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~
@@ -119,32 +129,13 @@ You can try our demo by running the following command:
 - **Env Config**
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
-    - **Path to the folder containing research reports:**
 
-      .. code-block:: sh
+.. autopydantic_settings:: rdagent.app.qlib_rd_loop.conf.FactorFromReportPropSetting
+    :settings-show-field-summary: False
+    :show-inheritance:
+    :exclude-members: Config
 
-          QLIB_FACTOR_LOCAL_REPORT_PATH=/path/to/research/reports
-
-    - **Path to the JSON file listing research reports for factor extraction:**
-
-      .. code-block:: sh
-
-          QLIB_FACTOR_REPORT_RESULT_JSON_FILE_PATH=/path/to/reports/list.json
-
-    - **Maximum time (in seconds) for writing factor code:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_FILE_BASED_EXECUTION_TIMEOUT=300
-
-    - **Maximum number of factors to write in one experiment:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_SELECT_THRESHOLD=5
-
-    - **Number of developing loops for writing factors:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_MAX_LOOP=10
+.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+    :settings-show-field-summary: False
+    :members: coder_use_cache, data_folder, data_folder_debug, cache_location, enable_execution_cache, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
+    :exclude-members: Config, python_bin, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler

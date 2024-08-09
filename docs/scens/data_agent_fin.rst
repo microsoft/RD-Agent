@@ -10,13 +10,12 @@ Finance Data Agent
 
 📖 Background
 ~~~~~~~~~~~~~~
-In the dynamic world of quantitative trading, **factors** are the secret weapons that traders use to harness market inefficiencies. 
+In the dynamic world of quantitative trading, **factors** serve as the strategic tools that enable traders to exploit market inefficiencies. 
+These factors—ranging from simple metrics like price-to-earnings ratios to complex models like discounted cash flows—are the key to predicting stock prices with a high degree of accuracy.
 
-These powerful tools—ranging from straightforward metrics like price-to-earnings ratios to intricate discounted cash flow models—unlock the potential to predict stock prices with remarkable precision. 
-By tapping into this rich vein of data, quantitative traders craft sophisticated strategies that not only capitalize on market patterns but also drastically enhance trading efficiency and accuracy. 
-
-Embrace the power of factors, and you're not just trading; you're strategically outsmarting the market.
-
+By leveraging these factors, quantitative traders can develop sophisticated strategies that not only identify market patterns but also significantly enhance trading efficiency and precision. 
+The ability to systematically analyze and apply these factors is what separates ordinary trading from truly strategic market outmaneuvering.
+And this is where the **Finance Model Agent** comes into play.
 
 🎥 Demo
 ~~~~~~~~~~
@@ -82,7 +81,7 @@ You can try our demo by running the following command:
     - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
     
       .. code-block:: sh
-      
+
           conda create -n rdagent python=3.10
 
     - Activate the environment:
@@ -91,12 +90,12 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
+          pip install rdagent
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
@@ -118,33 +117,12 @@ You can try our demo by running the following command:
 - **Env Config**
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
-    - **Path to the folder containing private data (default fundamental data in Qlib):**
 
-        .. code-block:: sh
+.. autopydantic_settings:: rdagent.app.qlib_rd_loop.conf.FactorBasePropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config
 
-          FACTOR_CODER_DATA_FOLDER=/path/to/data/factor_implementation_source_data_all
-
-    - **Path to the folder containing partial private data (for debugging):**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_DATA_FOLDER_DEBUG=/path/to/data/factor_implementation_source_data_debug
-
-    - **Maximum time (in seconds) for writing factor code:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_FILE_BASED_EXECUTION_TIMEOUT=300
-
-    - **Maximum number of factors to write in one experiment:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_SELECT_THRESHOLD=5
-
-    - **Number of developing loops for writing factors:**
-
-      .. code-block:: sh
-
-          FACTOR_CODER_MAX_LOOP=10
-
+.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+    :settings-show-field-summary: False
+    :members: coder_use_cache, data_folder, data_folder_debug, cache_location, enable_execution_cache, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
+    :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler
