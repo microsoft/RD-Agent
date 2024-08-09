@@ -14,19 +14,13 @@ class FactorImplementSettings(BaseSettings):
     coder_use_cache: bool = False
     """Indicates whether to use cache for the coder"""
 
-    data_folder: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data").absolute(),
-    )
+    data_folder: str = "git_ignore_folder/factor_implementation_source_data"
     """Path to the folder containing financial data (default is fundamental data in Qlib)"""
 
-    data_folder_debug: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_source_data_debug").absolute(),
-    )
+    data_folder_debug: str = "git_ignore_folder/factor_implementation_source_data_debug"
     """Path to the folder containing partial financial data (for debugging)"""
 
-    cache_location: str = str(
-        (Path().cwd() / "git_ignore_folder" / "factor_implementation_execution_cache").absolute(),
-    )
+    cache_location: str = "git_ignore_folder/factor_implementation_execution_cache"
     """Path to the cache location"""
 
     enable_execution_cache: bool = True

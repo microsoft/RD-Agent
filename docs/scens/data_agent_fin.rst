@@ -10,13 +10,12 @@ Finance Data Agent
 
 📖 Background
 ~~~~~~~~~~~~~~
-In the dynamic world of quantitative trading, **factors** are the secret weapons that traders use to harness market inefficiencies. 
+In the dynamic world of quantitative trading, **factors** serve as the strategic tools that enable traders to exploit market inefficiencies. 
+These factors—ranging from simple metrics like price-to-earnings ratios to complex models like discounted cash flows—are the key to predicting stock prices with a high degree of accuracy.
 
-These powerful tools—ranging from straightforward metrics like price-to-earnings ratios to intricate discounted cash flow models—unlock the potential to predict stock prices with remarkable precision. 
-By tapping into this rich vein of data, quantitative traders craft sophisticated strategies that not only capitalize on market patterns but also drastically enhance trading efficiency and accuracy. 
-
-Embrace the power of factors, and you're not just trading; you're strategically outsmarting the market.
-
+By leveraging these factors, quantitative traders can develop sophisticated strategies that not only identify market patterns but also significantly enhance trading efficiency and precision. 
+The ability to systematically analyze and apply these factors is what separates ordinary trading from truly strategic market outmaneuvering.
+And this is where the **Finance Model Agent** comes into play.
 
 🎥 Demo
 ~~~~~~~~~~
@@ -91,20 +90,12 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
-
-- 📦 Install Pytorch
-    - Install Pytorch and related libraries:
-
-      .. code-block:: sh
-
-          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip3 install torch_geometric
+          pip install rdagent
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
@@ -121,7 +112,7 @@ You can try our demo by running the following command:
 - 🚀 Run the Application
     .. code-block:: sh
 
-        python rdagent/app/qlib_rd_loop/factor_w_sc.py
+        rdagent fin_factor
 
 
 🛠️ Usage of modules
@@ -134,7 +125,10 @@ You can try our demo by running the following command:
 The following environment variables can be set in the `.env` file to customize the application's behavior:
 
 .. autopydantic_settings:: rdagent.app.qlib_rd_loop.conf.FactorBasePropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config
 
 .. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+    :settings-show-field-summary: False
     :members: coder_use_cache, data_folder, data_folder_debug, cache_location, enable_execution_cache, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
-    :exclude-members: fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler
+    :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler

@@ -37,7 +37,7 @@ class FactorBasePropSetting(BasePropSetting):
         env_prefix = "QLIB_FACTOR_"
         """Use `QLIB_FACTOR_` as prefix for environment variables"""
         protected_namespaces = ()
-        """Add 'model_' to the protected namespaces"""
+        """Add 'factor_' to the protected namespaces"""
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
