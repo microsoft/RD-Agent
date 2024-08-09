@@ -13,7 +13,6 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
 from streamlit_theme import st_theme
-from rdagent.core.scenario import Scenario
 
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
@@ -22,6 +21,7 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, Fact
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+from rdagent.core.scenario import Scenario
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
@@ -67,7 +67,7 @@ if "log_path" not in state:
         state.log_path = None
         st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
 
-if 'scenario' not in state:
+if "scenario" not in state:
     state.scenario = None
 
 if "fs" not in state:
@@ -172,7 +172,11 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 if wsf.final_decision:
                                     right_num += 1
                             wrong_num = len(msg.content) - right_num
-                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num, none_num)
+                            state.e_decisions[state.lround][state.erounds[state.lround]] = (
+                                right_num,
+                                wrong_num,
+                                none_num,
+                            )
 
                     state.msgs[state.lround][msg.tag].append(msg)
                     # Stop Getting Logs
@@ -192,7 +196,7 @@ def refresh(same_trace: bool = False):
         state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
     else:
         state.fs = FileStorage(state.log_path).iter_msg()
-    
+
     # detect scenario
     if not same_trace:
         get_msgs_until(lambda m: not isinstance(m.content, str))
@@ -249,6 +253,7 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
         with vfc:
             st.markdown(wsf.value_feedback)
 
+
 def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, bool], success_only: bool = False):
     name_dict = {
         "hypothesis": "RD-Agent proposes the hypothesis⬇️",
@@ -262,9 +267,12 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
         shd = {k: v.__dict__ for k, v in hypotheses.items()}
     df = pd.DataFrame(shd).T
 
-    if 'concise_observation' in df.columns and 'concise_justification' in df.columns:
-        df['concise_observation'], df['concise_justification'] = df['concise_justification'], df['concise_observation']
-        df.rename(columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"}, inplace=True)
+    if "concise_observation" in df.columns and "concise_justification" in df.columns:
+        df["concise_observation"], df["concise_justification"] = df["concise_justification"], df["concise_observation"]
+        df.rename(
+            columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"},
+            inplace=True,
+        )
     if "reason" in df.columns:
         df.drop(["reason"], axis=1, inplace=True)
     if "concise_reason" in df.columns:
@@ -284,6 +292,7 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
     # st.dataframe(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0))
     st.markdown(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0).to_html(), unsafe_allow_html=True)
+
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
     fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
@@ -331,8 +340,11 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
                 )
     st.plotly_chart(fig)
 
+
 def summary_window():
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         if state.lround == 0:
             return
@@ -384,7 +396,8 @@ def summary_window():
                 # All Tasks
 
                 tab_names = [
-                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name
+                    for w in ws
                 ]
                 for j in range(len(ws)):
                     if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
@@ -403,11 +416,13 @@ def summary_window():
                         # Evolving Feedback
                         evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
+
 def tabs_hint():
     st.markdown(
         "<p style='font-size: small; color: #888888;'>You can navigate through the tabs using ⬅️ ➡️ or by holding Shift and scrolling with the mouse wheel🖱️.</p>",
         unsafe_allow_html=True,
     )
+
 
 def tasks_window(tasks: list[FactorTask | ModelTask]):
     if isinstance(tasks[0], FactorTask):
@@ -447,11 +462,20 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                     mks += f"| ${v}$ | {d} |\n"
                 st.markdown(mks)
 
+
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)) else "Research🔍 (reader)"
+        title = (
+            "Research🔍"
+            if isinstance(
+                state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            )
+            else "Research🔍 (reader)"
+        )
         st.subheader(title, divider="blue", anchor="_research")
-        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+        if isinstance(
+            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        ):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -484,15 +508,20 @@ def research_window():
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 
+
 def feedback_window():
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
-            if state.lround > 0 and isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
+            if state.lround > 0 and isinstance(
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            ):
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
-            
+
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
@@ -509,11 +538,14 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
+
 @st.fragment
 def evolving_window():
     title = (
         "Development🛠️"
-        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario))
+        if isinstance(
+            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        )
         else "Development🛠️ (evolving coder)"
     )
     st.subheader(title, divider="green", anchor="_development")
@@ -534,8 +566,12 @@ def evolving_window():
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            evolving_round = st.radio("**🔄️Evolving Rounds**", horizontal=True,
-                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
+            evolving_round = st.radio(
+                "**🔄️Evolving Rounds**",
+                horizontal=True,
+                options=range(1, state.erounds[round] + 1),
+                index=state.erounds[round] - 1,
+                key="show_eround",
             )
         else:
             evolving_round = 1
@@ -589,9 +625,9 @@ if isinstance(state.scenario, GeneralModelScenario):
 # Config Sidebar
 with st.sidebar:
     st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
-    st.subheader(":blue[Table of Content]", divider='blue')
+    st.subheader(":blue[Table of Content]", divider="blue")
     st.markdown(toc)
-    st.subheader(":orange[Control Panel]", divider='red')
+    st.subheader(":orange[Control Panel]", divider="red")
 
     with st.container(border=True):
         if main_log_path:
@@ -603,9 +639,7 @@ with st.sidebar:
             if manually:
                 st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
             else:
-                folders = [
-                    folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
-                ]
+                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
         else:
             st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
@@ -702,14 +736,16 @@ with st.container():
     }}
 </style>
 """
-            st.markdown(state.scenario.rich_style_description+css, unsafe_allow_html=True)
+            st.markdown(state.scenario.rich_style_description + css, unsafe_allow_html=True)
 
 
 if state.scenario is not None:
     summary_window()
 
     # R&D Loops Window
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(
+        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+    ):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:
             r_options = list(state.msgs.keys())
