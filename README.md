@@ -55,10 +55,13 @@ You can try our demo by running the following command:
   conda activate rdagent
   ```
 
-### 🛠️ Run Make Files
-TODO: `pip install rdagent` in the future.
+### 🛠️ Install the RDAgent
+- You can directly install the RDAgent package from PyPI:
+  ```sh
+  pip install rdagent
+  ```
 
-- **Navigate to the directory containing the MakeFile** and set up the development environment:
+- If you want to use our project in development mode. **Navigate to the directory containing the MakeFile** and set up the development environment:
   ```sh
   make dev
   ```
@@ -73,19 +76,29 @@ TODO: run the front-page demo.
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
-- Run the factor extraction and implementation application based on financial reports:
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:
+  ```sh
+  rdagent fin_factor
+  ```
+
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**:
+  ```sh
+  python fin_model
+  ```
+
+- Run the **Automated Medical Predtion Model Evolution**:
+  ```sh
+  python med_model
+  ```
+
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:
   ```sh
   rdagent fin_factor_report
   ```
 
-- Run the self-loop factor extraction and implementation application:
+- Run the **Automated Model Research & Development Co-Pilot**:
   ```sh
-  python rdagent/app/qlib_rd_loop/factor.py
-  ```
-
-- Run the self-loop model extraction and implementation application:
-  ```sh
-  python rdagent/app/qlib_rd_loop/model.py
+  rdagent general_model
   ```
 
 
