@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0](https://github.com/microsoft/RD-Agent/compare/v0.0.1...v0.1.0) (2024-08-09)
+
+
+### Features
+
+* add entry for rdagent. ([#187](https://github.com/microsoft/RD-Agent/issues/187)) ([121b6d9](https://github.com/microsoft/RD-Agent/commit/121b6d98de38cd03be30cbee47b40baf39a2b60b))
+* change ui entry ([#197](https://github.com/microsoft/RD-Agent/issues/197)) ([fa5d335](https://github.com/microsoft/RD-Agent/commit/fa5d3354d22240888f4fc4007d9834f7424632aa))
+* remove pdfs and enable online pdf readings ([#183](https://github.com/microsoft/RD-Agent/issues/183)) ([18c0501](https://github.com/microsoft/RD-Agent/commit/18c05016a23d694c7b12759cf1322562dcffc56a))
+
+
+### Bug Fixes
+
+* Fix a fail href in readme ([#189](https://github.com/microsoft/RD-Agent/issues/189)) ([1b89218](https://github.com/microsoft/RD-Agent/commit/1b89218f6bc697494f4a1b8a42ad18963002714f))
+* fix quick start problem ([#191](https://github.com/microsoft/RD-Agent/issues/191)) ([44f61bf](https://github.com/microsoft/RD-Agent/commit/44f61bfa1058a8efb59ca48b7f1417765aeea33e))
+* update command line in readme.md ([#192](https://github.com/microsoft/RD-Agent/issues/192)) ([9c45d24](https://github.com/microsoft/RD-Agent/commit/9c45d24a192da02f7d9765cb001097da1bc36c61))
+
 ## 0.0.1 (2024-08-08)
 
 
