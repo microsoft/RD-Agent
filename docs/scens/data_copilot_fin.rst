@@ -127,8 +127,6 @@ You can try our demo by running the following command:
 
           rdagent fin_factor_report
 
-
-
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~
 
