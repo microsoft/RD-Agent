@@ -1,6 +1,6 @@
 import argparse
 import textwrap
-from importlib import resources
+from importlib.resources import files as rfiles
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -527,7 +527,7 @@ with st.container():
 with st.container():
     image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        img_path = resources.files("rdagent.log.ui").joinpath("flow.png")
+        img_path = rfiles("rdagent.log.ui").joinpath("flow.png")
         st.image(str(img_path), use_column_width=True)
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")

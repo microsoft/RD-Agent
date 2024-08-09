@@ -7,7 +7,7 @@ This will
 """
 import fire
 import subprocess
-from importlib import resources
+from importlib.resources import path as rpath
 from dotenv import load_dotenv
 
 from rdagent.app.data_mining.model import main as med_model
@@ -24,7 +24,7 @@ def ui(port=80, log_dir='./log'):
     """
     start web app to show the log traces.
     """
-    with resources.path("rdagent.log.ui", "app.py") as app_path:
+    with rpath("rdagent.log.ui", "app.py") as app_path:
         subprocess.run([
             "streamlit", "run", app_path, 
             f"--server.port={port}", "--",
