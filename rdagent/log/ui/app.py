@@ -687,7 +687,8 @@ with st.container():
 with st.container():
     image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        st.image("./docs/_static/flow.png")
+        img_path = rfiles("rdagent.log.ui").joinpath("flow.png")
+        st.image(str(img_path), use_column_width=True)
     with scen_c:
         st.header("Scenario Description📖", divider="violet", anchor="_scenario")
         if state.scenario is not None:
