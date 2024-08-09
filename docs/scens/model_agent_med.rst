@@ -73,20 +73,12 @@ You can try our demo by running the following command:
 
           conda activate rdagent
 
-- 🛠️ Run Make Files
-    - Navigate to the directory containing the MakeFile and set up the development environment:
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
 
       .. code-block:: sh
 
-          make dev
-
-- 📦 Install Pytorch
-    - Install Pytorch and related libraries:
-
-      .. code-block:: sh
-
-          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip3 install torch_geometric
+          pip install rdagent
 
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
@@ -97,12 +89,19 @@ You can try our demo by running the following command:
       .. code-block:: sh
 
           export $(grep -v '^#' .env | xargs)
+    
+    - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
     .. code-block:: sh
 
-        python rdagent/app/data_mining/model.py
+        rdagent med_model
 
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~
-TODO: Show some examples:
+
+.. _Env Config: 
+
+- **Env Config**
+
+The following environment variables can be set in the `.env` file to customize the application's behavior:
