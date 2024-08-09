@@ -27,12 +27,12 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- [🎥Automatic Quant Factory]()
-- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- [🎥Automatic Quant Factory](https://rdagent.azurewebsites.net/factor_loop)
+- 🤖Data mining agent: iteratively proposing [🎥data](https://rdagent.azurewebsites.net/dmm) & [models](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
+- 🦾Research copilot: Auto read [🎥research papers](https://rdagent.azurewebsites.net/report_model)/[🎥reports](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
 - ...
 
-You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
+You can click the [🎥link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
 
 We have a quick 🎥demo for one use case of RDAgent.
 - TODO: Demo
@@ -79,7 +79,7 @@ TODO: use docker in quick start intead.
 ### 🚀 Run the Application
 TODO: run the front-page demo.
 
-The [🎥demo]() is implemented by the above commands.
+The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the above commands.
 
 - Run the factor extraction and implementation application based on financial reports:
   ```sh
@@ -122,9 +122,9 @@ The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
+| 💹 Finance      | 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) | - 🦾[Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor) <br/> - 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) |
+| 🩺 Medical      | 🤖[Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
+| 🏭 General      | 🦾[Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
@@ -202,4 +202,4 @@ Making contributions is not a hard thing. Solving an issue(maybe just answering 
 <a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=240&columns=18" /></a>
 
 # Disclaimer
-**The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.**
+The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.

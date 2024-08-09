@@ -121,7 +121,7 @@ You can try our demo by running the following command:
 - 🚀 Run the Application
     .. code-block:: sh
 
-        python rdagent/app/qlib_rd_loop/factor_from_report_w_sc.py
+        rdagent fin_factor_report
 
 
 
