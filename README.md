@@ -38,12 +38,12 @@ R&D is a very general scenario. The advent of RDAgent can be your
 
 You can click the [🎥link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
 <!-- 
-- TODO: Demo
+- TODO: Demo: it fails to display the video in the README.md.
+We have a quick 🎥demo for one use case of RDAgent.
+[![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
  -->
 
-We have a quick 🎥demo for one use case of RDAgent.
 
-[![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
 
 # ⚡Quick start
 You can try above demos by running the following command:
