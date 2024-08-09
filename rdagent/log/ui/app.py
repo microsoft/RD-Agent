@@ -333,6 +333,8 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 def summary_window():
     if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
+        if state.lround == 0:
+            return
         with st.container():
             # TODO: not fixed height
             with st.container():
@@ -372,33 +374,33 @@ def summary_window():
                     else:
                         metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
-    elif isinstance(state.scenario, GeneralModelScenario) and len(state.msgs[state.lround]["d.evolving code"]) > 0:
+    elif isinstance(state.scenario, GeneralModelScenario):
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
+            if len(state.msgs[state.lround]["d.evolving code"]) > 0:
+                # pass
+                ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
+                # All Tasks
 
-            # pass
-            ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[state.lround]["d.evolving code"][-1].content
-            # All Tasks
+                tab_names = [
+                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+                ]
+                for j in range(len(ws)):
+                    if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
+                        tab_names[j] += "✔️"
+                    else:
+                        tab_names[j] += "❌"
 
-            tab_names = [
-                w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
-            ]
-            for j in range(len(ws)):
-                if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
-                    tab_names[j] += "✔️"
-                else:
-                    tab_names[j] += "❌"
+                wtabs = st.tabs(tab_names)
+                for j, w in enumerate(ws):
+                    with wtabs[j]:
+                        # Evolving Code
+                        for k, v in w.code_dict.items():
+                            with st.expander(f":green[`{k}`]", expanded=False):
+                                st.code(v, language="python")
 
-            wtabs = st.tabs(tab_names)
-            for j, w in enumerate(ws):
-                with wtabs[j]:
-                    # Evolving Code
-                    for k, v in w.code_dict.items():
-                        with st.expander(f":green[`{k}`]", expanded=False):
-                            st.code(v, language="python")
-
-                    # Evolving Feedback
-                    evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
+                        # Evolving Feedback
+                        evolving_feedback_window(state.msgs[state.lround]["d.evolving feedback"][-1].content[j])
 
 def tabs_hint():
     st.markdown(
@@ -566,58 +568,75 @@ def evolving_window():
                     evolving_feedback_window(state.msgs[round]["d.evolving feedback"][evolving_round - 1].content[j])
 
 
-
+toc = """
+## [Scenario Description📖](#_scenario)
+## [Summary📊](#_summary)
+- [**Metrics📈**](#_metrics)
+- [**Hypotheses🏅**](#_hypotheses)
+## [RD-Loops♾️](#_rdloops)
+- [**Research🔍**](#_research)
+- [**Development🛠️**](#_development)
+- [**Feedback📝**](#_feedback)
+"""
+if isinstance(state.scenario, GeneralModelScenario):
+    toc = """
+## [Scenario Description📖](#_scenario)
+### [Summary📊](#_summary)
+### [Research🔍](#_research)
+### [Development🛠️](#_development)
+"""
 # Config Sidebar
 with st.sidebar:
-    st.markdown(
-        """
-# RD-Agent🤖
-## [Scenario Description](#_scenario)
-## [Summary](#_summary)
-- [**Hypotheses**](#_hypotheses)
-- [**Metrics**](#_metrics)
-## [RD-Loops](#_rdloops)
-- [**Research**](#_research)
-- [**Development**](#_development)
-- [**Feedback**](#_feedback)
-"""
-    )
+    st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
+    st.subheader(":blue[Table of Content]", divider='blue')
+    st.markdown(toc)
+    st.subheader(":orange[Control Panel]", divider='red')
 
-    with st.popover(":orange[**Config⚙️**]"):
-        with st.container(border=True):
-            st.markdown(":blue[**log path**]")
-            if main_log_path:
-                if st.toggle("Manual Input"):
-                    st.text_input("log path", key="log_path", on_change=refresh)
-                else:
-                    folders = [
-                        folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
-                    ]
-                    st.selectbox(f"Select from `{main_log_path}`", folders, key="log_path", on_change=refresh)
+    with st.container(border=True):
+        if main_log_path:
+            lc1, lc2 = st.columns([1, 2], vertical_alignment="center")
+            with lc1:
+                st.markdown(":blue[**Log Path**]")
+            with lc2:
+                manually = st.toggle("Manual Input")
+            if manually:
+                st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
             else:
-                st.text_input("log path", key="log_path", on_change=refresh)
+                folders = [
+                    folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
+                ]
+                st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
+        else:
+            st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
 
-        with st.container(border=True):
-            st.markdown(":blue[**excluded configs**]")
-            st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-            st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+    c1, c2 = st.columns([1, 1], vertical_alignment="center")
+    with c1:
+        if st.button(":green[**All Loops**]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: False)
+        if st.button("**Reset**", use_container_width=True):
+            refresh(same_trace=True)
+    with c2:
+        if st.button(":green[Next Loop]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "ef.feedback" in m.tag)
 
-    if st.button("All Loops"):
-        get_msgs_until(lambda m: False)
+        if st.button("Next Step", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
-    if st.button("Next Loop"):
-        get_msgs_until(lambda m: "ef.feedback" in m.tag)
+    with st.popover(":orange[**Config⚙️**]", use_container_width=True):
+        st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+        st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
 
-    if st.button("One Evolving"):
-        get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
-
-    if st.button("refresh logs", help="clear all log messages in cache"):
-        refresh(same_trace=True)
     if args.debug:
         debug = st.toggle("debug", value=False)
 
         if debug:
-            if st.button("Single Step Run"):
+            if st.button("Single Step Run", use_container_width=True):
                 get_msgs_until()
     else:
         debug = False
@@ -714,8 +733,9 @@ if state.scenario is not None:
         evolving_window()
 
 
-with st.container(border=True):
-    st.subheader("Disclaimer", divider="gray")
-    st.markdown(
-        "This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters."
-    )
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("#### Disclaimer")
+st.markdown(
+    "*This content is AI-generated and may not be fully accurate or up-to-date; please verify with a professional for critical matters.*",
+    unsafe_allow_html=True,
+)
