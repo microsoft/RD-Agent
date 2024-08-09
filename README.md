@@ -17,14 +17,14 @@
 # 📰 News
 | 🗞️News        | 📝Description                 |
 | --            | ------                        |
-| First release | RDAgent are release on Github |
+| First release | RDAgent are released on Github |
 
 
 # 🌟 Introduction
 
 ![Our focused scenario](docs/_static/scen.jpg)
 
-RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
+RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
 
@@ -46,7 +46,7 @@ We have a quick 🎥demo for one use case of RDAgent.
 You can try our demo by running the following command:
 
 ### 🐍 Create a Conda Environment
-- Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+- Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
   conda create -n rdagent python=3.10
   ```
