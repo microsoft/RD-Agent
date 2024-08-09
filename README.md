@@ -73,20 +73,31 @@ TODO: run the front-page demo.
 
 The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
 
-- Run the factor extraction and implementation application based on financial reports:
+- Run the Qlib factor extraction and implementation application based on financial reports:
   ```sh
-  rdagent fin_factor_report
+  rdagent fin_factor_report <Your report folder>
   ```
 
-- Run the self-loop factor extraction and implementation application:
+- Run the Qlib self-loop factor proposal and implementation application:
   ```sh
-  python rdagent/app/qlib_rd_loop/factor.py
+  rdagent fin_factor
   ```
 
-- Run the self-loop model extraction and implementation application:
+- Run the Qlib self-loop model proposal and implementation application:
   ```sh
-  python rdagent/app/qlib_rd_loop/model.py
+  rdagent fin_model
   ```
+
+- Run the model extraction and implementation application:
+  ```sh
+  rdagent general_model <Your paper url>
+  ```
+
+- Run the medical self-loop model proposal and implementation application:
+  ```sh
+  rdagent med_model 
+  ```
+  
 
 
 # Scenarios
