@@ -91,23 +91,9 @@ You can try our demo by running the following command:
 
           make dev
 
-- 📦 Install Pytorch
-    - Install Pytorch and related libraries:
-
-      .. code-block:: sh
-
-          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip3 install torch_geometric
-
 - ⚙️ Environment Configuration
     - Place the `.env` file in the same directory as the `.env.example` file.
         - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-
-    - Export each variable in the .env file:
-
-      .. code-block:: sh
-
-          export $(grep -v '^#' .env | xargs)
 
 - 🚀 Run the Application
     .. code-block:: sh
