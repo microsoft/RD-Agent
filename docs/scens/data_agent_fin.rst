@@ -18,7 +18,7 @@ The ability to systematically analyze and apply these factors is what separates 
 And this is where the **Finance Model Agent** comes into play.
 
 🎥 `Demo <https://rdagent.azurewebsites.net/factor_loop>`_
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. https://rdagent.azurewebsites.net:443/media/54d59c2bf85211de6a7cd2bd3c57d3b56c36cf9795a31111a9111ddb.mp4
 

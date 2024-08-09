@@ -21,7 +21,7 @@ And this is where the **Finance Data Copilot** steps in.
 
 
 🎥 `Demo <https://rdagent.azurewebsites.net/report_factor>`_
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 

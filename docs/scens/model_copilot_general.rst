@@ -16,7 +16,7 @@ Researchers often face challenges in extracting the essential details from these
 And this is where the **General Model Copilot** steps in.
 
 🎥 `Demo <https://rdagent.azurewebsites.net/report_model>`_
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 

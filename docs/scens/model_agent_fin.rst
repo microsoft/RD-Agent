@@ -18,7 +18,7 @@ And this is where the **Finance Model Agent** steps in.
 
 
 🎥 `Demo <https://rdagent.azurewebsites.net/model_loop>`_
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 

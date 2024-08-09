@@ -13,7 +13,7 @@ In this scenario, we consider the problem of risk prediction from patients' ICU 
 In this task, we aim at predicting the whether the patients will suffer from Acute Respiratory Failure (ARF) based their first 12 hours ICU monitoring data. 
 
 🎥 `Demo <https://rdagent.azurewebsites.net/dmm>`_
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
