@@ -20,9 +20,16 @@ Therefore, there is an urgent need for a systematic approach to design a framewo
 And this is where the **Finance Data Copilot** steps in.
 
 
-🎥 Demo
-~~~~~~~~~~
-TODO: Here should put a video of the demo.
+🎥 `Demo <https://rdagent.azurewebsites.net/report_factor>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+    <video width="600" controls>
+      <source src="https://rdagent.azurewebsites.net:443/media/42a3280d592fb9e3d227608170860c426fc2bf5c63eea5a66ed94ca7.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+
 
 
 🌟 Introduction
@@ -76,6 +83,8 @@ Here's an enhanced outline of the steps:
 ⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
 
+Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
+
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
@@ -97,12 +106,6 @@ You can try our demo by running the following command:
       .. code-block:: sh
 
           pip install rdagent
-
-- ⚙️ Environment Configuration
-    - Place the `.env` file in the same directory as the `.env.example` file.
-        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-    
-    - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
     - Store the factors you want to extract from the financial reports in your desired folder. Then, save the paths of the reports in the `report_result_json_file_path`. The format should be as follows:

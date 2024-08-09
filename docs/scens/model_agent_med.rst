@@ -12,9 +12,15 @@ Medical Model Agent
 In this scenario, we consider the problem of risk prediction from patients' ICU monitoring data. We use the a public EHR dataset - MIMIC-III and extract a binary classification task for evaluating the framework.
 In this task, we aim at predicting the whether the patients will suffer from Acute Respiratory Failure (ARF) based their first 12 hours ICU monitoring data. 
 
-🎥 Demo
-~~~~~~~~~~
-TODO: Here should put a video of the demo.
+🎥 `Demo <https://rdagent.azurewebsites.net/dmm>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+    <video width="600" controls>
+      <source src="https://rdagent.azurewebsites.net:443/media/0fbd26bb297369a4ca52409ff65a3f7cb941c6af6429894367a6afcd.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
 
 
 🌟 Introduction
@@ -58,6 +64,8 @@ Here's an enhanced outline of the steps:
 ⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
 
+Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
+
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
@@ -85,17 +93,6 @@ You can try our demo by running the following command:
     - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
     - Place your username and password in `.rdagent.app.data_mining.conf`.
 
-- ⚙️ Environment Configuration
-    - Place the `.env` file in the same directory as the `.env.example` file.
-        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-
-    - Export each variable in the .env file:
-
-      .. code-block:: sh
-
-          export $(grep -v '^#' .env | xargs)
-    
-    - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
     .. code-block:: sh

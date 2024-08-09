@@ -17,14 +17,14 @@
 # 📰 News
 | 🗞️News        | 📝Description                 |
 | --            | ------                        |
-| First release | RDAgent are release on Github |
+| First release | RDAgent is release on Github |
 
 
 # 🌟 Introduction
 
 ![Our focused scenario](docs/_static/scen.jpg)
 
-RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
+RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
 
@@ -38,15 +38,21 @@ R&D is a very general scenario. The advent of RDAgent can be your
 
 You can click the [🎥link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
 <!-- 
+- TODO: Demo: it fails to display the video in the README.md.
 We have a quick 🎥demo for one use case of RDAgent.
-- TODO: Demo
+[![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
  -->
 
+
+
 # ⚡Quick start
-You can try our demo by running the following command:
+You can try above demos by running the following command:
+
+### 🐳Docker installation.
+Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
 
 ### 🐍 Create a Conda Environment
-- Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+- Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
   conda create -n rdagent python=3.10
   ```
@@ -60,27 +66,20 @@ You can try our demo by running the following command:
   ```sh
   pip install rdagent
   ```
-  
-  
-### 🛠️ Run Make Files
 
-- If you want to use our project in development mode. **Navigate to the directory containing the MakeFile** and set up the development environment:
-  ```sh
-  make dev
-  ```
+### ⚙️ Configuration
+You have to config your GPT model in the `.env`
+```bash
+cat << EOF  > .env
+OPENAI_API_KEY=<your_api_key>
+# EMBEDDING_MODEL=text-embedding-3-small
+CHAT_MODEL=gpt-4-turbo
+EOF
+```
 
-
-### ⚙️ Environment Configuration
-- Place the `.env` file in the same directory as the `.env.example` file.
-  - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-  - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
 ### 🚀 Run the Application
-- Start web app to show log traces:
-  ```sh
-  rdagent ui --port 80 --log_dir <your log folder>
-  ```
 
-The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands:
+The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
 - Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  Qlib self-loop factor proposal and implementation application
   ```sh
@@ -107,10 +106,10 @@ The [🎥demo](https://rdagent.azurewebsites.net) is implemented by the followin
   rdagent general_model  <Your paper url>
   ```
 
-### 🚀 Monitor the Application
+### 🚀 Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
   ```sh
-  rdagent ui --port 80 --log_dir <your log folder>
+  rdagent ui --port 80 --log_dir <your log folder like "log/2024-07-16_11-21-46-612120/">
   ```
 
 # Scenarios
@@ -144,8 +143,12 @@ The supported scenarios are listed below:
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-TODO: Scenario Gallary
-- map(scenario) => knowledge list;
+Here is a gallery of successful explorations. You can download the source code and view the execution trace using the command below:
+
+```bash
+rdagent ui --port 80 --log_dir gallary/
+```
+
 
 # ⚙️Framework
 
@@ -206,7 +209,7 @@ For more detail, please refer to our [Demos page](https://rdagent.azurewebsites.
 
 # Contributing
 
-More documents can be found in the [📚readthedocs](). TODO: add link
+More documents can be found in the [📚readthedocs](https://rdagent.readthedocs.io/).
 
 ## Guidance
 This project welcomes contributions and suggestions.

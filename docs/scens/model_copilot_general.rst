@@ -15,9 +15,15 @@ However, reproducing and implementing these models can be a daunting task, requi
 Researchers often face challenges in extracting the essential details from these papers and converting them into functional code.
 And this is where the **General Model Copilot** steps in.
 
-🎥 Demo
-~~~~~~~~~~
-TODO: Here should put a video of the demo.
+🎥 `Demo <https://rdagent.azurewebsites.net/report_model>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+    <video width="600" controls>
+      <source src="https://rdagent.azurewebsites.net:443/media/434d28b544e61441da19a4335e1ccab173f2b5a5bba487df765ce06c.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
 
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
@@ -49,6 +55,8 @@ This demo automates the extraction and iterative development of models from acad
 ⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
 
+Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
+
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
@@ -71,10 +79,6 @@ You can try our demo by running the following command:
 
           pip install rdagent
 
-
-- ⚙️ Environment Configuration
-    - Place the `.env` file in the same directory as the `.env.example` file.
-        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
 
 - 🚀 Run the Application
     - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.

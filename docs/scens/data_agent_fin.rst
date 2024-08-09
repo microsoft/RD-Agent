@@ -17,9 +17,17 @@ By leveraging these factors, quantitative traders can develop sophisticated stra
 The ability to systematically analyze and apply these factors is what separates ordinary trading from truly strategic market outmaneuvering.
 And this is where the **Finance Model Agent** comes into play.
 
-🎥 Demo
-~~~~~~~~~~
-TODO: Here should put a video of the demo.
+🎥 `Demo <https://rdagent.azurewebsites.net/factor_loop>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. https://rdagent.azurewebsites.net:443/media/54d59c2bf85211de6a7cd2bd3c57d3b56c36cf9795a31111a9111ddb.mp4
+
+.. raw:: html
+
+    <video width="600" controls>
+      <source src="https://rdagent.azurewebsites.net:443/media/54d59c2bf85211de6a7cd2bd3c57d3b56c36cf9795a31111a9111ddb.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
 
 
 🌟 Introduction
@@ -75,6 +83,8 @@ Here's an enhanced outline of the steps:
 ⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
 
+Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
+
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
@@ -96,12 +106,6 @@ You can try our demo by running the following command:
       .. code-block:: sh
 
           pip install rdagent
-
-- ⚙️ Environment Configuration
-    - Place the `.env` file in the same directory as the `.env.example` file.
-        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-    
-    - If you want to change the default environment variables, you can refer to `Env Config`_ below
 
 - 🚀 Run the Application
     .. code-block:: sh

@@ -143,3 +143,25 @@ Configuration List
 | max_past_message_include     | Maximum number of past messages to include       | 10                      |
 +------------------------------+--------------------------------------------------+-------------------------+
 
+
+
+
+Loading Configuration
+---------------------
+
+For users' convenience, we provide a CLI interface called `rdagent`, which automatically runs `load_dotenv()` to load environment variables from the `.env` file.
+However, this feature is not enabled by default for other scripts. We recommend users load the environment with the following steps:
+
+
+- ⚙️ Environment Configuration
+    - Place the `.env` file in the same directory as the `.env.example` file.
+        - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
+
+    - Export each variable in the .env file:
+
+      .. code-block:: sh
+
+          export $(grep -v '^#' .env | xargs)
+    
+    - If you want to change the default environment variables, you can refer to the above configuration and edith the `.env` file.
+
