@@ -114,7 +114,7 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
   ```sh
-  rdagent ui --port 80 --log_dir <your log folder like "log/2024-07-16_11-21-46-612120/">
+  rdagent ui --port 80 --log_dir <your log folder like "log/">
   ```
 
 # 🏭 Scenarios
