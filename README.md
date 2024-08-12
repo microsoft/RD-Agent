@@ -154,7 +154,7 @@ Here is a gallery of successful explorations. You can download the source code a
 rdagent ui --port 80 --log_dir gallary/
 ```
 
-Please refer to [📚readthedocs](https://rdagent.readthedocs.io/) for more details of the scenarios.
+Please refer to [📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html) for more details of the scenarios.
 
 # ⚙️ Framework
 
