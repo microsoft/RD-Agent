@@ -9,7 +9,7 @@ with st.container():
         st.markdown(
             """
         <h1>
-            RD-Agent:<br>LLM-based autonomous evolving agents for industrial data-driven R&D
+            RD-Agent:<br><span style="font-size: 32px;">LLM-based autonomous evolving agents for industrial data-driven R&D</span>
         </h1>
         """,
             unsafe_allow_html=True,
