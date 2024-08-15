@@ -274,6 +274,49 @@ def merge_file_to_factor_dict_to_factor_dict(
     return factor_dict_simple_deduplication
 
 
+def __check_factor_dict_relevance(
+    factor_df_string: str,
+) -> dict[str, dict[str, str]]:
+    extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
+        system_prompt=document_process_prompts["factor_relevance_system"],
+        user_prompt=factor_df_string,
+        json_mode=True,
+    )
+    return json.loads(extract_result_resp)
+
+
+def check_factor_relevance(
+    factor_dict: dict[str, dict[str, str]],
+) -> tuple[dict[str, dict[str, str]], dict[str, dict[str, str]]]:
+    factor_relevance_dict = {}
+
+    factor_df = pd.DataFrame(factor_dict).T
+    factor_df.index.names = ["factor_name"]
+
+    while factor_df.shape[0] > 0:
+        result_list = multiprocessing_wrapper(
+            [
+                (__check_factor_dict_relevance, (factor_df.iloc[i : i + 50, :].to_string(),))
+                for i in range(0, factor_df.shape[0], 50)
+            ],
+            n=RD_AGENT_SETTINGS.multi_proc_n,
+        )
+
+        for result in result_list:
+            for factor_name, relevance in result.items():
+                factor_relevance_dict[factor_name] = relevance
+
+        factor_df = factor_df[~factor_df.index.isin(factor_relevance_dict)]
+
+    filtered_factor_dict = {
+        factor_name: factor_dict[factor_name]
+        for factor_name in factor_dict
+        if factor_relevance_dict[factor_name]["relevance"]
+    }
+
+    return factor_relevance_dict, filtered_factor_dict
+
+
 def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
@@ -425,7 +468,7 @@ Factor variables: {variables}
     else:
         for k in range(
             len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
-            30,
+            40,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:

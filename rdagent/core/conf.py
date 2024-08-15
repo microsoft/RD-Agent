@@ -96,7 +96,7 @@ class RDAgentSettings(BaseSettings):
     gcr_endpoint_max_token: int = 100
 
     # factor extraction conf
-    max_input_duplicate_factor_group: int = 600
+    max_input_duplicate_factor_group: int = 300
     max_output_duplicate_factor_group: int = 20
 
     # workspace conf
