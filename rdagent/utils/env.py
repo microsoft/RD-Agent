@@ -128,6 +128,14 @@ class DockerConf(BaseSettings):
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
 
 
+class KaggleConf(DockerConf):
+    class Config:
+        env_prefix = "KAGGLE_"
+    image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace"
+    default_entry: str = "echo 'Kaggle container started'"
+
+
 class QlibDockerConf(DockerConf):
     class Config:
         env_prefix = "QLIB_DOCKER_"  # Use QLIB_DOCKER_ as prefix for environment variables
@@ -252,6 +260,7 @@ class DockerEnv(Env[DockerConf]):
                 log_output += decoded_log + "\n"
             container.wait()
             container.stop()
+            container.remove()
             return log_output
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
@@ -259,9 +268,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
-        finally:
-            if container is not None:
-                container.remove()
 
 
 class QTDockerEnv(DockerEnv):
