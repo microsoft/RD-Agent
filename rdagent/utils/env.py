@@ -238,6 +238,7 @@ class DockerEnv(Env[DockerConf]):
                 command=entry,
                 volumes=volumns,
                 environment=env,
+                auto_remove=True,
                 detach=True,
                 working_dir=self.conf.mount_path,
                 # auto_remove=True, # remove too fast might cause the logs not to be get
@@ -252,7 +253,6 @@ class DockerEnv(Env[DockerConf]):
                 log_output += decoded_log + "\n"
             container.wait()
             container.stop()
-            container.remove()
             return log_output
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
