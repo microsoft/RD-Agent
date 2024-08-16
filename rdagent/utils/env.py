@@ -159,6 +159,24 @@ class DMDockerConf(DockerConf):
     shm_size: str | None = "16g"
 
 
+class KGDockerConf(DockerConf):
+    class Config:
+        env_prefix = "KG_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    image: str = "local_kg:latest"
+    mount_path: str = "/workspace/kg_workspace/"
+    default_entry: str = "python train.py"
+    extra_volumes: dict = {
+        #TODO connect to the place where the data is stored
+        Path("git_ignore_folder/data")
+        .resolve(): "/root/.data/"
+    }
+    
+    shm_size: str | None = "16g"
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -282,5 +300,23 @@ class DMDockerEnv(DockerEnv):
                 username, password
             )
             os.system(cmd)
+        else:
+            logger.info("Data already exists. Download skipped.")
+
+class KGDockerEnv(DockerEnv):
+    """Qlib Torch Docker"""
+
+    def __init__(self, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)
+
+    def prepare(self):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+        data_path = Path("git_ignore_folder/data")
+        if not (Path(data_path)).exists():
+            #TODO: here we should download the data through Bowen's script
+            logger.info("We are downloading!")
         else:
             logger.info("Data already exists. Download skipped.")
