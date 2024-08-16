@@ -1,18 +1,20 @@
+from collections import defaultdict
+
 import fire
 
 from rdagent.app.kaggle.conf import PROP_SETTING
+from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import ModelEmptyError
-from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.log import rdagent_logger as logger
-from rdagent.core.utils import import_class
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
     HypothesisGen,
     Trace,
 )
-from collections import defaultdict
+from rdagent.core.utils import import_class
+from rdagent.log import rdagent_logger as logger
+
 
 class ModelRDLoop(RDLoop):
     def __init__(self, PROP_SETTING: BasePropSetting):

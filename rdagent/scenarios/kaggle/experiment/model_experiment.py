@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
@@ -7,11 +10,9 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
-from jinja2 import Environment, StrictUndefined
-from rdagent.oai.llm_utils import APIBackend
-import json
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
