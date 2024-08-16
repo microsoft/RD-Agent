@@ -1,6 +1,6 @@
 ---
 name: "\U0001F41B Bug Report"
-about: Submit a bug report to help us improve Qlib
+about: Submit a bug report to help us improve RD-Agent
 labels: bug
 
 ---
@@ -31,7 +31,7 @@ Steps to reproduce the behavior:
 **Note**: User could run `cd scripts && python collect_info.py all` under project directory to get system information
 and paste them here directly.
 
- - Qlib version:
+ - RD-Agent version:
  - Python version:
  - OS (`Windows`, `Linux`, `MacOS`):
  - Commit number (optional, please provide it if you are using the dev version):
