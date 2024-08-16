@@ -1,13 +1,14 @@
-from pathlib import Path
-import pandas as pd
-
-from rdagent.app.data_mining.conf import PROP_SETTING
-from rdagent.core.experiment import FBWorkspace
-from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import KGDockerEnv, DockerEnv, KaggleConf
-
 import subprocess
 import zipfile
+from pathlib import Path
+
+import pandas as pd
+
+from rdagent.app.kaggle.conf import PROP_SETTING
+from rdagent.core.experiment import FBWorkspace
+from rdagent.log import rdagent_logger as logger
+from rdagent.utils.env import DockerEnv, KGDockerEnv
+
 
 class KGFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
@@ -15,7 +16,7 @@ class KGFBWorkspace(FBWorkspace):
         self.inject_code_from_folder(template_folder_path)
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
-        qtde = KGDockerEnv()
+        qtde = KGDockerEnv(PROP_SETTING.competition)
         qtde.prepare()
 
         execute_log = qtde.run(

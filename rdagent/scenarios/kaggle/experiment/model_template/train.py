@@ -1,15 +1,16 @@
-import pandas as pd
-import numpy as np
 import random
+
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
+from model import model_cls
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from model import model_cls
+from sklearn.preprocessing import OneHotEncoder
 
 # Set random seed for reproducibility
 SEED = 42

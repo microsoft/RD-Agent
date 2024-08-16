@@ -1,9 +1,10 @@
+import json
+import time
+from pathlib import Path
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from pathlib import Path
-import time
-import json
 
 LOCAL_PATH = "/data/userdata/share/kaggle_competition_descriptions"
 

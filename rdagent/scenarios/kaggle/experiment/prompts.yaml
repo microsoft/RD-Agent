@@ -1,17 +1,31 @@
+kg_description_template:
+  system: |-
+    You are an assistant that extracts structured information from unstructured text.
+
+  user: |-
+    Based on the following competition description, please extract the following details:
+    1. Competition Type
+    2. Competition Description
+    3. Target Description
+    4. Competition Features
+
+    Competition Description: {{ competition_descriptions }}
+
 kg_model_background: |-
-  You are solving this data science tasks of binary classification: 
-  The dataset presented here (the spaceship dataset) comprises a lot of features, including both numerical and categorical features. Some of the features are missing, with nan value. We have splitted the dataset into three parts of train, valid and test. Your task is to predict the Transported item, which is a binary label with True and False. The evaluation metric is the classification accuracy.
-  We provide an overall pipeline in train.py. Now fill in the provided train.py script to train a binary classification model to get a good performance on this task.
+  You are solving this data science tasks of {{ competition_type }}: 
+  {{competition_description}}
   
-  The model is a machine learning or deep learning structure designed to predict whether a passenger was transported to an alternate dimension during the Spaceship Titanic's collision. 
-  The data is extracted from the competition dataset, focusing on passenger attributes like HomePlanet, CryoSleep status, Age, Cabin, and other personal and transactional details.
+  We provide an overall pipeline in train.py. Now fill in the provided train.py script to train a  {{ competition_type }} model to get a good performance on this task.
+  
+  The model is a machine learning or deep learning structure designed to predict {{ target_description }}. 
+  The data is extracted from the competition dataset, focusing on passenger attributes like {{ competition_features }}.
   
   The model is defined in the following parts:
   - Name: The name of the model.
   - Description: A description of the model.
   - Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
   
-  The model should provide clear and detailed documentation of its architecture and hyperparameters.**
+  The model should provide clear and detailed documentation of its architecture and hyperparameters.
 
 kg_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.
