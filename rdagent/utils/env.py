@@ -9,6 +9,7 @@ Tries to create uniform environment for the agent to run;
 import os
 import subprocess
 import sys
+import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
@@ -128,12 +129,6 @@ class DockerConf(BaseSettings):
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
 
 
-class KaggleConf(DockerConf):
-    class Config:
-        env_prefix = "KAGGLE_"
-    image: str = "gcr.io/kaggle-gpu-images/python:latest"
-    mount_path: str = "/workspace"
-    default_entry: str = "echo 'Kaggle container started'"
 
 
 class QlibDockerConf(DockerConf):
@@ -174,6 +169,7 @@ class KGDockerConf(DockerConf):
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
     image: str = "local_kg:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
     default_entry: str = "python train.py"
     extra_volumes: dict = {
@@ -182,7 +178,7 @@ class KGDockerConf(DockerConf):
         .resolve(): "/root/.data/"
     }
     
-    shm_size: str | None = "16g"
+    share_data_path: str = "/data/userdata/share/kaggle"
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -314,17 +310,21 @@ class DMDockerEnv(DockerEnv):
 class KGDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, conf: DockerConf = KGDockerConf()):
+    def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
+        self.competition = competition
 
     def prepare(self):
         """
         Download image & data if it doesn't exist
         """
         super().prepare()
-        data_path = Path("git_ignore_folder/data")
-        if not (Path(data_path)).exists():
-            #TODO: here we should download the data through Bowen's script
-            logger.info("We are downloading!")
-        else:
-            logger.info("Data already exists. Download skipped.")
+
+        # download data
+        data_path = f"{self.conf.share_data_path}/{self.competition}"
+        subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
+
+        # unzip data
+        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", 'r') as zip_ref:
+            zip_ref.extractall(data_path)
+        

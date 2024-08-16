@@ -8,6 +8,7 @@ from rdagent.components.coder.model_coder.model import (
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
+from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -19,6 +20,17 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
 
 
 class KGModelScenario(Scenario):
+
+    def __init__(self, competition: str) -> None:
+        super().__init__()
+        self.competition = competition
+        self.competition_descriptions = crawl_descriptions(competition)
+        self._analysis_competition_description()
+    
+    def _analysis_competition_description(self):
+        # TODO: use gpt to analyze the competition description
+        pass
+
     @property
     def background(self) -> str:
         return prompt_dict["kg_model_background"]
