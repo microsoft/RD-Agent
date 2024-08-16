@@ -129,8 +129,6 @@ class DockerConf(BaseSettings):
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
 
 
-
-
 class QlibDockerConf(DockerConf):
     class Config:
         env_prefix = "QLIB_DOCKER_"  # Use QLIB_DOCKER_ as prefix for environment variables
@@ -173,11 +171,10 @@ class KGDockerConf(DockerConf):
     mount_path: str = "/workspace/kg_workspace/"
     default_entry: str = "python train.py"
     extra_volumes: dict = {
-        #TODO connect to the place where the data is stored
-        Path("git_ignore_folder/data")
-        .resolve(): "/root/.data/"
+        # TODO connect to the place where the data is stored
+        Path("git_ignore_folder/data").resolve(): "/root/.data/"
     }
-    
+
     share_data_path: str = "/data/userdata/share/kaggle"
 
 
@@ -307,6 +304,7 @@ class DMDockerEnv(DockerEnv):
         else:
             logger.info("Data already exists. Download skipped.")
 
+
 class KGDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
@@ -325,6 +323,5 @@ class KGDockerEnv(DockerEnv):
         subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
         # unzip data
-        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", 'r') as zip_ref:
+        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
             zip_ref.extractall(data_path)
-        

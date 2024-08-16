@@ -24,7 +24,6 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
 
 
 class KGModelScenario(Scenario):
-
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
@@ -34,7 +33,7 @@ class KGModelScenario(Scenario):
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
-    
+
     def _analysis_competition_description(self):
         # TODO: use gpt to analyze the competition description
 
@@ -67,7 +66,7 @@ class KGModelScenario(Scenario):
     @property
     def background(self) -> str:
         background_template = prompt_dict["kg_model_background"]
-        
+
         background_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(background_template)

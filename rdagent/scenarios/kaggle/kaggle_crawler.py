@@ -15,8 +15,9 @@ options.add_argument("--headless")
 
 service = Service("/usr/local/bin/chromedriver")
 
+
 def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
-    if (fp:=Path(f"{LOCAL_PATH}/{competition}.json")).exists() and not force:
+    if (fp := Path(f"{LOCAL_PATH}/{competition}.json")).exists() and not force:
         print(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
@@ -45,7 +46,7 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
         contents.append(content)
 
     assert len(subtitles) == len(contents) + 1 and subtitles[-1] == "Citation"
-    for i in range(len(subtitles)-1):
+    for i in range(len(subtitles) - 1):
         descriptions[subtitles[i]] = contents[i]
 
     # Get the citation
@@ -67,6 +68,7 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 if __name__ == "__main__":
     from kaggle.api.kaggle_api_extended import KaggleApi
+
     api = KaggleApi()
     api.authenticate()
     cs = api.competitions_list()
