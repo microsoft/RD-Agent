@@ -7,21 +7,23 @@ For Development
 
 - Set up the development environment.
 
-   ```bash
-   make dev
-   ```
+   .. code-block:: bash
+
+      make dev
 
 - Run linting and checking.
 
-   ```bash
-   make lint
-   ```
+   .. code-block:: bash
+
+      make lint
+
 
 - Some linting issues can be fixed automatically. We have added a command in the Makefile for easy use.
 
-  ```bash
-  make auto-lint
-  ```
+   .. code-block:: bash
+
+      make auto-lint
+
 
 
 Code Structure

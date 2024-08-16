@@ -31,9 +31,9 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- 🎥 [Automatic Quant Factory](https://rdagent.azurewebsites.net/factor_loop)
-- 🤖 Data Mining Agent: iteratively proposing 🎥 [data](https://rdagent.azurewebsites.net/dmm) & 🎥 [models](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
-- 🦾 Research Copilot: Auto read 🎥 [research papers](https://rdagent.azurewebsites.net/report_model) /🎥 [financial reports](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
+- 🏭 Automatic Quant Factory [(🎥demo)](https://rdagent.azurewebsites.net/factor_loop)
+- 🤖 Data Mining Agent: iteratively proposing data [(🎥demo)](https://rdagent.azurewebsites.net/dmm) & models [(🎥demo)](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
+- 🦾 Research Copilot: Auto read research papers [(🎥demo)](https://rdagent.azurewebsites.net/report_model) / financial reports [(🎥demo)](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
 - ...
 
 You can click the 🎥 [link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
