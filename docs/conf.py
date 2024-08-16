@@ -62,3 +62,10 @@ except ImportError:
     html_theme = "default"
 
 html_static_path = ["_static"]
+
+html_theme_options = {
+    "source_repository": "https://github.com/microsoft/RD-Agent",
+    "source_branch": "main",
+    "source_directory": "docs/",
+    "top_of_page_buttons": ["view", "edit"],
+}

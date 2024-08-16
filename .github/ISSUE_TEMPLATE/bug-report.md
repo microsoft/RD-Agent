@@ -28,12 +28,9 @@ Steps to reproduce the behavior:
 
 ## Environment
 
-**Note**: User could run `cd scripts && python collect_info.py all` under project directory to get system information
-and paste them here directly.
-
  - RD-Agent version:
  - Python version:
- - OS (`Windows`, `Linux`, `MacOS`):
+ - OS (`Linux`):
  - Commit number (optional, please provide it if you are using the dev version):
 
 ## Additional Notes
