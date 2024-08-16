@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # Identify numerical and categorical features
     numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
     categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
-    
+
     # Define preprocessors for numerical and categorical features
     categorical_transformer = Pipeline(
         steps=[("imputer", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore"))]
