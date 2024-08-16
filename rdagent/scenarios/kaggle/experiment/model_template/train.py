@@ -74,7 +74,7 @@ def predict(model, X):
     return y_pred > 0.5  # Apply threshold to get boolean predictions
 
 
-+if __name__ == "__main__":
+if __name__ == "__main__":
     # Load and preprocess the data
     data_df = pd.read_csv("/root/.data/train.csv")
     data_df = data_df.drop(["PassengerId", "Name"], axis=1)
