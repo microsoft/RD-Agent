@@ -14,8 +14,8 @@ labels: bug
 Steps to reproduce the behavior:
 
 1.
-1.
-1.
+2.
+3.
 
 
 ## Expected Behavior
@@ -30,7 +30,7 @@ Steps to reproduce the behavior:
 
  - RD-Agent version:
  - Python version:
- - OS (`Linux`):
+ - OS: Linux
  - Commit number (optional, please provide it if you are using the dev version):
 
 ## Additional Notes
