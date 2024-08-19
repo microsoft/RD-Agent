@@ -9,6 +9,7 @@ Tries to create uniform environment for the agent to run;
 import os
 import subprocess
 import sys
+import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
@@ -159,6 +160,24 @@ class DMDockerConf(DockerConf):
     shm_size: str | None = "16g"
 
 
+class KGDockerConf(DockerConf):
+    class Config:
+        env_prefix = "KG_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    image: str = "local_kg:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace/kg_workspace/"
+    default_entry: str = "python train.py"
+    extra_volumes: dict = {
+        # TODO connect to the place where the data is stored
+        Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    }
+
+    share_data_path: str = "/data/userdata/share/kaggle"
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -284,3 +303,25 @@ class DMDockerEnv(DockerEnv):
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
+
+
+class KGDockerEnv(DockerEnv):
+    """Qlib Torch Docker"""
+
+    def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)
+        self.competition = competition
+
+    def prepare(self):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+
+        # download data
+        data_path = f"{self.conf.share_data_path}/{self.competition}"
+        subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
+
+        # unzip data
+        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
+            zip_ref.extractall(data_path)
