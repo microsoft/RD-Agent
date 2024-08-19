@@ -65,3 +65,7 @@ docker
 streamlit
 plotly
 st-theme
+
+# kaggle crawler
+selenium
+kaggle
