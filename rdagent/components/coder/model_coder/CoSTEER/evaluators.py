@@ -24,17 +24,28 @@ from rdagent.oai.llm_utils import APIBackend
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-def shape_evaluator(prediction: torch.Tensor, target_shape: Tuple = None) -> Tuple[str, bool]:
+def shape_evaluator(
+    prediction: torch.Tensor, target_shape: Tuple = None
+) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
-        return "No output generated from the model. No shape evaluation conducted.", False
+        return (
+            "No output generated from the model. No shape evaluation conducted.",
+            False,
+        )
     pre_shape = prediction.shape
 
-    return "The shape of the output is correct.", True # now test xgboost so no need for shape evaluator
+    return (
+        "The shape of the output is correct.",
+        True,
+    )  # now test xgboost so no need for shape evaluator
 
     if pre_shape == target_shape:
         return "The shape of the output is correct.", True
     else:
-        return f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.", False
+        return (
+            f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.",
+            False,
+        )
 
 
 def reshape_tensor(original_tensor, target_shape):
@@ -52,7 +63,10 @@ def value_evaluator(
     if prediction is None:
         return "No output generated from the model. Skip value evaluation", False
     elif target is None:
-        return "No ground truth output provided. Value evaluation not impractical", False
+        return (
+            "No ground truth output provided. Value evaluation not impractical",
+            False,
+        )
     else:
         # Calculate the mean absolute difference
         diff = torch.mean(torch.abs(target - prediction)).item()
@@ -82,7 +96,11 @@ class ModelCodeEvaluator(Evaluator):
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_code_feedback"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+            .render(
+                scenario=self.scen.get_scenario_all_desc()
+                if self.scen is not None
+                else "No scenario description."
+            )
         )
 
         execution_feedback_to_render = model_execution_feedback
@@ -107,7 +125,9 @@ class ModelCodeEvaluator(Evaluator):
                 )
                 > RD_AGENT_SETTINGS.chat_token_limit
             ):
-                execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
+                execution_feedback_to_render = execution_feedback_to_render[
+                    len(execution_feedback_to_render) // 2 :
+                ]
             else:
                 break
 
@@ -138,7 +158,11 @@ class ModelFinalEvaluator(Evaluator):
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_final_feedback"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+            .render(
+                scenario=self.scen.get_scenario_all_desc()
+                if self.scen is not None
+                else "No scenario description."
+            )
         )
 
         execution_feedback_to_render = model_execution_feedback
@@ -163,7 +187,9 @@ class ModelFinalEvaluator(Evaluator):
                 )
                 > RD_AGENT_SETTINGS.chat_token_limit
             ):
-                execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
+                execution_feedback_to_render = execution_feedback_to_render[
+                    len(execution_feedback_to_render) // 2 :
+                ]
             else:
                 break
 
@@ -174,10 +200,12 @@ class ModelFinalEvaluator(Evaluator):
                 json_mode=True,
             ),
         )
-        if isinstance(final_evaluation_dict["final_decision"], str) and final_evaluation_dict[
-            "final_decision"
-        ].lower() in ("true", "false"):
-            final_evaluation_dict["final_decision"] = bool(final_evaluation_dict["final_decision"])
+        if isinstance(
+            final_evaluation_dict["final_decision"], str
+        ) and final_evaluation_dict["final_decision"].lower() in ("true", "false"):
+            final_evaluation_dict["final_decision"] = bool(
+                final_evaluation_dict["final_decision"]
+            )
         return (
             final_evaluation_dict["final_feedback"],
             final_evaluation_dict["final_decision"],
@@ -231,10 +259,16 @@ class ModelCoderEvaluator(Evaluator):
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
-            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
+            and target_task_information
+            in queried_knowledge.success_task_to_knowledge_dict
         ):
-            return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
-        elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
+            return queried_knowledge.success_task_to_knowledge_dict[
+                target_task_information
+            ].feedback
+        elif (
+            queried_knowledge is not None
+            and target_task_information in queried_knowledge.failed_task_info_set
+        ):
             return ModelCoderFeedback(
                 execution_feedback="This task has failed too many times, skip implementation.",
                 shape_feedback="This task has failed too many times, skip implementation.",
@@ -314,7 +348,9 @@ class ModelCoderMultiEvaluator(Evaluator):
                     (
                         evo.sub_tasks[index],
                         evo.sub_workspace_list[index],
-                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
+                        evo.sub_gt_implementations[index]
+                        if evo.sub_gt_implementations is not None
+                        else None,
                         queried_knowledge,
                     ),
                 )
@@ -327,6 +363,8 @@ class ModelCoderMultiEvaluator(Evaluator):
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
         ]
-        logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
+        logger.info(
+            f"Final decisions: {final_decision} True count: {final_decision.count(True)}"
+        )
 
         return multi_implementation_feedback

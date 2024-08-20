@@ -16,6 +16,7 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
+
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute accuracy metric for classification."""
     accuracy = accuracy_score(y_true, y_pred)
@@ -30,7 +31,7 @@ def train_model(X_train, y_train, X_valid, y_valid):
     params = get_params()
     num_round = get_num_round()
 
-    evallist = [(dtrain, 'train'), (dvalid, 'eval')]
+    evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)
 
     return bst
@@ -41,6 +42,7 @@ def predict(model, X):
     y_pred_prob = model.predict(dtest)
     return y_pred_prob > 0.5  # Apply threshold to get boolean predictions
 
+
 if __name__ == "__main__":
     # Load and preprocess the data
     data_df = pd.read_csv("/root/.data/train.csv")
@@ -50,15 +52,22 @@ if __name__ == "__main__":
     y = data_df.Transported.to_numpy()
 
     # Identify numerical and categorical features
-    numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
+    numerical_cols = [
+        cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]
+    ]
     categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
 
     # Define preprocessors for numerical and categorical features
     categorical_transformer = Pipeline(
-        steps=[("imputer", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore"))]
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
     )
 
-    numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
+    numerical_transformer = Pipeline(
+        steps=[("imputer", SimpleImputer(strategy="mean"))]
+    )
 
     # Combine preprocessing steps
     preprocessor = ColumnTransformer(
@@ -69,7 +78,9 @@ if __name__ == "__main__":
     )
 
     # Split the data into training and validation sets
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
+    X_train, X_valid, y_train, y_valid = train_test_split(
+        X, y, test_size=0.10, random_state=SEED
+    )
 
     # Fit the preprocessor on the training data and transform both training and validation data
     preprocessor.fit(X_train)
@@ -89,15 +100,14 @@ if __name__ == "__main__":
 
     # Load and preprocess the test set
     submission_df = pd.read_csv("/root/.data/test.csv")
-    passenger_ids = submission_df['PassengerId']
+    passenger_ids = submission_df["PassengerId"]
     submission_df = submission_df.drop(["PassengerId", "Name"], axis=1)
     X_test = preprocessor.transform(submission_df)
 
-     # Make predictions on the test set and save them
+    # Make predictions on the test set and save them
     y_test_pred = predict(model, X_test)
-    submission_result = pd.DataFrame({
-        "PassengerId": passenger_ids,
-        "Transported": y_test_pred
-    })
+    submission_result = pd.DataFrame(
+        {"PassengerId": passenger_ids, "Transported": y_test_pred}
+    )
     # submit predictions for the test set
     submission_result.to_csv("./submission_update.csv", index=False)
