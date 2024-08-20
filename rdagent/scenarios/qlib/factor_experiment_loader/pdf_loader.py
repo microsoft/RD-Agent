@@ -403,7 +403,7 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         return np.argmax(similarity, axis=1)
 
     # Initializes the cluster center
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(seed=42)
     centroids = rng.choice(x_normalized, size=k, replace=False)
 
     # Iterate until convergence or the maximum number of iterations is reached
