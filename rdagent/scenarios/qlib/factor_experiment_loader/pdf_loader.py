@@ -370,12 +370,17 @@ def __check_factor_duplication_simulate_json_mode(
 
     while len(working_list) > 0:
         current_df = working_list.pop(0)
-        if APIBackend().build_messages_and_calculate_token(user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]) > RD_AGENT_SETTINGS.chat_token_limit:
+        if (
+            APIBackend().build_messages_and_calculate_token(
+                user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]
+            )
+            > RD_AGENT_SETTINGS.chat_token_limit
+        ):
             working_list.append(current_df.iloc[: current_df.shape[0] // 2, :])
             working_list.append(current_df.iloc[current_df.shape[0] // 2 :, :])
         else:
             final_list.append(current_df)
- 
+
     generated_duplicated_groups = []
     for current_df in final_list:
         current_factor_to_string = current_df.to_string()
