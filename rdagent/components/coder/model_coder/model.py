@@ -6,7 +6,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import torch
+import xgboost as xgb
+import numpy as np
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.exception import CodeFormatError
@@ -95,36 +96,23 @@ class ModelFBWorkspace(FBWorkspace):
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
-            model_cls = mod.model_cls
+            #model_cls = mod.model_cls
+            #params = mod.get_params()
+            #num_round = get_num_round()
+            #get_params() = mod.get_params()
+            #get_num_round() = mod.get_num_round()
+            X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
+            y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
 
-            if self.target_task.model_type == "Tabular":
-                input_shape = (batch_size, num_features)
-                m = model_cls(num_features=input_shape[1])
-                data = torch.full(input_shape, input_value)
-            elif self.target_task.model_type == "TimeSeries":
-                input_shape = (batch_size, num_features, num_timesteps)
-                m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
-                data = torch.full(input_shape, input_value)
-            elif self.target_task.model_type == "Graph":
-                node_feature = torch.randn(batch_size, num_features)
-                edge_index = torch.randint(0, batch_size, (2, num_edges))
-                m = model_cls(num_features=num_features)
-                data = (node_feature, edge_index)
-            else:
-                raise ValueError(f"Unsupported model type: {self.target_task.model_type}")
+            params = mod.get_params()
+            num_round = mod.get_num_round()
 
-            # Initialize all parameters of `m` to `param_init_value`
-            for _, param in m.named_parameters():
-                param.data.fill_(param_init_value)
+            dtrain = xgb.DMatrix(X_simulated, label=y_simulated)
+            bst = xgb.train(params, dtrain, num_round)
 
-            # Execute the model
-            if self.target_task.model_type == "Graph":
-                out = m(*data)
-            else:
-                out = m(data)
-
-            execution_model_output = out.cpu().detach()
-            execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
+            y_pred = bst.predict(dtrain)
+            execution_model_output = y_pred
+            execution_feedback_str = "Execution successful, model trained and predictions made."
 
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
