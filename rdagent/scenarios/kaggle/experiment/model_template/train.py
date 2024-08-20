@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from model import get_params, get_num_round
+from model import get_num_round, get_params
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score

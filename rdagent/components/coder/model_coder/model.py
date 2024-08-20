@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import xgboost as xgb
 import numpy as np
+import xgboost as xgb
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.exception import CodeFormatError
@@ -96,11 +96,7 @@ class ModelFBWorkspace(FBWorkspace):
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
-            #model_cls = mod.model_cls
-            #params = mod.get_params()
-            #num_round = get_num_round()
-            #get_params() = mod.get_params()
-            #get_num_round() = mod.get_num_round()
+
             X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
             y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
 
