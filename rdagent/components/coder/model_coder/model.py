@@ -33,7 +33,9 @@ class ModelTask(Task):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
-        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model
+        self.model_type: str = (
+            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model
+        )
 
     def get_task_information(self):
         return f"""name: {self.name}
@@ -89,19 +91,13 @@ class ModelFBWorkspace(FBWorkspace):
                 target_file_name = md5_hash(
                     f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}_{self.code_dict['model.py']}"
                 )
-                cache_file_path = (
-                    Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
-                )
-                Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(
-                    exist_ok=True, parents=True
-                )
+                cache_file_path = Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
+                Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
 
-            X_simulated = np.random.rand(
-                100, num_features
-            )  # 100 samples, `num_features` features each
+            X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
             y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
 
             params = mod.get_params()
@@ -112,9 +108,7 @@ class ModelFBWorkspace(FBWorkspace):
 
             y_pred = bst.predict(dtrain)
             execution_model_output = y_pred
-            execution_feedback_str = (
-                "Execution successful, model trained and predictions made."
-            )
+            execution_feedback_str = "Execution successful, model trained and predictions made."
 
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 pickle.dump(
@@ -123,20 +117,16 @@ class ModelFBWorkspace(FBWorkspace):
                 )
 
         except Exception as e:
-            execution_feedback_str = (
-                f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
-            )
+            execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
             execution_model_output = None
 
         code_path = self.workspace_path / f"model.py"
-        execution_feedback_str = execution_feedback_str.replace(
-            str(code_path.parent.absolute()), r"/path/to"
-        ).replace(str(site.getsitepackages()[0]), r"/path/to/site-packages")
+        execution_feedback_str = execution_feedback_str.replace(str(code_path.parent.absolute()), r"/path/to").replace(
+            str(site.getsitepackages()[0]), r"/path/to/site-packages"
+        )
         if len(execution_feedback_str) > 2000:
             execution_feedback_str = (
-                execution_feedback_str[:1000]
-                + "....hidden long error message...."
-                + execution_feedback_str[-1000:]
+                execution_feedback_str[:1000] + "....hidden long error message...." + execution_feedback_str[-1000:]
             )
         return execution_feedback_str, execution_model_output
 
