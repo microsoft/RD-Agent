@@ -111,7 +111,10 @@ class ModelFBWorkspace(FBWorkspace):
             execution_feedback_str = "Execution successful, model trained and predictions made."
 
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
-                pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
+                pickle.dump(
+                    (execution_feedback_str, execution_model_output),
+                    open(cache_file_path, "wb"),
+                )
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"

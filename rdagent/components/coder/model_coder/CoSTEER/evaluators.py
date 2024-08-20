@@ -26,15 +26,24 @@ evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yam
 
 def shape_evaluator(prediction: torch.Tensor, target_shape: Tuple = None) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
-        return "No output generated from the model. No shape evaluation conducted.", False
+        return (
+            "No output generated from the model. No shape evaluation conducted.",
+            False,
+        )
     pre_shape = prediction.shape
 
-    return "The shape of the output is correct.", True # now test xgboost so no need for shape evaluator
+    return (
+        "The shape of the output is correct.",
+        True,
+    )  # now test xgboost so no need for shape evaluator
 
     if pre_shape == target_shape:
         return "The shape of the output is correct.", True
     else:
-        return f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.", False
+        return (
+            f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.",
+            False,
+        )
 
 
 def reshape_tensor(original_tensor, target_shape):
@@ -52,7 +61,10 @@ def value_evaluator(
     if prediction is None:
         return "No output generated from the model. Skip value evaluation", False
     elif target is None:
-        return "No ground truth output provided. Value evaluation not impractical", False
+        return (
+            "No ground truth output provided. Value evaluation not impractical",
+            False,
+        )
     else:
         # Calculate the mean absolute difference
         diff = torch.mean(torch.abs(target - prediction)).item()

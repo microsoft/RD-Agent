@@ -16,6 +16,7 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
+
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute accuracy metric for classification."""
     accuracy = accuracy_score(y_true, y_pred)
@@ -30,7 +31,7 @@ def train_model(X_train, y_train, X_valid, y_valid):
     params = get_params()
     num_round = get_num_round()
 
-    evallist = [(dtrain, 'train'), (dvalid, 'eval')]
+    evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)
 
     return bst
@@ -40,6 +41,7 @@ def predict(model, X):
     dtest = xgb.DMatrix(X)
     y_pred_prob = model.predict(dtest)
     return y_pred_prob > 0.5  # Apply threshold to get boolean predictions
+
 
 if __name__ == "__main__":
     # Load and preprocess the data
@@ -55,7 +57,10 @@ if __name__ == "__main__":
 
     # Define preprocessors for numerical and categorical features
     categorical_transformer = Pipeline(
-        steps=[("imputer", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore"))]
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
     )
 
     numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
@@ -89,15 +94,12 @@ if __name__ == "__main__":
 
     # Load and preprocess the test set
     submission_df = pd.read_csv("/root/.data/test.csv")
-    passenger_ids = submission_df['PassengerId']
+    passenger_ids = submission_df["PassengerId"]
     submission_df = submission_df.drop(["PassengerId", "Name"], axis=1)
     X_test = preprocessor.transform(submission_df)
 
-     # Make predictions on the test set and save them
+    # Make predictions on the test set and save them
     y_test_pred = predict(model, X_test)
-    submission_result = pd.DataFrame({
-        "PassengerId": passenger_ids,
-        "Transported": y_test_pred
-    })
+    submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
     # submit predictions for the test set
     submission_result.to_csv("./submission_update.csv", index=False)
