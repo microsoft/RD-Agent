@@ -109,6 +109,14 @@ class SQliteLazyCache(SingletonBaseClass):
                 )
                 """,
             )
+            self.c.execute(
+                """
+                CREATE TABLE message_cache (
+                    conversation_id TEXT PRIMARY KEY,
+                    message TEXT
+                )
+                """,
+            )
             self.conn.commit()
 
     def chat_get(self, key: str) -> str | None:
@@ -144,33 +152,31 @@ class SQliteLazyCache(SingletonBaseClass):
             )
         self.conn.commit()
 
+    def message_get(self, conversation_id: str) -> list[str]:
+        self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
+        result = self.c.fetchone()
+        if result is None:
+            return []
+        return json.loads(result[0])
+
+    def message_set(self, conversation_id: str, message_value: list[str]) -> None:
+        self.c.execute(
+            "INSERT OR REPLACE INTO message_cache (conversation_id, message) VALUES (?, ?)",
+            (conversation_id, json.dumps(message_value)),
+        )
+        self.conn.commit()
+
 
 class SessionChatHistoryCache(SingletonBaseClass):
     def __init__(self) -> None:
         """load all history conversation json file from self.session_cache_location"""
-        self.cfg = RD_AGENT_SETTINGS
-        self.session_cache_location = Path(self.cfg.session_cache_folder_location)
-        self.cache = {}
-        if not self.session_cache_location.exists():
-            logger.warning(f"Directory {self.session_cache_location} does not exist.")
-            self.session_cache_location.mkdir(parents=True, exist_ok=True)
-        json_files = [f for f in self.session_cache_location.iterdir() if f.suffix == ".json"]
-        for file_path in json_files:
-            conversation_id = file_path.stem
-            with file_path.open("r") as f:
-                conversation_content = json.load(f)
-                self.cache[conversation_id] = conversation_content["content"]
+        self.cache = SQliteLazyCache(cache_location=RD_AGENT_SETTINGS.prompt_cache_path)
 
     def message_get(self, conversation_id: str) -> list[str]:
-        return self.cache.get(conversation_id, [])
+        return self.cache.message_get(conversation_id)
 
     def message_set(self, conversation_id: str, message_value: list[str]) -> None:
-        self.cache[conversation_id] = message_value
-        conversation_path = self.session_cache_location / conversation_id
-        conversation_path = conversation_path.with_suffix(".json")
-        current_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
-        with conversation_path.open("w") as f:
-            json.dump({"content": message_value, "last_modified_time": current_time}, f)
+        self.cache.message_set(conversation_id, message_value)
 
 
 class ChatSession:
