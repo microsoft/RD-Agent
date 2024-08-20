@@ -3,11 +3,11 @@ from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import ModelEmptyError
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_processing.experiment.feature_experiment import DPFeatureExperiment
+from rdagent.scenarios.feature_engineering.experiment.feature_experiment import FEFeatureExperiment
 
 
-class DPFeatureRunner(CachedRunner[DPFeatureExperiment]):
-    def develop(self, exp: DPFeatureExperiment) -> DPFeatureExperiment:
+class FEFeatureRunner(CachedRunner[FEFeatureExperiment]):
+    def develop(self, exp: FEFeatureExperiment) -> FEFeatureExperiment:
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:

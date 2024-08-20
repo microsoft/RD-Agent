@@ -1,4 +1,4 @@
-data_processing_background: |-
+feature_engineering_background: |-
   Data preprocessing is a crucial step in the data analysis pipeline, involving the transformation and preparation of raw data into a suitable format for further analysis or modeling.
   This process is essential to enhance the quality of data and to ensure the accuracy of the results obtained from analytical models
   Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Integration, Data Transformation, Data Reduction, Data Discretization.
@@ -12,7 +12,7 @@ data_processing_background: |-
   Please specifically give all the hyperparameter in the method like Learning Rate, Regularization parameter, Threshold, etc. 
   One method should statically define one output with a fixed hyperparameter. For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
 
-data_processing_interface: |-
+feature_engineering_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   Your python code should contain the following part: the import part and the function part.
   1. The import part: import the necessary libraries.
@@ -22,7 +22,7 @@ data_processing_interface: |-
 
   User will import your processing method in the following way:
   ```python
-  from data_processing import preprocessing
+  from feature_engineering import preprocessing
   ```
 
   The user will call the preprocessing function to get the processed data.
@@ -32,10 +32,10 @@ data_processing_interface: |-
   The input data is a pandas dataframe and the output should be a pandas dataframe similar to the original data.
 
 #TODO: Generate a python function (the whole preprocessing process) or generate a transformation each time
-data_processing_output_format: |-
+feature_engineering_output_format: |-
   Your output should be a pandas dataframe similar to the original data.
 
-data_processing_simulator: |-
+feature_engineering_simulator: |-
   The data preprocessing method file will be used to process the data before training the model.
   The processed data will be sent into a model to train and predict.
   
@@ -44,8 +44,8 @@ data_processing_simulator: |-
   2. train a model like LightGBM, CatBoost, LSTM or simple PyTorch model based on the processed data.
   4. evaluate the processing method's performance and then provide feedback to you.
 
-data_processing_rich_style_description : |-
+feature_engineering_rich_style_description : |-
   xxx
 
-data_processing_experiment_setting: |-
+feature_engineering_experiment_setting: |-
   xxx

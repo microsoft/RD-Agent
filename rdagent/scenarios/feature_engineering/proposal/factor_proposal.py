@@ -19,7 +19,7 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 QlibFactorHypothesis = FactorHypothesis
 
 
-class DPFeatureHypothesisGen(FactorHypothesisGen):
+class FEFeatureHypothesisGen(FactorHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -50,7 +50,7 @@ class DPFeatureHypothesisGen(FactorHypothesisGen):
         return hypothesis
 
 
-class DPFeatureHypothesis2Experiment(FactorHypothesis2Experiment):
+class FEFeatureHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
         scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["factor_experiment_output_format"]

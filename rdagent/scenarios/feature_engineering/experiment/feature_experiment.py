@@ -8,24 +8,24 @@ from rdagent.components.coder.factor_coder.factor import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
-from rdagent.scenarios.data_processing.experiment.workspace import DPFBWorkspace
+from rdagent.scenarios.feature_engineering.experiment.workspace import FEFBWorkspace
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class DPFeatureExperiment(FactorExperiment[FactorTask, DPFBWorkspace, FactorFBWorkspace]):
+class FEFeatureExperiment(FactorExperiment[FactorTask, FEFBWorkspace, FactorFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = DPFBWorkspace(template_folder_path=Path(__file__).parent / "feature_template")
+        self.experiment_workspace = FEFBWorkspace(template_folder_path=Path(__file__).parent / "feature_template")
 
 
-class DPFeatureScenario(Scenario):
+class FEFeatureScenario(Scenario):
     def __init__(self) -> None:
         super().__init__()
-        self._background = deepcopy(prompt_dict["data_processing_background"])
-        self._output_format = deepcopy(prompt_dict["data_processing_output_format"])
-        self._interface = deepcopy(prompt_dict["data_processing_interface"])
-        self._simulator = deepcopy(prompt_dict["data_processing_simulator"])
+        self._background = deepcopy(prompt_dict["feature_engineering_background"])
+        self._output_format = deepcopy(prompt_dict["feature_engineering_output_format"])
+        self._interface = deepcopy(prompt_dict["feature_engineering_interface"])
+        self._simulator = deepcopy(prompt_dict["feature_engineering_simulator"])
         self._rich_style_description = deepcopy(prompt_dict["data_factor_rich_style_description"])
         self._experiment_setting = deepcopy(prompt_dict["data_factor_experiment_setting"])
 

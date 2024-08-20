@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from model import model_cls
-from data_processing import preprocessing
+from feature_engineering import preprocessing
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 

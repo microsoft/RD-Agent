@@ -1,6 +1,6 @@
 import fire
 
-from rdagent.app.data_processing.conf import PROP_SETTING
+from rdagent.app.feature_engineering.conf import PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import FactorEmptyError
 
@@ -17,7 +17,7 @@ def main(path=None, step_n=None):
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/data_processing/feature.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/feature_engineering/feature.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
     """
     if path is None:

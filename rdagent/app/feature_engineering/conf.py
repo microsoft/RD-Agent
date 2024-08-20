@@ -7,28 +7,28 @@ from rdagent.components.workflow.conf import BasePropSetting
 
 class PropSetting(BasePropSetting):
     class Config:
-        env_prefix = "DP_"
-        """Use `DP_` as prefix for environment variables"""
+        env_prefix = "FE_"
+        """Use `FE_` as prefix for environment variables"""
         protected_namespaces = ()
         """Add 'feature_' to the protected namespaces"""
 
     # 1) overriding the default
-    scen: str = "rdagent.scenarios.data_processing.experiment.feature_experiment.DPFeatureScenario"
+    scen: str = "rdagent.scenarios.feature_engineering.experiment.feature_experiment.FEFeatureScenario"
     """Scenario class for data processing model"""
 
-    hypothesis_gen: str = "rdagent.scenarios.data_processing.proposal.factor_proposal.DPFeatureHypothesisGen"
+    hypothesis_gen: str = "rdagent.scenarios.feature_engineering.proposal.factor_proposal.FEFeatureHypothesisGen"
     """Hypothesis generation class"""
 
-    hypothesis2experiment: str = "rdagent.scenarios.data_processing.proposal.factor_proposal.DPFeatureHypothesis2Experiment"
+    hypothesis2experiment: str = "rdagent.scenarios.feature_engineering.proposal.factor_proposal.FEFeatureHypothesis2Experiment"
     """Hypothesis to experiment class"""
 
-    coder: str = "rdagent.scenarios.data_processing.developer.data_coder.DPFeatureCoSTEER"
+    coder: str = "rdagent.scenarios.feature_engineering.developer.data_coder.FEFeatureCoSTEER"
     """Coder class"""
 
-    runner: str = "rdagent.scenarios.data_processing.developer.data_runner.DPFeatureRunner"
+    runner: str = "rdagent.scenarios.feature_engineering.developer.data_runner.FEFeatureRunner"
     """Runner class"""
 
-    summarizer: str = "rdagent.scenarios.data_processing.developer.feedback.DPFeatureHypothesisExperiment2Feedback"
+    summarizer: str = "rdagent.scenarios.feature_engineering.developer.feedback.FEFeatureHypothesisExperiment2Feedback"
     """Summarizer class"""
 
     evolving_n: int = 10

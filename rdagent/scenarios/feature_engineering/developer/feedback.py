@@ -56,7 +56,7 @@ def process_results(current_result, sota_result):
     return filtered_combined_df.to_string()
 
 
-class DPFeatureHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class FEFeatureHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         Generate feedback for the given experiment and hypothesis.
