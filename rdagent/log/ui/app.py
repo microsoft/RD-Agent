@@ -504,7 +504,6 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
-@st.fragment
 def evolving_window():
     title = (
         "Development🛠️"
