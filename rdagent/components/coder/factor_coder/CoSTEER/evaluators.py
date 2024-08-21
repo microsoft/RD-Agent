@@ -133,7 +133,11 @@ class FactorSingleColumnEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         _, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
         if len(gen_df.columns) == 1:
             return "The source dataframe has only one column which is correct.", True
         else:
@@ -241,7 +245,11 @@ class FactorRowCountEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
         if gen_df.shape[0] == gt_df.shape[0]:
             return "Both dataframes have the same rows count.", True
         else:
@@ -258,7 +266,11 @@ class FactorIndexEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
         if gen_df.index.equals(gt_df.index):
             return "Both dataframes have the same index.", True
         else:
@@ -275,7 +287,11 @@ class FactorMissingValuesEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
         if gen_df.isna().sum().sum() == gt_df.isna().sum().sum():
             return "Both dataframes have the same missing values.", True
         else:
@@ -292,7 +308,11 @@ class FactorEqualValueCountEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                -1,
+            )
         try:
             close_values = gen_df.sub(gt_df).abs().lt(1e-6)
             result_int = close_values.astype(int)
@@ -323,7 +343,11 @@ class FactorCorrelationEvaluator(FactorEvaluator):
         gt_implementation: Workspace,
     ) -> Tuple[str, object]:
         gt_df, gen_df = self._get_df(gt_implementation, implementation)
-
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
         concat_df = pd.concat([gen_df, gt_df], axis=1)
         concat_df.columns = ["source", "gt"]
         ic = concat_df.groupby("datetime").apply(lambda df: df["source"].corr(df["gt"])).dropna().mean()

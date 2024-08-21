@@ -370,12 +370,17 @@ def __check_factor_duplication_simulate_json_mode(
 
     while len(working_list) > 0:
         current_df = working_list.pop(0)
-        if APIBackend().build_messages_and_calculate_token(user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]) > RD_AGENT_SETTINGS.chat_token_limit:
+        if (
+            APIBackend().build_messages_and_calculate_token(
+                user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]
+            )
+            > RD_AGENT_SETTINGS.chat_token_limit
+        ):
             working_list.append(current_df.iloc[: current_df.shape[0] // 2, :])
             working_list.append(current_df.iloc[current_df.shape[0] // 2 :, :])
         else:
             final_list.append(current_df)
- 
+
     generated_duplicated_groups = []
     for current_df in final_list:
         current_factor_to_string = current_df.to_string()
@@ -418,7 +423,7 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         return np.argmax(similarity, axis=1)
 
     # Initializes the cluster center
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(seed=42)
     centroids = rng.choice(x_normalized, size=k, replace=False)
 
     # Iterate until convergence or the maximum number of iterations is reached
@@ -483,7 +488,7 @@ Factor variables: {variables}
     else:
         for k in range(
             len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
-            40,
+            RD_AGENT_SETTINGS.max_kmeans_group_number,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
