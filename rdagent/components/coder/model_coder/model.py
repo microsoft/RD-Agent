@@ -97,18 +97,49 @@ class ModelFBWorkspace(FBWorkspace):
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
 
-            X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
-            y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
+            if self.target_task.model_type != "XGBoost":
+                model_cls = mod.model_cls
 
-            params = mod.get_params()
-            num_round = mod.get_num_round()
+            if self.target_task.model_type == "XGBoost":
+                X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
+                y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
+                params = mod.get_params()
+                num_round = mod.get_num_round()
+                dtrain = xgb.DMatrix(X_simulated, label=y_simulated)
+            elif self.target_task.model_type == "Tabular":
+                input_shape = (batch_size, num_features)
+                m = model_cls(num_features=input_shape[1])
+                data = torch.full(input_shape, input_value)
+            elif self.target_task.model_type == "TimeSeries":
+                input_shape = (batch_size, num_features, num_timesteps)
+                m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
+                data = torch.full(input_shape, input_value)
+            elif self.target_task.model_type == "Graph":
+                node_feature = torch.randn(batch_size, num_features)
+                edge_index = torch.randint(0, batch_size, (2, num_edges))
+                m = model_cls(num_features=num_features)
+                data = (node_feature, edge_index)
+            else:
+                raise ValueError(f"Unsupported model type: {self.target_task.model_type}")
 
-            dtrain = xgb.DMatrix(X_simulated, label=y_simulated)
-            bst = xgb.train(params, dtrain, num_round)
+            if self.target_task.model_type == "XGBoost":
+                bst = xgb.train(params, dtrain, num_round)
+                y_pred = bst.predict(dtrain)
+                execution_model_output = y_pred
+                execution_feedback_str = "Execution successful, model trained and predictions made."
+            else:
+                # Initialize all parameters of `m` to `param_init_value`
+                for _, param in m.named_parameters():
+                    param.data.fill_(param_init_value)
 
-            y_pred = bst.predict(dtrain)
-            execution_model_output = y_pred
-            execution_feedback_str = "Execution successful, model trained and predictions made."
+                # Execute the model
+                if self.target_task.model_type == "Graph":
+                    out = m(*data)
+                else:
+                    out = m(data)
+
+                execution_model_output = out.cpu().detach()
+                execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
 
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 pickle.dump(

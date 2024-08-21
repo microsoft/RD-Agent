@@ -102,4 +102,4 @@ if __name__ == "__main__":
     y_test_pred = predict(model, X_test)
     submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
     # submit predictions for the test set
-    submission_result.to_csv("./submission_update.csv", index=False)
+    submission_result.to_csv("./submission.csv", index=False)
