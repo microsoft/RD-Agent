@@ -13,6 +13,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
+import pandas as pd
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -82,7 +83,30 @@ class KGModelScenario(Scenario):
 
     @property
     def source_data(self) -> str:
-        raise NotImplementedError("source_data is not implemented")
+        kaggle_conf = KGDockerConf()
+        data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
+ 
+        csv_files = list(data_path.glob("*.csv"))
+       
+        if not csv_files:
+            return "No CSV files found in the specified path."
+            
+        dataset = pd.concat([pd.read_csv(file) for file in csv_files], ignore_index=True)
+ 
+        simple_eda = dataset.info(buf=None)  # Capture the info output
+        data_shape = dataset.shape
+        data_head = dataset.head()
+ 
+        eda = (
+            f"Basic Info about the data:\n{simple_eda}\n"
+            f"Shape of the dataset: {data_shape}\n"
+            f"Sample Data:\n{data_head}\n"
+        )
+       
+        data_description = self.competition_descriptions.get('Data Description', 'No description provided')
+        eda += f"\nData Description:\n{data_description}"
+ 
+        return eda
 
     @property
     def output_format(self) -> str:
