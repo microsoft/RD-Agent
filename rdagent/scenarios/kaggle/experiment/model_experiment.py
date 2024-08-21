@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
@@ -13,7 +14,6 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
-import pandas as pd
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
