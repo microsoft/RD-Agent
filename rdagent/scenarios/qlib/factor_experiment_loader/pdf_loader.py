@@ -488,7 +488,7 @@ Factor variables: {variables}
     else:
         for k in range(
             len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
-            40,
+             RD_AGENT_SETTINGS.max_kmeans_group_number,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
