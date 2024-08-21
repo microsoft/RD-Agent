@@ -26,16 +26,17 @@ class FEFeatureScenario(Scenario):
         self._output_format = deepcopy(prompt_dict["feature_engineering_output_format"])
         self._interface = deepcopy(prompt_dict["feature_engineering_interface"])
         self._simulator = deepcopy(prompt_dict["feature_engineering_simulator"])
-        self._rich_style_description = deepcopy(prompt_dict["data_factor_rich_style_description"])
-        self._experiment_setting = deepcopy(prompt_dict["data_factor_experiment_setting"])
+        self._rich_style_description = deepcopy(prompt_dict["feature_engineering_rich_style_description"])
+        self._experiment_setting = deepcopy(prompt_dict["feature_engineering_experiment_setting"])
 
     @property
     def background(self) -> str:
         return self._background
 
-    # @property
-    # def source_data(self) -> str:
-    #     return self._source_data
+    @property
+    def source_data(self) -> str:
+        # TODO: Add the source data property from kaggle data feature or sota data feature
+        raise NotImplementedError("source_data is not implemented")
 
     @property
     def output_format(self) -> str:

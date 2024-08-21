@@ -12,11 +12,12 @@ from rdagent.components.proposal.factor_proposal import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
-from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.feature_engineering.experiment.feature_experiment import FEFeatureExperiment
+
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
-QlibFactorHypothesis = FactorHypothesis
+FEFeatureHypothesis = FactorHypothesis
 
 
 class FEFeatureHypothesisGen(FactorHypothesisGen):
@@ -39,7 +40,7 @@ class FEFeatureHypothesisGen(FactorHypothesisGen):
 
     def convert_response(self, response: str) -> FactorHypothesis:
         response_dict = json.loads(response)
-        hypothesis = QlibFactorHypothesis(
+        hypothesis = FEFeatureHypothesis(
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
             concise_reason=response_dict["concise_reason"],
@@ -86,8 +87,8 @@ class FEFeatureHypothesis2Experiment(FactorHypothesis2Experiment):
             variables = response_dict[factor_name]["variables"]
             tasks.append(FactorTask(factor_name, description, formulation, variables))
 
-        exp = QlibFactorExperiment(tasks)
-        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
+        exp = FEFeatureExperiment(tasks)
+        exp.based_experiments = [FEFeatureExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
 
         unique_tasks = []
 

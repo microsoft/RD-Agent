@@ -16,7 +16,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import convert2bool
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
+feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
@@ -36,24 +36,13 @@ def process_results(current_result, sota_result):
     # Combine the dataframes on the Metric index
     combined_df = pd.concat([current_df, sota_df], axis=1)
 
-    # Select important metrics for comparison
-    important_metrics = [
-        "1day.excess_return_without_cost.max_drawdown",
-        "1day.excess_return_without_cost.information_ratio",
-        "1day.excess_return_without_cost.annualized_return",
-        "IC",
-    ]
-
-    # Filter the combined DataFrame to retain only the important metrics
-    filtered_combined_df = combined_df.loc[important_metrics]
-
-    filtered_combined_df[
+    combined_df[
         "Bigger columns name (Didn't consider the direction of the metric, you should judge it by yourself that bigger is better or smaller is better)"
-    ] = filtered_combined_df.apply(
+    ] = combined_df.apply(
         lambda row: "Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result", axis=1
     )
 
-    return filtered_combined_df.to_string()
+    return combined_df.to_string()
 
 
 class FEFeatureHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
