@@ -98,6 +98,7 @@ class RDAgentSettings(BaseSettings):
     # factor extraction conf
     max_input_duplicate_factor_group: int = 300
     max_output_duplicate_factor_group: int = 20
+    max_kmeans_group_number: int = 40
 
     # workspace conf
     workspace_path: Path = Path.cwd() / "git_ignore_folder" / "RD-Agent_workspace"
