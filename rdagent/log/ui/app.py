@@ -539,7 +539,6 @@ def feedback_window():
                 )
 
 
-@st.fragment
 def evolving_window():
     title = (
         "Development🛠️"
