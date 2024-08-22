@@ -31,3 +31,8 @@ class FEFBWorkspace(FBWorkspace):
             logger.error(f"File {csv_path} does not exist.")
             return None
         return pd.read_csv(csv_path, index_col=0).iloc[:, 0]
+    
+    def feature_execute(self, run_env: dict = {}, *args, **kwargs) -> pd.DataFrame:
+        #TODO 基于task的代码得到具体的特征数据，应当返回一个dataframe
+        #TODO 查看task的代码的案例，看一看是否现在生成的代码是什么样的，再决定下面这个函数怎么写
+        pass

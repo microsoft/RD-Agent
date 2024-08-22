@@ -1,17 +1,19 @@
 feature_engineering_background: |-
   Data preprocessing is a crucial step in the data analysis pipeline, involving the transformation and preparation of raw data into a suitable format for further analysis or modeling.
   This process is essential to enhance the quality of data and to ensure the accuracy of the results obtained from analytical models
-  Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Integration, Data Transformation, Data Reduction, Data Discretization.
+  Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Creation, Data Integration, Data Transformation, Data Reduction, Data Discretization.
   
   The preprocessing method is defined in the following parts:
   1. Name: The name of the data preprocessing method.
   2. Description: The description of the method.
   3. Code: The code of the preprocessing method.
   4. Variables: The steps or functions used for this data preprocessing method.
+  
   The method might not provide all the parts of the information above since some might not be applicable.
   Please specifically give all the hyperparameter in the method like Learning Rate, Regularization parameter, Threshold, etc. 
-  One method should statically define one output with a fixed hyperparameter. For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
-
+  One method should statically define one output with a fixed hyperparameter. 
+  For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
+#TODO 是否特征工程需要和模型强相关
 feature_engineering_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   Your python code should contain the following part: the import part and the function part.
@@ -31,7 +33,9 @@ feature_engineering_interface: |-
   ```
   The input data is a pandas dataframe and the output should be a pandas dataframe similar to the original data.
 
-#TODO: Generate a python function (the whole preprocessing process) or generate a transformation each time
+#TODO 这里有个问题，输出的data是直接给模型Train，还是要多个task concat起来给模型Train
+#TODO Generate a python function (the whole preprocessing process) or generate a transformation each time
+
 feature_engineering_output_format: |-
   Your output should be a pandas dataframe similar to the original data.
 
