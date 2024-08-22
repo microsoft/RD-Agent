@@ -32,11 +32,6 @@ def shape_evaluator(prediction: torch.Tensor, target_shape: Tuple = None) -> Tup
         )
     pre_shape = prediction.shape
 
-    return (
-        "The shape of the output is correct.",
-        True,
-    )  # now test xgboost so no need for shape evaluator
-
     if pre_shape == target_shape:
         return "The shape of the output is correct.", True
     else:
@@ -284,7 +279,11 @@ class ModelCoderEvaluator(Evaluator):
         else:
             gt_tensor = None
 
-        shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
+        if target_task.model_type == "XGBoost":
+            shape_feedback = "Not applicable for XGBoost models"
+            shape_decision = True
+        else:
+            shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
         value_feedback, value_decision = value_evaluator(gt_tensor, gen_tensor)
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,

@@ -115,7 +115,7 @@ model_experiment_output_format: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "model_type": "Tabular or TimeSeries" or "XGBoost" # Should be one of "Tabular" or "TimeSeries" or "XGBoost"
+        "model_type": "XGBoost" # Should be "XGBoost"
     },
     "model_name 2 (The name of the model)": {
         ...

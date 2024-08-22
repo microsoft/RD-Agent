@@ -19,7 +19,7 @@ kg_model_background: |-
   
   The model is a machine learning or deep learning structure designed to predict {{ target_description }}. 
   The data is extracted from the competition dataset, focusing on relevant attributes like {{ competition_features }}.
-  ModelType: The type of the model, "Tabular" for tabular model, "TimeSeries" for time series model and "XGBoost" for XGBoost model.
+  ModelType: The type of the model, "XGBoost" for XGBoost model.
   
   The model is defined in the following parts:
   - Name: The name of the model.
@@ -54,7 +54,7 @@ kg_model_interface: |-
   The XGBoost Model leverages two critical hyperparameters: "arams" and "num_round".
   "params": This hyperparameter encapsulates various settings that dictate the model's behavior and learning process.
   "num_round": This hyperparameter specifies the number of training iterations the model will undergo.
-  User will initialize the tabular model with the following code:
+  User will initialize the XGBoost model with the following code:
   ```python
   params = get_params()
   num_round = get_num_round()
