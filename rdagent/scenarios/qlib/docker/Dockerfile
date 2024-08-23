@@ -15,9 +15,9 @@ WORKDIR /workspace/qlib
 
 RUN git reset c9ed050ef034fe6519c14b59f3d207abcb693282 --hard
 
-RUN python -m pip install --upgrade numpy
 RUN python -m pip install --upgrade cython
 RUN python -m pip install -e .
 
 RUN pip install catboost
 RUN pip install xgboost
+RUN pip install scipy==1.11.4
