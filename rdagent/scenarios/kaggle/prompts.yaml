@@ -20,8 +20,6 @@ hypothesis_output_format: |-
   "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
 
-
-
 model_hypothesis_specification: |-
   Additional Specifications:
     
@@ -49,55 +47,7 @@ model_hypothesis_specification: |-
 
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
-factor_hypothesis_specification: |-
-  1. **Type of Factor and Financial Trends:**
-    - Define the type of factor introduced.
-    - Explain the financial trends or market behaviors indicated by this factor.
-    - Omit unnecessary or redundant details.
-
-  2. **Simple and Effective Factors First:**
-    - Start with factors that are simple and likely effective.
-    - Concisely explain why these factors are expected to work.
-    - Avoid complex or combined factors initially.
-
-  3. **Gradual Complexity Increase:**
-    - Introduce more complex factors as more experimental results are gathered.
-    - Discuss potential advantages and complexities.
-    - Combine factors only after simpler ones are tested and validated.
-
-  4. **New Directions and Optimizations:**
-    - If a new direction is needed, explain why based on financial principles, economic theories, or market behaviors.
-    - Suggest only one new direction at a time for clarity.
-    - If a previous hypothesis did not surpass SOTA but seems optimizable, you may continue in the same direction.
-    - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
-
-  5. **1-3 Factors per Generation:**
-    - Ensure each generation produces 1-3 factors.
-    - Balance simplicity and complexity to build a robust factor library.
-
-factor_experiment_output_format: |-
-  The output should follow JSON format. The schema is as follows:
-  {
-      "factor name 1": {
-          "description": "description of factor 1",
-          "formulation": "latex formulation of factor 1",
-          "variables": {
-              "variable or function name 1": "description of variable or function 1",
-              "variable or function name 2": "description of variable or function 2"
-          }
-      },
-      "factor name 2": {
-          "description": "description of factor 1",
-          "formulation": "latex formulation of factor 2",
-          "variables": {
-              "variable or function name 1": "description of variable or function 1",
-              "variable or function name 2": "description of variable or function 2"
-          }
-      }
-      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
-  }
-
-model_experiment_output_format: |-
+model_experiment_output_format_XGBoost: |-
   So far please only design one model to test the hypothesis! 
   The output should follow JSON format. The schema is as follows: 
   {
@@ -115,7 +65,7 @@ model_experiment_output_format: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "model_type": "XGBoost" # Should be "XGBoost"
+        "model_type":"XGBoost" # We only want XGBoost Models here. 
     },
     "model_name 2 (The name of the model)": {
         ...
@@ -123,90 +73,31 @@ model_experiment_output_format: |-
   }
   Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
 
-factor_feedback_generation:
-  system: |-
-    You are a professional financial result analysis assistant in data-driven R&D. 
-    The task is described in the following scenario:
-
-    {{ scenario }}
-    
-    You will receive a hypothesis, multiple tasks with their factors, their results, and the SOTA result. 
-    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA (State of the Art) results, and suggest improvements or new directions.
-    
-    Please understand the following operation logic and then make your feedback that is suitable for the scenario:
-      1. Logic Explanation:
-          - If the previous hypothesis factor surpasses the SOTA, include this factor in the SOTA factor library.
-          - New experiments will generate new factors, which will be combined with the factors in the SOTA library.
-          - These combined factors will be backtested and compared against the current SOTA to continuously iterate.
-      2. Development Directions:
-          - New Direction:
-              - Propose a new factor direction for exploration and development.
-          - Optimization of Existing Direction:
-              - If the previous experiment's factor replaced the SOTA, suggest further improvements to that factor.
-              - Clearly specify the differences in name and improvements compared to the previous factor.
-          - Continued Research:
-              - If the previous experiment's factor did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
-      3. Final Goal:
-          - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
-    
-      When judging the results:
-      1. **Recommendation for Replacement:**
-        - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
-        - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
-        - Minor variations in other metrics are acceptable as long as the annualized return improves.
-
-    Consider Changing Direction for Significant Gaps with SOTA:
-      - If the new results significantly differ from the SOTA, consider exploring a new direction.
-      - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
-
-    Please provide detailed and constructive feedback for future exploration.
-    Respond in JSON format. Example JSON structure for Result Analysis:
-    {
-      "Observations": "Your overall observations here",
-      "Feedback for Hypothesis": "Observations related to the hypothesis",
-      "New Hypothesis": "Your new hypothesis here",
-      "Reasoning": "Reasoning for the new hypothesis",
-      "Replace Best Result": "yes or no"
+model_experiment_output_format_RandomForest: |-
+  So far please only design one model to test the hypothesis! 
+  The output should follow JSON format. The schema is as follows: 
+  {
+    "model_name 1 (The name of the model)": {
+        "description": "A detailed description of the model",
+        "formulation": "A LaTeX formula representing the model's formulation",
+        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+        "variables": {
+            "\\hat{y}_u": "The predicted output for node u",
+            "variable_name_2": "Description of variable 2",
+            "variable_name_3": "Description of variable 3"
+        },
+        "hyperparameters": {
+            "hyperparameter_name_1": "value of hyperparameter 1",
+            "hyperparameter_name_2": "value of hyperparameter 2",
+            "hyperparameter_name_3": "value of hyperparameter 3"
+        },
+        "model_type":"RandomForest" # We only want RandomForest Model here 
+    },
+    "model_name 2 (The name of the model)": {
+        ...
     }
-  user: |-
-    Target hypothesis: 
-    {{ hypothesis_text }}
-    Tasks and Factors:
-    {% for task in task_details %}
-      - {{ task.factor_name }}: {{ task.factor_description }}
-        - Factor Formulation: {{ task.factor_formulation }}
-        - Variables: {{ task.variables }}
-        - Factor Implementation: {{ task.factor_implementation }}
-        {% if task.factor_implementation == "False" %}
-        **Note: This factor was not implemented in the current experiment. Only the hypothesis for implemented factors can be verified.**
-        {% endif %}
-    {% endfor %}
-    Combined Results: 
-    {{ combined_result }}
-    
-    Analyze the combined result in the context of its ability to:
-    1. Support or refute the hypothesis.
-    2. Show improvement or deterioration compared to the SOTA experiment.
-
-    Evaluation Metrics Explanations:
-    Below are the financial meanings of each metric, which should be used to judge the results:
-
-    - 1day.excess_return_without_cost.max_drawdown: Measures the maximum loss from a peak to a trough without considering transaction costs. (the smaller the better)
-    - 1day.excess_return_without_cost.information_ratio: Evaluates the excess return per unit of risk without considering transaction costs. (the bigger the better)
-    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs. (the bigger the better)
-    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation. (the bigger the better)
-
-    When judging the results:
-      1. **Recommendation for Replacement:**
-        - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
-        - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
-        - Minor variations in other metrics are acceptable as long as the annualized return improves.
-
-    Consider Changing Direction for Significant Gaps with SOTA:
-      - If the new results significantly differ from the SOTA, consider exploring a new direction.
-      - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
-
-    Note: Only factors with 'Factor Implementation' as True are implemented and tested in this experiment. If 'Factor Implementation' is False, the hypothesis for that factor cannot be verified in this run.
+  }
+  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
 
 model_feedback_generation:
   system: |-
@@ -240,7 +131,6 @@ model_feedback_generation:
 
       6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
-    
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
     Here are the context: {{context}}. 
