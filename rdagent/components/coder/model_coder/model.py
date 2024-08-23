@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import torch
 import numpy as np
 import xgboost as xgb
 
