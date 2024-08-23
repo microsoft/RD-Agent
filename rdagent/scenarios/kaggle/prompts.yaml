@@ -47,7 +47,7 @@ model_hypothesis_specification: |-
 
     6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
 
-model_experiment_output_format_XGBoost: |-
+model_experiment_output_format: |-
   So far please only design one model to test the hypothesis! 
   The output should follow JSON format. The schema is as follows: 
   {
@@ -65,33 +65,7 @@ model_experiment_output_format_XGBoost: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "model_type":"XGBoost" # We only want XGBoost Models here. 
-    },
-    "model_name 2 (The name of the model)": {
-        ...
-    }
-  }
-  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
-
-model_experiment_output_format_RandomForest: |-
-  So far please only design one model to test the hypothesis! 
-  The output should follow JSON format. The schema is as follows: 
-  {
-    "model_name 1 (The name of the model)": {
-        "description": "A detailed description of the model",
-        "formulation": "A LaTeX formula representing the model's formulation",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "variables": {
-            "\\hat{y}_u": "The predicted output for node u",
-            "variable_name_2": "Description of variable 2",
-            "variable_name_3": "Description of variable 3"
-        },
-        "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-        },
-        "model_type":"RandomForest" # We only want RandomForest Model here 
+        "model_type": "XGBoost" # Should be "XGBoost"
     },
     "model_name 2 (The name of the model)": {
         ...
