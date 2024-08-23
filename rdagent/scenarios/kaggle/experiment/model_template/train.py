@@ -2,9 +2,8 @@ import random
 
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-from model import model_cls
+import xgboost as xgb
+from model import get_num_round, get_params
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
@@ -15,7 +14,6 @@ from sklearn.preprocessing import OneHotEncoder
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
-torch.manual_seed(SEED)
 np.random.seed(SEED)
 
 
@@ -27,51 +25,22 @@ def compute_metrics_for_classification(y_true, y_pred):
 
 def train_model(X_train, y_train, X_valid, y_valid):
     """Define and train the model."""
-    X_train_dense = X_train.toarray() if hasattr(X_train, "toarray") else X_train
-    X_valid_dense = X_valid.toarray() if hasattr(X_valid, "toarray") else X_valid
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+    dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
-    X_train_tensor = torch.tensor(X_train_dense, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)
-    X_valid_tensor = torch.tensor(X_valid_dense, dtype=torch.float32)
-    y_valid_tensor = torch.tensor(y_valid, dtype=torch.float32).unsqueeze(1)
+    params = get_params()
+    num_round = get_num_round()
 
-    # Define the model
-    model = model_cls(num_features=X_train.shape[1])
+    evallist = [(dtrain, "train"), (dvalid, "eval")]
+    bst = xgb.train(params, dtrain, num_round, evallist)
 
-    # Define loss function and optimizer
-    criterion = nn.BCELoss()  # Binary cross entropy loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-    # Train the model
-    num_epochs = 150  # Number of epochs
-    for epoch in range(num_epochs):
-        model.train()
-        optimizer.zero_grad()
-        y_train_pred = model(X_train_tensor)
-        loss = criterion(y_train_pred, y_train_tensor)
-        loss.backward()
-        optimizer.step()
-
-        # Evaluate model on validation set after each epoch
-        model.eval()
-        with torch.no_grad():
-            y_valid_pred = model(X_valid_tensor)
-            valid_loss = criterion(y_valid_pred, y_valid_tensor)
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}, Validation Loss: {valid_loss.item()}")
-
-    return model
+    return bst
 
 
 def predict(model, X):
-    """Make predictions using the trained model."""
-    X_dense = X.toarray() if hasattr(X, "toarray") else X
-    X_tensor = torch.tensor(X_dense, dtype=torch.float32)
-    model.eval()
-
-    with torch.no_grad():
-        y_pred = model(X_tensor)
-    y_pred = y_pred.numpy().flatten()
-    return y_pred > 0.5  # Apply threshold to get boolean predictions
+    dtest = xgb.DMatrix(X)
+    y_pred_prob = model.predict(dtest)
+    return y_pred_prob > 0.5  # Apply threshold to get boolean predictions
 
 
 if __name__ == "__main__":
@@ -88,7 +57,10 @@ if __name__ == "__main__":
 
     # Define preprocessors for numerical and categorical features
     categorical_transformer = Pipeline(
-        steps=[("imputer", SimpleImputer(strategy="most_frequent")), ("onehot", OneHotEncoder(handle_unknown="ignore"))]
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
     )
 
     numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
@@ -118,20 +90,16 @@ if __name__ == "__main__":
     print("Final Accuracy on validation set: ", accuracy)
 
     # Save the validation accuracy
-    pd.Series(data=[accuracy], index=["ACC"]).to_csv("./submission.csv")
+    pd.Series(data=[accuracy], index=["ACC"]).to_csv("./submission_score.csv")
 
     # Load and preprocess the test set
     submission_df = pd.read_csv("/root/.data/test.csv")
+    passenger_ids = submission_df["PassengerId"]
     submission_df = submission_df.drop(["PassengerId", "Name"], axis=1)
     X_test = preprocessor.transform(submission_df)
 
     # Make predictions on the test set and save them
     y_test_pred = predict(model, X_test)
-    pd.Series(y_test_pred).to_csv("./submission_update.csv", index=False)
-
+    submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
     # submit predictions for the test set
-    submission_df = pd.read_csv("/root/.data/test.csv")
-    submission_df = submission_df.drop(["PassengerId", "Name"], axis=1)
-    X_test = preprocessor.transform(submission_df)
-    y_test_pred = predict(model, X_test)
-    y_test_pred.to_csv("./submission_update.csv")
+    submission_result.to_csv("./submission.csv", index=False)

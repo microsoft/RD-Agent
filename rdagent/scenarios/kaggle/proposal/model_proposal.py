@@ -14,7 +14,7 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.model_experiment import KGModelExperiment
 
-prompt_dict = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 KGModelHypothesis = ModelHypothesis
 

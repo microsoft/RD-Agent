@@ -15,10 +15,11 @@ kg_model_background: |-
   You are solving this data science tasks of {{ competition_type }}: 
   {{competition_description}}
   
-  We provide an overall pipeline in train.py. Now fill in the provided train.py script to train a  {{ competition_type }} model to get a good performance on this task.
+  We provide an overall pipeline in train.py. Now fill in the provided train.py script to train a {{ competition_type }} model to get a good performance on this task.
   
   The model is a machine learning or deep learning structure designed to predict {{ target_description }}. 
-  The data is extracted from the competition dataset, focusing on passenger attributes like {{ competition_features }}.
+  The data is extracted from the competition dataset, focusing on relevant attributes like {{ competition_features }}.
+  ModelType: The type of the model, "XGBoost" for XGBoost model.
   
   The model is defined in the following parts:
   - Name: The name of the model.
@@ -31,31 +32,32 @@ kg_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   You code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A class that is a subclass of pytorch.nn.Module. This class should have an __init__ function and a forward function, which inputs a tensor and outputs a tensor.
+  2. A class that is a subclass of xgboost. This class should have an __init__ function and a forward function, which inputs a tensor and outputs a tensor.
   3. Set a variable called "model_cls" to the class you defined.
 
   The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
   ```python
-  from model import model_cls
+  from model import get_params, get_num_round
   ```
   So your python code should follow the pattern:
   ```python
-  class XXXModel(torch.nn.Module):
+  def get_params():
+    params = {
       ...
-  model_cls = XXXModel
+    }
+    return params
+  def get_num_round():
+    return xxx
   ```
 
-  The model has one types, "Tabular" for tabular model. The input shape to a tabular model is (batch_size, num_features). 
-  The output shape of the model should be (batch_size, 1).
-  The "batch_size" is a dynamic value which is determined by the input of forward function.
-  The "num_features" is static which will be provided to the model through init function.
-  User will initialize the tabular model with the following code:
+  The model has one types,  "XGBoost" for XGBoost model.
+  The XGBoost Model leverages two critical hyperparameters: "arams" and "num_round".
+  "params": This hyperparameter encapsulates various settings that dictate the model's behavior and learning process.
+  "num_round": This hyperparameter specifies the number of training iterations the model will undergo.
+  User will initialize the XGBoost model with the following code:
   ```python
-  model = model_cls(num_features=num_features)
-  ```
-  User will initialize the tabular model with the following code:
-  ```python
-  model = model_cls(num_features=num_features)
+  params = get_params()
+  num_round = get_num_round()
   ```
   No other parameters will be passed to the model so give other parameters a default value or just make them static.
 
@@ -65,10 +67,8 @@ kg_model_interface: |-
 
 
 kg_model_output_format: |-
-  Your output should be a tensor with shape (batch_size, 1). 
-  The output tensor should be saved in a file named "output.pth" in the same directory as your python file.
-  The user will evaluate the shape of the output tensor so the tensor read from "output.pth" should be 8 numbers.
-
+  Your output should be an array with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
+  
 kg_model_simulator: |-
-  The models will be trained on the Spaceship Titanic dataset and evaluated on their ability to predict whether passengers were transported using metrics like accuracy and AUC-ROC. 
+  The models will be trained on the competition dataset and evaluated on their ability to predict whether passengers were transported using metrics like accuracy and AUC-ROC. 
   Model performance will be iteratively improved based on feedback from evaluation results.

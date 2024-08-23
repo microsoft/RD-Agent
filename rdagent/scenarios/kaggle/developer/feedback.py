@@ -15,7 +15,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import convert2bool
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
+feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 

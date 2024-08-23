@@ -26,13 +26,19 @@ evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yam
 
 def shape_evaluator(prediction: torch.Tensor, target_shape: Tuple = None) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
-        return "No output generated from the model. No shape evaluation conducted.", False
+        return (
+            "No output generated from the model. No shape evaluation conducted.",
+            False,
+        )
     pre_shape = prediction.shape
 
     if pre_shape == target_shape:
         return "The shape of the output is correct.", True
     else:
-        return f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.", False
+        return (
+            f"The shape of the output is incorrect. Expected {target_shape}, but got {pre_shape}.",
+            False,
+        )
 
 
 def reshape_tensor(original_tensor, target_shape):
@@ -50,7 +56,10 @@ def value_evaluator(
     if prediction is None:
         return "No output generated from the model. Skip value evaluation", False
     elif target is None:
-        return "No ground truth output provided. Value evaluation not impractical", False
+        return (
+            "No ground truth output provided. Value evaluation not impractical",
+            False,
+        )
     else:
         # Calculate the mean absolute difference
         diff = torch.mean(torch.abs(target - prediction)).item()
@@ -270,7 +279,11 @@ class ModelCoderEvaluator(Evaluator):
         else:
             gt_tensor = None
 
-        shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
+        if target_task.model_type == "XGBoost":
+            shape_feedback = "Not applicable for XGBoost models"
+            shape_decision = True
+        else:
+            shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
         value_feedback, value_decision = value_evaluator(gt_tensor, gen_tensor)
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
