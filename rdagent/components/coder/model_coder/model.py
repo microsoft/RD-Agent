@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import torch
 import numpy as np
+import torch
 import xgboost as xgb
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
