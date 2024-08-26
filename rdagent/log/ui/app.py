@@ -55,7 +55,7 @@ else:
     main_log_path = None
 
 
-SELECTED_METRICS = [
+QLIB_SELECTED_METRICS = [
     "IC",
     "1day.excess_return_without_cost.annualized_return",
     "1day.excess_return_without_cost.information_ratio",
@@ -141,23 +141,22 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
                         if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
-                            sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
+                            sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
 
                         # common metrics
-                        if msg.content.result is None:
+                        if msg.content.result is None and isinstance(state.scenario, DMModelScenario):
                             state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
                         else:
-                            if len(msg.content.result) < 4:
-                                ps = msg.content.result
-                                ps.index = ["AUROC"]
-                                ps.name = f"Round {state.lround}"
-                                state.metric_series.append(ps)
-                            else:
-                                sms = msg.content.result.loc[SELECTED_METRICS]
-                                sms.name = f"Round {state.lround}"
-                                state.metric_series.append(sms)
+                            sms = msg.content.result
+                            if isinstance(state.scenario, DMModelScenario):
+                                sms.index = ["AUROC"]
+                            elif isinstance(state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)):
+                                sms = sms.loc[QLIB_SELECTED_METRICS]
+                            sms.name = f"Round {state.lround}"
+                            state.metric_series.append(sms)
+                    
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
@@ -384,7 +383,6 @@ def summary_window():
                     st.table(df.iloc[0])
                 elif df.shape[0] > 1:
                     if df.shape[1] == 1:
-                        # suhan's scenario
                         fig = px.line(df, x=df.index, y=df.columns, markers=True)
                         fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
                         st.plotly_chart(fig)
