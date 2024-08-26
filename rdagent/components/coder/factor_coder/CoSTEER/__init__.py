@@ -37,6 +37,15 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         filter_final_evo: bool = True,
         **kwargs,
     ) -> None:
+        """
+        Initializes the FactorCoSTEER class, inheriting from Developer[FactorExperiment].
+
+        Args:
+            with_knowledge (bool): Whether to use the existing knowledge base in the evolution process. Defaults to True.
+            with_feedback (bool): Whether to use feedback during the evolution process. Defaults to True.
+            knowledge_self_gen (bool): Whether to allow self-generation of new knowledge during evolution. Defaults to True.
+            filter_final_evo (bool): Whether to filter the final evolution results. Defaults to True.
+        """
         super().__init__(*args, **kwargs)
         self.max_loop = FACTOR_IMPLEMENT_SETTINGS.max_loop
         self.knowledge_base_path = (
@@ -56,9 +65,19 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         self.evolving_strategy = FactorEvolvingStrategyWithGraph(scen=self.scen)
         # declare the factor evaluator
         self.factor_evaluator = FactorMultiEvaluator(FactorEvaluatorForCoder(scen=self.scen), scen=self.scen)
-        self.evolving_version = 2
+        self.evolving_version = 2  # Version of the evolving strategy to be used
 
     def load_or_init_knowledge_base(self, former_knowledge_base_path: Path = None, component_init_list: list = []):
+        """
+        Loads an existing knowledge base or initializes a new one based on the specified version.
+
+        Args:
+            former_knowledge_base_path (Path): Path to the existing knowledge base.
+            component_init_list (list): List of initial components for the new knowledge base.
+
+        Returns:
+            factor_knowledge_base: The loaded or newly initialized knowledge base.
+        """
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
             factor_knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
             if self.evolving_version == 1 and not isinstance(factor_knowledge_base, FactorKnowledgeBaseV1):
@@ -79,6 +98,15 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         return factor_knowledge_base
 
     def develop(self, exp: FactorExperiment) -> FactorExperiment:
+        """
+        Develops the factor experiment by evolving it through multiple steps.
+
+        Args:
+            exp (FactorExperiment): The factor experiment to be developed.
+
+        Returns:
+            FactorExperiment: The evolved factor experiment.
+        """
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,

@@ -370,7 +370,7 @@ class KGDockerEnv(DockerEnv):
             zip_ref.extractall(data_path)
         
          # return the head of train.py
-        train_file_path = os.path.join(data_path, 'train.py')
+        train_file_path = os.path.join(data_path, 'train.csv')
         if os.path.exists(train_file_path):
             with open(train_file_path, 'r') as train_file:
                 head_lines = [next(train_file) for _ in range(5)]  # Read the first 5 lines

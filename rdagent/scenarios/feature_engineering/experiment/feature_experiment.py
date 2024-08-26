@@ -39,7 +39,7 @@ class FEFeatureScenario(Scenario):
         # TODO Add the source data property from kaggle data feature or sota data feature
         # 连KGDockerenv来获取原始数据
         # 后续怎么做？ 对于特征工程来说，数据是不是需要更新
-        qtde = KGDockerEnv("PROP_SETTING.competition")
+        qtde = KGDockerEnv("spaceship-titanic")
         return qtde.prepare()
         raise NotImplementedError("source_data is not implemented")
 
