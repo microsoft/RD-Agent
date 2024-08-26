@@ -73,6 +73,7 @@ def predict(model, X):
 
 if __name__ == "__main__":
     # Load and preprocess the data
+    #TODO 这里还应该是Kaggle的数据嘛
     data_df = pd.read_csv("/root/.data/train.csv")
     # data_df = data_df.drop(["PassengerId", "Name"], axis=1)
 

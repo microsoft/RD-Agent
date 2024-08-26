@@ -14,7 +14,7 @@ from rdagent.utils.env import KGDockerEnv
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class FEFeatureExperiment(FactorExperiment[FactorTask, FEFBWorkspace, FactorFBWorkspace]):
+class FEFeatureExperiment(FactorExperiment[FactorTask, FEFBWorkspace, FEFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FEFBWorkspace(template_folder_path=Path(__file__).parent / "feature_template")

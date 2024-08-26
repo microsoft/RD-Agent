@@ -369,7 +369,7 @@ class KGDockerEnv(DockerEnv):
         with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
             zip_ref.extractall(data_path)
         
-         # return the head of train.py
+        # return the head of train.py
         train_file_path = os.path.join(data_path, 'train.csv')
         if os.path.exists(train_file_path):
             with open(train_file_path, 'r') as train_file:
