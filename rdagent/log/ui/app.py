@@ -35,6 +35,8 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
+from rdagent.scenarios.feature_engineering.experiment.feature_experiment import FEFeatureScenario
+from rdagent.scenarios.kaggle.experiment.model_experiment import KGModelScenario
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -59,6 +61,8 @@ SELECTED_METRICS = [
     "1day.excess_return_without_cost.information_ratio",
     "1day.excess_return_without_cost.max_drawdown",
 ]
+
+SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, FEFeatureScenario, KGModelScenario)
 
 if "log_path" not in state:
     if main_log_path:
@@ -343,7 +347,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 def summary_window():
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         if state.lround == 0:
@@ -468,13 +472,13 @@ def research_window():
         title = (
             "Research🔍"
             if isinstance(
-                state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+                state.scenario, SIMILAR_SCENARIOS
             )
             else "Research🔍 (reader)"
         )
         st.subheader(title, divider="blue", anchor="_research")
         if isinstance(
-            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            state.scenario, SIMILAR_SCENARIOS
         ):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
@@ -511,13 +515,13 @@ def research_window():
 
 def feedback_window():
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
             if state.lround > 0 and isinstance(
-                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, FEFeatureScenario)
             ):
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
@@ -544,7 +548,7 @@ def evolving_window():
     title = (
         "Development🛠️"
         if isinstance(
-            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            state.scenario, SIMILAR_SCENARIOS
         )
         else "Development🛠️ (evolving coder)"
     )
@@ -744,7 +748,7 @@ if state.scenario is not None:
 
     # R&D Loops Window
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:
