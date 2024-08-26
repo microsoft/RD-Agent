@@ -9,6 +9,7 @@ from rdagent.components.coder.factor_coder.factor import (
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.feature_engineering.experiment.workspace import FEFBWorkspace
+from rdagent.utils.env import KGDockerEnv
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -38,6 +39,8 @@ class FEFeatureScenario(Scenario):
         # TODO Add the source data property from kaggle data feature or sota data feature
         # 连KGDockerenv来获取原始数据
         # 后续怎么做？ 对于特征工程来说，数据是不是需要更新
+        qtde = KGDockerEnv("PROP_SETTING.competition")
+        return qtde.prepare()
         raise NotImplementedError("source_data is not implemented")
 
     @property
@@ -65,12 +68,10 @@ class FEFeatureScenario(Scenario):
 {self.background}
 The interface you should follow to write the runnable code:
 {self.interface}
+The source data you can use:
+{self.source_data}
 The output of your code should be in the format:
 {self.output_format}
 The simulator user can use to test your factor:
 {self.simulator}
 """
-
-#TODO: Add the source data property or not
-# The source data you can use:
-# {self.source_data}

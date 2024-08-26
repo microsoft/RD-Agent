@@ -349,13 +349,13 @@ class DMDockerEnv(DockerEnv):
 
 
 class KGDockerEnv(DockerEnv):
-    """Qlib Torch Docker"""
+    """Kaggle Competition Docker"""
 
     def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
         self.competition = competition
 
-    def prepare(self):
+    def prepare(self)->list:
         """
         Download image & data if it doesn't exist
         """
@@ -368,3 +368,12 @@ class KGDockerEnv(DockerEnv):
         # unzip data
         with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
             zip_ref.extractall(data_path)
+        
+         # return the head of train.py
+        train_file_path = os.path.join(data_path, 'train.py')
+        if os.path.exists(train_file_path):
+            with open(train_file_path, 'r') as train_file:
+                head_lines = [next(train_file) for _ in range(5)]  # Read the first 5 lines
+            return head_lines
+        else:
+            raise FileNotFoundError(f"{train_file_path} does not exist.")

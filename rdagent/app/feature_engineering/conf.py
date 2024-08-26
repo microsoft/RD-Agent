@@ -36,14 +36,5 @@ class PropSetting(BasePropSetting):
 
     evolving_n: int = 10
 
-    # 2) Extra config for the scenario
-    # physionet account
-    # NOTE: You should apply the account in https://physionet.org/
-    username: str = ""
-    """Physionet account username"""
-
-    password: str = ""
-    """Physionet account password"""
-
 
 PROP_SETTING = PropSetting()

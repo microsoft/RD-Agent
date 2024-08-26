@@ -1,52 +1,51 @@
 feature_engineering_background: |-
   Data preprocessing is a crucial step in the data analysis pipeline, involving the transformation and preparation of raw data into a suitable format for further analysis or modeling.
   This process is essential to enhance the quality of data and to ensure the accuracy of the results obtained from analytical models
-  Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Creation, Data Integration, Data Transformation, Data Reduction, Data Discretization.
+  Effective preprocessing improves data quality and model accuracy.
+  Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Creation, Data Integration, Data Transformation, Data Reduction, Data Discretization and so on.
   
   The preprocessing method is defined in the following parts:
-  1. Name: The name of the data preprocessing method.
+  1. Name: Unique identifier for the data preprocessing method.
   2. Description: The description of the method.
   3. Code: The code of the preprocessing method.
   4. Variables: The steps or functions used for this data preprocessing method.
   
   The method might not provide all the parts of the information above since some might not be applicable.
-  Please specifically give all the hyperparameter in the method like Learning Rate, Regularization parameter, Threshold, etc. 
+  Please specifically give all the hyperparameters in the method like Learning Rate, Regularization parameter, Threshold, etc., if needed. 
   One method should statically define one output with a fixed hyperparameter. 
   For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
 #TODO 是否特征工程需要和模型强相关
 feature_engineering_interface: |-
   Your python code should follow the interface to better interact with the user's system.
-  Your python code should contain the following part: the import part and the function part.
-  1. The import part: import the necessary libraries.
-  2. The function part: define a function named preprocessing to do some data preprocessing work.
-
+  Your python code should contain the following part: the import part, the function part, and the main part. 
+  You should write a main function name: "feature_{function_name}" and call this function in "if __name__ == __main__" part. 
   Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
-
-  User will import your processing method in the following way:
-  ```python
-  from feature_engineering import preprocessing
-  ```
-
-  The user will call the preprocessing function to get the processed data.
-  ```python
-  processed_data = preprocessing(data)
-  ```
-  The input data is a pandas dataframe and the output should be a pandas dataframe similar to the original data.
+  The user will execute your code directly using the command python {your_file_name}.py
+  The input will be a pandas DataFrame. Your function should process this DataFrame and return a new DataFrame with the engineered features.
+  The resulting DataFrame should closely resemble the structure of the original data.
+  You should Save the output DataFrame as a CSV file named result.csv in the same directory as your Python file.
+  Ensure that your code meets these requirements and produces a feature-engineered DataFrame that aligns with the user's data and objectives.
 
 #TODO 这里有个问题，输出的data是直接给模型Train，还是要多个task concat起来给模型Train
 #TODO Generate a python function (the whole preprocessing process) or generate a transformation each time
 
 feature_engineering_output_format: |-
-  Your output should be a pandas dataframe similar to the original data.
+  The output format should be tailored to the specific task at hand. Depending on the requirements:
+  - The output can be a single feature table or a composite table consisting of multiple processed features.
+  - Include necessary transformations, such as normalization or other adjustments, to ensure compatibility with the model.
+  - The choice of output format should be based on the specific task's objectives and the nature of the data.
 
 feature_engineering_simulator: |-
-  The data preprocessing method file will be used to process the data before training the model.
+  The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
+  The processed data will then be used for model training and prediction.
   The processed data will be sent into a model to train and predict.
   
   User will use your data preprocessing method to do the following steps:
-  1. import your preprocessing function and use it to process the data.
-  2. train a model like LightGBM, CatBoost, LSTM or simple PyTorch model based on the processed data.
-  4. evaluate the processing method's performance and then provide feedback to you.
+  1. Execute your Python file to process the data.
+  2. Concatenate the processed features with other features and the original data.
+  3. Remove any unnecessary features before training the model.
+  4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
+  5. Evaluate the performance of your preprocessing method and provide feedback.
 
 feature_engineering_rich_style_description : |-
   xxx
