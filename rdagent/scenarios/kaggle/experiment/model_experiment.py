@@ -50,7 +50,7 @@ class KGModelScenario(Scenario):
             .render(
                 competition_descriptions=self.competition_descriptions,
             )
-         )
+        )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
