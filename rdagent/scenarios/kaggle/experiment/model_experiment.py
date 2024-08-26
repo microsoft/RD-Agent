@@ -21,7 +21,9 @@ prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
+        self.experiment_workspace = KGFBWorkspace(
+            template_folder_path=Path(__file__).parent / "model_template"
+        )
 
 
 class KGModelScenario(Scenario):
@@ -38,18 +40,14 @@ class KGModelScenario(Scenario):
     def _analysis_competition_description(self):
         # TODO: use gpt to analyze the competition description
 
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_description_template"]["system"])
-            .render()
-        )
+        sys_prompt = Environment(undefined=StrictUndefined).from_string(
+            prompt_dict["kg_description_template"]["system"]
+        ).render()
 
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["kg_description_template"]["user"])
-            .render(
-                competition_descriptions=self.competition_descriptions,
-            )
+        user_prompt = Environment(undefined=StrictUndefined).from_string(
+            prompt_dict["kg_description_template"]["user"]
+        ).render(
+            competition_descriptions=self.competition_descriptions,
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
@@ -59,24 +57,30 @@ class KGModelScenario(Scenario):
         )
 
         response_json_analysis = json.loads(response_analysis)
-        self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
-        self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
-        self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.competition_type = response_json_analysis.get(
+            "Competition Type", "No type provided"
+        )
+        self.competition_description = response_json_analysis.get(
+            "Competition Description", "No description provided"
+        )
+        self.target_description = response_json_analysis.get(
+            "Target Description", "No target provided"
+        )
+        self.competition_features = response_json_analysis.get(
+            "Competition Features", "No features provided"
+        )
 
     @property
     def background(self) -> str:
         background_template = prompt_dict["kg_model_background"]
 
-        background_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(background_template)
-            .render(
-                competition_type=self.competition_type,
-                competition_description=self.competition_description,
-                target_description=self.target_description,
-                competition_features=self.competition_features,
-            )
+        background_prompt = Environment(undefined=StrictUndefined).from_string(
+            background_template
+        ).render(
+            competition_type=self.competition_type,
+            competition_description=self.competition_description,
+            target_description=self.target_description,
+            competition_features=self.competition_features,
         )
 
         return background_prompt
@@ -85,27 +89,31 @@ class KGModelScenario(Scenario):
     def source_data(self) -> str:
         kaggle_conf = KGDockerConf()
         data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
- 
+
         csv_files = list(data_path.glob("*.csv"))
-       
+
         if not csv_files:
             return "No CSV files found in the specified path."
-            
-        dataset = pd.concat([pd.read_csv(file) for file in csv_files], ignore_index=True)
- 
+
+        dataset = pd.concat(
+            [pd.read_csv(file) for file in csv_files], ignore_index=True
+        )
+
         simple_eda = dataset.info(buf=None)  # Capture the info output
         data_shape = dataset.shape
         data_head = dataset.head()
- 
+
         eda = (
             f"Basic Info about the data:\n{simple_eda}\n"
             f"Shape of the dataset: {data_shape}\n"
             f"Sample Data:\n{data_head}\n"
         )
-       
-        data_description = self.competition_descriptions.get('Data Description', 'No description provided')
+
+        data_description = self.competition_descriptions.get(
+            "Data Description", "No description provided"
+        )
         eda += f"\nData Description:\n{data_description}"
- 
+
         return eda
 
     @property
