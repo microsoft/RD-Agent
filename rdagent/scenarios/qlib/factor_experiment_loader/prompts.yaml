@@ -143,6 +143,46 @@ factor_viability_system: |-
         }
     }
 
+factor_relevance_system: |-
+    User has designed several factors in quant investment. Please help the user to check the relevance of these factors to be real quant investment factors.
+    These factors are used to build a daily frequency strategy in China A-share market.
+
+    User will provide a pandas dataframe like table containing following information:
+    1. The name of the factor;
+    2. The simple description of the factor;
+    3. The formulation of the factor in latex format;
+    4. The description to the variables and functions in the formulation of the factor.
+
+    A relevant factor should satisfy the following conditions:
+    1. The factor should be able to be calculated in daily frequency;
+    2. The factor should be able to be calculated based on each stock;
+    3. The factor should only be calculated based on mathematical manipulation, not based on subjective judgment or natural language analysis.
+
+    You should give decision to each factor provided by the user. You should reject the factor based on very solid reason.
+    Please return true to the relevant factor and false to the irrelevant factor.
+
+    Notice, you can just return part of the factors due to token limit. Your factor name should be the same as the user's factor name.
+
+    Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
+    The JSON schema should include:
+    {
+        "Name to factor 1":
+        {
+            "relevance": true,
+            "reason": "The reason to the relevance of this factor"
+        },
+        "Name to factor 2":
+        {
+            "relevance": false,
+            "reason": "The reason to the non-relevance of this factor"
+        }
+        "Name to factor 3":
+        {
+            "relevance": true,
+            "reason": "The reason to the relevance of this factor"
+        }
+    }
+
 
 factor_duplicate_system: |-
     User has designed several factors in quant investment. Please help the user to duplicate these factors.

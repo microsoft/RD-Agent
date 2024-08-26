@@ -6,7 +6,9 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import numpy as np
 import torch
+import xgboost as xgb
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.exception import CodeFormatError
@@ -32,9 +34,7 @@ class ModelTask(Task):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
-        self.model_type: str = (
-            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model
-        )
+        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
 
     def get_task_information(self):
         return f"""name: {self.name}
@@ -95,9 +95,17 @@ class ModelFBWorkspace(FBWorkspace):
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
             mod = get_module_by_module_path(str(self.workspace_path / "model.py"))
-            model_cls = mod.model_cls
 
-            if self.target_task.model_type == "Tabular":
+            if self.target_task.model_type != "XGBoost":
+                model_cls = mod.model_cls
+
+            if self.target_task.model_type == "XGBoost":
+                X_simulated = np.random.rand(100, num_features)  # 100 samples, `num_features` features each
+                y_simulated = np.random.randint(0, 2, 100)  # Binary target for example
+                params = mod.get_params()
+                num_round = mod.get_num_round()
+                dtrain = xgb.DMatrix(X_simulated, label=y_simulated)
+            elif self.target_task.model_type == "Tabular":
                 input_shape = (batch_size, num_features)
                 m = model_cls(num_features=input_shape[1])
                 data = torch.full(input_shape, input_value)
@@ -113,21 +121,30 @@ class ModelFBWorkspace(FBWorkspace):
             else:
                 raise ValueError(f"Unsupported model type: {self.target_task.model_type}")
 
-            # Initialize all parameters of `m` to `param_init_value`
-            for _, param in m.named_parameters():
-                param.data.fill_(param_init_value)
-
-            # Execute the model
-            if self.target_task.model_type == "Graph":
-                out = m(*data)
+            if self.target_task.model_type == "XGBoost":
+                bst = xgb.train(params, dtrain, num_round)
+                y_pred = bst.predict(dtrain)
+                execution_model_output = y_pred
+                execution_feedback_str = "Execution successful, model trained and predictions made."
             else:
-                out = m(data)
+                # Initialize all parameters of `m` to `param_init_value`
+                for _, param in m.named_parameters():
+                    param.data.fill_(param_init_value)
 
-            execution_model_output = out.cpu().detach()
-            execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
+                # Execute the model
+                if self.target_task.model_type == "Graph":
+                    out = m(*data)
+                else:
+                    out = m(data)
+
+                execution_model_output = out.cpu().detach()
+                execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
 
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
-                pickle.dump((execution_feedback_str, execution_model_output), open(cache_file_path, "wb"))
+                pickle.dump(
+                    (execution_feedback_str, execution_model_output),
+                    open(cache_file_path, "wb"),
+                )
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"

@@ -1,54 +1,113 @@
 .. _model_agent_med:
 
-===================
+=======================
 Medical Model Agent
-===================
+=======================
+
+**🤖 Automated Medical Predtion Model Evolution**
+------------------------------------------------------------------------------------------
+
+📖 Background
+~~~~~~~~~~~~~~
+In this scenario, we consider the problem of risk prediction from patients' ICU monitoring data. We use the a public EHR dataset - MIMIC-III and extract a binary classification task for evaluating the framework.
+In this task, we aim at predicting the whether the patients will suffer from Acute Respiratory Failure (ARF) based their first 12 hours ICU monitoring data. 
+
+🎥 `Demo <https://rdagent.azurewebsites.net/dmm>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+    <video width="600" controls>
+      <source src="https://rdagent.azurewebsites.net:443/media/0fbd26bb297369a4ca52409ff65a3f7cb941c6af6429894367a6afcd.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
 
 
-Scen4: 
-------
-🤖 Automated Model Research & Development Co-Pilot 
+🌟 Introduction
+~~~~~~~~~~~~~~~~
 
-Scen4 Intro
-~~~~~~~~~~~
-In this scenario, our automated system proposes hypotheses, constructs models, implements code, performs back-testing, and uses feedback to iterate continuously. The system aims to automatically optimize performance metrics from the Qlib library, finding the best code through autonomous research and development.
+In this scenario, our automated system proposes hypothesis, constructs model, implements code, receives back-testing, and uses feedbacks. 
+Hypothesis is iterated in this continuous process. 
+The system aims to automatically optimise performance metrics of medical prediction thereby finding the optimised code through autonomous research and development.
 
-Model R&D CoPilot Scenario
-~~~~~~~~~~~~~~~~~~~~~~
-**Overview**
+Here's an enhanced outline of the steps:
 
-This demo automates the extraction and iterative development of models from academic papers, ensuring functionality and correctness. This scenario automates the development of PyTorch models by reading academic papers or other sources. It supports various data types, including tabular, time-series, and graph data. The primary workflow involves two main components: the Reader and the Coder.
+**Step 1 : Hypothesis Generation 🔍**
 
-**Workflow Components**
+- Generate and propose initial hypotheses based on previous experiment analysis and domain expertise, with thorough reasoning and justification.
 
-1. **Reader**
-   - Parses and extracts relevant model information from academic papers or sources, including architectures, parameters, and implementation details.
-   - Uses Large Language Models to convert content into a structured format for the Coder.
+**Step 2 : Model Creation ✨**
 
-2. **Evolving Coder**
-   - Translates structured information from the Reader into executable PyTorch code.
-   - Utilizes an evolving coding mechanism to ensure correct tensor shapes, verified with sample input tensors.
-   - Iteratively refines the code to align with source material specifications.
+- Transform the hypothesis into a model.
+- Develop, define, and implement a machine learning model, including its name, description, and formulation.
 
-#### Supported Data Types
+**Step 3 : Model Implementation 👨‍💻**
 
-- **Tabular Data:** Structured data with rows and columns, such as spreadsheets or databases.
-- **Time-Series Data:** Sequential data points indexed in time order, useful for forecasting and temporal pattern recognition.
-- **Graph Data:** Data structured as nodes and edges, suitable for network analysis and relational tasks.
+- Implement the model code based on the detailed description.
+- Evolve the model iteratively as a developer would, ensuring accuracy and efficiency.
 
-Scen4 Demo
-~~~~~~~~~~
-.. TODO
+**Step 4 : Backtesting with MIMIC-III 📉**
 
-Scen4 Quick Start
+- Conduct backtesting using the newly developed model on the extracted task from MIMIC-III.
+- Evaluate the model's effectiveness and performance in terms of AUROC score.
+
+**Step 5 : Feedback Analysis 🔍**
+
+- Analyze backtest results to assess performance.
+- Incorporate feedback to refine hypotheses and improve the model.
+
+**Step 6 :Hypothesis Refinement ♻️**
+
+- Refine hypotheses based on feedback from backtesting.
+- Repeat the process to continuously improve the model.
+
+⚡ Quick Start
 ~~~~~~~~~~~~~~~~~
-To quickly start the model proposal process, run the following command in your terminal within the 'rdagent' virtual environment:
 
-.. code-block:: sh
+Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
 
-    python rdagent/app/model_extraction_and_code/model_extraction_and_implementation.py
+You can try our demo by running the following command:
 
-Usage of modules
-~~~~~~~~~~~~~~~~~
-TODO: Show some examples
+- 🐍 Create a Conda Environment
+    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+    
+      .. code-block:: sh
+      
+          conda create -n rdagent python=3.10
 
+    - Activate the environment:
+
+      .. code-block:: sh
+
+          conda activate rdagent
+
+- 📦 Install the RDAgent
+    - You can directly install the RDAgent package from PyPI:
+
+      .. code-block:: sh
+
+          pip install rdagent
+
+- 📦 Request PhysioNet Account
+    - Apply for an account at `PhysioNet <https://physionet.org/>`_.
+    - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
+    - Place your username and password in `.rdagent.app.data_mining.conf`.
+
+
+- 🚀 Run the Application
+    .. code-block:: sh
+
+        rdagent med_model
+
+🛠️ Usage of modules
+~~~~~~~~~~~~~~~~~~~~~
+
+.. _Env Config: 
+
+- **Env Config**
+
+The following environment variables can be set in the `.env` file to customize the application's behavior:
+
+.. autopydantic_settings:: rdagent.app.data_mining.conf.PropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config

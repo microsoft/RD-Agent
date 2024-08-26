@@ -10,11 +10,12 @@ Welcome to RDAgent's documentation!
    :maxdepth: 3
    :caption: Doctree:
 
-   demo_and_introduction
+   introduction
    installation_and_configuration
    scens/catalog
    project_framework_introduction
-   research/research
+   ui
+   research/catalog
    development
    api_reference
    policy

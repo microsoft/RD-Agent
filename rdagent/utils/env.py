@@ -6,9 +6,11 @@ Tries to create uniform environment for the agent to run;
 """
 # TODO: move the scenario specific docker env into other folders.
 
+import json
 import os
 import subprocess
 import sys
+import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
@@ -18,6 +20,7 @@ import docker.models
 import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from rich.progress import Progress, TextColumn
 
 from rdagent.log import rdagent_logger as logger
 
@@ -159,6 +162,24 @@ class DMDockerConf(DockerConf):
     shm_size: str | None = "16g"
 
 
+class KGDockerConf(DockerConf):
+    class Config:
+        env_prefix = "KG_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    image: str = "local_kg:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace/kg_workspace/"
+    default_entry: str = "python train.py"
+    extra_volumes: dict = {
+        # TODO connect to the place where the data is stored
+        Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    }
+
+    share_data_path: str = "/data/userdata/share/kaggle"
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -170,14 +191,55 @@ class DockerEnv(Env[DockerConf]):
         client = docker.from_env()
         if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
-            image, logs = client.images.build(
+            resp_stream = client.api.build(
                 path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
             )
+            if isinstance(resp_stream, str):
+                logger.info(resp_stream)
+            with Progress(TextColumn("{task.description}")) as p:
+                task = p.add_task("[cyan]Building image...")
+                for part in resp_stream:
+                    status_dict = json.loads(part)
+                    if "error" in status_dict:
+                        p.update(task, description=f"[red]error: {status_dict['error']}")
+                        raise docker.errors.BuildError(status_dict["error"])
+                    if "stream" in status_dict:
+                        p.update(task, description=status_dict["stream"])
             logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
         try:
             client.images.get(self.conf.image)
         except docker.errors.ImageNotFound:
-            client.images.pull(self.conf.image)
+            image_pull = client.api.pull(self.conf.image, stream=True, decode=True)
+            current_status = ""
+            layer_set = set()
+            completed_layers = 0
+            with Progress(TextColumn("{task.description}"), TextColumn("{task.fields[progress]}")) as sp:
+                main_task = sp.add_task("[cyan]Pulling image...", progress="")
+                status_task = sp.add_task("[bright_magenta]layer status", progress="")
+                for line in image_pull:
+                    if "error" in line:
+                        sp.update(status_task, description=f"[red]error", progress=line["error"])
+                        raise docker.errors.APIError(line["error"])
+
+                    layer_id = line["id"]
+                    status = line["status"]
+                    p_text = line.get("progress", None)
+
+                    if layer_id not in layer_set:
+                        layer_set.add(layer_id)
+
+                    if p_text:
+                        current_status = p_text
+
+                    if status == "Pull complete" or status == "Already exists":
+                        completed_layers += 1
+
+                    sp.update(main_task, progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed")
+                    sp.update(
+                        status_task,
+                        description=f"[bright_magenta]layer {layer_id} [yellow]{status}",
+                        progress=current_status,
+                    )
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
@@ -284,3 +346,25 @@ class DMDockerEnv(DockerEnv):
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
+
+
+class KGDockerEnv(DockerEnv):
+    """Qlib Torch Docker"""
+
+    def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)
+        self.competition = competition
+
+    def prepare(self):
+        """
+        Download image & data if it doesn't exist
+        """
+        super().prepare()
+
+        # download data
+        data_path = f"{self.conf.share_data_path}/{self.competition}"
+        subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
+
+        # unzip data
+        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
+            zip_ref.extractall(data_path)

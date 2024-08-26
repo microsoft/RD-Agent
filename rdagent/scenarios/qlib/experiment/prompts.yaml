@@ -46,6 +46,67 @@ qlib_factor_simulator: |-
   3. build a portfolio based on the predicted return based on a strategy.
   4. evaluate the portfolio's performance including the return, sharpe ratio, max drawdown, and so on.
 
+qlib_factor_rich_style_description : |-
+  ### R&D Agent-Qlib: Automated Quantitative Trading & Iterative Factors Evolution Demo
+
+  #### [Overview](#_summary)
+
+  The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making. It highlights how financial factors evolve through continuous feedback and refinement.
+
+  #### [Automated R&D](#_rdloops)
+
+  - **[R (Research)](#_research)**
+    - Iterative development of ideas and hypotheses.
+    - Continuous learning and knowledge construction.
+
+  - **[D (Development)](#_development)**
+    - Progressive implementation and code generation of factors.
+    - Automated testing and validation of financial factors.
+
+  #### [Objective](#_summary)
+
+  To demonstrate the dynamic evolution of financial factors through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting financial factors.
+
+qlib_factor_from_report_rich_style_description : |-
+  ### R&D Agent-Qlib: Automated Quantitative Trading & Factor Extraction from Financial Reports Demo
+
+  #### [Overview](#_summary)
+
+  This demo showcases the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtest, continually expanding and refining the factor library.
+
+  #### [Automated R&D](#_rdloops)
+
+  - **[R (Research)](#_research)**
+    - Iterative development of ideas and hypotheses from financial reports.
+    - Continuous learning and knowledge construction.
+
+  - **[D (Development)](#_development)**
+    - Progressive factor extraction and code generation.
+    - Automated implementation and testing of financial factors.
+
+  #### [Objective](#_summary)
+
+  <table border="1" style="width:100%; border-collapse: collapse;">
+    <tr>
+      <td>💡 <strong>Innovation </strong></td>
+      <td>Tool to quickly extract and test factors from research reports.</td>
+    </tr>
+    <tr>
+      <td>⚡ <strong>Efficiency </strong></td>
+      <td>Rapid identification of valuable factors from numerous reports.</td>
+    </tr>
+    <tr>
+      <td>🗃️ <strong>Outputs </strong></td>
+      <td>Expand and refine the factor library to support further research.</td>
+    </tr>
+  </table>
+
+qlib_factor_experiment_setting: |-
+  | Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
+  |---------|----------|---------------|-------------------------------------------------|
+  | CSI300  | LGBModel | Alpha158 Plus | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |
+
+
 qlib_model_background: |-
   The model is a machine learning or deep learning structure used in quantitative investment to predict the returns and risks of a portfolio or a single asset. Models are employed by investors to generate forecasts based on historical data and identified factors, which are central to many quantitative investment strategies.
   Each model takes the factors as input and predicts the future returns. Usually, the bigger the model is, the better the performance would be.
@@ -109,3 +170,29 @@ qlib_model_simulator: |-
   3. Build a portfolio based on the predicted returns using a specific strategy.
   4. Evaluate the portfolio's performance, including metrics such as return, Sharpe ratio, max drawdown, and others.
   5. Iterate on growing the hypothesis to enable model improvements based on performance evaluations and feedback.
+
+qlib_model_rich_style_description: |-
+  ### Qlib Model Evolving Automatic R&D Demo
+  
+  #### [Overview](#_summary)
+  
+  The demo showcases the iterative process of hypothesis generation, knowledge construction, and decision-making in model construction in quantitative finance. It highlights how models evolve through continuous feedback and refinement.
+  
+  #### [Automated R&D](#_rdloops)
+  
+  - **[R (Research)](#_research)**
+    - Iteration of ideas and hypotheses.
+    - Continuous learning and knowledge construction.
+  
+  - **[D (Development)](#_development)**
+    - Evolving code generation and model refinement.
+    - Automated implementation and testing of models.
+  
+  #### [Objective](#_summary)
+  
+  To demonstrate the dynamic evolution of models through the Qlib platform, emphasizing how each iteration enhances the accuracy and reliability of the resulting models. 
+
+qlib_model_experiment_setting: |-
+  | Dataset 📊 | Model 🤖    | Factors 🌟       | Data Split  🧮                                   |
+  |---------|----------|---------------|-------------------------------------------------|
+  | CSI300  | RDAgent-dev | 20 factors (Alpha158)  | Train: 2008-01-01 to 2014-12-31 <br> Valid: 2015-01-01 to 2016-12-31 <br> Test &nbsp;: 2017-01-01 to 2020-08-01 |

@@ -189,7 +189,7 @@ release-notes:
 
 # Build documentation only from rdagent.
 docs-gen:
-	$(PIPRUN) python -m sphinx.cmd.build docs $(PUBLIC_DIR)
+	$(PIPRUN) python -m sphinx.cmd.build -W docs $(PUBLIC_DIR)
 
 # Generate mypy reports.
 docs-mypy: docs-gen
