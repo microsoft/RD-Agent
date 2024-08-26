@@ -27,7 +27,7 @@ Steps to reproduce the behavior:
 <!-- A screenshot of the error message or anything shouldn't appear-->
 
 ## Environment
-
+<!-- TODO: We may provide a more automatic way to get the information -->
  - RD-Agent version:
  - Python version:
  - OS: Linux
