@@ -77,6 +77,7 @@ class KGModelScenario(Scenario):
                 target_description=self.target_description,
                 competition_features=self.competition_features,
             )
+        )
         return background_prompt
 
     @property
