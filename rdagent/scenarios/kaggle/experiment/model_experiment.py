@@ -1,7 +1,7 @@
 import json
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.model_coder.model import (
