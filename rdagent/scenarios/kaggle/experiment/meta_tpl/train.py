@@ -2,9 +2,7 @@ import random
 import os
 
 import pandas as pd
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
-import random
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -16,36 +14,30 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-from fea_select import select
-from fea_process import preprocess
+from rdagent.scenarios.kaggle.experiment.meta_tpl.fea_share_preprocess import preprocess
+from fea_share_preprocess import preprocess
 
 
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
+DIRNAME = Path(__file__).absolute().resolve().parent
 
-
-# def compute_metrics_for_classification(y_true, y_pred):
-#     """Compute accuracy metric for classification."""
-#     accuracy = accuracy_score(y_true, y_pred)
-#     return accuracy
+# support various method for metrics calculation
+def compute_metrics_for_classification(y_true, y_pred):
+    """Compute accuracy metric for classification."""
+    accuracy = accuracy_score(y_true, y_pred)
+    return accuracy
 
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute MCC for classification."""
     mcc = matthews_corrcoef(y_true, y_pred)
     return mcc
 
-
-from pathlib import Path
-
-DIRNAME = Path(__file__).absolute().resolve().parent
-
 # Load and preprocess the data
 # 1) Overall preprocess: appear only once in a competition
 data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
-print(data_df.head())
-
 data_df = data_df.drop(["id"], axis=1)
  
 X = data_df.drop(["class"], axis=1)
@@ -53,42 +45,38 @@ y = data_df["class"].to_numpy()
 
 label_encoder = LabelEncoder()
 y = label_encoder.fit_transform(y)  # 将类别标签转换为数值
-
-# Split the data into training and validation sets
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
 
 # Preprocess the data
-X_train, X_valid = m.preprocess(X, X_train, X_valid)
+X_train = preprocess(X_train)
+X_valid = preprocess(X_valid)
+y_train = preprocess(y_train)
+y_valid = preprocess(y_valid)
 
 # 2) auto preprocess
-# X_train_l, X_valid_l = [], []
-# for f in DIRNAME.glob("feat*.py"):
-#     m = __import__(f.name.strip(".py"))
-#     X_train, X_valid = m.preprocess(X, X_train, X_valid)
-#     X_train_l.append(X_train)
-#     X_valid_l.append(X_valid)
-# X_train = pd.concat(X_train_l, axis=1)
-# X_valid = pd.concat(X_valid_l, axis=1)
+X_train_l, X_valid_l = [], []
+y_train_l, y_valid_l = [], []
+for f in DIRNAME.glob("feat*.py"):
+    m = __import__(f.name.strip(".py"))
+    X_train = m.feat_eng(X_train)
+    X_valid = m.feat_eng(X_valid)
+    y_train = m.feat_eng(y_train)
+    y_valid = m.feat_eng(y_valid)
 
-# TODO: the processing y;
+    X_train_l.append(X_train)
+    X_valid_l.append(X_valid)
+    y_train_l.append(y_train)
+    y_valid_l.append(y_valid)
+
+X_train = pd.concat(X_train_l, axis=1)
+X_valid = pd.concat(X_valid_l, axis=1)
+y_train = pd.concat(y_train_l, axis=1)
+y_valid = pd.concat(y_valid_l, axis=1)
 
 # Train the model
 model_l = []  # list[tuple[model, predict_func,]]
 for f in DIRNAME.glob("model*.py"):
-    X_train_l, X_valid_l = [], []
-    for f in DIRNAME.glob("feat*.py"):
-        m = __import__(f.name.strip(".py"))
-        X_train, X_valid = m.preprocess(X, X_train, X_valid)
-        X_train_l.append(X_train)
-        X_valid_l.append(X_valid)
-    X_train = pd.concat(X_train_l, axis=1)
-    X_valid = pd.concat(X_valid_l, axis=1)
-
-    # select features
-    X_train = select(X_train)
-    X_valid = select(X_valid)
-
-
+    # TODO put select() in model.py: fit(X_train, y_train, X_valid, y_valid)
     m = __import__(f.name.strip(".py"))
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 
