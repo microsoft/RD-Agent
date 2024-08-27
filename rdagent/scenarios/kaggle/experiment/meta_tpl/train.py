@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
+from feat import ColumnTransformer
 
 
 # Set random seed for reproducibility
@@ -75,9 +76,13 @@ for model, predict_func in model_l:
 
 # y_valid_pred = predict_func(model, X_valid)
 
+
+
 # Ensemble
 # TODO: ensemble method in a script
-y_valid_pred = np.sum(y_valid_pred_l) / len(y_valid_pred_l)
+# Average the predictions and apply a threshold to determine class labels
+y_valid_pred = np.mean(y_valid_pred_l, axis=0)
+y_valid_pred = (y_valid_pred > 0.5).astype(int)
 
 accuracy = compute_metrics_for_classification(y_valid, y_valid_pred)
 print("Final Accuracy on validation set: ", accuracy)
