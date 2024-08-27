@@ -1,8 +1,11 @@
 import pandas as pd
 
 """
-这里是每个task的特征工程代码，限定函数名为feat_eng，这个文件的命名以feat_开头，后面接具体的task名
+Here is the feature engineering code for each task, with the function name specified as feat_eng. 
+The file name should start with feat_, followed by the specific task name.
 """
+
+
 def feat_eng(X: pd.DataFrame):
     """
     return the selected features
