@@ -4,12 +4,41 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-
-"""
-限制llm一定输出一个函数，名字为preprocess，作用是Preprocess the data by imputing missing values and encoding categorical features.
-"""
-def preprocess(X: pd.DataFrame) -> pd.DataFrame:
-    X_preprocessed = X.copy()
+def preprocess(X: pd.DataFrame):
     # Identify numerical and categorical features
+    numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
+    categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
 
-    return X_preprocessed
+    # Define preprocessors for numerical and categorical features
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
+    )
+
+    numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
+
+    # Combine preprocessing steps
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", categorical_transformer, categorical_cols),
+            ("num", numerical_transformer, numerical_cols),
+        ]
+    )
+
+    # Fit the preprocessor on the data and transform it
+    preprocessor.fit(X) #TODO depend on its input shape 
+    X_array = preprocessor.transform(X).toarray()
+
+    # Get feature names for the columns in the transformed data
+    feature_names = (
+        preprocessor.named_transformers_['cat']['onehot']
+        .get_feature_names_out(categorical_cols)
+        .tolist() + numerical_cols
+    )
+
+    # Convert arrays back to DataFrames
+    X_transformed = pd.DataFrame(X_array, columns=feature_names, index=X.index)
+
+    return X_transformed
