@@ -17,6 +17,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 
+
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
@@ -36,6 +37,8 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 # Load and preprocess the data
 # 1) Overall preprocess: appear only once in a competition
 data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
+print(data_df.head())
+
 data_df = data_df.drop(["id"], axis=1)
  
 X = data_df.drop(["class"], axis=1)
@@ -54,8 +57,8 @@ for f in DIRNAME.glob("feat*.py"):
     X_train, X_valid = m.preprocess(X, X_train, X_valid)
     X_train_l.append(X_train)
     X_valid_l.append(X_valid)
-X_train = pd.concat(pd.DataFrame(X_train_l), axis=1)
-X_valid = pd.concat(pd.DataFrame(X_valid_l), axis=1)
+X_train = pd.concat(X_train_l, axis=1)
+X_valid = pd.concat(X_valid_l, axis=1)
 
 # TODO: the processing y;
 
@@ -87,6 +90,7 @@ submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground
 passenger_ids = submission_df["id"]
 submission_df = submission_df.drop(["id"], axis=1)
 X_test = preprocessor.transform(submission_df)
+
 
 # Make predictions on the test set and save them
 y_test_pred_bool = predict(model, X_test)
