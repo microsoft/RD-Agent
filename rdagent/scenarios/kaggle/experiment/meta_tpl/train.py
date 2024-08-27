@@ -16,6 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
+from fea_select import select
+from fea_process import preprocess
 
 
 # Set random seed for reproducibility
@@ -55,21 +57,38 @@ y = label_encoder.fit_transform(y)  # 将类别标签转换为数值
 # Split the data into training and validation sets
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
 
+# Preprocess the data
+X_train, X_valid = m.preprocess(X, X_train, X_valid)
+
 # 2) auto preprocess
-X_train_l, X_valid_l = [], []
-for f in DIRNAME.glob("feat*.py"):
-    m = __import__(f.name.strip(".py"))
-    X_train, X_valid = m.preprocess(X, X_train, X_valid)
-    X_train_l.append(X_train)
-    X_valid_l.append(X_valid)
-X_train = pd.concat(X_train_l, axis=1)
-X_valid = pd.concat(X_valid_l, axis=1)
+# X_train_l, X_valid_l = [], []
+# for f in DIRNAME.glob("feat*.py"):
+#     m = __import__(f.name.strip(".py"))
+#     X_train, X_valid = m.preprocess(X, X_train, X_valid)
+#     X_train_l.append(X_train)
+#     X_valid_l.append(X_valid)
+# X_train = pd.concat(X_train_l, axis=1)
+# X_valid = pd.concat(X_valid_l, axis=1)
 
 # TODO: the processing y;
 
 # Train the model
 model_l = []  # list[tuple[model, predict_func,]]
 for f in DIRNAME.glob("model*.py"):
+    X_train_l, X_valid_l = [], []
+    for f in DIRNAME.glob("feat*.py"):
+        m = __import__(f.name.strip(".py"))
+        X_train, X_valid = m.preprocess(X, X_train, X_valid)
+        X_train_l.append(X_train)
+        X_valid_l.append(X_valid)
+    X_train = pd.concat(X_train_l, axis=1)
+    X_valid = pd.concat(X_valid_l, axis=1)
+
+    # select features
+    X_train = select(X_train)
+    X_valid = select(X_valid)
+
+
     m = __import__(f.name.strip(".py"))
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 

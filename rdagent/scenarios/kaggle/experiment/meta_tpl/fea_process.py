@@ -43,6 +43,5 @@ def preprocess(X: pd.DataFrame, X_train: pd.DataFrame, X_valid: pd.DataFrame):
 
     # Convert arrays back to DataFrames
     X_train = pd.DataFrame(X_train_array, columns=feature_names, index=X_train.index)
-    X_valid = pd.DataFrame(X_valid_array, columns=feature_names, index=X_valid.index)
 
     return X_train, X_valid
