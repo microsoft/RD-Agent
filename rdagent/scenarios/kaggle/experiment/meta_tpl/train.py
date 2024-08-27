@@ -36,10 +36,9 @@ def compute_metrics_for_classification(y_true, y_pred):
     return mcc
 
 # Load and preprocess the data
-# 1) Overall preprocess: appear only once in a competition
 data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
 data_df = data_df.drop(["id"], axis=1)
- 
+
 X = data_df.drop(["class"], axis=1)
 y = data_df["class"].to_numpy()
 
@@ -47,33 +46,43 @@ label_encoder = LabelEncoder()
 y = label_encoder.fit_transform(y)  # 将类别标签转换为数值
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
 
-# Preprocess the data
+# 1) Preprocess the data
 X_train = preprocess(X_train)
 X_valid = preprocess(X_valid)
 y_train = preprocess(y_train)
 y_valid = preprocess(y_valid)
 
-# 2) auto preprocess
+submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/test.csv")
+passenger_ids = submission_df["id"]
+submission_df = submission_df.drop(["id"], axis=1)
+X_test = preprocess(submission_df)
+
+# 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 y_train_l, y_valid_l = [], []
+X_test_l = []
 for f in DIRNAME.glob("feat*.py"):
     m = __import__(f.name.strip(".py"))
     X_train = m.feat_eng(X_train)
     X_valid = m.feat_eng(X_valid)
     y_train = m.feat_eng(y_train)
     y_valid = m.feat_eng(y_valid)
+    X_test = m.feat_eng(X_test)
 
     X_train_l.append(X_train)
     X_valid_l.append(X_valid)
     y_train_l.append(y_train)
     y_valid_l.append(y_valid)
+    X_test_l.append(X_test)
+
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
 y_train = pd.concat(y_train_l, axis=1)
 y_valid = pd.concat(y_valid_l, axis=1)
+X_test = pd.concat(X_test_l, axis=1)
 
-# Train the model
+# 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
 for f in DIRNAME.glob("model*.py"):
     # TODO put select() in model.py: fit(X_train, y_train, X_valid, y_valid)
@@ -99,11 +108,6 @@ print("Final on validation set: ", mcc)
 # Save the validation accuracy
 pd.Series(data=[mcc], index=["MCC"]).to_csv("/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/submission_score.csv")
 
-# Load and preprocess the test set
-submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/test.csv")
-passenger_ids = submission_df["id"]
-submission_df = submission_df.drop(["id"], axis=1)
-X_test = preprocessor.transform(submission_df)
 
 
 # Make predictions on the test set and save them
