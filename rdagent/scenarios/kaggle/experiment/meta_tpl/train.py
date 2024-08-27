@@ -16,7 +16,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-from feat import ColumnTransformer
 
 
 # Set random seed for reproducibility
@@ -25,10 +24,15 @@ random.seed(SEED)
 np.random.seed(SEED)
 
 
+# def compute_metrics_for_classification(y_true, y_pred):
+#     """Compute accuracy metric for classification."""
+#     accuracy = accuracy_score(y_true, y_pred)
+#     return accuracy
+
 def compute_metrics_for_classification(y_true, y_pred):
-    """Compute accuracy metric for classification."""
-    accuracy = accuracy_score(y_true, y_pred)
-    return accuracy
+    """Compute MCC for classification."""
+    mcc = matthews_corrcoef(y_true, y_pred)
+    return mcc
 
 
 from pathlib import Path
@@ -76,16 +80,14 @@ for model, predict_func in model_l:
 
 # y_valid_pred = predict_func(model, X_valid)
 
-
-
 # Ensemble
 # TODO: ensemble method in a script
 # Average the predictions and apply a threshold to determine class labels
 y_valid_pred = np.mean(y_valid_pred_l, axis=0)
 y_valid_pred = (y_valid_pred > 0.5).astype(int)
 
-accuracy = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("Final Accuracy on validation set: ", accuracy)
+mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
+print("Final on validation set: ", mcc)
 
 # Save the validation accuracy
 pd.Series(data=[mcc], index=["MCC"]).to_csv("/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/submission_score.csv")
