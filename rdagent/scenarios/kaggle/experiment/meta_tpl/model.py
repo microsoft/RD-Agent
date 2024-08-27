@@ -3,6 +3,7 @@ motivation  of the model
 """
 import xgboost as xgb
 import pandas as pd
+
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model."""
     dtrain = xgb.DMatrix(X_train, label=y_train)

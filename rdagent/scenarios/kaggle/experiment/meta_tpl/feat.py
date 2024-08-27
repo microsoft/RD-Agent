@@ -4,7 +4,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-def preprocess(X: pd.DataFrame):
+def preprocess(X: pd.DataFrame, X_train: pd.DataFrame, X_valid: pd.DataFrame):
 
     # Identify numerical and categorical features
     numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
@@ -32,7 +32,5 @@ def preprocess(X: pd.DataFrame):
     preprocessor.fit(X_train)
     X_train = preprocessor.transform(X_train)
     X_valid = preprocessor.transform(X_valid)
-
-    
 
     return X_train, X_valid

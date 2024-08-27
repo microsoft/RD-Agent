@@ -1,9 +1,21 @@
 import random
+import os
 
-import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+import random
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import matthews_corrcoef
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
@@ -23,24 +35,27 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 # Load and preprocess the data
 # 1) Overall preprocess: appear only once in a competition
-data_df = pd.read_csv("/root/.data/train.csv")
-data_df = data_df.drop(["PassengerId", "Name"], axis=1)
+data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
+data_df = data_df.drop(["id"], axis=1)
+ 
+X = data_df.drop(["class"], axis=1)
+y = data_df["class"].to_numpy()
 
-X = data_df.drop(["Transported"], axis=1)
-y = data_df.Transported.to_numpy()
+label_encoder = LabelEncoder()
+y = label_encoder.fit_transform(y)  # 将类别标签转换为数值
 
 # Split the data into training and validation sets
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
 
 # 2) auto preprocess
 X_train_l, X_valid_l = [], []
-for f in DIRNAME.glob("fea*.py"):
+for f in DIRNAME.glob("feat*.py"):
     m = __import__(f.name.strip(".py"))
-    X_train, X_valid = m.reprocesss(X)
+    X_train, X_valid = m.preprocess(X, X_train, X_valid)
     X_train_l.append(X_train)
     X_valid_l.append(X_valid)
-X_train = pd.concat(X_train_l, axis=1)
-X_valid = pd.concat(X_valid_l, axis=1)
+X_train = pd.concat(pd.DataFrame(X_train_l), axis=1)
+X_valid = pd.concat(pd.DataFrame(X_valid_l), axis=1)
 
 # TODO: the processing y;
 
@@ -65,16 +80,19 @@ accuracy = compute_metrics_for_classification(y_valid, y_valid_pred)
 print("Final Accuracy on validation set: ", accuracy)
 
 # Save the validation accuracy
-pd.Series(data=[accuracy], index=["ACC"]).to_csv("./submission_score.csv")
+pd.Series(data=[mcc], index=["MCC"]).to_csv("/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/submission_score.csv")
 
 # Load and preprocess the test set
-submission_df = pd.read_csv("/root/.data/test.csv")
-passenger_ids = submission_df["PassengerId"]
-submission_df = submission_df.drop(["PassengerId", "Name"], axis=1)
+submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/test.csv")
+passenger_ids = submission_df["id"]
+submission_df = submission_df.drop(["id"], axis=1)
 X_test = preprocessor.transform(submission_df)
 
 # Make predictions on the test set and save them
-y_test_pred = predict(model, X_test)
-submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
+y_test_pred_bool = predict(model, X_test)
+y_test_pred_int = y_test_pred_bool.astype(int)  # 转换布尔值为 0 或 1
+y_test_pred_labels = label_encoder.inverse_transform(y_test_pred_int)  # 将整数转换回 'e' 或 'p'
+submission_result = pd.DataFrame({"id": ids, "class": y_test_pred_labels})
+
 # submit predictions for the test set
 submission_result.to_csv("./submission.csv", index=False)
