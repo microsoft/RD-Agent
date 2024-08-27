@@ -5,6 +5,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 def preprocess(X: pd.DataFrame):
+    '''
+    We want the X_train & X_test & X_valid to contain the same number of columns & maintain feature consistency. 
+    '''
     # Identify numerical and categorical features
     numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
     categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
