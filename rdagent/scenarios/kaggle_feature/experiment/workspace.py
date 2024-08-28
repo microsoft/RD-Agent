@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from rdagent.app.kaggle.conf import PROP_SETTING
+from rdagent.app.kaggle_feature.conf import PROP_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import DockerEnv, KGDockerEnv
 
 
-class KGFBWorkspace(FBWorkspace):
+class KGFFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)

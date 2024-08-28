@@ -4,33 +4,22 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
-from rdagent.components.proposal.model_proposal import (
-    ModelHypothesis,
-    ModelHypothesis2Experiment,
-    ModelHypothesisGen,
+from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
+from rdagent.components.proposal.factor_proposal import (
+    FactorHypothesis,
+    FactorHypothesis2Experiment,
+    FactorHypothesisGen,
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
-from rdagent.scenarios.kaggle.experiment.model_experiment import KGModelExperiment
+from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import FEFeatureExperiment
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
-KGModelHypothesis = ModelHypothesis
+KGFeatureHypothesis = FactorHypothesis
 
 
-class KGModelHypothesisGen(ModelHypothesisGen):
-    """
-    # NOTE: we can share this class across different data mining scenarios
-    # It may better to move the class into components folder like `rdagent/components/proposal/model_proposal.py`
-    # Here is the use case:
-
-    .. code-block:: python
-
-        class XXXDMModelHypothesisGen(DMModelHypothesisGen):
-            prompts: Prompts = a_specifc_prompt_dict
-    """
-
+class KGFeatureHypothesisGen(FactorHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
@@ -48,9 +37,9 @@ class KGModelHypothesisGen(ModelHypothesisGen):
         }
         return context_dict, True
 
-    def convert_response(self, response: str) -> ModelHypothesis:
+    def convert_response(self, response: str) -> FactorHypothesis:
         response_dict = json.loads(response)
-        hypothesis = KGModelHypothesis(
+        hypothesis = KGFeatureHypothesis(
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
             concise_reason=response_dict["concise_reason"],
@@ -61,7 +50,7 @@ class KGModelHypothesisGen(ModelHypothesisGen):
         return hypothesis
 
 
-class KGModelHypothesis2Experiment(ModelHypothesis2Experiment):
+class KGModelHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
         experiment_output_format = prompt_dict["model_experiment_output_format"]
@@ -72,7 +61,7 @@ class KGModelHypothesis2Experiment(ModelHypothesis2Experiment):
             .render(trace=trace)
         )
 
-        experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
+        experiment_list: List[FactorExperiment] = [t[1] for t in trace.hist]
 
         model_list = []
         for experiment in experiment_list:
@@ -87,7 +76,7 @@ class KGModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "RAG": ...,
         }, True
 
-    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
+    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
         for model_name in response_dict:
@@ -98,8 +87,8 @@ class KGModelHypothesis2Experiment(ModelHypothesis2Experiment):
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
             tasks.append(
-                ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
+                FactorTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
             )
-        exp = KGModelExperiment(tasks)
+        exp = FEFeatureExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp

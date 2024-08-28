@@ -3,27 +3,27 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelFBWorkspace,
-    ModelTask,
+from rdagent.components.coder.factor_coder.factor import (
+    FactorExperiment,
+    FactorFBWorkspace,
+    FactorTask,
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
+from rdagent.scenarios.kaggle_feature.experiment.workspace import KGFFBWorkspace
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspace]):
+class FEFeatureExperiment(FactorExperiment[FactorTask, KGFFBWorkspace, KGFFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
+        self.experiment_workspace = KGFFBWorkspace(template_folder_path=Path(__file__).parent / "feature_template")
 
 
-class KGModelScenario(Scenario):
+class FEFeatureScenario(Scenario):
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
@@ -35,7 +35,6 @@ class KGModelScenario(Scenario):
         self._analysis_competition_description()
 
     def _analysis_competition_description(self):
-        # TODO: use gpt to analyze the competition description
 
         sys_prompt = (
             Environment(undefined=StrictUndefined)
@@ -82,6 +81,7 @@ class KGModelScenario(Scenario):
 
     @property
     def source_data(self) -> str:
+        #TODO: Implement source_data
         raise NotImplementedError("source_data is not implemented")
 
     @property
