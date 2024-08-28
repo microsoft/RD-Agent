@@ -22,7 +22,7 @@ extensions = ["sphinx.ext.autodoc", "sphinxcontrib.autodoc_pydantic"]
 autodoc_member_order = "bysource"
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+source_suffix = {".rst": "restructuredtext"}
 
 # The encoding of source files.
 source_encoding = "utf-8"
@@ -62,3 +62,9 @@ except ImportError:
     html_theme = "default"
 
 html_static_path = ["_static"]
+
+html_theme_options = {
+    "source_repository": "https://github.com/microsoft/RD-Agent",
+    "source_branch": "main",
+    "source_directory": "docs/",
+}

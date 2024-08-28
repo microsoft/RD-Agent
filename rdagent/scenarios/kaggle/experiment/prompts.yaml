@@ -4,7 +4,7 @@ kg_description_template:
 
   user: |-
     Based on the following competition description, please extract the following details:
-    1. Competition Type
+    1. Competition Type 
     2. Competition Description
     3. Target Description
     4. Competition Features

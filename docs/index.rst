@@ -20,6 +20,8 @@ Welcome to RDAgent's documentation!
    api_reference
    policy
 
+   GitHub <https://github.com/microsoft/RD-Agent>
+
 
 Indices and tables
 ==================
