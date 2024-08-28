@@ -368,3 +368,4 @@ class KGDockerEnv(DockerEnv):
         # unzip data
         with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
             zip_ref.extractall(data_path)
+
