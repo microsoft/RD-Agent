@@ -11,7 +11,7 @@ kg_description_template:
 
     Competition Description: {{ competition_descriptions }}
 
-kg_model_background: |-
+kg_feature_background: |-
   You are solving this data science tasks of {{ competition_type }}: 
   {{competition_description}}
   
@@ -35,7 +35,7 @@ kg_model_background: |-
   One method should statically define one output with a fixed hyperparameter. 
   For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
 
-kg_model_interface: |-
+kg_feature_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   You code should contain several parts:
   1. The import part: import the necessary libraries.
@@ -73,13 +73,13 @@ kg_model_interface: |-
   Please notice that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
 
 
-kg_model_output_format: |-
+kg_feature_output_format: |-
   The output format should be tailored to the specific task at hand. Depending on the requirements:
   - The output can be a single feature table or a composite table consisting of multiple processed features.
   - Include necessary transformations, such as normalization or other adjustments, to ensure compatibility with the model.
   - The choice of output format should be based on the specific task's objectives and the nature of the data.
   
-kg_model_simulator: |-
+kg_feature_simulator: |-
   The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
   The processed data will then be used for model training and prediction.
   The processed data will be sent into a model to train and predict.

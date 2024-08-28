@@ -17,13 +17,13 @@ from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class FEFeatureExperiment(FactorExperiment[FactorTask, KGFFBWorkspace, KGFFBWorkspace]):
+class KGFeatureExperiment(FactorExperiment[FactorTask, KGFFBWorkspace, KGFFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFFBWorkspace(template_folder_path=Path(__file__).parent / "feature_template")
+        self.experiment_workspace = KGFFBWorkspace(template_folder_path=Path(__file__).parent.parent.parent/"kaggle/experiment/meta_tpl")
 
 
-class FEFeatureScenario(Scenario):
+class KGFeatureScenario(Scenario):
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
@@ -64,7 +64,7 @@ class FEFeatureScenario(Scenario):
 
     @property
     def background(self) -> str:
-        background_template = prompt_dict["kg_model_background"]
+        background_template = prompt_dict["kg_feature_background"]
 
         background_prompt = (
             Environment(undefined=StrictUndefined)
@@ -86,15 +86,15 @@ class FEFeatureScenario(Scenario):
 
     @property
     def output_format(self) -> str:
-        return prompt_dict["kg_model_output_format"]
+        return prompt_dict["kg_feature_output_format"]
 
     @property
     def interface(self) -> str:
-        return prompt_dict["kg_model_interface"]
+        return prompt_dict["kg_feature_interface"]
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["kg_model_simulator"]
+        return prompt_dict["kg_feature_simulator"]
 
     @property
     def rich_style_description(self) -> str:

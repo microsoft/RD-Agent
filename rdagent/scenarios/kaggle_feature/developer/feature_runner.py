@@ -3,11 +3,11 @@ from pathlib import Path
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import FactorEmptyError
-from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import FEFeatureExperiment
+from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import KGFeatureExperiment
 
 
-class KGFeatureRunner(CachedRunner[FEFeatureExperiment]):
-    def develop(self, exp: FEFeatureExperiment) -> FEFeatureExperiment:
+class KGFeatureRunner(CachedRunner[KGFeatureExperiment]):
+    def develop(self, exp: KGFeatureExperiment) -> KGFeatureExperiment:
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:

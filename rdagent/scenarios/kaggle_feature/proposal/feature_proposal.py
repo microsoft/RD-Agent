@@ -12,7 +12,7 @@ from rdagent.components.proposal.factor_proposal import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
-from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import FEFeatureExperiment
+from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import KGFeatureExperiment
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -50,10 +50,10 @@ class KGFeatureHypothesisGen(FactorHypothesisGen):
         return hypothesis
 
 
-class KGModelHypothesis2Experiment(FactorHypothesis2Experiment):
+class KGFeatureHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
         scenario = trace.scen.get_scenario_all_desc()
-        experiment_output_format = prompt_dict["model_experiment_output_format"]
+        experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
         hypothesis_and_feedback = (
             Environment(undefined=StrictUndefined)
@@ -79,16 +79,12 @@ class KGModelHypothesis2Experiment(FactorHypothesis2Experiment):
     def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
-        for model_name in response_dict:
-            description = response_dict[model_name]["description"]
-            formulation = response_dict[model_name]["formulation"]
-            architecture = response_dict[model_name]["architecture"]
-            variables = response_dict[model_name]["variables"]
-            hyperparameters = response_dict[model_name]["hyperparameters"]
-            model_type = response_dict[model_name]["model_type"]
-            tasks.append(
-                FactorTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
-            )
-        exp = FEFeatureExperiment(tasks)
+        for factor_name in response_dict:
+            description = response_dict[factor_name]["description"]
+            formulation = response_dict[factor_name]["formulation"]
+            variables = response_dict[factor_name]["variables"]
+            tasks.append(FactorTask(factor_name, description, formulation, variables))
+
+        exp = KGFeatureExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp
