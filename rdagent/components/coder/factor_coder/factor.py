@@ -27,6 +27,7 @@ class FactorTask(Task):
         variables: dict = {},
         resource: str = None,
         factor_implementation: bool = False,
+        factor_execution_number_of_columns: int = 1,
     ) -> None:
         self.factor_name = factor_name
         self.factor_description = factor_description
@@ -34,6 +35,7 @@ class FactorTask(Task):
         self.variables = variables
         self.factor_resources = resource
         self.factor_implementation = factor_implementation
+        self.factor_implementation_number_of_columns = factor_execution_number_of_columns
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}

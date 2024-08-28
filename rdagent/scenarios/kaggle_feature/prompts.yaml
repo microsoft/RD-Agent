@@ -8,6 +8,7 @@ hypothesis_and_feedback: |-
   Reasoning for new hypothesis:  {{ feedback.reason }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
+
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
@@ -18,6 +19,7 @@ hypothesis_output_format: |-
   "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
   "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. e.g. 'If...., ..; When..., .; and etc.' Make sure that you state things clearly without ambiguity. Eg. avoid saying 'previous hypothesis', because one wouldn't know what that is."
   }
+
 factor_hypothesis_specification: |-
   1. **Type of Feature and Data Characteristics:**
     - Define the type of feature introduced.
@@ -39,6 +41,7 @@ factor_hypothesis_specification: |-
   5. **1-3 Features per Generation:**
     - Ensure each generation produces 1-3 features.
     - Balance simplicity and complexity to build a robust feature library.
+
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
@@ -49,6 +52,7 @@ factor_experiment_output_format: |-
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"
           }
+          "number_of_columns" : "the number of columns resulting from the feature engineering process. If a single column is added, it should be 1. If transformations are applied, it should reflect the total number of columns generated from the transformation."
       },
       "feature name 2": {
           "description": "description of feature 2",
@@ -57,9 +61,11 @@ factor_experiment_output_format: |-
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"
           }
+          "number_of_columns" : "the number of columns resulting from the feature engineering process. If a single column is added, it should be 1. If transformations are applied, it should reflect the total number of columns generated from the transformation."
       }
       # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
   }
+
 factor_feedback_generation:
   system: |-
     You are a professional data feature engineering assistant in data-driven R&D. 

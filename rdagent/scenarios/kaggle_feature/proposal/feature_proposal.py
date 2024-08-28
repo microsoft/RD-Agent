@@ -83,7 +83,8 @@ class KGFeatureHypothesis2Experiment(FactorHypothesis2Experiment):
             description = response_dict[factor_name]["description"]
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
-            tasks.append(FactorTask(factor_name, description, formulation, variables))
+            number_of_columns = response_dict[factor_name]["number_of_columns"]
+            tasks.append(FactorTask(factor_name, description, formulation, variables, number_of_columns))
 
         exp = KGFeatureExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]

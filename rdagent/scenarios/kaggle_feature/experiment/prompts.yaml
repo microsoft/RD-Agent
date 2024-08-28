@@ -4,89 +4,98 @@ kg_description_template:
 
   user: |-
     Based on the following competition description, please extract the following details:
-    1. Competition Type
+    1. Competition Type (choose from the following: Prediction, Classification, Time-Series Forecasting, Regression, Clustering)
     2. Competition Description
     3. Target Description
-    4. Competition Features
+    4. Competition Features (please ensure the features are meaningful attributes, such as numerical, categorical variables, rather than simple identifiers like IDs)
 
     Competition Description: {{ competition_descriptions }}
 
+
 kg_feature_background: |-
-  You are solving this data science tasks of {{ competition_type }}: 
+  You are tasked with solving a data science problem in the context of {{ competition_type }}: 
   {{competition_description}}
   
-  We provide an overall pipeline in train.py. Now fill in the provided train.py script to do the feature engineering to get a good performance on this task.
+  We have provided an overall pipeline in the `train.py` script. 
+  Your task is to complete this script by performing feature engineering to optimize performance for this competition.
   
-  The model is a machine learning or deep learning structure designed to predict {{ target_description }}. 
-  The data is extracted from the competition dataset, focusing on relevant attributes like {{ competition_features }}.
-  Data preprocessing is a crucial step in the data analysis pipeline, involving the transformation and preparation of raw data into a suitable format for further analysis or modeling.
-  This process is essential to enhance the quality of data and to ensure the accuracy of the results obtained from analytical models
-  Effective preprocessing improves data quality and model accuracy.
-  Data preprocessing typically includes some of teh several key activities: Data Cleaning, Data Creation, Data Integration, Data Transformation, Data Reduction, Data Discretization and so on.
+  The model (which you do not need to implement) is a machine learning or deep learning framework designed to predict {{ target_description }}. 
+  The data comes from the competition dataset, focusing on key attributes such as {{ competition_features }}.
+
+  Your primary objective is to perform feature engineering, a critical step in improving data quality and ensuring the accuracy of model predictions. 
+  This process includes transforming raw data into a suitable format for analysis or modeling, and may involve techniques such as normalization, standardization, or the creation of new features. 
+  Effective feature engineering can significantly enhance both data quality and model performance.
+
+  Feature engineering typically involves several key activities, including but not limited to: data cleaning, feature creation, data integration, data transformation, data reduction, and feature scaling (e.g., normalization or standardization).
   
-  The preprocessing method is defined in the following parts:
-  1. Name: Unique identifier for the data preprocessing method.
-  2. Description: The description of the method.
-  3. Code: The code of the preprocessing method.
-  4. Variables: The steps or functions used for this data preprocessing method.
-  
-  The method might not provide all the parts of the information above since some might not be applicable.
-  Please specifically give all the hyperparameters in the method like Learning Rate, Regularization parameter, Threshold, etc., if needed. 
-  One method should statically define one output with a fixed hyperparameter. 
-  For example, a method with a learning rate of 0.01 and a method with a learning rate of 0.1 should be considered two different methods.
+  The feature engineering method should be defined with the following components:
+  1. **Name**: A unique identifier for the feature engineering method.
+  2. **Description**: A concise description of the method.
+  3. **Code**: The implementation code for the feature engineering method.
+  4. **Variables**: The specific steps or functions used in this feature engineering method.
 
 kg_feature_interface: |-
-  Your python code should follow the interface to better interact with the user's system.
-  You code should contain several parts:
-  1. The import part: import the necessary libraries.
-  2. A class that is a subclass of xgboost. This class should have an __init__ function and a forward function, which inputs a tensor and outputs a tensor.
-  3. Set a variable called "model_cls" to the class you defined.
+  Your Python code should adhere to the specified interface to ensure seamless interaction with the user's system.
+  
+  The code structure must be divided into three main sections:
+  1. **Import Section**: Import all necessary libraries.
+  2. **Function Section**: Define all functions, including the main feature engineering function `feat_eng`.
+  3. **Main Section**: Define the execution logic where `feat_eng` is invoked.
 
-  The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
+  The main function `feat_eng` should be defined and called within the `if __name__ == "__main__"` block. 
+  The test will run the code directly with the command:  `python factor.py <path_to_train_csv>`.
   ```python
-  from model import get_params, get_num_round
+  if __name__ == "__main__":
+    # Check if the CSV file path is provided as an argument
+    if len(sys.argv) != 2:
+        print("Usage: python factor.py <path_to_train_csv>")
+        sys.exit(1)
+    
+    # Load the CSV file
+    csv_file_path = sys.argv[1]
+    X_train = pd.read_csv(csv_file_path)
+    
+    # Apply the feat_eng function
+    X_train = feat_eng(X_train)
+    
+    # Print the resulting DataFrame to check the output
+    print(X_train)
   ```
-  So your python code should follow the pattern:
+
+  The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing the engineered features. This output should closely resemble the structure of the original data but with the newly engineered features.
+
+  Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
+
+  The expected usage is as follows:
   ```python
-  def get_params():
-    params = {
-      ...
-    }
-    return params
-  def get_num_round():
-    return xxx
+  m = __import__(f.name.strip(".py"))
+  X_train = m.feat_eng(X_train)
   ```
+  
+  Your task is to process this DataFrame, perform the necessary feature engineering, and return a new DataFrame containing the engineered features.
 
-  The model has one types,  "XGBoost" for XGBoost model.
-  The XGBoost Model leverages two critical hyperparameters: "arams" and "num_round".
-  "params": This hyperparameter encapsulates various settings that dictate the model's behavior and learning process.
-  "num_round": This hyperparameter specifies the number of training iterations the model will undergo.
-  User will initialize the XGBoost model with the following code:
-  ```python
-  params = get_params()
-  num_round = get_num_round()
-  ```
-  No other parameters will be passed to the model so give other parameters a default value or just make them static.
+  Do not include any try-except blocks in your code. The user will handle exception messages and provide feedback accordingly.
 
-  Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
-
-  Please notice that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
-
+  Ensure that your code meets these requirements and produces a feature-engineered DataFrame that aligns with the user's data and objectives.
 
 kg_feature_output_format: |-
   The output format should be tailored to the specific task at hand. Depending on the requirements:
   - The output can be a single feature table or a composite table consisting of multiple processed features.
-  - Include necessary transformations, such as normalization or other adjustments, to ensure compatibility with the model.
+  - If it is a composite table, it can include transformations such as normalization
   - The choice of output format should be based on the specific task's objectives and the nature of the data.
   
 kg_feature_simulator: |-
   The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
   The processed data will then be used for model training and prediction.
-  The processed data will be sent into a model to train and predict.
   
   User will use your data preprocessing method to do the following steps:
-  1. Execute your Python file to process the data.
+   1. Execute your Python files to process the data. (what you need to do)
   2. Concatenate the processed features with other features and the original data.
   3. Remove any unnecessary features before training the model.
   4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
   5. Evaluate the performance of your preprocessing method and provide feedback.
+
+kg_feature_rich_style_description : |-
+  xxx
+kg_feature_experiment_setting: |-
+  xxx
