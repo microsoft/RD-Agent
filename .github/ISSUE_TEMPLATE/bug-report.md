@@ -27,7 +27,9 @@ Steps to reproduce the behavior:
 <!-- A screenshot of the error message or anything shouldn't appear-->
 
 ## Environment
-<!-- TODO: We may provide a more automatic way to get the information -->
+
+**Note**: User could run `rdagent collect_info` under project directory to get system information and paste them here directly.
+
  - RD-Agent version:
  - Python version:
  - OS: Linux

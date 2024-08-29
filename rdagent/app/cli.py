@@ -5,7 +5,13 @@ This will
 - make rdagent a nice entry and
 - autoamtically load dotenv
 """
+import sys
+import platform
 import subprocess
+import pkg_resources
+from setuptools_scm import get_version
+from pathlib import Path
+Path(__file__).resolve().parent.parent
 from importlib.resources import path as rpath
 
 import fire
@@ -18,6 +24,7 @@ from rdagent.app.general_model.general_model import (
 from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
+from rdagent.log import rdagent_logger as logger
 
 load_dotenv()
 
@@ -36,6 +43,44 @@ def ui(port=80, log_dir="", debug=False):
             cmds.append("--debug")
         subprocess.run(cmds)
 
+def find_project_root():
+    """Find the root directory of the project."""
+    current_path = Path.cwd()
+    marker = 'pyproject.toml'
+    current_path = current_path.resolve()
+    for parent in [current_path] + list(current_path.parents):
+        if (parent / marker).exists():
+            return parent
+    return None
+
+def collect_info():
+    """Prints information about the system and the installed packages."""
+    method_list = [
+        ["Name of current operating system: ", "system"],
+        ["Processor architecture: ", "machine"],
+        ["System, version, and hardware information: ", "platform"],
+        ["Version number of the system: ", "version"],
+    ]
+    for method in method_list:
+        logger.info(f"{method[0]}{getattr(platform, method[1])()}")
+    python_version = sys.version.replace("\n", " ")
+    logger.info(f"Python version: {python_version}")
+    root_dir = find_project_root()
+    current_version = get_version(root = root_dir)
+    logger.info(f"RD-Agent version: {current_version.split('+')[0]}")
+    file_name = ".".join(python_version.split()[0].split(".")[:2]) + ".txt"
+    file_path = root_dir / "constraints" / file_name
+    if not file_path.exists():
+        logger.error(f"{file_path} doesn't exist. It could be that your python version is incorrect.")
+        return None
+    with open(file_path) as f:
+        package_list = f.readlines()
+    package_name_list = [pkg.split('==')[0] for pkg in package_list]
+    for package in package_name_list:
+        version = pkg_resources.get_distribution(package).version
+        logger.info(f"{package} version: {version}")
+    return None
+
 
 def app():
     fire.Fire(
@@ -46,5 +91,6 @@ def app():
             "med_model": med_model,
             "general_model": general_model,
             "ui": ui,
+            "collect_info": collect_info,
         }
     )
