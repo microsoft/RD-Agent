@@ -15,12 +15,14 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
 )
+from rdagent.components.coder.feature_coder.config import FeatureImplementSettings
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle_feature.experiment.workspace import KGFFBWorkspace
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 from rdagent.utils.env import KGDockerConf
+
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -70,6 +72,10 @@ class KGFeatureScenario(Scenario):
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
 
+        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
+        self.competition_features = X_train.columns.tolist()
+        self.competition_features = X_train.head()
+
     @property
     def background(self) -> str:
         background_template = prompt_dict["kg_feature_background"]
@@ -89,12 +95,16 @@ class KGFeatureScenario(Scenario):
 
     @property
     def source_data(self) -> str:
-        #TODO: Implement source_data
-        kaggle_conf = KGDockerConf()
-        data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
-        file_path = data_path / "train.csv"
-        data = pd.read_csv(file_path)
-        return data.head()
+        # #TODO: Implement source_data
+        # kaggle_conf = KGDockerConf()
+        # data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
+        # file_path = data_path / "train.csv"
+        # data = pd.read_csv(file_path)
+        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
+        X_train.to_csv(FeatureImplementSettings.data_folder / "train.csv", index=False)
+        X_valid.to_csv(FeatureImplementSettings.data_folder / "valid.csv", index=False)
+        X_test.to_csv(FeatureImplementSettings.data_folder / "test.csv", index=False)
+        return X_train.head()
 
 
         raise NotImplementedError("source_data is not implemented")

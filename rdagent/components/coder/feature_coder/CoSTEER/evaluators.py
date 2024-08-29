@@ -8,10 +8,10 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
+from rdagent.components.coder.feature_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.components.coder.factor_coder.factor import FactorTask
+from rdagent.components.coder.feature_coder.factor import FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator, Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
@@ -388,6 +388,14 @@ class FactorValueEvaluator(FactorEvaluator):
         output_format_result = None
         equal_value_ratio_result = 0
         high_correlation_result = False
+
+        # Check if both dataframe has only one columns
+        feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        conclusions.append(feedback_str)
+
+        # Check if the index of the dataframe is ("datetime", "instrument")
+        feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        conclusions.append(feedback_str)
 
         feedback_str, daily_check_result = FactorDatetimeDailyEvaluator(self.scen).evaluate(
             implementation, gt_implementation

@@ -43,16 +43,11 @@ kg_feature_interface: |-
   3. **Main Section**: Define the execution logic where `feat_eng` is invoked.
 
   The main function `feat_eng` should be defined and called within the `if __name__ == "__main__"` block. 
-  The test will run the code directly with the command:  `python factor.py <path_to_train_csv>`.
+  The test will run the code directly with the command:  `python factor.py`.
   ```python
   if __name__ == "__main__":
-    # Check if the CSV file path is provided as an argument
-    if len(sys.argv) != 2:
-        print("Usage: python factor.py <path_to_train_csv>")
-        sys.exit(1)
-    
     # Load the CSV file
-    csv_file_path = sys.argv[1]
+    csv_file_path = "train.csv"
     X_train = pd.read_csv(csv_file_path)
     
     # Apply the feat_eng function
