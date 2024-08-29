@@ -13,7 +13,6 @@ from pathlib import Path
 import pkg_resources
 from setuptools_scm import get_version
 
-Path(__file__).resolve().parent.parent
 from importlib.resources import path as rpath
 
 import fire
