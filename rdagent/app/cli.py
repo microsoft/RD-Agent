@@ -55,8 +55,8 @@ def find_project_root():
             return parent
     return None
 
-def collect_info():
-    """Prints information about the system and the installed packages."""
+def sys_info():
+    """collect system related info"""
     method_list = [
         ["Name of current operating system: ", "system"],
         ["Processor architecture: ", "machine"],
@@ -65,22 +65,31 @@ def collect_info():
     ]
     for method in method_list:
         logger.info(f"{method[0]}{getattr(platform, method[1])()}")
+    return None
+
+def python_info():
+    """collect Python related info"""
     python_version = sys.version.replace("\n", " ")
     logger.info(f"Python version: {python_version}")
+    return None
+
+def rdagent_info():
+    """collect rdagent related info"""
     root_dir = find_project_root()
     current_version = get_version(root = root_dir)
     logger.info(f"RD-Agent version: {current_version.split('+')[0]}")
-    file_name = ".".join(python_version.split()[0].split(".")[:2]) + ".txt"
-    file_path = root_dir / "constraints" / file_name
-    if not file_path.exists():
-        logger.error(f"{file_path} doesn't exist. It could be that your python version is incorrect.")
-        return None
-    with open(file_path) as f:
-        package_list = f.readlines()
-    package_name_list = [pkg.split('==')[0] for pkg in package_list]
+    package_list = [line for file in root_dir.joinpath("requirements").rglob("*") for line in open(file)]
+    package_name_list = [item.strip() for item in package_list if not item.startswith('#')]
     for package in package_name_list:
         version = pkg_resources.get_distribution(package).version
         logger.info(f"{package} version: {version}")
+    return None
+
+def collect_info():
+    """Prints information about the system and the installed packages."""
+    sys_info()
+    python_info()
+    rdagent_info()
     return None
 
 
