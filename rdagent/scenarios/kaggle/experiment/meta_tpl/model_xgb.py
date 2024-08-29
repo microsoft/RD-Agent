@@ -18,8 +18,16 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
     # TODO: for quick running....
-    params = {}
-    num_round = 2
+    params = {
+        'objective': 'binary:logistic',
+        'max_depth': 8,
+        'learning_rate': 0.1,
+        'colsample_bytree': 0.6,
+        'min_child_weight': 2,
+        'subsample': 0.9,
+        'ensemble_method': 'boosting'
+    }
+    num_round = 100
 
     evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)
