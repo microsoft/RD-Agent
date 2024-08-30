@@ -129,27 +129,6 @@ class FactorCodeEvaluator(FactorEvaluator):
         return critic_response, None
 
 
-class FactorSingleColumnEvaluator(FactorEvaluator):
-    def evaluate(
-        self,
-        implementation: Workspace,
-        gt_implementation: Workspace,
-    ) -> Tuple[str, object]:
-        _, gen_df = self._get_df(gt_implementation, implementation)
-        if gen_df is None:
-            return (
-                "The source dataframe is None. Please check the implementation.",
-                False,
-            )
-        if len(gen_df.columns) == 1:
-            return "The source dataframe has only one column which is correct.", True
-        else:
-            return (
-                "The source dataframe has more than one column. Please check the implementation. We only evaluate the first column.",
-                False,
-            )
-
-
 class FactorOutputFormatEvaluator(FactorEvaluator):
     def evaluate(
         self,
@@ -209,36 +188,6 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     ) from e
 
         return "Failed to evaluate output format after multiple attempts.", False
-
-
-class FactorDatetimeDailyEvaluator(FactorEvaluator):
-    def evaluate(
-        self,
-        implementation: Workspace,
-        gt_implementation: Workspace,
-    ) -> Tuple[str | object]:
-        _, gen_df = self._get_df(gt_implementation, implementation)
-        if gen_df is None:
-            return "The source dataframe is None. Skip the evaluation of the datetime format.", False
-
-        if "datetime" not in gen_df.index.names:
-            return "The source dataframe does not have a datetime index. Please check the implementation.", False
-
-        try:
-            pd.to_datetime(gen_df.index.get_level_values("datetime"))
-        except Exception:
-            return (
-                "The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.",
-                False,
-            )
-
-        time_diff = gen_df.index.get_level_values("datetime").to_series().diff().dropna().unique()
-        if pd.Timedelta(minutes=1) in time_diff:
-            return (
-                "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
-                False,
-            )
-        return "The generated dataframe is daily.", True
 
 
 class FactorRowCountEvaluator(FactorEvaluator):
@@ -392,17 +341,13 @@ class FactorValueEvaluator(FactorEvaluator):
         equal_value_ratio_result = 0
         high_correlation_result = False
 
-        # Check if both dataframe has only one columns
-        feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        # Check if both dataframe has the same rows
+        feedback_str, _ = FeatureEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
 
         # Check if the index of the dataframe is ("datetime", "instrument")
+        # I don't think there is a strong correlation with datetime and instrument here.
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
-        conclusions.append(feedback_str)
-
-        feedback_str, daily_check_result = FactorDatetimeDailyEvaluator(self.scen).evaluate(
-            implementation, gt_implementation
-        )
         conclusions.append(feedback_str)
 
         # Check if both dataframe have the same rows count
@@ -441,7 +386,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif single_column_result is False or output_format_result is False or daily_check_result is False:
+        elif single_column_result is False or output_format_result is False:
             decision_from_value_check = False
         else:
             decision_from_value_check = None
