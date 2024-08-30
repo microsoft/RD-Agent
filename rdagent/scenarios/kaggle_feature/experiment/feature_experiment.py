@@ -43,7 +43,6 @@ class KGFeatureScenario(Scenario):
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
-        self.source_data()
 
     def _analysis_competition_description(self):
 
@@ -91,6 +90,7 @@ class KGFeatureScenario(Scenario):
                 competition_features=self.competition_features,
             )
         )
+        self.source_data()
 
         return background_prompt
 
@@ -101,14 +101,22 @@ class KGFeatureScenario(Scenario):
         # data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
         # file_path = data_path / "train.csv"
         # data = pd.read_csv(file_path)
+        #TODO later we should improve this part
+        data_folder = Path(FEATURE_IMPLEMENT_SETTINGS.data_folder)
+
+        if (data_folder / "train.csv").exists():
+            X_train = pd.read_csv(data_folder / "train.csv")
+            X_valid = pd.read_csv(data_folder / "valid.csv")
+            X_test = pd.read_csv(data_folder / "test.csv")
+            return X_train.head()
+        
         X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
-        FEATURE_IMPLEMENT_SETTINGS.data_folder.mkdir(exist_ok=True, parents=True)
-        X_train.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "train.csv", index=False)
-        X_valid.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "valid.csv", index=False)
-        X_test.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "test.csv", index=False)
+
+        data_folder.mkdir(exist_ok=True, parents=True)
+        X_train.to_csv(data_folder / "train.csv", index=False)
+        X_valid.to_csv(data_folder / "valid.csv", index=False)
+        X_test.to_csv(data_folder / "test.csv", index=False)
         return X_train.head()
-
-
         raise NotImplementedError("source_data is not implemented")
 
     @property
