@@ -7,13 +7,13 @@ This will
 """
 import platform
 import subprocess
+import docker
 import sys
 from pathlib import Path
 
 import pkg_resources
 from setuptools_scm import get_version
 
-Path(__file__).resolve().parent.parent
 from importlib.resources import path as rpath
 
 import fire
@@ -46,17 +46,6 @@ def ui(port=80, log_dir="", debug=False):
         subprocess.run(cmds)
 
 
-def find_project_root():
-    """Find the root directory of the project."""
-    current_path = Path.cwd()
-    marker = "pyproject.toml"
-    current_path = current_path.resolve()
-    for parent in [current_path] + list(current_path.parents):
-        if (parent / marker).exists():
-            return parent
-    return None
-
-
 def sys_info():
     """collect system related info"""
     method_list = [
@@ -77,14 +66,51 @@ def python_info():
     return None
 
 
+def docker_info():
+    client = docker.from_env()
+    images = client.images.list()
+    logger.info(f"Image ID: {images[0].id}")
+    logger.info(f"Tags: {images[0].tags}")
+    logger.info(f"Created: {images[0].attrs['Created']}")
+    logger.info(f"Size: {images[0].attrs['Size']} bytes")
+    logger.info(f"Architecture: {images[0].attrs['Architecture']}")
+    logger.info(f"OS: {images[0].attrs['Os']}")
+
+
 def rdagent_info():
     """collect rdagent related info"""
-    root_dir = find_project_root()
+    root_dir = Path(__file__).resolve().parent.parent.parent
     current_version = get_version(root=root_dir)
     logger.info(f"RD-Agent version: {current_version.split('+')[0]}")
-    package_list = [line for file in root_dir.joinpath("requirements").rglob("*") for line in open(file)]
-    package_name_list = [item.strip() for item in package_list if not item.startswith("#")]
-    for package in package_name_list:
+    package_list = [
+        "autodoc-pydantic",
+        "coverage",
+        "furo",
+        "git-changelog",
+        "mypy[reports]",
+        "myst-parser",
+        "pytest",
+        "Sphinx",
+        "sphinx-autobuild",
+        "sphinx-click",
+        "sphinx-togglebutton",
+        "sphinx_rtd_theme",
+        "black",
+        "isort",
+        "mypy",
+        "ruff",
+        "toml-sort",
+        "types-PyYAML",
+        "types-psutil",
+        "types-tqdm",
+        "build",
+        "setuptools-scm",
+        "twine",
+        "wheel",
+        "coverage",
+        "pytest",
+    ]
+    for package in package_list:
         version = pkg_resources.get_distribution(package).version
         logger.info(f"{package} version: {version}")
     return None
@@ -94,6 +120,7 @@ def collect_info():
     """Prints information about the system and the installed packages."""
     sys_info()
     python_info()
+    docker_info()
     rdagent_info()
     return None
 

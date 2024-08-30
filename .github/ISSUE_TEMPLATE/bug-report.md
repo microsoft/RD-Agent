@@ -28,7 +28,7 @@ Steps to reproduce the behavior:
 
 ## Environment
 
-**Note**: User could run `rdagent collect_info` under project directory to get system information and paste them here directly.
+**Note**: Users can run `rdagent collect_info` to get system information and paste it directly here.
 
  - RD-Agent version:
  - Python version:
