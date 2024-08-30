@@ -22,39 +22,46 @@ hypothesis_output_format: |-
 
 model_hypothesis_specification: |-
   Additional Specifications:
-    
-    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually Build Up Upon previous hypothesis & feedbacks. In each round, hypothesis is different. Pay attention to your previous hypothesis.
+  
+  Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually build upon previous hypotheses & feedback. In each round, the hypothesis is different. Pay attention to your previous hypothesis.
 
-    Ensure that the hypothesis focuses on the architecture of a PyTorch model. Each hypothesis should address specific architectural choices such as the type of layers, activation functions, regularization techniques, and the overall structure of the model. Avoid hypotheses related to input features or optimization processes.
+  Ensure that the hypothesis focuses on the architecture of a PyTorch model. Each hypothesis should address specific architectural choices such as the type of layers, activation functions, regularization techniques, the overall structure of the model, and the feature selection method. Avoid hypotheses related to optimization processes outside of feature selection.
 
   Remember: if there is no hypothesis, start with something simple like MLP.
 
   Usually, a larger model works better than a smaller one. 
 
-  Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+  Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypothesis doesn't work, try to make changes at the current level.
 
-  Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
+  Consider how feature selection impacts the model's performance at each stage. Integrate this into your hypothesis development.
 
-    1st Round Hypothesis: The model should be a CNN. 
+  Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
 
-    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
+    1st Round Hypothesis: The model should be a CNN with no feature selection.
 
-    3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
+    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
 
-    4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
+    3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
+
+    4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
     
-    5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
+    5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
-    6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+    6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
+
 
 model_experiment_output_format: |-
-  So far please only design one model to test the hypothesis! 
+  So far please only design one model to test the hypothesis! Each type we only update one type of the model. 
   The output should follow JSON format. The schema is as follows: 
   {
     "model_name 1 (The name of the model)": {
-        "description": "A detailed description of the model",
+        "description": "A detailed description of the model, including how feature selection is applied.",
         "formulation": "A LaTeX formula representing the model's formulation",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+        "feature_selection": {
+            "method": "Description of the feature selection method used, e.g., 'All features selected', 'L1 regularization for feature selection', 'PCA with 95% variance retained'",
+            "selected_features": ["Feature1", "Feature2", "Feature3"]  # List the selected features or explain how features are selected.
+        },
         "variables": {
             "\\hat{y}_u": "The predicted output for node u",
             "variable_name_2": "Description of variable 2",
@@ -65,13 +72,13 @@ model_experiment_output_format: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "model_type": "XGBoost" # Should be "XGBoost"
+        "model_type": "{{ model_type }}"  # Should match the specified model type
     },
     "model_name 2 (The name of the model)": {
         ...
     }
   }
-  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
+  Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
 model_feedback_generation:
   system: |-
@@ -91,19 +98,19 @@ model_feedback_generation:
     
     Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 
-    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
+    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
 
-      1st Round Hypothesis: The model should be a CNN. 
+    1st Round Hypothesis: The model should be a CNN with no feature selection.
 
-      2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
+    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
 
-      3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
+    3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
 
-      4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
-      
-      5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
+    4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
+    
+    5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
-      6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+    6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
 
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
