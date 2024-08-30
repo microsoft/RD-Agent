@@ -90,12 +90,11 @@ class KGFeatureScenario(Scenario):
                 competition_features=self.competition_features,
             )
         )
-        self.source_data()
 
         return background_prompt
 
     @property
-    def source_data(self) -> str:
+    def source_data(self) -> pd.DataFrame:
         # #TODO: Implement source_data
         # kaggle_conf = KGDockerConf()
         # data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
@@ -106,8 +105,8 @@ class KGFeatureScenario(Scenario):
 
         if (data_folder / "train.csv").exists():
             X_train = pd.read_csv(data_folder / "train.csv")
-            X_valid = pd.read_csv(data_folder / "valid.csv")
-            X_test = pd.read_csv(data_folder / "test.csv")
+            # X_valid = pd.read_csv(data_folder / "valid.csv")
+            # X_test = pd.read_csv(data_folder / "test.csv")
             return X_train.head()
         
         X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
