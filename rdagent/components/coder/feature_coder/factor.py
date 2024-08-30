@@ -144,8 +144,6 @@ class FactorFBWorkspace(FBWorkspace):
 
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
-            print(source_data_path)
-            print(self.workspace_path)
             self.link_data_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
@@ -178,10 +176,10 @@ class FactorFBWorkspace(FBWorkspace):
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
 
-            workspace_output_file_path = self.workspace_path / "result.h5"
+            workspace_output_file_path = self.workspace_path / "output.csv"
             if workspace_output_file_path.exists() and execution_success:
                 try:
-                    executed_factor_value_dataframe = pd.read_hdf(workspace_output_file_path)
+                    executed_factor_value_dataframe = pd.read_csv(workspace_output_file_path)
                     execution_feedback += self.FB_OUTPUT_FILE_FOUND
                 except Exception as e:
                     execution_feedback += f"Error found when reading hdf file: {e}"[:1000]
