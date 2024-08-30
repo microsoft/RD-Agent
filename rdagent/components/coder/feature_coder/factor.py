@@ -182,7 +182,7 @@ class FactorFBWorkspace(FBWorkspace):
                     executed_factor_value_dataframe = pd.read_csv(workspace_output_file_path)
                     execution_feedback += self.FB_OUTPUT_FILE_FOUND
                 except Exception as e:
-                    execution_feedback += f"Error found when reading hdf file: {e}"[:1000]
+                    execution_feedback += f"Error found when reading csv file: {e}"[:1000]
                     executed_factor_value_dataframe = None
             else:
                 execution_feedback += self.FB_OUTPUT_FILE_NOT_FOUND

@@ -575,7 +575,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.value_evaluator = FactorValueEvaluator(self.scen)
+        self.value_evaluator = FeatureEvaluator(self.scen)
         self.code_evaluator = FactorCodeEvaluator(self.scen)
         self.final_decision_evaluator = FactorFinalDecisionEvaluator(self.scen)
 
@@ -713,3 +713,49 @@ def shorten_prompt(tpl: str, render_kwargs: dict, shorten_key: str, max_trail: i
     # TODO: this should replace most of code in
     # - FactorFinalDecisionEvaluator.evaluate
     # - FactorCodeEvaluator.evaluate
+
+
+class FeatureEvaluator:
+    def __init__(self, *args, **kwargs) -> None:
+        pass
+
+    def evaluate(
+        self,
+        implementation: Workspace,
+        gt_implementation: Workspace,
+    ) -> Tuple[str, object]:
+        """
+        Evaluates whether the row count of the generated feature engineering data matches the Ground Truth data.
+        
+        Parameters
+        ----------
+        implementation : Workspace
+            The workspace containing the generated feature engineering data.
+        gt_implementation : Workspace
+            The workspace containing the Ground Truth data.
+        
+        Returns
+        -------
+        Tuple[str, object]
+            - str: A textual description of the evaluation result.
+            - object: A boolean indicating whether the row counts match.
+        """
+        _, gen_df = implementation.execute()
+        _, gt_df = gt_implementation.execute()
+
+        if gen_df is None:
+            return "The generated DataFrame is None. Please check the implementation.", False
+        
+        if gt_df is None:
+            return "The Ground Truth DataFrame is None. Please check the implementation.", False
+
+        if gen_df.shape[0] == gt_df.shape[0]:
+            return "The generated DataFrame has the same number of rows as the Ground Truth.", True
+        else:
+            return (
+                f"The generated DataFrame and the Ground Truth DataFrame have different row counts. "
+                f"The generated DataFrame has {gen_df.shape[0]} rows, while the Ground Truth DataFrame has {gt_df.shape[0]} rows. "
+                "Please check the implementation.",
+                False,
+            )
+
