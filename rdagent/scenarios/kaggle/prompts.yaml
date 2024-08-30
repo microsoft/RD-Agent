@@ -59,7 +59,7 @@ model_experiment_output_format: |-
         "formulation": "A LaTeX formula representing the model's formulation",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
         "feature_selection": {
-            "method": "Description of the feature selection method used, e.g., 'All features selected', 'L1 regularization for feature selection', 'PCA with 95% variance retained'",
+            "method": "Description of the feature selection method used & reasoning, e.g., 'All features selected', 'L1 regularization for feature selection', 'PCA with 95% variance retained'",
             "selected_features": ["Feature1", "Feature2", "Feature3"]  # List the selected features or explain how features are selected.
         },
         "variables": {
