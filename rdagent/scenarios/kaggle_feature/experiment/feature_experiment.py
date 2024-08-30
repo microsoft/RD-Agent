@@ -15,7 +15,7 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
 )
-from rdagent.components.coder.feature_coder.config import FeatureImplementSettings
+from rdagent.components.coder.feature_coder.config import FEATURE_IMPLEMENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -43,6 +43,7 @@ class KGFeatureScenario(Scenario):
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
+        self.source_data()
 
     def _analysis_competition_description(self):
 
@@ -101,9 +102,10 @@ class KGFeatureScenario(Scenario):
         # file_path = data_path / "train.csv"
         # data = pd.read_csv(file_path)
         X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
-        X_train.to_csv(FeatureImplementSettings.data_folder / "train.csv", index=False)
-        X_valid.to_csv(FeatureImplementSettings.data_folder / "valid.csv", index=False)
-        X_test.to_csv(FeatureImplementSettings.data_folder / "test.csv", index=False)
+        FEATURE_IMPLEMENT_SETTINGS.data_folder.mkdir(exist_ok=True, parents=True)
+        X_train.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "train.csv", index=False)
+        X_valid.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "valid.csv", index=False)
+        X_test.to_csv(FEATURE_IMPLEMENT_SETTINGS.data_folder / "test.csv", index=False)
         return X_train.head()
 
 

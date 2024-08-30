@@ -43,7 +43,8 @@ kg_feature_interface: |-
   3. **Main Section**: Define the execution logic where `feat_eng` is invoked.
 
   The main function `feat_eng` should be defined and called within the `if __name__ == "__main__"` block. 
-  The test will run the code directly with the command:  `python factor.py`.
+  The test will run the code directly with the command:  `python factor.py`. And you should save the result in the `output.csv` file which is in the same directory.
+  Note if you just call the function `feat_eng`, you should not save the result in the `output.csv` file.
   ```python
   if __name__ == "__main__":
     # Load the CSV file
@@ -54,7 +55,7 @@ kg_feature_interface: |-
     X_train = feat_eng(X_train)
     
     # Print the resulting DataFrame to check the output
-    print(X_train)
+    X_train.to_csv("output.csv", index=False)
   ```
 
   The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing the engineered features. This output should closely resemble the structure of the original data but with the newly engineered features.
@@ -84,7 +85,7 @@ kg_feature_simulator: |-
   The processed data will then be used for model training and prediction.
   
   User will use your data preprocessing method to do the following steps:
-   1. Execute your Python files to process the data. (what you need to do)
+  1. Execute your Python files to process the data. (what you need to do)
   2. Concatenate the processed features with other features and the original data.
   3. Remove any unnecessary features before training the model.
   4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.

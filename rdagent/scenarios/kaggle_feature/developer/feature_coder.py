@@ -1,3 +1,3 @@
-from rdagent.components.coder.factor_coder.CoSTEER import FactorCoSTEER
+from rdagent.components.coder.feature_coder.CoSTEER import FeatureCoSTEER
 
-KGFeatureCoSTEER = FactorCoSTEER
+KGFeatureCoSTEER = FeatureCoSTEER

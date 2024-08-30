@@ -53,6 +53,9 @@ class FactorEvaluator(Evaluator):
         raise NotImplementedError("Please implement the `evaluator` method")
 
     def _get_df(self, gt_implementation: Workspace, implementation: Workspace):
+        """
+        从工作区中获取生成的 DataFrame 以及Ground Truth DataFrame，并进行必要的处理。这个方法是评估因子表现的基础。
+        """
         if gt_implementation is not None:
             _, gt_df = gt_implementation.execute()
             if isinstance(gt_df, pd.Series):
