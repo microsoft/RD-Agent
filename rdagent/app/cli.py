@@ -7,17 +7,15 @@ This will
 """
 import platform
 import subprocess
-import docker
 import sys
+from importlib.resources import path as rpath
 from pathlib import Path
 
-import pkg_resources
-from setuptools_scm import get_version
-
-from importlib.resources import path as rpath
-
+import docker
 import fire
+import pkg_resources
 from dotenv import load_dotenv
+from setuptools_scm import get_version
 
 from rdagent.app.data_mining.model import main as med_model
 from rdagent.app.general_model.general_model import (
