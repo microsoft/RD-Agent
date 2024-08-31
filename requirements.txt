@@ -23,6 +23,7 @@ pandarallel # parallelize pandas
 feedparser
 matplotlib
 langchain
+langchain-community
 tiktoken
 pymupdf  # Extract shotsreens from pdf
 

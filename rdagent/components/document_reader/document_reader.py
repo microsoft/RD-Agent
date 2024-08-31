@@ -8,8 +8,7 @@ import fitz
 import requests
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from langchain.document_loaders import (
-    OnlinePDFLoader,
+from langchain_community.document_loaders import (
     PyPDFDirectoryLoader,
     PyPDFLoader,
 )
