@@ -8,10 +8,7 @@ import fitz
 import requests
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from langchain_community.document_loaders import (
-    PyPDFDirectoryLoader,
-    PyPDFLoader,
-)
+from langchain_community.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 from PIL import Image
 
 if TYPE_CHECKING:
