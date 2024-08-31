@@ -2,6 +2,13 @@
 For Development
 =========================
 
+If you want to try the latest version or contribute to RD-Agent. You can install it from the source and follow the commands in this page.
+
+   .. code-block:: bash
+
+      git clone https://github.com/microsoft/RD-Agent
+
+
 🔧Prepare for development
 =========================
 
