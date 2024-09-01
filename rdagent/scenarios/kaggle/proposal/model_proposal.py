@@ -42,9 +42,9 @@ class KGModelHypothesisGen(ModelHypothesisGen):
         )
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": "",
+            "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": "...",
+            "hypothesis_specification": None,
         }
         return context_dict, True
 

@@ -5,6 +5,7 @@ import fire
 from rdagent.app.kaggle.conf import PROP_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyError
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
@@ -12,6 +13,7 @@ from rdagent.core.proposal import (
     HypothesisGen,
     Trace,
 )
+from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 
@@ -62,4 +64,7 @@ def main(path=None, step_n=None, competition=None):
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    load_dotenv(override=True)
     fire.Fire(main)

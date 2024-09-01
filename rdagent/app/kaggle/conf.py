@@ -13,7 +13,7 @@ class PropSetting(BasePropSetting):
         """Add 'model_' to the protected namespaces"""
 
     # 1) overriding the default
-    scen: str = "rdagent.scenarios.kaggle.experiment.model_experiment.KGModelScenario"
+    scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGModelScenario"
     """Scenario class for data mining model"""
 
     hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.model_proposal.KGModelHypothesisGen"
