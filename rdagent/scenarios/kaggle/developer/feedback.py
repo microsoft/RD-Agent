@@ -19,7 +19,7 @@ feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yam
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class KGModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:

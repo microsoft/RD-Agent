@@ -6,7 +6,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-LOCAL_PATH = "/data/userdata/share/kaggle_competition_descriptions"
+from rdagent.log import rdagent_logger as logger
+
+LOCAL_PATH = "/home/xuyang1/workspace/RD-Agent/git_ignore_folder/kaggle_competition_descriptions"
 
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
@@ -18,7 +20,7 @@ service = Service("/usr/local/bin/chromedriver")
 
 def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
     if (fp := Path(f"{LOCAL_PATH}/{competition}.json")).exists() and not force:
-        print(f"Found {competition}.json, loading from local file.")
+        logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
 

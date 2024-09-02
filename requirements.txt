@@ -69,3 +69,7 @@ st-theme
 # kaggle crawler
 selenium
 kaggle
+
+#model related
+xgboost
+lightgbm
