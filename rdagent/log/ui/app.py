@@ -27,6 +27,8 @@ from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
+from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import KGFeatureScenario
+from rdagent.scenarios.kaggle.experiment.model_experiment import KGModelScenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
@@ -53,12 +55,14 @@ else:
     main_log_path = None
 
 
-SELECTED_METRICS = [
+QLIB_SELECTED_METRICS = [
     "IC",
     "1day.excess_return_without_cost.annualized_return",
     "1day.excess_return_without_cost.information_ratio",
     "1day.excess_return_without_cost.max_drawdown",
 ]
+
+SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGFeatureScenario, KGModelScenario)
 
 if "log_path" not in state:
     if main_log_path:
@@ -137,23 +141,21 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
                         if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
-                            sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
+                            sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
 
                         # common metrics
-                        if msg.content.result is None:
+                        if msg.content.result is None and isinstance(state.scenario, DMModelScenario):
                             state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
                         else:
-                            if len(msg.content.result) < 4:
-                                ps = msg.content.result
-                                ps.index = ["AUROC"]
-                                ps.name = f"Round {state.lround}"
-                                state.metric_series.append(ps)
-                            else:
-                                sms = msg.content.result.loc[SELECTED_METRICS]
-                                sms.name = f"Round {state.lround}"
-                                state.metric_series.append(sms)
+                            sms = msg.content.result
+                            if isinstance(state.scenario, DMModelScenario):
+                                sms.index = ["AUROC"]
+                            elif isinstance(state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)):
+                                sms = sms.loc[QLIB_SELECTED_METRICS]
+                            sms.name = f"Round {state.lround}"
+                            state.metric_series.append(sms)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
@@ -343,7 +345,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 def summary_window():
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         if state.lround == 0:
@@ -380,7 +382,6 @@ def summary_window():
                     st.table(df.iloc[0])
                 elif df.shape[0] > 1:
                     if df.shape[1] == 1:
-                        # suhan's scenario
                         fig = px.line(df, x=df.index, y=df.columns, markers=True)
                         fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
                         st.plotly_chart(fig)
@@ -468,13 +469,13 @@ def research_window():
         title = (
             "Research🔍"
             if isinstance(
-                state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+                state.scenario, SIMILAR_SCENARIOS
             )
             else "Research🔍 (reader)"
         )
         st.subheader(title, divider="blue", anchor="_research")
         if isinstance(
-            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            state.scenario, SIMILAR_SCENARIOS
         ):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
@@ -511,13 +512,13 @@ def research_window():
 
 def feedback_window():
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
             if state.lround > 0 and isinstance(
-                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGFeatureScenario)
             ):
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
@@ -539,12 +540,11 @@ def feedback_window():
                 )
 
 
-@st.fragment
 def evolving_window():
     title = (
         "Development🛠️"
         if isinstance(
-            state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+            state.scenario, SIMILAR_SCENARIOS
         )
         else "Development🛠️ (evolving coder)"
     )
@@ -744,7 +744,7 @@ if state.scenario is not None:
 
     # R&D Loops Window
     if isinstance(
-        state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)
+        state.scenario, SIMILAR_SCENARIOS
     ):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:

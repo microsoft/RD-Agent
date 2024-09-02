@@ -341,9 +341,9 @@ class FactorValueEvaluator(FactorEvaluator):
         equal_value_ratio_result = 0
         high_correlation_result = False
 
-        # Check if both dataframe has the same rows
-        feedback_str, _ = FeatureEvaluator(self.scen).evaluate(implementation, gt_implementation)
-        conclusions.append(feedback_str)
+        # # Check if both dataframe has the same rows
+        # feedback_str, _ = FeatureEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        # conclusions.append(feedback_str)
 
         # Check if the index of the dataframe is ("datetime", "instrument")
         # I don't think there is a strong correlation with datetime and instrument here.
@@ -520,7 +520,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.value_evaluator = FeatureEvaluator(self.scen)
+        self.value_evaluator = FactorValueEvaluator(self.scen)
         self.code_evaluator = FactorCodeEvaluator(self.scen)
         self.final_decision_evaluator = FactorFinalDecisionEvaluator(self.scen)
 
