@@ -65,3 +65,4 @@ docker
 streamlit
 plotly
 st-theme
+streamlit-javascript
