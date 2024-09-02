@@ -383,7 +383,7 @@ class DMDockerEnv(DockerEnv):
 class KGDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
+    def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
         self.competition = competition
 
@@ -393,10 +393,11 @@ class KGDockerEnv(DockerEnv):
         """
         super().prepare()
 
-        # download data
-        data_path = f"{self.conf.share_data_path}/{self.competition}"
-        subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
+        # download data, if competition is not provided, the user is targeting a general docker environment in kaggle
+        if self.competition is not None:
+            data_path = f"{self.conf.share_data_path}/{self.competition}"
+            subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
-        # unzip data
-        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
+            # unzip data
+            with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
+                zip_ref.extractall(data_path)

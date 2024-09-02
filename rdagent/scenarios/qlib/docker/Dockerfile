@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:latest
+FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime
 
 # For GPU support, please choose the proper tag from https://hub.docker.com/r/pytorch/pytorch/tags
 

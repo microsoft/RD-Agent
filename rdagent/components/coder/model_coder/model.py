@@ -7,7 +7,7 @@ from typing import Dict, Optional
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.utils.env import QTDockerEnv
+from rdagent.utils.env import KGDockerEnv, QTDockerEnv
 
 
 class ModelTask(Task):
@@ -95,7 +95,7 @@ class ModelFBWorkspace(FBWorkspace):
                 if cache_file_path.exists():
                     return pickle.load(open(cache_file_path, "rb"))
 
-            qtde = QTDockerEnv()
+            qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
             qtde.prepare()
 
             if self.target_task.version == 1:
