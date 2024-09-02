@@ -103,11 +103,11 @@ class KGFeatureScenario(Scenario):
         #TODO later we should improve this part
         data_folder = Path(FEATURE_IMPLEMENT_SETTINGS.data_folder)
 
-        if (data_folder / "train.csv").exists():
-            X_train = pd.read_csv(data_folder / "train.csv")
+        if (data_folder / "valid.csv").exists():
+            X_valid = pd.read_csv(data_folder / "valid.csv")
             # X_valid = pd.read_csv(data_folder / "valid.csv")
             # X_test = pd.read_csv(data_folder / "test.csv")
-            return X_train.head()
+            return X_valid.head()
         
         X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
 
