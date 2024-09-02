@@ -24,16 +24,18 @@ class KGModelScenario(Scenario):
         super().__init__()
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition)
+        self._source_data = self.source_data
+        self._output_format = self.output_format
+        self._interface = self.interface
+        self._simulator = self.simulator
+
         self.competition_type = None
         self.competition_description = None
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
+
         self._background = self.background
-        self._source_data = self.source_data
-        self._output_format = self.output_format
-        self._interface = self.interface
-        self._simulator = self.simulator
 
     def _analysis_competition_description(self):
         # TODO: use GPT to analyze the competition description
@@ -49,6 +51,7 @@ class KGModelScenario(Scenario):
             .from_string(prompt_dict["kg_description_template"]["user"])
             .render(
                 competition_descriptions=self.competition_descriptions,
+                raw_data_information=self._source_data,
             )
         )
 
@@ -89,20 +92,24 @@ class KGModelScenario(Scenario):
         data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
 
         csv_files = list(data_path.glob("*.csv"))
-
         if not csv_files:
             return "No CSV files found in the specified path."
+        # TODO add more support for other file types
 
         dataset = pd.concat([pd.read_csv(file) for file in csv_files], ignore_index=True)
 
-        simple_eda = dataset.info(buf=None)  # Capture the info output
+        import io
+
+        buf = io.StringIO()
+        dataset.info(buf=buf)  # Capture the info output
+        simple_eda = buf.getvalue()
         data_shape = dataset.shape
         data_head = dataset.head()
 
         eda = (
             f"Basic Info about the data:\n{simple_eda}\n"
             f"Shape of the dataset: {data_shape}\n"
-            f"Sample Data:\n{data_head}\n"
+            f"Sample Data from pandas dataframe head():\n{data_head}\n"
         )
 
         data_description = self.competition_descriptions.get("Data Description", "No description provided")

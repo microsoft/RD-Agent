@@ -21,35 +21,46 @@ hypothesis_output_format: |-
     "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
 
+feature_experiment_output_format: |-
+  According to the hypothesis, please help user design one or more feature engineering tasks.
+  The output should follow JSON format. The schema is as follows:
+  {
+      "factor or group name 1": {
+          "description": "description of factor or group name 1",
+          "formulation": "latex formulation of factor or group name 1",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      },
+      "factor or group name 2": {
+          "description": "description of factor or group name 2",
+          "formulation": "latex formulation of factor or group name 2",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+  }
+
 model_experiment_output_format: |-
-  So far please only design one model to test the hypothesis! Each type we only update one type of the model. 
+  According to the hypothesis, please help user design one model task.
+  Since we only build one model from four model types: ["XGBoost", "RandomForest", "LightGBM", "NN"]. Please pick one from them.
   The output should follow JSON format. The schema is as follows: 
   {
-    "model_name 1 (The name of the model)": {
-        "description": "A detailed description of the model, including how feature selection is applied.",
-        "formulation": "A LaTeX formula representing the model's formulation",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "feature_selection": {
-            "method": "Description of the feature selection method used & reasoning, e.g., 'All features selected', 'L1 regularization for feature selection', 'PCA with 95% variance retained'",
-            "selected_features": ["Feature1", "Feature2", "Feature3"]  # List the selected features or explain how features are selected.
-        },
-        "variables": {
-            "\\hat{y}_u": "The predicted output for node u",
-            "variable_name_2": "Description of variable 2",
-            "variable_name_3": "Description of variable 3"
-        },
-        "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-        },
-        "model_type": "{{ model_type }}"  # Should match the specified model type
-    },
-    "model_name 2 (The name of the model)": {
-        ...
-    }
+      "model_name": "model_name",
+      "description": "A detailed description of the model",
+      "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+      "hyperparameters": {
+          "hyperparameter_name_1": "value of hyperparameter 1",
+          "hyperparameter_name_2": "value of hyperparameter 2",
+          "hyperparameter_name_3": "value of hyperparameter 3"
+      },
+      "model_type": "model type"
   }
   Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
+  For "XGBoost", "RandomForest", "LightGBM", architecture may not be necessary. You can focus on hyperparameters.
 
 model_feedback_generation:
   system: |-

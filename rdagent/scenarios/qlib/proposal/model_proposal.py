@@ -87,7 +87,15 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             hyperparameters = response_dict[model_name]["hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
             tasks.append(
-                ModelTask(model_name, description, formulation, architecture, variables, hyperparameters, model_type)
+                ModelTask(
+                    name=model_name,
+                    description=description,
+                    formulation=formulation,
+                    architecture=architecture,
+                    variables=variables,
+                    hyperparameters=hyperparameters,
+                    model_type=model_type,
+                )
             )
         exp = QlibModelExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]

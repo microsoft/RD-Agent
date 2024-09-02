@@ -37,7 +37,7 @@ class ModelHypothesisGen(HypothesisGen):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["system_prompt"])
             .render(
-                targets="model",
+                targets="feature engineering and model building",
                 scenario=self.scen.get_scenario_all_desc(),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
                 hypothesis_specification=context_dict["hypothesis_specification"],
@@ -47,7 +47,7 @@ class ModelHypothesisGen(HypothesisGen):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["user_prompt"])
             .render(
-                targets="model",
+                targets="feature engineering and model building",
                 hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
                 RAG=context_dict["RAG"],
             )
@@ -78,7 +78,7 @@ class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesis2Experiment.prompts["hypothesis2experiment"]["system_prompt"])
             .render(
-                targets="model",
+                targets="feature engineering and model building",
                 scenario=trace.scen.get_scenario_all_desc(),
                 experiment_output_format=context["experiment_output_format"],
             )
@@ -87,7 +87,7 @@ class ModelHypothesis2Experiment(Hypothesis2Experiment[ModelExperiment]):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesis2Experiment.prompts["hypothesis2experiment"]["user_prompt"])
             .render(
-                targets="model",
+                targets="feature engineering and model building",
                 target_hypothesis=context["target_hypothesis"],
                 hypothesis_and_feedback=context["hypothesis_and_feedback"],
                 target_list=context["target_list"],
