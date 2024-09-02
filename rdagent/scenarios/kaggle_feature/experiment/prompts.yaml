@@ -48,7 +48,7 @@ kg_feature_interface: |-
   ```python
   if __name__ == "__main__":
     # Load the CSV file
-    csv_file_path = "train.csv"
+    csv_file_path = "valid.csv"
     X_train = pd.read_csv(csv_file_path)
     
     # Apply the feat_eng function
