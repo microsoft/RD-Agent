@@ -1,5 +1,12 @@
 import streamlit as st
+from streamlit_javascript import st_javascript
+
 st.set_page_config(layout="wide", page_title="Finance Data Building Demo", page_icon="💹")
+
+try:
+    web_language = str(st_javascript("window.navigator.languag"))
+except:
+    web_language = "en"
 
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with st.container():
@@ -32,5 +39,13 @@ with lc:
 
 """)
 with rc:
-    st.subheader("💹Finance Data Building Demo")
-    st.video("videos/factor_loop_demo_cn.mp4")
+    col1, col2 = st.columns([5,1], vertical_alignment="center")
+    with col2:
+        use_cn = st.radio(label="language", options=["**中文**", "**English**"], index=0 if "zh" in web_language else 1, label_visibility="collapsed", horizontal=True) == "**中文**"
+    with col1:
+        st.subheader("💹Finance Data Building Demo" + (" (中文)" if use_cn else " (English)"))
+
+    if use_cn:
+        st.video("videos/factor_loop_cn.mp4")
+    else:
+        st.video("videos/factor_loop_en.mp4")
