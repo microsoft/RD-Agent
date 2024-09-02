@@ -104,7 +104,7 @@ class KGModelScenario(Scenario):
         dataset.info(buf=buf)  # Capture the info output
         simple_eda = buf.getvalue()
         data_shape = dataset.shape
-        data_head = dataset.head()
+        data_head = dataset.head().to_string()
 
         eda = (
             f"Basic Info about the data:\n{simple_eda}\n"
