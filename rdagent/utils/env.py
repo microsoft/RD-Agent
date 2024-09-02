@@ -4,12 +4,15 @@ The motiviation of the utils is for environment management
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
 """
+
 # TODO: move the scenario specific docker env into other folders.
 
 import json
 import os
+import pickle
 import subprocess
 import sys
+import uuid
 import zipfile
 from abc import abstractmethod
 from pathlib import Path
@@ -146,6 +149,7 @@ class QlibDockerConf(DockerConf):
 
 
 class DMDockerConf(DockerConf):
+    # Data Mining Docker
     class Config:
         env_prefix = "DM_DOCKER_"
 
@@ -248,9 +252,9 @@ class DockerEnv(Env[DockerConf]):
         if not self.conf.enable_gpu:
             return {}
         gpu_kwargs = {
-            "device_requests": [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
-            if self.conf.enable_gpu
-            else None,
+            "device_requests": (
+                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
+            ),
         }
         try:
             client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
@@ -305,6 +309,34 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
 
+    def dump_python_code_run_and_get_results(
+        self, code: str, dump_file_names: list[str], local_path: str | None = None, env: dict | None = None
+    ):
+        """
+        Dump the code into the local path and run the code.
+        """
+        random_file_name = f"{uuid.uuid4()}.py"
+        with open(os.path.join(local_path, random_file_name), "w") as f:
+            f.write(code)
+        entry = f"python {random_file_name}"
+        log_output = self.run(entry, local_path, env)
+        results = []
+        os.remove(os.path.join(local_path, random_file_name))
+        for name in dump_file_names:
+            if os.path.exists(os.path.join(local_path, f"{name}")):
+                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
+                os.remove(os.path.join(local_path, f"{name}"))
+            else:
+                return log_output, None
+        return log_output, results
+
+
+class QPandasDockerEnv(DockerEnv):
+    """Qlib Pandas Docker"""
+
+    def __init__(self, conf: DockerConf = QlibDockerConf()):
+        super().__init__(conf)
+
 
 class QTDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
@@ -351,7 +383,7 @@ class DMDockerEnv(DockerEnv):
 class KGDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
+    def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
         self.competition = competition
 
@@ -361,11 +393,11 @@ class KGDockerEnv(DockerEnv):
         """
         super().prepare()
 
-        # download data
-        data_path = f"{self.conf.share_data_path}/{self.competition}"
-        subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
+        # download data, if competition is not provided, the user is targeting a general docker environment in kaggle
+        if self.competition is not None:
+            data_path = f"{self.conf.share_data_path}/{self.competition}"
+            subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
-        # unzip data
-        with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
-
+            # unzip data
+            with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
+                zip_ref.extractall(data_path)

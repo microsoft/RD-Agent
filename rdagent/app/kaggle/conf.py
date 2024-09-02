@@ -22,8 +22,11 @@ class PropSetting(BasePropSetting):
     hypothesis2experiment: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesis2Experiment"
     """Hypothesis to experiment class"""
 
-    coder: str = "rdagent.scenarios.kaggle.developer.model_coder.KGModelCoSTEER"
-    """Coder class"""
+    feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
+    """Feature Coder class"""
+
+    model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
+    """Model Coder class"""
 
     runner: str = "rdagent.scenarios.kaggle.developer.model_runner.KGModelRunner"
     """Runner class"""

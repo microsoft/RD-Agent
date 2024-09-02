@@ -1,0 +1,15 @@
+import os
+
+import numpy as np
+import pandas as pd
+from factor import feat_eng
+
+if os.path.exists("train.csv"):
+    train_df = pd.read_csv("train.csv")
+elif os.path.exists("train.pkl"):
+    train_df = pd.read_pickle("train.pkl")
+else:
+    raise FileNotFoundError("No train data found.")
+
+new_feat = feat_eng(train_df)
+new_feat.to_hdf("result.h5", key="data", mode="w")

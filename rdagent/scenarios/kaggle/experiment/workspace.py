@@ -14,8 +14,8 @@ class KGFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
-        self.data_description:str = ""
-        self.model_description:str = ""
+        self.data_description: str = ""
+        self.model_description: str = ""
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         qtde = KGDockerEnv(PROP_SETTING.competition)
@@ -33,5 +33,3 @@ class KGFBWorkspace(FBWorkspace):
             logger.error(f"File {csv_path} does not exist.")
             return None
         return pd.read_csv(csv_path, index_col=0).iloc[:, 0]
-
-

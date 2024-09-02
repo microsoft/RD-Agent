@@ -8,7 +8,7 @@ kg_description_template:
       "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering'",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
-      "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description
+      "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description. Importantly, your feature name should be exactly the same as the feature name in the dataset!
     }
 
 
@@ -43,7 +43,7 @@ kg_background: |-
   - Name: The name of the feature or feature group.
   - Description: A description of the feature or feature group.
   - Formulation: The formulation of the feature or feature group.
-  - Variables: The variable list used in the formulation.
+  - Variables: The variable list used in the formulation. Notice: The variable should be a specific feature in the dataset. Please make sure the feature name is exactly the same as the feature name in the dataset.
   
   For each model, the user will design and implement the model in a separate script.
   The model is defined in the following parts:
@@ -70,8 +70,10 @@ kg_feature_interface: |-
     The function should take the following arguments:
       - X: The features as a pandas DataFrame.
     The function should return the new features as a pandas DataFrame.
+  Notice: As there might be non-numerical features in the dataset. Although user will handle it before your code, please still add some code to handle the non-numerical features in the feat_eng function to pass the unit test. But you should make sure your output features are numerical.
+  Please Don't include original features in the new features.
   
-  The feat_eng function can include:
+  The feat_eng function can be one of the following:
   - Feature engineering: This function calculated one new feature based on the existing raw data.
   - Feature processing: This function processes the existing raw data like normalization or one hot encoding and return the processed data in the form of a pandas DataFrame.
 
@@ -268,7 +270,8 @@ kg_model_interface: |-
   ```
 
 kg_model_output_format: |-
-  Your output should be an np.ndarray with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
+  For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
   
 kg_model_simulator: |-
   The models will be trained on the competition dataset and evaluated on their ability to predict the target. Metrics like accuracy and AUC-ROC is used to evaluate the model performance. 

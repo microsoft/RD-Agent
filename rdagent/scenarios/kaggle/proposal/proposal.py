@@ -137,7 +137,15 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             description = response_dict[factor_name]["description"]
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
-            tasks.append(FactorTask(factor_name, description, formulation, variables))
+            tasks.append(
+                FactorTask(
+                    factor_name=factor_name,
+                    factor_description=description,
+                    factor_formulation=formulation,
+                    variables=variables,
+                    version=2,
+                )
+            )
 
         exp = KGFactorExperiment(tasks)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
@@ -153,6 +161,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
                 architecture=response_dict["architecture"],
                 hyperparameters=response_dict["hyperparameters"],
                 model_type=response_dict["model_type"],
+                version=2,
             )
         )
         exp = KGModelExperiment(tasks)
