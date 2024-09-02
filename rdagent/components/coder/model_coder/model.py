@@ -16,10 +16,12 @@ class ModelTask(Task):
         name: str,
         description: str,
         architecture: str,
+        *args,
         hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
         model_type: Optional[str] = None,
+        **kwargs,
     ) -> None:
         self.name: str = name
         self.description: str = description
@@ -30,6 +32,7 @@ class ModelTask(Task):
         self.model_type: str = (
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
         )
+        super().__init__(*args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
@@ -62,12 +65,13 @@ class ModelFBWorkspace(FBWorkspace):
         - the `model.py` that contains a variable named `model_cls` which indicates the implemented model structure
             - `model_cls` is a instance of `torch.nn.Module`;
 
+    We support two ways of interface:
+        (version 1) for qlib we'll make a script to import the model in the implementation in file `model.py` after setting the cwd into the directory
+            - from model import model_cls
+            - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
+            - And then verify the model.
 
-    We'll import the model in the implementation in file `model.py` after setting the cwd into the directory
-    - from model import model_cls
-    - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-    - And then verify the model.
-
+        (version 2) for kaggle we'll make a script to call the fit and predict function in the implementation in file `model.py` after setting the cwd into the directory
     """
 
     def execute(
@@ -94,7 +98,8 @@ class ModelFBWorkspace(FBWorkspace):
             qtde = QTDockerEnv()
             qtde.prepare()
 
-            dump_code = f"""
+            if self.target_task.version == 1:
+                dump_code = f"""
 MODEL_TYPE = "{self.target_task.model_type}"
 BATCH_SIZE = {batch_size}
 NUM_FEATURES = {num_features}
@@ -102,8 +107,10 @@ NUM_TIMESTEPS = {num_timesteps}
 NUM_EDGES = {num_edges}
 INPUT_VALUE = {input_value}
 PARAM_INIT_VALUE = {param_init_value}
-{(Path(__file__).parent / 'model_execute_template.txt').read_text()}
+{(Path(__file__).parent / 'model_execute_template_v1.txt').read_text()}
 """
+            elif self.target_task.version == 2:
+                dump_code = (Path(__file__).parent / "model_execute_template_v2.txt").read_text()
 
             log, results = qtde.dump_python_code_run_and_get_results(
                 code=dump_code,

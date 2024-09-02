@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any
 
 import fire
 
@@ -16,6 +17,10 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.kaggle.proposal.proposal import (
+    KG_ACTION_FEATURE_ENGINEERING,
+    KG_ACTION_FEATURE_PROCESSING,
+)
 
 
 class ModelRDLoop(RDLoop):
@@ -30,8 +35,11 @@ class ModelRDLoop(RDLoop):
             self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
             logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
 
-            self.coder: Developer = import_class(PROP_SETTING.coder)(scen)
-            logger.log_object(self.coder, tag="coder")
+            self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
+            logger.log_object(self.feature_coder, tag="feature coder")
+            self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
+            logger.log_object(self.model_coder, tag="model coder")
+
             self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
             logger.log_object(self.runner, tag="runner")
 
@@ -39,6 +47,15 @@ class ModelRDLoop(RDLoop):
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = Trace(scen=scen)
             super(RDLoop, self).__init__()
+
+    def coding(self, prev_out: dict[str, Any]):
+        with logger.tag("d"):  # develop
+            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+                exp = self.feature_coder.develop(prev_out["exp_gen"])
+            else:
+                exp = self.model_coder.develop(prev_out["exp_gen"])
+            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        return exp
 
     skip_loop_error = (ModelEmptyError,)
 
