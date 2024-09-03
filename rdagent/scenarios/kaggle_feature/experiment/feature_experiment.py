@@ -30,6 +30,7 @@ prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 class KGFeatureExperiment(FactorExperiment[FactorTask, KGFFBWorkspace, KGFFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        print(Path(__file__).parent.parent.parent/"kaggle/experiment/meta_tpl")
         self.experiment_workspace = KGFFBWorkspace(template_folder_path=Path(__file__).parent.parent.parent/"kaggle/experiment/meta_tpl")
 
 

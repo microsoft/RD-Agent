@@ -8,15 +8,15 @@ from rdagent.scenarios.kaggle_feature.experiment.feature_experiment import KGFea
 
 class KGFeatureRunner(CachedRunner[KGFeatureExperiment]):
     def develop(self, exp: KGFeatureExperiment) -> KGFeatureExperiment:
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
+        # if RUNNER_SETTINGS.cache_result:
+        #     cache_hit, result = self.get_cache_result(exp)
+        #     if cache_hit:
+        #         exp.result = result
+        #         return exp
 
         #TODO 多个feat文件
         for i, feat in enumerate(exp.sub_workspace_list):
-            feat_code = feat.code_dict.get("feat.py")
+            feat_code = feat.code_dict.get("factor.py")
             if feat_code is None:
                 raise FactorEmptyError(f"feat_{i}.py is empty")
             renamed_feat_code = f"feat_{i}.py"
@@ -27,7 +27,7 @@ class KGFeatureRunner(CachedRunner[KGFeatureExperiment]):
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
+        # if RUNNER_SETTINGS.cache_result:
+        #     self.dump_cache_result(exp, result)
 
         return exp

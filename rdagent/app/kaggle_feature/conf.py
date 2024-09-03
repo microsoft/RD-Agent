@@ -34,8 +34,6 @@ class PropSetting(BasePropSetting):
     evolving_n: int = 10
     """Number of evolutions"""
 
-    evolving_n: int = 10
-
     competition: str = ""
 
 

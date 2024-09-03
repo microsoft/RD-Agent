@@ -19,6 +19,7 @@ class KGFFBWorkspace(FBWorkspace):
         qtde = KGDockerEnv(PROP_SETTING.competition)
         qtde.prepare()
 
+        print(self.workspace_path)
         execute_log = qtde.run(
             local_path=str(self.workspace_path),
             entry=f"python train.py",

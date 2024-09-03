@@ -1,3 +1,4 @@
+print(11112)
 import os
 import random
 from pathlib import Path
@@ -12,8 +13,6 @@ from sklearn.metrics import accuracy_score, matthews_corrcoef
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
-from rdagent.scenarios.kaggle.experiment.meta_tpl.fea_share_preprocess import preprocess
 
 # Set random seed for reproducibility
 SEED = 42
@@ -36,7 +35,7 @@ def compute_metrics_for_classification(y_true, y_pred):
 
 
 # Load and preprocess the data
-data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
+data_df = pd.read_csv("/kaggle/input/playground-series-s4e8/train.csv")
 data_df = data_df.drop(["id"], axis=1)
 
 X = data_df.drop(["class"], axis=1)
@@ -50,7 +49,7 @@ X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, rand
 X_train = preprocess(X_train)
 X_valid = preprocess(X_valid)
 
-submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/test.csv")
+submission_df = pd.read_csv("/kaggle/input/playground-series-s4e8/test.csv")
 passenger_ids = submission_df["id"]
 submission_df = submission_df.drop(["id"], axis=1)
 X_test = preprocess(submission_df)
@@ -105,7 +104,7 @@ print("Final on validation set: ", mcc)
 
 # Save the validation accuracy
 pd.Series(data=[mcc], index=["MCC"]).to_csv(
-    "/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/submission_score.csv"
+    "/kaggle/input/playground-series-s4e8/submission_score.csv"
 )
 
 # Make predictions on the test set and save them

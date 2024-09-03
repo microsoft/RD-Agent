@@ -349,7 +349,7 @@ class DMDockerEnv(DockerEnv):
 
 
 class KGDockerEnv(DockerEnv):
-    """Qlib Torch Docker"""
+    """Kaggle Competition Docker"""
 
     def __init__(self, competition: str, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
@@ -363,8 +363,57 @@ class KGDockerEnv(DockerEnv):
 
         # download data
         data_path = f"{self.conf.share_data_path}/{self.competition}"
+        print("hello")
         subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
         # unzip data
         with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
             zip_ref.extractall(data_path)
+    
+    def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
+        if env is None:
+            env = {}
+        client = docker.from_env()
+        if entry is None:
+            entry = self.conf.default_entry
+
+        volumns = {}
+        if local_path is not None:
+            local_path = os.path.abspath(local_path)
+            volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
+        if self.conf.extra_volumes is not None:
+            for lp, rp in self.conf.extra_volumes.items():
+                volumns[lp] = {"bind": rp, "mode": "rw"}
+
+        volumns[self.conf.share_data_path + "/" + self.competition] = {"bind": "/kaggle/input", "mode": "rw"}
+
+        log_output = ""
+
+        try:
+            container: docker.models.containers.Container = client.containers.run(
+                image=self.conf.image,
+                command=entry,
+                volumes=volumns,
+                environment=env,
+                detach=True,
+                working_dir=self.conf.mount_path,
+                # auto_remove=True, # remove too fast might cause the logs not to be get
+                network=self.conf.network,
+                shm_size=self.conf.shm_size,
+                **self._gpu_kwargs(client),
+            )
+            logs = container.logs(stream=True)
+            for log in logs:
+                decoded_log = log.strip().decode()
+                print(decoded_log)
+                log_output += decoded_log + "\n"
+            container.wait()
+            container.stop()
+            container.remove()
+            return log_output
+        except docker.errors.ContainerError as e:
+            raise RuntimeError(f"Error while running the container: {e}")
+        except docker.errors.ImageNotFound:
+            raise RuntimeError("Docker image not found.")
+        except docker.errors.APIError as e:
+            raise RuntimeError(f"Error while running the container: {e}")
