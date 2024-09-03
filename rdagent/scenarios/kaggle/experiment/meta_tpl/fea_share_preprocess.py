@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 
-def prepreprocess(self):
+def prepreprocess():
     """
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
@@ -26,7 +26,7 @@ def prepreprocess(self):
 
     return X_train, X_valid, y_train, y_valid
 
-def preprocess(self, X: pd.DataFrame):
+def preprocess(X: pd.DataFrame):
     """
     Preprocesses the given DataFrame by transforming categorical and numerical features.
     Ensures the processed data has consistent features across train, validation, and test sets.
@@ -69,20 +69,20 @@ def preprocess(self, X: pd.DataFrame):
 
     return X_transformed
 
-def preprocess_script(self):
+def preprocess_script():
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
-    X_train, X_valid, y_train, y_valid = self.prepreprocess()
+    X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Preprocess the train and validation data
-    X_train = self.preprocess(X_train)
-    X_valid = self.preprocess(X_valid)
+    X_train = preprocess(X_train)
+    X_valid = preprocess(X_valid)
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
     passenger_ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
-    X_test = self.preprocess(submission_df)
+    X_test = preprocess(submission_df)
 
     return X_train, X_valid, y_train, y_valid, X_test, passenger_ids

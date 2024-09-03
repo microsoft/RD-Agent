@@ -66,10 +66,7 @@ class KGFeatureScenario(Scenario):
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
-
-        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = self.preprocess_script()
-        self.competition_features = X_train.columns.tolist()
-        self.competition_features = X_train.head()
+        self.competition_features = self.source_data
 
     @property
     def background(self) -> str:
