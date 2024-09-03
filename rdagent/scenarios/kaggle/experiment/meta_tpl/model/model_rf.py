@@ -51,4 +51,4 @@ def predict(model, X):
     y_pred_prob = model.predict_proba(X_selected)[:, 1]
 
     # Apply threshold to get boolean predictions
-    return y_pred_prob > 0.5
+    return y_pred_prob

@@ -1,6 +1,7 @@
 """
 motivation  of the model
 """
+
 import pandas as pd
 import xgboost as xgb
 
@@ -33,4 +34,4 @@ def predict(model, X):
     """
     dtest = xgb.DMatrix(X)
     y_pred_prob = model.predict(dtest)
-    return y_pred_prob > 0.5  # Apply threshold to get boolean predictions
+    return y_pred_prob

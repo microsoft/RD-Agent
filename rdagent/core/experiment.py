@@ -121,6 +121,9 @@ class FBWorkspace(Workspace):
         self.prepare()
         for k, v in files.items():
             self.code_dict[k] = v
+            target_file_path = self.workspace_path / k
+            if not target_file_path.parent.exists():
+                target_file_path.parent.mkdir(parents=True, exist_ok=True)
             with Path.open(self.workspace_path / k, "w") as f:
                 f.write(v)
 
@@ -137,9 +140,10 @@ class FBWorkspace(Workspace):
         """
         Load the workspace from the folder
         """
-        for file_path in folder_path.iterdir():
-            if file_path.suffix in {".py", ".yaml"}:
-                self.inject_code(**{file_path.name: file_path.read_text()})
+        for file_path in folder_path.rglob("*"):
+            if file_path.suffix in (".py", ".yaml", ".md"):
+                relative_path = file_path.relative_to(folder_path)
+                self.inject_code(**{str(relative_path): file_path.read_text()})
 
     def copy(self) -> FBWorkspace:
         """

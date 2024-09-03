@@ -14,7 +14,7 @@ class KGFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
-        self.data_description: str = ""
+        self.data_description: list[str] = []
         self.model_description: str = ""
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
