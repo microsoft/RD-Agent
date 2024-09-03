@@ -50,13 +50,13 @@ kg_feature_interface: |-
   if __name__ == "__main__":
     # Load the CSV file
     csv_file_path = "valid.csv"
-    X_train = pd.read_csv(csv_file_path)
+    X_valid = pd.read_csv(csv_file_path)
     
     # Apply the feat_eng function
-    X_train = feat_eng(X_train)
+    X_valid = feat_eng(X_valid)
     
     # Save the resulting DataFrame to an output file
-    X_train.to_csv("output.csv", index=False)
+    X_valid.to_csv("output.csv", index=False)
   ```
 
   The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing only the engineered features. The original columns should be excluded from the returned DataFrame.

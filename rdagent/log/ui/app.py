@@ -17,6 +17,7 @@ from streamlit_theme import st_theme
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
 )
+from rdagent.components.coder.feature_coder.CoSTEER.evaluators import FactorSingleFeedback as FeatureSingleFeedback
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
@@ -222,7 +223,7 @@ def refresh(same_trace: bool = False):
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
-    if isinstance(wsf, FactorSingleFeedback):
+    if isinstance(wsf, FactorSingleFeedback) or isinstance(wsf, FeatureSingleFeedback):
         ffc, efc, cfc, vfc = st.tabs(
             ["**Final Feedback🏁**", "Execution Feedback🖥️", "Code Feedback📄", "Value Feedback🔢"]
         )

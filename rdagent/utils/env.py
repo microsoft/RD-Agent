@@ -363,7 +363,6 @@ class KGDockerEnv(DockerEnv):
 
         # download data
         data_path = f"{self.conf.share_data_path}/{self.competition}"
-        print("hello")
         subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
         # unzip data

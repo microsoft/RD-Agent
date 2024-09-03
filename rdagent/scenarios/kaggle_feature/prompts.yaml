@@ -47,7 +47,7 @@ factor_experiment_output_format: |-
   {
       "feature name 1": {
           "description": "description of feature 1",
-          "formulation": "formulation or code for generating feature 1",
+          "formulation": "A LaTeX formula representing the engineering of the features' formulation",
           "variables": {
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"
@@ -56,7 +56,7 @@ factor_experiment_output_format: |-
       },
       "feature name 2": {
           "description": "description of feature 2",
-          "formulation": "formulation or code for generating feature 2",
+          "formulation": "A LaTeX formula representing the engineering of the features' formulation",
           "variables": {
               "variable or function name 1": "description of variable or function 1",
               "variable or function name 2": "description of variable or function 2"

@@ -15,12 +15,17 @@ class KGFeatureRunner(CachedRunner[KGFeatureExperiment]):
         #         return exp
 
         #TODO 多个feat文件
+        is_implemented = 0
         for i, feat in enumerate(exp.sub_workspace_list):
             feat_code = feat.code_dict.get("factor.py")
-            if feat_code is None:
-                raise FactorEmptyError(f"feat_{i}.py is empty")
+            if feat_code:
+                is_implemented += 1
+            else:
+                continue
             renamed_feat_code = f"feat_{i}.py"
             exp.experiment_workspace.inject_code(**{renamed_feat_code: feat_code})
+        if is_implemented == 0:
+            raise FactorEmptyError("No factor is implemented")
 
         env_to_use = {"PYTHONPATH": "./"}
 
