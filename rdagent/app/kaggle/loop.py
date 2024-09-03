@@ -79,7 +79,7 @@ def main(path=None, step_n=None, competition=None):
 
     .. code-block:: python
 
-        dotenv run -- python rdagent/app/kaggle/model.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
 
     """
     if competition:

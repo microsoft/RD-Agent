@@ -12,7 +12,7 @@ from rdagent.core.exception import ModelEmptyError
 from rdagent.core.experiment import ASpecificExp
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.scenarios.kaggle.experiment.model_experiment import (
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
@@ -72,14 +72,18 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
         self.build_from_SOTA(exp)
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
+        implemented_factor_count = 0
         for sub_ws in exp.sub_workspace_list:
             if sub_ws.code_dict == {}:
                 continue
+            implemented_factor_count += 1
             target_feature_file_name = f"feature/feature_{current_feature_file_count:05d}.py"
             exp.experiment_workspace.inject_code(**{target_feature_file_name: sub_ws.code_dict["factor.py"]})
             feature_shape = sub_ws.execute()[1].shape[-1]
             exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
             current_feature_file_count += 1
+        if implemented_factor_count == 0:
+            raise ModelEmptyError("No factor is implemented")
 
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)

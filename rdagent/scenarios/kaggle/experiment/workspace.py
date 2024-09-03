@@ -7,7 +7,7 @@ import pandas as pd
 from rdagent.app.kaggle.conf import PROP_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import DockerEnv, KGDockerEnv
+from rdagent.utils.env import KGDockerEnv
 
 
 class KGFBWorkspace(FBWorkspace):

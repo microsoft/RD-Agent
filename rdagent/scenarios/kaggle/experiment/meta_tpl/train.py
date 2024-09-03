@@ -1,27 +1,19 @@
-import importlib
 import os
 import random
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fea_share_preprocess import preprocess
+import xgboost as xgb
+from fea_share_preprocess import preprocess_script
 from sklearn.metrics import accuracy_score, matthews_corrcoef
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+
 
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-# get data folder path from environment variable
-if os.environ.get("KG_DOCKER_SHARE_DATA_PATH") is not None:
-    DATA_FOLDER = Path(os.environ.get("KG_DOCKER_SHARE_DATA_PATH"))
-else:
-    DATA_FOLDER = Path.cwd() / "git_ignore_folder" / "data"
 
 
 # support various method for metrics calculation
@@ -36,35 +28,22 @@ def compute_metrics_for_classification(y_true, y_pred):
     mcc = matthews_corrcoef(y_true, y_pred)
     return mcc
 
-
-# Load and preprocess the data
-data_df = pd.read_csv(DATA_FOLDER / "playground-series-s4e8" / "train.csv")
-data_df = data_df.drop(["id"], axis=1)
-
-X = data_df.drop(["class"], axis=1)
-y = data_df[["class"]]
-
-label_encoder = LabelEncoder()
-y = label_encoder.fit_transform(y)  # 将类别标签转换为数值
-X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=SEED)
-
 # 1) Preprocess the data
-X_train = preprocess(X_train)
-X_valid = preprocess(X_valid)
-
-submission_df = pd.read_csv(DATA_FOLDER / "playground-series-s4e8" / "test.csv")
-passenger_ids = submission_df["id"]
-submission_df = submission_df.drop(["id"], axis=1)
-X_test = preprocess(submission_df)
+#TODO 如果已经做过数据预处理了，不需要再做了
+X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
-for f in sorted((DIRNAME / "feature").glob("*.py"), key=lambda x: x.name):
-    m = importlib.import_module(f"feature.{f.name.strip('.py')}")
-    X_train_l.append(m.feat_eng(X_train.copy()))
-    X_valid_l.append(m.feat_eng(X_valid.copy()))
-    X_test_l.append(m.feat_eng(X_test.copy()))
+for f in DIRNAME.glob("feat*.py"):
+    m = __import__(f.name.strip(".py"))
+    X_train = m.feat_eng(X_train)
+    X_valid = m.feat_eng(X_valid)
+    X_test = m.feat_eng(X_test)
+
+    X_train_l.append(X_train)
+    X_valid_l.append(X_valid)
+    X_test_l.append(X_test)
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
@@ -82,10 +61,9 @@ X_test = align_features(X_train, X_test)
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
-sys.path.insert(0, DIRNAME / "model")
-for f in sorted((DIRNAME / "model").glob("*.py"), key=lambda x: x.name):
+for f in DIRNAME.glob("model*.py"):
     # TODO put select() in model.py: fit(X_train, y_train, X_valid, y_valid)
-    m = importlib.import_module(f"model.{f.name.strip('.py')}")
+    m = __import__(f.name.strip(".py"))
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 
 # Evaluate the model on the validation set
@@ -103,7 +81,9 @@ mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
 print("Final on validation set: ", mcc)
 
 # Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
+pd.Series(data=[mcc], index=["MCC"]).to_csv(
+    "submission_score.csv"
+)
 
 # Make predictions on the test set and save them
 y_test_pred_bool_l = []

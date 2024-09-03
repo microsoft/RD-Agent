@@ -17,7 +17,7 @@ from rdagent.components.proposal.model_proposal import (
 )
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
-from rdagent.scenarios.kaggle.experiment.model_experiment import (
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )

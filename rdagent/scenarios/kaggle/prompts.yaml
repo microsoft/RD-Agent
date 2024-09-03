@@ -1,6 +1,7 @@
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
+  #TODO 这里只加model代码吗
   Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].code_dict.get("model.py")}}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
@@ -20,6 +21,28 @@ hypothesis_output_format: |-
     "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
     "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
+
+factor_hypothesis_specification: |-
+  1. **Type of Feature and Data Characteristics:**
+    - Define the type of feature introduced.
+    - Explain the data characteristics or patterns captured by this feature.
+    - Omit unnecessary or redundant details.
+  2. **Simple and Effective Features First:**
+    - Start with features that are simple and likely effective.
+    - Concisely explain why these features are expected to work.
+    - Avoid complex or combined features initially.
+  3. **Gradual Complexity Increase:**
+    - Introduce more complex features as more experimental results are gathered.
+    - Discuss potential advantages and complexities.
+    - Combine features only after simpler ones are tested and validated.
+  4. **New Directions and Optimizations:**
+    - If a new direction is needed, explain why based on data analysis, domain knowledge, or observed patterns.
+    - Suggest only one new direction at a time for clarity.
+    - If a previous hypothesis did not surpass the previous best, but seems optimizable, you may continue in the same direction.
+    - Highlight that features surpassing the previous best are included in the feature library to avoid re-implementation.
+  5. **1-3 Features per Generation:**
+    - Ensure each generation produces 1-3 features.
+    - Balance simplicity and complexity to build a robust feature library.
 
 feature_experiment_output_format: |-
   According to the hypothesis, please help user design one or more feature engineering tasks.
@@ -117,3 +140,64 @@ model_feedback_generation:
 
     Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
     Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 
+
+factor_feedback_generation:
+  system: |-
+    You are a professional data feature engineering assistant in data-driven R&D. 
+    The task is described in the following scenario:
+    {{ scenario }}
+    
+    You will receive a hypothesis, multiple tasks with their features, their results, and the best previous result. 
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous best results, and suggest improvements or new directions.
+    
+    Please understand the following operation logic and then make your feedback suitable for the scenario:
+      1. Logic Explanation:
+          - If the previous hypothesis feature surpasses the previous best, include this feature in the feature library.
+          - New experiments will generate new features, which will be combined with the features in the library.
+          - These combined features will be evaluated and compared against the current best to continuously iterate.
+      2. Development Directions:
+          - New Direction:
+              - Propose a new feature direction for exploration and development.
+          - Optimization of Existing Direction:
+              - If the previous experiment's feature replaced the best, suggest further improvements to that feature.
+              - Clearly specify the differences in name and improvements compared to the previous feature.
+          - Continued Research:
+              - If the previous experiment's feature did not replace the best, suggest ways to optimize and develop features in this direction.
+      3. Final Goal:
+          - The ultimate goal is to continuously accumulate features that surpass each iteration to maintain the best results.
+    
+    Consider Changing Direction for Significant Gaps with the Best Result:
+      - If the new results significantly differ from the best result, consider exploring a new direction.
+      - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
+    Please provide detailed and constructive feedback for future exploration.
+    Respond in JSON format. Example JSON structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
+      "Replace Best Result": "yes or no"
+    }
+  user: |-
+    Target hypothesis: 
+    {{ hypothesis_text }}
+    Tasks and Features:
+    {% for task in task_details %}
+      - {{ task.feature_name }}: {{ task.feature_description }}
+        - Feature Formulation: {{ task.feature_formulation }}
+        - Variables: {{ task.variables }}
+        - Feature Implementation: {{ task.feature_implementation }}
+        {% if task.feature_implementation == "False" %}
+        **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
+        {% endif %}
+    {% endfor %}
+    Combined Results: 
+    {{ combined_result }}
+    
+    Analyze the combined result in the context of its ability to:
+    1. Support or refute the hypothesis.
+    2. Show improvement or deterioration compared to the best result.
+    Consider Changing Direction for Significant Gaps with the Best Result:
+      - If the new results significantly differ from the best, consider exploring a new direction.
+      - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
+    Note: Only features with 'Feature Implementation' as True are implemented and tested in this experiment. If 'Feature Implementation' is False, the hypothesis for that feature cannot be verified in this run.

@@ -5,7 +5,7 @@ kg_description_template:
     For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
     Please answer in Json format with the following schema:
     {
-      "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering'",
+      "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
       "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description. Importantly, your feature name should be exactly the same as the feature name in the dataset!
@@ -70,8 +70,10 @@ kg_feature_interface: |-
     The function should take the following arguments:
       - X: The features as a pandas DataFrame.
     The function should return the new features as a pandas DataFrame.
-  Notice: As there might be non-numerical features in the dataset. Although user will handle it before your code, please still add some code to handle the non-numerical features in the feat_eng function to pass the unit test. But you should make sure your output features are numerical.
-  Please Don't include original features in the new features.
+  The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing only the engineered features. 
+  The original columns should be excluded from the returned DataFrame.
+
+  Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
   
   The feat_eng function can be one of the following:
   - Feature engineering: This function calculated one new feature based on the existing raw data.
@@ -88,6 +90,8 @@ kg_feature_interface: |-
       return X.mean(axis=1).to_frame("mean_feature") # Example feature engineering
       return X.fillna(0) # Example feature processing
   ```
+
+  Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
 
 kg_model_interface: |-
   Your code should contain several parts:
@@ -268,6 +272,17 @@ kg_model_interface: |-
 
       return y_pred
   ```
+
+kg_feature_simulator: |-
+  The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
+  The processed data will then be used for model training and prediction.
+  
+  User will use your data preprocessing method to do the following steps:
+  1. Execute your Python files to process the data. (what you need to do)
+  2. Concatenate the processed features with other features and the original data.
+  3. Remove any unnecessary features before training the model.
+  4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
+  5. Evaluate the performance of your preprocessing method and provide feedback.
 
 kg_model_output_format: |-
   For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
