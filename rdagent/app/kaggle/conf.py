@@ -28,8 +28,11 @@ class PropSetting(BasePropSetting):
     model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
     """Model Coder class"""
 
-    runner: str = "rdagent.scenarios.kaggle.developer.model_runner.KGModelRunner"
-    """Runner class"""
+    feature_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGFactorRunner"
+    """Feature Runner class"""
+    
+    model_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGModelRunner"
+    """Model Runner class"""
 
     summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGHypothesisExperiment2Feedback"
     """Summarizer class"""

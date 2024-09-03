@@ -1,25 +1,27 @@
+import importlib
 import os
 import random
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import xgboost as xgb
 from fea_share_preprocess import preprocess
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
-from rdagent.scenarios.kaggle.experiment.meta_tpl.fea_share_preprocess import preprocess
+from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
+
+# get data folder path from environment variable
+if os.environ.get("KG_DOCKER_SHARE_DATA_PATH") is not None:
+    DATA_FOLDER = Path(os.environ.get("KG_DOCKER_SHARE_DATA_PATH"))
+else:
+    DATA_FOLDER = Path.cwd() / "git_ignore_folder" / "data"
 
 
 # support various method for metrics calculation
@@ -36,7 +38,7 @@ def compute_metrics_for_classification(y_true, y_pred):
 
 
 # Load and preprocess the data
-data_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/train.csv")
+data_df = pd.read_csv(DATA_FOLDER / "playground-series-s4e8" / "train.csv")
 data_df = data_df.drop(["id"], axis=1)
 
 X = data_df.drop(["class"], axis=1)
@@ -50,7 +52,7 @@ X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, rand
 X_train = preprocess(X_train)
 X_valid = preprocess(X_valid)
 
-submission_df = pd.read_csv("/home/v-xisenwang/git_ignore_folder/data/playground-series-s4e8/test.csv")
+submission_df = pd.read_csv(DATA_FOLDER / "playground-series-s4e8" / "test.csv")
 passenger_ids = submission_df["id"]
 submission_df = submission_df.drop(["id"], axis=1)
 X_test = preprocess(submission_df)
@@ -58,15 +60,11 @@ X_test = preprocess(submission_df)
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
-for f in DIRNAME.glob("feat*.py"):
-    m = __import__(f.name.strip(".py"))
-    X_train = m.feat_eng(X_train)
-    X_valid = m.feat_eng(X_valid)
-    X_test = m.feat_eng(X_test)
-
-    X_train_l.append(X_train)
-    X_valid_l.append(X_valid)
-    X_test_l.append(X_test)
+for f in sorted((DIRNAME / "feature").glob("*.py"), key=lambda x: x.name):
+    m = importlib.import_module(f"feature.{f.name.strip('.py')}")
+    X_train_l.append(m.feat_eng(X_train.copy()))
+    X_valid_l.append(m.feat_eng(X_valid.copy()))
+    X_test_l.append(m.feat_eng(X_test.copy()))
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
@@ -84,9 +82,10 @@ X_test = align_features(X_train, X_test)
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
-for f in DIRNAME.glob("model*.py"):
+sys.path.insert(0, DIRNAME / "model")
+for f in sorted((DIRNAME / "model").glob("*.py"), key=lambda x: x.name):
     # TODO put select() in model.py: fit(X_train, y_train, X_valid, y_valid)
-    m = __import__(f.name.strip(".py"))
+    m = importlib.import_module(f"model.{f.name.strip('.py')}")
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 
 # Evaluate the model on the validation set
@@ -104,9 +103,7 @@ mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
 print("Final on validation set: ", mcc)
 
 # Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv(
-    "/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/submission_score.csv"
-)
+pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
 
 # Make predictions on the test set and save them
 y_test_pred_bool_l = []
@@ -122,4 +119,4 @@ y_test_pred_labels = label_encoder.inverse_transform(y_test_pred)  # 将整数�
 submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
 
 # submit predictions for the test set
-submission_result.to_csv("./submission.csv", index=False)
+submission_result.to_csv("submission.csv", index=False)

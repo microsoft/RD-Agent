@@ -118,9 +118,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[
-        Path
-    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -394,8 +394,8 @@ class KGDockerEnv(DockerEnv):
         super().prepare()
 
         # download data, if competition is not provided, the user is targeting a general docker environment in kaggle
-        if self.competition is not None:
-            data_path = f"{self.conf.share_data_path}/{self.competition}"
+        data_path = f"{self.conf.share_data_path}/{self.competition}"
+        if self.competition is not None and not Path(data_path).exists():
             subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
 
             # unzip data

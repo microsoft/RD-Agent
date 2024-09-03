@@ -40,8 +40,10 @@ class ModelRDLoop(RDLoop):
             self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
             logger.log_object(self.model_coder, tag="model coder")
 
-            self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
-            logger.log_object(self.runner, tag="runner")
+            self.feature_runner: Developer = import_class(PROP_SETTING.feature_runner)(scen)
+            logger.log_object(self.feature_runner, tag="feature runner")
+            self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
+            logger.log_object(self.model_runner, tag="model runner")
 
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
@@ -55,6 +57,15 @@ class ModelRDLoop(RDLoop):
             else:
                 exp = self.model_coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
+        return exp
+    
+    def running(self, prev_out: dict[str, Any]):
+        with logger.tag("ef"):  # evaluate and feedback
+            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+                exp = self.feature_runner.develop(prev_out["coding"])
+            else:
+                exp = self.model_runner.develop(prev_out["coding"])
+            logger.log_object(exp, tag="runner result")
         return exp
 
     skip_loop_error = (ModelEmptyError,)

@@ -53,6 +53,16 @@ class KGHypothesis(Hypothesis):
         )
         self.action = action
 
+    def __str__(self) -> str:
+        return f"""Chosen Action: {self.action}
+Hypothesis: {self.hypothesis}
+Reason: {self.reason}
+Concise Reason & Knowledge: {self.concise_reason}
+Concise Observation: {self.concise_observation}
+Concise Justification: {self.concise_justification}
+Concise Knowledge: {self.concise_knowledge}
+"""
+
 
 class KGHypothesisGen(ModelHypothesisGen):
     """
