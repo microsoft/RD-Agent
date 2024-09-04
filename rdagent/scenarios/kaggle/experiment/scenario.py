@@ -126,6 +126,8 @@ kaggle scen """
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
 {self._background}
+The source dataset you can use to generate the features:
+{self._source_data}
 The interface you should follow to write the runnable code:
 {self._interface}
 The output of your code should be in the format:
