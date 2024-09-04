@@ -1,4 +1,3 @@
-
 import importlib
 import os
 import unittest
@@ -21,7 +20,7 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "_template" in str(file):
                 continue
-            yield str(file)[str(file).index("rdagent"):-3].replace("/", ".")
+            yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
 
     def test_import_modules(self):
         # 测试所有模块的导入
@@ -33,6 +32,7 @@ class TestRDAgentImports(unittest.TestCase):
                     importlib.import_module(module_name)
                 except Exception as e:
                     self.fail(f"Failed to import {module_name}: {e}")
+
 
 if __name__ == "__main__":
     unittest.main()
