@@ -58,6 +58,7 @@ class KGScenario(Scenario):
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.competition_features = self.source_data
 
     @property
     def background(self) -> str:
@@ -90,10 +91,8 @@ class KGScenario(Scenario):
         X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
         data_folder.mkdir(exist_ok=True, parents=True)
-        X_train.to_csv(data_folder / "train.csv", index=False)
         X_valid.to_csv(data_folder / "valid.csv", index=False)
-        X_test.to_csv(data_folder / "test.csv", index=False)
-        return X_train.head()
+        return X_valid.head()
 
     @property
     def output_format(self) -> str:
