@@ -409,5 +409,7 @@ class KGDockerEnv(DockerEnv):
             entry=entry,
             local_path=local_path,
             env=env,
-            running_extra_volume={self.conf.local_data_path + "/" + self.competition: "/kaggle/input"},
+            running_extra_volume=(
+                {self.conf.local_data_path + "/" + self.competition: "/kaggle/input"} if self.competition else None
+            ),
         )

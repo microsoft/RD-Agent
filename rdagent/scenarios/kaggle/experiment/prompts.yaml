@@ -59,7 +59,7 @@ kg_background: |-
     - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance.
   - Model related:
     - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
-    - "Model tuning": The user will tune the hyperparameters of one model to improve the model performance.
+    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
 
