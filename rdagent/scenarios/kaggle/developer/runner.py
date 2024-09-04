@@ -43,7 +43,7 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
 class KGModelRunner(KGCachedRunner[KGModelExperiment]):
     def develop(self, exp: KGModelExperiment) -> KGModelExperiment:
         self.build_from_SOTA(exp)
-        if exp.sub_workspace_list[0].model_type == "XGBoost":
+        if exp.sub_workspace_list[0].target_task.model_type == "XGBoost":
             exp.experiment_workspace.inject_code(**{"model_xgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         elif exp.sub_workspace_list[0].model_type == "RandomForest":
             exp.experiment_workspace.inject_code(**{"model_rf.py": exp.sub_workspace_list[0].code_dict["model.py"]})
