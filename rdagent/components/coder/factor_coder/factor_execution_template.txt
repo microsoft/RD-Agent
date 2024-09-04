@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 from factor import feat_eng
 
-if os.path.exists("train.csv"):
-    train_df = pd.read_csv("train.csv")
-elif os.path.exists("train.pkl"):
-    train_df = pd.read_pickle("train.pkl")
+if os.path.exists("valid.csv"):
+    train_df = pd.read_csv("valid.csv")
+elif os.path.exists("valid.pkl"):
+    train_df = pd.read_pickle("valid.pkl")
 else:
     raise FileNotFoundError("No train data found.")
 
