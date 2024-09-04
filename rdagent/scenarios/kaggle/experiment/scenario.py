@@ -3,11 +3,12 @@ from pathlib import Path
 
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
+
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.meta_tpl.fea_share_preprocess import preprocess_script
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KGFactorExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -81,14 +82,17 @@ class KGScenario(Scenario):
 
     @property
     def source_data(self) -> str:
-        #TODO later we should improve this part
+        # TODO later we should improve this part
         data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder)
 
         if (data_folder / "valid.csv").exists():
             X_valid = pd.read_csv(data_folder / "valid.csv")
             return X_valid.head()
 
-        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
+        preprocess_experiment = KGFactorExperiment([])
+        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = (
+            preprocess_experiment.experiment_workspace.generate_preprocess_data()
+        )
 
         data_folder.mkdir(exist_ok=True, parents=True)
         X_valid.to_csv(data_folder / "valid.csv", index=False)
