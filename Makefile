@@ -146,6 +146,9 @@ test: test-run
 	$(PIPRUN) python -m coverage report --fail-under 80
 	$(PIPRUN) python -m coverage xml --fail-under 80
 
+pytest:
+	$(PIPRUN) python -m pytest test/utils/test_import.py --durations=0
+
 ########################################################################################
 # Package
 ########################################################################################
