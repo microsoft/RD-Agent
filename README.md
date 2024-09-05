@@ -107,6 +107,8 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
   ```sh
   rdagent general_model  <Your paper url> 
+  # e.g.  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
+  # You can get more details (more paper examples) by `rdagent general_model -h`
   ```
   **Example Paper URLs:**
   - [arxiv.org/pdf/2210.09789](https://arxiv.org/pdf/2210.09789)
