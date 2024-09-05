@@ -1,7 +1,8 @@
 import streamlit as st
 from streamlit_javascript import st_javascript
-
-st.set_page_config(layout="wide", page_title="Finance Data Building (from Reports) Demo", page_icon="💹")
+from PIL import Image
+icon = Image.open("./git_ignore_folder/rd_icon.png")
+st.set_page_config(layout="wide", page_title="Finance Data Building (from Reports) Demo", page_icon=icon)
 
 lang = st.query_params.get("lang")
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
