@@ -95,14 +95,17 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
   rdagent fin_model
   ```
 
-- Run the **Automated Medical Prediction Model Evolution**: medical self-loop model proposal and implementation application
+- Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
   ```sh
   rdagent med_model
   ```
 
 - Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
   ```sh
-  rdagent fin_factor_report
+  rdagent fin_factor_report --report_folder_path=<Your financial reports folder path>
+  # e.g. rdagent fin_factor_report --report_folder_path=git_ignore_folder/reports
+  # To get some example reports, you can download them using the following command:
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
   ```
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
