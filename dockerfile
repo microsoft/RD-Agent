@@ -2,7 +2,6 @@ FROM python:3.11
 
 WORKDIR /app
 
-# 复制当前目录内容到工作目录，忽略.git_ignore_folder
 COPY . /app
 
 # 安装依赖
