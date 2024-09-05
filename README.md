@@ -17,9 +17,7 @@
 | --            | ------                        |
 | First release | **RDAgent** is released on Github |
 
-<p align="center">
-  <img src="docs/_static/img/logo.png" />
-</p>
+![Our focused scenario](docs/_static/logo.png)
 
 
 # 🌟 Introduction
