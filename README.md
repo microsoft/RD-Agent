@@ -17,10 +17,14 @@
 | --            | ------                        |
 | First release | **RDAgent** is released on Github |
 
+<p align="center">
+  <img src="docs/_static/img/logo.png" />
+</p>
+
 
 # 🌟 Introduction
 
-![Our focused scenario](docs/_static/scen.jpg)
+![Our focused scenario](docs/_static/scen.png)
 
 RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
@@ -156,7 +160,7 @@ Please refer to [📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/
 
 # ⚙️ Framework
 
-![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+![image](docs/_static/framework.png)
 
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
