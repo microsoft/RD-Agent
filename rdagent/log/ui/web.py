@@ -586,7 +586,7 @@ class TraceWindow(StWindow):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
         image_c, scen_c = container.columns([2, 3], vertical_alignment="center")
-        image_c.image("scen.jpg")
+        image_c.image("scen.png")
         scen_c.container(border=True).markdown(QlibModelScenario().rich_style_description)
         top_container = container.container()
         col1, col2 = top_container.columns([2, 3])

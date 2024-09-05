@@ -158,7 +158,7 @@ Please refer to **[📚readthedocs_scen](https://rdagent.readthedocs.io/en/lates
 # ⚙️ Framework
 
 <div style="text-align: center;">
-    <img src="docs/_static/Framework-RDAgent.svg" alt="Framework-RDAgent" width="85%">
+    <img src="docs/_static/Framework-RDAgent.png" alt="Framework-RDAgent" width="85%">
 </div>
 
 
