@@ -7,7 +7,6 @@ from pathlib import Path
 class TestRDAgentImports(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # 设置项目根目录路径
         cls.rdagent_directory = Path(__file__).resolve().parent.parent.parent
         cls.modules = list(cls.import_all_modules_from_directory(cls.rdagent_directory))
 
@@ -23,7 +22,6 @@ class TestRDAgentImports(unittest.TestCase):
             yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
 
     def test_import_modules(self):
-        # 测试所有模块的导入
         print(self.modules)
         for module_name in self.modules:
             with self.subTest(module=module_name):
