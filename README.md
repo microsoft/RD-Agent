@@ -1,3 +1,5 @@
+![Our focused scenario](docs/_static/logo.png)
+
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates)
@@ -16,8 +18,6 @@
 | 🗞️ News        | 📝 Description                 |
 | --            | ------                        |
 | First release | **RDAgent** is released on Github |
-
-![Our focused scenario](docs/_static/logo.png)
 
 
 # 🌟 Introduction
