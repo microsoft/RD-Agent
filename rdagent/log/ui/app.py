@@ -34,8 +34,9 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
 )
-
-st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
+from PIL import Image
+icon = Image.open("./git_ignore_folder/rd_icon.png")
+st.set_page_config(layout="wide", page_title="RD-Agent", page_icon=icon, initial_sidebar_state="expanded")
 
 
 # 获取log_path参数
@@ -482,7 +483,7 @@ def research_window():
 def feedback_window():
     if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
         with st.container(border=True):
-            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
+            st.subheader("Feedback📝", divider="blue", anchor="_feedback")
 
             if state.lround > 0 and isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
                 with st.expander("**Config⚙️**", expanded=True):
@@ -510,7 +511,7 @@ def evolving_window():
         if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario))
         else "Development🛠️ (evolving coder)"
     )
-    st.subheader(title, divider="green", anchor="_development")
+    st.subheader(title, divider="violet", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
@@ -701,9 +702,9 @@ with st.container():
 with st.container():
     image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        st.image("./docs/_static/flow.png")
+        st.image("./git_ignore_folder/rdagent_frame2.svg", use_column_width=True)
     with scen_c:
-        st.header("Scenario Description📖", divider="violet", anchor="_scenario")
+        st.header("Scenario Description📖", divider="green", anchor="_scenario")
         if state.scenario is not None:
             theme = st_theme()
             if theme:
@@ -748,8 +749,6 @@ if state.scenario is not None:
         evolving_window()
 
 
-# with st.container(border=True):
-    # st.subheader("Disclaimer", divider="gray")
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 st.markdown("#### Disclaimer")
 st.markdown(
