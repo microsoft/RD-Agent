@@ -106,8 +106,12 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
   ```sh
-  rdagent general_model  <Your paper url>
+  rdagent general_model  <Your paper url> 
   ```
+  **Example Paper URLs:**
+  - [arxiv.org/pdf/2210.09789](https://arxiv.org/pdf/2210.09789)
+  - [arxiv.org/pdf/2305.10498](https://arxiv.org/pdf/2305.10498)
+  - [arxiv.org/pdf/2210.16518](https://arxiv.org/pdf/2210.16518)
 
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
@@ -122,10 +126,10 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios.
 
 ## 🎯 Goal: Agent for Data-driven R&D
 
-In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
+In this project, we are aiming to build an Agent to automate Data-Driven R\&D that can
 + 📄 Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
 + 🛠️ **Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
-   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
+   + Due to the limited ability of LLM in implementing at once, build an evolving process for the agent to improve performance by learning from feedback and knowledge.
 + 💡 Propose **new ideas** based on current knowledge and observations.
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
