@@ -3,7 +3,7 @@ from streamlit_javascript import st_javascript
 
 st.set_page_config(layout="wide", page_title="Finance Data Building (from Reports) Demo", page_icon="💹")
 
-
+lang = st.query_params.get("lang")
 header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with header_c1:
     st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
@@ -19,10 +19,6 @@ with header_c3:
 
 lc, rc = st.columns([2,7])
 with lc:
-    try:
-        web_language = str(st_javascript("window.navigator.language"))
-    except:
-        web_language = "en"
     st.markdown("➡️ [**Demo App**](..)")
     st.subheader("Demo videos🎥", divider='violet')
     st.markdown("""
@@ -37,10 +33,16 @@ with lc:
 - 🩺[**Medical Model Implementation**](dmm)
 
 """)
+    if not lang:
+        try:
+            lang = str(st_javascript("window.navigator.language"))
+        except:
+            lang = "en"
+
 with rc:
     col1, col2 = st.columns([5,1], vertical_alignment="center")
     with col2:
-        use_cn = st.radio(label="language", options=["**中文**", "**English**"], index=0 if "zh" in web_language else 1, label_visibility="collapsed", horizontal=True) == "**中文**"
+        use_cn = st.radio(label="language", options=["**中文**", "**English**"], index=0 if "zh" in lang else 1, label_visibility="collapsed", horizontal=True) == "**中文**"
     with col1:
         st.subheader("💹Finance Data Building (from Reports) Demo" + (" (中文)" if use_cn else " (English)"))
 
