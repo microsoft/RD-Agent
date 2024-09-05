@@ -110,10 +110,6 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
   # e.g.  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   # You can get more details (more paper examples) by `rdagent general_model -h`
   ```
-  **Example Paper URLs:**
-  - [arxiv.org/pdf/2210.09789](https://arxiv.org/pdf/2210.09789)
-  - [arxiv.org/pdf/2305.10498](https://arxiv.org/pdf/2305.10498)
-  - [arxiv.org/pdf/2210.16518](https://arxiv.org/pdf/2210.16518)
 
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
