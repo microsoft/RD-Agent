@@ -19,8 +19,9 @@
 
 
 # 🌟 Introduction
-
-![Our focused scenario](docs/_static/scen.jpg)
+<div style="text-align: center;">
+      <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
+</div>
 
 RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
@@ -35,17 +36,13 @@ R&D is a very general scenario. The advent of RDAgent can be your
 - ...
 
 You can click the 🎥 [link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
-<!-- 
-- TODO: Demo: it fails to display the video in the README.md.
-We have a quick 🎥 demo for one use case of RDAgent.
-[![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
- <p align="center">
-  <a href="https://rdagent.azurewebsites.net/"> <img src="docs/_static/img/logo/1.png" /> </a>
- </p>
- -->
  
- [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
- 
+<div style="text-align: center;">
+    <a href="https://rdagent.azurewebsites.net/" target="_blank">
+        <img src="docs/_static/demo.png" alt="Watch the demo" width="80%">
+    </a>
+</div>
+
 
 # ⚡ Quick start
 
@@ -71,14 +68,14 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```
 
 ### ⚙️ Configuration
-You have to config your GPT model in the `.env`
-```bash
-cat << EOF  > .env
-OPENAI_API_KEY=<your_api_key>
-# EMBEDDING_MODEL=text-embedding-3-small
-CHAT_MODEL=gpt-4-turbo
-EOF
-```
+- You have to config your GPT model in the `.env`
+  ```bash
+  cat << EOF  > .env
+  OPENAI_API_KEY=<your_api_key>
+  # EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_MODEL=gpt-4-turbo
+  EOF
+  ```
 
 ### 🚀 Run the Application
 
@@ -94,7 +91,7 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
   rdagent fin_model
   ```
 
-- Run the **Automated Medical Predtion Model Evolution**: medical self-loop model proposal and implementation application
+- Run the **Automated Medical Prediction Model Evolution**: medical self-loop model proposal and implementation application
   ```sh
   rdagent med_model
   ```
@@ -152,11 +149,13 @@ Here is a gallery of successful explorations. You can download the source code a
 rdagent ui --port 80 --log_dir gallary/
 ```
 
-Please refer to [📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html) for more details of the scenarios.
+Please refer to **[📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
 
 # ⚙️ Framework
 
-![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+<div style="text-align: center;">
+    <img src="docs/_static/Framework-RDAgent.svg" alt="Framework-RDAgent" width="85%">
+</div>
 
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
@@ -194,7 +193,7 @@ In a data mining expert's daily research and development process, they propose a
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-For more detail, please refer to our [Demos page](https://rdagent.azurewebsites.net).
+For more detail, please refer to our **[Demos page](https://rdagent.azurewebsites.net)**.
 
 ## 🛠️ Development
 
