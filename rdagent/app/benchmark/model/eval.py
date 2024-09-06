@@ -7,7 +7,6 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelScenario,
 )
 
-
 if __name__ == "__main__":
     DIRNAME = Path(__file__).absolute().resolve().parent
 

@@ -15,7 +15,6 @@ from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorTestCaseLoaderFromJsonFile,
 )
 
-
 if __name__ == "__main__":
     # 1.read the settings
     bs = BenchmarkSettings()
