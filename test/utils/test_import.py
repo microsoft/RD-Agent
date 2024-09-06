@@ -2,6 +2,7 @@ import importlib
 import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 class TestRDAgentImports(unittest.TestCase):
@@ -21,6 +22,7 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
 
+    @patch('sys.argv', ['__main__.py'])
     def test_import_modules(self):
         print(self.modules)
         for module_name in self.modules:
