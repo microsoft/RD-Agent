@@ -17,10 +17,12 @@ In this task, we aim at predicting the whether the patients will suffer from Acu
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/0fbd26bb297369a4ca52409ff65a3f7cb941c6af6429894367a6afcd.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 
 🌟 Introduction

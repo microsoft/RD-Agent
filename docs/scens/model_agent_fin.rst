@@ -22,10 +22,12 @@ And this is where the **Finance Model Agent** steps in.
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 
 🌟 Introduction

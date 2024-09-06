@@ -25,10 +25,12 @@ And this is where the **Finance Data Copilot** steps in.
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/42a3280d592fb9e3d227608170860c426fc2bf5c63eea5a66ed94ca7.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 
 🌟 Introduction

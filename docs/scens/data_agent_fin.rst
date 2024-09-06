@@ -20,14 +20,14 @@ And this is where the **Finance Model Agent** comes into play.
 🎥 `Demo <https://rdagent.azurewebsites.net/factor_loop>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. https://rdagent.azurewebsites.net:443/media/54d59c2bf85211de6a7cd2bd3c57d3b56c36cf9795a31111a9111ddb.mp4
-
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/54d59c2bf85211de6a7cd2bd3c57d3b56c36cf9795a31111a9111ddb.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 
 🌟 Introduction

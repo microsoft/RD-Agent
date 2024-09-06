@@ -20,10 +20,12 @@ And this is where the **General Model Copilot** steps in.
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/434d28b544e61441da19a4335e1ccab173f2b5a5bba487df765ce06c.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
