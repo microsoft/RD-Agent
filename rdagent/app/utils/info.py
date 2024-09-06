@@ -52,29 +52,29 @@ def rdagent_info():
     """collect rdagent related info"""
     current_version = importlib.metadata.version("rdagent")
     logger.info(f"RD-Agent version: {current_version}")
-    api_url = f"https://api.github.com/repos/microsoft/RD-Agent/contents/requirements?ref=main"
+    api_url = f"https://api.github.com/repos/microsoft/RD-Agent/contents/requirements.txt?ref=main"
     response = requests.get(api_url)
     if response.status_code == 200:
         files = response.json()
-        all_file_contents = []
-        for file in files:
-            if file["type"] == "file":
-                file_url = file["download_url"]
-                file_response = requests.get(file_url)
-
-                if file_response.status_code == 200:
-                    all_file_contents += file_response.text.split("\n")
-                else:
-                    logger.warning(f"Failed to retrieve {file['name']}, status code: {file_response.status_code}")
+        file_url = files["download_url"]
+        file_response = requests.get(file_url)
+        if file_response.status_code == 200:
+            all_file_contents = file_response.text.split("\n")
+        else:
+            logger.warning(f"Failed to retrieve {files['name']}, status code: {file_response.status_code}")
     else:
         logger.warning(f"Failed to retrieve files in folder, status code: {response.status_code}")
     package_list = [
-        item.strip()
+        item.split('#')[0].strip()
         for item in all_file_contents
-        if item.strip() and not item.startswith("#") and item != "mypy[reports]"
+        if item.strip() and not item.startswith('#')
     ]
     package_version_list = []
     for package in package_list:
+        if package == "typer[all]":
+            package = "typer"
+        if package == "azure.identity":
+            package = "azure-identity"
         version = importlib.metadata.version(package)
         package_version_list.append(f"{package}=={version}")
     logger.info(f"Package version: {package_version_list}")
@@ -85,6 +85,6 @@ def collect_info():
     """Prints information about the system and the installed packages."""
     sys_info()
     python_info()
-    docker_info()
+    # docker_info()
     rdagent_info()
     return None
