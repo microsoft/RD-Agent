@@ -50,9 +50,8 @@ def docker_info():
 
 def rdagent_info():
     """collect rdagent related info"""
-    root_dir = Path(__file__).resolve().parent.parent.parent.parent
-    current_version = get_version(root=root_dir)
-    logger.info(f"RD-Agent version: {current_version.split('+')[0]}")
+    current_version = importlib.metadata.version("rdagent")
+    logger.info(f"RD-Agent version: {current_version}")
     api_url = f"https://api.github.com/repos/microsoft/RD-Agent/contents/requirements?ref=main"
     response = requests.get(api_url)
     if response.status_code == 200:
@@ -76,7 +75,7 @@ def rdagent_info():
     ]
     package_version_list = []
     for package in package_list:
-        version = importlib.metadata.version("mypy")
+        version = importlib.metadata.version(package)
         package_version_list.append(f"{package}=={version}")
     logger.info(f"Package version: {package_version_list}")
     return None
