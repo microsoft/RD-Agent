@@ -39,12 +39,14 @@ def ui(port=80, log_dir="", debug=False):
 
 
 def app():
-    fire.Fire({
-        "fin_factor": fin_factor,
-        "fin_factor_report": fin_factor_report,
-        "fin_model": fin_model,
-        "med_model": med_model,
-        "general_model": general_model,
-        "ui": ui,
-        "collect_info": collect_info,
-    })
+    fire.Fire(
+        {      
+            "fin_factor": fin_factor,
+            "fin_factor_report": fin_factor_report,
+            "fin_model": fin_model,
+            "med_model": med_model,
+            "general_model": general_model,
+            "ui": ui,
+            "collect_info": collect_info,
+        }
+    )

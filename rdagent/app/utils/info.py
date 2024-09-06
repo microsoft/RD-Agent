@@ -33,9 +33,9 @@ def python_info():
 def docker_info():
     client = docker.from_env()
     containers = client.containers.list(all=True)
-    containers.sort(key=lambda c: c.attrs["Created"])
-    last_container = containers[-1]
     if containers:
+        containers.sort(key=lambda c: c.attrs["Created"])
+        last_container = containers[-1]
         logger.info(f"Container ID: {last_container.id}")
         logger.info(f"Container Name: {last_container.name}")
         logger.info(f"Container Status: {last_container.status}")
@@ -46,7 +46,6 @@ def docker_info():
         logger.info(f"Startup Commands: {' '.join(client.containers.get(last_container.id).attrs['Config']['Cmd'])}")
     else:
         logger.info(f"No run containers.")
-
 
 
 def rdagent_info():
