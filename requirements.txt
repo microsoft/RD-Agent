@@ -71,5 +71,7 @@ st-theme
 selenium
 kaggle
 
+seaborn
+
 # This is a temporary package installed to pass the test_import test
 xgboost

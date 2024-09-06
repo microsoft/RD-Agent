@@ -7,35 +7,37 @@ from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelScenario,
 )
 
-DIRNAME = Path(__file__).absolute().resolve().parent
 
-from rdagent.components.coder.model_coder.benchmark.eval import ModelImpValEval
-from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
+if __name__ == "__main__":
+    DIRNAME = Path(__file__).absolute().resolve().parent
 
-bench_folder = DIRNAME.parent.parent / "components" / "coder" / "model_coder" / "benchmark"
-mtl = ModelTaskLoaderJson(str(bench_folder / "model_dict.json"))
+    from rdagent.components.coder.model_coder.benchmark.eval import ModelImpValEval
+    from rdagent.components.coder.model_coder.one_shot import ModelCodeWriter
 
-task_l = mtl.load()
+    bench_folder = DIRNAME.parent.parent / "components" / "coder" / "model_coder" / "benchmark"
+    mtl = ModelTaskLoaderJson(str(bench_folder / "model_dict.json"))
 
-task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
+    task_l = mtl.load()
 
-model_experiment = QlibModelExperiment(sub_tasks=task_l)
-# mtg = ModelCodeWriter(scen=QlibModelScenario())
-mtg = ModelCoSTEER(scen=QlibModelScenario())
+    task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
 
-model_experiment = mtg.develop(model_experiment)
+    model_experiment = QlibModelExperiment(sub_tasks=task_l)
+    # mtg = ModelCodeWriter(scen=QlibModelScenario())
+    mtg = ModelCoSTEER(scen=QlibModelScenario())
 
-# TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
-# Currently, we just handcraft a workflow for fast evaluation.
+    model_experiment = mtg.develop(model_experiment)
 
-mil = ModelWsLoader(bench_folder / "gt_code")
+    # TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
+    # Currently, we just handcraft a workflow for fast evaluation.
 
-mie = ModelImpValEval()
-# Evaluation:
-eval_l = []
-for impl in model_experiment.sub_workspace_list:
-    print(impl.target_task)
-    gt_impl = mil.load(impl.target_task)
-    eval_l.append(mie.evaluate(gt_impl, impl))
+    mil = ModelWsLoader(bench_folder / "gt_code")
 
-print(eval_l)
+    mie = ModelImpValEval()
+    # Evaluation:
+    eval_l = []
+    for impl in model_experiment.sub_workspace_list:
+        print(impl.target_task)
+        gt_impl = mil.load(impl.target_task)
+        eval_l.append(mie.evaluate(gt_impl, impl))
+
+    print(eval_l)
