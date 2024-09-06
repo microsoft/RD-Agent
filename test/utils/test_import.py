@@ -2,8 +2,9 @@ import importlib
 import os
 import unittest
 from pathlib import Path
+import pytest
 
-
+@pytest.mark.offline
 class TestRDAgentImports(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
