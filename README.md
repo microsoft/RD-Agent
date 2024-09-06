@@ -25,7 +25,7 @@
 
 
 # 🌟 Introduction
-<div style="text-align: center;">
+<div style="text-align: right;">
       <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
 </div>
 
