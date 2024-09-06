@@ -67,12 +67,30 @@ def python_info():
 def docker_info():
     client = docker.from_env()
     images = client.images.list()
-    logger.info(f"Image ID: {images[0].id}")
-    logger.info(f"Tags: {images[0].tags}")
-    logger.info(f"Created: {images[0].attrs['Created']}")
-    logger.info(f"Size: {images[0].attrs['Size']} bytes")
-    logger.info(f"Architecture: {images[0].attrs['Architecture']}")
-    logger.info(f"OS: {images[0].attrs['Os']}")
+    last_image = images[0]
+    if images:
+        logger.info(f"Image ID of the last run is: {last_image.id}")
+        logger.info(f"Tags of the last run is: {last_image.tags}")
+        logger.info(f"Created of the last run is: {last_image.attrs['Created']}")
+        logger.info(f"Size of the last run is: {last_image.attrs['Size']} bytes")
+        logger.info(f"Architecture of the last run is: {last_image.attrs['Architecture']}")
+        logger.info(f"OS of the last run is: {last_image.attrs['Os']}")
+    else:
+        logger.info(f"No images.")
+    containers = client.containers.list(all=True)
+    last_container = containers[0]
+    if containers:
+        logger.info(f"Container ID: {last_container.id}")
+        logger.info(f"Container Name: {last_container.name}")
+        logger.info(f"Container Status: {last_container.status}")
+        logger.info(f"Image ID used by the container: {last_container.image.id}")
+        logger.info(f"Image tag used by the container: {last_container.image.tags}")
+        logger.info(f"Container port mapping: {last_container.ports}")
+        logger.info(f"Container Label: {last_container.labels}")
+        logger.info(f"Startup Commands: {" ".join(client.containers.get(last_container.id).attrs['Config']['Cmd'])}")
+    else:
+        logger.info(f"No run containers.")
+
 
 
 def rdagent_info():
