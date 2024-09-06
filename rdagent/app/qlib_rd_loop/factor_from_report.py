@@ -110,7 +110,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 open(FACTOR_FROM_REPORT_PROP_SETTING.report_result_json_file_path, "r")
             )
         else:
-            self.judge_pdf_data_items = Path(report_folder).rglob("*.pdf")
+            self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
         self.pdf_file_index = 0
         self.valid_pdf_file_count = 0
@@ -146,23 +146,21 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return self.current_loop_exp
 
 
-def main(report_folder_path=None, path=None, step_n=None):
+def main(report_folder=None, path=None, step_n=None):
     """
     Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
     Args:
-        report_folder_path (str, optional): The folder of the path contains the report PDF files. Reports will be loaded from this folder.
+        report_folder (str, optional): The folder contains the report PDF files. Reports will be loaded from this folder.
         path (str, optional): The path for loading a session. If provided, the session will be loaded.
         step_n (int, optional): Step number to continue running a session.
     """
-    if path is None and report_folder_path is None:
+    if path is None and report_folder is None:
         model_loop = FactorReportLoop()
     elif path is not None:
         model_loop = FactorReportLoop.load(path)
-        if report_folder_path is not None:
-            report_folder_path.judge_pdf_data_items = list(Path(report_folder_path).rglob("*.pdf"))
     else:
-        model_loop = FactorReportLoop(report_folder_path=report_folder_path)
+        model_loop = FactorReportLoop(report_folder=report_folder)
 
     model_loop.run(step_n=step_n)
 
