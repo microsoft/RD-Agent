@@ -71,8 +71,6 @@ def rdagent_info():
     for package in package_list:
         if package == "typer[all]":
             package = "typer"
-        if package == "azure.identity":
-            package = "azure-identity"
         version = importlib.metadata.version(package)
         package_version_list.append(f"{package}=={version}")
     logger.info(f"Package version: {package_version_list}")
