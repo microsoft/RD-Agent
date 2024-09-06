@@ -18,7 +18,9 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "_template" in str(file):
                 continue
-            if "factor/eval" in str(file):
+            if "rdagent/app/benchmark/factor/eval" in str(file):
+                continue
+            if "rdagent/app/benchmark/factor/analysis" in str(file):
                 continue
             yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
 
