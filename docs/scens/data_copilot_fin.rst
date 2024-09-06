@@ -31,7 +31,6 @@ And this is where the **Finance Data Copilot** steps in.
     </video>
 
 
-
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
 In this scenario, RDAgent demonstrates the process of extracting factors from financial research reports, implementing these factors, and analyzing their performance through Qlib backtesting. 
@@ -88,41 +87,59 @@ Please refer to the installation part in :doc:`../installation_and_configuration
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
-    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
     
-      .. code-block:: sh
-      
-          conda create -n rdagent python=3.10
+  - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+    
+    .. code-block:: sh
+    
+        conda create -n rdagent python=3.10
 
-    - Activate the environment:
+  - Activate the environment:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          conda activate rdagent
+        conda activate rdagent
 
 - 📦 Install the RDAgent
-    - You can directly install the RDAgent package from PyPI:
+  
+  - You can install the RDAgent package from PyPI:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          pip install rdagent
+        pip install rdagent
 
 - 🚀 Run the Application
-    - Store the factors you want to extract from the financial reports in your desired folder. Then, save the paths of the reports in the `report_result_json_file_path`. The format should be as follows:
-
-      .. code-block:: json
-
-          [
-              "git_ignore_folder/report/fin_report1.pdf",
-              "git_ignore_folder/report/fin_report2.pdf",
-              "git_ignore_folder/report/fin_report3.pdf"
-          ]
-
-    - Run the application using the following command:
     
-      .. code-block:: sh
+  - Download the financial reports you wish to extract factors from and store them in your preferred folder.
 
-          rdagent fin_factor_report
+  - Specifically, you can follow this example, or use your own method:
+
+    .. code-block:: sh
+
+        wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
+        unzip all_reports.zip -d git_ignore_folder/reports
+
+  - Run the application with the following command:
+
+    .. code-block:: sh
+
+        rdagent fin_factor_report --report_folder=git_ignore_folder/reports
+
+  - Alternatively, you can store the paths of the reports in `report_result_json_file_path`. The format should be:
+
+    .. code-block:: json
+
+        [
+            "git_ignore_folder/report/fin_report1.pdf",
+            "git_ignore_folder/report/fin_report2.pdf",
+            "git_ignore_folder/report/fin_report3.pdf"
+        ]
+
+  - Then, run the application using the following command:
+
+    .. code-block:: sh
+
+        rdagent fin_factor_report
 
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~

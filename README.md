@@ -1,7 +1,7 @@
 <h1 align="center">
-  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:80%; ">
+  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:95%; ">
 
-  <a href="https://rdagent.readthedocs.io/en/latest/index.html">Documentation</a> | <a href="https://rdagent.azurewebsites.net/">Demo</a>
+  <a href="https://rdagent.azurewebsites.net/factor_loop">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/">🎥 Demo Video</a>  | <a href="ehttps://rdagent.readthedocs.io/en/latest/index.html">📖 Documentation</a>
 </h1>
 
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
@@ -36,13 +36,15 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- 🏭 Automatic Quant Factory [(🎥demo)](https://rdagent.azurewebsites.net/factor_loop)
-- 🤖 Data Mining Agent: iteratively proposing data [(🎥demo)](https://rdagent.azurewebsites.net/dmm) & models [(🎥demo)](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
-- 🦾 Research Copilot: Auto read research papers [(🎥demo)](https://rdagent.azurewebsites.net/report_model) / financial reports [(🎥demo)](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
+- 💰 **Automatic Quant Factory** [(🎥Demo Video)](https://rdagent.azurewebsites.net/factor_loop)
+- 🤖 **Data Mining Agent:** Iteratively proposing data [(🎥Demo Video)](https://rdagent.azurewebsites.net/dmm) & models [(🎥Demo Video)](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
+- 🦾 **Research Copilot:** Auto read research papers [(🎥Demo Video)](https://rdagent.azurewebsites.net/report_model) / financial reports [(🎥Demo Video)](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
 - ...
 
-You can click the 🎥 [link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
- 
+You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
+
+Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/factor_loop)**.
+
 <div align="center">
     <a href="https://rdagent.azurewebsites.net/" target="_blank">
         <img src="docs/_static/demo.png" alt="Watch the demo" width="80%">
@@ -104,21 +106,22 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
 
 - Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
   ```sh
-  # First, you need to download some financial reports. Below is an example for reference:
+  # 1. Generally, you can run this scenario using the following command:
+  rdagent fin_factor_report --report_folder=<Your financial reports folder path>
+
+  # 2. Specifically, you need to prepare some financial reports first. You can follow this concrete example:
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
-
-  # After downloading, unzip the reports and use the following command to process them:
-  rdagent fin_factor_report --report_folder_path=<Your financial reports folder path>
-
-  # For example:
-  rdagent fin_factor_report --report_folder_path=git_ignore_folder/reports
+  unzip all_reports.zip -d git_ignore_folder/reports
+  rdagent fin_factor_report --report_folder=git_ignore_folder/reports
   ```
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
   ```sh
-  rdagent general_model  <Your paper url>
-  # e.g.  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
-  # You can get more details (more paper examples) by `rdagent general_model -h`
+  # 1. Generally, you can run your own papers/reports with the following command:
+  rdagent general_model <Your paper URL>
+
+  # 2. Specifically, you can do it like this. For more details and additional paper examples, use `rdagent general_model -h`:
+  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   ```
 
 ### 🖥️ Monitor the Application Results
@@ -152,9 +155,9 @@ The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop)  <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)  |
-| 🩺 Medical      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
-| 🏭 General      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
+| **💹 Finance**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop)  <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)  |
+| **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
+| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
@@ -164,7 +167,7 @@ Here is a gallery of successful explorations. You can download the source code a
 rdagent ui --port 80 --log_dir gallary/
 ```
 
-Please refer to **[📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
+Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
 
 # ⚙️ Framework
 
@@ -178,13 +181,13 @@ Automating the R&D process in data science is a highly valuable yet underexplore
 The research questions within this framework can be divided into three main categories:
 | Research Area | Paper/Work List |
 |--------------------|-----------------|
-| Benchmark the R&D abilities | [Benchmark](#benchmark) |
-| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
-| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
+| **Benchmark the R&D abilities** | [Benchmark](#benchmark) |
+| **Idea proposal:** Explore new ideas or refine existing ones | [Research](#research) |
+| **Ability to realize ideas:** Implement and execute ideas | [Development](#development) |
 
 We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
-More documents can be found in the [📚readthedocs](https://rdagent.readthedocs.io/).
+More documents can be found in the **[📖 readthedocs](https://rdagent.readthedocs.io/)**.
 
 # 📃 Paper/Work list
 
@@ -208,7 +211,7 @@ In a data mining expert's daily research and development process, they propose a
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-For more detail, please refer to our **[Demos page](https://rdagent.azurewebsites.net)**.
+For more detail, please refer to our **[Live Demo page](https://rdagent.azurewebsites.net)**.
 
 ## 🛠️ Development
 

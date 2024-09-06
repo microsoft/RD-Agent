@@ -60,35 +60,38 @@ Please refer to the installation part in :doc:`../installation_and_configuration
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
-    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+  
+  - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+
+    .. code-block:: sh
     
-      .. code-block:: sh
-      
-          conda create -n rdagent python=3.10
+        conda create -n rdagent python=3.10
 
-    - Activate the environment:
+  - Activate the environment:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          conda activate rdagent
+        conda activate rdagent
 
 - 📦 Install the RDAgent
-    - You can directly install the RDAgent package from PyPI:
+    
+  - You can install the RDAgent package from PyPI:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          pip install rdagent
+        pip install rdagent
 
 
 - 🚀 Run the Application
-    - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.
+    
+  - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.
       
-      .. code-block:: sh
+    .. code-block:: sh
 
-          rdagent/scenarios/general_model
+        rdagent/scenarios/general_model
     
-    - Run the following command in your terminal within the same virtual environment:
-    
-      .. code-block:: sh
+  - Run the following command in your terminal within the same virtual environment:
+  
+    .. code-block:: sh
 
-          rdagent general_model --report_file_path=<path_to_pdf_file>
+        rdagent general_model --report_file_path=<path_to_pdf_file>
