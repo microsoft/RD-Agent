@@ -2,7 +2,9 @@ import importlib
 import os
 import unittest
 from pathlib import Path
+
 import pytest
+
 
 @pytest.mark.offline
 class TestRDAgentImports(unittest.TestCase):
@@ -19,7 +21,11 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "_template" in fstr:
                 continue
-            if fstr.endswith("rdagent/log/ui/app.py") or fstr.endswith("rdagent/app/cli.py") or fstr.endswith("rdagent/app/CI/run.py"):
+            if (
+                fstr.endswith("rdagent/log/ui/app.py")
+                or fstr.endswith("rdagent/app/cli.py")
+                or fstr.endswith("rdagent/app/CI/run.py")
+            ):
                 # the entrance points
                 continue
 
