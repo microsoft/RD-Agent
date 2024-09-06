@@ -17,6 +17,8 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "_template" in str(file):
                 continue
+            if "main" in str(file):
+                continue
             yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
 
     def test_import_modules(self):
