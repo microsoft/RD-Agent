@@ -69,7 +69,11 @@ def rdagent_info():
                     logger.warning(f"Failed to retrieve {file['name']}, status code: {file_response.status_code}")
     else:
         logger.warning(f"Failed to retrieve files in folder, status code: {response.status_code}")
-    package_list = [item.strip() for item in all_file_contents if item.strip() and not item.startswith("#") and item != "mypy[reports]"]
+    package_list = [
+        item.strip()
+        for item in all_file_contents
+        if item.strip() and not item.startswith("#") and item != "mypy[reports]"
+    ]
     package_version_list = []
     for package in package_list:
         version = importlib.metadata.version("mypy")

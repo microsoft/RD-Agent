@@ -72,6 +72,7 @@ selenium
 kaggle
 
 seaborn
+setuptools-scm
 
 # This is a temporary package installed to pass the test_import test
 xgboost
