@@ -372,6 +372,8 @@ def summary_window():
                         metrics_window(df, 1, 4, height=300, colors=["red", "blue", "orange", "green"])
 
     elif isinstance(state.scenario, GeneralModelScenario):
+        st.write("")
+        st.write("")
         with st.container(border=True):
             st.subheader("Summary📊", divider="rainbow", anchor="_summary")
             if len(state.msgs[state.lround]["d.evolving code"]) > 0:
@@ -582,8 +584,9 @@ if isinstance(state.scenario, GeneralModelScenario):
 """
 # Config Sidebar
 with st.sidebar:
-    st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
-    # st.markdown("")
+    
+    st.image("./git_ignore_folder/rdagent.png")
+    st.markdown("[:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
     st.subheader(":blue[Table of Content]", divider='blue')
     st.markdown(toc)
 
