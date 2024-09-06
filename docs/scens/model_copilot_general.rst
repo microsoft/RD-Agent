@@ -20,10 +20,12 @@ And this is where the **General Model Copilot** steps in.
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/434d28b544e61441da19a4335e1ccab173f2b5a5bba487df765ce06c.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
@@ -60,35 +62,38 @@ Please refer to the installation part in :doc:`../installation_and_configuration
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
-    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+  
+  - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+
+    .. code-block:: sh
     
-      .. code-block:: sh
-      
-          conda create -n rdagent python=3.10
+        conda create -n rdagent python=3.10
 
-    - Activate the environment:
+  - Activate the environment:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          conda activate rdagent
+        conda activate rdagent
 
 - 📦 Install the RDAgent
-    - You can directly install the RDAgent package from PyPI:
+    
+  - You can install the RDAgent package from PyPI:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          pip install rdagent
+        pip install rdagent
 
 
 - 🚀 Run the Application
-    - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.
+    
+  - Prepare relevant files (in pdf format) by uploading papers to the directory below and copy the path as report_file_path.
       
-      .. code-block:: sh
+    .. code-block:: sh
 
-          rdagent/scenarios/general_model
+        rdagent/scenarios/general_model
     
-    - Run the following command in your terminal within the same virtual environment:
-    
-      .. code-block:: sh
+  - Run the following command in your terminal within the same virtual environment:
+  
+    .. code-block:: sh
 
-          rdagent general_model --report_file_path=<path_to_pdf_file>
+        rdagent general_model --report_file_path=<path_to_pdf_file>
