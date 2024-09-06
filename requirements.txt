@@ -70,3 +70,6 @@ st-theme
 # kaggle crawler
 selenium
 kaggle
+
+# This is a temporary package installed to pass the test_import test
+xgboost

@@ -13,8 +13,6 @@ class TestRDAgentImports(unittest.TestCase):
     @staticmethod
     def import_all_modules_from_directory(directory):
         for file in directory.joinpath("rdagent").rglob("*.py"):
-            if "__init__" in str(file):
-                continue
             if "meta_tpl" in str(file):
                 continue
             if "_template" in str(file):
