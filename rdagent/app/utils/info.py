@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import docker
 import pkg_resources
+import requests
 from setuptools_scm import get_version
 from rdagent.log import rdagent_logger as logger
 
@@ -29,17 +30,6 @@ def python_info():
 
 def docker_info():
     client = docker.from_env()
-    images = client.images.list()
-    last_image = images[0]
-    if images:
-        logger.info(f"Image ID of the last run is: {last_image.id}")
-        logger.info(f"Tags of the last run is: {last_image.tags}")
-        logger.info(f"Created of the last run is: {last_image.attrs['Created']}")
-        logger.info(f"Size of the last run is: {last_image.attrs['Size']} bytes")
-        logger.info(f"Architecture of the last run is: {last_image.attrs['Architecture']}")
-        logger.info(f"OS of the last run is: {last_image.attrs['Os']}")
-    else:
-        logger.info(f"No images.")
     containers = client.containers.list(all=True)
     containers.sort(key=lambda c: c.attrs["Created"])
     last_container = containers[-1]
@@ -62,37 +52,28 @@ def rdagent_info():
     root_dir = Path(__file__).resolve().parent.parent.parent.parent
     current_version = get_version(root=root_dir)
     logger.info(f"RD-Agent version: {current_version.split('+')[0]}")
-    package_list = [
-        "autodoc-pydantic",
-        "coverage",
-        "furo",
-        "git-changelog",
-        "mypy[reports]",
-        "myst-parser",
-        "pytest",
-        "Sphinx",
-        "sphinx-autobuild",
-        "sphinx-click",
-        "sphinx-togglebutton",
-        "sphinx_rtd_theme",
-        "black",
-        "isort",
-        "mypy",
-        "ruff",
-        "toml-sort",
-        "types-PyYAML",
-        "types-psutil",
-        "types-tqdm",
-        "build",
-        "setuptools-scm",
-        "twine",
-        "wheel",
-        "coverage",
-        "pytest",
-    ]
+    api_url = f"https://api.github.com/repos/microsoft/RD-Agent/contents/requirements?ref=main"
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        files = response.json()
+        all_file_contents = []
+        for file in files:
+            if file["type"] == "file":
+                file_url = file["download_url"]
+                file_response = requests.get(file_url)
+
+                if file_response.status_code == 200:
+                    all_file_contents += file_response.text.split("\n")
+                else:
+                    logger.warning(f"Failed to retrieve {file['name']}, status code: {file_response.status_code}")
+    else:
+        logger.warning(f"Failed to retrieve files in folder, status code: {response.status_code}")
+    package_list = [item.strip() for item in all_file_contents if item.strip() and not item.startswith("#")]
+    package_version_list = []
     for package in package_list:
         version = pkg_resources.get_distribution(package).version
-        logger.info(f"{package} version: {version}")
+        package_version_list.append(f"{package}=={version}")
+    logger.info(f"Package version: {package_version_list}")
     return None
 
 

@@ -30,10 +30,21 @@ Steps to reproduce the behavior:
 
 **Note**: Users can run `rdagent collect_info` to get system information and paste it directly here.
 
- - RD-Agent version:
+ - Name of current operating system:
+ - Processor architecture:
+ - System, version, and hardware information:
+ - Version number of the system:
  - Python version:
- - OS: Linux
- - Commit number (optional, please provide it if you are using the dev version):
+ - Container ID:
+ - Container Name:
+ - Container Status:
+ - Image ID used by the container:
+ - Image tag used by the container:
+ - Container port mapping:
+ - Container Label:
+ - Startup Commands:
+ - RD-Agent version:
+ - Package version:
 
 ## Additional Notes
 
