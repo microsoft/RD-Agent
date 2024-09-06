@@ -43,7 +43,7 @@ R&D is a very general scenario. The advent of RDAgent can be your
 
 You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
 
-Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/factor_loop)**.
+Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**.
 
 <div align="center">
     <a href="https://rdagent.azurewebsites.net/" target="_blank">
