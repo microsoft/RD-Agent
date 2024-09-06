@@ -40,7 +40,7 @@ def ui(port=80, log_dir="", debug=False):
 
 def app():
     fire.Fire(
-        {      
+        {
             "fin_factor": fin_factor,
             "fin_factor_report": fin_factor_report,
             "fin_model": fin_model,
