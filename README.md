@@ -87,7 +87,7 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
 
 ### 🚀 Run the Application
 
-The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the following commands(each item represents one demo, you can select the one you prefer):
+The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
 - Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  Qlib self-loop factor proposal and implementation application
   ```sh
@@ -211,7 +211,7 @@ In a data mining expert's daily research and development process, they propose a
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-For more detail, please refer to our **[Live Demo page](https://rdagent.azurewebsites.net)**.
+For more detail, please refer to our **[🖥️ Live Demo](https://rdagent.azurewebsites.net)** page.
 
 ## 🛠️ Development
 
