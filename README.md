@@ -43,7 +43,7 @@ R&D is a very general scenario. The advent of RDAgent can be your
 
 You can click the 🎥 [link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
  
-<div style="text-align: center;">
+<div align="center">
     <a href="https://rdagent.azurewebsites.net/" target="_blank">
         <img src="docs/_static/demo.png" alt="Watch the demo" width="80%">
     </a>
@@ -168,7 +168,7 @@ Please refer to **[📚readthedocs_scen](https://rdagent.readthedocs.io/en/lates
 
 # ⚙️ Framework
 
-<div style="text-align: center;">
+<div align="center">
     <img src="docs/_static/Framework-RDAgent.png" alt="Framework-RDAgent" width="85%">
 </div>
 
