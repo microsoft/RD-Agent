@@ -61,7 +61,9 @@ try:
 except ImportError:
     html_theme = "default"
 
+html_logo = "_static/logo.png"
 html_static_path = ["_static"]
+html_favicon = "_static/favicon.ico"
 
 html_theme_options = {
     "source_repository": "https://github.com/microsoft/RD-Agent",
