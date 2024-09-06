@@ -192,7 +192,7 @@ More documents can be found in the **[📖 readthedocs](https://rdagent.readthed
 # 📃 Paper/Work list
 
 ## 📊 Benchmark
-- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
 ```BibTeX
 @misc{chen2024datacentric,
     title={Towards Data-Centric Automatic R&D},
@@ -211,7 +211,7 @@ In a data mining expert's daily research and development process, they propose a
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-For more detail, please refer to our **[🖥️ Live Demo](https://rdagent.azurewebsites.net)** page.
+For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.azurewebsites.net)**.
 
 ## 🛠️ Development
 
