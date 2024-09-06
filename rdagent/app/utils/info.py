@@ -85,6 +85,6 @@ def collect_info():
     """Prints information about the system and the installed packages."""
     sys_info()
     python_info()
-    # docker_info()
+    docker_info()
     rdagent_info()
     return None
