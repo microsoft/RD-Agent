@@ -1,9 +1,9 @@
+import importlib.metadata
 import platform
 import sys
 from pathlib import Path
 
 import docker
-import importlib.metadata
 import requests
 from setuptools_scm import get_version
 
