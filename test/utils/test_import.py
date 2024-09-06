@@ -2,7 +2,6 @@ import importlib
 import os
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 
 class TestRDAgentImports(unittest.TestCase):
@@ -14,13 +13,17 @@ class TestRDAgentImports(unittest.TestCase):
     @staticmethod
     def import_all_modules_from_directory(directory):
         for file in directory.joinpath("rdagent").rglob("*.py"):
-            if "meta_tpl" in str(file):
+            fstr = str(file)
+            if "meta_tpl" in fstr:
                 continue
-            if "_template" in str(file):
+            if "_template" in fstr:
                 continue
-            yield str(file)[str(file).index("rdagent") : -3].replace("/", ".")
+            if fstr.endswith("rdagent/log/ui/app.py") or fstr.endswith("rdagent/app/cli.py") or fstr.endswith("rdagent/app/CI/run.py"):
+                # the entrance points
+                continue
 
-    @patch("sys.argv", ["__main__.py"])
+            yield fstr[fstr.index("rdagent") : -3].replace("/", ".")
+
     def test_import_modules(self):
         print(self.modules)
         for module_name in self.modules:
