@@ -1,6 +1,8 @@
-<div style="text-align: center;">
-      <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:80%; ">
-</div>
+<h1 align="center">
+  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:80%; ">
+
+  <a href="https://rdagent.readthedocs.io/en/latest/index.html">Documentation</a> | <a href="https://rdagent.azurewebsites.net/">Demo</a>
+</h1>
 
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
@@ -102,15 +104,21 @@ The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the followi
 
 - Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
   ```sh
-  rdagent fin_factor_report --report_folder_path=<Your financial reports folder path>
-  # e.g. rdagent fin_factor_report --report_folder_path=git_ignore_folder/reports
-  # To get some example reports, you can download them using the following command:
+  # First, you need to download some financial reports. Below is an example for reference:
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
+
+  # After downloading, unzip the reports and use the following command to process them:
+  rdagent fin_factor_report --report_folder_path=<Your financial reports folder path>
+
+  # For example:
+  rdagent fin_factor_report --report_folder_path=git_ignore_folder/reports
   ```
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
   ```sh
   rdagent general_model  <Your paper url>
+  # e.g.  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
+  # You can get more details (more paper examples) by `rdagent general_model -h`
   ```
 
 ### 🖥️ Monitor the Application Results
@@ -126,10 +134,10 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios.
 
 ## 🎯 Goal: Agent for Data-driven R&D
 
-In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
+In this project, we are aiming to build an Agent to automate Data-Driven R\&D that can
 + 📄 Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
 + 🛠️ **Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
-   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
+   + Due to the limited ability of LLM in implementing at once, build an evolving process for the agent to improve performance by learning from feedback and knowledge.
 + 💡 Propose **new ideas** based on current knowledge and observations.
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
