@@ -41,7 +41,8 @@ def docker_info():
     else:
         logger.info(f"No images.")
     containers = client.containers.list(all=True)
-    last_container = containers[0]
+    containers.sort(key=lambda c: c.attrs["Created"])
+    last_container = containers[-1]
     if containers:
         logger.info(f"Container ID: {last_container.id}")
         logger.info(f"Container Name: {last_container.name}")
