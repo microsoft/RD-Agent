@@ -65,9 +65,7 @@ def rdagent_info():
     else:
         logger.warning(f"Failed to retrieve files in folder, status code: {response.status_code}")
     package_list = [
-        item.split('#')[0].strip()
-        for item in all_file_contents
-        if item.strip() and not item.startswith('#')
+        item.split("#")[0].strip() for item in all_file_contents if item.strip() and not item.startswith("#")
     ]
     package_version_list = []
     for package in package_list:
