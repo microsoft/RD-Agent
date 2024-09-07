@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from pydantic_settings import BaseSettings
 
@@ -39,10 +40,10 @@ class PropSetting(BasePropSetting):
     # 2) Extra config for the scenario
     # physionet account
     # NOTE: You should apply the account in https://physionet.org/
-    username: str = ""
+    username: str = os.environ.get("MIMIC_USERNAME")
     """Physionet account username"""
 
-    password: str = ""
+    password: str = os.environ.get("MIMIC_PASSWORD")
     """Physionet account password"""
 
 
