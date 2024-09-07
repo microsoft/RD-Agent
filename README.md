@@ -102,7 +102,13 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 
 - Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
   >(1) Apply for an account at [PhysioNet](https://physionet.org/). <br /> (2) Request access to FIDDLE preprocessed data: [FIDDLE Dataset](https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/). <br />
-  (3) Place your username and password in `.rdagent.app.data_mining.conf`.
+  (3) Place your username and password in `.env`.
+  ```bash
+  cat << EOF  >> .env
+  DM_USERNAME=<your_username>
+  DM_PASSWORD=<your_password>
+  EOF
+  ```
   ```sh
   rdagent med_model
   ```
