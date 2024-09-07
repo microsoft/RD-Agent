@@ -96,7 +96,14 @@ You can try our demo by running the following command:
     
   - Apply for an account at `PhysioNet <https://physionet.org/>`_.
   - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
-  - Place your username and password in `.rdagent.app.data_mining.conf`.
+  - Place your username and password in `.env`.
+
+    .. code-block:: bash
+
+        cat << EOF  >> .env
+        DM_USERNAME=<your_username>
+        DM_PASSWORD=<your_password>
+        EOF
 
 
 - 🚀 Run the Application
