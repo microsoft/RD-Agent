@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import random
 from pathlib import Path
@@ -28,6 +29,12 @@ def compute_metrics_for_classification(y_true, y_pred):
     mcc = matthews_corrcoef(y_true, y_pred)
     return mcc
 
+def import_module_from_path(module_name, module_path):
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 # 1) Preprocess the data
 #TODO 如果已经做过数据预处理了，不需要再做了
 X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
@@ -35,8 +42,8 @@ X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
-for f in DIRNAME.glob("feat*.py"):
-    m = __import__(f.name.strip(".py"))
+for f in DIRNAME.glob("feature/feat*.py"):
+    m = import_module_from_path(f.stem, f)
     X_train = m.feat_eng(X_train)
     X_valid = m.feat_eng(X_valid)
     X_test = m.feat_eng(X_test)
@@ -61,9 +68,8 @@ X_test = align_features(X_train, X_test)
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
-for f in DIRNAME.glob("model*.py"):
-    # TODO put select() in model.py: fit(X_train, y_train, X_valid, y_valid)
-    m = __import__(f.name.strip(".py"))
+for f in DIRNAME.glob("model/model*.py"):
+    m = import_module_from_path(f.stem, f)
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 
 # Evaluate the model on the validation set
