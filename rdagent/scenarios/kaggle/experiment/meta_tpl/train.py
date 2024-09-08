@@ -40,22 +40,24 @@ def import_module_from_path(module_name, module_path):
 X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
 # 2) Auto feature engineering
-X_train_l, X_valid_l = [], []
-X_test_l = []
+X_train_l, X_valid_l = [X_train], [X_valid]
+X_test_l = [X_test]
+
 for f in DIRNAME.glob("feature/feat*.py"):
     m = import_module_from_path(f.stem, f)
-    X_train = m.feat_eng(X_train)
-    X_valid = m.feat_eng(X_valid)
-    X_test = m.feat_eng(X_test)
+    X_train_f = m.feat_eng(X_train)
+    X_valid_f = m.feat_eng(X_valid)
+    X_test_f = m.feat_eng(X_test)
 
-    X_train_l.append(X_train)
-    X_valid_l.append(X_valid)
-    X_test_l.append(X_test)
+    X_train_l.append(X_train_f)
+    X_valid_l.append(X_valid_f)
+    X_test_l.append(X_test_f)
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
 X_test = pd.concat(X_test_l, axis=1)
 
+X_train = X_train.loc[:, ~X_train.columns.duplicated()]
 
 def align_features(train_df, valid_df):
     # Align the features of validation data to the training data

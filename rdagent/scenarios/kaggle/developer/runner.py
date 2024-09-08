@@ -69,7 +69,40 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
+    def inir_develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
+        """
+        For the initial development, the experiment serves as a benchmark for feature engineering.
+        #TODO 不是特别确定写的对不对
+        """
+        if exp.sub_workspace_list[0].target_task.model_type == "XGBoost":
+            exp.experiment_workspace.inject_code(**{"model_xgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
+        elif exp.sub_workspace_list[0].model_type == "RandomForest":
+            exp.experiment_workspace.inject_code(**{"model_rf.py": exp.sub_workspace_list[0].code_dict["model.py"]})
+        elif exp.sub_workspace_list[0].model_type == "LightGBM":
+            exp.experiment_workspace.inject_code(**{"model_lgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
+        elif exp.sub_workspace_list[0].model_type == "NN":
+            exp.experiment_workspace.inject_code(**{"model_nn.py": exp.sub_workspace_list[0].code_dict["model.py"]})
+        if RUNNER_SETTINGS.cache_result:
+            cache_hit, result = self.get_cache_result(exp)
+            if cache_hit:
+                exp.result = result
+                return exp
+
+        env_to_use = {"PYTHONPATH": "./"}
+
+        result = exp.experiment_workspace.execute(run_env=env_to_use)
+
+        exp.result = result
+        if RUNNER_SETTINGS.cache_result:
+            self.dump_cache_result(exp, result)
+
+        return exp
+
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
+        # TODO 这里是用来跑读一次的sota的，就是不做特征工程的。后面轮次exp.based_experiments[-1]应该都有至
+        # TODO 但是不知道为啥 这里exp.based_experiments 是空。但是在proposal.py 是有定义的
+        if exp.based_experiments and exp.based_experiments[-1].result is None:
+            exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
         self.build_from_SOTA(exp)
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
         implemented_factor_count = 0
