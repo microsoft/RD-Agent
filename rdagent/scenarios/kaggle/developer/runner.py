@@ -4,19 +4,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBWorkspace
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyError
 from rdagent.core.experiment import ASpecificExp
-from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
-from rdagent.utils.env import KGDockerEnv
 
 META_TPL_DIR = Path(__file__).parent.parent / "experiment" / "meta_tpl"
 
@@ -74,27 +70,20 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         For the initial development, the experiment serves as a benchmark for feature engineering.
         #TODO 不是特别确定写的对不对
         """
-        if exp.sub_workspace_list[0].target_task.model_type == "XGBoost":
-            exp.experiment_workspace.inject_code(**{"model_xgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "RandomForest":
-            exp.experiment_workspace.inject_code(**{"model_rf.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "LightGBM":
-            exp.experiment_workspace.inject_code(**{"model_lgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "NN":
-            exp.experiment_workspace.inject_code(**{"model_nn.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
+        self.build_from_SOTA(exp)
+        # if RUNNER_SETTINGS.cache_result:
+        #     cache_hit, result = self.get_cache_result(exp)
+        #     if cache_hit:
+        #         exp.result = result
+        #         return exp
 
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
+        # if RUNNER_SETTINGS.cache_result:
+        #     self.dump_cache_result(exp, result)
 
         return exp
 

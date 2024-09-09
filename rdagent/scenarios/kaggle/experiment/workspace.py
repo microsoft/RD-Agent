@@ -55,6 +55,7 @@ class KGFBWorkspace(FBWorkspace):
             return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
+        logger.info(f"Running the experiment in {self.workspace_path}")
         kgde = KGDockerEnv(PROP_SETTING.competition)
         kgde.prepare()
 
