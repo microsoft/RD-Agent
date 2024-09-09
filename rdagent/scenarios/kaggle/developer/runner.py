@@ -69,7 +69,7 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
-    def inir_develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
+    def init_develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
         """
         For the initial development, the experiment serves as a benchmark for feature engineering.
         #TODO 不是特别确定写的对不对

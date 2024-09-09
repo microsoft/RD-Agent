@@ -158,7 +158,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             )
 
         exp = KGFactorExperiment(tasks)
-        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+        exp.based_experiments = [KGFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
         return exp
 
     def convert_model_experiment(self, response: str, trace: Trace) -> KGModelExperiment:
