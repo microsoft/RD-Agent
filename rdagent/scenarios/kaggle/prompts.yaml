@@ -183,11 +183,11 @@ factor_feedback_generation:
     {{ hypothesis_text }}
     Tasks and Features:
     {% for task in task_details %}
-      - {{ task.feature_name }}: {{ task.feature_description }}
-        - Feature Formulation: {{ task.feature_formulation }}
+      - {{ task.factor_name }}: {{ task.factor_description }}
+        - Feature Formulation: {{ task.factor_formulation }}
         - Variables: {{ task.variables }}
-        - Feature Implementation: {{ task.feature_implementation }}
-        {% if task.feature_implementation == "False" %}
+        - Feature Implementation: {{ task.factor_implementation }}
+        {% if task.factor_implementation == "False" %}
         **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
         {% endif %}
     {% endfor %}
