@@ -19,7 +19,7 @@ In this task, we aim at predicting the whether the patients will suffer from Acu
 
     <div style="display: flex; justify-content: center; align-items: center;">
       <video width="600" controls>
-        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        <source src="https://rdagent.azurewebsites.net/media/1653542fc1b9fa14a306c35c1b1fc48288f980793f38abe82b023af9.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </div>

@@ -170,10 +170,10 @@ The supported scenarios are listed below:
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-Here is a gallery of successful explorations. You can download the source code and view the execution trace using the command below:
+Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
 
 ```bash
-rdagent ui --port 80 --log_dir gallary/
+rdagent ui --port 80 --log_dir ./demo_traces
 ```
 
 Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.

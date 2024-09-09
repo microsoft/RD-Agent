@@ -27,7 +27,7 @@ And this is where the **Finance Data Copilot** steps in.
 
     <div style="display: flex; justify-content: center; align-items: center;">
       <video width="600" controls>
-        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        <source src="https://rdagent.azurewebsites.net/media/7b14b2bd3d8771da9cf7eb799b6d96729cec3d35c8d4f68060f3e2fd.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </div>

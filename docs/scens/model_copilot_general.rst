@@ -22,7 +22,7 @@ And this is where the **General Model Copilot** steps in.
 
     <div style="display: flex; justify-content: center; align-items: center;">
       <video width="600" controls>
-        <source src="https://rdagent.azurewebsites.net/media/65bb598f1372c1857ccbf09b2acf5d55830911625048c03102291098.mp4" type="video/mp4">
+        <source src="https://rdagent.azurewebsites.net/media/b35f904765b05099b0fcddbebe041a04f4d7bde239657e5fc24bf0cc.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </div>
