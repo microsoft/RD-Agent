@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 from fea_share_preprocess import preprocess_script
 from sklearn.metrics import accuracy_score, matthews_corrcoef
@@ -103,6 +104,7 @@ for m, m_pred in model_l:
 y_test_pred = np.mean(y_test_pred_bool_l, axis=0)
 y_test_pred = (y_test_pred > 0.5).astype(int)  # TODO Make it a module. Ensemble prediction
 
+label_encoder = LabelEncoder()
 y_test_pred_labels = label_encoder.inverse_transform(y_test_pred)  # 将整数转换回 'e' 或 'p'
 submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
 
