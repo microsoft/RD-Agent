@@ -13,6 +13,7 @@ def prepreprocess():
     """
     # Load and preprocess the data
     data_df = pd.read_csv("/kaggle/input/train.csv")
+    data_df = data_df.head(1200)
     data_df = data_df.drop(["id"], axis=1)
 
     X = data_df.drop(["class"], axis=1)
@@ -92,6 +93,7 @@ def preprocess_script():
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
+    submission_df = submission_df.head(500)
     passenger_ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)

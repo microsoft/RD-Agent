@@ -54,7 +54,18 @@ X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
 X_test = pd.concat(X_test_l, axis=1)
 
-print(X_train.shape, X_valid.shape, X_test.shape) 
+print(X_train.shape, X_valid.shape, X_test.shape)
+
+X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+from sklearn.impute import SimpleImputer
+imputer = SimpleImputer(strategy='mean')
+
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
+X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
