@@ -13,8 +13,6 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = KGFBWorkspace(template_folder_path=Path(__file__).parent / "meta_tpl")
-        print("WORKSPACE PATH IS HERE --------------------------------------------------------------------------------------")
-        print(self.workspace_path)
 
 
 class KGFactorExperiment(ModelExperiment[ModelTask, KGFBWorkspace, FactorFBWorkspace]):

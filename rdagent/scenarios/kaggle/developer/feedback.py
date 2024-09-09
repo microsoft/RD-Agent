@@ -35,11 +35,15 @@ def process_results(current_result, sota_result):
     # Combine the dataframes on the Metric index
     combined_df = pd.concat([current_df, sota_df], axis=1)
 
-    combined_df[
-        "Bigger columns name (Didn't consider the direction of the metric, you should judge it by yourself that bigger is better or smaller is better)"
-    ] = combined_df.apply(
-        lambda row: "Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result", axis=1
+    # Add a new column to show which result is bigger
+    combined_df["Bigger Result"] = combined_df.apply(
+        lambda row: "Equal" if row["Current Result"] == row["SOTA Result"] else
+        ("Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result"),
+        axis=1
     )
+
+    # Add a note about metric direction
+    combined_df["Note"] = "Direction of improvement (higher/lower is better) should be judged per metric"
 
     return combined_df.to_string()
 
@@ -63,11 +67,25 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
-        tasks_factors = [task.get_task_information_and_implementation_result() for task in exp.sub_tasks]
-        sota_result = exp.based_experiments[-1].result
-
-        # Process the results to filter important metrics
-        combined_result = process_results(current_result, sota_result)
+        tasks_factors = []
+        if exp.sub_tasks:
+            tasks_factors = []
+            for task in exp.sub_tasks:
+                try:
+                    task_info = task.get_task_information_and_implementation_result()
+                    tasks_factors.append(task_info)
+                except AttributeError:
+                    print(f"Warning: Task {task} does not have get_task_information_and_implementation_result method")
+        
+        # Check if there are any based experiments
+        if exp.based_experiments:
+            sota_result = exp.based_experiments[-1].result
+            # Process the results to filter important metrics
+            combined_result = process_results(current_result, sota_result)
+        else:
+            # If there are no based experiments, we'll only use the current result
+            combined_result = process_results(current_result, current_result)  # Compare with itself
+            print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
         # Generate the system prompt
         sys_prompt = (
