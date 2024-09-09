@@ -26,15 +26,13 @@ def prepreprocess():
 
     return X_train, X_valid, y_train, y_valid
 
-def preprocess(X: pd.DataFrame):
+def preprocess_fit(X_train: pd.DataFrame):
     """
-    Preprocesses the given DataFrame by transforming categorical and numerical features.
-    Ensures the processed data has consistent features across train, validation, and test sets.
+    Fits the preprocessor on the training data and returns the fitted preprocessor.
     """
-
     # Identify numerical and categorical features
-    numerical_cols = [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
-    categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
+    numerical_cols = [cname for cname in X_train.columns if X_train[cname].dtype in ["int64", "float64"]]
+    categorical_cols = [cname for cname in X_train.columns if X_train[cname].dtype == "object"]
 
     # Define preprocessors for numerical and categorical features
     categorical_transformer = Pipeline(
@@ -54,14 +52,24 @@ def preprocess(X: pd.DataFrame):
         ]
     )
 
-    # Fit the preprocessor on the data and transform it
-    preprocessor.fit(X)
+    # Fit the preprocessor on the training data
+    preprocessor.fit(X_train)
+
+    return preprocessor
+
+def preprocess_transform(X: pd.DataFrame, preprocessor):
+    """
+    Transforms the given DataFrame using the fitted preprocessor.
+    Ensures the processed data has consistent features across train, validation, and test sets.
+    """
+    # Transform the data using the fitted preprocessor
     X_array = preprocessor.transform(X).toarray()
 
     # Get feature names for the columns in the transformed data
+    categorical_cols = [cname for cname in X.columns if X[cname].dtype == "object"]
     feature_names = (
         preprocessor.named_transformers_["cat"]["onehot"].get_feature_names_out(categorical_cols).tolist()
-        + numerical_cols
+        + [cname for cname in X.columns if X[cname].dtype in ["int64", "float64"]]
     )
 
     # Convert arrays back to DataFrames
@@ -75,14 +83,17 @@ def preprocess_script():
     """
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
-    # Preprocess the train and validation data
-    X_train = preprocess(X_train)
-    X_valid = preprocess(X_valid)
+    # Fit the preprocessor on the training data
+    preprocessor = preprocess_fit(X_train)
+
+    # Preprocess the train, validation, and test data
+    X_train = preprocess_transform(X_train, preprocessor)
+    X_valid = preprocess_transform(X_valid, preprocessor)
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
     passenger_ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
-    X_test = preprocess(submission_df)
+    X_test = preprocess_transform(submission_df, preprocessor)
 
     return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
