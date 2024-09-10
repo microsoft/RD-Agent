@@ -9,7 +9,6 @@ from typing import Callable, Type
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
 import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
@@ -28,6 +27,7 @@ from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
+from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
