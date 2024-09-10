@@ -1,5 +1,3 @@
-from rdagent.scenarios.general_model.scenario import GeneralModelScenario
-
 import fire
 
 from rdagent.components.coder.model_coder.task_loader import (
@@ -9,6 +7,7 @@ from rdagent.components.document_reader.document_reader import (
     extract_first_page_screenshot_from_pdf,
 )
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.general_model.scenario import GeneralModelScenario
 from rdagent.scenarios.qlib.developer.model_coder import QlibModelCoSTEER
 
 

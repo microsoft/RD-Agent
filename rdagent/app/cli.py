@@ -6,6 +6,7 @@ This will
 - autoamtically load dotenv
 """
 from dotenv import load_dotenv
+
 load_dotenv(".env")
 
 import subprocess
