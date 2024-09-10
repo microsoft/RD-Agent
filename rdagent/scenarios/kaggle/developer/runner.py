@@ -71,19 +71,19 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         #TODO 不是特别确定写的对不对
         """
         self.build_from_SOTA(exp)
-        # if RUNNER_SETTINGS.cache_result:
-        #     cache_hit, result = self.get_cache_result(exp)
-        #     if cache_hit:
-        #         exp.result = result
-        #         return exp
+        if RUNNER_SETTINGS.cache_result:
+            cache_hit, result = self.get_cache_result(exp)
+            if cache_hit:
+                exp.result = result
+                return exp
 
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
-        # if RUNNER_SETTINGS.cache_result:
-        #     self.dump_cache_result(exp, result)
+        if RUNNER_SETTINGS.cache_result:
+            self.dump_cache_result(exp, result)
 
         return exp
 

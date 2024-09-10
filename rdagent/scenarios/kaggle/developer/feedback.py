@@ -24,16 +24,8 @@ def process_results(current_result, sota_result):
     current_df = pd.DataFrame(current_result)
     sota_df = pd.DataFrame(sota_result)
 
-    # Set the metric as the index
-    current_df.index.name = "metric"
-    sota_df.index.name = "metric"
-
-    # Rename the value column to reflect the result type
-    current_df.rename(columns={"0": "Current Result"}, inplace=True)
-    sota_df.rename(columns={"0": "SOTA Result"}, inplace=True)
-
     # Combine the dataframes on the Metric index
-    combined_df = pd.concat([current_df, sota_df], axis=1)
+    combined_df = pd.DataFrame({'Current Result': current_result, 'SOTA Result': sota_result})
 
     # Add a new column to show which result is bigger
     combined_df["Bigger Result"] = combined_df.apply(

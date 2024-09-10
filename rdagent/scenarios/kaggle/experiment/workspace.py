@@ -31,7 +31,7 @@ class KGFBWorkspace(FBWorkspace):
         self.data_description: list[str] = []
         self.model_description: str = ""
 
-    def generate_preprocess_data(self):
+    def generate_preprocess_data(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
         kgde = KGDockerEnv(PROP_SETTING.competition)
         kgde.prepare()
 
@@ -65,7 +65,7 @@ class KGFBWorkspace(FBWorkspace):
             env=run_env,
         )
 
-        csv_path = self.workspace_path / "submission.csv"
+        csv_path = self.workspace_path / "submission_score.csv"
 
         print("WORKSPACE PATH IS HERE --------------------------------------------------------------------------------")
         print(self.workspace_path)
