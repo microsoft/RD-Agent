@@ -5,11 +5,13 @@ This will
 - make rdagent a nice entry and
 - autoamtically load dotenv
 """
+from dotenv import load_dotenv
+load_dotenv(".env")
+
 import subprocess
 from importlib.resources import path as rpath
 
 import fire
-from dotenv import load_dotenv
 
 from rdagent.app.data_mining.model import main as med_model
 from rdagent.app.general_model.general_model import (
@@ -19,8 +21,6 @@ from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.utils.info import collect_info
-
-load_dotenv()
 
 
 def ui(port=80, log_dir="", debug=False):

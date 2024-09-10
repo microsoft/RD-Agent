@@ -1,8 +1,4 @@
-from dotenv import load_dotenv
-
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
-
-load_dotenv(override=True)
 
 import fire
 
