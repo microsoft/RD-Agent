@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/microsoft/RD-Agent/compare/v0.2.0...v0.2.1) (2024-09-10)
+
+
+### Bug Fixes
+
+* default model value in config ([#256](https://github.com/microsoft/RD-Agent/issues/256)) ([c097585](https://github.com/microsoft/RD-Agent/commit/c097585f631f401c2c0966f6ad4c17286924f011))
+* fix_dotenv_error ([#257](https://github.com/microsoft/RD-Agent/issues/257)) ([923063c](https://github.com/microsoft/RD-Agent/commit/923063c1fd957c4ed42e97272c72b5e9545451dc))
+* readme ([#248](https://github.com/microsoft/RD-Agent/issues/248)) ([8cede22](https://github.com/microsoft/RD-Agent/commit/8cede2209922876490148459e1134da828e1fda0))
+
 ## [0.2.0](https://github.com/microsoft/RD-Agent/compare/v0.1.0...v0.2.0) (2024-09-07)
 
 
