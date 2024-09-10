@@ -110,7 +110,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 open(FACTOR_FROM_REPORT_PROP_SETTING.report_result_json_file_path, "r")
             )
         else:
-            self.judge_pdf_data_items = Path(report_folder).rglob("*.pdf")
+            self.judge_pdf_data_items = [i for i in Path(report_folder).rglob("*.pdf")]
 
         self.pdf_file_index = 0
         self.valid_pdf_file_count = 0
@@ -146,21 +146,22 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         return self.current_loop_exp
 
 
-def main(path=None, step_n=None):
+def main(report_folder=None, path=None, step_n=None):
     """
-    Auto R&D Evolving loop for fintech factors (the factors are extracted from finance report).
+    Auto R&D Evolving loop for fintech factors (the factors are extracted from finance reports).
 
-    You can continue running session by
-
-    .. code-block:: python
-
-        dotenv run -- python rdagent/app/qlib_rd_loop/factor_from_report.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
-
+    Args:
+        report_folder (str, optional): The folder contains the report PDF files. Reports will be loaded from this folder.
+        path (str, optional): The path for loading a session. If provided, the session will be loaded.
+        step_n (int, optional): Step number to continue running a session.
     """
-    if path is None:
-        model_loop = FactorReportLoop(FACTOR_FROM_REPORT_PROP_SETTING)
-    else:
+    if path is None and report_folder is None:
+        model_loop = FactorReportLoop()
+    elif path is not None:
         model_loop = FactorReportLoop.load(path)
+    else:
+        model_loop = FactorReportLoop(report_folder=report_folder)
+
     model_loop.run(step_n=step_n)
 
 

@@ -23,11 +23,12 @@ pandarallel # parallelize pandas
 feedparser
 matplotlib
 langchain
+langchain-community
 tiktoken
 pymupdf  # Extract shotsreens from pdf
 
 # azure identity related
-azure.identity
+azure-identity
 
 # PDF related
 pypdf
@@ -38,16 +39,8 @@ azure-ai-formrecognizer
 # I think it is for running insteading of implementing. The dependency should be in 
 statsmodels
 
-# PDF related
-pypdf
-azure-core
-azure-ai-formrecognizer
-
 # factor implementations
 tables
-
-# azure identity related
-azure.identity
 
 # CI Fix Tool
 tree-sitter-python
@@ -70,6 +63,10 @@ st-theme
 selenium
 kaggle
 
-#model related
+# tool
+seaborn
+setuptools-scm
+
+# This is a temporary package installed to pass the test_import test
 xgboost
 lightgbm

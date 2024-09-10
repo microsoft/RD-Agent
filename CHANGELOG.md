@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0](https://github.com/microsoft/RD-Agent/compare/v0.1.0...v0.2.0) (2024-09-07)
+
+
+### Features
+
+* add collect info ([#233](https://github.com/microsoft/RD-Agent/issues/233)) ([89f4af9](https://github.com/microsoft/RD-Agent/commit/89f4af90fb4d95a0689bf9efc8ffd9326469c0aa))
+* add cross validation for kaggle scenario ([#236](https://github.com/microsoft/RD-Agent/issues/236)) ([e0b03ba](https://github.com/microsoft/RD-Agent/commit/e0b03ba6b5c3d9aa552b99d470e106d4e348e64d))
+* add progress status for docker env ([#215](https://github.com/microsoft/RD-Agent/issues/215)) ([538d4ef](https://github.com/microsoft/RD-Agent/commit/538d4ef2e52de795b90d3f75b2e1e877ab85c18d))
+* Added loop code for Kaggle scene. ([#211](https://github.com/microsoft/RD-Agent/issues/211)) ([975c327](https://github.com/microsoft/RD-Agent/commit/975c32715e51aec6b49537401f5fc59115e04a01))
+* Demo display effect and usage ([#162](https://github.com/microsoft/RD-Agent/issues/162)) ([8cf122a](https://github.com/microsoft/RD-Agent/commit/8cf122a0155f434fa4477ae7a6d616b5caecd3e0))
+* piloting of the framework ([#227](https://github.com/microsoft/RD-Agent/issues/227)) ([e9b103e](https://github.com/microsoft/RD-Agent/commit/e9b103e684fdd2b98cd1a89971a3fce2d6e884a1))
+* support more models for kaggle scenario ([#223](https://github.com/microsoft/RD-Agent/issues/223)) ([e3a9659](https://github.com/microsoft/RD-Agent/commit/e3a96598c0720fe092ec86d7ca8c195c7d6bcc72))
+* update model_experiment.py to support basic EDA ([#220](https://github.com/microsoft/RD-Agent/issues/220)) ([bf2684c](https://github.com/microsoft/RD-Agent/commit/bf2684c4d55ab8e1048ac0291695475ad53b0cd6))
+
+
+### Bug Fixes
+
+* fix some bugs in llm calling ([#217](https://github.com/microsoft/RD-Agent/issues/217)) ([7b010f8](https://github.com/microsoft/RD-Agent/commit/7b010f8b5940aba65a58f1d78192aa80bcd0e654))
+* package dependency. ([#234](https://github.com/microsoft/RD-Agent/issues/234)) ([46be295](https://github.com/microsoft/RD-Agent/commit/46be2952952af534fd8d98a656c704c688d7cbdd))
+* remove useless line ([#177](https://github.com/microsoft/RD-Agent/issues/177)) ([64e9a8e](https://github.com/microsoft/RD-Agent/commit/64e9a8e39a2072a962111db18f5b9565df5b0176))
+
 ## [0.1.0](https://github.com/microsoft/RD-Agent/compare/v0.0.1...v0.1.0) (2024-08-09)
 
 

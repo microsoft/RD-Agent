@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from rdagent.core.utils import SingletonBaseClass
 
 
@@ -15,6 +17,7 @@ class A(SingletonBaseClass):
         return self.__str__()
 
 
+@pytest.mark.offline
 class MiscTest(unittest.TestCase):
     def test_singleton(self):
         print("a1=================")

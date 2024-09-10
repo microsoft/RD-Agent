@@ -91,7 +91,11 @@ kg_feature_interface: |-
       return X.fillna(0) # Example feature processing
   ```
 
-  Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
+  To Note:
+  1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
+  2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
+    Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`
+    Correct: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns, index=X.index)`
 
 kg_model_interface: |-
   Your code should contain several parts:

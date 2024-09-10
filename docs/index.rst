@@ -6,6 +6,9 @@
 Welcome to RDAgent's documentation!
 ===================================
 
+.. image:: _static/logo.png
+   :alt: RD-Agent Logo
+
 .. toctree::
    :maxdepth: 3
    :caption: Doctree:
