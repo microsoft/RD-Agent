@@ -5,11 +5,16 @@ This will
 - make rdagent a nice entry and
 - autoamtically load dotenv
 """
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+# 1) Make sure it is at the beginning of the script so that it will load dotenv before initializing BaseSettings.
+# 2) The ".env" argument is necessary to make sure it loads `.env` from the current directory.
+
 import subprocess
 from importlib.resources import path as rpath
 
 import fire
-from dotenv import load_dotenv
 
 from rdagent.app.data_mining.model import main as med_model
 from rdagent.app.general_model.general_model import (
@@ -19,8 +24,6 @@ from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
 from rdagent.app.utils.info import collect_info
-
-load_dotenv()
 
 
 def ui(port=80, log_dir="", debug=False):

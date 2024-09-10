@@ -2,12 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
-
-# make sure that env variable is loaded while calling Config()
-load_dotenv(verbose=True, override=True)
-
 from pydantic_settings import BaseSettings
 
 
