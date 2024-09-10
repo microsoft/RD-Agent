@@ -8,6 +8,8 @@ This will
 from dotenv import load_dotenv
 
 load_dotenv(".env")
+# 1) Make sure it is at the beginning of the script so that it will load dotenv before initializing BaseSettings.
+# 2) The ".env" argument is necessary to make sure it loads `.env` from the current directory.
 
 import subprocess
 from importlib.resources import path as rpath
