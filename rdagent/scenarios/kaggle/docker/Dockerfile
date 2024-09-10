@@ -23,3 +23,4 @@ RUN pip install scikit-learn
 RUN pip install catboost
 RUN pip install xgboost
 RUN pip install sparse
+RUN pip install lightgbm 

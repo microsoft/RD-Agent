@@ -41,11 +41,11 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         self.build_from_SOTA(exp)
         if exp.sub_workspace_list[0].target_task.model_type == "XGBoost":
             exp.experiment_workspace.inject_code(**{"model_xgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "RandomForest":
+        elif exp.sub_workspace_list[0].target_task.model_type == "RandomForest":
             exp.experiment_workspace.inject_code(**{"model_rf.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "LightGBM":
+        elif exp.sub_workspace_list[0].target_task.model_type == "LightGBM":
             exp.experiment_workspace.inject_code(**{"model_lgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
-        elif exp.sub_workspace_list[0].model_type == "NN":
+        elif exp.sub_workspace_list[0].target_task.model_type == "NN":
             exp.experiment_workspace.inject_code(**{"model_nn.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)

@@ -50,8 +50,8 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         """
         Generate feedback for the given experiment and hypothesis.
         Args:
-            exp (QlibFactorExperiment): The experiment to generate feedback for.
-            hypothesis (QlibFactorHypothesis): The hypothesis to generate feedback for.
+            exp (FactorExperiment): The experiment to generate feedback for.
+            hypothesis (FactorHypothesis): The hypothesis to generate feedback for.
             trace (Trace): The trace of the experiment.
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
@@ -79,6 +79,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result = process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
+
         # Generate the system prompt
         sys_prompt = (
             Environment(undefined=StrictUndefined)
@@ -86,10 +87,16 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(scenario=self.scen.get_scenario_all_desc())
         )
 
+        # Generate the user prompt based on the action type
+        if hypothesis.action == "Model Tuning":
+            prompt_key = "model_feedback_generation"
+        else:
+            prompt_key = "factor_feedback_generation"
+
         # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["user"])
+            .from_string(feedback_prompts[prompt_key]["user"])
             .render(
                 hypothesis_text=hypothesis_text,
                 task_details=tasks_factors,
