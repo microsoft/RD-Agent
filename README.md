@@ -1,7 +1,7 @@
 <h2 align="center">
   <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:60%; ">
-
-  <a href="https://rdagent.azurewebsites.net">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop">🎥 Demo Video</a>  | <a href="https://rdagent.readthedocs.io/en/latest/index.html">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a>
+  <h3>
+  <a href="https://rdagent.azurewebsites.net">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop">🎥 Demo Video</a>  | <a href="https://rdagent.readthedocs.io/en/latest/index.html">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a></h3>h3>
 </h2>
 
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
