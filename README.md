@@ -1,9 +1,15 @@
+<h3 align="center">
+  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:70%; ">
+  
+  <a href="https://rdagent.azurewebsites.net" target="_blank">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop" target="_blank">🎥 Demo Video</a>  | <a href="https://rdagent.readthedocs.io/en/latest/index.html" target="_blank">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a>
+</h3>
+
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates)
 [![Lint PR Title](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml)
-[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml)
 [![Release.yml](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml)
+[![Platform](https://img.shields.io/badge/platform-Linux-blue)](https://pypi.org/project/rdagent/#files)
 [![PyPI](https://img.shields.io/pypi/v/rdagent)](https://pypi.org/project/rdagent/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rdagent)](https://pypi.org/project/rdagent/)
 [![Release](https://img.shields.io/github/v/release/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/releases)
@@ -11,6 +17,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml) <!-- this badge is too long, please place it in the last one to make it pretty --> 
 
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
@@ -19,8 +26,9 @@
 
 
 # 🌟 Introduction
-
-![Our focused scenario](docs/_static/scen.jpg)
+<div align="center">
+      <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
+</div>
 
 RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
@@ -29,23 +37,21 @@ We believe that the automatic evolution of R&D will lead to solutions of signifi
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- 🏭 Automatic Quant Factory [(🎥demo)](https://rdagent.azurewebsites.net/factor_loop)
-- 🤖 Data Mining Agent: iteratively proposing data [(🎥demo)](https://rdagent.azurewebsites.net/dmm) & models [(🎥demo)](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
-- 🦾 Research Copilot: Auto read research papers [(🎥demo)](https://rdagent.azurewebsites.net/report_model) / financial reports [(🎥demo)](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
+- 💰 **Automatic Quant Factory** [(🎥Demo Video)](https://rdagent.azurewebsites.net/factor_loop)
+- 🤖 **Data Mining Agent:** Iteratively proposing data [(🎥Demo Video)](https://rdagent.azurewebsites.net/dmm) & models [(🎥Demo Video)](https://rdagent.azurewebsites.net/model_loop) and implementing them by gaining knowledge from data.
+- 🦾 **Research Copilot:** Auto read research papers [(🎥Demo Video)](https://rdagent.azurewebsites.net/report_model) / financial reports [(🎥Demo Video)](https://rdagent.azurewebsites.net/report_factor) and implement model structures or building datasets.
 - ...
 
-You can click the 🎥 [link](https://rdagent.azurewebsites.net) above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
-<!-- 
-- TODO: Demo: it fails to display the video in the README.md.
-We have a quick 🎥 demo for one use case of RDAgent.
-[![Demo Video](https://img.youtube.com/vi/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33/0.jpg)](https://rdagent.azurewebsites.net:443/media/5275fcb75803ad2bb9541c3abd86dedfd578a28fa32b46fa28917b33.mp4)
- <p align="center">
-  <a href="https://rdagent.azurewebsites.net/"> <img src="docs/_static/img/logo/1.png" /> </a>
- </p>
- -->
- 
- [![Watch the video](https://img.freepik.com/premium-vector/video-streaming-media-player-template-mockup-live-stream-window-player-online-broadcasting_659151-73.jpg)](https://rdagent.azurewebsites.net/)
- 
+You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
+
+Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**.
+
+<div align="center">
+    <a href="https://rdagent.azurewebsites.net/" target="_blank">
+        <img src="docs/_static/demo.png" alt="Watch the demo" width="80%">
+    </a>
+</div>
+
 
 # ⚡ Quick start
 
@@ -71,42 +77,60 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```
 
 ### ⚙️ Configuration
-You have to config your GPT model in the `.env`
-```bash
-cat << EOF  > .env
-OPENAI_API_KEY=<your_api_key>
-# EMBEDDING_MODEL=text-embedding-3-small
-CHAT_MODEL=gpt-4-turbo
-EOF
-```
+- You have to config your GPT model in the `.env`
+  ```bash
+  cat << EOF  > .env
+  OPENAI_API_KEY=<your_api_key>
+  # EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_MODEL=gpt-4-turbo
+  EOF
+  ```
 
 ### 🚀 Run the Application
 
-The 🎥 [demo](https://rdagent.azurewebsites.net) is implemented by the following commands(each item represents one demo, you can select the one you prefer):
+The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
-- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  Qlib self-loop factor proposal and implementation application
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor proposal and implementation application
   ```sh
   rdagent fin_factor
   ```
 
-- Run the **Automated Quantitative Trading & Iterative Model Evolution**: Qlib self-loop model proposal and implementation application
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**: [Qlib](http://github.com/microsoft/qlib) self-loop model proposal and implementation application
   ```sh
   rdagent fin_model
   ```
 
-- Run the **Automated Medical Predtion Model Evolution**: medical self-loop model proposal and implementation application
+- Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
+  >(1) Apply for an account at [PhysioNet](https://physionet.org/). <br /> (2) Request access to FIDDLE preprocessed data: [FIDDLE Dataset](https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/). <br />
+  (3) Place your username and password in `.env`.
+  ```bash
+  cat << EOF  >> .env
+  DM_USERNAME=<your_username>
+  DM_PASSWORD=<your_password>
+  EOF
+  ```
   ```sh
   rdagent med_model
   ```
 
-- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the Qlib factor extraction and implementation application based on financial reports
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib) factor extraction and implementation application based on financial reports
   ```sh
-  rdagent fin_factor_report
+  # 1. Generally, you can run this scenario using the following command:
+  rdagent fin_factor_report --report_folder=<Your financial reports folder path>
+
+  # 2. Specifically, you need to prepare some financial reports first. You can follow this concrete example:
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
+  unzip all_reports.zip -d git_ignore_folder/reports
+  rdagent fin_factor_report --report_folder=git_ignore_folder/reports
   ```
 
 - Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
   ```sh
-  rdagent general_model  <Your paper url>
+  # 1. Generally, you can run your own papers/reports with the following command:
+  rdagent general_model <Your paper URL>
+
+  # 2. Specifically, you can do it like this. For more details and additional paper examples, use `rdagent general_model -h`:
+  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   ```
 
 ### 🖥️ Monitor the Application Results
@@ -122,10 +146,10 @@ We have applied RD-Agent to multiple valuable data-driven industrial scenarios.
 
 ## 🎯 Goal: Agent for Data-driven R&D
 
-In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
+In this project, we are aiming to build an Agent to automate Data-Driven R\&D that can
 + 📄 Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
 + 🛠️ **Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
-   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
+   + Due to the limited ability of LLM in implementing at once, build an evolving process for the agent to improve performance by learning from feedback and knowledge.
 + 💡 Propose **new ideas** based on current knowledge and observations.
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
@@ -140,23 +164,25 @@ The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop)  <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)  |
-| 🩺 Medical      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
-| 🏭 General      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
+| **💹 Finance**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop)  <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)  |
+| **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm) | -                                                                                  |
+| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)    | -                                                                                  |
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-Here is a gallery of successful explorations. You can download the source code and view the execution trace using the command below:
+Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
 
 ```bash
-rdagent ui --port 80 --log_dir gallary/
+rdagent ui --port 80 --log_dir ./demo_traces
 ```
 
-Please refer to [📚readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html) for more details of the scenarios.
+Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
 
 # ⚙️ Framework
 
-![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+<div align="center">
+    <img src="docs/_static/Framework-RDAgent.png" alt="Framework-RDAgent" width="85%">
+</div>
 
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
@@ -164,18 +190,18 @@ Automating the R&D process in data science is a highly valuable yet underexplore
 The research questions within this framework can be divided into three main categories:
 | Research Area | Paper/Work List |
 |--------------------|-----------------|
-| Benchmark the R&D abilities | [Benchmark](#benchmark) |
-| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
-| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
+| **Benchmark the R&D abilities** | [Benchmark](#benchmark) |
+| **Idea proposal:** Explore new ideas or refine existing ones | [Research](#research) |
+| **Ability to realize ideas:** Implement and execute ideas | [Development](#development) |
 
 We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
-More documents can be found in the [📚readthedocs](https://rdagent.readthedocs.io/).
+More documents can be found in the **[📖 readthedocs](https://rdagent.readthedocs.io/)**.
 
 # 📃 Paper/Work list
 
 ## 📊 Benchmark
-- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
 ```BibTeX
 @misc{chen2024datacentric,
     title={Towards Data-Centric Automatic R&D},
@@ -194,7 +220,7 @@ In a data mining expert's daily research and development process, they propose a
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-For more detail, please refer to our [Demos page](https://rdagent.azurewebsites.net).
+For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.azurewebsites.net)**.
 
 ## 🛠️ Development
 

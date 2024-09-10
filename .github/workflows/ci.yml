@@ -20,7 +20,7 @@ jobs:
       - run: env | sort
       - run: make dev
       - name: lint test docs and build
-        run: make lint docs-gen # test docs build
+        run: make lint docs-gen test-offline # test docs build
     strategy:
       matrix:
         python-version:

@@ -6,7 +6,7 @@ Introduction
 
 In modern industry, research and development (R&D) is crucial for the enhancement of industrial productivity, especially in the AI era, where the core aspects of R&D are mainly focused on data and models. We are committed to automate these high-value generic R&D processes through our open source R&D automation tool RDAgent, which let AI drive data-driven AI.
 
-.. image:: _static/scen.jpg
+.. image:: _static/scen.png
    :alt: Our focused scenario
 
 
