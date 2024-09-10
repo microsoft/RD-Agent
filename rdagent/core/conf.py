@@ -38,7 +38,7 @@ class RDAgentSettings(BaseSettings):
     chat_openai_api_key: str = ""
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
-    chat_model: str = ""
+    chat_model: str = "gpt-4-turbo"
     chat_max_tokens: int = 3000
     chat_temperature: float = 0.5
     chat_stream: bool = True
