@@ -31,7 +31,7 @@ class KGFBWorkspace(FBWorkspace):
         self.data_description: list[str] = []
         self.model_description: str = ""
 
-    def generate_preprocess_data(self):
+    def generate_preprocess_data(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
         kgde = KGDockerEnv(PROP_SETTING.competition)
         kgde.prepare()
 

@@ -85,8 +85,8 @@ class KGScenario(Scenario):
         # TODO later we should improve this part
         data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder)
 
-        if (data_folder / "valid.csv").exists():
-            X_valid = pd.read_csv(data_folder / "valid.csv")
+        if (data_folder / "valid.pkl").exists():
+            X_valid = pd.read_pickle(data_folder / "valid.pkl")
             return X_valid.head()
 
         preprocess_experiment = KGFactorExperiment([])
@@ -95,7 +95,7 @@ class KGScenario(Scenario):
         )
 
         data_folder.mkdir(exist_ok=True, parents=True)
-        X_valid.to_csv(data_folder / "valid.csv", index=False)
+        X_valid.to_pickle(data_folder / "valid.pkl")
         return X_valid.head()
 
     @property
