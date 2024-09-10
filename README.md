@@ -90,12 +90,12 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
 
 The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
-- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  [Qlib](http://github.com/microsoft/qlib){:target="_blank"} self-loop factor proposal and implementation application
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor proposal and implementation application
   ```sh
   rdagent fin_factor
   ```
 
-- Run the **Automated Quantitative Trading & Iterative Model Evolution**: [Qlib](http://github.com/microsoft/qlib){:target="_blank"} self-loop model proposal and implementation application
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**: [Qlib](http://github.com/microsoft/qlib) self-loop model proposal and implementation application
   ```sh
   rdagent fin_model
   ```
@@ -113,7 +113,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent med_model
   ```
 
-- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib){:target="_blank"} factor extraction and implementation application based on financial reports
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib) factor extraction and implementation application based on financial reports
   ```sh
   # 1. Generally, you can run this scenario using the following command:
   rdagent fin_factor_report --report_folder=<Your financial reports folder path>
