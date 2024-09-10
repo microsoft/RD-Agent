@@ -1,5 +1,5 @@
 <h3 align="center">
-  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:60%; ">
+  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:70%; ">
   
   <a href="https://rdagent.azurewebsites.net">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop">🎥 Demo Video</a>  | <a href="https://rdagent.readthedocs.io/en/latest/index.html">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a>
 </h3>
