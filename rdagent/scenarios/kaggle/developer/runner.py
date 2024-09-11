@@ -1,9 +1,7 @@
 import shutil
-import uuid
 from pathlib import Path
 
-import pandas as pd
-
+from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import ModelEmptyError
@@ -81,6 +79,16 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
+        sub_ws = FactorTask()
+        sub_ws.factor_name = "original features"
+        sub_ws.factor_description = "here is the original features"
+        sub_ws.factor_formulation = ""
+        sub_ws.variables = ""
+        target_feature_file_name = f"feature/feature.py"
+        exp.experiment_workspace.inject_code(**{target_feature_file_name: sub_ws.code_dict["factor.py"]})
+        feature_shape = sub_ws.execute()[1].shape[-1]
+        exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
+        
         if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
 

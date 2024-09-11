@@ -237,3 +237,4 @@ class FactorFBWorkspace(FBWorkspace):
 
 
 FactorExperiment = Experiment
+FeatureExperiment = Experiment

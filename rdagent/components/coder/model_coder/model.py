@@ -137,5 +137,4 @@ PARAM_INIT_VALUE = {param_init_value}
         return execution_feedback_str, execution_model_output
 
 
-FeatureExperiment = Experiment
 ModelExperiment = Experiment
