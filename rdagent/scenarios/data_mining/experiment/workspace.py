@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from rdagent.app.data_mining.conf import PROP_SETTING
+from rdagent.app.data_mining.conf import MED_PROP_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import DMDockerEnv
@@ -15,7 +15,7 @@ class DMFBWorkspace(FBWorkspace):
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         qtde = DMDockerEnv()
-        qtde.prepare(PROP_SETTING.username, PROP_SETTING.password)
+        qtde.prepare(MED_PROP_SETTING.username, MED_PROP_SETTING.password)
 
         execute_log = qtde.run(
             local_path=str(self.workspace_path),

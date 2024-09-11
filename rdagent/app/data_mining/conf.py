@@ -46,4 +46,4 @@ class MedBasePropSetting(BasePropSetting):
     """Physionet account password"""
 
 
-PROP_SETTING = MedBasePropSetting()
+MED_PROP_SETTING = MedBasePropSetting()
