@@ -24,9 +24,11 @@ class FactorTask(Task):
         factor_name,
         factor_description,
         factor_formulation,
+        *args,
         variables: dict = {},
         resource: str = None,
         factor_implementation: bool = False,
+        **kwargs,
     ) -> None:
         self.factor_name = factor_name
         self.factor_description = factor_description
@@ -34,6 +36,7 @@ class FactorTask(Task):
         self.variables = variables
         self.factor_resources = resource
         self.factor_implementation = factor_implementation
+        super().__init__(*args, **kwargs)
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}
@@ -75,8 +78,8 @@ class FactorFBWorkspace(FBWorkspace):
     def __init__(
         self,
         *args,
-        executed_factor_value_dataframe=None,
-        raise_exception=False,
+        executed_factor_value_dataframe: pd.DataFrame = None,
+        raise_exception: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -102,7 +105,10 @@ class FactorFBWorkspace(FBWorkspace):
         1. make the directory in workspace path
         2. write the code to the file in the workspace path
         3. link all the source data to the workspace path folder
-        4. execute the code
+        if call_factor_py is True:
+            4. execute the code
+        else:
+            4. generate a script from template to import the factor.py dump get the factor value to result.h5
         5. read the factor value from the output file in the workspace path folder
         returns the execution feedback as a string and the factor value as a pandas dataframe
 
@@ -130,15 +136,21 @@ class FactorFBWorkspace(FBWorkspace):
             if self.executed_factor_value_dataframe is not None:
                 return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
 
-            source_data_path = (
-                Path(
-                    FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
+            if self.target_task.version == 1:
+                source_data_path = (
+                    Path(
+                        FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
+                    )
+                    if data_type == "Debug"
+                    else Path(
+                        FACTOR_IMPLEMENT_SETTINGS.data_folder,
+                    )
                 )
-                if data_type == "Debug"
-                else Path(
+            elif self.target_task.version == 2:
+                # TODO you can change the name of the data folder for a better understanding
+                source_data_path = Path(
                     FACTOR_IMPLEMENT_SETTINGS.data_folder,
                 )
-            )
 
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
@@ -147,9 +159,16 @@ class FactorFBWorkspace(FBWorkspace):
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
+
+            if self.target_task.version == 1:
+                execution_code_path = code_path
+            elif self.target_task.version == 2:
+                execution_code_path = self.workspace_path / f"{uuid.uuid4()}.py"
+                execution_code_path.write_text((Path(__file__).parent / "factor_execution_template.txt").read_text())
+
             try:
                 subprocess.check_output(
-                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
+                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {execution_code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
@@ -161,7 +180,7 @@ class FactorFBWorkspace(FBWorkspace):
 
                 execution_feedback = (
                     e.output.decode()
-                    .replace(str(code_path.parent.absolute()), r"/path/to")
+                    .replace(str(execution_code_path.parent.absolute()), r"/path/to")
                     .replace(str(site.getsitepackages()[0]), r"/path/to/site-packages")
                 )
                 if len(execution_feedback) > 2000:

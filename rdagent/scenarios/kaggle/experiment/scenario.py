@@ -4,40 +4,35 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelFBWorkspace,
-    ModelTask,
-)
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.workspace import KGFBWorkspace
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KGFactorExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspace]):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFBWorkspace(template_folder_path=Path(__file__).parent / "model_template")
-
-
-class KGModelScenario(Scenario):
+class KGScenario(Scenario):
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition)
+        self._source_data = self.source_data
+        self._output_format = self.output_format
+        self._interface = self.interface
+        self._simulator = self.simulator
+
         self.competition_type = None
         self.competition_description = None
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
 
-    def _analysis_competition_description(self):
-        # TODO: use gpt to analyze the competition description
+        self._background = self.background
 
+    def _analysis_competition_description(self):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["kg_description_template"]["system"])
@@ -49,6 +44,7 @@ class KGModelScenario(Scenario):
             .from_string(prompt_dict["kg_description_template"]["user"])
             .render(
                 competition_descriptions=self.competition_descriptions,
+                raw_data_information=self._source_data,
             )
         )
 
@@ -63,15 +59,19 @@ class KGModelScenario(Scenario):
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.competition_features = self.source_data
 
     @property
     def background(self) -> str:
-        background_template = prompt_dict["kg_model_background"]
+        background_template = prompt_dict["kg_background"]
+
+        train_script = (Path(__file__).parent / "meta_tpl" / "train.py").read_text()
 
         background_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(background_template)
             .render(
+                train_script=train_script,
                 competition_type=self.competition_type,
                 competition_description=self.competition_description,
                 target_description=self.target_description,
@@ -82,30 +82,26 @@ class KGModelScenario(Scenario):
 
     @property
     def source_data(self) -> str:
-        kaggle_conf = KGDockerConf()
-        data_path = Path(f"{kaggle_conf.share_data_path}/{self.competition}")
+        # TODO later we should improve this part
+        data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder)
 
-        csv_files = list(data_path.glob("*.csv"))
+        if (data_folder / "valid.pkl").exists():
+            X_valid = pd.read_pickle(data_folder / "valid.pkl")
+            return X_valid.head()
 
-        if not csv_files:
-            return "No CSV files found in the specified path."
+        preprocess_experiment = KGFactorExperiment([])
+        (
+            X_train,
+            X_valid,
+            y_train,
+            y_valid,
+            X_test,
+            passenger_ids,
+        ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
-        dataset = pd.concat([pd.read_csv(file) for file in csv_files], ignore_index=True)
-
-        simple_eda = dataset.info(buf=None)  # Capture the info output
-        data_shape = dataset.shape
-        data_head = dataset.head()
-
-        eda = (
-            f"Basic Info about the data:\n{simple_eda}\n"
-            f"Shape of the dataset: {data_shape}\n"
-            f"Sample Data:\n{data_head}\n"
-        )
-
-        data_description = self.competition_descriptions.get("Data Description", "No description provided")
-        eda += f"\nData Description:\n{data_description}"
-
-        return eda
+        data_folder.mkdir(exist_ok=True, parents=True)
+        X_valid.to_pickle(data_folder / "valid.pkl")
+        return X_valid.head()
 
     @property
     def output_format(self) -> str:
@@ -113,11 +109,19 @@ class KGModelScenario(Scenario):
 
     @property
     def interface(self) -> str:
-        return prompt_dict["kg_model_interface"]
+        return f"""The feature code should follow the interface:
+{prompt_dict['kg_feature_interface']}
+The model code should follow the interface:
+{prompt_dict['kg_model_interface']}
+"""
 
     @property
     def simulator(self) -> str:
-        return prompt_dict["kg_model_simulator"]
+        return f"""The feature code should follow the simulator:
+{prompt_dict['kg_feature_simulator']}
+The model code should follow the simulator:
+{prompt_dict['kg_model_simulator']}
+"""
 
     @property
     def rich_style_description(self) -> str:
@@ -126,11 +130,13 @@ kaggle scen """
 
     def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
-{self.background}
+{self._background}
+The source dataset you can use to generate the features:
+{self._source_data}
 The interface you should follow to write the runnable code:
-{self.interface}
+{self._interface}
 The output of your code should be in the format:
-{self.output_format}
+{self._output_format}
 The simulator user can use to test your model:
-{self.simulator}
+{self._simulator}
 """

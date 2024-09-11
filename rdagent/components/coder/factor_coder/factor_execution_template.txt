@@ -1,0 +1,13 @@
+import os
+
+import numpy as np
+import pandas as pd
+from factor import feat_eng
+
+if os.path.exists("valid.pkl"):
+    valid_df = pd.read_pickle("valid.pkl")
+else:
+    raise FileNotFoundError("No valid data found.")
+
+new_feat = feat_eng(valid_df)
+new_feat.to_hdf("result.h5", key="data", mode="w")

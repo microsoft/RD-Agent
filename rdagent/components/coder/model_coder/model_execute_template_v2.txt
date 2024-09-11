@@ -1,0 +1,20 @@
+import os
+import pickle
+
+import numpy as np
+import pandas as pd
+import torch
+from model import fit, predict, select
+
+train_X = pd.DataFrame(np.random.randn(8, 30), columns=[f"{i}" for i in range(30)])
+train_y = pd.Series(np.random.randint(0, 2, 8))
+valid_X = pd.DataFrame(np.random.randn(8, 30), columns=[f"{i}" for i in range(30)])
+valid_y = pd.Series(np.random.randint(0, 2, 8))
+
+model = fit(train_X, train_y, valid_X, valid_y)
+execution_model_output = predict(model, valid_X)
+
+execution_feedback_str = f"Execution successful, output numpy ndarray shape: {execution_model_output.shape}"
+
+pickle.dump(execution_model_output, open("execution_model_output.pkl", "wb"))
+pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))

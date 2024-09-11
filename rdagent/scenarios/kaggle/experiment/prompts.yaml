@@ -1,74 +1,297 @@
 kg_description_template:
   system: |-
     You are an assistant that extracts structured information from unstructured text.
+    The user will provide you a Kaggle competition description, and you need to extract specific details from it.
+    For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
+    Please answer in Json format with the following schema:
+    {
+      "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
+      "Competition Description": "A brief description of the competition",
+      "Target Description": "A description of the target variable to be predicted",
+      "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description. Importantly, your feature name should be exactly the same as the feature name in the dataset!
+    }
+
 
   user: |-
-    Based on the following competition description, please extract the following details:
-    1. Competition Type 
-    2. Competition Description
-    3. Target Description
-    4. Competition Features
+    Competition Description: 
+    {{ competition_descriptions }}
+    The raw data information:
+    {{ raw_data_information }}
 
-    Competition Description: {{ competition_descriptions }}
+kg_background: |-
+  You are solving a data science tasks and the type of the competition is {{ competition_type }}.
+  The competition description is:{{competition_description}}
+  
+  We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
 
-kg_model_background: |-
-  You are solving this data science tasks of {{ competition_type }}: 
-  {{competition_description}}
+  The train.py script is as follows:
+  ```python
+  {{ train_script }}
+  ```
   
-  We provide an overall pipeline in train.py. Now fill in the provided train.py script to train a {{ competition_type }} model to get a good performance on this task.
+  The final output of our pipeline is from a ensemble of up to four models. Each model is trained on a different subset of the data.
+  The four model types are: XGBoost, RandomForest, LightGBM and Neural Network (A Pytorch model).
   
-  The model is a machine learning or deep learning structure designed to predict {{ target_description }}. 
-  The data is extracted from the competition dataset, focusing on relevant attributes like {{ competition_features }}.
-  ModelType: The type of the model, "XGBoost" for XGBoost model.
+  The data is extracted from the competition dataset, focusing on relevant attributes in {{ competition_features }}.
+
+  The user firstly designs and implements a feature book for each model. The feature book is a combination of several features and feature groups.
+  The feature book is built from:
+  - Raw features: The raw features are the original features from the dataset.
+  - generated features: The generated features are the features that are calculated based on the raw features according to some formulations. The calculation should be align with some physical or logical meaning. Don't just simply apply some numeric operations to the raw features.
+  - feature groups: The feature groups are preprocessed group of features from the raw features like normalization, one hot encoding, etc.
+  The feature or feature group is defined in the following parts:
+  - Name: The name of the feature or feature group.
+  - Description: A description of the feature or feature group.
+  - Formulation: The formulation of the feature or feature group.
+  - Variables: The variable list used in the formulation. Notice: The variable should be a specific feature in the dataset. Please make sure the feature name is exactly the same as the feature name in the dataset.
   
+  For each model, the user will design and implement the model in a separate script.
   The model is defined in the following parts:
   - Name: The name of the model.
   - Description: A description of the model.
   - Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
-  
+  - ModelType: The type of the model, which should be one of ["XGBoost", "RandomForest", "LightGBM", "NN"].
   The model should provide clear and detailed documentation of its architecture and hyperparameters.
 
-kg_model_interface: |-
-  Your python code should follow the interface to better interact with the user's system.
-  You code should contain several parts:
+  The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:
+  - Feature related:
+    - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
+    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance.
+  - Model related:
+    - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
+    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
+
+  For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
+
+kg_feature_interface: |-
+  Your code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A class that is a subclass of xgboost. This class should have an __init__ function and a forward function, which inputs a tensor and outputs a tensor.
-  3. Set a variable called "model_cls" to the class you defined.
+  2. A feat_eng() function that handles feature engineering for each task.
+    The function should take the following arguments:
+      - X: The features as a pandas DataFrame.
+    The function should return the new features as a pandas DataFrame.
+  The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing only the engineered features. 
+  The original columns should be excluded from the returned DataFrame.
 
-  The user will save your code into a python file called "model.py". Then the user imports model_cls in file "model.py" after setting the cwd into the directory:
+  Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
+  
+  The feat_eng function can be one of the following:
+  - Feature engineering: This function calculated one new feature based on the existing raw data.
+  - Feature processing: This function processes the existing raw data like normalization or one hot encoding and return the processed data in the form of a pandas DataFrame.
+
+  Here is an example of how your Python code should be structured:
   ```python
-  from model import get_params, get_num_round
+  import pandas as pd
+
+  def feat_eng(X: pd.DataFrame):
+      """
+      return the selected features
+      """
+      return X.mean(axis=1).to_frame("mean_feature") # Example feature engineering
+      return X.fillna(0) # Example feature processing
   ```
-  So your python code should follow the pattern:
+
+  To Note:
+  1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
+  2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
+    Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`
+    Correct: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns, index=X.index)`
+
+kg_model_interface: |-
+  Your code should contain several parts:
+  1. The import part: import the necessary libraries.
+  2. A select() function that handles feature selection for both training and prediction phases.
+    The function should take the following arguments:
+      - X: The features as a pandas DataFrame.
+    The function should return the selected features as a pandas DataFrame.
+  3. A function called fit() that trains the model and returns the trained model. If feature selection is applied, it should be done within this function.
+    The function should take the following arguments:
+      - X_train: The training features as a pandas DataFrame.
+      - y_train: The training labels as a pandas Series.
+      - X_valid: The validation features as a pandas DataFrame.
+      - y_valid: The validation labels as a pandas Series.
+    The function should return the trained model.
+  4. A function called predict() that makes predictions using the trained model. If feature selection is applied, it should be done within this function.
+    The function should take the following arguments:
+      - model: The trained model.
+      - X: The features as a pandas DataFrame.
+    The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
+    
+  Here are some examples of how your Python code should be structured:
+
+  For XGBoost:
   ```python
-  def get_params():
-    params = {
-      ...
-    }
-    return params
-  def get_num_round():
-    return xxx
+  import pandas as pd
+  import numpy as np
+  import xgboost
+  from xgboost import DMatrix
+
+
+  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> xgboost.Booster:
+      X_train = select(X_train)
+      X_valid = select(X_valid)
+      dtrain = DMatrix(X_train, label=y_train)
+      dvalid = DMatrix(X_valid, label=y_valid)
+      params = ...  # Set parameters to XGBoost model
+      model = xgboost.train(params, dtrain, num_boost_round=100)
+      y_pred = model.predict(dvalid)
+
+      accuracy = ...  # Calculate accuracy
+      return model
+
+
+  def predict(model: xgboost.Booster, X: pd.DataFrame) -> np.ndarray:
+      X = select(X)
+      dtest = DMatrix(X)
+      y_pred = model.predict(dtest)
+
+      return y_pred
   ```
 
-  The model has one types,  "XGBoost" for XGBoost model.
-  The XGBoost Model leverages two critical hyperparameters: "arams" and "num_round".
-  "params": This hyperparameter encapsulates various settings that dictate the model's behavior and learning process.
-  "num_round": This hyperparameter specifies the number of training iterations the model will undergo.
-  User will initialize the XGBoost model with the following code:
+  For RandomForest:
   ```python
-  params = get_params()
-  num_round = get_num_round()
+  import pandas as pd
+  import numpy as np
+  from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+  from sklearn.metrics import accuracy_score
+
+
+  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> RandomForestClassifier | RandomForestRegressor:
+      X_train = select(X_train)
+      X_valid = select(X_valid)
+      model = RandomForestClassifier(...)  # fir classification tasks
+      model = RandomForestRegressor(...)  # for regression tasks
+      model.fit(X_train, y_train, ...) # Train the model
+
+      return model
+
+
+  def predict(model: RandomForestClassifier | RandomForestRegressor, X: pd.DataFrame) -> np.ndarray:
+      X = select(X)
+      y_pred = model.predict(X)
+
+      return y_pred
   ```
-  No other parameters will be passed to the model so give other parameters a default value or just make them static.
 
-  Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
+  For LightGBM:
+  ```python
+  import pandas as pd
+  import numpy as np
+  from lightgbm import LGBMClassifier, LGBMRegressor
 
-  Please notice that your model should only use current features as input. The user will provide the input tensor to the model's forward function.
 
+  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> LGBMClassifier | LGBMRegressor:
+      X_train = select(X_train)
+      X_valid = select(X_valid)
+      model = LGBMClassifier(...)  # for classification tasks, please add parameters here
+      model = LGBMRegressor(...)  # for regression tasks, please add parameters here
+
+      model.fit(X=X_train, y=y_train, eval_set=[(X_valid, y_valid)])
+      return model
+
+
+  def predict(model: LGBMClassifier | LGBMRegressor, X: pd.DataFrame) -> np.ndarray:
+      X = select(X)
+      y_pred = model.predict(X)
+
+      return y_pred
+  ```
+
+  For Neural Network:
+  ```python
+  import pandas as pd
+  import numpy as np
+  import torch
+  from torch.utils.data import DataLoader, TensorDataset
+
+
+  class NNModel(torch.nn.Module):
+      def __init__(self):
+          super(Model, self).__init__()
+          # Define your model here
+
+      def forward(self, x):
+          # Define the forward pass
+          return x
+
+
+  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+
+
+  def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame) -> torch.nn.Module:
+      X_train = select(X_train)
+      X_valid = select(X_valid)
+      model = NNModel()  # Initialize the model, You can write your own model class
+
+      optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Example optimizer, you can use any optimizer
+      criterion = torch.nn.CrossEntropyLoss()  # Example loss function, you can use any loss function
+
+      train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
+      valid_loader = DataLoader(TensorDataset(X_valid, y_valid), batch_size=64, shuffle=False)
+
+      # Example training loop, you can customize this loop as per your requirement
+      for epoch in range(10):
+          model.train()
+          for X_batch, y_batch in train_loader:
+              optimizer.zero_grad()
+              outputs = model(X_batch)
+              loss = criterion(outputs, y_batch)
+              loss.backward()
+              optimizer.step()
+
+          model.eval()
+          y_pred = []
+          with torch.no_grad():
+              for X_batch, _ in valid_loader:
+                  outputs = model(X_batch)
+                  y_pred.extend(outputs.squeeze().tolist())
+
+          y_pred = torch.tensor(y_pred)
+          accuracy = (y_pred == y_valid).float().mean()
+          # You can early stop based on the validation, please customize this as per your requirement
+      return model
+
+
+  def predict(model: torch.nn.Module, X: pd.DataFrame) -> np.ndarray:
+      X = select(X)
+      X = torch.tensor(X.values).float()
+      model.eval()
+      with torch.no_grad():
+          y_pred = model(X).squeeze().numpy()
+
+      return y_pred
+  ```
+
+kg_feature_simulator: |-
+  The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
+  The processed data will then be used for model training and prediction.
+  
+  User will use your data preprocessing method to do the following steps:
+  1. Execute your Python files to process the data. (what you need to do)
+  2. Concatenate the processed features with other features and the original data.
+  3. Remove any unnecessary features before training the model.
+  4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
+  5. Evaluate the performance of your preprocessing method and provide feedback.
 
 kg_model_output_format: |-
-  Your output should be an array with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
+  For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
   
 kg_model_simulator: |-
-  The models will be trained on the competition dataset and evaluated on their ability to predict whether passengers were transported using metrics like accuracy and AUC-ROC. 
+  The models will be trained on the competition dataset and evaluated on their ability to predict the target. Metrics like accuracy and AUC-ROC is used to evaluate the model performance. 
   Model performance will be iteratively improved based on feedback from evaluation results.

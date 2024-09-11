@@ -12,66 +12,76 @@ hypothesis_and_feedback: |-
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
-  "hypothesis": "The new hypothesis generated based on the information provided.",
-  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
-  "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
-  "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
-  "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
-  "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
+    "action": "The action that the user wants to take based on the information provided. should be one of ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"]", Only "Model tuning" For Now
+    "hypothesis": "The new hypothesis generated based on the information provided.",
+    "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
+    "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
+    "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
+    "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
+    "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
 
-model_hypothesis_specification: |-
-  Additional Specifications:
-    
-    Hypotheses should grow and evolve based on the previous hypothesis. If there is no previous hypothesis, start with something simple. Gradually Build Up Upon previous hypothesis & feedbacks. In each round, hypothesis is different. Pay attention to your previous hypothesis.
+factor_hypothesis_specification: |-
+  1. **Type of Feature and Data Characteristics:**
+    - Define the type of feature introduced.
+    - Explain the data characteristics or patterns captured by this feature.
+    - Omit unnecessary or redundant details.
+  2. **Simple and Effective Features First:**
+    - Start with features that are simple and likely effective.
+    - Concisely explain why these features are expected to work.
+    - Avoid complex or combined features initially.
+  3. **Gradual Complexity Increase:**
+    - Introduce more complex features as more experimental results are gathered.
+    - Discuss potential advantages and complexities.
+    - Combine features only after simpler ones are tested and validated.
+  4. **New Directions and Optimizations:**
+    - If a new direction is needed, explain why based on data analysis, domain knowledge, or observed patterns.
+    - Suggest only one new direction at a time for clarity.
+    - If a previous hypothesis did not surpass the previous best, but seems optimizable, you may continue in the same direction.
+    - Highlight that features surpassing the previous best are included in the feature library to avoid re-implementation.
+  5. **1-3 Features per Generation:**
+    - Ensure each generation produces 1-3 features.
+    - Balance simplicity and complexity to build a robust feature library.
 
-    Ensure that the hypothesis focuses on the architecture of a PyTorch model. Each hypothesis should address specific architectural choices such as the type of layers, activation functions, regularization techniques, and the overall structure of the model. Avoid hypotheses related to input features or optimization processes.
-
-  Remember: if there is no hypothesis, start with something simple like MLP.
-
-  Usually, a larger model works better than a smaller one. 
-
-  Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
-
-  Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
-
-    1st Round Hypothesis: The model should be a CNN. 
-
-    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
-
-    3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
-
-    4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
-    
-    5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
-
-    6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+feature_experiment_output_format: |-
+  According to the hypothesis, please help user design one or more feature engineering tasks.
+  The output should follow JSON format. The schema is as follows:
+  {
+      "factor or group name 1": {
+          "description": "description of factor or group name 1",
+          "formulation": "latex formulation of factor or group name 1",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      },
+      "factor or group name 2": {
+          "description": "description of factor or group name 2",
+          "formulation": "latex formulation of factor or group name 2",
+          "variables": {
+              "variable or function name 1": "description of variable or function 1",
+              "variable or function name 2": "description of variable or function 2"
+          }
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+  }
 
 model_experiment_output_format: |-
-  So far please only design one model to test the hypothesis! 
+  According to the hypothesis, please help user design one model task.
+  Since we only build one model from four model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].  
   The output should follow JSON format. The schema is as follows: 
   {
-    "model_name 1 (The name of the model)": {
-        "description": "A detailed description of the model",
-        "formulation": "A LaTeX formula representing the model's formulation",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "variables": {
-            "\\hat{y}_u": "The predicted output for node u",
-            "variable_name_2": "Description of variable 2",
-            "variable_name_3": "Description of variable 3"
-        },
-        "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-        },
-        "model_type": "XGBoost" # Should be "XGBoost"
-    },
-    "model_name 2 (The name of the model)": {
-        ...
-    }
+      "model_name": "model_name",
+      "description": "A detailed description of the model",
+      "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+      "hyperparameters": {
+          "hyperparameter_name_1": "value of hyperparameter 1",
+          "hyperparameter_name_2": "value of hyperparameter 2",
+          "hyperparameter_name_3": "value of hyperparameter 3"
+      },
+      "model_type": "model type"
   }
-  Usually a larger model works better than a smaller one. Hence, the parameters should be larger.
+  Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
 model_feedback_generation:
   system: |-
@@ -91,19 +101,19 @@ model_feedback_generation:
     
     Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 
-    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypothesis to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**
+    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
 
-      1st Round Hypothesis: The model should be a CNN. 
+    1st Round Hypothesis: The model should be a CNN with no feature selection.
 
-      2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers. (Reasoning: As CNN worked, we now specify the layers specification to grow the hypothesis deeper.)
+    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
 
-      3rd Round Hypothesis (If second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. (Reasoning: As 5-layer structure didn't work in the 2nd round hypothesis, try something else within the layer configuration level.)
+    3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
 
-      4th Round Hypothesis (If third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. (As last round worked, now proceed to the next level: activation functions)
-      
-      5th Round Hypothesis (If fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. (Similar Reasoning & Continuing to Grow to the dropout setup)
+    4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
+    
+    5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
 
-      6th Round Hypothesis (If fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. (Reasoning: As regularisation rate of 0.5 didn't work, we only change a new regularisation and keep the other elements that worked. This means making changes in the current level.)    
+    6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
 
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
@@ -128,3 +138,64 @@ model_feedback_generation:
 
     Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
     Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 
+
+factor_feedback_generation:
+  system: |-
+    You are a professional data feature engineering assistant in data-driven R&D. 
+    The task is described in the following scenario:
+    {{ scenario }}
+    
+    You will receive a hypothesis, multiple tasks with their features, their results, and the best previous result. 
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous best results, and suggest improvements or new directions.
+    
+    Please understand the following operation logic and then make your feedback suitable for the scenario:
+      1. Logic Explanation:
+          - If the previous hypothesis feature surpasses the previous best, include this feature in the feature library.
+          - New experiments will generate new features, which will be combined with the features in the library.
+          - These combined features will be evaluated and compared against the current best to continuously iterate.
+      2. Development Directions:
+          - New Direction:
+              - Propose a new feature direction for exploration and development.
+          - Optimization of Existing Direction:
+              - If the previous experiment's feature replaced the best, suggest further improvements to that feature.
+              - Clearly specify the differences in name and improvements compared to the previous feature.
+          - Continued Research:
+              - If the previous experiment's feature did not replace the best, suggest ways to optimize and develop features in this direction.
+      3. Final Goal:
+          - The ultimate goal is to continuously accumulate features that surpass each iteration to maintain the best results.
+    
+    Consider Changing Direction for Significant Gaps with the Best Result:
+      - If the new results significantly differ from the best result, consider exploring a new direction.
+      - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
+    Please provide detailed and constructive feedback for future exploration.
+    Respond in JSON format. Example JSON structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
+      "Replace Best Result": "yes or no"
+    }
+  user: |-
+    Target hypothesis: 
+    {{ hypothesis_text }}
+    Tasks and Features:
+    {% for task in task_details %}
+      - {{ task.factor_name }}: {{ task.factor_description }}
+        - Feature Formulation: {{ task.factor_formulation }}
+        - Variables: {{ task.variables }}
+        - Feature Implementation: {{ task.factor_implementation }}
+        {% if task.factor_implementation == "False" %}
+        **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
+        {% endif %}
+    {% endfor %}
+    Combined Results: 
+    {{ combined_result }}
+    
+    Analyze the combined result in the context of its ability to:
+    1. Support or refute the hypothesis.
+    2. Show improvement or deterioration compared to the best result.
+    Consider Changing Direction for Significant Gaps with the Best Result:
+      - If the new results significantly differ from the best, consider exploring a new direction.
+      - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
+    Note: Only features with 'Feature Implementation' as True are implemented and tested in this experiment. If 'Feature Implementation' is False, the hypothesis for that feature cannot be verified in this run.

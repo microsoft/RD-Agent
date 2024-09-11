@@ -13,28 +13,32 @@ class PropSetting(BasePropSetting):
         """Add 'model_' to the protected namespaces"""
 
     # 1) overriding the default
-    scen: str = "rdagent.scenarios.kaggle.experiment.model_experiment.KGModelScenario"
+    scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"
     """Scenario class for data mining model"""
 
-    hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.model_proposal.KGModelHypothesisGen"
+    hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesisGen"
     """Hypothesis generation class"""
 
-    hypothesis2experiment: str = "rdagent.scenarios.kaggle.proposal.model_proposal.KGModelHypothesis2Experiment"
+    hypothesis2experiment: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesis2Experiment"
     """Hypothesis to experiment class"""
 
-    coder: str = "rdagent.scenarios.kaggle.developer.model_coder.KGModelCoSTEER"
-    """Coder class"""
+    feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
+    """Feature Coder class"""
 
-    runner: str = "rdagent.scenarios.kaggle.developer.model_runner.KGModelRunner"
-    """Runner class"""
+    model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
+    """Model Coder class"""
 
-    summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGModelHypothesisExperiment2Feedback"
+    feature_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGFactorRunner"
+    """Feature Runner class"""
+
+    model_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGModelRunner"
+    """Model Runner class"""
+
+    summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGHypothesisExperiment2Feedback"
     """Summarizer class"""
 
     evolving_n: int = 10
     """Number of evolutions"""
-
-    evolving_n: int = 10
 
     competition: str = ""
 

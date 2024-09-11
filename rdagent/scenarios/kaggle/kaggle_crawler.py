@@ -6,7 +6,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-LOCAL_PATH = "/data/userdata/share/kaggle_competition_descriptions"
+from rdagent.log import rdagent_logger as logger
+from rdagent.utils.env import KGDockerConf
 
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
@@ -17,8 +18,8 @@ service = Service("/usr/local/bin/chromedriver")
 
 
 def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
-    if (fp := Path(f"{LOCAL_PATH}/{competition}.json")).exists() and not force:
-        print(f"Found {competition}.json, loading from local file.")
+    if (fp := Path(f"{KGDockerConf().local_data_path}/{competition}.json")).exists() and not force:
+        logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
 
@@ -61,7 +62,7 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
-    with open(f"{LOCAL_PATH}/{competition}.json", "w") as f:
+    with open(f"{KGDockerConf().dockerfile_folder_path}/{competition}.json", "w") as f:
         json.dump(descriptions, f)
     return descriptions
 
