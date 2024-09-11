@@ -1,7 +1,6 @@
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
-  #TODO 这里只加model代码吗
   Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].code_dict.get("model.py")}}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
@@ -69,7 +68,7 @@ feature_experiment_output_format: |-
 
 model_experiment_output_format: |-
   According to the hypothesis, please help user design one model task.
-  Since we only build one model from four model types: ["XGBoost", "RandomForest", "LightGBM", "NN"]. Please pick one from them.
+  Since we only build one model from four model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].  
   The output should follow JSON format. The schema is as follows: 
   {
       "model_name": "model_name",

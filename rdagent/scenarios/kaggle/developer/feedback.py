@@ -25,7 +25,7 @@ def process_results(current_result, sota_result):
     sota_df = pd.DataFrame(sota_result)
 
     # Combine the dataframes on the Metric index
-    combined_df = pd.DataFrame({'Current Result': current_result, 'SOTA Result': sota_result})
+    combined_df = pd.DataFrame({'Current Result': current_df, 'SOTA Result': sota_df})
 
     # Add a new column to show which result is bigger
     combined_df["Bigger Result"] = combined_df.apply(
@@ -40,7 +40,6 @@ def process_results(current_result, sota_result):
     return combined_df.to_string()
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
-#TODO 区分factor 和 model 的prompt
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
@@ -50,9 +49,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         """
         Generate feedback for the given experiment and hypothesis.
         Args:
-            exp (FactorExperiment): The experiment to generate feedback for.
-            hypothesis (FactorHypothesis): The hypothesis to generate feedback for.
-            trace (Trace): The trace of the experiment.
+            exp: The experiment to generate feedback for.
+            hypothesis: The hypothesis to generate feedback for.
+            trace: The trace of the experiment.
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
@@ -88,7 +87,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         )
 
         # Generate the user prompt based on the action type
-        if hypothesis.action == "Model Tuning":
+        if hypothesis.action == "Model Tuning": #TODO Add other prompts here 
             prompt_key = "model_feedback_generation"
         else:
             prompt_key = "factor_feedback_generation"
