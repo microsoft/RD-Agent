@@ -26,20 +26,20 @@ def process_results(current_result, sota_result):
     sota_df = pd.DataFrame(sota_result)
 
     # Combine the dataframes on the Metric index
-    combined_df = pd.DataFrame({"Current Result": current_df, "SOTA Result": sota_df})
+    combined_df = pd.concat([current_df, sota_df], axis=1)
+    combined_df.columns = ["current_df", "sota_df"]
 
-    # Add a new column to show which result is bigger
-    combined_df["Bigger Result"] = combined_df.apply(
-        lambda row: "Equal"
-        if row["Current Result"] == row["SOTA Result"]
-        else ("Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result"),
+    combined_df["the largest"] = combined_df.apply(
+        lambda row: "sota_df"
+        if row["sota_df"] > row["current_df"]
+        else ("Equal" if row["sota_df"] == row["current_df"] else "current_df"),
         axis=1,
     )
 
     # Add a note about metric direction
     combined_df["Note"] = "Direction of improvement (higher/lower is better) should be judged per metric"
 
-    return combined_df.to_string()
+    return combined_df
 
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):

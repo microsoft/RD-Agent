@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask, FeatureExperiment
+from rdagent.components.coder.factor_coder.factor import (
+    FactorFBWorkspace,
+    FactorTask,
+    FeatureExperiment,
+)
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
     ModelFBWorkspace,
