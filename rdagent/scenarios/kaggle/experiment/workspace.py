@@ -69,11 +69,7 @@ class KGFBWorkspace(FBWorkspace):
 
         csv_path = self.workspace_path / "submission_score.csv"
 
-        print("WORKSPACE PATH IS HERE --------------------------------------------------------------------------------")
-        print(self.workspace_path)
-        print("CSV PATH IS HERE --------------------------------------------------------------------------------------")
-        print(csv_path)
-        print("CSV PATH IS HERE --------------------------------------------------------------------------------------")
+        logger.info(self.workspace_path)
 
         if not csv_path.exists():
             logger.error(f"File {csv_path} does not exist.")
