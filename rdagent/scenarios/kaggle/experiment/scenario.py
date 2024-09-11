@@ -82,8 +82,7 @@ class KGScenario(Scenario):
 
     @property
     def source_data(self) -> str:
-        # TODO later we should improve this part
-        data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder)
+        data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / self.competition
 
         if (data_folder / "valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "valid.pkl")
