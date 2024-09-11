@@ -151,7 +151,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             sms = msg.content.result
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
-                            elif isinstance(state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)):
+                            elif isinstance(
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                            ):
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
                             elif isinstance(state.scenario, KGScenario):
                                 sms = sms.loc[["MCC"]]
@@ -345,9 +347,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
 
 
 def summary_window():
-    if isinstance(
-        state.scenario, SIMILAR_SCENARIOS
-    ):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         if state.lround == 0:
             return
@@ -467,17 +467,9 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
 
 def research_window():
     with st.container(border=True):
-        title = (
-            "Research🔍"
-            if isinstance(
-                state.scenario, SIMILAR_SCENARIOS
-            )
-            else "Research🔍 (reader)"
-        )
+        title = "Research🔍" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Research🔍 (reader)"
         st.subheader(title, divider="blue", anchor="_research")
-        if isinstance(
-            state.scenario, SIMILAR_SCENARIOS
-        ):
+        if isinstance(state.scenario, SIMILAR_SCENARIOS):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -512,9 +504,7 @@ def research_window():
 
 
 def feedback_window():
-    if isinstance(
-        state.scenario, SIMILAR_SCENARIOS
-    ):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
@@ -543,13 +533,7 @@ def feedback_window():
 
 @st.fragment
 def evolving_window():
-    title = (
-        "Development🛠️"
-        if isinstance(
-            state.scenario, SIMILAR_SCENARIOS
-        )
-        else "Development🛠️ (evolving coder)"
-    )
+    title = "Development🛠️" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Development🛠️ (evolving coder)"
     st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
@@ -745,9 +729,7 @@ if state.scenario is not None:
     summary_window()
 
     # R&D Loops Window
-    if isinstance(
-        state.scenario, SIMILAR_SCENARIOS
-    ):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:
             r_options = list(state.msgs.keys())

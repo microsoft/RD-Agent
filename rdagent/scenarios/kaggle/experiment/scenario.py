@@ -90,9 +90,14 @@ class KGScenario(Scenario):
             return X_valid.head()
 
         preprocess_experiment = KGFactorExperiment([])
-        X_train, X_valid, y_train, y_valid, X_test, passenger_ids = (
-            preprocess_experiment.experiment_workspace.generate_preprocess_data()
-        )
+        (
+            X_train,
+            X_valid,
+            y_train,
+            y_valid,
+            X_test,
+            passenger_ids,
+        ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
         data_folder.mkdir(exist_ok=True, parents=True)
         X_valid.to_pickle(data_folder / "valid.pkl")

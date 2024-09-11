@@ -5,10 +5,7 @@ from typing import List, Tuple
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelTask,
-)
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.proposal.model_proposal import (
     ModelHypothesis,
     ModelHypothesis2Experiment,

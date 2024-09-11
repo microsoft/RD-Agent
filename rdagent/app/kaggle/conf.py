@@ -30,7 +30,7 @@ class PropSetting(BasePropSetting):
 
     feature_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGFactorRunner"
     """Feature Runner class"""
-    
+
     model_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGModelRunner"
     """Model Runner class"""
 

@@ -58,7 +58,7 @@ class ModelRDLoop(RDLoop):
                 exp = self.model_coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
-    
+
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:

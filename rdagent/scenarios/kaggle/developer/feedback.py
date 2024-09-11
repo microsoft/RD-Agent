@@ -19,25 +19,28 @@ from rdagent.utils import convert2bool
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+
 def process_results(current_result, sota_result):
     # Convert the results to dataframes
     current_df = pd.DataFrame(current_result)
     sota_df = pd.DataFrame(sota_result)
 
     # Combine the dataframes on the Metric index
-    combined_df = pd.DataFrame({'Current Result': current_df, 'SOTA Result': sota_df})
+    combined_df = pd.DataFrame({"Current Result": current_df, "SOTA Result": sota_df})
 
     # Add a new column to show which result is bigger
     combined_df["Bigger Result"] = combined_df.apply(
-        lambda row: "Equal" if row["Current Result"] == row["SOTA Result"] else
-        ("Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result"),
-        axis=1
+        lambda row: "Equal"
+        if row["Current Result"] == row["SOTA Result"]
+        else ("Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result"),
+        axis=1,
     )
 
     # Add a note about metric direction
     combined_df["Note"] = "Direction of improvement (higher/lower is better) should be judged per metric"
 
     return combined_df.to_string()
+
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
@@ -67,7 +70,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                     tasks_factors.append(task_info)
                 except AttributeError:
                     print(f"Warning: Task {task} does not have get_task_information_and_implementation_result method")
-        
+
         # Check if there are any based experiments
         if exp.based_experiments:
             sota_result = exp.based_experiments[-1].result
@@ -78,7 +81,6 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result = process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
-
         # Generate the system prompt
         sys_prompt = (
             Environment(undefined=StrictUndefined)
@@ -87,7 +89,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         )
 
         # Generate the user prompt based on the action type
-        if hypothesis.action == "Model Tuning": #TODO Add other prompts here 
+        if hypothesis.action == "Model Tuning":  # TODO Add other prompts here
             prompt_key = "model_feedback_generation"
         else:
             prompt_key = "factor_feedback_generation"

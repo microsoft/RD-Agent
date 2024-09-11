@@ -147,10 +147,10 @@ class FactorFBWorkspace(FBWorkspace):
                     )
                 )
             elif self.target_task.version == 2:
-                #TODO you can change the name of the data folder for a better understanding
+                # TODO you can change the name of the data folder for a better understanding
                 source_data_path = Path(
-                        FACTOR_IMPLEMENT_SETTINGS.data_folder,
-                    )
+                    FACTOR_IMPLEMENT_SETTINGS.data_folder,
+                )
 
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"

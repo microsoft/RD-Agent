@@ -1,12 +1,12 @@
-from fea_share_preprocess import preprocess_script
 import importlib.util
+import random
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import random
+from fea_share_preprocess import preprocess_script
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 from sklearn.preprocessing import LabelEncoder
-
 
 # Set random seed for reproducibility
 SEED = 42
@@ -21,10 +21,12 @@ def compute_metrics_for_classification(y_true, y_pred):
     accuracy = accuracy_score(y_true, y_pred)
     return accuracy
 
+
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute MCC for classification."""
     mcc = matthews_corrcoef(y_true, y_pred)
     return mcc
+
 
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -32,8 +34,9 @@ def import_module_from_path(module_name, module_path):
     spec.loader.exec_module(module)
     return module
 
+
 # 1) Preprocess the data
-#TODO 如果已经做过数据预处理了，不需要再做了
+# TODO 如果已经做过数据预处理了，不需要再做了
 X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
 # 2) Auto feature engineering
@@ -62,7 +65,8 @@ X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
 X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
 
 from sklearn.impute import SimpleImputer
-imputer = SimpleImputer(strategy='mean')
+
+imputer = SimpleImputer(strategy="mean")
 
 X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
 X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
@@ -94,9 +98,7 @@ mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
 print("Final on validation set: ", mcc)
 
 # 6) Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv(
-    "submission_score.csv"
-)
+pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 label_encoder = LabelEncoder()
