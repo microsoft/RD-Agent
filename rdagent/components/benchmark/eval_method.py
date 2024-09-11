@@ -19,7 +19,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
-from rdagent.core.exception import CoderError, CustomRunnerError
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
@@ -27,12 +27,6 @@ from rdagent.core.utils import multiprocessing_wrapper
 EVAL_RES = Dict[
     str,
     List[Tuple[FactorEvaluator, Union[object, CoderError]]],
-]
-
-
-EVAL_RES = Dict[
-    str,
-    List[Tuple[FactorEvaluator, Union[object, CustomRunnerError]]],
 ]
 
 
