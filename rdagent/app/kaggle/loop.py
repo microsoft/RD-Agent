@@ -3,7 +3,7 @@ from typing import Any
 
 import fire
 
-from rdagent.app.kaggle.conf import PROP_SETTING
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
@@ -83,9 +83,9 @@ def main(path=None, step_n=None, competition=None):
 
     """
     if competition:
-        PROP_SETTING.competition = competition
+        KAGGLE_IMPLEMENT_SETTING.competition = competition
     if path is None:
-        model_loop = ModelRDLoop(PROP_SETTING)
+        model_loop = ModelRDLoop(KAGGLE_IMPLEMENT_SETTING)
     else:
         model_loop = ModelRDLoop.load(path)
     model_loop.run(step_n=step_n)

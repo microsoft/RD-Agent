@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from rdagent.app.kaggle.conf import PROP_SETTING
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import KGDockerEnv
@@ -34,7 +34,7 @@ class KGFBWorkspace(FBWorkspace):
     def generate_preprocess_data(
         self,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
-        kgde = KGDockerEnv(PROP_SETTING.competition)
+        kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
         execute_log, results = kgde.dump_python_code_run_and_get_results(
@@ -58,7 +58,7 @@ class KGFBWorkspace(FBWorkspace):
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         logger.info(f"Running the experiment in {self.workspace_path}")
-        kgde = KGDockerEnv(PROP_SETTING.competition)
+        kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
         execute_log = kgde.run(
@@ -69,11 +69,7 @@ class KGFBWorkspace(FBWorkspace):
 
         csv_path = self.workspace_path / "submission_score.csv"
 
-        print("WORKSPACE PATH IS HERE --------------------------------------------------------------------------------")
-        print(self.workspace_path)
-        print("CSV PATH IS HERE --------------------------------------------------------------------------------------")
-        print(csv_path)
-        print("CSV PATH IS HERE --------------------------------------------------------------------------------------")
+        logger.info(self.workspace_path)
 
         if not csv_path.exists():
             logger.error(f"File {csv_path} does not exist.")

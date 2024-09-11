@@ -1,9 +1,10 @@
+import pickle
 import shutil
-import uuid
 from pathlib import Path
 
-import pandas as pd
-
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import ModelEmptyError
@@ -81,6 +82,16 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
         exp.result = result
+        sub_task = FactorTask(
+            factor_name="original features", factor_description="here is the original features", factor_formulation=""
+        )
+
+        org_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "valid.pkl"
+        with open(org_data_path, "rb") as f:
+            org_data = pickle.load(f)
+        feature_shape = org_data.shape[-1]
+        exp.experiment_workspace.data_description.append((sub_task.get_task_information(), feature_shape))
+
         if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
 

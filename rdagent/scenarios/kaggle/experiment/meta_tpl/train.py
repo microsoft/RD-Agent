@@ -40,8 +40,8 @@ def import_module_from_path(module_name, module_path):
 X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
 # 2) Auto feature engineering
-X_train_l, X_valid_l = [X_train], [X_valid]
-X_test_l = [X_test]
+X_train_l, X_valid_l = [], []
+X_test_l = []
 
 for f in DIRNAME.glob("feature/feat*.py"):
     m = import_module_from_path(f.stem, f)

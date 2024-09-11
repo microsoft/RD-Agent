@@ -123,6 +123,6 @@ You can try our demo by running the following command:
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
 
-.. autopydantic_settings:: rdagent.app.data_mining.conf.PropSetting
+.. autopydantic_settings:: rdagent.app.data_mining.conf.MedBasePropSetting
     :settings-show-field-summary: False
     :exclude-members: Config

@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 from rdagent.components.workflow.conf import BasePropSetting
 
 
-class PropSetting(BasePropSetting):
+class KaggleBasePropSetting(BasePropSetting):
     class Config:
         env_prefix = "KG_"
         """Use `KG_` as prefix for environment variables"""
@@ -43,4 +43,4 @@ class PropSetting(BasePropSetting):
     competition: str = ""
 
 
-PROP_SETTING = PropSetting()
+KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
