@@ -99,16 +99,6 @@ class BaseEval:
             for each item
                 If the evaluation run successfully, return the evaluate results.  Otherwise, return the exception.
         """
-        if not case_gen:
-            return Exception("invalid implementation")
-        execution_feedback, gen_df = case_gen.execute()
-        if (isinstance(gen_df, pd.DataFrame) and gen_df.empty) or (not isinstance(gen_df, pd.DataFrame) and not gen_df):
-            execution_feedback = re.sub(r"(?<=\D)(,\s+-?\d+\.\d+){50,}(?=\D)", ", ", execution_feedback)
-            execution_feedback = "\n".join(
-                [line for line in execution_feedback.split("\n") if "warning" not in line.lower()]
-            )
-            return Exception(execution_feedback)
-            
         eval_res = []
         for ev in self.evaluator_l:
             try:
