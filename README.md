@@ -22,7 +22,7 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------                        |
-| First release | **RDAgent** is released on Github |
+| First release | **RDAgent** is released on GitHub |
 
 
 # 🌟 Introduction
