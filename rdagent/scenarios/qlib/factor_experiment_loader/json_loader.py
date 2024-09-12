@@ -55,10 +55,9 @@ class FactorTestCaseLoaderFromJsonFile:
                 factor_formulation=factor_data["formulation"],
                 variables=factor_data["variables"],
             )
-            gt = FactorFBWorkspace(task)
+            gt = FactorFBWorkspace(task, raise_exception=True)
             code = {"factor.py": factor_data["gt_code"]}
             gt.inject_code(**code)
-            gt.execute()
             TestData.target_task.sub_tasks.append(task)
             TestData.ground_truth.append(gt)
 
