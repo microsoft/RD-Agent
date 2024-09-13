@@ -32,7 +32,7 @@ def process_with_gpt(content: str):
     try:
         response_json_analysis = json.loads(response_analysis)
     except json.JSONDecodeError:
-        response_json_analysis = {"error": "Failed to parse GPT response as JSON"}
+        response_json_analysis = {"error": "Failed to parse LLM's response as JSON"}
 
     return response_json_analysis
 
