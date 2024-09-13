@@ -46,7 +46,6 @@ def process_all_case_files(directory_path: str):
 
             with open(file_path, "r", encoding="utf-8") as file:
                 content = file.read()
-                print(f"Processing file: {filename}")
                 gpt_response = process_with_gpt(content)
                 json_output.append(gpt_response)
 
