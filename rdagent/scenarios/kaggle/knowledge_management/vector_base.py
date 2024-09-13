@@ -42,7 +42,7 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         super().__init__(content, label, embedding, identity)
         self.competition_name = competition_name
         self.task_category = task_category  # 任务类型是必需的
-        self.field = field  # 知识领域，可选
+        self.field = field  # 知识领域，可选model/data/others
         self.ranking = ranking  # 排名
         #TODO ranking 和 score 可以统一
         self.score = score  # 比赛得分
@@ -196,7 +196,7 @@ class KaggleExperienceBase(PDVectorBase):
 
 if __name__ == "__main__":
 
-    kaggle_base = KaggleExperienceBase(kaggle_experience_path="/home/v-yuanteli/RD-Agent/rdagent/scenarios/kaggle/knowledge_management/kaggle_experience.json")
+    kaggle_base = KaggleExperienceBase(kaggle_experience_path="rdagent/scenarios/kaggle/knowledge_management/kaggle_experience.json")
     
     kaggle_base.add_experience_to_vector_base()
 
