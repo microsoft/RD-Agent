@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 from rdagent.components.workflow.conf import BasePropSetting
 
 
-class PropSetting(BasePropSetting):
+class MedBasePropSetting(BasePropSetting):
     class Config:
         env_prefix = "DM_"
         """Use `DM_` as prefix for environment variables"""
@@ -46,4 +46,4 @@ class PropSetting(BasePropSetting):
     """Physionet account password"""
 
 
-PROP_SETTING = PropSetting()
+MED_PROP_SETTING = MedBasePropSetting()

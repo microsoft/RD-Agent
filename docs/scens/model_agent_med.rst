@@ -17,10 +17,12 @@ In this task, we aim at predicting the whether the patients will suffer from Acu
 
 .. raw:: html
 
-    <video width="600" controls>
-      <source src="https://rdagent.azurewebsites.net:443/media/0fbd26bb297369a4ca52409ff65a3f7cb941c6af6429894367a6afcd.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <video width="600" controls>
+        <source src="https://rdagent.azurewebsites.net/media/1653542fc1b9fa14a306c35c1b1fc48288f980793f38abe82b023af9.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
 
 
 🌟 Introduction
@@ -69,32 +71,45 @@ Please refer to the installation part in :doc:`../installation_and_configuration
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
-    - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+  
+  - Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+
+    .. code-block:: sh
     
-      .. code-block:: sh
-      
-          conda create -n rdagent python=3.10
+        conda create -n rdagent python=3.10
 
-    - Activate the environment:
+  - Activate the environment:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          conda activate rdagent
+        conda activate rdagent
 
 - 📦 Install the RDAgent
-    - You can directly install the RDAgent package from PyPI:
+    
+  - You can install the RDAgent package from PyPI:
 
-      .. code-block:: sh
+    .. code-block:: sh
 
-          pip install rdagent
+        pip install rdagent
 
 - 📦 Request PhysioNet Account
-    - Apply for an account at `PhysioNet <https://physionet.org/>`_.
-    - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
-    - Place your username and password in `.rdagent.app.data_mining.conf`.
+    
+  - Apply for an account at `PhysioNet <https://physionet.org/>`_.
+  - Request access to FIDDLE preprocessed data: `FIDDLE Dataset <https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/>`_.
+  - Place your username and password in `.env`.
+
+    .. code-block:: bash
+
+        cat << EOF  >> .env
+        DM_USERNAME=<your_username>
+        DM_PASSWORD=<your_password>
+        EOF
 
 
 - 🚀 Run the Application
+    
+  - You can directly run the application by using the following command:
+    
     .. code-block:: sh
 
         rdagent med_model
@@ -108,6 +123,6 @@ You can try our demo by running the following command:
 
 The following environment variables can be set in the `.env` file to customize the application's behavior:
 
-.. autopydantic_settings:: rdagent.app.data_mining.conf.PropSetting
+.. autopydantic_settings:: rdagent.app.data_mining.conf.MedBasePropSetting
     :settings-show-field-summary: False
     :exclude-members: Config

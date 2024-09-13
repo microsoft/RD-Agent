@@ -161,7 +161,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
         buffer = io.StringIO()
         gen_df.info(buf=buffer)
-        gen_df_info_str = buffer.getvalue()
+        gen_df_info_str = f"The use is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
@@ -378,6 +378,7 @@ class FactorValueEvaluator(FactorEvaluator):
         self,
         implementation: Workspace,
         gt_implementation: Workspace,
+        version: int = 1,  # 1 for qlib factors and 2 for kaggle factors
         **kwargs,
     ) -> Tuple:
         conclusions = []
@@ -389,18 +390,21 @@ class FactorValueEvaluator(FactorEvaluator):
         equal_value_ratio_result = 0
         high_correlation_result = False
 
-        # Check if both dataframe has only one columns
-        feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
-        conclusions.append(feedback_str)
+        # Check if both dataframe has only one columns Mute this since factor task might generate more than one columns now
+        if version == 1:
+            feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
+            conclusions.append(feedback_str)
 
         # Check if the index of the dataframe is ("datetime", "instrument")
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
-
-        feedback_str, daily_check_result = FactorDatetimeDailyEvaluator(self.scen).evaluate(
-            implementation, gt_implementation
-        )
-        conclusions.append(feedback_str)
+        if version == 1:
+            feedback_str, daily_check_result = FactorDatetimeDailyEvaluator(self.scen).evaluate(
+                implementation, gt_implementation
+            )
+            conclusions.append(feedback_str)
+        else:
+            daily_check_result = None
 
         # Check if both dataframe have the same rows count
         if gt_implementation is not None:
@@ -627,7 +631,9 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                 (
                     factor_feedback.factor_value_feedback,
                     decision_from_value_check,
-                ) = self.value_evaluator.evaluate(implementation=implementation, gt_implementation=gt_implementation)
+                ) = self.value_evaluator.evaluate(
+                    implementation=implementation, gt_implementation=gt_implementation, version=target_task.version
+                )
 
             factor_feedback.final_decision_based_on_gt = gt_implementation is not None
 
@@ -647,7 +653,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                     target_task=target_task,
                     implementation=implementation,
                     execution_feedback=factor_feedback.execution_feedback,
-                    value_feedback=factor_feedback.factor_value_feedback,
+                    factor_value_feedback=factor_feedback.factor_value_feedback,
                     gt_implementation=gt_implementation,
                 )
                 (

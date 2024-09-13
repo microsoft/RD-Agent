@@ -2,12 +2,7 @@ from dataclasses import field
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
-
-# Load environment variables
-load_dotenv(verbose=True, override=True)
-
 
 DIRNAME = Path("./")
 

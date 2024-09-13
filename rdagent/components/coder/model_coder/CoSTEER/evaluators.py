@@ -24,7 +24,7 @@ from rdagent.oai.llm_utils import APIBackend
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-def shape_evaluator(prediction: torch.Tensor, target_shape: Tuple = None) -> Tuple[str, bool]:
+def shape_evaluator(prediction: torch.Tensor | np.ndarray, target_shape: Tuple = None) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
         return (
             "No output generated from the model. No shape evaluation conducted.",
@@ -279,12 +279,8 @@ class ModelCoderEvaluator(Evaluator):
         else:
             gt_tensor = None
 
-        if target_task.model_type == "XGBoost":
-            shape_feedback = "Not applicable for XGBoost models"
-            shape_decision = True
-        else:
-            shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
-        value_feedback, value_decision = value_evaluator(gt_tensor, gen_tensor)
+        shape_feedback, shape_decision = shape_evaluator(gen_tensor, (batch_size, 1))
+        value_feedback, value_decision = value_evaluator(gen_tensor, gt_tensor)
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,

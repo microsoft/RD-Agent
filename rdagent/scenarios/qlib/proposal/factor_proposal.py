@@ -84,7 +84,14 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             description = response_dict[factor_name]["description"]
             formulation = response_dict[factor_name]["formulation"]
             variables = response_dict[factor_name]["variables"]
-            tasks.append(FactorTask(factor_name, description, formulation, variables))
+            tasks.append(
+                FactorTask(
+                    factor_name=factor_name,
+                    factor_description=description,
+                    factor_formulation=formulation,
+                    variables=variables,
+                )
+            )
 
         exp = QlibFactorExperiment(tasks)
         exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
