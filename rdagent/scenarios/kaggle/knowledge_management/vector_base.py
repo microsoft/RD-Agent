@@ -2,14 +2,16 @@ import uuid
 from pathlib import Path
 from typing import List, Tuple, Union
 
-from _pytest.cacheprovider import json
 import pandas as pd
+from _pytest.cacheprovider import json
 from scipy.spatial.distance import cosine
 
-from rdagent.components.knowledge_management.vector_base import PDVectorBase
+from rdagent.components.knowledge_management.vector_base import (
+    KnowledgeMetaData,
+    PDVectorBase,
+)
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.components.knowledge_management.vector_base import KnowledgeMetaData
 
 
 class KGKnowledgeMetaData(KnowledgeMetaData):
@@ -17,8 +19,20 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
     Class for handling Kaggle competition specific metadata
     """
 
-    def __init__(self, content: str = "", label: str = None, embedding=None, 
-                 identity=None, competition_name=None, task_category=None, field=None, ranking=None, score=None, entities=None, relations=None):
+    def __init__(
+        self,
+        content: str = "",
+        label: str = None,
+        embedding=None,
+        identity=None,
+        competition_name=None,
+        task_category=None,
+        field=None,
+        ranking=None,
+        score=None,
+        entities=None,
+        relations=None,
+    ):
         """
         Initialize KGKnowledgeMetaData for Kaggle competition posts
 
@@ -44,9 +58,9 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         self.task_category = task_category  # 任务类型是必需的
         self.field = field  # 知识领域，可选model/data/others/overall
         self.ranking = ranking  # 排名
-        #TODO ranking 和 score 可以统一
+        # TODO ranking 和 score 可以统一
         self.score = score  # 比赛得分
-        #TODO 或许不该放在这里？
+        # TODO 或许不该放在这里？
         self.entities = entities or []  # 知识图谱中的实体
         self.relations = relations or []  # 知识图谱中的关系
 
@@ -55,6 +69,7 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         Split content into trunks and create embeddings by trunk
         #TODO let GPT do the split based on the field of knowledge(data/model/others)
         """
+
         def split_string_into_chunks(string: str, chunk_size: int):
             chunks = []
             for i in range(0, len(string), chunk_size):
@@ -70,20 +85,24 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         Load Kaggle post data from a dictionary
         """
         super().from_dict(data)
-        self.competition_name = data.get('competition_name', None)
-        self.task_category = data.get('task_category', None)
-        self.field = data.get('field', None)
-        self.ranking = data.get('ranking', None)
-        self.score = data.get('score', None)
-        self.entities = data.get('entities', [])
-        self.relations = data.get('relations', [])
+        self.competition_name = data.get("competition_name", None)
+        self.task_category = data.get("task_category", None)
+        self.field = data.get("field", None)
+        self.ranking = data.get("ranking", None)
+        self.score = data.get("score", None)
+        self.entities = data.get("entities", [])
+        self.relations = data.get("relations", [])
         return self
 
     def __repr__(self):
-        return (f"KGKnowledgeMetaData(id={self.id}, label={self.label}, competition={self.competition_name}, "
-                f"task_category={self.task_category}, field={self.field}, ranking={self.ranking}, score={self.score})")
+        return (
+            f"KGKnowledgeMetaData(id={self.id}, label={self.label}, competition={self.competition_name}, "
+            f"task_category={self.task_category}, field={self.field}, ranking={self.ranking}, score={self.score})"
+        )
+
 
 KGDocument = KGKnowledgeMetaData
+
 
 class KaggleExperienceBase(PDVectorBase):
     """
@@ -93,7 +112,7 @@ class KaggleExperienceBase(PDVectorBase):
     def __init__(self, vector_df_path: Union[str, Path] = None, kaggle_experience_path: Union[str, Path] = None):
         """
         Initialize the KaggleExperienceBase class
-        
+
         Parameters:
         ----------
         vector_df_path: str or Path, optional
@@ -107,7 +126,7 @@ class KaggleExperienceBase(PDVectorBase):
 
         if kaggle_experience_path:
             self.load_kaggle_experience(kaggle_experience_path)
-    
+
     def add(self, document: Union[KGDocument, List[KGDocument]]):
         document.split_into_trunk()
         docs = [
@@ -139,20 +158,20 @@ class KaggleExperienceBase(PDVectorBase):
                     }
                     for trunk, trunk_embedding in zip(document.trunks, document.trunks_embedding)
                 ]
-        )
+            )
         self.vector_df = pd.concat([self.vector_df, pd.DataFrame(docs)], ignore_index=True)
 
     def load_kaggle_experience(self, kaggle_experience_path: Union[str, Path]):
         """
         Load Kaggle experience posts from a JSON or text file
-        
+
         Parameters:
         ----------
         kaggle_experience_path: str or Path
             Path to the Kaggle experience post data.
         """
         try:
-            with open(kaggle_experience_path, 'r', encoding='utf-8') as file:
+            with open(kaggle_experience_path, "r", encoding="utf-8") as file:
                 self.kaggle_experience_data = json.load(file)
             logger.info(f"Kaggle experience data loaded from {kaggle_experience_path}")
         except FileNotFoundError:
@@ -164,22 +183,22 @@ class KaggleExperienceBase(PDVectorBase):
         Process the Kaggle experience data and add relevant information to the vector base
         """
         for experience in self.kaggle_experience_data:
-            content = experience.get('content', '')
-            label = experience.get('title', 'Kaggle Experience')
-            competition_name = experience.get('competition_name', 'Unknown Competition')
-            task_category = experience.get('task_category', 'General Task')
-            field = experience.get('field', None)
-            ranking = experience.get('ranking', None)
-            score = experience.get('score', None)
-            
+            content = experience.get("content", "")
+            label = experience.get("title", "Kaggle Experience")
+            competition_name = experience.get("competition_name", "Unknown Competition")
+            task_category = experience.get("task_category", "General Task")
+            field = experience.get("field", None)
+            ranking = experience.get("ranking", None)
+            score = experience.get("score", None)
+
             document = KGKnowledgeMetaData(
-                content=content, 
-                label=label, 
-                competition_name=competition_name, 
-                task_category=task_category, 
-                field=field, 
-                ranking=ranking, 
-                score=score
+                content=content,
+                label=label,
+                competition_name=competition_name,
+                task_category=task_category,
+                field=field,
+                ranking=ranking,
+                score=score,
             )
             document.create_embedding()
             self.add(document)
@@ -213,9 +232,10 @@ class KaggleExperienceBase(PDVectorBase):
 
 
 if __name__ == "__main__":
+    kaggle_base = KaggleExperienceBase(
+        kaggle_experience_path="git_ignore_folder/experience/tabular_cases/kaggle_experience_results.json"
+    )
 
-    kaggle_base = KaggleExperienceBase(kaggle_experience_path="git_ignore_folder/experience/tabular_cases/kaggle_experience_results.json")
-    
     kaggle_base.add_experience_to_vector_base()
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
@@ -223,4 +243,6 @@ if __name__ == "__main__":
     search_results, similarities = kaggle_base.search_experience(query="image classification", topk_k=3)
 
     for result, similarity in zip(search_results, similarities):
-        print(f"Competition name: {result.competition_name}, task_category: {result.task_category}, score: {result.score}, similarity: {similarity}")
+        print(
+            f"Competition name: {result.competition_name}, task_category: {result.task_category}, score: {result.score}, similarity: {similarity}"
+        )
