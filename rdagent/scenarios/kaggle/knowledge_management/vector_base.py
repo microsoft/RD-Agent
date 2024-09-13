@@ -55,14 +55,14 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         """
         super().__init__(content, label, embedding, identity)
         self.competition_name = competition_name
-        self.task_category = task_category  # 任务类型是必需的
-        self.field = field  # 知识领域，可选model/data/others/overall
-        self.ranking = ranking  # 排名
-        # TODO ranking 和 score 可以统一
-        self.score = score  # 比赛得分
-        # TODO 或许不该放在这里？
-        self.entities = entities or []  # 知识图谱中的实体
-        self.relations = relations or []  # 知识图谱中的关系
+        self.task_category = task_category  # Task type is required
+        self.field = field  # Knowledge field, optional (model/data/others/overall)
+        self.ranking = ranking  # Ranking
+        # TODO ranking and score might be unified
+        self.score = score  # Competition score
+        # TODO Perhaps this shouldn't be here?
+        self.entities = entities or []  # Entities in the knowledge graph
+        self.relations = relations or []  # Relations in the knowledge graph
 
     def split_into_trunk(self, size: int = 1000, overlap: int = 0):
         """
