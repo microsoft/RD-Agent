@@ -42,12 +42,28 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         super().__init__(content, label, embedding, identity)
         self.competition_name = competition_name
         self.task_category = task_category  # 任务类型是必需的
-        self.field = field  # 知识领域，可选model/data/others
+        self.field = field  # 知识领域，可选model/data/others/overall
         self.ranking = ranking  # 排名
         #TODO ranking 和 score 可以统一
         self.score = score  # 比赛得分
+        #TODO 或许不该放在这里？
         self.entities = entities or []  # 知识图谱中的实体
         self.relations = relations or []  # 知识图谱中的关系
+
+    def split_into_trunk(self, size: int = 1000, overlap: int = 0):
+        """
+        Split content into trunks and create embeddings by trunk
+        #TODO let GPT do the split based on the field of knowledge(data/model/others)
+        """
+        def split_string_into_chunks(string: str, chunk_size: int):
+            chunks = []
+            for i in range(0, len(string), chunk_size):
+                chunk = string[i : i + chunk_size]
+                chunks.append(chunk)
+            return chunks
+
+        self.trunks = split_string_into_chunks(self.content, chunk_size=size)
+        self.trunks_embedding = APIBackend().create_embedding(input_content=self.trunks)
 
     def from_dict(self, data: dict):
         """
@@ -93,6 +109,7 @@ class KaggleExperienceBase(PDVectorBase):
             self.load_kaggle_experience(kaggle_experience_path)
     
     def add(self, document: Union[KGDocument, List[KGDocument]]):
+        document.split_into_trunk()
         docs = [
             {
                 "id": document.id,
@@ -106,21 +123,22 @@ class KaggleExperienceBase(PDVectorBase):
                 "embedding": document.embedding,
             }
         ]
-        docs.extend(
-            [
-                {
-                    "id": document.id,
-                    "label": document.label,
-                    "content": document.content,
-                    "competition_name": document.competition_name,
-                    "task_category": document.task_category,
-                    "field": document.field,
-                    "ranking": document.ranking,
-                    "score": document.score,
-                    "embedding": trunk_embedding,
-                }
-                for trunk, trunk_embedding in zip(document.trunks, document.trunks_embedding)
-            ]
+        if len(document.trunks) > 1:
+            docs.extend(
+                [
+                    {
+                        "id": document.id,
+                        "label": document.label,
+                        "content": document.content,
+                        "competition_name": document.competition_name,
+                        "task_category": document.task_category,
+                        "field": document.field,
+                        "ranking": document.ranking,
+                        "score": document.score,
+                        "embedding": trunk_embedding,
+                    }
+                    for trunk, trunk_embedding in zip(document.trunks, document.trunks_embedding)
+                ]
         )
         self.vector_df = pd.concat([self.vector_df, pd.DataFrame(docs)], ignore_index=True)
 
