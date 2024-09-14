@@ -1,9 +1,10 @@
 import os
 import ast
+import inspect
 from typing import List, Dict, Union
 from pathlib import Path
 
-class RepoAnalyser:
+class RepoAnalyzer:
     def __init__(self, repo_path: str):
         self.repo_path = Path(repo_path)
         self.summaries = {}
@@ -99,11 +100,26 @@ class RepoAnalyser:
     def _summarize_function(self, node: ast.FunctionDef, verbose_level: int, doc_str_level: int, sign_level: int, indent: str = "") -> str:
         summary = f"{indent}Function: {node.name}\n"
         if sign_level > 0:
-            args = ", ".join([a.arg for a in node.args.args])
-            summary += f"{indent}  Accepts parameters: {args}\n"
+            # Generate the function signature
+            args = []
+            for arg in node.args.args:
+                arg_str = arg.arg
+                if arg.annotation:
+                    arg_str += f": {ast.unparse(arg.annotation)}"
+                args.append(arg_str)
+            
+            if node.args.vararg:
+                args.append(f"*{node.args.vararg.arg}")
+            if node.args.kwarg:
+                args.append(f"**{node.args.kwarg.arg}")
+            
+            returns = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+            signature = f"{node.name}({', '.join(args)}){returns}"
+            summary += f"{indent}  Signature: {signature}\n"
+        
         if doc_str_level > 0 and ast.get_docstring(node):
-            doc = ast.get_docstring(node).split('.')[0]
-            summary += f"{indent}  Purpose: {doc}.\n"
+            doc = ast.get_docstring(node)
+            summary += f"{indent}  Purpose: {doc.split('.')[0]}.\n"
         return summary
 
     def highlight(self, file_names: Union[str, List[str]]) -> Dict[str, str]:
@@ -127,3 +143,11 @@ class RepoAnalyser:
 
         return highlighted_content
 
+# Example usage:
+if __name__ == "__main__":
+    repo_analyzer = RepoAnalyzer("/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/model")
+    summaries = repo_analyzer.summarize_repo(verbose_level=2, doc_str_level=1, sign_level=1)
+    print(summaries)
+
+    highlighted_content = repo_analyzer.highlight(["model_rf.py", "model_xgb.py"])
+    print(highlighted_content)
