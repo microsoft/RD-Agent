@@ -104,7 +104,7 @@ class BaseEval:
             try:
                 eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
-            except CoderError as e:
+            except (CoderError, AttributeError) as e:
                 return e
             except Exception as e:
                 # exception when evaluation
