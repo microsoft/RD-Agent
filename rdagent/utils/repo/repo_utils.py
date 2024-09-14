@@ -142,12 +142,3 @@ class RepoAnalyzer:
                 highlighted_content[file_name] = f"File not found: {file_name}"
 
         return highlighted_content
-
-# Example usage:
-if __name__ == "__main__":
-    repo_analyzer = RepoAnalyzer("/home/v-xisenwang/RD-Agent/rdagent/scenarios/kaggle/experiment/meta_tpl/model")
-    summaries = repo_analyzer.summarize_repo(verbose_level=2, doc_str_level=1, sign_level=1)
-    print(summaries)
-
-    highlighted_content = repo_analyzer.highlight(["model_rf.py", "model_xgb.py"])
-    print(highlighted_content)
