@@ -147,3 +147,15 @@ class RepoAnalyzer:
                 highlighted_content[file_name] = f"File not found: {file_name}"
 
         return highlighted_content
+
+
+if __name__ == "__main__":
+    analyzer = RepoAnalyzer(repo_path="features")
+    summary = analyzer.summarize_repo(verbose_level=2, doc_str_level=2, sign_level=2)
+    print(summary)
+    highlighted_files = analyzer.highlight(
+        file_names=["utils/repo/repo_utils.py", "components/benchmark/eval_method.py"]
+    )
+    print("\nHighlighted Files:")
+    for file_name, content in highlighted_files.items():
+        print(f"\n{file_name}\n{'=' * len(file_name)}\n{content}")
