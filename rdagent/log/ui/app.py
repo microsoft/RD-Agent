@@ -531,7 +531,6 @@ def feedback_window():
                 )
 
 
-@st.fragment
 def evolving_window():
     title = "Development🛠️" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Development🛠️ (evolving coder)"
     st.subheader(title, divider="green", anchor="_development")
