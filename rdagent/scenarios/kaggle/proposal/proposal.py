@@ -17,6 +17,7 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
+from rdagent.components.knowledge_management.vector_base import PDVectorBase
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -72,8 +73,9 @@ class KGHypothesisGen(ModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
 
-    def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario) -> None:
         super().__init__(scen)
+        self.vector_base = PDVectorBase()  # Initialize the vector database
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_feedback = (
@@ -81,9 +83,14 @@ class KGHypothesisGen(ModelHypothesisGen):
             .from_string(prompt_dict["hypothesis_and_feedback"])
             .render(trace=trace)
         )
+
+        # Perform RAG search
+        rag_results, _ = self.vector_base.search(hypothesis_feedback, topk_k=5)
+        rag_content = "\n".join([doc.content for doc in rag_results])
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": None,
+            "RAG": rag_content,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }
