@@ -99,7 +99,7 @@ model_feedback_generation:
 
     Focus on the changes in hypothesis and justify why do hypothesis evolve like this. Also, increase complexity as the hypothesis evolves  (give more layers, more neurons, and etc)
     
-    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis didn't work, try to make changes in the current level.
 
     Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
 
@@ -248,6 +248,7 @@ feature_selection_feedback_generation:
     Available Features:
     {% for feature in available_features %}
     - {{feature.name}}: {{feature.description}}
+      Shape: {{feature.shape}}
     {% endfor %}
 
     Compare and observe the results. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 

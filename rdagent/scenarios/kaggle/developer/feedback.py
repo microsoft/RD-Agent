@@ -49,23 +49,13 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     def get_available_features(self, exp: Experiment):
         features = []
         
-        # Get original features
-        org_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "valid.pkl"
-        with open(org_data_path, "rb") as f:
-            org_data = pickle.load(f)
-        
-        for i in range(org_data.shape[-1]):
-            features.append({"name": f"original_feature_{i}", "description": "Original feature"})
-        
-        # Get engineered features
-        for feature_file in sorted(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")):
-            with open(feature_file, 'r') as f:
-                content = f.read()
-                # This is a simple extraction method. You might need to adjust this based on the actual structure of your feature files.
-                for line in content.split('\n'):
-                    if line.strip().startswith('X['):
-                        feature_name = line.split('[')[1].split(']')[0].strip("'\"")
-                        features.append({"name": feature_name, "description": "Engineered feature"})
+        for feature_info in exp.experiment_workspace.data_description:
+            task_info, feature_shape = feature_info
+            features.append({
+                "name": task_info.factor_name,
+                "description": task_info.factor_description,
+                "shape": feature_shape
+            })
         
         return features
 
@@ -106,37 +96,39 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         available_features = self.get_available_features(exp)
 
-        # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
-        )
-
         # Get the appropriate model code
         model_code = self.get_model_code(exp)
 
         # Generate the user prompt based on the action type
-        if hypothesis.action in ["Model tuning", "Model feature selection"]:  
-            prompt_key = "model_feedback_generation"
-            render_dict = {
-                "context": self.scen.get_scenario_all_desc(),
-                "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
-                "last_task": trace.hist[-1][1] if trace.hist else None,
-                "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
-                "last_result": trace.hist[-1][1].result if trace.hist else None,
-                "hypothesis": hypothesis,
-                "exp": exp,
-                "model_code": model_code,
-                "available_features": available_features,
-            }
+        if hypothesis.action == "Model tuning":
+            prompt_key = "model_tuning_feedback_generation"
+        elif hypothesis.action == "Model feature selection":
+            prompt_key = "feature_selection_feedback_generation"
         else:
             prompt_key = "factor_feedback_generation"
-            render_dict = {
-                "hypothesis_text": hypothesis_text,
-                "task_details": tasks_factors,
-                "combined_result": combined_result,
-            }
+
+        # Generate the system prompt
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts[prompt_key]["system"])
+            .render(scenario=self.scen.get_scenario_all_desc())
+        )
+
+        # Prepare render dictionary
+        render_dict = {
+            "context": self.scen.get_scenario_all_desc(),
+            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+            "last_task": trace.hist[-1][1] if trace.hist else None,
+            "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+            "last_result": trace.hist[-1][1].result if trace.hist else None,
+            "hypothesis": hypothesis,
+            "exp": exp,
+            "model_code": model_code,
+            "available_features": available_features,
+            "combined_result": combined_result,
+            "hypothesis_text": hypothesis_text,
+            "task_details": tasks_factors,
+        }
         
         # Generate the user prompt
         usr_prompt = (
