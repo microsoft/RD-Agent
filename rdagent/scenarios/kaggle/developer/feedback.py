@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import pickle
 
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
@@ -15,6 +16,8 @@ from rdagent.core.proposal import (
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import convert2bool
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 
 feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -43,21 +46,43 @@ def process_results(current_result, sota_result):
 
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
-        """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
-        For example: `mlflow` of Qlib will be included.
-        """
+    def get_available_features(self, exp: Experiment):
+        features = []
+        
+        # Get original features
+        org_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "valid.pkl"
+        with open(org_data_path, "rb") as f:
+            org_data = pickle.load(f)
+        
+        for i in range(org_data.shape[-1]):
+            features.append({"name": f"original_feature_{i}", "description": "Original feature"})
+        
+        # Get engineered features
+        for feature_file in sorted(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")):
+            with open(feature_file, 'r') as f:
+                content = f.read()
+                # This is a simple extraction method. You might need to adjust this based on the actual structure of your feature files.
+                for line in content.split('\n'):
+                    if line.strip().startswith('X['):
+                        feature_name = line.split('[')[1].split(']')[0].strip("'\"")
+                        features.append({"name": feature_name, "description": "Engineered feature"})
+        
+        return features
 
-        """
-        Generate feedback for the given experiment and hypothesis.
-        Args:
-            exp: The experiment to generate feedback for.
-            hypothesis: The hypothesis to generate feedback for.
-            trace: The trace of the experiment.
-        Returns:
-            Any: The feedback generated for the given experiment and hypothesis.
-        """
+    def get_model_code(self, exp: Experiment):
+        model_type = exp.sub_tasks[0].model_type if exp.sub_tasks else None
+        if model_type == "XGBoost":
+            return exp.sub_workspace_list[0].code_dict.get("model_xgb.py")
+        elif model_type == "RandomForest":
+            return exp.sub_workspace_list[0].code_dict.get("model_rf.py")
+        elif model_type == "LightGBM":
+            return exp.sub_workspace_list[0].code_dict.get("model_lgb.py")
+        elif model_type == "NN":
+            return exp.sub_workspace_list[0].code_dict.get("model_nn.py")
+        else:
+            return None
+
+    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
@@ -74,12 +99,12 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Check if there are any based experiments
         if exp.based_experiments:
             sota_result = exp.based_experiments[-1].result
-            # Process the results to filter important metrics
             combined_result = process_results(current_result, sota_result)
         else:
-            # If there are no based experiments, we'll only use the current result
-            combined_result = process_results(current_result, current_result)  # Compare with itself
+            combined_result = process_results(current_result, current_result)
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
+
+        available_features = self.get_available_features(exp)
 
         # Generate the system prompt
         sys_prompt = (
@@ -88,23 +113,36 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(scenario=self.scen.get_scenario_all_desc())
         )
 
+        # Get the appropriate model code
+        model_code = self.get_model_code(exp)
+
         # Generate the user prompt based on the action type
-        if hypothesis.action == "Model tuning":  
+        if hypothesis.action in ["Model tuning", "Model feature selection"]:  
             prompt_key = "model_feedback_generation"
-        elif hypothesis.action == "Model feature selection":
-            prompt_key = "feature_selection_feedback_generation"
+            render_dict = {
+                "context": self.scen.get_scenario_all_desc(),
+                "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+                "last_task": trace.hist[-1][1] if trace.hist else None,
+                "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+                "last_result": trace.hist[-1][1].result if trace.hist else None,
+                "hypothesis": hypothesis,
+                "exp": exp,
+                "model_code": model_code,
+                "available_features": available_features,
+            }
         else:
             prompt_key = "factor_feedback_generation"
+            render_dict = {
+                "hypothesis_text": hypothesis_text,
+                "task_details": tasks_factors,
+                "combined_result": combined_result,
+            }
         
         # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts[prompt_key]["user"])
-            .render(
-                hypothesis_text=hypothesis_text,
-                task_details=tasks_factors,
-                combined_result=combined_result,
-            )
+            .render(**render_dict)
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
@@ -122,7 +160,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         hypothesis_evaluation = response_json.get("Feedback for Hypothesis", "No feedback provided")
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
-        decision = convert2bool(response_json.get("Replace Best Result", "no"))
+        decision = convert2bool(response_json.get("Decision", "false"))
 
         return HypothesisFeedback(
             observations=observations,
