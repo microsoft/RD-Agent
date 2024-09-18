@@ -17,7 +17,9 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.kaggle.knowledge_management.vector_base import KaggleExperienceBase
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
+)
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,

@@ -77,7 +77,7 @@ class KGHypothesisGen(ModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
 
-    def __init__(self, scen: Scenario, knowledge: VectorBase=None) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario, knowledge: VectorBase = None) -> Tuple[dict, bool]:
         super().__init__(scen)
         self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
 

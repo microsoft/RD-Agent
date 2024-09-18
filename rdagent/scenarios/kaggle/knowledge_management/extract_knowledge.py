@@ -37,7 +37,7 @@ def extract_knowledge_from_high_score_answers(content: str):
     return response_json_analysis
 
 
-def extract_knowledge_from_feedback(self, feedback_response: dict) -> dict:
+def extract_knowledge_from_feedback(feedback_response: dict) -> dict:
     """
     Extracts knowledge from LLM-generated feedback and structures it.
     """
@@ -50,7 +50,7 @@ def extract_knowledge_from_feedback(self, feedback_response: dict) -> dict:
     user_prompt = (
         Environment(undefined=StrictUndefined)
         .from_string(prompt_dict["extract_kaggle_knowledge_from_feedback_prompts"]["user"])
-        .render(file_content=json.dumps(feedback_response))
+        .render(experiment_strategy=feedback_response)
     )
 
     response_analysis = APIBackend().build_messages_and_create_chat_completion(
