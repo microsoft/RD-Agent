@@ -33,7 +33,8 @@ class ModelRDLoop(RDLoop):
             logger.log_object(scen, tag="scenario")
 
             self.vector_base = KaggleExperienceBase()
-            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
+            if KAGGLE_IMPLEMENT_SETTING.rag_path:
+                self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
