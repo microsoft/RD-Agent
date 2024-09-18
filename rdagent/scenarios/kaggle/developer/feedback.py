@@ -89,11 +89,13 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         )
 
         # Generate the user prompt based on the action type
-        if hypothesis.action == "Model Tuning":  # TODO Add other prompts here
+        if hypothesis.action == "Model tuning":  
             prompt_key = "model_feedback_generation"
+        elif hypothesis.action == "Model feature selection":
+            prompt_key = "feature_selection_feedback_generation"
         else:
             prompt_key = "factor_feedback_generation"
-
+        
         # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined)

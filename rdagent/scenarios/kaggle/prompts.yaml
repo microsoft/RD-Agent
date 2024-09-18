@@ -12,7 +12,7 @@ hypothesis_and_feedback: |-
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
-    "action": "The action that the user wants to take based on the information provided. should be one of ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"]"
+    "action": "The action that the user wants to take based on the information provided. should be one of ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"]" Focus on Model feature selection for now.
     "hypothesis": "The new hypothesis generated based on the information provided.",
     "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
     "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
@@ -175,8 +175,7 @@ factor_feedback_generation:
       "New Hypothesis": "Your new hypothesis here",
       "Reasoning": "Reasoning for the new hypothesis",
       "Replace Best Result": "yes or no"
-    }
-  user: |-
+    }  user: |-
     Target hypothesis: 
     {{ hypothesis_text }}
     Tasks and Features:
@@ -199,3 +198,60 @@ factor_feedback_generation:
       - If the new results significantly differ from the best, consider exploring a new direction.
       - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
     Note: Only features with 'Feature Implementation' as True are implemented and tested in this experiment. If 'Feature Implementation' is False, the hypothesis for that feature cannot be verified in this run.
+
+
+feature_selection_feedback_generation:
+  system: |-
+    You are a professional feature selection assistant. You will receive a result and a hypothesis related to feature selection.
+    Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
+    Please provide detailed and constructive feedback. Note that as hypotheses evolve, a general trend should be that the feature selection becomes more sophisticated.
+    Example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Put your new hypothesis for feature selection here.",
+      "Reasoning": "Provide reasoning for the hypothesis here.",
+      "Decision": <true or false>,
+    }
+
+    Focus on the changes in hypothesis and justify why the feature selection hypotheses evolve like this. Also, increase sophistication as the hypothesis evolves (more advanced selection techniques, combinations of methods, etc.)
+    
+    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and add more complexity. If the previous hypothesis doesn't work, try to make changes in the current level or explore a different direction.
+
+    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Selection Method**, **Number of Features**, **Feature Importance Metrics**, **Feature Interaction**, **Domain-Specific Features**
+
+    1st Round Hypothesis: Use all available features without any selection.
+
+    2nd Round Hypothesis (If first round worked: This is the baseline, so we should start with a simple selection method): Use correlation-based feature selection to choose the top 50% of features. (Reasoning: As using all features worked, we now introduce a simple selection method to potentially improve performance.)
+
+    3rd Round Hypothesis (If the second round didn't work): Use Lasso (L1 regularization) for feature selection, retaining features with non-zero coefficients. (Reasoning: As correlation-based selection didn't work, we switch to a more sophisticated method that can handle feature interactions.)
+
+    4th Round Hypothesis (If the third round worked): Use Lasso for initial feature selection, then apply Random Forest feature importance to select the top 20 features. (As Lasso worked, we now combine it with another method to potentially capture more complex feature relationships.)
+    
+    5th Round Hypothesis (If the fourth round worked): Use Lasso for initial feature selection, apply Random Forest feature importance, and then add polynomial features of degree 2 for the top 10 features. (Similar reasoning & continuing to grow by adding feature interactions.)
+
+    6th Round Hypothesis (If the fourth round didn't work): Use Recursive Feature Elimination with Random Forest as the base estimator, selecting the top 30 features. Then, add domain-specific features based on financial ratios. (Reasoning: As the previous method didn't work, we switch to a different selection technique and incorporate domain knowledge.)
+
+  user: |-
+    We are in an experiment of finding hypotheses for feature selection and validating or rejecting them so that in the end we have an optimal set of features for our model.
+    Here are the context: {{context}}. 
+
+    {% if last_hypothesis %} 
+    Last Round Information:
+    Hypothesis: {{last_hypothesis.hypothesis}}
+    Task: {{last_task}}
+    Code Implemented: {{last_code}}
+    Result: {{last_result}}
+    {% else %}
+    This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
+    {% endif %} 
+    
+    Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
+    Hypothesis: {{hypothesis.hypothesis}}
+    Experiment Setup: {{exp.sub_tasks[0]}}
+    Code Implemented: {{exp.sub_workspace_list[0].code_dict.get("factor.py")}}
+    Relevant Reasoning: {{hypothesis.reason}}
+    Result: {{exp.result}}
+
+    Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
+    Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis for feature selection. 
