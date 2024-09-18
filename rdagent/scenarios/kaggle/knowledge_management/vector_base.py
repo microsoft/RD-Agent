@@ -12,6 +12,7 @@ from rdagent.components.knowledge_management.vector_base import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import extract_knowledge_from_feedback
 
 
 class KGKnowledgeMetaData(KnowledgeMetaData):
@@ -188,7 +189,7 @@ class KaggleExperienceBase(PDVectorBase):
         """
         # If experiment feedback is provided, extract relevant knowledge and add it to the vector base
         if experiment_feedback:
-            extracted_knowledge = self.extract_knowledge_from_feedback(experiment_feedback)
+            extracted_knowledge = extract_knowledge_from_feedback(experiment_feedback)
 
             document = KGKnowledgeMetaData(
                 content=experiment_feedback.get("hypothesis_text", ""),

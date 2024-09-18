@@ -134,7 +134,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "reason": reason,
         }
 
-        self.vector_base.add_experience_to_vector_base(experiment_feedback)
+        self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
 
         return HypothesisFeedback(
             observations=observations,

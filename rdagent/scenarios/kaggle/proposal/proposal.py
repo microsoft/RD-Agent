@@ -7,6 +7,7 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
+from rdagent.components.knowledge_management.vector_base import VectorBase
 from rdagent.components.proposal.model_proposal import (
     ModelHypothesis,
     ModelHypothesis2Experiment,
@@ -72,14 +73,13 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     .. code-block:: python
 
-        class XXXDMModelHypothesisGen(DMModelHypothesisGen):
+        class KGHypothesisGen(ModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
 
-    def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario, knowledge: VectorBase=None) -> Tuple[dict, bool]:
         super().__init__(scen)
-        self.vector_base = KaggleExperienceBase()
-        self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
+        self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_feedback = (
@@ -88,7 +88,7 @@ class KGHypothesisGen(ModelHypothesisGen):
             .render(trace=trace)
         )
 
-        rag_results, _ = self.vector_base.search_experience(hypothesis_feedback, topk_k=5)
+        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_feedback, topk_k=5)
         rag_content = "\n".join([doc.content for doc in rag_results])
 
         context_dict = {
