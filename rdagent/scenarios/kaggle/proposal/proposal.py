@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.proposal.model_proposal import (
@@ -17,8 +18,9 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
-from rdagent.scenarios.kaggle.knowledge_management.vector_base import KaggleExperienceBase
-from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
+)
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
