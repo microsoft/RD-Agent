@@ -80,7 +80,7 @@ def main(path=None, step_n=None, competition=None):
     .. code-block:: bash
 
         dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
-        rdagent kaggle --competition playground-series-s4e8
+        rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
 
     """
     if competition:
