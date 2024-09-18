@@ -10,7 +10,7 @@ class KaggleBasePropSetting(BasePropSetting):
         env_prefix = "KG_"
         """Use `KG_` as prefix for environment variables"""
         protected_namespaces = ()
-        """Add 'model_' to the protected namespaces"""
+        """Do not allow overriding of these namespaces"""
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"
@@ -41,6 +41,8 @@ class KaggleBasePropSetting(BasePropSetting):
     """Number of evolutions"""
 
     competition: str = ""
+
+    rag_path: str = "git_ignore_folder/rag"
 
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

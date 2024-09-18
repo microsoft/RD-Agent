@@ -17,6 +17,8 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import KaggleExperienceBase
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -74,6 +76,8 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
+        self.vector_base = KaggleExperienceBase()
+        self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_feedback = (
@@ -81,9 +85,13 @@ class KGHypothesisGen(ModelHypothesisGen):
             .from_string(prompt_dict["hypothesis_and_feedback"])
             .render(trace=trace)
         )
+
+        rag_results, _ = self.vector_base.search_experience(hypothesis_feedback, topk_k=5)
+        rag_content = "\n".join([doc.content for doc in rag_results])
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": None,
+            "RAG": rag_content,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }

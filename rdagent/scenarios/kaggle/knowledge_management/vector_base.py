@@ -238,6 +238,8 @@ if __name__ == "__main__":
 
     kaggle_base.add_experience_to_vector_base()
 
+    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
+
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 
     search_results, similarities = kaggle_base.search_experience(query="image classification", topk_k=3)
