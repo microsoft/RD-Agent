@@ -4,12 +4,16 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KGFactorExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
+)
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -31,6 +35,11 @@ class KGScenario(Scenario):
         self._analysis_competition_description()
 
         self._background = self.background
+
+        # all competitions are based on the same vector base
+        self.vector_base = KaggleExperienceBase()
+        if KAGGLE_IMPLEMENT_SETTING.rag_path:
+            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def _analysis_competition_description(self):
         sys_prompt = (

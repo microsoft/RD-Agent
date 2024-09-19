@@ -17,6 +17,9 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
+)
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
@@ -28,6 +31,10 @@ class ModelRDLoop(RDLoop):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
+
+            self.vector_base = KaggleExperienceBase()
+            if KAGGLE_IMPLEMENT_SETTING.rag_path:
+                self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")

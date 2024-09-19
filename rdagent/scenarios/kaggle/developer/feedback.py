@@ -14,9 +14,12 @@ from rdagent.core.proposal import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
+    extract_knowledge_from_feedback,
+)
 from rdagent.utils import convert2bool
 
-feedback_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
@@ -84,7 +87,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Generate the system prompt
         sys_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts["factor_feedback_generation"]["system"])
+            .from_string(prompt_dict["factor_feedback_generation"]["system"])
             .render(scenario=self.scen.get_scenario_all_desc())
         )
 
@@ -97,7 +100,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts[prompt_key]["user"])
+            .from_string(prompt_dict[prompt_key]["user"])
             .render(
                 hypothesis_text=hypothesis_text,
                 task_details=tasks_factors,
@@ -121,6 +124,17 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
+
+        experiment_feedback = {
+            "hypothesis_text": hypothesis_text,
+            "current_result": current_result,
+            "tasks_factors": tasks_factors,
+            "observations": observations,
+            "hypothesis_evaluation": hypothesis_evaluation,
+            "reason": reason,
+        }
+
+        self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
 
         return HypothesisFeedback(
             observations=observations,

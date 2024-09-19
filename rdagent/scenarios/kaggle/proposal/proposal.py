@@ -4,8 +4,10 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
+from rdagent.components.knowledge_management.vector_base import VectorBase
 from rdagent.components.proposal.model_proposal import (
     ModelHypothesis,
     ModelHypothesis2Experiment,
@@ -16,6 +18,9 @@ from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
+)
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
 )
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -68,12 +73,13 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     .. code-block:: python
 
-        class XXXDMModelHypothesisGen(DMModelHypothesisGen):
+        class KGHypothesisGen(ModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
 
-    def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario, knowledge: VectorBase = None) -> Tuple[dict, bool]:
         super().__init__(scen)
+        self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_feedback = (
@@ -81,9 +87,13 @@ class KGHypothesisGen(ModelHypothesisGen):
             .from_string(prompt_dict["hypothesis_and_feedback"])
             .render(trace=trace)
         )
+
+        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_feedback, topk_k=5)
+        rag_content = "\n".join([doc.content for doc in rag_results])
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": None,
+            "RAG": rag_content,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }
