@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import tiktoken
@@ -401,7 +401,10 @@ class APIBackend:
         *,
         shrink_multiple_break: bool = False,
     ) -> list[dict]:
-        """build the messages to avoid implementing several redundant lines of code"""
+        """
+        build the messages to avoid implementing several redundant lines of code
+
+        """
         if former_messages is None:
             former_messages = []
         # shrink multiple break will recursively remove multiple breaks(more than 2)
@@ -440,7 +443,10 @@ class APIBackend:
         if former_messages is None:
             former_messages = []
         messages = self.build_messages(
-            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+            user_prompt,
+            system_prompt,
+            former_messages,
+            shrink_multiple_break=shrink_multiple_break,
         )
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
@@ -567,14 +573,21 @@ class APIBackend:
         *,
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
+        seed: Optional[int] = None,
     ) -> str:
+        """
+        seed : Optional[int]
+            When retrying with cache enabled, it will keep returning the same results.
+            To make retries useful, we need to enable a seed.
+            This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
+        """
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if self.cfg.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
         input_content_json = json.dumps(messages)
         input_content_json = (
-            chat_cache_prefix + input_content_json
+            chat_cache_prefix + input_content_json + f"<seed={seed}/>"
         )  # FIXME this is a hack to make sure the cache represents the round index
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)

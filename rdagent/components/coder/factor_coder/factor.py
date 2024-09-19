@@ -89,7 +89,7 @@ class FactorFBWorkspace(FBWorkspace):
 
     @staticmethod
     def link_data_to_workspace(data_path: Path, workspace_path: Path):
-        data_path = Path(data_path)
+        data_path = Path(data_path).absolute()  # in case of relative path that will be invalid when we change cwd.
         workspace_path = Path(workspace_path)
         for data_file_path in data_path.iterdir():
             workspace_data_file_path = workspace_path / data_file_path.name
