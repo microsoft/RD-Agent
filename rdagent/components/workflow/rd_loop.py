@@ -3,6 +3,7 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
+import time
 from typing import Any
 
 from rdagent.components.workflow.conf import BasePropSetting
@@ -16,6 +17,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.time import measure_time
 from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
@@ -38,27 +40,32 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
-            self.trace = Trace(scen=scen)
             super().__init__()
+        self.times = {}
+        self.loop_times = []
 
+    @measure_time
     def propose(self, prev_out: dict[str, Any]):
         with logger.tag("r"):  # research
             hypothesis = self.hypothesis_gen.gen(self.trace)
             logger.log_object(hypothesis, tag="hypothesis generation")
         return hypothesis
 
+    @measure_time
     def exp_gen(self, prev_out: dict[str, Any]):
         with logger.tag("r"):  # research
             exp = self.hypothesis2experiment.convert(prev_out["propose"], self.trace)
             logger.log_object(exp.sub_tasks, tag="experiment generation")
         return exp
 
+    @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
             exp = self.coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
+    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             exp = self.runner.develop(prev_out["coding"])
@@ -66,7 +73,17 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
+        start_time = time.time()
         feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
+        end_time = time.time()
+        duration = end_time - start_time
+        self.times["feedback"] = duration
+
+        total_time = sum(self.times.values())
+        self.loop_times.append(total_time)  # 保存到循环时间列表中
+        logger.log_object(total_time, tag="total running time")
+        logger.info(f"The running time of this loop: {total_time} seconds")
+        self.times = {}

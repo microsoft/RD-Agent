@@ -17,6 +17,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
     KaggleExperienceBase,
 )
@@ -26,7 +27,7 @@ from rdagent.scenarios.kaggle.proposal.proposal import (
 )
 
 
-class ModelRDLoop(RDLoop):
+class KaggleRDLoop(RDLoop):
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -51,8 +52,11 @@ class ModelRDLoop(RDLoop):
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = Trace(scen=scen)
+            self.times = {}
+            self.loop_times = []
             super(RDLoop, self).__init__()
 
+    @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
@@ -62,6 +66,7 @@ class ModelRDLoop(RDLoop):
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
+    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
@@ -89,10 +94,10 @@ def main(path=None, step_n=None, competition=None):
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
     if path is None:
-        model_loop = ModelRDLoop(KAGGLE_IMPLEMENT_SETTING)
+        kaggle_loop = KaggleRDLoop(KAGGLE_IMPLEMENT_SETTING)
     else:
-        model_loop = ModelRDLoop.load(path)
-    model_loop.run(step_n=step_n)
+        kaggle_loop = KaggleRDLoop.load(path)
+    kaggle_loop.run(step_n=step_n)
 
 
 if __name__ == "__main__":

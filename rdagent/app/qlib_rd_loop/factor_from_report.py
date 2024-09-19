@@ -16,6 +16,7 @@ from rdagent.core.exception import FactorEmptyError
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.time import measure_time
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
@@ -116,8 +117,11 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         self.valid_pdf_file_count = 0
         self.current_loop_hypothesis = None
         self.current_loop_exp = None
+        self.times = {}
+        self.loop_times = []
         self.steps = ["propose_hypo_exp", "propose", "exp_gen", "coding", "running", "feedback"]
 
+    @measure_time
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
@@ -139,9 +143,11 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 self.current_loop_exp = exp
                 return None
 
+    @measure_time
     def propose(self, prev_out: dict[str, Any]):
         return self.current_loop_hypothesis
 
+    @measure_time
     def exp_gen(self, prev_out: dict[str, Any]):
         return self.current_loop_exp
 
