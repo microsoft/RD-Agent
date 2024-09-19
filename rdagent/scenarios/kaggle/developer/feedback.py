@@ -48,21 +48,21 @@ def process_results(current_result, sota_result):
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
     def get_available_features(self, exp: Experiment):
         features = []
-        
+
         for feature_info in exp.experiment_workspace.data_description:
             task_info, feature_shape = feature_info
-            features.append({
-                "name": task_info.factor_name,
-                "description": task_info.factor_description,
-                "shape": feature_shape
-            })
-        
+            features.append(
+                {"name": task_info.factor_name, "description": task_info.factor_description, "shape": feature_shape}
+            )
+
         return features
 
     def get_model_code(self, exp: Experiment):
         model_type = exp.sub_tasks[0].model_type if exp.sub_tasks else None
         if model_type == "XGBoost":
-            return exp.sub_workspace_list[0].code_dict.get("model_xgb.py") #TODO Check if we need to replace this by using RepoAnalyzer 
+            return exp.sub_workspace_list[0].code_dict.get(
+                "model_xgb.py"
+            )  # TODO Check if we need to replace this by using RepoAnalyzer
         elif model_type == "RandomForest":
             return exp.sub_workspace_list[0].code_dict.get("model_rf.py")
         elif model_type == "LightGBM":
@@ -77,7 +77,6 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-
         """
         Generate feedback for the given experiment and hypothesis.
         Args:
@@ -110,6 +109,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result = process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
+        available_features = self.get_available_features(exp)
         # Get the appropriate model code
         model_code = self.get_model_code(exp)
 
@@ -124,7 +124,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Generate the system prompt
         sys_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts[prompt_key]["system"])
+            .from_string(prompt_dict[prompt_key]["system"])
             .render(scenario=self.scen.get_scenario_all_desc())
         )
 
@@ -147,7 +147,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined)
-            .from_string(feedback_prompts[prompt_key]["user"])
+            .from_string(prompt_dict[prompt_key]["user"])
             .render(**render_dict)
         )
 
