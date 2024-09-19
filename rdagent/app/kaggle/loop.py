@@ -32,10 +32,6 @@ class ModelRDLoop(RDLoop):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
 
-            self.vector_base = KaggleExperienceBase()
-            if KAGGLE_IMPLEMENT_SETTING.rag_path:
-                self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
-
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
 
@@ -86,7 +82,7 @@ def main(path=None, step_n=None, competition=None):
 
     .. code-block:: bash
 
-        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
         rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
 
     """
