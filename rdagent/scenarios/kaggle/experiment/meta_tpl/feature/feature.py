@@ -5,6 +5,7 @@ Here is the feature engineering code for each task, with a class that has a fit 
 Remember
 """
 
+
 class IdentityFeature:
     def fit(self, train_df: pd.DataFrame):
         """
@@ -17,5 +18,6 @@ class IdentityFeature:
         Transform the input data.
         """
         return X
+
 
 feature_engineering_cls = IdentityFeature
