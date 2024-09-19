@@ -13,7 +13,7 @@ KG_FEATURE_PREPROCESS_SCRIPT = """import pickle
 
 from fea_share_preprocess import preprocess_script
 
-X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script(debug_mode=True)
+X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
 
 pickle.dump(X_train, open("X_train.pkl", "wb"))
 pickle.dump(X_valid, open("X_valid.pkl", "wb"))
