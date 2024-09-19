@@ -505,6 +505,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                         user_prompt=user_prompt,
                         system_prompt=system_prompt,
                         json_mode=True,
+                        seed=attempts,  # in case of useless retrying when cache enabled.
                     ),
                 )
                 final_decision = final_evaluation_dict["final_decision"]
