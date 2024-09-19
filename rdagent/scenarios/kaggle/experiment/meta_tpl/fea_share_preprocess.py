@@ -6,13 +6,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 
-def prepreprocess():
+def prepreprocess(debug_mode=False):
     """
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
     data_df = pd.read_csv("/kaggle/input/train.csv")
-    data_df = data_df.head(1200)
+    if debug_mode:
+        data_df = data_df.sample(frac=0.1, random_state=42)
+    data_df = data_df
     data_df = data_df.drop(["id"], axis=1)
 
     X = data_df.drop(["class"], axis=1)
@@ -79,11 +81,11 @@ def preprocess_transform(X: pd.DataFrame, preprocessor):
     return X_transformed
 
 
-def preprocess_script():
+def preprocess_script(debug_mode=False):
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
-    X_train, X_valid, y_train, y_valid = prepreprocess()
+    X_train, X_valid, y_train, y_valid = prepreprocess(debug_mode=debug_mode)
 
     # Fit the preprocessor on the training data
     preprocessor = preprocess_fit(X_train)
@@ -94,7 +96,8 @@ def preprocess_script():
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
-    submission_df = submission_df.head(500)
+    if debug_mode:
+        data_df = data_df.sample(frac=0.1, random_state=42)
     passenger_ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)
