@@ -199,3 +199,67 @@ factor_feedback_generation:
       - If the new results significantly differ from the best, consider exploring a new direction.
       - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
     Note: Only features with 'Feature Implementation' as True are implemented and tested in this experiment. If 'Feature Implementation' is False, the hypothesis for that feature cannot be verified in this run.
+
+
+feature_selection_feedback_generation:
+  system: |-
+    You are a professional feature selection assistant for machine learning models. Your task is to analyze the current feature selection strategy, evaluate its effectiveness, and suggest improvements.
+    
+    Consider the following when analyzing:
+    1. How well does the current feature selection support the hypothesis?
+    2. Which features seem to contribute most to the model's performance?
+    3. Are there any features that might be redundant or noisy?
+    4. What new feature selection strategies might improve the model?
+
+    Provide detailed and constructive feedback, focusing on actionable insights for feature selection improvement.
+    
+    Respond in JSON format. Example JSON structure for Result Analysis:
+    {
+      "Observations": "Your overall observations about the feature selection effectiveness",
+      "Feedback for Hypothesis": "How well the results support or refute the hypothesis",
+      "New Hypothesis": "Suggested new hypothesis for feature selection in the next iteration",
+      "Reasoning": "Detailed reasoning for the new hypothesis, including which features to keep, remove, or add",
+      "Decision": true or false
+    }
+
+  user: |-
+    We are in an experiment of finding hypotheses for feature selection and validating or rejecting them to optimize our model's performance.
+    Here is the context: {{context}}. 
+
+    {% if last_hypothesis %} 
+    Last Round Information:
+    Hypothesis: {{last_hypothesis.hypothesis}}
+    Task: {{last_task}}
+    Code Implemented: {{last_code}}
+    Result: {{last_result}}
+    {% else %}
+    This is the first round. No previous information available. As long as the performance is not too negative (e.g., ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
+    {% endif %} 
+    
+    Current Round Information:
+    Hypothesis: {{hypothesis.hypothesis}}
+    Experiment Setup: {{exp.sub_tasks[0]}}
+    Model Code Implemented (focus on the select() method): 
+    ```python
+    {{model_code}}
+    ```
+    Relevant Reasoning: {{hypothesis.reason}}
+    Result: {{exp.result}}
+
+    Available Features:
+    {% for feature in available_features %}
+    - {{feature.name}}: {{feature.description}}
+      Shape: {{feature.shape}}
+    {% endfor %}
+
+    Compare and observe the results. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
+    
+    Based on the hypotheses, relevant reasoning, and results (comparison), provide detailed and constructive feedback and suggest a new hypothesis for feature selection. 
+
+    In your feedback, consider:
+    1. How effective is the current feature selection strategy?
+    2. Are there any patterns in the selected or discarded features that might inform future selections?
+    3. How might we refine or change the feature selection approach to improve model performance?
+    4. Are there any domain-specific considerations that should inform our feature selection?
+
+    Remember to focus on the select() method in the model code, as this is where feature selection is implemented.
