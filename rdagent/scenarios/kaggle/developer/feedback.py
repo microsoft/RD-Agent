@@ -71,7 +71,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             return exp.sub_workspace_list[0].code_dict.get("model_nn.py")
         else:
             return None
-        
+
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
@@ -145,11 +145,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         }
 
         # Generate the user prompt
-        usr_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict[prompt_key]["user"])
-            .render(**render_dict)
-        )
+        usr_prompt = Environment(undefined=StrictUndefined).from_string(prompt_dict[prompt_key]["user"]).render(**render_dict)
 
         # Call the APIBackend to generate the response for hypothesis feedback
         response = APIBackend().build_messages_and_create_chat_completion(
