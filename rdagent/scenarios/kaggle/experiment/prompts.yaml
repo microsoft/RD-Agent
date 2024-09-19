@@ -66,11 +66,13 @@ kg_background: |-
 kg_feature_interface: |-
   Your code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A feat_eng() function that handles feature engineering for each task.
-    The function should take the following arguments:
-      - X: The features as a pandas DataFrame.
-    The function should return the new features as a pandas DataFrame.
-  The input to `feat_eng` will be a pandas DataFrame, which should be processed to return a new DataFrame containing only the engineered features. 
+  2. A class that contains the feature engineering logic.
+    The class should have the following methods:
+      - fit: This method should fit the feature engineering model to the training data.
+      - transform: This method should transform the input data and return it.
+    For some tasks like generating new features, the fit method may not be necessary. Please pass this function as a no-op.
+  3. A variable called feature_engineering_cls that contains the class name.
+  The input to 'fit' is the training data in pandas dataframe, and the input to 'transform' is the data to be transformed in pandas dataframe.
   The original columns should be excluded from the returned DataFrame.
 
   Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
@@ -83,12 +85,24 @@ kg_feature_interface: |-
   ```python
   import pandas as pd
 
-  def feat_eng(X: pd.DataFrame):
-      """
-      return the selected features
-      """
-      return X.mean(axis=1).to_frame("mean_feature") # Example feature engineering
-      return X.fillna(0) # Example feature processing
+  class FeatureEngineeringName:
+      def fit(self, train_df: pd.DataFrame):
+          """
+          Fit the feature engineering model to the training data. 
+          For example, for one hot encoding, this would involve fitting the encoder to the training data.
+          For feature scaling, this would involve fitting the scaler to the training data.
+          """
+          return self
+
+      def transform(self, X: pd.DataFrame):
+          """
+          Transform the input data.
+          """
+          return X
+          return X.mean(axis=1).to_frame("mean_feature") # Example feature engineering
+          return X.fillna(0) # Example feature processing
+
+  feature_engineering_cls = FeatureEngineeringName
   ```
 
   To Note:
