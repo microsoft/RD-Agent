@@ -155,7 +155,7 @@ class FBWorkspace(Workspace):
         """
         Clear the workspace
         """
-        shutil.rmtree(self.workspace_path)
+        shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.code_dict = {}
 
     def execute(self) -> object | None:

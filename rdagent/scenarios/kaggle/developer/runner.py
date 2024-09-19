@@ -7,7 +7,7 @@ from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTIN
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.exception import ModelEmptyError
+from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.experiment import ASpecificExp
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
@@ -41,12 +41,20 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
     def develop(self, exp: KGModelExperiment) -> KGModelExperiment:
         self.build_from_SOTA(exp)
         if exp.sub_workspace_list[0].target_task.model_type == "XGBoost":
+            if exp.sub_workspace_list[0].code_dict == {}:
+                raise ModelEmptyError("No model is implemented")
             exp.experiment_workspace.inject_code(**{"model_xgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         elif exp.sub_workspace_list[0].target_task.model_type == "RandomForest":
+            if exp.sub_workspace_list[0].code_dict == {}:
+                raise ModelEmptyError("No model is implemented")
             exp.experiment_workspace.inject_code(**{"model_rf.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         elif exp.sub_workspace_list[0].target_task.model_type == "LightGBM":
+            if exp.sub_workspace_list[0].code_dict == {}:
+                raise ModelEmptyError("No model is implemented")
             exp.experiment_workspace.inject_code(**{"model_lgb.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         elif exp.sub_workspace_list[0].target_task.model_type == "NN":
+            if exp.sub_workspace_list[0].code_dict == {}:
+                raise ModelEmptyError("No model is implemented")
             exp.experiment_workspace.inject_code(**{"model_nn.py": exp.sub_workspace_list[0].code_dict["model.py"]})
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
@@ -113,7 +121,7 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
             current_feature_file_count += 1
         if implemented_factor_count == 0:
-            raise ModelEmptyError("No factor is implemented")
+            raise FactorEmptyError("No factor is implemented")
 
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
