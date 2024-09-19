@@ -460,9 +460,10 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(mt.formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v, d in mt.variables.items():
-                    mks += f"| ${v}$ | {d} |\n"
-                st.markdown(mks)
+                if mt.variables:
+                    for v, d in mt.variables.items():
+                        mks += f"| ${v}$ | {d} |\n"
+                    st.markdown(mks)
 
 
 def research_window():
