@@ -24,14 +24,18 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         super().__init__(scen)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        hypothesis_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+        hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
         context_dict = {
-            "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": ...,
+            "hypothesis_and_feedback": hypothesis_and_feedback,
+            "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
@@ -56,9 +60,13 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
         hypothesis_and_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
         experiment_list: List[FactorExperiment] = [t[1] for t in trace.hist]
@@ -73,7 +81,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": factor_list,
-            "RAG": ...,
+            "RAG": None,
         }, True
 
     def convert_response(self, response: str, trace: Trace) -> FactorExperiment:

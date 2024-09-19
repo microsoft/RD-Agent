@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import uuid
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -110,6 +111,19 @@ class FBWorkspace(Workspace):
                 Different methods shares the same data. The data are passed by the arguments.
         """
         self.workspace_path.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
+    def link_data_to_workspace(data_path: Path, workspace_path: Path):
+        data_path = Path(data_path).absolute()  # in case of relative path that will be invalid when we change cwd.
+        workspace_path = Path(workspace_path)
+        for data_file_path in data_path.iterdir():
+            workspace_data_file_path = workspace_path / data_file_path.name
+            if workspace_data_file_path.exists():
+                workspace_data_file_path.unlink()
+            subprocess.run(
+                ["ln", "-s", data_file_path, workspace_data_file_path],
+                check=False,
+            )
 
     def inject_code(self, **files: str) -> None:
         """

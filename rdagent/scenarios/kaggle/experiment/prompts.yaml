@@ -10,6 +10,7 @@ kg_description_template:
       "Target Description": "A description of the target variable to be predicted",
       "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description. Importantly, your feature name should be exactly the same as the feature name in the dataset!
     }
+    Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
 
   user: |-
@@ -144,7 +145,7 @@ kg_model_interface: |-
   from xgboost import DMatrix
 
 
-  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
 
 
   def fit(
@@ -178,7 +179,7 @@ kg_model_interface: |-
   from sklearn.metrics import accuracy_score
 
 
-  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
 
 
   def fit(
@@ -207,7 +208,7 @@ kg_model_interface: |-
   from lightgbm import LGBMClassifier, LGBMRegressor
 
 
-  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
 
 
   def fit(
@@ -247,7 +248,7 @@ kg_model_interface: |-
           return x
 
 
-  def select(self, X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
 
 
   def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame) -> torch.nn.Module:

@@ -35,14 +35,18 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         super().__init__(scen)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        hypothesis_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+        hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
         context_dict = {
-            "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": "",
+            "hypothesis_and_feedback": hypothesis_and_feedback,
+            "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
         }
@@ -67,9 +71,13 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
         experiment_output_format = prompt_dict["model_experiment_output_format"]
 
         hypothesis_and_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
         experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
@@ -84,7 +92,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": model_list,
-            "RAG": ...,
+            "RAG": None,
         }, True
 
     def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
