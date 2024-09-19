@@ -93,7 +93,7 @@ class KGHypothesisGen(ModelHypothesisGen):
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": None,
+            "RAG": rag_content,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }
