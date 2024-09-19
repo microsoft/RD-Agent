@@ -38,7 +38,7 @@ class KGScenario(Scenario):
 
         # all competitions are based on the same vector base
         self.vector_base = KaggleExperienceBase()
-        if KAGGLE_IMPLEMENT_SETTING.rag_path:
+        if KAGGLE_IMPLEMENT_SETTING.rag_path and Path(KAGGLE_IMPLEMENT_SETTING.rag_path).exists():
             self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def _analysis_competition_description(self):
