@@ -29,7 +29,7 @@ class KGFBWorkspace(FBWorkspace):
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
         self.data_description: list[str] = []
-        self.model_description: str = ""
+        self.model_description: dict[str, str] = {}
 
     def generate_preprocess_data(
         self,

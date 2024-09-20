@@ -69,7 +69,6 @@ class KGScenario(Scenario):
         self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
         self.competition_features = self.source_data
 
     @property
