@@ -46,12 +46,37 @@ def process_results(current_result, sota_result):
 
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+    def get_available_features(self, exp: Experiment):
+        features = []
+
+        for feature_info in exp.experiment_workspace.data_description:
+            task_info, feature_shape = feature_info
+            features.append(
+                {"name": task_info.factor_name, "description": task_info.factor_description, "shape": feature_shape}
+            )
+
+        return features
+
+    def get_model_code(self, exp: Experiment):
+        model_type = exp.sub_tasks[0].model_type if exp.sub_tasks else None
+        if model_type == "XGBoost":
+            return exp.sub_workspace_list[0].code_dict.get(
+                "model_xgb.py"
+            )  # TODO Check if we need to replace this by using RepoAnalyzer
+        elif model_type == "RandomForest":
+            return exp.sub_workspace_list[0].code_dict.get("model_rf.py")
+        elif model_type == "LightGBM":
+            return exp.sub_workspace_list[0].code_dict.get("model_lgb.py")
+        elif model_type == "NN":
+            return exp.sub_workspace_list[0].code_dict.get("model_nn.py")
+        else:
+            return None
+
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-
         """
         Generate feedback for the given experiment and hypothesis.
         Args:
@@ -84,28 +109,44 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result = process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
-        # Generate the system prompt
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
-        )
+        available_features = self.get_available_features(exp)
+        # Get the appropriate model code
+        model_code = self.get_model_code(exp)
 
         # Generate the user prompt based on the action type
-        if hypothesis.action == "Model Tuning":  # TODO Add other prompts here
-            prompt_key = "model_feedback_generation"
+        if hypothesis.action == "Model tuning":
+            prompt_key = "model_tuning_feedback_generation"
+        elif hypothesis.action == "Model feature selection":
+            prompt_key = "feature_selection_feedback_generation"
         else:
             prompt_key = "factor_feedback_generation"
 
+        # Generate the system prompt
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict[prompt_key]["system"])
+            .render(scenario=self.scen.get_scenario_all_desc())
+        )
+
+        # Prepare render dictionary
+        render_dict = {
+            "context": self.scen.get_scenario_all_desc(),
+            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+            "last_task": trace.hist[-1][1] if trace.hist else None,
+            "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+            "last_result": trace.hist[-1][1].result if trace.hist else None,
+            "hypothesis": hypothesis,
+            "exp": exp,
+            "model_code": model_code,
+            "available_features": available_features,
+            "combined_result": combined_result,
+            "hypothesis_text": hypothesis_text,
+            "task_details": tasks_factors,
+        }
+
         # Generate the user prompt
         usr_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict[prompt_key]["user"])
-            .render(
-                hypothesis_text=hypothesis_text,
-                task_details=tasks_factors,
-                combined_result=combined_result,
-            )
+            Environment(undefined=StrictUndefined).from_string(prompt_dict[prompt_key]["user"]).render(**render_dict)
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback

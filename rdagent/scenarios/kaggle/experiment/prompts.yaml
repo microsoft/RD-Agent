@@ -114,6 +114,7 @@ kg_feature_interface: |-
   3. Ensure consistency in column count across train, validation, and test sets post-feature engineering. For example, fit PCA on the training set and apply the same transformation to validation and test sets to keep the number of columns aligned, and use OneHotEncoder may also cause different number of columns.
   4. Ensure that the generation of new features does not drastically increase the number of columns, which can slow down data processing. For example, avoid creating pairwise interactions for all features, as this would lead to a quadratic increase in the number of columns.
   5. Avoids raising a `ValueError` or any other exceptions that could interrupt the main program's flow. The code should not include checks that could potentially lead to a `ValueError`. Instead, focus on writing robust and fault-tolerant feature engineering functions that handle edge cases and missing data gracefully, without stopping the program.
+  6. Specific categories of features can be filtered, and processing can be applied to those categories. For example, normalization can be applied to float-type features, but such processing should not be done on one-hot encoded features.
 
 kg_model_interface: |-
   Your code should contain several parts:
