@@ -10,11 +10,13 @@ from rdagent.app.qlib_rd_loop.conf import FACTOR_PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.time import measure_time
 
 
 class FactorRDLoop(RDLoop):
     skip_loop_error = (FactorEmptyError,)
 
+    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             exp = self.runner.develop(prev_out["coding"])

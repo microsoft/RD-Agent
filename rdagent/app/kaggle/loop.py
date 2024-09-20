@@ -7,7 +7,7 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ModelEmptyError
+from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -17,16 +17,16 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
-    KaggleExperienceBase,
-)
+from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
 )
 
 
-class ModelRDLoop(RDLoop):
+class KaggleRDLoop(RDLoop):
+    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -53,6 +53,7 @@ class ModelRDLoop(RDLoop):
             self.trace = Trace(scen=scen)
             super(RDLoop, self).__init__()
 
+    @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
@@ -62,6 +63,7 @@ class ModelRDLoop(RDLoop):
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
+    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
@@ -71,7 +73,7 @@ class ModelRDLoop(RDLoop):
             logger.log_object(exp, tag="runner result")
         return exp
 
-    skip_loop_error = (ModelEmptyError,)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError)
 
 
 def main(path=None, step_n=None, competition=None):
@@ -88,11 +90,15 @@ def main(path=None, step_n=None, competition=None):
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
-    if path is None:
-        model_loop = ModelRDLoop(KAGGLE_IMPLEMENT_SETTING)
+        download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
     else:
-        model_loop = ModelRDLoop.load(path)
-    model_loop.run(step_n=step_n)
+        logger.error("Please specify competition name.")
+
+    if path is None:
+        kaggle_loop = KaggleRDLoop(KAGGLE_IMPLEMENT_SETTING)
+    else:
+        kaggle_loop = KaggleRDLoop.load(path)
+    kaggle_loop.run(step_n=step_n)
 
 
 if __name__ == "__main__":

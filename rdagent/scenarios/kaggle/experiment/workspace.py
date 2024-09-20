@@ -29,7 +29,7 @@ class KGFBWorkspace(FBWorkspace):
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
         self.data_description: list[str] = []
-        self.model_description: str = ""
+        self.model_description: dict[str, str] = {}
 
     def generate_preprocess_data(
         self,
@@ -58,6 +58,11 @@ class KGFBWorkspace(FBWorkspace):
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         logger.info(f"Running the experiment in {self.workspace_path}")
+
+        # link the data to the workspace to speed up the preprocessing
+        source_data_path = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition
+        self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
+
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
@@ -65,11 +70,14 @@ class KGFBWorkspace(FBWorkspace):
             local_path=str(self.workspace_path),
             entry=f"python train.py",
             env=run_env,
+            running_extra_volume=(
+                {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
+                if KAGGLE_IMPLEMENT_SETTING.competition
+                else None
+            ),
         )
 
         csv_path = self.workspace_path / "submission_score.csv"
-
-        logger.info(self.workspace_path)
 
         if not csv_path.exists():
             logger.error(f"File {csv_path} does not exist.")
