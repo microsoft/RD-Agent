@@ -17,8 +17,8 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
