@@ -17,6 +17,7 @@ from typing import Callable
 
 from tqdm.auto import tqdm
 
+from rdagent.core.exception import CoderError
 from rdagent.log import rdagent_logger as logger
 
 
@@ -113,6 +114,10 @@ class LoopBase:
                     logger.warning(f"Skip loop {li} due to {e}")
                     self.loop_idx += 1
                     self.step_idx = 0
+                    continue
+                except CoderError as e:
+                    logger.warning(f"Traceback loop {li} due to {e}")
+                    self.step_idx -= 1
                     continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)

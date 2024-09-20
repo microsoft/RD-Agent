@@ -46,32 +46,6 @@ def process_results(current_result, sota_result):
 
 
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
-    def get_available_features(self, exp: Experiment):
-        features = []
-
-        for feature_info in exp.experiment_workspace.data_description:
-            task_info, feature_shape = feature_info
-            features.append(
-                {"name": task_info.factor_name, "description": task_info.factor_description, "shape": feature_shape}
-            )
-
-        return features
-
-    def get_model_code(self, exp: Experiment):
-        model_type = exp.sub_tasks[0].model_type if exp.sub_tasks else None
-        if model_type == "XGBoost":
-            return exp.sub_workspace_list[0].code_dict.get(
-                "model_xgb.py"
-            )  # TODO Check if we need to replace this by using RepoAnalyzer
-        elif model_type == "RandomForest":
-            return exp.sub_workspace_list[0].code_dict.get("model_rf.py")
-        elif model_type == "LightGBM":
-            return exp.sub_workspace_list[0].code_dict.get("model_lgb.py")
-        elif model_type == "NN":
-            return exp.sub_workspace_list[0].code_dict.get("model_nn.py")
-        else:
-            return None
-
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
@@ -109,9 +83,10 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result = process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
-        available_features = self.get_available_features(exp)
-        # Get the appropriate model code
-        model_code = self.get_model_code(exp)
+        available_features = {
+            task_info: feature_shape for task_info, feature_shape in exp.experiment_workspace.data_description
+        }
+        model_code = exp.experiment_workspace.model_description
 
         # Generate the user prompt based on the action type
         if hypothesis.action == "Model tuning":

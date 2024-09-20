@@ -263,3 +263,27 @@ feature_selection_feedback_generation:
     4. Are there any domain-specific considerations that should inform our feature selection?
 
     Remember to focus on the select() method in the model code, as this is where feature selection is implemented.
+
+extract_model_task_from_code:
+  system: |-
+    You are an expert in analyzing code for machine learning models.  
+  user: |-
+    Given the following code, summarize the machine learning model including:
+    - Model architecture
+    - Hyperparameters
+    - Formulation and variables
+    - Model type (one of XGBoost, RandomForest, LightGBM, NN)
+
+    Code:
+    {{ file_content }}
+
+    Return the information in JSON format with the following structure:
+    {
+        "name": "",
+        "description": "",
+        "architecture": "",
+        "hyperparameters": {},
+        "formulation": "",
+        "variables": {},
+        "model_type": ""
+    }

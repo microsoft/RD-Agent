@@ -8,7 +8,6 @@ kg_description_template:
       "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
-      "Competition Features": "A dict of relevant features used in the competition and their descriptions (if available)", # if you are not sure about the meaning of the feature, please add a (guess) before the description. Importantly, your feature name should be exactly the same as the feature name in the dataset!
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
