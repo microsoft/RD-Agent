@@ -94,7 +94,9 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             factor_name="original features", factor_description="here is the original features", factor_formulation=""
         )
 
-        org_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "valid.pkl"
+        org_data_path = (
+            Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "X_valid.pkl"
+        )
         with open(org_data_path, "rb") as f:
             org_data = pickle.load(f)
         feature_shape = org_data.shape[-1]
