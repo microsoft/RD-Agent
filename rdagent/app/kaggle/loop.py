@@ -18,6 +18,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
@@ -89,6 +90,10 @@ def main(path=None, step_n=None, competition=None):
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
+        download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
+    else:
+        logger.error("Please specify competition name.")
+
     if path is None:
         kaggle_loop = KaggleRDLoop(KAGGLE_IMPLEMENT_SETTING)
     else:
