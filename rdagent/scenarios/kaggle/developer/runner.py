@@ -97,14 +97,22 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
 
         try:
             response_json_analysis = json.loads(model_task_description)
-            task_desc = f"""name: {self.name}
-description: {self.description}
-"""
-            task_desc += f"formulation: {self.formulation}\n" if self.formulation else ""
-            task_desc += f"architecture: {self.architecture}\n"
-            task_desc += f"variables: {json.dumps(self.variables, indent=4)}\n" if self.variables else ""
-            task_desc += f"hyperparameters: {json.dumps(self.hyperparameters, indent=4)}\n"
-            task_desc += f"model_type: {self.model_type}\n"
+            task_desc = f"""name: {response_json_analysis['name']}
+        description: {response_json_analysis['description']}
+        """
+            task_desc += (
+                f"formulation: {response_json_analysis['formulation']}\n"
+                if response_json_analysis.get("formulation")
+                else ""
+            )
+            task_desc += f"architecture: {response_json_analysis['architecture']}\n"
+            task_desc += (
+                f"variables: {json.dumps(response_json_analysis['variables'], indent=4)}\n"
+                if response_json_analysis.get("variables")
+                else ""
+            )
+            task_desc += f"hyperparameters: {json.dumps(response_json_analysis['hyperparameters'], indent=4)}\n"
+            task_desc += f"model_type: {response_json_analysis['model_type']}\n"
         except json.JSONDecodeError:
             task_desc = "Failed to parse LLM's response as JSON"
 
