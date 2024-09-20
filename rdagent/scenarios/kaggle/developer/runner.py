@@ -20,7 +20,6 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGModelExperiment,
 )
 
-META_TPL_DIR = Path(__file__).parent.parent / "experiment" / "meta_tpl"
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
