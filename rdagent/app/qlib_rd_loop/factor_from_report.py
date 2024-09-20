@@ -117,8 +117,6 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         self.valid_pdf_file_count = 0
         self.current_loop_hypothesis = None
         self.current_loop_exp = None
-        self.times = {}
-        self.loop_times = []
         self.steps = ["propose_hypo_exp", "propose", "exp_gen", "coding", "running", "feedback"]
 
     @measure_time

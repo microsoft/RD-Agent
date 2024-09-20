@@ -18,9 +18,6 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
-from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
-    KaggleExperienceBase,
-)
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,

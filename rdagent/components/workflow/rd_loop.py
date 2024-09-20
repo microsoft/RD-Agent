@@ -41,8 +41,6 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             super().__init__()
-        self.times = {}
-        self.loop_times = []
 
     @measure_time
     def propose(self, prev_out: dict[str, Any]):
@@ -72,18 +70,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             logger.log_object(exp, tag="runner result")
         return exp
 
+    @measure_time
     def feedback(self, prev_out: dict[str, Any]):
-        start_time = time.time()
         feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
-        end_time = time.time()
-        duration = end_time - start_time
-        self.times["feedback"] = duration
-
-        total_time = sum(self.times.values())
-        self.loop_times.append(total_time)  # 保存到循环时间列表中
-        logger.log_object(total_time, tag="total running time")
-        logger.info(f"The running time of this loop: {total_time} seconds")
-        self.times = {}
