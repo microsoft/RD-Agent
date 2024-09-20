@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any
 
 import fire
-from rdagent.scenarios.kaggle.kaggle_crawler import download_data
+
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
@@ -17,6 +17,7 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
     KaggleExperienceBase,
 )

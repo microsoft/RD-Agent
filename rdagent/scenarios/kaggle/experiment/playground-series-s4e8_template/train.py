@@ -54,9 +54,9 @@ for f in DIRNAME.glob("feature/feat*.py"):
     X_valid_l.append(X_valid_f)
     X_test_l.append(X_test_f)
 
-X_train = pd.concat(X_train_l, axis=1, keys=[f'feature_{i}' for i in range(len(X_train_l))])
-X_valid = pd.concat(X_valid_l, axis=1, keys=[f'feature_{i}' for i in range(len(X_valid_l))])
-X_test = pd.concat(X_test_l, axis=1, keys=[f'feature_{i}' for i in range(len(X_test_l))])
+X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_train_l))])
+X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
+X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
