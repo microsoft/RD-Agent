@@ -30,7 +30,7 @@ class SingletonBaseClass:
             raise RDAgentException(exception_message)
         class_name = [(-1, f"{cls.__module__}.{cls.__name__}")]
         args_l = [(i, args[i]) for i in args]
-        kwargs_l = list(sorted(kwargs.items()))
+        kwargs_l = sorted(kwargs.items())
         all_args = class_name + args_l + kwargs_l
         kwargs_hash = hash(tuple(all_args))
         if kwargs_hash not in cls._instance_dict:

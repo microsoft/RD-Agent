@@ -62,7 +62,7 @@ class KGFBWorkspace(FBWorkspace):
 
         # link the data to the workspace to speed up the preprocessing
         source_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition
-        self.link_data_to_workspace(source_data_path, self.workspace_path)
+        self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()

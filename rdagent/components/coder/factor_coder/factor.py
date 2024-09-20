@@ -141,7 +141,7 @@ class FactorFBWorkspace(FBWorkspace):
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
 
-            self.link_data_to_workspace(source_data_path, self.workspace_path)
+            self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
