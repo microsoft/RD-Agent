@@ -6,8 +6,7 @@ import pandas as pd
 import xgboost as xgb
 
 
-
-def select(X: pd.DataFrame) -> pd.DataFrame: 
+def select(X: pd.DataFrame) -> pd.DataFrame:
     # Ignore feature selection logic
     return X
 
