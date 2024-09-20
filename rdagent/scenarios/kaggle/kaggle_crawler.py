@@ -1,5 +1,8 @@
 import json
 import time
+import subprocess
+import zipfile
+
 from pathlib import Path
 
 from selenium import webdriver
@@ -7,7 +10,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.log import rdagent_logger as logger
-from rdagent.utils.env import KGDockerConf
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
@@ -18,7 +21,7 @@ service = Service("/usr/local/bin/chromedriver")
 
 
 def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
-    if (fp := Path(f"{KGDockerConf().local_data_path}/{competition}.json")).exists() and not force:
+    if (fp := Path(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
@@ -62,12 +65,24 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
-    with open(f"{KGDockerConf().dockerfile_folder_path}/{competition}.json", "w") as f:
+    with open(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json", "w") as f:
         json.dump(descriptions, f)
     return descriptions
 
 
+def download_data(competition: str, local_path: str = "/data/userdata/share/kaggle") -> None:
+    data_path = f"{local_path}/{competition}"
+    if not Path(data_path).exists():
+        subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
+
+        # unzip data
+        with zipfile.ZipFile(f"{data_path}/{competition}.zip", "r") as zip_ref:
+            zip_ref.extractall(data_path)
+
+
 if __name__ == "__main__":
+    download_data("feedback-prize-english-language-learning", "/data/userdata/share/kaggle")
+    exit()
     from kaggle.api.kaggle_api_extended import KaggleApi
 
     api = KaggleApi()

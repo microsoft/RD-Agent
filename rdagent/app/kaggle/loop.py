@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any
 
 import fire
-
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
@@ -88,6 +88,10 @@ def main(path=None, step_n=None, competition=None):
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
+        download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
+    else:
+        logger.error("Please specify competition name.")
+
     if path is None:
         model_loop = ModelRDLoop(KAGGLE_IMPLEMENT_SETTING)
     else:
