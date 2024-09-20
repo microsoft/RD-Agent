@@ -52,6 +52,11 @@ evolving_strategy_model_coder:
 
         Your must write your code based on your former latest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
 
+        {% if current_code %}
+        --------------Current code in the workspace:--------------- You need to tune the model based on this! If it is not None, do not write from scratch. 
+        {{ current_code }}
+        {% endif %}
+
         {% if queried_former_failed_knowledge|length != 0 %}
         --------------Your former latest attempt:---------------
         =====Code to the former implementation=====

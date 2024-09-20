@@ -11,7 +11,11 @@ from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
 from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelQueriedKnowledge,
 )
-from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.model_coder.model import (
+    ModelExperiment,
+    ModelFBWorkspace,
+    ModelTask,
+)
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
@@ -26,8 +30,23 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
+        exp: ModelExperiment = None,  # Add this parameter
     ) -> str:
         model_information_str = target_task.get_task_information()
+        model_type = target_task.model_type
+
+        # Get the current code from the experiment using build_from_SOTA
+        current_code = ""
+        if exp is not None:
+            self.build_from_SOTA(exp)
+            model_file_mapping = {
+                "XGBoost": "model_xgb.py",
+                "RandomForest": "model_rf.py",
+                "LightGBM": "model_lgb.py",
+                "NN": "model_nn.py",
+            }
+            if model_type in model_file_mapping:
+                current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -55,6 +74,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                 .render(
                     scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                    current_code=current_code,  # Add this line
                 )
             )
 
@@ -67,6 +87,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     )
                     .render(
                         model_information_str=model_information_str,
+                        model_type=model_type,  # Add model type to the prompt
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                         queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                     )
@@ -103,7 +124,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: ModelQueriedKnowledge | None = None,
         **kwargs,
     ) -> ModelEvolvingItem:
-        # 1.找出需要evolve的model
+        # 1. Find the models that need to be evolved
         to_be_finished_task_index = []
         for index, target_model_task in enumerate(evo.sub_tasks):
             target_model_task_desc = target_model_task.get_task_information()
@@ -125,10 +146,21 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
+        model_file_mapping = {
+            "XGBoost": "model_xgb.py",
+            "RandomForest": "model_rf.py",
+            "LightGBM": "model_lgb.py",
+            "NN": "model_nn.py",
+        }
+
         for index, target_index in enumerate(to_be_finished_task_index):
             if evo.sub_workspace_list[target_index] is None:
                 evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
-            evo.sub_workspace_list[target_index].inject_code(**{"model.py": result[index]})
+            model_type = evo.sub_tasks[target_index].model_type
+            if model_type in model_file_mapping:
+                evo.sub_workspace_list[target_index].inject_code(**{model_file_mapping[model_type]: result[index]})
+            else:
+                raise ValueError(f"Unsupported model type: {model_type}")
 
         evo.corresponding_selection = to_be_finished_task_index
 
