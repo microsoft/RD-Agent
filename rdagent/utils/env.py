@@ -176,12 +176,12 @@ class KGDockerConf(DockerConf):
     # image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
     default_entry: str = "python train.py"
-    extra_volumes: dict = {
-        # TODO connect to the place where the data is stored
-        Path("git_ignore_folder/data").resolve(): "/root/.data/"
-    }
+    # extra_volumes: dict = {
+    #     # TODO connect to the place where the data is stored
+    #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    # }
 
-    local_data_path: str = "/data/userdata/share/kaggle"
+    # local_data_path: str = "/data/userdata/share/kaggle"
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -387,29 +387,3 @@ class KGDockerEnv(DockerEnv):
 
     def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
-        self.competition = competition
-
-    def prepare(self):
-        """
-        Download image & data if it doesn't exist
-        """
-        super().prepare()
-
-        # download data, if competition is not provided, the user is targeting a general docker environment in kaggle
-        data_path = f"{self.conf.local_data_path}/{self.competition}"
-        if self.competition is not None and not Path(data_path).exists():
-            subprocess.run(["kaggle", "competitions", "download", "-c", self.competition, "-p", data_path])
-
-            # unzip data
-            with zipfile.ZipFile(f"{data_path}/{self.competition}.zip", "r") as zip_ref:
-                zip_ref.extractall(data_path)
-
-    def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
-        super().run(
-            entry=entry,
-            local_path=local_path,
-            env=env,
-            running_extra_volume=(
-                {self.conf.local_data_path + "/" + self.competition: "/kaggle/input"} if self.competition else None
-            ),
-        )

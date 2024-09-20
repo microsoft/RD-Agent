@@ -5,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import KGDockerEnv
@@ -61,7 +60,7 @@ class KGFBWorkspace(FBWorkspace):
         logger.info(f"Running the experiment in {self.workspace_path}")
 
         # link the data to the workspace to speed up the preprocessing
-        source_data_path = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition
+        source_data_path = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition
         self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
@@ -71,6 +70,11 @@ class KGFBWorkspace(FBWorkspace):
             local_path=str(self.workspace_path),
             entry=f"python train.py",
             env=run_env,
+            running_extra_volume=(
+                {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
+                if KAGGLE_IMPLEMENT_SETTING.competition
+                else None
+            ),
         )
 
         csv_path = self.workspace_path / "submission_score.csv"

@@ -76,7 +76,9 @@ class KGScenario(Scenario):
     def background(self) -> str:
         background_template = prompt_dict["kg_background"]
 
-        train_script = (Path(__file__).parent / "meta_tpl" / "train.py").read_text()
+        train_script = (
+            Path(__file__).parent / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template" / "train.py"
+        ).read_text()
 
         background_prompt = (
             Environment(undefined=StrictUndefined)

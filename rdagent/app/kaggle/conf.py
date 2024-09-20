@@ -42,6 +42,8 @@ class KaggleBasePropSetting(BasePropSetting):
 
     competition: str = ""
 
+    local_data_path: str = "/data/userdata/share/kaggle"
+
     rag_path: str = "git_ignore_folder/rag"
 
 

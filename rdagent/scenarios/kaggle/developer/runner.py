@@ -15,8 +15,6 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGModelExperiment,
 )
 
-META_TPL_DIR = Path(__file__).parent.parent / "experiment" / "meta_tpl"
-
 
 class KGCachedRunner(CachedRunner[ASpecificExp]):
     def build_from_SOTA(self, exp: ASpecificExp) -> None:
