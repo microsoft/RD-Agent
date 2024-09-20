@@ -22,6 +22,7 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
+
 class KGCachedRunner(CachedRunner[ASpecificExp]):
     def build_from_SOTA(self, exp: ASpecificExp) -> None:
         if len(exp.based_experiments) > 0:
