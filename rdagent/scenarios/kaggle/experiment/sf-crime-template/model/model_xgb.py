@@ -22,8 +22,8 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
 
     # TODO: for quick running....
     params = {
-        'objective': 'multi:softprob',
-        'num_class': num_classes,
+        "objective": "multi:softprob",
+        "num_class": num_classes,
         "nthred": -1,
     }
     num_round = 100

@@ -12,42 +12,50 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    train = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/train.csv", parse_dates=['Dates'], index_col=False)
-    train = train.drop(['Descript', 'Resolution', 'Address'], axis=1)
-    
-    test = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/test.csv", parse_dates=['Dates'], index_col=False)
-    test_ids = test['Id']
-    test = test.drop(['Address'], axis=1)
+    train = pd.read_csv(
+        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/train.csv",
+        parse_dates=["Dates"],
+        index_col=False,
+    )
+    train = train.drop(["Descript", "Resolution", "Address"], axis=1)
+
+    test = pd.read_csv(
+        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/test.csv",
+        parse_dates=["Dates"],
+        index_col=False,
+    )
+    test_ids = test["Id"]
+    test = test.drop(["Address"], axis=1)
 
     # Feature engineering
     def feature_engineering(data):
-        data['Day'] = data['Dates'].dt.day
-        data['Month'] = data['Dates'].dt.month
-        data['Year'] = data['Dates'].dt.year
-        data['Hour'] = data['Dates'].dt.hour
-        data['Minute'] = data['Dates'].dt.minute
-        data['DayOfWeek'] = data['Dates'].dt.dayofweek
-        data['WeekOfYear'] = data['Dates'].dt.isocalendar().week
+        data["Day"] = data["Dates"].dt.day
+        data["Month"] = data["Dates"].dt.month
+        data["Year"] = data["Dates"].dt.year
+        data["Hour"] = data["Dates"].dt.hour
+        data["Minute"] = data["Dates"].dt.minute
+        data["DayOfWeek"] = data["Dates"].dt.dayofweek
+        data["WeekOfYear"] = data["Dates"].dt.isocalendar().week
         return data
-    
+
     train = feature_engineering(train)
     test = feature_engineering(test)
-    
+
     # Encoding 'PdDistrict'
     enc = LabelEncoder()
-    train['PdDistrict'] = enc.fit_transform(train['PdDistrict'])
-    test['PdDistrict'] = enc.transform(test['PdDistrict'])
+    train["PdDistrict"] = enc.fit_transform(train["PdDistrict"])
+    test["PdDistrict"] = enc.transform(test["PdDistrict"])
 
     # Encoding 'Category' in train set
     category_encoder = LabelEncoder()
-    category_encoder.fit(train['Category'])
-    train['CategoryEncoded'] = category_encoder.transform(train['Category'])
+    category_encoder.fit(train["Category"])
+    train["CategoryEncoded"] = category_encoder.transform(train["Category"])
 
     # Selecting feature columns for modeling
     x_cols = list(train.columns[2:12].values)
-    x_cols.remove('Minute')  # Exclude the 'Minute' column
+    x_cols.remove("Minute")  # Exclude the 'Minute' column
     X = train[x_cols]
-    y = train['CategoryEncoded']
+    y = train["CategoryEncoded"]
     X_test = test[x_cols]
 
     # Split the data into training and validation sets
@@ -68,11 +76,7 @@ def preprocess_fit(X_train: pd.DataFrame):
     numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
 
     # Combine preprocessing steps
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numerical_transformer, numerical_cols)
-        ]
-    )
+    preprocessor = ColumnTransformer(transformers=[("num", numerical_transformer, numerical_cols)])
 
     # Fit the preprocessor on the training data
     preprocessor.fit(X_train)

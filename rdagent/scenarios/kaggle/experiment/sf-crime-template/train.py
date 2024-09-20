@@ -34,7 +34,6 @@ def import_module_from_path(module_name, module_path):
 X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids = preprocess_script()
 
 
-
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
@@ -54,7 +53,6 @@ for f in DIRNAME.glob("feature/feat*.py"):
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
 X_test = pd.concat(X_test_l, axis=1)
-
 
 
 # Handle inf and -inf values
@@ -77,10 +75,10 @@ X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
-#print(X_train.head())
-#print(y_train.head())
-#print(X_valid.head())
-#print(y_valid.head())
+# print(X_train.head())
+# print(y_train.head())
+# print(X_valid.head())
+# print(y_valid.head())
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func]]
@@ -97,11 +95,12 @@ for model, predict_func in model_l:
 
 # 5) Ensemble
 from scipy import stats
+
 # average probabilities ensemble
 y_valid_pred_proba = np.mean(y_valid_pred_l, axis=0)
 
-print(y_valid.shape) 
-print(y_valid_pred_proba.shape) 
+print(y_valid.shape)
+print(y_valid_pred_proba.shape)
 
 # Compute metrics
 print("Classes in y_valid:", np.unique(y_valid))
@@ -110,7 +109,7 @@ logloss = compute_metrics_for_classification(y_valid, y_valid_pred_proba)
 print(f"final log_loss on valid set: {logloss}")
 
 # 6) Save the validation metrics
-#pd.Series(data=[logloss], index=["log_loss"]).to_csv("submission_score.csv")
+# pd.Series(data=[logloss], index=["log_loss"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
@@ -123,6 +122,6 @@ y_test_pred_proba = np.mean(y_test_pred_l, axis=0)
 class_labels = category_encoder.classes_
 
 submission_result = pd.DataFrame(y_test_pred_proba, columns=class_labels)
-submission_result.insert(0, 'Id', test_ids)
+submission_result.insert(0, "Id", test_ids)
 
 submission_result.to_csv("submission.csv", index=False)
