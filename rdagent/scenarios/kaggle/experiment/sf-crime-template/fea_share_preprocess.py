@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -13,14 +14,14 @@ def prepreprocess():
     """
     # Load and preprocess the data
     train = pd.read_csv(
-        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/train.csv",
+        "/kaggle/input/train.csv",
         parse_dates=["Dates"],
         index_col=False,
     )
     train = train.drop(["Descript", "Resolution", "Address"], axis=1)
 
     test = pd.read_csv(
-        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/sf-crime/test.csv",
+        "/kaggle/input/test.csv",
         parse_dates=["Dates"],
         index_col=False,
     )

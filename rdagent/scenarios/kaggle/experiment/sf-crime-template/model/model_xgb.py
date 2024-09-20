@@ -2,9 +2,9 @@
 motivation  of the model
 """
 
+import numpy as np
 import pandas as pd
 import xgboost as xgb
-import numpy as np
 
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
