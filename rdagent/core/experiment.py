@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import os
 import shutil
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Generic, Sequence, TypeVar
+from typing import Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
@@ -110,6 +112,16 @@ class FBWorkspace(Workspace):
                 Different methods shares the same data. The data are passed by the arguments.
         """
         self.workspace_path.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
+    def link_all_files_in_folder_to_workspace(data_path: Path, workspace_path: Path) -> None:
+        data_path = Path(data_path).absolute()  # in case of relative path that will be invalid when we change cwd.
+        workspace_path = Path(workspace_path)
+        for data_file_path in data_path.iterdir():
+            workspace_data_file_path = workspace_path / data_file_path.name
+            if workspace_data_file_path.exists():
+                workspace_data_file_path.unlink()
+            os.symlink(data_file_path, workspace_data_file_path)
 
     def inject_code(self, **files: str) -> None:
         """

@@ -1,4 +1,6 @@
+import io
 import json
+import pickle
 from pathlib import Path
 
 import pandas as pd
@@ -93,9 +95,12 @@ class KGScenario(Scenario):
     def source_data(self) -> str:
         data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / self.competition
 
-        if (data_folder / "valid.pkl").exists():
-            X_valid = pd.read_pickle(data_folder / "valid.pkl")
-            return X_valid.head()
+        if (data_folder / "X_valid.pkl").exists():
+            X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
+            buffer = io.StringIO()
+            X_valid.info(verbose=True, buf=buffer, show_counts=True)
+            data_info = buffer.getvalue()
+            return data_info
 
         preprocess_experiment = KGFactorExperiment([])
         (
@@ -108,8 +113,17 @@ class KGScenario(Scenario):
         ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
         data_folder.mkdir(exist_ok=True, parents=True)
-        X_valid.to_pickle(data_folder / "valid.pkl")
-        return X_valid.head()
+        pickle.dump(X_train, open(data_folder / "X_train.pkl", "wb"))
+        pickle.dump(X_valid, open(data_folder / "X_valid.pkl", "wb"))
+        pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
+        pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
+        pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
+        pickle.dump(passenger_ids, open(data_folder / "passenger_ids.pkl", "wb"))
+
+        buffer = io.StringIO()
+        X_valid.info(verbose=True, buf=buffer, show_counts=True)
+        data_info = buffer.getvalue()
+        return data_info
 
     @property
     def output_format(self) -> str:

@@ -82,18 +82,22 @@ class KGHypothesisGen(ModelHypothesisGen):
         self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        hypothesis_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+        hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_feedback, topk_k=5)
+        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
         rag_content = "\n".join([doc.content for doc in rag_results])
 
         context_dict = {
-            "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": rag_content,
+            "hypothesis_and_feedback": hypothesis_and_feedback,
+            "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }
@@ -125,9 +129,13 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         self.current_action = hypothesis.action
 
         hypothesis_and_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
         experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]

@@ -87,19 +87,6 @@ class FactorFBWorkspace(FBWorkspace):
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
-    @staticmethod
-    def link_data_to_workspace(data_path: Path, workspace_path: Path):
-        data_path = Path(data_path).absolute()  # in case of relative path that will be invalid when we change cwd.
-        workspace_path = Path(workspace_path)
-        for data_file_path in data_path.iterdir():
-            workspace_data_file_path = workspace_path / data_file_path.name
-            if workspace_data_file_path.exists():
-                workspace_data_file_path.unlink()
-            subprocess.run(
-                ["ln", "-s", data_file_path, workspace_data_file_path],
-                check=False,
-            )
-
     def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
@@ -154,7 +141,7 @@ class FactorFBWorkspace(FBWorkspace):
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
 
-            self.link_data_to_workspace(source_data_path, self.workspace_path)
+            self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
