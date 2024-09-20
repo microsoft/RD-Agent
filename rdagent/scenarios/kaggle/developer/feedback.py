@@ -52,7 +52,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         for feature_info in exp.experiment_workspace.data_description:
             task_info, feature_shape = feature_info
             features.append(
-                {"name": task_info.factor_name, "description": task_info.factor_description, "shape": feature_shape}
+                {"task info": task_info, "number of factors": feature_shape}
             )
 
         return features
@@ -110,16 +110,66 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
         available_features = self.get_available_features(exp)
-        # Get the appropriate model code
-        model_code = self.get_model_code(exp)
+        
 
         # Generate the user prompt based on the action type
         if hypothesis.action == "Model tuning":
             prompt_key = "model_tuning_feedback_generation"
+            # Get the appropriate model code
+            model_code = self.get_model_code(exp)
+
+            # Prepare render dictionary
+            render_dict = {
+                "context": self.scen.get_scenario_all_desc(),
+                "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+                "last_task": trace.hist[-1][1] if trace.hist else None,
+                "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+                "last_result": trace.hist[-1][1].result if trace.hist else None,
+                "hypothesis": hypothesis,
+                "exp": exp,
+                "model_code": model_code, 
+                "available_features": available_features,
+                "combined_result": combined_result,
+                "hypothesis_text": hypothesis_text,
+                "task_details": tasks_factors,
+            }
         elif hypothesis.action == "Model feature selection":
             prompt_key = "feature_selection_feedback_generation"
+            # Get the appropriate model code
+            model_code = self.get_model_code(exp)
+
+            # Prepare render dictionary
+            render_dict = {
+                "context": self.scen.get_scenario_all_desc(),
+                "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+                "last_task": trace.hist[-1][1] if trace.hist else None,
+                "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+                "last_result": trace.hist[-1][1].result if trace.hist else None,
+                "hypothesis": hypothesis,
+                "exp": exp,
+                "model_code": model_code, 
+                "available_features": available_features,
+                "combined_result": combined_result,
+                "hypothesis_text": hypothesis_text,
+                "task_details": tasks_factors,
+            }
         else:
             prompt_key = "factor_feedback_generation"
+
+            # Prepare render dictionary
+            render_dict = {
+                "context": self.scen.get_scenario_all_desc(),
+                "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
+                "last_task": trace.hist[-1][1] if trace.hist else None,
+                "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+                "last_result": trace.hist[-1][1].result if trace.hist else None,
+                "hypothesis": hypothesis,
+                "exp": exp,
+                "available_features": available_features,
+                "combined_result": combined_result,
+                "hypothesis_text": hypothesis_text,
+                "task_details": tasks_factors,
+            }
 
         # Generate the system prompt
         sys_prompt = (
@@ -127,22 +177,6 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .from_string(prompt_dict[prompt_key]["system"])
             .render(scenario=self.scen.get_scenario_all_desc())
         )
-
-        # Prepare render dictionary
-        render_dict = {
-            "context": self.scen.get_scenario_all_desc(),
-            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
-            "last_task": trace.hist[-1][1] if trace.hist else None,
-            "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
-            "last_result": trace.hist[-1][1].result if trace.hist else None,
-            "hypothesis": hypothesis,
-            "exp": exp,
-            "model_code": model_code,
-            "available_features": available_features,
-            "combined_result": combined_result,
-            "hypothesis_text": hypothesis_text,
-            "task_details": tasks_factors,
-        }
 
         # Generate the user prompt
         usr_prompt = (
