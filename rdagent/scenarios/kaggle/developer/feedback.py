@@ -149,7 +149,6 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             Environment(undefined=StrictUndefined).from_string(prompt_dict[prompt_key]["user"]).render(**render_dict)
         )
 
-
         # Call the APIBackend to generate the response for hypothesis feedback
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=usr_prompt,
