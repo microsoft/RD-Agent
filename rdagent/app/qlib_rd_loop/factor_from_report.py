@@ -14,6 +14,7 @@ from rdagent.components.document_reader.document_reader import (
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.time import measure_time
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 from rdagent.scenarios.qlib.factor_experiment_loader.pdf_loader import (
@@ -101,6 +102,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 
 
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
+    @measure_time
     def __init__(self, report_folder: str = None):
         super().__init__(PROP_SETTING=FACTOR_FROM_REPORT_PROP_SETTING)
         if report_folder is None:
@@ -116,6 +118,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
         self.current_loop_exp = None
         self.steps = ["propose_hypo_exp", "propose", "exp_gen", "coding", "running", "feedback"]
 
+    @measure_time
     def propose_hypo_exp(self, prev_out: dict[str, Any]):
         with logger.tag("r"):
             while True:
@@ -137,9 +140,11 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 self.current_loop_exp = exp
                 return None
 
+    @measure_time
     def propose(self, prev_out: dict[str, Any]):
         return self.current_loop_hypothesis
 
+    @measure_time
     def exp_gen(self, prev_out: dict[str, Any]):
         return self.current_loop_exp
 
