@@ -102,18 +102,14 @@ print("Final on validation set: ", mcc)
 pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
-label_encoder = LabelEncoder()
-label_encoder.fit(y_train)
-y_test_pred_bool_l = []
+y_test_pred_l = []
 for m, m_pred in model_l:
-    y_test_pred_bool_l.append(
-        m_pred(m, X_test).astype(int)
-    )  # TODO Make this an ensemble. Currently it uses the last prediction
+    y_test_pred_l.append(m_pred(m, X_test))  # TODO Make this an ensemble. Currently it uses the last prediction
 
-y_test_pred = np.mean(y_test_pred_bool_l, axis=0)
+y_test_pred = np.mean(y_test_pred_l, axis=0)
 y_test_pred = (y_test_pred > 0.5).astype(int)
 
-y_test_pred_labels = label_encoder.inverse_transform(y_test_pred)  # 将整数转换回 'e' 或 'p'
+y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
 
