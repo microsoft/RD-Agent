@@ -150,13 +150,13 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             self.extract_model_task_from_code(
                 (exp.experiment_workspace.workspace_path / "model" / "model_randomforest.py").read_text()
             )
-            + f"""code: { exp.sub_workspace_list[0].code_dict.get("model_randomforest.py")}"""
+            + f"""code: { (exp.experiment_workspace.workspace_path / "model" / "model_randomforest.py").read_text()}"""
         )
         sub_model_2_description = (
             self.extract_model_task_from_code(
                 (exp.experiment_workspace.workspace_path / "model" / "model_xgboost.py").read_text()
             )
-            + f"""code: { exp.sub_workspace_list[0].code_dict.get("model_xgboost.py")}"""
+            + f"""code: { (exp.experiment_workspace.workspace_path / "model" / "model_xgboost.py").read_text()}"""
         )
 
         exp.experiment_workspace.model_description["XGBoost"] = sub_model_1_description
