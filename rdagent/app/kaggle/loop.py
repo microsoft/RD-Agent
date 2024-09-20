@@ -50,8 +50,6 @@ class KaggleRDLoop(RDLoop):
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = Trace(scen=scen)
-            self.times = {}
-            self.loop_times = []
             super(RDLoop, self).__init__()
 
     @measure_time
