@@ -41,6 +41,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
+            self.trace = Trace(scen=scen)
             super().__init__()
 
     @measure_time
