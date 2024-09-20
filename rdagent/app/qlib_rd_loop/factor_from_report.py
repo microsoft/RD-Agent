@@ -102,6 +102,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 
 
 class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
+    @measure_time
     def __init__(self, report_folder: str = None):
         super().__init__(PROP_SETTING=FACTOR_FROM_REPORT_PROP_SETTING)
         if report_folder is None:

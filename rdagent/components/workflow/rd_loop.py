@@ -22,6 +22,7 @@ from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
 class RDLoop(LoopBase, metaclass=LoopMeta):
+    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)()

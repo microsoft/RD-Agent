@@ -25,6 +25,7 @@ from rdagent.scenarios.kaggle.proposal.proposal import (
 
 
 class KaggleRDLoop(RDLoop):
+    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
