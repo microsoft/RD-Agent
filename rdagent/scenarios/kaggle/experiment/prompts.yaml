@@ -62,7 +62,6 @@ kg_background: |-
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
-  You should choose "Model tuning" more frequently, since it is more signifant to improve the performance.
 
 kg_feature_interface: |-
   Your code should contain several parts:
