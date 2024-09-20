@@ -44,10 +44,11 @@ X_train_l, X_valid_l = [], []
 X_test_l = []
 
 for f in DIRNAME.glob("feature/feat*.py"):
-    m = import_module_from_path(f.stem, f)
-    X_train_f = m.feat_eng(X_train)
-    X_valid_f = m.feat_eng(X_valid)
-    X_test_f = m.feat_eng(X_test)
+    cls = import_module_from_path(f.stem, f).feature_engineering_cls()
+    cls.fit(X_train)
+    X_train_f = cls.transform(X_train)
+    X_valid_f = cls.transform(X_valid)
+    X_test_f = cls.transform(X_test)
 
     X_train_l.append(X_train_f)
     X_valid_l.append(X_valid_f)

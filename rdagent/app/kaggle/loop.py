@@ -7,7 +7,7 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
-from rdagent.core.exception import ModelEmptyError
+from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
@@ -17,6 +17,9 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
+    KaggleExperienceBase,
+)
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
@@ -68,7 +71,7 @@ class ModelRDLoop(RDLoop):
             logger.log_object(exp, tag="runner result")
         return exp
 
-    skip_loop_error = (ModelEmptyError,)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError)
 
 
 def main(path=None, step_n=None, competition=None):
@@ -77,9 +80,10 @@ def main(path=None, step_n=None, competition=None):
 
     You can continue running session by
 
-    .. code-block:: python
+    .. code-block:: bash
 
-        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
+        rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
 
     """
     if competition:
@@ -92,7 +96,4 @@ def main(path=None, step_n=None, competition=None):
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    load_dotenv(override=True)
     fire.Fire(main)

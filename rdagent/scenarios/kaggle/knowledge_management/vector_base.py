@@ -12,6 +12,9 @@ from rdagent.components.knowledge_management.vector_base import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
+    extract_knowledge_from_feedback,
+)
 
 
 class KGKnowledgeMetaData(KnowledgeMetaData):
@@ -178,10 +181,32 @@ class KaggleExperienceBase(PDVectorBase):
             logger.error(f"Kaggle experience data not found at {kaggle_experience_path}")
             self.kaggle_experience_data = []
 
-    def add_experience_to_vector_base(self):
+    def add_experience_to_vector_base(self, experiment_feedback=None):
         """
-        Process the Kaggle experience data and add relevant information to the vector base
+        Process Kaggle experience data or experiment feedback and add relevant information to the vector base.
+
+        Args:
+            experiment_feedback (dict, optional): A dictionary containing experiment feedback.
+                                                If provided, this feedback will be processed and added to the vector base.
         """
+        # If experiment feedback is provided, extract relevant knowledge and add it to the vector base
+        if experiment_feedback:
+            extracted_knowledge = extract_knowledge_from_feedback(experiment_feedback)
+
+            document = KGKnowledgeMetaData(
+                content=experiment_feedback.get("hypothesis_text", ""),
+                label="Experiment Feedback",
+                competition_name="Experiment Result",
+                task_category=experiment_feedback.get("tasks_factors", "General Task"),
+                field="Research Feedback",
+                ranking=None,
+                score=experiment_feedback.get("current_result", None),
+            )
+            document.create_embedding()
+            self.add(document)
+            return
+
+        # Process Kaggle experience data
         for experience in self.kaggle_experience_data:
             content = experience.get("content", "")
             label = experience.get("title", "Kaggle Experience")
@@ -237,6 +262,8 @@ if __name__ == "__main__":
     )
 
     kaggle_base.add_experience_to_vector_base()
+
+    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 

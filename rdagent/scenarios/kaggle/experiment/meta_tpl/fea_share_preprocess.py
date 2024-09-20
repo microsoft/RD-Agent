@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -12,7 +14,6 @@ def prepreprocess():
     """
     # Load and preprocess the data
     data_df = pd.read_csv("/kaggle/input/train.csv")
-    data_df = data_df.head(1200)
     data_df = data_df.drop(["id"], axis=1)
 
     X = data_df.drop(["class"], axis=1)
@@ -83,6 +84,15 @@ def preprocess_script():
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
+    if os.path.exists("X_train.pkl"):
+        X_train = pd.read_pickle("X_train.pkl")
+        X_valid = pd.read_pickle("X_valid.pkl")
+        y_train = pd.read_pickle("y_train.pkl")
+        y_valid = pd.read_pickle("y_valid.pkl")
+        X_test = pd.read_pickle("X_test.pkl")
+        passenger_ids = pd.read_pickle("passenger_ids.pkl")
+
+        return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Fit the preprocessor on the training data
@@ -94,7 +104,6 @@ def preprocess_script():
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
-    submission_df = submission_df.head(500)
     passenger_ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)
