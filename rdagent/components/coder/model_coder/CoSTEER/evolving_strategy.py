@@ -11,7 +11,7 @@ from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
 from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelQueriedKnowledge,
 )
-from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBWorkspace, ModelTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
