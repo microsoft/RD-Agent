@@ -132,6 +132,7 @@ class DockerConf(BaseSettings):
     network: str | None = "bridge"  # the network mode for the docker
     shm_size: str | None = None
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
+    mem_limit: str | None = "48g"  # Add memory limit attribute
 
 
 class QlibDockerConf(DockerConf):
@@ -300,6 +301,7 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
+                mem_limit=self.conf.mem_limit,  # Set memory limit
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
