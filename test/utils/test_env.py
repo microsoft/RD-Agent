@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 import shutil
 
-from rdagent.utils.env import LocalConf, LocalEnv, QTDockerEnv
+from rdagent.utils.env import LocalConf, LocalEnv, QlibDockerConf, QTDockerEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -37,8 +37,7 @@ class EnvUtils(unittest.TestCase):
         self.assertTrue(mlrun_p.exists(), f"Expected output file {mlrun_p} not found")
 
     def test_docker(self):
-        """
-        We will mount `env_tpl` into the docker image.
+        """We will mount `env_tpl` into the docker image.
         And run the docker image with `qrun conf.yaml`
         """
         qtde = QTDockerEnv()
@@ -53,6 +52,23 @@ class EnvUtils(unittest.TestCase):
         # read experiment
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
+
+    def test_docker_mem(self):
+        cmd = 'python -c \'print("start"); import numpy as np;  size_mb = 500; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); print("success")\''
+
+        qtde = QTDockerEnv(QlibDockerConf(mem_limit="10m"))
+        qtde.prepare()
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        self.assertTrue(not result.strip().endswith("success"))
+
+        qtde = QTDockerEnv(QlibDockerConf(mem_limit="1g"))
+        qtde.prepare()
+        result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry=cmd)
+        self.assertTrue(result.strip().endswith("success"))
+
+        # The above command equals to the follow commands with dockr cli.sh
+        # docker run  --memory=10m  -it --rm local_qlib:latest python -c 'import numpy as np; print(123);  size_mb = 1; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); array[0], array[-1] = 1.0, 1.0; print(321)'
+        # docker run  --memory=10g  -it --rm local_qlib:latest python -c 'import numpy as np; print(123);  size_mb = 1; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); array[0], array[-1] = 1.0, 1.0; print(321)'
 
 
 if __name__ == "__main__":
