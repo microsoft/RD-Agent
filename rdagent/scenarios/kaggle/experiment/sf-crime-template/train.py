@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
 from sklearn.metrics import log_loss
-from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
@@ -75,11 +74,6 @@ X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
-# print(X_train.head())
-# print(y_train.head())
-# print(X_valid.head())
-# print(y_valid.head())
-
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
@@ -99,17 +93,12 @@ from scipy import stats
 # average probabilities ensemble
 y_valid_pred_proba = np.mean(y_valid_pred_l, axis=0)
 
-print(y_valid.shape)
-print(y_valid_pred_proba.shape)
-
 # Compute metrics
-print("Classes in y_valid:", np.unique(y_valid))
-print("Classes in y_valid_pred_proba:", np.unique(np.argmax(y_valid_pred_proba, axis=1)))
 logloss = compute_metrics_for_classification(y_valid, y_valid_pred_proba)
 print(f"final log_loss on valid set: {logloss}")
 
 # 6) Save the validation metrics
-# pd.Series(data=[logloss], index=["log_loss"]).to_csv("submission_score.csv")
+pd.Series(data=[logloss], index=["log_loss"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []

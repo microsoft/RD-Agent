@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
 from sklearn.metrics import accuracy_score, matthews_corrcoef
-from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
