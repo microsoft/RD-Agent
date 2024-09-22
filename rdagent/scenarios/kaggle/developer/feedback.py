@@ -105,10 +105,11 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         last_task_and_code = None
         if trace.hist:
-            last_task_and_code = (trace.hist[-1][1].experiment_workspace.data_description 
-                        if trace.hist[-1][0].action == 'Feature engineering' 
-                        or trace.hist[-1][0].action == 'Feature processing' 
-                        else trace.hist[-1][1].experiment_workspace.model_description)
+            last_task_and_code = (
+                trace.hist[-1][1].experiment_workspace.data_description
+                if trace.hist[-1][0].action == "Feature engineering" or trace.hist[-1][0].action == "Feature processing"
+                else trace.hist[-1][1].experiment_workspace.model_description
+            )
 
         # Prepare render dictionary
         render_dict = {
