@@ -9,7 +9,7 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    data_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/forest-cover-type-prediction/train.csv")
+    data_df = pd.read_csv("/kaggle/input/train.csv")
     data_df = data_df.drop(["Id"], axis=1)
 
     X = data_df.drop(["Cover_Type"], axis=1)
@@ -37,7 +37,7 @@ def preprocess_script():
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Load and preprocess the test data
-    submission_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/forest-cover-type-prediction/test.csv")
+    submission_df = pd.read_csv("/kaggle/input/test.csv")
     ids = submission_df["Id"]
     X_test = submission_df.drop(["Id"], axis=1)
 
