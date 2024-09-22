@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
@@ -15,11 +15,11 @@ np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-# support various method for metrics calculation
-def compute_metrics_for_classification(y_true, y_pred):
-    """Compute MCC for classification."""
-    mcc = matthews_corrcoef(y_true, y_pred)
-    return mcc
+def compute_rmse(y_true, y_pred):
+    """Compute RMSE for regression."""
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    return rmse
 
 
 def import_module_from_path(module_name, module_path):
@@ -30,8 +30,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-# TODO 如果已经做过数据预处理了，不需要再做了
-X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -84,27 +83,21 @@ for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
 
 # 5) Ensemble
-# TODO: ensemble method in a script
-# Average the predictions and apply a threshold to determine class labels
 y_valid_pred = np.mean(y_valid_pred_l, axis=0)
-y_valid_pred = (y_valid_pred > 0.5).astype(int)
 
-mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("Final on validation set: ", mcc)
+rmse = compute_rmse(y_valid, y_valid_pred)
+print("Final RMSE on validation set: ", rmse)
 
-# 6) Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
+# 6) Save the validation RMSE
+pd.Series(data=[rmse], index=["RMSE"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
 for m, m_pred in model_l:
-    y_test_pred_l.append(m_pred(m, X_test))  # TODO Make this an ensemble. Currently it uses the last prediction
+    y_test_pred_l.append(m_pred(m, X_test))
 
 y_test_pred = np.mean(y_test_pred_l, axis=0)
-y_test_pred = (y_test_pred > 0.5).astype(int)
-
-y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 # 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
+submission_result = pd.DataFrame({"id": ids, "price": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)

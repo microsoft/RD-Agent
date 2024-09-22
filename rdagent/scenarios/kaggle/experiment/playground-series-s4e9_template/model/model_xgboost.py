@@ -1,7 +1,3 @@
-"""
-motivation  of the model
-"""
-
 import pandas as pd
 import xgboost as xgb
 
@@ -18,11 +14,12 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
-    # TODO: for quick running....
+    # Parameters for regression
     params = {
-        "nthred": -1,
+        "objective": "reg:squarederror",  # Use squared error for regression
+        "nthread": -1,
     }
-    num_round = 180
+    num_round = 200
 
     evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)
@@ -36,5 +33,5 @@ def predict(model, X):
     """
     X = select(X)
     dtest = xgb.DMatrix(X)
-    y_pred_prob = model.predict(dtest)
-    return y_pred_prob
+    y_pred = model.predict(dtest)
+    return y_pred

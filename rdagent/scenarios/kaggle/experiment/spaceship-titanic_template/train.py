@@ -17,9 +17,9 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 # support various method for metrics calculation
 def compute_metrics_for_classification(y_true, y_pred):
-    """Compute MCC for classification."""
-    mcc = matthews_corrcoef(y_true, y_pred)
-    return mcc
+    """Compute accuracy metric for classification."""
+    accuracy = accuracy_score(y_true, y_pred)
+    return accuracy
 
 
 def import_module_from_path(module_name, module_path):
@@ -101,10 +101,9 @@ for m, m_pred in model_l:
     y_test_pred_l.append(m_pred(m, X_test))  # TODO Make this an ensemble. Currently it uses the last prediction
 
 y_test_pred = np.mean(y_test_pred_l, axis=0)
-y_test_pred = (y_test_pred > 0.5).astype(int)
+y_test_pred = (y_test_pred > 0.5).astype(bool)
 
-y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
+submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
 
 # 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
 submission_result.to_csv("submission.csv", index=False)

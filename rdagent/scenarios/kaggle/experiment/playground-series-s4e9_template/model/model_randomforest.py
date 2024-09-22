@@ -1,13 +1,7 @@
-"""
-Motivation of the model:
-The Random Forest model is chosen for its robustness and ability to handle large datasets with higher dimensionality.
-It reduces overfitting by averaging multiple decision trees and typically performs well out of the box, making it a good
-baseline model for many classification tasks.
-"""
-
+import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
 
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
@@ -23,7 +17,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
     Define and train the Random Forest model. Merge feature selection into the pipeline.
     """
     # Initialize the Random Forest model
-    model = RandomForestClassifier(n_estimators=10, random_state=32, n_jobs=-1)
+    model = RandomForestRegressor(n_estimators=100, random_state=32, n_jobs=-1)
 
     # Select features (if any feature selection is needed)
     X_train_selected = select(X_train)
@@ -34,8 +28,9 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
 
     # Validate the model
     y_valid_pred = model.predict(X_valid_selected)
-    # accuracy = accuracy_score(y_valid, y_valid_pred)
-    # print(f"Validation Accuracy: {accuracy:.4f}")
+    mse = mean_squared_error(y_valid, y_valid_pred)
+    rmse = np.sqrt(mse)
+    print(f"Validation RMSE: {rmse:.4f}")
 
     return model
 
@@ -48,7 +43,6 @@ def predict(model, X):
     X_selected = select(X)
 
     # Predict using the trained model
-    y_pred_prob = model.predict_proba(X_selected)
+    y_pred = model.predict(X_selected)
 
-    # Apply threshold to get boolean predictions
-    return y_pred_prob
+    return y_pred

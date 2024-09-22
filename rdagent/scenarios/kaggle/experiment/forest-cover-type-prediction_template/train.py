@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fea_share_preprocess import preprocess_script
+from fea_share_preprocess import clean_and_impute_data, preprocess_script
+from scipy import stats
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 from sklearn.preprocessing import LabelEncoder
 
@@ -16,6 +17,12 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 # support various method for metrics calculation
+def compute_metrics_for_classification(y_true, y_pred):
+    """Compute accuracy metric for classification."""
+    accuracy = accuracy_score(y_true, y_pred)
+    return accuracy
+
+
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute MCC for classification."""
     mcc = matthews_corrcoef(y_true, y_pred)
@@ -31,7 +38,7 @@ def import_module_from_path(module_name, module_path):
 
 # 1) Preprocess the data
 # TODO 如果已经做过数据预处理了，不需要再做了
-X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -55,25 +62,10 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 print(X_train.shape, X_valid.shape, X_test.shape)
 
 # Handle inf and -inf values
-X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-from sklearn.impute import SimpleImputer
-
-imputer = SimpleImputer(strategy="mean")
-
-X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
-X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
-X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
-
-# Remove duplicate columns
-X_train = X_train.loc[:, ~X_train.columns.duplicated()]
-X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-X_test = X_test.loc[:, ~X_test.columns.duplicated()]
+X_train, X_valid, X_test = clean_and_impute_data(X_train, X_valid, X_test)
 
 # 3) Train the model
-model_l = []  # list[tuple[model, predict_func,]]
+model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
@@ -81,30 +73,32 @@ for f in DIRNAME.glob("model/model*.py"):
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
 for model, predict_func in model_l:
-    y_valid_pred_l.append(predict_func(model, X_valid))
+    y_valid_pred = predict_func(model, X_valid)
+    y_valid_pred_l.append(y_valid_pred)
+    print(y_valid_pred)
+    print(y_valid_pred.shape)
 
 # 5) Ensemble
-# TODO: ensemble method in a script
-# Average the predictions and apply a threshold to determine class labels
-y_valid_pred = np.mean(y_valid_pred_l, axis=0)
-y_valid_pred = (y_valid_pred > 0.5).astype(int)
+# Majority vote ensemble
+y_valid_pred_ensemble = stats.mode(y_valid_pred_l, axis=0)[0].flatten()
 
-mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("Final on validation set: ", mcc)
+# Compute metrics
+accuracy = accuracy_score(y_valid, y_valid_pred_ensemble)
+print(f"final accuracy on valid set: {accuracy}")
 
-# 6) Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
+# 6) Save the validation metrics
+pd.Series(data=[accuracy], index=["multi-class accuracy"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
-for m, m_pred in model_l:
-    y_test_pred_l.append(m_pred(m, X_test))  # TODO Make this an ensemble. Currently it uses the last prediction
+for model, predict_func in model_l:
+    y_test_pred_l.append(predict_func(model, X_test))
 
-y_test_pred = np.mean(y_test_pred_l, axis=0)
-y_test_pred = (y_test_pred > 0.5).astype(int)
+# For multiclass classification, use the mode of the predictions
+y_test_pred = stats.mode(y_test_pred_l, axis=0)[0].flatten() + 1
 
-y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
-# 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
+submission_result = pd.DataFrame(y_test_pred, columns=["Cover_Type"])
+submission_result.insert(0, "Id", ids)
+
 submission_result.to_csv("submission.csv", index=False)
