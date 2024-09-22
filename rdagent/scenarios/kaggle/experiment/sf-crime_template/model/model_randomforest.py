@@ -34,8 +34,8 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
 
     # Validate the model
     y_valid_pred = model.predict(X_valid_selected)
-    #accuracy = accuracy_score(y_valid, y_valid_pred)
-    #print(f"Validation Accuracy: {accuracy:.4f}")
+    # accuracy = accuracy_score(y_valid, y_valid_pred)
+    # print(f"Validation Accuracy: {accuracy:.4f}")
 
     return model
 
