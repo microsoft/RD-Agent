@@ -13,7 +13,7 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    data_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/spaceship-titanic/train.csv")
+    data_df = pd.read_csv("/kaggle/input/train.csv")
     data_df = data_df.drop(["PassengerId"], axis=1)
 
     X = data_df.drop(["Transported"], axis=1)
@@ -103,7 +103,7 @@ def preprocess_script():
     X_valid = preprocess_transform(X_valid, preprocessor)
 
     # Load and preprocess the test data
-    submission_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/spaceship-titanic/test.csv")
+    submission_df = pd.read_csv("/kaggle/input/test.csv")
     passenger_ids = submission_df["PassengerId"]
     submission_df = submission_df.drop(["PassengerId"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)

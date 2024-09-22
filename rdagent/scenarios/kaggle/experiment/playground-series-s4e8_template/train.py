@@ -17,12 +17,6 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 # support various method for metrics calculation
 def compute_metrics_for_classification(y_true, y_pred):
-    """Compute accuracy metric for classification."""
-    accuracy = accuracy_score(y_true, y_pred)
-    return accuracy
-
-
-def compute_metrics_for_classification(y_true, y_pred):
     """Compute MCC for classification."""
     mcc = matthews_corrcoef(y_true, y_pred)
     return mcc
@@ -112,4 +106,5 @@ y_test_pred = (y_test_pred > 0.5).astype(int)
 y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 # 8) Submit predictions for the test set
+submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
 submission_result.to_csv("submission.csv", index=False)
