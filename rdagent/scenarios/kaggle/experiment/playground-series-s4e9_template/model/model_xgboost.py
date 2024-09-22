@@ -1,9 +1,11 @@
 import pandas as pd
 import xgboost as xgb
 
+
 def select(X: pd.DataFrame) -> pd.DataFrame:
     # Ignore feature selection logic
     return X
+
 
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
@@ -23,6 +25,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     bst = xgb.train(params, dtrain, num_round, evallist)
 
     return bst
+
 
 def predict(model, X):
     """

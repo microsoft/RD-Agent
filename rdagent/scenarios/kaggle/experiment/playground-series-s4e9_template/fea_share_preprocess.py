@@ -1,10 +1,12 @@
 import os
+
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+
 
 def prepreprocess():
     """
@@ -21,6 +23,7 @@ def prepreprocess():
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.10, random_state=42)
 
     return X_train, X_valid, y_train, y_valid
+
 
 def preprocess_fit(X_train: pd.DataFrame):
     """
@@ -53,6 +56,7 @@ def preprocess_fit(X_train: pd.DataFrame):
 
     return preprocessor
 
+
 def preprocess_transform(X: pd.DataFrame, preprocessor):
     """
     Transforms the given DataFrame using the fitted preprocessor.
@@ -71,6 +75,7 @@ def preprocess_transform(X: pd.DataFrame, preprocessor):
     X_transformed = pd.DataFrame(X_array, columns=feature_names, index=X.index)
 
     return X_transformed
+
 
 def preprocess_script():
     """
@@ -95,7 +100,9 @@ def preprocess_script():
     X_valid = preprocess_transform(X_valid, preprocessor)
 
     # Load and preprocess the test data
-    submission_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/playground-series-s4e9/test.csv")
+    submission_df = pd.read_csv(
+        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/playground-series-s4e9/test.csv"
+    )
     ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)

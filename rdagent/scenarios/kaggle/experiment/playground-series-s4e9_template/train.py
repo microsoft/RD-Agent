@@ -14,17 +14,20 @@ random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+
 def compute_rmse(y_true, y_pred):
     """Compute RMSE for regression."""
     mse = mean_squared_error(y_true, y_pred)
     rmse = np.sqrt(mse)
     return rmse
 
+
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()

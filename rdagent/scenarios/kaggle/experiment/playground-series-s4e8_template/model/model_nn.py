@@ -1,12 +1,13 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
-import numpy as np
 
 # Check if a GPU is available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # Restored three-layer model structure
 class HybridFeatureInteractionModel(nn.Module):
@@ -26,6 +27,7 @@ class HybridFeatureInteractionModel(nn.Module):
         x = torch.sigmoid(self.fc3(x))
         return x
 
+
 # Training function
 def fit(X_train, y_train, X_valid, y_valid):
     num_features = X_train.shape[1]
@@ -34,10 +36,12 @@ def fit(X_train, y_train, X_valid, y_valid):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Convert to TensorDataset and create DataLoader
-    train_dataset = TensorDataset(torch.tensor(X_train.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_train.reshape(-1), dtype=torch.float32))
-    valid_dataset = TensorDataset(torch.tensor(X_valid.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_valid.reshape(-1), dtype=torch.float32))
+    train_dataset = TensorDataset(
+        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.reshape(-1), dtype=torch.float32)
+    )
+    valid_dataset = TensorDataset(
+        torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.reshape(-1), dtype=torch.float32)
+    )
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
@@ -58,6 +62,7 @@ def fit(X_train, y_train, X_valid, y_valid):
 
     return model
 
+
 # Prediction function
 def predict(model, X):
     model.eval()
@@ -65,7 +70,7 @@ def predict(model, X):
     with torch.no_grad():
         X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)  # Move data to the device
         for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
-            batch = X_tensor[i:i + 32]  # Predict in batches
+            batch = X_tensor[i : i + 32]  # Predict in batches
             pred = model(batch).squeeze().cpu().numpy()  # Move results back to CPU
             predictions.extend(pred)
     return np.array(predictions)  # Return boolean predictions

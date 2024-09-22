@@ -1,7 +1,8 @@
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
-import numpy as np
+
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
     """
@@ -9,6 +10,7 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
     """
     # For now, we assume all features are relevant. This can be expanded to feature selection logic.
     return X
+
 
 def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series):
     """
@@ -31,6 +33,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
     print(f"Validation RMSE: {rmse:.4f}")
 
     return model
+
 
 def predict(model, X):
     """
