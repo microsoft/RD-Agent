@@ -37,29 +37,26 @@ def fit(X_train, y_train, X_valid, y_valid):
 
     # Convert to TensorDataset and create DataLoader
     train_dataset = TensorDataset(torch.tensor(X_train.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_train, dtype=torch.long))  # Use long for labels
+                                  torch.tensor(y_train.to_numpy(), dtype=torch.long))
     valid_dataset = TensorDataset(torch.tensor(X_valid.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_valid, dtype=torch.long))
+                                  torch.tensor(y_valid.to_numpy(), dtype=torch.long))
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
     # Train the model
     model.train()
-    try:
-        for epoch in range(5):
-            print(f"Epoch {epoch + 1}/5")
-            epoch_loss = 0
-            for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
-                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                optimizer.zero_grad()
-                outputs = model(X_batch)
-                loss = criterion(outputs, y_batch)
-                loss.backward()
-                optimizer.step()
-                epoch_loss += loss.item()
-            print(f"End of epoch {epoch + 1}, Avg Loss: {epoch_loss / len(train_loader):.4f}")
-    except Exception as e:
-        print(f"An error occurred during training: {e}")
+    for epoch in range(50):
+        print(f"Epoch {epoch + 1}/50")
+        epoch_loss = 0
+        for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+        print(f"End of epoch {epoch + 1}, Avg Loss: {epoch_loss / len(train_loader):.4f}")
     
     return model
 
@@ -67,14 +64,11 @@ def fit(X_train, y_train, X_valid, y_valid):
 def predict(model, X):
     model.eval()
     predictions = []
-    try:
-        with torch.no_grad():
-            X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
-            for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
-                batch = X_tensor[i:i + 32]
-                pred = model(batch)
-                pred = torch.argmax(pred, dim=1).cpu().numpy()  # Use argmax to get class
-                predictions.extend(pred)
-    except Exception as e:
-        print(f"An error occurred during prediction: {e}")
+    with torch.no_grad():
+        X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
+        for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
+            batch = X_tensor[i:i + 32]
+            pred = model(batch)
+            pred = torch.argmax(pred, dim=1).cpu().numpy()  # Use argmax to get class
+            predictions.extend(pred)
     return np.array(predictions)
