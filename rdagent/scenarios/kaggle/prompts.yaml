@@ -229,8 +229,7 @@ feature_selection_feedback_generation:
     {% if last_hypothesis %} 
     Last Round Information:
     Hypothesis: {{last_hypothesis.hypothesis}}
-    Task: {{last_task}}
-    Code Implemented: {{last_code}}
+    Last Task and Code: {{last_task_and_code}}
     Result: {{last_result}}
     {% else %}
     This is the first round. No previous information available. As long as the performance is not too negative (e.g., ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  

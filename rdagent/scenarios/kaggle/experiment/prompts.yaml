@@ -114,6 +114,7 @@ kg_feature_interface: |-
   4. Ensure that the generation of new features does not drastically increase the number of columns, which can slow down data processing. For example, avoid creating pairwise interactions for all features, as this would lead to a quadratic increase in the number of columns.
   5. Avoids raising a `ValueError` or any other exceptions that could interrupt the main program's flow. The code should not include checks that could potentially lead to a `ValueError`. Instead, focus on writing robust and fault-tolerant feature engineering functions that handle edge cases and missing data gracefully, without stopping the program.
   6. Specific categories of features can be filtered, and processing can be applied to those categories. For example, normalization can be applied to float-type features, but such processing should not be done on one-hot encoded features.
+  7. You are participating in a Kaggle competition and need data engineering ideas that are small, efficient, and quick to execute. Your suggestions should avoid unnecessary complexity or excessive processing time. Focus on delivering concise, impactful transformations or preprocessing steps that improve model performance with minimal resource usage. Please suggest clear, targeted approaches that can be implemented and tested rapidly.
 
 kg_model_interface: |-
   Your code should contain several parts:

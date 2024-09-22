@@ -103,12 +103,19 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(scenario=self.scen.get_scenario_all_desc())
         )
 
+        last_task_and_code = None
+        if trace.hist:
+            last_task_and_code = (
+                trace.hist[-1][1].experiment_workspace.data_description
+                if trace.hist[-1][0].action == "Feature engineering" or trace.hist[-1][0].action == "Feature processing"
+                else trace.hist[-1][1].experiment_workspace.model_description
+            )
+
         # Prepare render dictionary
         render_dict = {
             "context": self.scen.get_scenario_all_desc(),
-            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
-            "last_task": trace.hist[-1][1] if trace.hist else None,
-            "last_code": self.get_model_code(trace.hist[-1][1]) if trace.hist else None,
+            "last_hypothesis": trace.hist[-1][0].hypothesis if trace.hist else None,
+            "last_task_and_code": last_task_and_code,
             "last_result": trace.hist[-1][1].result if trace.hist else None,
             "hypothesis": hypothesis,
             "exp": exp,
