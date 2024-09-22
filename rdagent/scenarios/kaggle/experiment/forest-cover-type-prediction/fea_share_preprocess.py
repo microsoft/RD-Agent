@@ -1,8 +1,10 @@
 import os
+
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+
 
 def prepreprocess():
     """
@@ -13,12 +15,13 @@ def prepreprocess():
     data_df = data_df.drop(["Id"], axis=1)
 
     X = data_df.drop(["Cover_Type"], axis=1)
-    y = data_df["Cover_Type"]-1
+    y = data_df["Cover_Type"] - 1
 
     # Split the data into training and validation sets
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
 
     return X_train, X_valid, y_train, y_valid
+
 
 def preprocess_script():
     """
@@ -42,6 +45,7 @@ def preprocess_script():
     X_test = submission_df.drop(["Id"], axis=1)
 
     return X_train, X_valid, y_train, y_valid, X_test, ids
+
 
 def clean_and_impute_data(X_train, X_valid, X_test):
     """

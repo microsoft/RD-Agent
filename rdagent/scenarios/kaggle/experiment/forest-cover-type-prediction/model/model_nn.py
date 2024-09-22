@@ -1,13 +1,13 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
-import numpy as np
-
 # Check if a GPU is available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # Modified model for multi-class classification
 class HybridFeatureInteractionModel(nn.Module):
@@ -27,6 +27,7 @@ class HybridFeatureInteractionModel(nn.Module):
         x = self.fc3(x)  # No activation here, use CrossEntropyLoss
         return x
 
+
 # Training function
 def fit(X_train, y_train, X_valid, y_valid):
     num_features = X_train.shape[1]
@@ -36,16 +37,18 @@ def fit(X_train, y_train, X_valid, y_valid):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Convert to TensorDataset and create DataLoader
-    train_dataset = TensorDataset(torch.tensor(X_train.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_train.to_numpy(), dtype=torch.long))
-    valid_dataset = TensorDataset(torch.tensor(X_valid.to_numpy(), dtype=torch.float32),
-                                  torch.tensor(y_valid.to_numpy(), dtype=torch.long))
+    train_dataset = TensorDataset(
+        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.to_numpy(), dtype=torch.long)
+    )
+    valid_dataset = TensorDataset(
+        torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.to_numpy(), dtype=torch.long)
+    )
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
     # Train the model
     model.train()
-    for epoch in range(5): #just for quick run
+    for epoch in range(5):  # just for quick run
         print(f"Epoch {epoch + 1}/5")
         epoch_loss = 0
         for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
@@ -57,8 +60,9 @@ def fit(X_train, y_train, X_valid, y_valid):
             optimizer.step()
             epoch_loss += loss.item()
         print(f"End of epoch {epoch + 1}, Avg Loss: {epoch_loss / len(train_loader):.4f}")
-    
+
     return model
+
 
 # Prediction function
 def predict(model, X):
@@ -67,7 +71,7 @@ def predict(model, X):
     with torch.no_grad():
         X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
         for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
-            batch = X_tensor[i:i + 32]
+            batch = X_tensor[i : i + 32]
             pred = model(batch)
             pred = torch.argmax(pred, dim=1).cpu().numpy()  # Use argmax to get class
             predictions.extend(pred)

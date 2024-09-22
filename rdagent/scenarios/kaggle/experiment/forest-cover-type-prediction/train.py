@@ -4,10 +4,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fea_share_preprocess import preprocess_script, clean_and_impute_data
+from fea_share_preprocess import clean_and_impute_data, preprocess_script
+from scipy import stats
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 from sklearn.preprocessing import LabelEncoder
-from scipy import stats
 
 # Set random seed for reproducibility
 SEED = 42
@@ -95,7 +95,7 @@ for model, predict_func in model_l:
     y_test_pred_l.append(predict_func(model, X_test))
 
 # For multiclass classification, use the mode of the predictions
-y_test_pred = stats.mode(y_test_pred_l,axis=0)[0].flatten()+1
+y_test_pred = stats.mode(y_test_pred_l, axis=0)[0].flatten() + 1
 
 
 submission_result = pd.DataFrame(y_test_pred, columns=["Cover_Type"])

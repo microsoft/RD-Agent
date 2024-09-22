@@ -17,6 +17,7 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
     # For now, we assume all features are relevant. This can be expanded to feature selection logic.
     return X
 
+
 def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series):
     """
     Define and train the Random Forest model. Merge feature selection into the pipeline.
@@ -37,6 +38,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
     print(f"Validation Accuracy: {accuracy:.4f}")
 
     return model
+
 
 def predict(model, X):
     """

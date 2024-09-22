@@ -4,10 +4,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import KFold
 from scipy import stats
 from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import KFold
 
 # Set random seed for reproducibility
 SEED = 42
@@ -15,14 +15,18 @@ random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
+
 # 1) Preprocess the data
-data_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/forest-cover-type-prediction/train.csv")
+data_df = pd.read_csv(
+    "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/forest-cover-type-prediction/train.csv"
+)
 data_df = data_df.drop(["Id"], axis=1)
 
 X_train = data_df.drop(["Cover_Type"], axis=1)
@@ -38,7 +42,7 @@ accuracies = []
 fold_number = 1
 for train_index, valid_index in kf.split(X_train):
     print(f"Starting fold {fold_number}...")
-    
+
     X_train_l, X_valid_l = [], []  # Reset feature lists for each fold
     X_tr, X_val = X_train.iloc[train_index], X_train.iloc[valid_index]
     y_tr, y_val = y_train.iloc[train_index], y_train.iloc[valid_index]
