@@ -13,7 +13,7 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    data_df = pd.read_csv("/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/playground-series-s4e9/train.csv")
+    data_df = pd.read_csv("/kaggle/input/train.csv")
     data_df = data_df.drop(["id"], axis=1)
 
     X = data_df.drop(["price"], axis=1)
@@ -100,9 +100,7 @@ def preprocess_script():
     X_valid = preprocess_transform(X_valid, preprocessor)
 
     # Load and preprocess the test data
-    submission_df = pd.read_csv(
-        "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/playground-series-s4e9/test.csv"
-    )
+    submission_df = pd.read_csv("/kaggle/input/test.csv")
     ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor)
