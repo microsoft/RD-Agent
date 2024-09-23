@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import List, Tuple
+import math
 
 from jinja2 import Environment, StrictUndefined
 
@@ -80,27 +81,88 @@ class KGHypothesisGen(ModelHypothesisGen):
     def __init__(self, scen: Scenario, knowledge: VectorBase = None) -> Tuple[dict, bool]:
         super().__init__(scen)
         self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
+        self.action_counts = {
+            "Feature engineering": 0,
+            "Feature processing": 0,
+            "Model feature selection": 0,
+            "Model tuning": 0
+        }
+        self.reward_estimates = {
+            "Feature engineering": 0,
+            "Feature processing": 0,
+            "Model feature selection": 0,
+            "Model tuning": 0
+        }
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        hypothesis_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+        hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_feedback, topk_k=5)
+        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
         rag_content = "\n".join([doc.content for doc in rag_results])
 
         context_dict = {
-            "hypothesis_and_feedback": hypothesis_feedback,
-            "RAG": rag_content,
+            "hypothesis_and_feedback": hypothesis_and_feedback,
+            "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": None,
         }
         return context_dict, True
 
+    def calculate_reward(self, previous_performance, current_performance):
+        return previous_performance - current_performance
+    
+    def update_reward_estimates(self, action, reward, action_counts, reward_estimates):
+        n_o = action_counts[action]
+        if n_o == 0:
+            reward_estimates[action] = reward
+        else:
+            reward_estimates[action] += (reward - reward_estimates[action]) / n_o
+
+    def select_next_action(self, t, action_counts, reward_estimates, c=1.0):
+        best_action = None
+        best_ucb_value = -float('inf')
+
+        for action in reward_estimates.keys():
+            n_o = action_counts[action]
+            if n_o == 0:
+                return action
+            else:
+                ucb_value = reward_estimates[action] + c * math.sqrt(math.log(t + 1) / n_o)
+                if ucb_value > best_ucb_value:
+                    best_ucb_value = ucb_value
+                    best_action = action
+
+        return best_action
+
+    def execute_next_action(self):
+        trace = self.scen.trace
+        t = len(trace.hist)
+        next_action = self.select_next_action(t, self.action_counts, self.reward_estimates)
+
+        previous_performance = trace.hist[t - 1][1].result if t > 0 else None
+        trace.hist[t][0].action = next_action
+        current_performance = trace.hist[t][1].result
+
+        reward = self.calculate_reward(previous_performance, current_performance)
+        self.action_counts[next_action] += 1
+        self.update_reward_estimates(next_action, reward, self.action_counts, self.reward_estimates)
+        
+        return next_action
+
+
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
+
+        action = self.execute_next_action()
+
         hypothesis = KGHypothesis(
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
@@ -108,7 +170,7 @@ class KGHypothesisGen(ModelHypothesisGen):
             concise_observation=response_dict["concise_observation"],
             concise_justification=response_dict["concise_justification"],
             concise_knowledge=response_dict["concise_knowledge"],
-            action=response_dict["action"],
+            action=action,
         )
         return hypothesis
 
@@ -125,9 +187,13 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         self.current_action = hypothesis.action
 
         hypothesis_and_feedback = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_and_feedback"])
-            .render(trace=trace)
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["hypothesis_and_feedback"])
+                .render(trace=trace)
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
         )
 
         experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
