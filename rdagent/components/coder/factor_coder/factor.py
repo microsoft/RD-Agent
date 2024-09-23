@@ -31,7 +31,9 @@ class FactorTask(Task):
         factor_implementation: bool = False,
         **kwargs,
     ) -> None:
-        self.factor_name = factor_name  # TODO: remove it in the later version. Keep it only for pickle version compatibility
+        self.factor_name = (
+            factor_name  # TODO: remove it in the later version. Keep it only for pickle version compatibility
+        )
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.variables = variables

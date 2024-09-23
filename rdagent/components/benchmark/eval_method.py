@@ -20,7 +20,7 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import CoderError
-from rdagent.core.experiment import Task, Workspace, Experiment
+from rdagent.core.experiment import Experiment, Task, Workspace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
@@ -31,7 +31,6 @@ EVAL_RES = Dict[
 
 
 class TestCase:
-
     def __init__(
         self,
         target_task: Task,
@@ -141,7 +140,6 @@ class BaseEval:
 
 
 class FactorImplementEval(BaseEval):
-
     def __init__(
         self,
         test_cases: TestCases,
@@ -179,13 +177,17 @@ class FactorImplementEval(BaseEval):
                 break
 
             if len(gen_factor_l.sub_workspace_list) != len(self.test_cases.ground_truth):
-                raise ValueError("The number of cases to eval should be equal to the number of test cases.",)
+                raise ValueError(
+                    "The number of cases to eval should be equal to the number of test cases.",
+                )
             gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
             test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
         eval_res_list = multiprocessing_wrapper(
-            [(self.eval_case, (gt_case, gen_factor))
-             for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)],
+            [
+                (self.eval_case, (gt_case, gen_factor))
+                for gt_case, gen_factor in zip(test_cases_all_rounds, gen_factor_l_all_rounds)
+            ],
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
