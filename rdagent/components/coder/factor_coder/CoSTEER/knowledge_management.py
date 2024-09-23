@@ -24,7 +24,7 @@ from rdagent.core.evolving_framework import (
     EvolvableSubjects,
     EvoStep,
     Knowledge,
-    KnowledgeBase,
+    EvolvingKnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )
@@ -71,12 +71,13 @@ class FactorQueriedKnowledge(QueriedKnowledge):
         self.failed_task_info_set = failed_task_info_set
 
 
-class FactorKnowledgeBaseV1(KnowledgeBase):
-    def __init__(self) -> None:
+class FactorKnowledgeBaseV1(EvolvingKnowledgeBase):
+    def __init__(self, path: str | Path = None) -> None:
         self.implementation_trace: dict[str, FactorKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
+        super().__init__(path)
 
     def query(self) -> QueriedKnowledge | None:
         """
@@ -150,9 +151,9 @@ class FactorRAGStrategyV1(RAGStrategy):
         for target_factor_task in evo.sub_tasks:
             target_factor_task_information = target_factor_task.get_task_information()
             if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[
-                    target_factor_task_information
-                ] = self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
+                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+                )
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
@@ -164,14 +165,12 @@ class FactorRAGStrategyV1(RAGStrategy):
             ):
                 queried_knowledge.failed_task_info_set.add(target_factor_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[
-                    target_factor_task_information
-                ] = self.knowledgebase.implementation_trace.setdefault(
-                    target_factor_task_information,
-                    [],
-                )[
-                    -v1_query_former_trace_limit:
-                ]
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
+                    self.knowledgebase.implementation_trace.setdefault(
+                        target_factor_task_information,
+                        [],
+                    )[-v1_query_former_trace_limit:]
+                )
 
                 knowledge_base_success_task_list = list(
                     self.knowledgebase.success_task_info_set,
@@ -192,9 +191,9 @@ class FactorRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
-                    target_factor_task_information
-                ] = similar_successful_knowledge
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
+                    similar_successful_knowledge
+                )
         return queried_knowledge
 
 
@@ -435,9 +434,9 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[
-                    target_factor_task_information
-                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
+                    former_trace_knowledge[-v2_query_former_trace_limit:]
+                )
             else:
                 factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
 
@@ -739,19 +738,19 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 key = list(knowledge_dict.keys())[index]
                 related_info[key] = knowledge_dict[key]
 
-            factor_implementation_queried_graph_knowledge.data_set_knowledge_dict[
-                target_factor_task_information
-            ] = related_info
+            factor_implementation_queried_graph_knowledge.data_set_knowledge_dict[target_factor_task_information] = (
+                related_info
+            )
 
         return factor_implementation_queried_graph_knowledge
 
 
-class FactorGraphKnowledgeBase(KnowledgeBase):
-    def __init__(self, init_component_list=None, data_set_knowledge_path=None) -> None:
+class FactorGraphKnowledgeBase(EvolvingKnowledgeBase):
+    def __init__(self, init_component_list=None, path: str | Path = None, data_set_knowledge_path=None) -> None:
         """
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
-        self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
+        self.graph: UndirectedGraph = UndirectedGraph(Path.cwd() / "graph.pkl")
         logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
@@ -780,6 +779,7 @@ class FactorGraphKnowledgeBase(KnowledgeBase):
         if data_set_knowledge_path:
             with open(data_set_knowledge_path, "r") as f:
                 self.data_set_knowledge_dict = json.load(f)
+        super().__init__(path)
 
     def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
         return self.graph.get_all_nodes_by_label(label)

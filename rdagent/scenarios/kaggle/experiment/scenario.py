@@ -38,11 +38,6 @@ class KGScenario(Scenario):
 
         self._background = self.background
 
-        # all competitions are based on the same vector base
-        self.vector_base = KaggleExperienceBase()
-        if KAGGLE_IMPLEMENT_SETTING.rag_path and Path(KAGGLE_IMPLEMENT_SETTING.rag_path).exists():
-            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
-
     def _analysis_competition_description(self):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
@@ -69,7 +64,14 @@ class KGScenario(Scenario):
         self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = self.source_data
+        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+
+    def get_competition_full_desc(self) -> str:
+        return f"""Competition Type: {self.competition_type}
+Competition Description: {self.competition_description}
+Target Description: {self.target_description}
+Competition Features: {self.competition_features}
+"""
 
     @property
     def background(self) -> str:

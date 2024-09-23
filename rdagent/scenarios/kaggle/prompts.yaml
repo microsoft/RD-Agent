@@ -1,3 +1,30 @@
+KG_hypothesis_gen_RAG: |-
+  The user has proposed several hypothesis and conducted experiments to validate them. 
+  The hypothesis can divided into two categories:
+  1. Insights: These are the observations user did to other similar problems. You can either apply the same hypothesis or modify them to fit the current problem.
+  2. Experience: These are former hypothesis and experiments user did to the current problem. You can either continue to improve the hypothesis or change to a new one.
+  
+  {% if insights %}
+  The insights are as follows:
+  {% for insight in insights %}
+  Insight: {{ loop.index }}
+  - hypothesis: {{ insight.hypothesis }}
+  - experiments: {{ insight.experiments }}
+  - conclusion: {{ insight.conclusion }}
+  {% endfor %}
+  {% endif %}
+
+  {% if experiences %}
+  The experiences are as follows:
+  {% for experience in experiences %}
+  Experience: {{ loop.index }}
+  - hypothesis: {{ experience.hypothesis }}
+  - experiments: {{ experience.experiments }}
+  - conclusion: {{ experience.conclusion }}
+  {% endfor %}
+  {% endif %}
+
+
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}

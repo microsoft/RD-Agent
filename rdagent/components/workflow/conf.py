@@ -14,6 +14,8 @@ class BasePropSetting(BaseSettings):
     """
 
     scen: str = ""
+    knowledge_base: str = ""
+    knowledge_base_path: str = ""
     hypothesis_gen: str = ""
     hypothesis2experiment: str = ""
     coder: str = ""

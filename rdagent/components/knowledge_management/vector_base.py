@@ -5,6 +5,7 @@ from typing import List, Tuple, Union
 import pandas as pd
 from scipy.spatial.distance import cosine
 
+from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
@@ -68,13 +69,10 @@ def contents_to_documents(contents: List[str], label: str = None) -> List[Docume
     return docs
 
 
-class VectorBase:
+class VectorBase(KnowledgeBase):
     """
     This class is used for handling vector storage and query
     """
-
-    def __init__(self, vector_df_path: Union[str, Path] = None, **kwargs):
-        pass
 
     def add(self, document: Union[Document, List[Document]]):
         """
@@ -104,28 +102,15 @@ class VectorBase:
         """
         pass
 
-    def load(self, **kwargs):
-        """load vector_df"""
-
-    def save(self, **kwargs):
-        """save vector_df"""
-
 
 class PDVectorBase(VectorBase):
     """
     Implement of VectorBase using Pandas
     """
 
-    def __init__(self, vector_df_path: Union[str, Path] = None):
-        super().__init__(vector_df_path)
-
-        if vector_df_path:
-            try:
-                self.vector_df = self.load(vector_df_path)
-            except FileNotFoundError:
-                self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
-        else:
-            self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
+    def __init__(self, path: Union[str, Path] = None):
+        self.vector_df = pd.DataFrame(columns=["id", "label", "content", "embedding"])
+        super().__init__(path)
 
     def shape(self):
         return self.vector_df.shape
@@ -196,10 +181,3 @@ class PDVectorBase(VectorBase):
         for _, similar_docs in most_similar_docs.iterrows():
             docs.append(Document().from_dict(similar_docs.to_dict()))
         return docs, searched_similarities.to_list()
-
-    def load(self, vector_df_path, **kwargs):
-        vector_df = pd.read_pickle(vector_df_path)
-        return vector_df
-
-    def save(self, vector_df_path, **kwargs):
-        self.vector_df.to_pickle(vector_df_path)
