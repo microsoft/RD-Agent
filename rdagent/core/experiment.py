@@ -17,7 +17,7 @@ This file contains the all the class about organizing the task in RD-Agent.
 
 
 class Task(ABC):
-    def __init__(self, name, version: int = 1) -> None:
+    def __init__(self, name: str, version: int = 1) -> None:
         """
         The version of the task, default is 1
         Because qlib tasks execution and kaggle tasks execution are different, we need to distinguish them.
