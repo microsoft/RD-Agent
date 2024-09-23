@@ -13,6 +13,9 @@ from rdagent.utils.agent.tpl import T
 
 class TestTpl(unittest.TestCase):
     def test_competition_template(self):
+        """
+        export KG_COMPETITION=<competition_name> before running this test
+        """
         competition = KAGGLE_IMPLEMENT_SETTING.competition
         print(f"[bold orange]{competition}[/bold orange]")
         ws = KGFBWorkspace(
