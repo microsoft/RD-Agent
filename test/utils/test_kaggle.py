@@ -18,13 +18,13 @@ class TestTpl(unittest.TestCase):
         ws = KGFBWorkspace(
             template_folder_path=Path(__file__).parent.parent.parent
             / "rdagent/scenarios/kaggle/experiment"
-            / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template"
+            / f"{competition}_template"
         )
         print(ws.workspace_path)
         ws.execute()
         success = (ws.workspace_path / "submission.csv").exists()
+        self.assertTrue(success, "submission.csv is not generated")
         ws.clear()
-        return success
 
 
 if __name__ == "__main__":
