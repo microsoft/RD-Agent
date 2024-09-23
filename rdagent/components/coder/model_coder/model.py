@@ -23,14 +23,13 @@ class ModelTask(Task):
         model_type: Optional[str] = None,
         **kwargs,
     ) -> None:
-        self.name: str = name
         self.description: str = description
         self.formulation: str = formulation
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
         self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
-        super().__init__(*args, **kwargs)
+        super().__init__(name=name, *args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
