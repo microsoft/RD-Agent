@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from rdagent.components.benchmark.eval_method import TestCase
+from rdagent.components.benchmark.eval_method import TestCase, TestCases
 from rdagent.components.coder.factor_coder.factor import (
     FactorExperiment,
     FactorFBWorkspace,
@@ -42,12 +42,12 @@ class FactorExperimentLoaderFromJsonString(FactorExperimentLoader):
 
 
 # TODO loader only supports generic of task or experiment, testcase might cause CI error here
-# class FactorTestCaseLoaderFromJsonFile(Loader[TestCase]):
+# class FactorTestCaseLoaderFromJsonFile(Loader[TestCases]):
 class FactorTestCaseLoaderFromJsonFile:
-    def load(self, json_file_path: Path) -> list:
+    def load(self, json_file_path: Path) -> TestCases:
         with open(json_file_path, "r") as file:
             factor_dict = json.load(file)
-        TestData = TestCase(target_task=Experiment(sub_tasks=[]))
+        test_cases = TestCases()
         for factor_name, factor_data in factor_dict.items():
             task = FactorTask(
                 factor_name=factor_name,
@@ -58,7 +58,6 @@ class FactorTestCaseLoaderFromJsonFile:
             gt = FactorFBWorkspace(task, raise_exception=True)
             code = {"factor.py": factor_data["gt_code"]}
             gt.inject_code(**code)
-            TestData.target_task.sub_tasks.append(task)
-            TestData.ground_truth.append(gt)
+            test_cases.test_case_l.append(TestCase(task, gt))
 
-        return TestData
+        return test_cases
