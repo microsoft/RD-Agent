@@ -321,7 +321,12 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while running the container: {e}")
 
     def dump_python_code_run_and_get_results(
-        self, code: str, dump_file_names: list[str], local_path: str | None = None, env: dict | None = None, running_extra_volume: dict | None = None,
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
     ):
         """
         Dump the code into the local path and run the code.
