@@ -69,8 +69,9 @@ class KGFBWorkspace(FBWorkspace):
         kgde.prepare()
 
         running_extra_volume = {
-            (Path(FACTOR_IMPLEMENT_SETTINGS.data_folder)
-            / KAGGLE_IMPLEMENT_SETTING.competition).absolute(): "/kaggle/preprocessed_data"
+            (
+                Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition
+            ).absolute(): "/kaggle/preprocessed_data"
         }
         if KAGGLE_IMPLEMENT_SETTING.competition:
             running_extra_volume[
