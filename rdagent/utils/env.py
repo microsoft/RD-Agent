@@ -321,7 +321,12 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while running the container: {e}")
 
     def dump_python_code_run_and_get_results(
-        self, code: str, dump_file_names: list[str], local_path: str | None = None, env: dict | None = None
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
     ):
         """
         Dump the code into the local path and run the code.
@@ -330,7 +335,7 @@ class DockerEnv(Env[DockerConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env)
+        log_output = self.run(entry, local_path, env, running_extra_volume=running_extra_volume)
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
