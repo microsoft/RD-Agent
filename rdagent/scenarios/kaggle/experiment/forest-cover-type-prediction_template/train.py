@@ -7,7 +7,6 @@ import pandas as pd
 from fea_share_preprocess import clean_and_impute_data, preprocess_script
 from scipy import stats
 from sklearn.metrics import accuracy_score, matthews_corrcoef
-from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
@@ -37,7 +36,6 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-# TODO 如果已经做过数据预处理了，不需要再做了
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
 
 # 2) Auto feature engineering

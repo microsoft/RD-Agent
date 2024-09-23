@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from typing import List, Tuple
 
@@ -81,6 +82,20 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
+        self.action_counts = {
+            "Feature engineering": 0,
+            "Feature processing": 0,
+            "Model feature selection": 0,
+            "Model tuning": 0,
+        }
+        self.reward_estimates = {
+            "Feature engineering": 0.0,
+            "Feature processing": 0.0,
+            "Model feature selection": 0.0,
+            "Model tuning": 0.0,
+        }
+        self.confidence_parameter = 1.0
+        self.initial_performance = 0.0
 
     def generate_RAG_content(self, trace: Trace) -> str:
         if trace.knowledge_base is None:
@@ -162,6 +177,52 @@ class KGHypothesisGen(ModelHypothesisGen):
         )
         return RAG_content
 
+    def update_reward_estimates(self, trace: Trace) -> None:
+        if len(trace.hist) > 0:
+            last_entry = trace.hist[-1]
+            last_action = last_entry[0].action
+            last_result = last_entry[1].result
+            # Extract performance_t
+            performance_t = last_result.get("performance", 0.0)
+            # Get performance_{t-1}
+            if len(trace.hist) > 1:
+                prev_entry = trace.hist[-2]
+                prev_result = prev_entry[1].result
+                performance_t_minus_1 = prev_result.get("performance", 0.0)
+            else:
+                performance_t_minus_1 = self.initial_performance
+
+            reward = performance_t_minus_1 - performance_t
+            n_o = self.action_counts[last_action]
+            mu_o = self.reward_estimates[last_action]
+            self.reward_estimates[last_action] += (reward - mu_o) / n_o
+        else:
+            # First iteration, nothing to update
+            pass
+
+    def execute_next_action(self, trace: Trace) -> str:
+        actions = list(self.action_counts.keys())
+        t = sum(self.action_counts.values()) + 1
+
+        # If any action has not been tried yet, select it
+        for action in actions:
+            if self.action_counts[action] == 0:
+                selected_action = action
+                self.action_counts[selected_action] += 1
+                return selected_action
+
+        c = self.confidence_parameter
+        ucb_values = {}
+        for action in actions:
+            mu_o = self.reward_estimates[action]
+            n_o = self.action_counts[action]
+            ucb = mu_o + c * math.sqrt(math.log(t) / n_o)
+            ucb_values[action] = ucb
+        # Select action with highest UCB
+        selected_action = max(ucb_values, key=ucb_values.get)
+        self.action_counts[selected_action] += 1
+        return selected_action
+
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_and_feedback = (
             (
@@ -173,16 +234,22 @@ class KGHypothesisGen(ModelHypothesisGen):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
+        if self.scen.if_action_choosing_based_on_UCB:
+            action = self.execute_next_action(trace)
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": self.generate_RAG_content(trace),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": None,
+            "hypothesis_specification": f"next experiment action is {action}"
+            if self.scen.if_action_choosing_based_on_UCB
+            else None,
         }
         return context_dict, True
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
+
         hypothesis = KGHypothesis(
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
