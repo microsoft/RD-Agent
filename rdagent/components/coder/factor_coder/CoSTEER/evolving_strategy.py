@@ -348,7 +348,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
                         error_summary=error_summary,
                         error_summary_critics=error_summary_critics,
-                        example_code = example_code,
+                        example_code=example_code,
                     )
                     .strip("\n")
                 )

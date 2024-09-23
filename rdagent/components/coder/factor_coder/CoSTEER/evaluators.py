@@ -258,7 +258,10 @@ class FactorRowCountEvaluator(FactorEvaluator):
             difference_percentage = abs(gen_rows - gt_rows) / gt_rows
 
             if difference_percentage <= 0.02:
-                return f"The source dataframe and the ground truth dataframe have different rows count but are considered equivalent. Difference: {difference_percentage:.2%} (less than 2%).", True
+                return (
+                    f"The source dataframe and the ground truth dataframe have different rows count but are considered equivalent. Difference: {difference_percentage:.2%} (less than 2%).",
+                    True,
+                )
             else:
                 return (
                     f"The source dataframe and the ground truth dataframe have different rows count. The source dataframe has {gen_rows} rows, while the ground truth dataframe has {gt_rows} rows. Difference: {difference_percentage:.2%}. Please check the implementation.",
@@ -286,12 +289,21 @@ class FactorIndexEvaluator(FactorEvaluator):
             intersection = len(gen_index_set.intersection(gt_index_set))
             union = len(gen_index_set.union(gt_index_set))
             similarity = intersection / union
-            
-            if similarity >= 0.98:
-                return "Indexes are not exactly the same, but are considered equivalent with a similarity of {:.2%}.".format(similarity), True
-            else:
-                return "Indexes are different with a similarity of {:.2%}. Please check the implementation.".format(similarity), False
 
+            if similarity >= 0.98:
+                return (
+                    "Indexes are not exactly the same, but are considered equivalent with a similarity of {:.2%}.".format(
+                        similarity
+                    ),
+                    True,
+                )
+            else:
+                return (
+                    "Indexes are different with a similarity of {:.2%}. Please check the implementation.".format(
+                        similarity
+                    ),
+                    False,
+                )
 
 
 class FactorMissingValuesEvaluator(FactorEvaluator):
