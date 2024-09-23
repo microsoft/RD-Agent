@@ -334,6 +334,9 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         json_mode=False,
                     )
                 # 构建user_prompt。开始写代码
+                example_code = ""
+                if Path(FACTOR_IMPLEMENT_SETTINGS.example_code_path).exists():
+                    example_code = Path(FACTOR_IMPLEMENT_SETTINGS.example_code_path).read_text()
                 user_prompt = (
                     Environment(undefined=StrictUndefined)
                     .from_string(
@@ -345,6 +348,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
                         error_summary=error_summary,
                         error_summary_critics=error_summary_critics,
+                        example_code = example_code,
                     )
                     .strip("\n")
                 )

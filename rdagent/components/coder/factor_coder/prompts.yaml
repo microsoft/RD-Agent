@@ -98,6 +98,11 @@ evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
 
+  {% if example_code|length != 0 %}
+  --------------Scenarios within the example code snippet:---------------
+  {{ example_code }}
+  {% endif %}
+  
   {% if queried_similar_error_knowledge|length != 0 %}
   {% if not error_summary %}
   Recall your last failure, your implementation met some errors.

@@ -61,6 +61,9 @@ class FactorImplementSettings(BaseSettings):
     new_knowledge_base_path: Union[str, None] = None
     """Path to the new knowledge base"""
 
+    example_code_path: Union[str, None] = None
+    """Path to the example code"""
+
     python_bin: str = "python"
     """Path to the Python binary"""
 
