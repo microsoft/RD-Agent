@@ -48,6 +48,11 @@ class KGFBWorkspace(FBWorkspace):
                 "X_test.pkl",
                 "passenger_ids.pkl",
             ],
+            running_extra_volume=(
+                {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
+                if KAGGLE_IMPLEMENT_SETTING.competition
+                else None
+            ),
         )
         if results is None:
             logger.error("Feature preprocess failed.")
