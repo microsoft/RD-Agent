@@ -35,7 +35,7 @@ class KaggleRDLoop(RDLoop):
 
             knowledge_base = (
                 import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
-                if PROP_SETTING.knowledge_base_path != ""
+                if PROP_SETTING.knowledge_base != ""
                 else None
             )
             logger.log_object(knowledge_base, tag="knowledge_base")
