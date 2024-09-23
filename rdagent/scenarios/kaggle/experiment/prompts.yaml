@@ -56,7 +56,7 @@ kg_background: |-
   The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:
   - Feature related:
     - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
-    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance.
+    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
     - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.

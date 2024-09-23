@@ -22,9 +22,9 @@ from rdagent.components.knowledge_management.graph import (
 )
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
+    EvolvingKnowledgeBase,
     EvoStep,
     Knowledge,
-    KnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )
@@ -71,12 +71,13 @@ class FactorQueriedKnowledge(QueriedKnowledge):
         self.failed_task_info_set = failed_task_info_set
 
 
-class FactorKnowledgeBaseV1(KnowledgeBase):
-    def __init__(self) -> None:
+class FactorKnowledgeBaseV1(EvolvingKnowledgeBase):
+    def __init__(self, path: str | Path = None) -> None:
         self.implementation_trace: dict[str, FactorKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
+        super().__init__(path)
 
     def query(self) -> QueriedKnowledge | None:
         """
@@ -746,12 +747,12 @@ class FactorGraphRAGStrategy(RAGStrategy):
         return factor_implementation_queried_graph_knowledge
 
 
-class FactorGraphKnowledgeBase(KnowledgeBase):
-    def __init__(self, init_component_list=None, data_set_knowledge_path=None) -> None:
+class FactorGraphKnowledgeBase(EvolvingKnowledgeBase):
+    def __init__(self, init_component_list=None, path: str | Path = None, data_set_knowledge_path=None) -> None:
         """
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
-        self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
+        self.graph: UndirectedGraph = UndirectedGraph(Path.cwd() / "graph.pkl")
         logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
@@ -780,6 +781,7 @@ class FactorGraphKnowledgeBase(KnowledgeBase):
         if data_set_knowledge_path:
             with open(data_set_knowledge_path, "r") as f:
                 self.data_set_knowledge_dict = json.load(f)
+        super().__init__(path)
 
     def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
         return self.graph.get_all_nodes_by_label(label)

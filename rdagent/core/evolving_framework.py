@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from rdagent.core.knowledge_base import KnowledgeBase
+
 if TYPE_CHECKING:
     from rdagent.core.evaluation import Feedback
     from rdagent.core.scenario import Scenario
@@ -18,7 +20,7 @@ class QueriedKnowledge:
     pass
 
 
-class KnowledgeBase(ABC):
+class EvolvingKnowledgeBase(KnowledgeBase):
     @abstractmethod
     def query(
         self,
@@ -78,7 +80,7 @@ class EvolvingStrategy(ABC):
 class RAGStrategy(ABC):
     """Retrieval Augmentation Generation Strategy"""
 
-    def __init__(self, knowledgebase: KnowledgeBase) -> None:
+    def __init__(self, knowledgebase: EvolvingKnowledgeBase) -> None:
         self.knowledgebase = knowledgebase
 
     @abstractmethod
