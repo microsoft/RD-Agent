@@ -21,7 +21,7 @@ from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
     FactorGraphRAGStrategy,
     FactorKnowledgeBaseV1,
 )
-from rdagent.components.coder.factor_coder.factor import FactorExperiment
+from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorFBWorkspace
 from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.scenario import Scenario
@@ -85,7 +85,7 @@ class FactorCoSTEER(Developer[FactorExperiment]):
             )
         return factor_knowledge_base
 
-    def develop(self, exp: FactorExperiment) -> FactorExperiment:
+    def develop(self, exp: FactorExperiment, ground_truth: list[FactorFBWorkspace]=None) -> FactorExperiment:
         # init knowledge base
         factor_knowledge_base = self.load_or_init_knowledge_base(
             former_knowledge_base_path=self.knowledge_base_path,
@@ -95,7 +95,7 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         self.rag = FactorGraphRAGStrategy(factor_knowledge_base)
 
         # init intermediate items
-        factor_experiment = FactorEvolvingItem(sub_tasks=exp.sub_tasks)
+        factor_experiment = FactorEvolvingItem(sub_tasks=exp.sub_tasks, sub_gt_implementations=ground_truth)
 
         self.evolve_agent = FactorRAGEvoAgent(
             max_loop=self.max_loop,
