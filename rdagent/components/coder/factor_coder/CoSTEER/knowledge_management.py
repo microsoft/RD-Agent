@@ -22,9 +22,9 @@ from rdagent.components.knowledge_management.graph import (
 )
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
+    EvolvingKnowledgeBase,
     EvoStep,
     Knowledge,
-    EvolvingKnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )

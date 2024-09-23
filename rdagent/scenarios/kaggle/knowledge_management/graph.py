@@ -4,8 +4,12 @@ from typing import List
 
 from jinja2 import Environment, StrictUndefined
 from tqdm import tqdm
+
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.knowledge_management.graph import UndirectedGraph, UndirectedNode
+from rdagent.components.knowledge_management.graph import (
+    UndirectedGraph,
+    UndirectedNode,
+)
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper

@@ -4,10 +4,7 @@ from typing import List, Union
 import pandas as pd
 from _pytest.cacheprovider import json
 
-from rdagent.components.knowledge_management.vector_base import (
-    Document,
-    PDVectorBase,
-)
+from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
