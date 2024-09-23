@@ -10,9 +10,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # Modified model for regression
-class HybridFeatureInteractionModel(nn.Module):
+class FeatureInteractionModel(nn.Module):
     def __init__(self, num_features):
-        super(HybridFeatureInteractionModel, self).__init__()
+        super(FeatureInteractionModel, self).__init__()
         self.fc1 = nn.Linear(num_features, 128)
         self.bn1 = nn.BatchNorm1d(128)
         self.fc2 = nn.Linear(128, 64)
@@ -31,7 +31,7 @@ class HybridFeatureInteractionModel(nn.Module):
 # Training function
 def fit(X_train, y_train, X_valid, y_valid):
     num_features = X_train.shape[1]
-    model = HybridFeatureInteractionModel(num_features).to(device)
+    model = FeatureInteractionModel(num_features).to(device)
     criterion = nn.MSELoss()  # Use MSELoss for regression
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
