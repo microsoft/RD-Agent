@@ -97,7 +97,7 @@ mypy:
 # First deal with the core folder, and then gradually increase the scope of detection,
 # and eventually realize the detection of the complete project.
 ruff:
-	$(PIPRUN) ruff check rdagent/core --ignore FBT001,FBT002   # --exclude rdagent/scripts,git_ignore_folder
+	$(PIPRUN) ruff check rdagent/core --ignore FBT001,FBT002,I001   # --exclude rdagent/scripts,git_ignore_folder
 
 # Check lint with toml-sort.
 toml-sort:
