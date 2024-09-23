@@ -52,7 +52,7 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         if sub_ws.code_dict == {}:
             raise ModelEmptyError("No model is implemented.")
         else:
-            model_file_name = f"model_{model_type.lower()}.py"
+            model_file_name = f"model/model_{model_type.lower()}.py"
             exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
 
             model_description = sub_ws.target_task.get_task_information()
