@@ -24,9 +24,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-data_df = pd.read_csv(
-    "/data/userdata/v-haoranpan/RD-Agent/git_ignore_folder/data/forest-cover-type-prediction/train.csv"
-)
+data_df = pd.read_csv("/kaggle/input/train.csv")
 data_df = data_df.drop(["Id"], axis=1)
 
 X_train = data_df.drop(["Cover_Type"], axis=1)
