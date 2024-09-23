@@ -46,7 +46,8 @@ evolving_strategy_factor_implementation_v1_system: |-
   1. The user might provide you the correct code to similar factors. Your should learn from these code to write the correct code.
   2. The user might provide you the failed former code and the corresponding feedback to the code. The feedback contains to the execution, the code and the factor value. You should analyze the feedback and try to correct the latest code.
   3. The user might provide you the suggestion to the latest fail code and some similar fail to correct pairs. Each pair contains the fail code with similar error and the corresponding corrected version code. You should learn from these suggestion to write the correct code.
-  
+  4. The user might provide you some data table names and their explanations, as well as their corresponding data fields. You should find the data fields that contains the data needed for the factor implementation.
+
   Your must write your code based on your former latest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
 
   {% if queried_former_failed_knowledge|length != 0 %}
@@ -55,6 +56,13 @@ evolving_strategy_factor_implementation_v1_system: |-
   {{ queried_former_failed_knowledge[-1].implementation.code }}
   =====Feedback to the former implementation=====
   {{ queried_former_failed_knowledge[-1].feedback }}
+  {% endif %}
+
+  {% if selected_knowledge_dict|length != 0 %}
+  --------------Some datasets and their fields you may need:---------------
+  {% for selected_knowledge in selected_knowledge_dict.keys() %}
+  {{ selected_knowledge }}: {{ selected_knowledge_dict[selected_knowledge] }}
+  {% endfor %}
   {% endif %}
 
   Please response the code in the following json format. Here is an example structure for the JSON output:
@@ -118,6 +126,27 @@ evolving_strategy_factor_implementation_v2_user: |-
   {{ similar_component_knowledge.implementation.code }}
   {% endfor %}
   {% endif %}
+
+evolving_strategy_search_data_table_system_prompt: |-
+  The user will provide you with a task and some data. You need to determine which data tables are needed by the user.
+
+  Respond with your analysis in JSON format. The JSON schema should include:
+    {
+        "name of data table 1": ["name of data field 1", "name of data field 2"],
+        "name of data table 2": ["name of data field 1"],
+    }
+
+evolving_strategy_search_data_table: |-
+  User is trying to implement some factors in the following scenario:
+    {{ scenario }}
+    User is doing the following task: 
+    {{factor_information_str}}
+
+    Here are some data table names and their explanations. 
+    You should find the data table and data columns that contains the data needed for the factor implementation. 
+    Please response the data table name in the json format.
+    -------------------Data Tables-------------------
+    {{ data_tables }}
 
 evolving_strategy_error_summary_v2_system: |-
   User is trying to implement some factors in the following scenario:
