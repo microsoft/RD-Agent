@@ -84,9 +84,10 @@ class ModelFBWorkspace(FBWorkspace):
         try:
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
-                target_file_name = md5_hash(
-                    f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}_{self.code_dict['model.py']}"
-                )
+                target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
+                for code_file_name in sorted(list(self.code_dict.keys())):
+                    target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
+                target_file_name = md5_hash(target_file_name)
                 cache_file_path = Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
                 Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
