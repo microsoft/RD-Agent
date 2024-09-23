@@ -1,3 +1,4 @@
+import json
 import pickle
 from pathlib import Path
 
@@ -25,7 +26,6 @@ from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-import json
 
 
 class FactorCoSTEER(Developer[FactorExperiment]):

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import copy
+import heapq
 import json
 import random
 import re
 from itertools import combinations
 from pathlib import Path
 from typing import Union
-import heapq
 
 from jinja2 import Environment, StrictUndefined
 
