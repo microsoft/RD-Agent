@@ -716,7 +716,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 ] = same_error_success_knowledge_pair_list
 
         return factor_implementation_queried_graph_knowledge
-    
+
     def dataset_query(
         self,
         evo: EvolvableSubjects,
@@ -730,21 +730,18 @@ class FactorGraphRAGStrategy(RAGStrategy):
             table_explanations = [f"{key}: {json.dumps(value)}" for key, value in knowledge_dict.items()]
 
             similarity = calculate_embedding_distance_between_str_list(
-                [target_factor_task_information],
-                table_explanations
+                [target_factor_task_information], table_explanations
             )[0]
 
-            top_related_indexes = heapq.nlargest(
-                10,
-                range(len(similarity)),
-                key=lambda i: similarity[i]
-            )
+            top_related_indexes = heapq.nlargest(10, range(len(similarity)), key=lambda i: similarity[i])
 
             for index in top_related_indexes:
                 key = list(knowledge_dict.keys())[index]
                 related_info[key] = knowledge_dict[key]
-            
-            factor_implementation_queried_graph_knowledge.data_set_knowledge_dict[target_factor_task_information] = related_info
+
+            factor_implementation_queried_graph_knowledge.data_set_knowledge_dict[
+                target_factor_task_information
+            ] = related_info
 
         return factor_implementation_queried_graph_knowledge
 
@@ -777,7 +774,7 @@ class FactorGraphKnowledgeBase(KnowledgeBase):
 
         # store the task description to component nodes
         self.task_to_component_nodes = {}
-    
+
         # data set: data set information
         self.data_set_knowledge_dict = {}
         if data_set_knowledge_path:

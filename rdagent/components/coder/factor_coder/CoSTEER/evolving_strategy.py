@@ -230,9 +230,11 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge = (
                 queried_knowledge.former_traces[target_factor_task_information] if queried_knowledge is not None else []
             )
-            
+
             queried_data_tables = (
-                queried_knowledge.data_set_knowledge_dict[target_factor_task_information] if queried_knowledge is not None else []
+                queried_knowledge.data_set_knowledge_dict[target_factor_task_information]
+                if queried_knowledge is not None
+                else []
             )
             queried_data_tables_str = json.dumps(queried_data_tables, indent=2)
 
