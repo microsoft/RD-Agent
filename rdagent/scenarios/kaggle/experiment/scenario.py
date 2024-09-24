@@ -29,7 +29,7 @@ class KGScenario(Scenario):
         self._output_format = self.output_format
         self._interface = self.interface
         self._simulator = self.simulator
-    
+
         self.competition_type = None
         self.competition_description = None
         self.target_description = None
@@ -66,8 +66,10 @@ class KGScenario(Scenario):
         self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = response_json_analysis.get("Competition Features", "No features provided") 
-        self.submission_specifications = response_json_analysis.get("Submission Specifications", "No submission requirements provided")
+        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.submission_specifications = response_json_analysis.get(
+            "Submission Specifications", "No submission requirements provided"
+        )
 
     def get_competition_full_desc(self) -> str:
         return f"""Competition Type: {self.competition_type}
@@ -93,7 +95,7 @@ class KGScenario(Scenario):
                 competition_description=self.competition_description,
                 target_description=self.target_description,
                 competition_features=self.competition_features,
-                submission_specifications=self.submission_specifications
+                submission_specifications=self.submission_specifications,
             )
         )
         return background_prompt
