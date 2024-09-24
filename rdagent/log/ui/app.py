@@ -147,7 +147,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         # common metrics
                         if msg.content.result is None:
                             if isinstance(state.scenario, DMModelScenario):
-                                state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
+                                state.metric_series.append(
+                                    pd.Series([None], index=["AUROC"], name=f"Round {state.lround}")
+                                )
                         else:
                             sms = msg.content.result
                             if isinstance(state.scenario, DMModelScenario):
