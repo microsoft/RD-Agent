@@ -110,7 +110,7 @@ model_experiment_output_format: |-
   }
   Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
-model_feedback_generation:
+model_tuning_feedback_generation:
   system: |-
     You are a professional result analysis assistant. You will receive a result and a hypothesis.
     Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
