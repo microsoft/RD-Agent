@@ -69,15 +69,13 @@ class KGFBWorkspace(FBWorkspace):
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
-        running_extra_volume = {
-            (
-                Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition
-            ).absolute(): "/kaggle/preprocessed_data"
-        }
+        running_extra_volume = {}
         if KAGGLE_IMPLEMENT_SETTING.competition:
-            running_extra_volume[
-                KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition
-            ] = "/kaggle/input"
+            running_extra_volume = {
+                KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"
+            }
+        else:
+            running_extra_volume = {}
 
         execute_log = kgde.run(
             local_path=str(self.workspace_path),
