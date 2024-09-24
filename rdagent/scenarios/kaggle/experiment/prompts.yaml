@@ -8,6 +8,8 @@ kg_description_template:
       "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
+      "Competition Features": "Two-line description of the overall features involved within the competition as background."
+      "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
@@ -20,7 +22,7 @@ kg_description_template:
 
 kg_background: |-
   You are solving a data science tasks and the type of the competition is {{ competition_type }}.
-  The competition description is:{{competition_description}}
+  The competition description is:{{competition_description}}. 
   
   We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
 
@@ -62,6 +64,8 @@ kg_background: |-
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
+
+  Most importantly, the output format & submission requirements are listed here: {submission_specifications}
 
 kg_feature_interface: |-
   Your code should contain several parts:
