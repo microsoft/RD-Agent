@@ -27,6 +27,7 @@ class QlibFactorScenario(Scenario):
         self._source_data = deepcopy(get_data_folder_intro())
         self._output_format = deepcopy(prompt_dict["qlib_factor_output_format"])
         self._interface = deepcopy(prompt_dict["qlib_factor_interface"])
+        self._strategy = deepcopy(prompt_dict["qlib_factor_strategy"])
         self._simulator = deepcopy(prompt_dict["qlib_factor_simulator"])
         self._rich_style_description = deepcopy(prompt_dict["qlib_factor_rich_style_description"])
         self._experiment_setting = deepcopy(prompt_dict["qlib_factor_experiment_setting"])

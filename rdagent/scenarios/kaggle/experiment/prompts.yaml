@@ -106,6 +106,7 @@ kg_feature_interface: |-
   ```
 
   To Note:
+  Top 0. I have already completed the encoded labeling process, so please avoid any one-hot encoding or similar operations in the future. Focus instead on targeted and efficient feature engineering techniques, such as normalizing float-type features, filtering based on specific categories, or other concise transformations that can be quickly implemented and tested without unnecessary complexity. Also, ensure that the index of the output DataFrame matches the original DataFrame's index, and that the number of columns remains consistent across train, validation, and test sets.
   1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
   2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
     Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`

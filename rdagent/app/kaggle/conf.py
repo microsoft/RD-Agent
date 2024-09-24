@@ -53,5 +53,7 @@ class KaggleBasePropSetting(BasePropSetting):
 
     rag_path: str = "git_ignore_folder/rag"
 
+    if_action_choosing_based_on_UCB: bool = False
+
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

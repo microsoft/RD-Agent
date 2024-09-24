@@ -35,7 +35,7 @@ class KGScenario(Scenario):
         self.target_description = None
         self.competition_features = None
         self._analysis_competition_description()
-        self.if_action_choosing_based_on_UCB = False
+        self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
 
         self._background = self.background
 

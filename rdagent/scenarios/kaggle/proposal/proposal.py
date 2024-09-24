@@ -92,7 +92,7 @@ class KGHypothesisGen(ModelHypothesisGen):
             "Feature engineering": 0.0,
             "Feature processing": 0.0,
             "Model feature selection": 0.0,
-            "Model tuning": 0.0,
+            "Model tuning": 0.5,
         }
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
