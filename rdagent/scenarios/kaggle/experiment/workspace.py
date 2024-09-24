@@ -1,6 +1,7 @@
 import subprocess
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -14,14 +15,14 @@ KG_FEATURE_PREPROCESS_SCRIPT = """import pickle
 
 from fea_share_preprocess import preprocess_script
 
-X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, *others = preprocess_script()
 
 pickle.dump(X_train, open("X_train.pkl", "wb"))
 pickle.dump(X_valid, open("X_valid.pkl", "wb"))
 pickle.dump(y_train, open("y_train.pkl", "wb"))
 pickle.dump(y_valid, open("y_valid.pkl", "wb"))
 pickle.dump(X_test, open("X_test.pkl", "wb"))
-pickle.dump(passenger_ids, open("passenger_ids.pkl", "wb"))
+pickle.dump(others, open("others.pkl", "wb"))
 """
 
 
@@ -34,7 +35,7 @@ class KGFBWorkspace(FBWorkspace):
 
     def generate_preprocess_data(
         self,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, Any]:
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
@@ -47,7 +48,7 @@ class KGFBWorkspace(FBWorkspace):
                 "y_train.pkl",
                 "y_valid.pkl",
                 "X_test.pkl",
-                "passenger_ids.pkl",
+                "others.pkl",
             ],
             running_extra_volume=(
                 {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
@@ -59,8 +60,8 @@ class KGFBWorkspace(FBWorkspace):
             logger.error("Feature preprocess failed.")
             raise Exception("Feature preprocess failed.")
         else:
-            X_train, X_valid, y_train, y_valid, X_test, passenger_ids = results
-            return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
+            X_train, X_valid, y_train, y_valid, X_test, others = results
+            return X_train, X_valid, y_train, y_valid, X_test, *others
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         logger.info(f"Running the experiment in {self.workspace_path}")

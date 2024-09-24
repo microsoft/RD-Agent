@@ -113,7 +113,7 @@ Competition Features: {self.competition_features}
             y_train,
             y_valid,
             X_test,
-            passenger_ids,
+            *others,
         ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
         data_folder.mkdir(exist_ok=True, parents=True)
@@ -122,7 +122,7 @@ Competition Features: {self.competition_features}
         pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
         pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
         pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
-        pickle.dump(passenger_ids, open(data_folder / "passenger_ids.pkl", "wb"))
+        pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
         buffer = io.StringIO()
         X_valid.info(verbose=True, buf=buffer, show_counts=True)

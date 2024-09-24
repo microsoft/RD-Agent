@@ -108,7 +108,8 @@ def preprocess_script():
         y_train = pd.read_pickle("y_train.pkl")
         y_valid = pd.read_pickle("y_valid.pkl")
         X_test = pd.read_pickle("X_test.pkl")
-        return X_train, X_valid, y_train, y_valid, X_test
+        others = pd.read_pickle("others.pkl")
+        return X_train, X_valid, y_train, y_valid, X_test, *others
 
     X_train, X_valid, y_train, y_valid, test, category_encoder, test_ids = prepreprocess()
 

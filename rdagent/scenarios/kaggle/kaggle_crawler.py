@@ -127,6 +127,7 @@ if __name__ == "__main__":
         "covid19-global-forecasting-week-1",
         "birdsong-recognition",
         "optiver-trading-at-the-close",
+        "facebook-v-predicting-check-ins",
     ]
 
     for i in dsagent_cs + other_cs:
