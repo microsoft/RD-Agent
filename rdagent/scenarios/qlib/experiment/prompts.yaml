@@ -15,6 +15,46 @@ qlib_factor_interface: |-
   Your python code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
   User will write your python code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
 
+qlib_factor_strategy: |-
+  Ensure that for every step of data processing, the data format (including indexes) is clearly explained through comments.
+  Each transformation or calculation should be accompanied by a detailed description of how the data is structured, especially focusing on key aspects like whether the data has multi-level indexing, how to access specific columns or index levels, and any operations that affect the data shape (e.g., `reset_index()`, `groupby()`, `merge()`).
+  This step-by-step explanation will ensure clarity and accuracy in data handling. For example:
+  1. **Start with multi-level index**:  
+    ```python
+    # The initial DataFrame has a multi-level index with 'datetime' and 'instrument'.
+    # To access the 'datetime' index, use df.index.get_level_values('datetime').
+    datetime_values = df.index.get_level_values('datetime')
+    ```
+ 
+  2. **Reset the index if necessary**:  
+    ```python
+    # Resetting the index to move 'datetime' and 'instrument' from the index to columns.
+    # This operation flattens the multi-index structure.
+    df = df.reset_index()
+    ```
+ 
+  3. **Perform groupby operations**:  
+    ```python
+    # Grouping by 'datetime' and 'instrument' to aggregate the data.
+    # After groupby, the result will maintain 'datetime' and 'instrument' as a multi-level index.
+    df_grouped = df.groupby(['datetime', 'instrument']).sum()
+    ```
+ 
+  4. **Ensure consistent datetime formats**:  
+    ```python
+    # Before merging, ensure that the 'datetime' column in both DataFrames is of the same format.
+    # Convert to datetime format if necessary.
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    other_df['datetime'] = pd.to_datetime(other_df['datetime'])
+    ```
+ 
+  5. **Merge operations**:  
+    ```python
+    # When merging DataFrames, ensure you are merging on both 'datetime' and 'instrument'.
+    # If these are part of the index, reset the index before merging.
+    merged_df = pd.merge(df, other_df, on=['datetime', 'instrument'], how='inner')
+    ```
+
 qlib_factor_output_format: |-
   Your output should be a pandas dataframe similar to the following example information:
   <class 'pandas.core.frame.DataFrame'>
