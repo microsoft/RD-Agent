@@ -87,9 +87,9 @@ def preprocess_script():
         y_train = pd.read_pickle("y_train.pkl")
         y_valid = pd.read_pickle("y_valid.pkl")
         X_test = pd.read_pickle("X_test.pkl")
-        passenger_ids = pd.read_pickle("passenger_ids.pkl")
+        others = pd.read_pickle("others.pkl")
 
-        return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
+        return X_train, X_valid, y_train, y_valid, X_test, *others
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Fit the preprocessor on the training data
