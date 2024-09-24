@@ -166,10 +166,7 @@ class FactorRAGStrategyV1(RAGStrategy):
             else:
                 queried_knowledge.working_task_to_former_failed_knowledge_dict[
                     target_factor_task_information
-                ] = self.knowledgebase.implementation_trace.setdefault(
-                    target_factor_task_information,
-                    [],
-                )[
+                ] = self.knowledgebase.implementation_trace.setdefault(target_factor_task_information, [],)[
                     -v1_query_former_trace_limit:
                 ]
 

@@ -106,7 +106,7 @@ class KGScenario(Scenario):
                 competition_description=self.competition_description,
                 target_description=self.target_description,
                 competition_features=self.competition_features,
-                submission_specifications=self.submission_specifications
+                submission_specifications=self.submission_specifications,
             )
         )
         return background_prompt

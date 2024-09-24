@@ -629,10 +629,7 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                 decision_from_value_check = None
             else:
                 factor_feedback.value_generated_flag = True
-                (
-                    factor_feedback.factor_value_feedback,
-                    decision_from_value_check,
-                ) = self.value_evaluator.evaluate(
+                (factor_feedback.factor_value_feedback, decision_from_value_check,) = self.value_evaluator.evaluate(
                     implementation=implementation, gt_implementation=gt_implementation, version=target_task.version
                 )
 
