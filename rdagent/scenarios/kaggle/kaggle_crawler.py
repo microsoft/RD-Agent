@@ -43,7 +43,7 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
     # Get main contents
     contents = []
-    elements = site_body.find_elements(By.CSS_SELECTOR, ".sc-iWlrxG.cMAZdc")
+    elements = site_body.find_elements(By.CSS_SELECTOR, ".fbHzUd")
     for e in elements:
         content = e.get_attribute("innerHTML")
         contents.append(content)
@@ -53,14 +53,14 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
         descriptions[subtitles[i]] = contents[i]
 
     # Get the citation
-    element = site_body.find_element(By.CSS_SELECTOR, ".sc-ifyrTC.sc-fyziuY")
+    element = site_body.find_element(By.CSS_SELECTOR, ".bZEXEC")
     citation = element.get_attribute("innerHTML")
     descriptions[subtitles[-1]] = citation
 
     data_url = f"https://www.kaggle.com/competitions/{competition}/data"
     driver.get(data_url)
     time.sleep(wait)
-    data_element = driver.find_element(By.CSS_SELECTOR, ".sc-iWlrxG.cMAZdc")
+    data_element = driver.find_element(By.CSS_SELECTOR, ".fbHzUd")
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
@@ -80,7 +80,57 @@ def download_data(competition: str, local_path: str = "/data/userdata/share/kagg
 
 
 if __name__ == "__main__":
-    download_data("feedback-prize-english-language-learning", "/data/userdata/share/kaggle")
+    dsagent_cs = [
+        "feedback-prize-english-language-learning",
+        "playground-series-s3e11",
+        "playground-series-s3e14",
+        "spaceship-titanic",
+        "playground-series-s3e18",
+        "playground-series-s3e16",
+        "playground-series-s3e9",
+        "playground-series-s3e25",
+        "playground-series-s3e26",
+        "playground-series-s3e24",
+        "playground-series-s3e23",
+    ]
+
+    other_cs = [
+        "amp-parkinsons-disease-progression-prediction",
+        "arc-prize-2024",
+        "ariel-data-challenge-2024",
+        "child-mind-institute-detect-sleep-states",
+        "connectx",
+        "contradictory-my-dear-watson",
+        "digit-recognizer",
+        "fathomnet-out-of-sample-detection",
+        "forest-cover-type-prediction",
+        "gan-getting-started",
+        "google-research-identify-contrails-reduce-global-warming",
+        "house-prices-advanced-regression-techniques",
+        "isic-2024-challenge",
+        "leash-BELKA",
+        "llm-20-questions",
+        "nlp-getting-started",
+        "playground-series-s4e1",
+        "playground-series-s4e2",
+        "playground-series-s4e3",
+        "playground-series-s4e4",
+        "playground-series-s4e5",
+        "playground-series-s4e6",
+        "playground-series-s4e7",
+        "playground-series-s4e8",
+        "rsna-2024-lumbar-spine-degenerative-classification",
+        "sf-crime",
+        "store-sales-time-series-forecasting",
+        "titanic",
+        "tpu-getting-started",
+        "covid19-global-forecasting-week-1",
+        "birdsong-recognition",
+        "optiver-trading-at-the-close",
+    ]
+
+    for i in dsagent_cs + other_cs:
+        crawl_descriptions(i)
     exit()
     from kaggle.api.kaggle_api_extended import KaggleApi
 
