@@ -327,7 +327,7 @@ class DockerEnv(Env[DockerConf]):
         local_path: str | None = None,
         env: dict | None = None,
         running_extra_volume: dict | None = None,
-        code_dump_file_py_name: Optional[str] = None
+        code_dump_file_py_name: Optional[str] = None,
     ):
         """
         Dump the code into the local path and run the code.

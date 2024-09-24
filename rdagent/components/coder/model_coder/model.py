@@ -115,7 +115,7 @@ PARAM_INIT_VALUE = {param_init_value}
                 dump_file_names=["execution_feedback_str.pkl", "execution_model_output.pkl"],
                 local_path=str(self.workspace_path),
                 env={},
-                code_dump_file_py_name="model_test"
+                code_dump_file_py_name="model_test",
             )
             if results is None:
                 raise RuntimeError(f"Error in running the model code: {log}")
