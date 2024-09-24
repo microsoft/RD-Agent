@@ -13,16 +13,12 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    train = pd.read_csv(
-        "/kaggle/input/train.csv"
-    )
-    #train = train.drop(["Descript", "Resolution", "Address"], axis=1)
+    train = pd.read_csv("/kaggle/input/train.csv")
+    # train = train.drop(["Descript", "Resolution", "Address"], axis=1)
 
-    test = pd.read_csv(
-        "/kaggle/input/test.csv"
-    )
+    test = pd.read_csv("/kaggle/input/test.csv")
     test_ids = test["id"]
-    #test = test.drop(["Address"], axis=1)
+    # test = test.drop(["Address"], axis=1)
 
     # Encoding 'PdDistrict'
     categorical_cols = ["Drug", "Sex", "Ascites", "Hepatomegaly", "Spiders", "Edema"]
