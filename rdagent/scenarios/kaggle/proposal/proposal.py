@@ -91,8 +91,8 @@ class KGHypothesisGen(ModelHypothesisGen):
         self.reward_estimates = {
             "Feature engineering": 0.0,
             "Feature processing": 0.0,
-            "Model feature selection": 0.0,
-            "Model tuning": 0.5,
+            "Model feature selection": 0.2,
+            "Model tuning": 1.0,
         }
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
@@ -192,7 +192,7 @@ class KGHypothesisGen(ModelHypothesisGen):
             else:
                 performance_t_minus_1 = self.initial_performance
 
-            reward = performance_t_minus_1 - performance_t
+            reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
             n_o = self.action_counts[last_action]
             mu_o = self.reward_estimates[last_action]
             self.reward_estimates[last_action] += (reward - mu_o) / n_o
