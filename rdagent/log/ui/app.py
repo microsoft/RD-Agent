@@ -145,8 +145,11 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             state.alpha158_metrics = sms
 
                         # common metrics
-                        if msg.content.result is None and isinstance(state.scenario, DMModelScenario):
-                            state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
+                        if msg.content.result is None:
+                            if isinstance(state.scenario, DMModelScenario):
+                                state.metric_series.append(
+                                    pd.Series([None], index=["AUROC"], name=f"Round {state.lround}")
+                                )
                         else:
                             sms = msg.content.result
                             if isinstance(state.scenario, DMModelScenario):
@@ -155,8 +158,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
                             ):
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
-                            elif isinstance(state.scenario, KGScenario):
-                                sms = sms.loc[["MCC"]]
+
                             sms.name = f"Round {state.lround}"
                             state.metric_series.append(sms)
                     elif "hypothesis generation" in tags:
