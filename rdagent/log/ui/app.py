@@ -533,6 +533,16 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
+            if isinstance(state.scenario, KGScenario):
+                if fbe := state.msgs[round]["ef.runner result"]:
+                    submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
+                    st.download_button(
+                        label="**Download** submission.csv",
+                        data=submission_path.read_bytes(),
+                        file_name="submission.csv",
+                        mime="text/csv",
+                    )
+
 
 def evolving_window():
     title = "Development🛠️" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Development🛠️ (evolving coder)"
