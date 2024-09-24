@@ -97,7 +97,7 @@ Competition Features: {self.competition_features}
 
     @property
     def source_data(self) -> str:
-        data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / self.competition
+        data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
 
         if (data_folder / "X_valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
