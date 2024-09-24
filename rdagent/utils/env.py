@@ -327,11 +327,12 @@ class DockerEnv(Env[DockerConf]):
         local_path: str | None = None,
         env: dict | None = None,
         running_extra_volume: dict | None = None,
+        code_dump_file_py_name: Optional[str] = None,
     ):
         """
         Dump the code into the local path and run the code.
         """
-        random_file_name = f"{uuid.uuid4()}.py"
+        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
