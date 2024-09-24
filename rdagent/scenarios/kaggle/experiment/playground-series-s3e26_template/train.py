@@ -30,7 +30,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, status_encoder, test_ids = preprocess_script()
 
 
 # 2) Auto feature engineering
@@ -84,7 +84,7 @@ for f in DIRNAME.glob("model/model*.py"):
 y_valid_pred_l = []
 for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
-    # print(predict_func(model, X_valid))
+    print(predict_func(model, X_valid))
     print(predict_func(model, X_valid).shape)
 
 # 5) Ensemble
@@ -108,9 +108,10 @@ for model, predict_func in model_l:
 # For multiclass classification, use the mode of the predictions
 y_test_pred_proba = np.mean(y_test_pred_l, axis=0)
 
-class_labels = category_encoder.classes_
+class_labels = ["Status_" + label for label in status_encoder.classes_]
+# modified_labels = ["Status_" + label for label in class_labels]
 
 submission_result = pd.DataFrame(y_test_pred_proba, columns=class_labels)
-submission_result.insert(0, "Id", test_ids)
+submission_result.insert(0, "id", test_ids)
 
 submission_result.to_csv("submission.csv", index=False)
