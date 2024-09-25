@@ -6,7 +6,6 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.runner import CachedRunner
@@ -62,7 +61,7 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         )
 
         org_data_path = (
-            Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "X_valid.pkl"
+            Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition / "X_valid.pkl"
         )
         with open(org_data_path, "rb") as f:
             org_data = pickle.load(f)
