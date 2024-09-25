@@ -62,7 +62,7 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         )
 
         org_data_path = (
-            Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / KAGGLE_IMPLEMENT_SETTING.competition / "X_valid.pkl"
+            Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition / "X_valid.pkl"
         )
         with open(org_data_path, "rb") as f:
             org_data = pickle.load(f)
