@@ -23,7 +23,9 @@ import docker.models
 import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from rich import print
 from rich.progress import Progress, TextColumn
+from rich.rule import Rule
 
 from rdagent.log import rdagent_logger as logger
 
@@ -207,7 +209,7 @@ class DockerEnv(Env[DockerConf]):
                     status_dict = json.loads(part)
                     if "error" in status_dict:
                         p.update(task, description=f"[red]error: {status_dict['error']}")
-                        raise docker.errors.BuildError(status_dict["error"])
+                        raise docker.errors.BuildError(status_dict["error"], "")
                     if "stream" in status_dict:
                         p.update(task, description=status_dict["stream"])
             logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
@@ -305,10 +307,12 @@ class DockerEnv(Env[DockerConf]):
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
+            print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
             for log in logs:
                 decoded_log = log.strip().decode()
                 print(decoded_log)
                 log_output += decoded_log + "\n"
+            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
             container.stop()
             container.remove()
