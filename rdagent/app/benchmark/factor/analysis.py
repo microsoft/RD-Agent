@@ -96,7 +96,7 @@ class BenchmarkAnalyzer:
 
         sum_df_clean["FactorRowCountEvaluator"]
 
-        format_issue = sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
+        format_issue = sum_df_clean["FactorRowCountEvaluator"].astype(bool) & sum_df_clean["FactorIndexEvaluator"].astype(bool)
         eval_series = format_issue.unstack()
         succ_rate = eval_series.T.fillna(False).astype(bool)  # false indicate failure
         format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
