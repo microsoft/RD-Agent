@@ -24,8 +24,9 @@ import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from rich import print
-from rich.progress import Progress, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
+from rich.table import Table
 
 from rdagent.log import rdagent_logger as logger
 
@@ -203,7 +204,7 @@ class DockerEnv(Env[DockerConf]):
             )
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
-            with Progress(TextColumn("{task.description}")) as p:
+            with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
                 task = p.add_task("[cyan]Building image...")
                 for part in resp_stream:
                     status_dict = json.loads(part)
@@ -308,6 +309,13 @@ class DockerEnv(Env[DockerConf]):
             )
             logs = container.logs(stream=True)
             print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumns", "\n".join(f"{k}:{v}" for k, v in volumns.items()))
+            print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
                 print(decoded_log)
