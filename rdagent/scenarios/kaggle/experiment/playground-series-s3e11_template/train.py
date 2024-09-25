@@ -38,16 +38,18 @@ X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
+
 # 3) Train the model
 def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    '''
+    """
     Flatten the columns of a DataFrame with MultiIndex columns,
     for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    '''
+    """
     if df.columns.nlevels == 1:
         return df
     df.columns = ["_".join(col).strip() for col in df.columns.values]
     return df
+
 
 X_train = flatten_columns(X_train)
 X_valid = flatten_columns(X_valid)
