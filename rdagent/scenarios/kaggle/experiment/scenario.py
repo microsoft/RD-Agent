@@ -67,7 +67,9 @@ class KGScenario(Scenario):
         try:
             response_json_analysis = json.loads(response_analysis)
             self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
-            self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
+            self.competition_description = response_json_analysis.get(
+                "Competition Description", "No description provided"
+            )
             self.target_description = response_json_analysis.get("Target Description", "No target provided")
             self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
             self.submission_specifications = response_json_analysis.get(
@@ -147,8 +149,10 @@ class KGScenario(Scenario):
 
     @property
     def output_format(self) -> str:
-        return Environment(undefined=StrictUndefined).from_string(prompt_dict["kg_model_output_format"]).render(
-            submission_specifications=self.submission_specifications
+        return (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["kg_model_output_format"])
+            .render(submission_specifications=self.submission_specifications)
         )
 
     @property
