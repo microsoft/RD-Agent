@@ -272,7 +272,7 @@ class FactorIndexEvaluator(FactorEvaluator):
         gen_index_set, gt_index_set = set(gen_df.index), set(gt_df.index)
         similarity = len(gen_index_set.intersection(gt_index_set)) / len(gen_index_set.union(gt_index_set))
         return (
-            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. Please check the implementation.",
+            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. The similarity is calculated by the number of shared indices divided by the union indices. Please check the implementation.",
             similarity,
         )
 
