@@ -39,4 +39,4 @@ def predict(model, X_test):
     """
     X_test = select(X_test)
     y_pred = model.predict(X_test)
-    return y_pred
+    return y_pred.reshape(-1, 1)

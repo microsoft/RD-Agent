@@ -118,6 +118,7 @@ for m, m_pred in model_l:
 
 y_test_pred = np.mean(y_test_pred_l, axis=0)
 y_test_pred = (y_test_pred > 0.5).astype(bool)
+y_test_pred = y_test_pred.ravel()
 
 submission_result = pd.DataFrame({"PassengerId": passenger_ids, "Transported": y_test_pred})
 
