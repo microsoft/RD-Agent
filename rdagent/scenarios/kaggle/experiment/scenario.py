@@ -34,6 +34,7 @@ class KGScenario(Scenario):
         self.competition_description = None
         self.target_description = None
         self.competition_features = None
+        self.submission_specifications = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
 
@@ -66,13 +67,16 @@ class KGScenario(Scenario):
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.submission_specifications = response_json_analysis.get(
+            "Submission Specifications", "No submission requirements provided"
+        )
 
     def get_competition_full_desc(self) -> str:
         return f"""Competition Type: {self.competition_type}
-Competition Description: {self.competition_description}
-Target Description: {self.target_description}
-Competition Features: {self.competition_features}
-"""
+    Competition Description: {self.competition_description}
+    Target Description: {self.target_description}
+    Competition Features: {self.competition_features}
+    """
 
     @property
     def background(self) -> str:
@@ -91,6 +95,7 @@ Competition Features: {self.competition_features}
                 competition_description=self.competition_description,
                 target_description=self.target_description,
                 competition_features=self.competition_features,
+                submission_specifications=self.submission_specifications,
             )
         )
         return background_prompt
@@ -165,4 +170,6 @@ The output of your code should be in the format:
 {self._output_format}
 The simulator user can use to test your model:
 {self._simulator}
+The expected output & submission format specifications:
+{self.submission_specifications} # Added again to emphasize the importance
 """
