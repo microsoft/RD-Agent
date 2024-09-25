@@ -14,7 +14,6 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
     X_train = select(X_train)
-    X_valid = select(X_valid)
 
     xgb_params = {
         "n_estimators": 280,
