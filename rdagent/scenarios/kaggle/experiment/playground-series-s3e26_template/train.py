@@ -74,7 +74,23 @@ X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
+
 # 3) Train the model
+def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Flatten the columns of a DataFrame with MultiIndex columns,
+    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
+    """
+    if df.columns.nlevels == 1:
+        return df
+    df.columns = ["_".join(col).strip() for col in df.columns.values]
+    return df
+
+
+X_train = flatten_columns(X_train)
+X_valid = flatten_columns(X_valid)
+X_test = flatten_columns(X_test)
+
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
