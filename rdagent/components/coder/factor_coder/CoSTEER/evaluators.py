@@ -252,7 +252,7 @@ class FactorRowCountEvaluator(FactorEvaluator):
             )
         ratio = len(gen_df) / len(gt_df)
         return (
-            f"The ratio of the source dataframe to the ground truth dataframe is {ratio:.2f}. Please check the implementation.",
+            f"The ratio of rows in the source dataframe to the ground truth dataframe is {ratio:.2f}. Please verify the implementation.",
             ratio,
         )
 
