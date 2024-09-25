@@ -122,12 +122,13 @@ kg_feature_interface: |-
   7. You are participating in a Kaggle competition and need data engineering ideas that are small, efficient, and quick to execute. Your suggestions should avoid unnecessary complexity or excessive processing time. Focus on delivering concise, impactful transformations or preprocessing steps that improve model performance with minimal resource usage. Please suggest clear, targeted approaches that can be implemented and tested rapidly.
 
 kg_model_interface: |-
+  The action might be model tuning or feature selection. However, for both of them, the code structure is the same.
   Your code should contain several parts:
   1. The import part: import the necessary libraries.
   2. A select() function that handles feature selection for both training and prediction phases.
     The function should take the following arguments:
       - X: The features as a pandas DataFrame.
-    The function should return the selected features as a pandas DataFrame.
+    The function should return the selected features as a pandas DataFrame. (You will usually receive a description of data & existing features)
   3. A function called fit() that trains the model and returns the trained model. If feature selection is applied, it should be done within this function.
     The function should take the following arguments:
       - X_train: The training features as a pandas DataFrame.
@@ -151,7 +152,7 @@ kg_model_interface: |-
   from xgboost import DMatrix
 
 
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic for feature selection action!
 
 
   def fit(
@@ -185,7 +186,7 @@ kg_model_interface: |-
   from sklearn.metrics import accuracy_score
 
 
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
+  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Focus on implement feature selection logic for feature selection process 
 
 
   def fit(

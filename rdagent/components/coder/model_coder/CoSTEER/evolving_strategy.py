@@ -35,6 +35,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         model_information_str = target_task.get_task_information()
         model_type = target_task.model_type
 
+        data_desc = None
         # Get the current code from the experiment using build_from_SOTA
         current_code = ""
         if exp is not None:
@@ -47,6 +48,9 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
             }
             if model_type in model_file_mapping:
                 current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
+                # send in data description  
+            data_desc = exp.experiment_workspace.data_description
+            
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -90,6 +94,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                         model_type=model_type,  # Add model type to the prompt
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                         queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                        data_desc=data_desc,
                     )
                     .strip("\n")
                 )
@@ -122,6 +127,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         *,
         evo: ModelEvolvingItem,
         queried_knowledge: ModelQueriedKnowledge | None = None,
+        exp: ModelExperiment = None,  # Add this parameter
         **kwargs,
     ) -> ModelEvolvingItem:
         # 1. Find the models that need to be evolved
@@ -140,7 +146,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge, exp))  # Pass exp here
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,

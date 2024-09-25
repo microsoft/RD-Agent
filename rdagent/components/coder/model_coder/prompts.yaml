@@ -41,8 +41,11 @@ extract_model_formulation_system: |-
 
 evolving_strategy_model_coder:
     system: |-
-        User is trying to implement some pytorch models in the following scenario:
+        User is trying to implement some machine learning models (pytorch or otherwise - see specifications) in the following scenario:
         {{ scenario }}
+
+        Very Important: The actions that you are responsible are mainly writing model (tuning model) or selecting features. Note that they are essentially the same task. If feature selection is involved, only adjust the select() section from existing models. DO NOT WRITE A SEPARATE FEATURE SELECTION CLASS.
+
         Your code is expected to align the scenario in any form which means The user needs to get the prediction of the model based on the input data.
 
         To help you write the correct code, the user might provide multiple information that helps you write the correct code:
@@ -56,7 +59,6 @@ evolving_strategy_model_coder:
         --------------Current code in the workspace:--------------- You need to tune the model based on this! If it is not None, do not write from scratch. 
         {{ current_code }}
         {% endif %}
-
         {% if queried_former_failed_knowledge|length != 0 %}
         --------------Your former latest attempt:---------------
         =====Code to the former implementation=====
@@ -64,7 +66,6 @@ evolving_strategy_model_coder:
         =====Feedback to the former implementation=====
         {{ queried_former_failed_knowledge[-1].feedback }}
         {% endif %}
-        
         Please response the code in the following json format. Here is an example structure for the JSON output:
         {
             "code": "The Python code as a string."
@@ -84,6 +85,11 @@ evolving_strategy_model_coder:
         {% endfor %}
         {% endif %}
 
+        {% if data_desc is not none %}
+        --------------Data & Feature Descriptions (Use this for feature selection):---------------
+        {{ data_desc }}
+        {% endif %}
+
         {% if queried_former_failed_knowledge|length != 0 %}
         --------------Former failed code:---------------
         {% for former_failed_knowledge in queried_former_failed_knowledge %}
@@ -93,6 +99,7 @@ evolving_strategy_model_coder:
         {{ former_failed_knowledge.feedback }}
         {% endfor %}
         {% endif %}
+
 
 evaluator_code_feedback:
     system: |-
