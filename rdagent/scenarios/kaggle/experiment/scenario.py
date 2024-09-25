@@ -24,6 +24,7 @@ class KGScenario(Scenario):
         super().__init__()
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition)
+        self.input_shape = None
         self._source_data = self.source_data
 
         self.competition_type = None
@@ -121,6 +122,7 @@ class KGScenario(Scenario):
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)
             data_info = buffer.getvalue()
+            self.input_shape = X_valid.shape
             return data_info
 
         preprocess_experiment = KGFactorExperiment([])
@@ -141,7 +143,7 @@ class KGScenario(Scenario):
         pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
         pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
-        self.input_shape = X_train.shape
+        self.input_shape = X_valid.shape
 
         buffer = io.StringIO()
         X_valid.info(verbose=True, buf=buffer, show_counts=True)
