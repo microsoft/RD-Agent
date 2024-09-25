@@ -147,7 +147,7 @@ class FactorImplementEval(BaseEval):
             print(f"Eval {_}-th times...")
             print("========================================================\n")
             try:
-                gen_factor_l = self.generate_method.develop(self.test_cases.target_task, self.test_cases.ground_truth)
+                gen_factor_l = self.generate_method.develop(self.test_cases.target_task)
             except KeyboardInterrupt:
                 # TODO: Why still need to save result after KeyboardInterrupt?
                 print("Manually interrupted the evaluation. Saving existing results")
