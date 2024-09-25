@@ -272,9 +272,9 @@ feature_selection_feedback_generation:
     Result: {{exp.result}}
 
     Available Features:
-    {% for feature in available_features %}
-    - {{feature.name}}: {{feature.description}}
-      Shape: {{feature.shape}}
+    {% for feature, shape in available_features %}
+      Features description: {{feature}}
+      Feature shape: {{shape}}
     {% endfor %}
 
     Compare and observe the results. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
