@@ -95,7 +95,7 @@ feature_experiment_output_format: |-
 
 model_experiment_output_format: |-
   According to the hypothesis, please help user design one model task.
-  Since we only build one model from four model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].  
+  We only build one model from four main model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].
   The output should follow JSON format. The schema is as follows: 
   {
       "model_name": "model_name",
@@ -106,7 +106,7 @@ model_experiment_output_format: |-
           "hyperparameter_name_2": "value of hyperparameter 2",
           "hyperparameter_name_3": "value of hyperparameter 3"
       },
-      "model_type": "model type"
+      "model_type": "Select only one model type: XGBoost, RandomForest, LightGBM, or NN. The primary model must be unique, but you may use auxiliary models for support if you think it can have a good result like choosing A model as the main model, with B Model used for auxiliary support or optimization on specific details."
   }
   Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
