@@ -45,4 +45,4 @@ def predict(model, X):
     # Predict using the trained model
     y_pred = model.predict(X_selected)
 
-    return y_pred
+    return y_pred.reshape(-1, 1)

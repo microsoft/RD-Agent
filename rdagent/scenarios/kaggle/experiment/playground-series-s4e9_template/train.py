@@ -29,8 +29,10 @@ def import_module_from_path(module_name, module_path):
     return module
 
 
+print("begin preprocess")
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
+print("preprocess done")
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -97,6 +99,7 @@ for f in DIRNAME.glob("model/model*.py"):
 y_valid_pred_l = []
 for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
+    print(predict_func(model, X_valid).shape)
 
 # 5) Ensemble
 y_valid_pred = np.mean(y_valid_pred_l, axis=0)
@@ -112,7 +115,7 @@ y_test_pred_l = []
 for m, m_pred in model_l:
     y_test_pred_l.append(m_pred(m, X_test))
 
-y_test_pred = np.mean(y_test_pred_l, axis=0)
+y_test_pred = np.mean(y_test_pred_l, axis=0).ravel()
 
 # 8) Submit predictions for the test set
 submission_result = pd.DataFrame({"id": ids, "price": y_test_pred})
