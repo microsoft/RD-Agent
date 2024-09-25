@@ -1,9 +1,10 @@
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
-import numpy as np
+
 
 # Define the neural network model with Batch Normalization
 class NeuralNetwork(nn.Module):
@@ -20,6 +21,7 @@ class NeuralNetwork(nn.Module):
         x = torch.relu(self.bn2(self.layer2(x)))
         x = torch.softmax(self.layer3(x), dim=1)
         return x
+
 
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     # Convert data to PyTorch tensors
@@ -62,9 +64,10 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
                 correct += (predicted == y_batch).sum().item()
 
         accuracy = correct / len(valid_loader.dataset)
-        print(f'Epoch {epoch+1}/{num_epochs}, Validation Accuracy: {accuracy:.4f}')
+        print(f"Epoch {epoch+1}/{num_epochs}, Validation Accuracy: {accuracy:.4f}")
 
     return model
+
 
 def predict(model, X):
     X_tensor = torch.tensor(X.values, dtype=torch.float32)
