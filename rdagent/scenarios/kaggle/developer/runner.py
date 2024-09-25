@@ -97,7 +97,8 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         self.build_from_SOTA(exp)
 
         sub_ws = exp.sub_workspace_list[0]
-        model_type = sub_ws.target_task.model_type
+        # TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list. Hardcoded now.
+        model_type = sub_ws.target_task.model_type[0]
 
         if sub_ws.code_dict == {}:
             raise ModelEmptyError("No model is implemented.")
