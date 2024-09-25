@@ -72,7 +72,7 @@ def preprocess_script():
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
-    """if os.path.exists("/kaggle/input/X_train.pkl"):
+    if os.path.exists("/kaggle/input/X_train.pkl"):
         X_train = pd.read_pickle("/kaggle/input/X_train.pkl")
         X_valid = pd.read_pickle("/kaggle/input/X_valid.pkl")
         y_train = pd.read_pickle("/kaggle/input/y_train.pkl")
@@ -80,7 +80,7 @@ def preprocess_script():
         X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
         others = pd.read_pickle("/kaggle/input/others.pkl")
 
-        return X_train, X_valid, y_train, y_valid, X_test, *others"""
+        return X_train, X_valid, y_train, y_valid, X_test, *others
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Fit the preprocessor on the training data
