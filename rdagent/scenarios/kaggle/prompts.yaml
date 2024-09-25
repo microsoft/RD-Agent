@@ -119,9 +119,9 @@ model_tuning_feedback_generation:
     {
       "Observations": "Your overall observations here",
       "Feedback for Hypothesis": "Observations related to the hypothesis",
-      "New Hypothesis": "Put your new hypothesis here.",
-      "Reasoning": "Provide reasoning for the hypothesis here.",
-      "Decision": <true or false>,
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
+      "Replace Best Result": "yes or no"
     }
 
     Focus on the changes in hypothesis and justify why do hypothesis evolve like this. Also, increase complexity as the hypothesis evolves  (give more layers, more neurons, and etc)
@@ -129,18 +129,12 @@ model_tuning_feedback_generation:
     Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
 
     Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
-
-    1st Round Hypothesis: The model should be a CNN with no feature selection.
-
-    2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
-
-    3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
-
-    4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
-    
-    5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
-
-    6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
+      - 1st Round Hypothesis: The model should be a CNN with no feature selection.
+      - 2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
+      - 3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
+      - 4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
+      - 5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
+      - 6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
 
   user: |-
     We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
@@ -150,7 +144,6 @@ model_tuning_feedback_generation:
     Last Round Information:
     Hypothesis: {{last_hypothesis.hypothesis}}
     Last Task and Code: {{last_task_and_code}}
-    Result: {{last_result}}
     {% else %}
     This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
     {% endif %} 
@@ -160,10 +153,15 @@ model_tuning_feedback_generation:
     Experiment Setup: {{exp.sub_tasks[0]}}
     Code Implemented: {{exp.sub_workspace_list[0].code_dict.get("model.py")}}
     Relevant Reasoning: {{hypothesis.reason}}
-    Result: {{exp.result}}
 
-    Compare and observe. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
-    Hence, with the hypotheses, relevant reasoning, and results in mind (comparison), provide detailed and constructive feedback and suggest a new hypothesis. 
+    Combined Results: 
+    {{ combined_result }}
+    Analyze the combined result in the context of its ability to:
+    1. Support or refute the hypothesis.
+    2. Show improvement or deterioration compared to the best result.
+    Consider Changing Direction for Significant Gaps with the Best Result:
+      - If the new results significantly differ from the best, consider exploring a new direction.
+      - If you've adjusted a particular hyperparameter many times without surpassing the best results for a long period, it may be time to shift focus or rethink the approach.
 
 factor_feedback_generation:
   system: |-
@@ -241,11 +239,11 @@ feature_selection_feedback_generation:
     
     Respond in JSON format. Example JSON structure for Result Analysis:
     {
-      "Observations": "Your overall observations about the feature selection effectiveness",
-      "Feedback for Hypothesis": "How well the results support or refute the hypothesis",
-      "New Hypothesis": "Suggested new hypothesis for feature selection in the next iteration",
-      "Reasoning": "Detailed reasoning for the new hypothesis, including which features to keep, remove, or add",
-      "Decision": true or false
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
+      "Replace Best Result": "yes or no"
     }
 
   user: |-
