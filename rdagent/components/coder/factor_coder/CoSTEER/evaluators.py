@@ -251,7 +251,10 @@ class FactorRowCountEvaluator(FactorEvaluator):
                 False,
             )
         ratio = len(gen_df) / len(gt_df)
-        return f"The ratio of the source dataframe to the ground truth dataframe is {ratio:.2f}. Please check the implementation.", ratio
+        return (
+            f"The ratio of the source dataframe to the ground truth dataframe is {ratio:.2f}. Please check the implementation.",
+            ratio,
+        )
 
 
 class FactorIndexEvaluator(FactorEvaluator):
@@ -266,7 +269,7 @@ class FactorIndexEvaluator(FactorEvaluator):
                 "The source dataframe is None. Please check the implementation.",
                 False,
             )
-        gen_index_set, gt_index_set= set(gen_df.index), set(gt_df.index)
+        gen_index_set, gt_index_set = set(gen_df.index), set(gt_df.index)
         similarity = len(gen_index_set.intersection(gt_index_set)) / len(gen_index_set.union(gt_index_set))
         return (
             f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. Please check the implementation.",
@@ -402,14 +405,10 @@ class FactorValueEvaluator(FactorEvaluator):
 
         # Check dataframe format
         if gt_implementation is not None:
-            feedback_str, row_result = FactorRowCountEvaluator(self.scen).evaluate(
-                implementation, gt_implementation
-            )
+            feedback_str, row_result = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
-            feedback_str, index_result = FactorIndexEvaluator(self.scen).evaluate(
-                implementation, gt_implementation
-            )
+            feedback_str, index_result = FactorIndexEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
             feedback_str, output_format_result = FactorMissingValuesEvaluator(self.scen).evaluate(
