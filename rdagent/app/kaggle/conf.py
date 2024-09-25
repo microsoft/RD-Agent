@@ -55,5 +55,7 @@ class KaggleBasePropSetting(BasePropSetting):
 
     if_action_choosing_based_on_UCB: bool = False
 
+    if_using_feature_selection: bool = False
+
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

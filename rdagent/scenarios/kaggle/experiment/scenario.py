@@ -35,6 +35,7 @@ class KGScenario(Scenario):
         self.model_output_channel = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
+        self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
 
         self._output_format = self.output_format
         self._interface = self.interface
