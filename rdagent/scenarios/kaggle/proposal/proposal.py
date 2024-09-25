@@ -36,7 +36,7 @@ KG_ACTION_MODEL_TUNING = "Model tuning"
 KG_ACTION_LIST = [
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
-    KG_ACTION_MODEL_FEATURE_SELECTION,
+    *([KG_ACTION_MODEL_FEATURE_SELECTION] if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection else []),
     KG_ACTION_MODEL_TUNING,
 ]
 
@@ -82,18 +82,14 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
-        self.action_counts = {
-            "Feature engineering": 0,
-            "Feature processing": 0,
-            "Model feature selection": 0,
-            "Model tuning": 0,
-        }
-        self.reward_estimates = {
-            "Feature engineering": 0.0,
-            "Feature processing": 0.0,
-            "Model feature selection": 0.2,
-            "Model tuning": 1.0,
-        }
+        actions = ["Feature engineering", "Feature processing", "Model tuning"]
+        if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection:
+            actions.insert(2, "Model feature selection")
+        self.action_counts = dict.fromkeys(actions, 0)
+        self.reward_estimates = {action: 0.0 for action in actions}
+        if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection:
+            self.reward_estimates["Model feature selection"] = 0.2
+        self.reward_estimates["Model tuning"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
 
@@ -240,7 +236,9 @@ class KGHypothesisGen(ModelHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": self.generate_RAG_content(trace),
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
+            "hypothesis_output_format": Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["hypothesis_output_format"])
+            .render(if_using_feature_selection=KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection),
             "hypothesis_specification": f"next experiment action is {action}"
             if self.scen.if_action_choosing_based_on_UCB
             else None,
