@@ -23,9 +23,10 @@ import docker.models
 import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from rich import print
 from rich.progress import Progress, TextColumn
 from rich.rule import Rule
-from rich import print
+
 from rdagent.log import rdagent_logger as logger
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
