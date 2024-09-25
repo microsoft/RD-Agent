@@ -24,6 +24,7 @@ import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from rich import print
+from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
@@ -318,7 +319,7 @@ class DockerEnv(Env[DockerConf]):
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
-                print(decoded_log)
+                Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
