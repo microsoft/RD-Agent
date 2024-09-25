@@ -185,6 +185,4 @@ The simulator user can use to test your model:
 {self._simulator}
 The expected output & submission format specifications:
 {self.submission_specifications} # Added again to emphasize the importance
-The expected output & submission format specifications:
-{self.submission_specifications} # Added again to emphasize the importance
 """
