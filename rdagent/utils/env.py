@@ -27,6 +27,7 @@ from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
+from rich.console import Console
 
 from rdagent.log import rdagent_logger as logger
 
@@ -121,9 +122,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[
-        Path
-    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -318,7 +319,7 @@ class DockerEnv(Env[DockerConf]):
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
-                print(decoded_log)
+                Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
