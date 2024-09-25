@@ -38,5 +38,6 @@ def preprocess_script():
 
     ids = test["id"]
     X_test = test.drop(["id"], axis=1)
+    X_test = X_test[most_important_features]
 
     return X_train, X_valid, y_train, y_valid, X_test, ids

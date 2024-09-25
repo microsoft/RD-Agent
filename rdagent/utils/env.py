@@ -24,6 +24,7 @@ import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from rich.progress import Progress, TextColumn
+from rich.rule import Rule
 from rich import print
 from rdagent.log import rdagent_logger as logger
 
@@ -305,10 +306,12 @@ class DockerEnv(Env[DockerConf]):
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
+            print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
             for log in logs:
                 decoded_log = log.strip().decode()
                 print(decoded_log)
                 log_output += decoded_log + "\n"
+            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
             container.stop()
             container.remove()
