@@ -10,6 +10,7 @@ kg_description_template:
       "Target Description": "A description of the target variable to be predicted",
       "Competition Features": "Two-line description of the overall features involved within the competition as background."
       "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
+      "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
@@ -314,12 +315,15 @@ kg_feature_simulator: |-
 
 kg_model_output_format: |-
   For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
-  For model related tasks:
-  1. the output should be an np.ndarray with the appropriate number of predictions & the appropriate values within each prediction 
-  2. the output should be a 2D array with dimensions corresponding to the number of predictions and the number of things to output. Eg, if 4 predictions, each prediction needs to predict 3 probabilities, then (4,3). Or (8, 1) if there are 8 predictions but each prediction is only one value.
-  3. please reference the competition's submission requirement and align with that. 
-  Submission Requirements here:\n: {{submission_specifications}}
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions.
+  {% if channel == 1 %}
+  For each sample, the output should be a single value (e.g., (8, 1) if there are 8 samples).
+  {% else %}
+  For each sample, the output should be multiple values with {{ channel }} numbers (e.g., (8, {{ channel }}) if there are 8 samples).
+  {% endif %}
   
 kg_model_simulator: |-
   The models will be trained on the competition dataset and evaluated on their ability to predict the target. Metrics like accuracy and AUC-ROC is used to evaluate the model performance. 
   Model performance will be iteratively improved based on feedback from evaluation results.
+  Your output should follow some requirements to submit to the competition:
+  {{ submission_specifications }}
