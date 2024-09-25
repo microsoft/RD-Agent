@@ -128,6 +128,8 @@ class KGScenario(Scenario):
         pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
         pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
+        self.input_shape = X_train.shape
+
         buffer = io.StringIO()
         X_valid.info(verbose=True, buf=buffer, show_counts=True)
         data_info = buffer.getvalue()

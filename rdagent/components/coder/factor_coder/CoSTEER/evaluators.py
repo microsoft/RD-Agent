@@ -394,6 +394,13 @@ class FactorValueEvaluator(FactorEvaluator):
         if version == 1:
             feedback_str, _ = FactorSingleColumnEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
+        elif version == 2:
+            input_shape = self.scen.input_shape
+            _, gen_df = self._get_df(gt_implementation, implementation)
+            if gen_df.shape[-1] > input_shape[-1]:
+                conclusions.append(
+                    "Output dataframe has more columns than input feature which is not acceptable in feature processing tasks. Please check the implementation to avoid generating too many columns. Consider this implementation as a failure."
+                )
 
         # Check if the index of the dataframe is ("datetime", "instrument")
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
