@@ -1,15 +1,10 @@
-import uuid
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import pandas as pd
 from _pytest.cacheprovider import json
-from scipy.spatial.distance import cosine
 
-from rdagent.components.knowledge_management.vector_base import (
-    KnowledgeMetaData,
-    PDVectorBase,
-)
+from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
@@ -17,7 +12,7 @@ from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
 )
 
 
-class KGKnowledgeMetaData(KnowledgeMetaData):
+class KGKnowledgeDocument(Document):
     """
     Class for handling Kaggle competition specific metadata
     """
@@ -104,7 +99,7 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         )
 
 
-KGDocument = KGKnowledgeMetaData
+KGDocument = KGKnowledgeDocument
 
 
 class KaggleExperienceBase(PDVectorBase):
@@ -112,7 +107,7 @@ class KaggleExperienceBase(PDVectorBase):
     Class for handling Kaggle competition experience posts and organizing them for reference
     """
 
-    def __init__(self, vector_df_path: Union[str, Path] = None, kaggle_experience_path: Union[str, Path] = None):
+    def __init__(self, path: Union[str, Path] = None, kaggle_experience_path: Union[str, Path] = None):
         """
         Initialize the KaggleExperienceBase class
 
@@ -123,7 +118,7 @@ class KaggleExperienceBase(PDVectorBase):
         kaggle_experience_path: str or Path, optional
             Path to the Kaggle experience post data.
         """
-        super().__init__(vector_df_path)
+        super().__init__(path)
         self.kaggle_experience_path = kaggle_experience_path
         self.kaggle_experience_data = []
 
@@ -193,7 +188,7 @@ class KaggleExperienceBase(PDVectorBase):
         if experiment_feedback:
             extracted_knowledge = extract_knowledge_from_feedback(experiment_feedback)
 
-            document = KGKnowledgeMetaData(
+            document = KGKnowledgeDocument(
                 content=experiment_feedback.get("hypothesis_text", ""),
                 label="Experiment Feedback",
                 competition_name="Experiment Result",
@@ -216,7 +211,7 @@ class KaggleExperienceBase(PDVectorBase):
             ranking = experience.get("ranking", None)
             score = experience.get("score", None)
 
-            document = KGKnowledgeMetaData(
+            document = KGKnowledgeDocument(
                 content=content,
                 label=label,
                 competition_name=competition_name,
@@ -250,7 +245,7 @@ class KaggleExperienceBase(PDVectorBase):
 
         kaggle_docs = []
         for result in search_results:
-            kg_doc = KGKnowledgeMetaData().from_dict(result.__dict__)
+            kg_doc = KGKnowledgeDocument().from_dict(result.__dict__)
             kaggle_docs.append(kg_doc)
 
         return kaggle_docs, similarities
@@ -263,7 +258,7 @@ if __name__ == "__main__":
 
     kaggle_base.add_experience_to_vector_base()
 
-    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
+    kaggle_base.save()
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 

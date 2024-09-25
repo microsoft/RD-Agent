@@ -183,19 +183,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
         self.num_loop = 0
         self.haveSelected = False
 
-    def _query_data_tables(self, user_prompt, session):
-        for _ in range(10):  # max attempt to reduce the length of user_prompt
-            response = session.build_chat_completion(
-                user_prompt=user_prompt,
-                json_mode=True,
-            )
-            try:
-                result = json.loads(response)
-                return result
-            except json.JSONDecodeError:
-                continue
-        return None
-
     def implement_one_factor(
         self,
         target_task: FactorTask,
@@ -231,42 +218,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 queried_knowledge.former_traces[target_factor_task_information] if queried_knowledge is not None else []
             )
 
-            queried_data_tables = (
-                queried_knowledge.data_set_knowledge_dict[target_factor_task_information]
-                if queried_knowledge is not None
-                else []
-            )
-            queried_data_tables_str = json.dumps(queried_data_tables, indent=2)
-
-            system_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    implement_prompts["evolving_strategy_search_data_table_system_prompt"],
-                )
-                .render()
-            )
-
-            user_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    implement_prompts["evolving_strategy_search_data_table"],
-                )
-                .render(
-                    scenario=self.scen.get_scenario_all_desc(),
-                    factor_information_str=target_factor_task_information,
-                    data_tables=queried_data_tables_str,
-                )
-            )
-            session = APIBackend(use_chat_cache=FACTOR_IMPLEMENT_SETTINGS.coder_use_cache).build_chat_session(
-                session_system_prompt=system_prompt,
-            )
-
-            useful_data_table = self._query_data_tables(user_prompt, session)
-            selected_knowledge_dict = {}
-            for key in useful_data_table:
-                if key in queried_knowledge.data_set_knowledge_dict:
-                    selected_knowledge_dict[key] = queried_knowledge.data_set_knowledge_dict[key]
-
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
             system_prompt = (
@@ -277,7 +228,6 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 .render(
                     scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                    selected_knowledge_dict=selected_knowledge_dict,
                 )
             )
 

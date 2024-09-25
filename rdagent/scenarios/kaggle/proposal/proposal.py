@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from typing import List, Tuple
 
@@ -19,6 +20,8 @@ from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,
 )
+from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
+from rdagent.scenarios.kaggle.knowledge_management.graph import KGKnowledgeGraph
 from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
     KaggleExperienceBase,
 )
@@ -77,9 +80,148 @@ class KGHypothesisGen(ModelHypothesisGen):
             prompts: Prompts = a_specifc_prompt_dict
     """
 
-    def __init__(self, scen: Scenario, knowledge: VectorBase = None) -> Tuple[dict, bool]:
+    def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
-        self.scen.vector_base.save(KAGGLE_IMPLEMENT_SETTING.rag_path)
+        self.action_counts = {
+            "Feature engineering": 0,
+            "Feature processing": 0,
+            "Model feature selection": 0,
+            "Model tuning": 0,
+        }
+        self.reward_estimates = {
+            "Feature engineering": 0.0,
+            "Feature processing": 0.0,
+            "Model feature selection": 0.2,
+            "Model tuning": 1.0,
+        }
+        self.confidence_parameter = 1.0
+        self.initial_performance = 0.0
+
+    def generate_RAG_content(self, trace: Trace) -> str:
+        if trace.knowledge_base is None:
+            return None
+        same_competition_node = trace.knowledge_base.get_node_by_content(trace.scen.get_competition_full_desc())
+        if same_competition_node is not None:
+            related_hypothesis_nodes = []
+            for action in KG_ACTION_LIST:
+                related_hypothesis_nodes.extend(
+                    trace.knowledge_base.get_nodes_within_steps(
+                        start_node=same_competition_node,
+                        steps=1,
+                        constraint_labels=[action],
+                    )[:1]
+                )
+        else:
+            related_hypothesis_nodes = []
+        experiences = []
+        for hypothesis_node in related_hypothesis_nodes:
+            experience = {"hypothesis": hypothesis_node.content}
+            experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=1, constraint_labels=["experiments"]
+            )
+            if len(experiment_node_list) > 0:
+                experience["experiments"] = experiment_node_list[0].content
+            else:
+                experience["experiments"] = "No experiment information available."
+            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=1, constraint_labels=["conclusion"]
+            )
+            if len(conclusion_node_list) > 0:
+                experience["conclusion"] = conclusion_node_list[0].content
+            else:
+                experience["conclusion"] = "No conclusion information available."
+            experiences.append(experience)
+
+        similar_nodes = trace.knowledge_base.semantic_search(
+            node=trace.scen.get_competition_full_desc(),
+            topk_k=2,
+        )
+
+        found_hypothesis_nodes = []
+        for similar_node in similar_nodes:
+            for hypothesis_type in KG_ACTION_LIST:
+                hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
+                    start_node=similar_node,
+                    steps=3,
+                    constraint_labels=[hypothesis_type],
+                )
+                found_hypothesis_nodes.extend(hypothesis_nodes[:2])
+
+        found_hypothesis_nodes = sorted(list(set(found_hypothesis_nodes)), key=lambda x: len(x.content))
+
+        insights = []
+        for hypothesis_node in found_hypothesis_nodes[:5]:
+            if hypothesis_node in related_hypothesis_nodes:
+                continue
+            insight = {"hypothesis": hypothesis_node.content}
+            experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=1, constraint_labels=["experiments"]
+            )
+            if len(experiment_node_list) > 0:
+                insight["experiments"] = experiment_node_list[0].content
+            else:
+                insight["experiments"] = "No experiment information available."
+            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=1, constraint_labels=["conclusion"]
+            )
+            if len(conclusion_node_list) > 0:
+                insight["conclusion"] = conclusion_node_list[0].content
+            else:
+                insight["conclusion"] = "No conclusion information available."
+            insights.append(insight)
+
+        RAG_content = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["KG_hypothesis_gen_RAG"])
+            .render(insights=insights, experiences=experiences)
+        )
+        return RAG_content
+
+    def update_reward_estimates(self, trace: Trace) -> None:
+        if len(trace.hist) > 0:
+            last_entry = trace.hist[-1]
+            last_action = last_entry[0].action
+            last_result = last_entry[1].result
+            # Extract performance_t
+            performance_t = last_result.get("performance", 0.0)
+            # Get performance_{t-1}
+            if len(trace.hist) > 1:
+                prev_entry = trace.hist[-2]
+                prev_result = prev_entry[1].result
+                performance_t_minus_1 = prev_result.get("performance", 0.0)
+            else:
+                performance_t_minus_1 = self.initial_performance
+
+            reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
+            n_o = self.action_counts[last_action]
+            mu_o = self.reward_estimates[last_action]
+            self.reward_estimates[last_action] += (reward - mu_o) / n_o
+        else:
+            # First iteration, nothing to update
+            pass
+
+    def execute_next_action(self, trace: Trace) -> str:
+        actions = list(self.action_counts.keys())
+        t = sum(self.action_counts.values()) + 1
+
+        # If any action has not been tried yet, select it
+        for action in actions:
+            if self.action_counts[action] == 0:
+                selected_action = action
+                self.action_counts[selected_action] += 1
+                return selected_action
+
+        c = self.confidence_parameter
+        ucb_values = {}
+        for action in actions:
+            mu_o = self.reward_estimates[action]
+            n_o = self.action_counts[action]
+            ucb = mu_o + c * math.sqrt(math.log(t) / n_o)
+            ucb_values[action] = ucb
+        # Select action with highest UCB
+        selected_action = max(ucb_values, key=ucb_values.get)
+        self.action_counts[selected_action] += 1
+        return selected_action
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
         hypothesis_and_feedback = (
@@ -92,19 +234,22 @@ class KGHypothesisGen(ModelHypothesisGen):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
-        rag_content = "\n".join([doc.content for doc in rag_results])
+        if self.scen.if_action_choosing_based_on_UCB:
+            action = self.execute_next_action(trace)
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": None,
+            "RAG": self.generate_RAG_content(trace),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": None,
+            "hypothesis_specification": f"next experiment action is {action}"
+            if self.scen.if_action_choosing_based_on_UCB
+            else None,
         }
         return context_dict, True
 
     def convert_response(self, response: str) -> ModelHypothesis:
         response_dict = json.loads(response)
+
         hypothesis = KGHypothesis(
             hypothesis=response_dict["hypothesis"],
             reason=response_dict["reason"],
@@ -189,7 +334,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             )
         )
         exp = KGModelExperiment(tasks)
-        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+        exp.based_experiments = [KGModelExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
         return exp
 
     def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
@@ -197,3 +342,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             return self.convert_feature_experiment(response, trace)
         elif self.current_action in [KG_ACTION_MODEL_FEATURE_SELECTION, KG_ACTION_MODEL_TUNING]:
             return self.convert_model_experiment(response, trace)
+
+
+class KGTrace(Trace[KGScenario, KGKnowledgeGraph]):
+    pass

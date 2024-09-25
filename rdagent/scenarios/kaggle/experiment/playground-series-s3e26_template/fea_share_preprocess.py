@@ -13,57 +13,36 @@ def prepreprocess():
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
     """
     # Load and preprocess the data
-    train = pd.read_csv(
-        "/kaggle/input/train.csv",
-        parse_dates=["Dates"],
-        index_col=False,
-    )
-    train = train.drop(["Descript", "Resolution", "Address"], axis=1)
+    train = pd.read_csv("/kaggle/input/train.csv")
+    # train = train.drop(["Descript", "Resolution", "Address"], axis=1)
 
-    test = pd.read_csv(
-        "/kaggle/input/test.csv",
-        parse_dates=["Dates"],
-        index_col=False,
-    )
-    test_ids = test["Id"]
-    test = test.drop(["Address"], axis=1)
-
-    # Feature engineering
-    def feature_engineering(data):
-        data["Day"] = data["Dates"].dt.day
-        data["Month"] = data["Dates"].dt.month
-        data["Year"] = data["Dates"].dt.year
-        data["Hour"] = data["Dates"].dt.hour
-        data["Minute"] = data["Dates"].dt.minute
-        data["DayOfWeek"] = data["Dates"].dt.dayofweek
-        data["WeekOfYear"] = data["Dates"].dt.isocalendar().week
-        return data
-
-    train = feature_engineering(train)
-    test = feature_engineering(test)
+    test = pd.read_csv("/kaggle/input/test.csv")
+    test_ids = test["id"]
+    # test = test.drop(["Address"], axis=1)
 
     # Encoding 'PdDistrict'
-    enc = LabelEncoder()
-    train["PdDistrict"] = enc.fit_transform(train["PdDistrict"])
-    test["PdDistrict"] = enc.transform(test["PdDistrict"])
+    categorical_cols = ["Drug", "Sex", "Ascites", "Hepatomegaly", "Spiders", "Edema"]
+    encoders = {col: LabelEncoder().fit(train[col]) for col in categorical_cols}
 
-    # Encoding 'Category' in train set
-    category_encoder = LabelEncoder()
-    category_encoder.fit(train["Category"])
-    train["CategoryEncoded"] = category_encoder.transform(train["Category"])
+    for col, encoder in encoders.items():
+        train[col] = encoder.transform(train[col])
+        test[col] = encoder.transform(test[col])
+
+    # Encoding 'Stage' in train set
+    status_encoder = LabelEncoder()
+    train["StatusEncoded"] = status_encoder.fit_transform(train["Status"])
 
     # Selecting feature columns for modeling
-    x_cols = list(train.columns[2:12].values)
-    x_cols.remove("Minute")  # Exclude the 'Minute' column
+    x_cols = train.columns.drop(["id", "Status", "StatusEncoded"])
     X = train[x_cols]
-    y = train["CategoryEncoded"]
-    X_test = test[x_cols]
+    y = train["StatusEncoded"]
+    X_test = test.drop(["id"], axis=1)
 
     # Split the data into training and validation sets
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
     print(X.shape, y.shape, X_test.shape)
 
-    return X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids
+    return X_train, X_valid, y_train, y_valid, X_test, status_encoder, test_ids
 
 
 def preprocess_fit(X_train: pd.DataFrame):
@@ -102,16 +81,15 @@ def preprocess_script():
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
-    if os.path.exists("/kaggle/input/X_train.pkl"):
-        X_train = pd.read_pickle("/kaggle/input/X_train.pkl")
-        X_valid = pd.read_pickle("/kaggle/input/X_valid.pkl")
-        y_train = pd.read_pickle("/kaggle/input/y_train.pkl")
-        y_valid = pd.read_pickle("/kaggle/input/y_valid.pkl")
-        X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
-        others = pd.read_pickle("/kaggle/input/others.pkl")
-        return X_train, X_valid, y_train, y_valid, X_test, *others
+    if os.path.exists("X_train.pkl"):
+        X_train = pd.read_pickle("X_train.pkl")
+        X_valid = pd.read_pickle("X_valid.pkl")
+        y_train = pd.read_pickle("y_train.pkl")
+        y_valid = pd.read_pickle("y_valid.pkl")
+        X_test = pd.read_pickle("X_test.pkl")
+        return X_train, X_valid, y_train, y_valid, X_test
 
-    X_train, X_valid, y_train, y_valid, test, category_encoder, test_ids = prepreprocess()
+    X_train, X_valid, y_train, y_valid, test, status_encoder, test_ids = prepreprocess()
 
     # Fit the preprocessor on the training data
     preprocessor = preprocess_fit(X_train)
@@ -123,4 +101,4 @@ def preprocess_script():
     # Preprocess the test data
     X_test = preprocess_transform(test, preprocessor)
 
-    return X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids
+    return X_train, X_valid, y_train, y_valid, X_test, status_encoder, test_ids

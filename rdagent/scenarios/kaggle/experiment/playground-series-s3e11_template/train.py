@@ -1,31 +1,12 @@
 import importlib.util
-import random
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fea_share_preprocess import clean_and_impute_data, preprocess_script
-from scipy import stats
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from fea_share_preprocess import preprocess_script
+from sklearn.metrics import mean_squared_error
 
-# Set random seed for reproducibility
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-
-# support various method for metrics calculation
-def compute_metrics_for_classification(y_true, y_pred):
-    """Compute accuracy metric for classification."""
-    accuracy = accuracy_score(y_true, y_pred)
-    return accuracy
-
-
-def compute_metrics_for_classification(y_true, y_pred):
-    """Compute MCC for classification."""
-    mcc = matthews_corrcoef(y_true, y_pred)
-    return mcc
 
 
 def import_module_from_path(module_name, module_path):
@@ -57,11 +38,6 @@ X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
-print(X_train.shape, X_valid.shape, X_test.shape)
-
-# Handle inf and -inf values
-X_train, X_valid, X_test = clean_and_impute_data(X_train, X_valid, X_test)
-
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
@@ -73,30 +49,30 @@ y_valid_pred_l = []
 for model, predict_func in model_l:
     y_valid_pred = predict_func(model, X_valid)
     y_valid_pred_l.append(y_valid_pred)
-    print(y_valid_pred)
-    print(y_valid_pred.shape)
+    # print(y_valid_pred)
+    # print(y_valid_pred.shape)
 
 # 5) Ensemble
 # Majority vote ensemble
-y_valid_pred_ensemble = stats.mode(y_valid_pred_l, axis=0)[0].flatten()
+y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
 
-# Compute metrics
-accuracy = accuracy_score(y_valid, y_valid_pred_ensemble)
-print(f"final accuracy on valid set: {accuracy}")
 
 # 6) Save the validation metrics
-pd.Series(data=[accuracy], index=["multi-class accuracy"]).to_csv("submission_score.csv")
+metrics = mean_squared_error(y_valid, y_valid_pred_ensemble, squared=False)
+print(f"RMLSE on valid set: {metrics}")
+pd.Series(data=[metrics], index=["RMLSE"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
 for model, predict_func in model_l:
     y_test_pred_l.append(predict_func(model, X_test))
 
+
 # For multiclass classification, use the mode of the predictions
-y_test_pred = stats.mode(y_test_pred_l, axis=0)[0].flatten() + 1
+y_test_pred = np.mean(y_test_pred_l, axis=0)
 
 
-submission_result = pd.DataFrame(y_test_pred, columns=["Cover_Type"])
-submission_result.insert(0, "Id", ids)
+submission_result = pd.DataFrame(np.expm1(y_test_pred), columns=["cost"])
+submission_result.insert(0, "id", ids)
 
 submission_result.to_csv("submission.csv", index=False)

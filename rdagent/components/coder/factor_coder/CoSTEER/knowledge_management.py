@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import heapq
 import json
 import random
 import re
@@ -22,9 +21,9 @@ from rdagent.components.knowledge_management.graph import (
 )
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
+    EvolvingKnowledgeBase,
     EvoStep,
     Knowledge,
-    KnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )
@@ -71,12 +70,13 @@ class FactorQueriedKnowledge(QueriedKnowledge):
         self.failed_task_info_set = failed_task_info_set
 
 
-class FactorKnowledgeBaseV1(KnowledgeBase):
-    def __init__(self) -> None:
+class FactorKnowledgeBaseV1(EvolvingKnowledgeBase):
+    def __init__(self, path: str | Path = None) -> None:
         self.implementation_trace: dict[str, FactorKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
+        super().__init__(path)
 
     def query(self) -> QueriedKnowledge | None:
         """
@@ -205,13 +205,11 @@ class FactorQueriedGraphKnowledge(FactorQueriedKnowledge):
         former_traces: dict = {},
         component_with_success_task: dict = {},
         error_with_success_task: dict = {},
-        data_set_knowledge_dict: dict = {},
         **kwargs,
     ) -> None:
         self.former_traces = former_traces
         self.component_with_success_task = component_with_success_task
         self.error_with_success_task = error_with_success_task
-        self.data_set_knowledge_dict = data_set_knowledge_dict
         super().__init__(**kwargs)
 
 
@@ -310,10 +308,6 @@ class FactorGraphRAGStrategy(RAGStrategy):
             factor_implementation_queried_graph_knowledge,
             FACTOR_IMPLEMENT_SETTINGS.v2_query_error_limit,
             knowledge_sampler=conf_knowledge_sampler,
-        )
-        factor_implementation_queried_graph_knowledge = self.dataset_query(
-            evo,
-            factor_implementation_queried_graph_knowledge,
         )
         return factor_implementation_queried_graph_knowledge
 
@@ -717,41 +711,13 @@ class FactorGraphRAGStrategy(RAGStrategy):
 
         return factor_implementation_queried_graph_knowledge
 
-    def dataset_query(
-        self,
-        evo: EvolvableSubjects,
-        factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
-    ) -> QueriedKnowledge | None:
-        for task_index, target_factor_task in enumerate(evo.sub_tasks):
-            target_factor_task_information = target_factor_task.get_task_information()
-            related_info = {}
 
-            knowledge_dict = self.knowledgebase.data_set_knowledge_dict
-            table_explanations = [f"{key}: {json.dumps(value)}" for key, value in knowledge_dict.items()]
-
-            similarity = calculate_embedding_distance_between_str_list(
-                [target_factor_task_information], table_explanations
-            )[0]
-
-            top_related_indexes = heapq.nlargest(10, range(len(similarity)), key=lambda i: similarity[i])
-
-            for index in top_related_indexes:
-                key = list(knowledge_dict.keys())[index]
-                related_info[key] = knowledge_dict[key]
-
-            factor_implementation_queried_graph_knowledge.data_set_knowledge_dict[
-                target_factor_task_information
-            ] = related_info
-
-        return factor_implementation_queried_graph_knowledge
-
-
-class FactorGraphKnowledgeBase(KnowledgeBase):
-    def __init__(self, init_component_list=None, data_set_knowledge_path=None) -> None:
+class FactorGraphKnowledgeBase(EvolvingKnowledgeBase):
+    def __init__(self, init_component_list=None, path: str | Path = None) -> None:
         """
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
-        self.graph: UndirectedGraph = UndirectedGraph.load(Path.cwd() / "graph.pkl")
+        self.graph: UndirectedGraph = UndirectedGraph(Path.cwd() / "graph.pkl")
         logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
@@ -774,12 +740,6 @@ class FactorGraphKnowledgeBase(KnowledgeBase):
 
         # store the task description to component nodes
         self.task_to_component_nodes = {}
-
-        # data set: data set information
-        self.data_set_knowledge_dict = {}
-        if data_set_knowledge_path:
-            with open(data_set_knowledge_path, "r") as f:
-                self.data_set_knowledge_dict = json.load(f)
 
     def get_all_nodes_by_label(self, label: str) -> list[UndirectedNode]:
         return self.graph.get_all_nodes_by_label(label)

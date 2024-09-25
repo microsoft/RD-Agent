@@ -10,9 +10,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # Modified model for multi-class classification
-class HybridFeatureInteractionModel(nn.Module):
+class FeatureInteractionModel(nn.Module):
     def __init__(self, num_features, num_classes):
-        super(HybridFeatureInteractionModel, self).__init__()
+        super(FeatureInteractionModel, self).__init__()
         self.fc1 = nn.Linear(num_features, 128)
         self.bn1 = nn.BatchNorm1d(128)
         self.fc2 = nn.Linear(128, 64)
@@ -24,32 +24,34 @@ class HybridFeatureInteractionModel(nn.Module):
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.fc2(x)))
         x = self.dropout(x)
-        x = self.fc3(x)  # No activation here, use CrossEntropyLoss
-        return x
+        x = self.fc3(x)
+        return F.softmax(x, dim=1)  # Apply softmax to get probabilities
 
 
 # Training function
 def fit(X_train, y_train, X_valid, y_valid):
     num_features = X_train.shape[1]
     num_classes = len(np.unique(y_train))  # Determine number of classes
-    model = HybridFeatureInteractionModel(num_features, num_classes).to(device)
+    model = FeatureInteractionModel(num_features, num_classes).to(device)
     criterion = nn.CrossEntropyLoss()  # Use CrossEntropyLoss for multi-class
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Convert to TensorDataset and create DataLoader
     train_dataset = TensorDataset(
-        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.to_numpy(), dtype=torch.long)
+        torch.tensor(X_train.to_numpy(), dtype=torch.float32),
+        torch.tensor(y_train.to_numpy(), dtype=torch.long),  # Use long for labels
     )
     valid_dataset = TensorDataset(
         torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.to_numpy(), dtype=torch.long)
     )
+
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
     # Train the model
     model.train()
-    for epoch in range(5):  # just for quick run
-        print(f"Epoch {epoch + 1}/5")
+    for epoch in range(10):
+        print(f"Epoch {epoch + 1}/10")
         epoch_loss = 0
         for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
@@ -67,12 +69,11 @@ def fit(X_train, y_train, X_valid, y_valid):
 # Prediction function
 def predict(model, X):
     model.eval()
-    predictions = []
+    probabilities = []
     with torch.no_grad():
         X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
         for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
             batch = X_tensor[i : i + 32]
             pred = model(batch)
-            pred = torch.argmax(pred, dim=1).cpu().numpy()  # Use argmax to get class
-            predictions.extend(pred)
-    return np.array(predictions)
+            probabilities.append(pred.cpu().numpy())  # Collect probabilities
+    return np.vstack(probabilities)  # Return as a 2D array

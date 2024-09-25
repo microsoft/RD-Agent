@@ -55,9 +55,6 @@ class FactorImplementSettings(BaseSettings):
     knowledge_base_path: Union[str, None] = None
     """Path to the knowledge base"""
 
-    data_tables_knowledge_path: Union[str, None] = None
-    """Path to the data tables knowledge"""
-
     new_knowledge_base_path: Union[str, None] = None
     """Path to the new knowledge base"""
 

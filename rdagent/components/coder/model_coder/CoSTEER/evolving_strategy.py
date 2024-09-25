@@ -146,21 +146,9 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
-        model_file_mapping = {
-            "XGBoost": "model_xgb.py",
-            "RandomForest": "model_rf.py",
-            "LightGBM": "model_lgb.py",
-            "NN": "model_nn.py",
-        }
-
         for index, target_index in enumerate(to_be_finished_task_index):
-            if evo.sub_workspace_list[target_index] is None:
-                evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
-            model_type = evo.sub_tasks[target_index].model_type
-            if model_type in model_file_mapping:
-                evo.sub_workspace_list[target_index].inject_code(**{model_file_mapping[model_type]: result[index]})
-            else:
-                raise ValueError(f"Unsupported model type: {model_type}")
+            evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
+            evo.sub_workspace_list[target_index].inject_code(**{"model.py": result[index]})
 
         evo.corresponding_selection = to_be_finished_task_index
 

@@ -2,6 +2,7 @@
 motivation  of the model
 """
 
+import numpy as np
 import pandas as pd
 import xgboost as xgb
 
@@ -17,9 +18,12 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     X_valid = select(X_valid)
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
+    num_classes = len(np.unique(y_train))
 
     # TODO: for quick running....
     params = {
+        "objective": "multi:softprob",
+        "num_class": num_classes,
         "nthred": -1,
     }
     num_round = 100

@@ -22,6 +22,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
+    KGTrace,
 )
 
 
@@ -31,6 +32,13 @@ class KaggleRDLoop(RDLoop):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
+
+            knowledge_base = (
+                import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
+                if PROP_SETTING.knowledge_base != ""
+                else None
+            )
+            logger.log_object(knowledge_base, tag="knowledge_base")
 
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
@@ -50,7 +58,7 @@ class KaggleRDLoop(RDLoop):
 
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
-            self.trace = Trace(scen=scen)
+            self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
 
     @measure_time

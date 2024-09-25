@@ -34,14 +34,11 @@ class KGScenario(Scenario):
         self.competition_description = None
         self.target_description = None
         self.competition_features = None
+        self.submission_specifications = None
         self._analysis_competition_description()
+        self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
 
         self._background = self.background
-
-        # all competitions are based on the same vector base
-        self.vector_base = KaggleExperienceBase()
-        if KAGGLE_IMPLEMENT_SETTING.rag_path and Path(KAGGLE_IMPLEMENT_SETTING.rag_path).exists():
-            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
     def _analysis_competition_description(self):
         sys_prompt = (
@@ -69,7 +66,17 @@ class KGScenario(Scenario):
         self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = self.source_data
+        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.submission_specifications = response_json_analysis.get(
+            "Submission Specifications", "No submission requirements provided"
+        )
+
+    def get_competition_full_desc(self) -> str:
+        return f"""Competition Type: {self.competition_type}
+    Competition Description: {self.competition_description}
+    Target Description: {self.target_description}
+    Competition Features: {self.competition_features}
+    """
 
     @property
     def background(self) -> str:
@@ -88,13 +95,14 @@ class KGScenario(Scenario):
                 competition_description=self.competition_description,
                 target_description=self.target_description,
                 competition_features=self.competition_features,
+                submission_specifications=self.submission_specifications,
             )
         )
         return background_prompt
 
     @property
     def source_data(self) -> str:
-        data_folder = Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / self.competition
+        data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
 
         if (data_folder / "X_valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
@@ -110,7 +118,7 @@ class KGScenario(Scenario):
             y_train,
             y_valid,
             X_test,
-            passenger_ids,
+            *others,
         ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
         data_folder.mkdir(exist_ok=True, parents=True)
@@ -119,7 +127,7 @@ class KGScenario(Scenario):
         pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
         pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
         pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
-        pickle.dump(passenger_ids, open(data_folder / "passenger_ids.pkl", "wb"))
+        pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
         buffer = io.StringIO()
         X_valid.info(verbose=True, buf=buffer, show_counts=True)
@@ -162,4 +170,6 @@ The output of your code should be in the format:
 {self._output_format}
 The simulator user can use to test your model:
 {self._simulator}
+The expected output & submission format specifications:
+{self.submission_specifications} # Added again to emphasize the importance
 """

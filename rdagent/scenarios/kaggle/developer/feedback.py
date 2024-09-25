@@ -114,7 +114,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Prepare render dictionary
         render_dict = {
             "context": self.scen.get_scenario_all_desc(),
-            "last_hypothesis": trace.hist[-1][0].hypothesis if trace.hist else None,
+            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
             "last_task_and_code": last_task_and_code,
             "last_result": trace.hist[-1][1].result if trace.hist else None,
             "hypothesis": hypothesis,
@@ -157,7 +157,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "reason": reason,
         }
 
-        self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        # self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
 
         return HypothesisFeedback(
             observations=observations,

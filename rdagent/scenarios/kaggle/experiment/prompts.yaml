@@ -8,6 +8,8 @@ kg_description_template:
       "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
+      "Competition Features": "Two-line description of the overall features involved within the competition as background."
+      "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
@@ -20,7 +22,7 @@ kg_description_template:
 
 kg_background: |-
   You are solving a data science tasks and the type of the competition is {{ competition_type }}.
-  The competition description is:{{competition_description}}
+  The competition description is:{{competition_description}}. 
   
   We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
 
@@ -56,12 +58,14 @@ kg_background: |-
   The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:
   - Feature related:
     - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
-    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance.
+    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
     - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
+
+  Most importantly, the output format & submission requirements are listed here: {submission_specifications}
 
 kg_feature_interface: |-
   Your code should contain several parts:
@@ -106,6 +110,7 @@ kg_feature_interface: |-
   ```
 
   To Note:
+  Top 0. I have already completed the encoded labeling process, so please avoid any one-hot encoding or similar operations in the future. Focus instead on targeted and efficient feature engineering techniques, such as normalizing float-type features, filtering based on specific categories, or other concise transformations that can be quickly implemented and tested without unnecessary complexity. Also, ensure that the index of the output DataFrame matches the original DataFrame's index, and that the number of columns remains consistent across train, validation, and test sets.
   1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
   2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
     Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`

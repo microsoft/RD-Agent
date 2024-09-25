@@ -90,7 +90,7 @@ class SQliteLazyCache(SingletonBaseClass):
         self.cache_location = cache_location
         db_file_exist = Path(cache_location).exists()
         # TODO: sqlite3 does not support multiprocessing.
-        self.conn = sqlite3.connect(cache_location)
+        self.conn = sqlite3.connect(cache_location, timeout=20)
         self.c = self.conn.cursor()
         if not db_file_exist:
             self.c.execute(
