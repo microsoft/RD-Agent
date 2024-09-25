@@ -122,5 +122,5 @@ y_test_pred = (y_test_pred > 0.5).astype(int)
 y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 # 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
+submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels.ravel()})
 submission_result.to_csv("submission.csv", index=False)

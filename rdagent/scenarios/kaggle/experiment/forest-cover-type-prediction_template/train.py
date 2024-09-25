@@ -8,6 +8,7 @@ from scipy import stats
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
 
 # Set random seed for reproducibility
 SEED = 42
@@ -40,6 +41,7 @@ kf = KFold(n_splits=5, shuffle=True, random_state=SEED)
 # Store results
 accuracies = []
 y_test_pred_l = []
+scaler = StandardScaler()
 
 # 3) Train and evaluate using KFold
 fold_number = 1
@@ -79,6 +81,11 @@ for train_index, valid_index in kf.split(X_train):
     X_tr = pd.DataFrame(imputer.fit_transform(X_tr), columns=X_tr.columns)
     X_val = pd.DataFrame(imputer.transform(X_val), columns=X_val.columns)
     X_te = pd.DataFrame(imputer.transform(X_te), columns=X_te.columns)
+
+    # Standardize the data
+    X_tr = pd.DataFrame(scaler.fit_transform(X_tr), columns=X_tr.columns)
+    X_val = pd.DataFrame(scaler.transform(X_val), columns=X_val.columns)
+    X_te = pd.DataFrame(scaler.transform(X_te), columns=X_te.columns)
 
     # Remove duplicate columns
     X_tr = X_tr.loc[:, ~X_tr.columns.duplicated()]
