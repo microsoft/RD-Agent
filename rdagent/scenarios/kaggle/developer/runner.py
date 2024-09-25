@@ -97,7 +97,7 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         self.build_from_SOTA(exp)
 
         sub_ws = exp.sub_workspace_list[0]
-        # TODO: 又概率会生成杂交模型（lightgbm + xgboost）导致model_type的list有两个 这里hard code了一下
+        TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list. Hardcoded now.
         model_type = sub_ws.target_task.model_type[0]
 
         if sub_ws.code_dict == {}:
