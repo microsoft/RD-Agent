@@ -141,7 +141,10 @@ class ModelRAGStrategy(RAGStrategy):
             else:
                 queried_knowledge.working_task_to_former_failed_knowledge_dict[
                     target_model_task_information
-                ] = self.knowledgebase.implementation_trace.setdefault(target_model_task_information, [],)[
+                ] = self.knowledgebase.implementation_trace.setdefault(
+                    target_model_task_information,
+                    [],
+                )[
                     -query_former_trace_limit:
                 ]
 
