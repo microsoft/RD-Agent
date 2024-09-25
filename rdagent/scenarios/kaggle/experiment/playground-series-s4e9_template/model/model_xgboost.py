@@ -34,4 +34,4 @@ def predict(model, X):
     X = select(X)
     dtest = xgb.DMatrix(X)
     y_pred = model.predict(dtest)
-    return y_pred
+    return y_pred.reshape(-1, 1)
