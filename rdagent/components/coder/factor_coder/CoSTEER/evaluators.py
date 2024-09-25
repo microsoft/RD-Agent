@@ -421,7 +421,7 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            if index_result:
+            if index_result > 0.99:
                 feedback_str, high_correlation_result = FactorCorrelationEvaluator(
                     hard_check=True, scen=self.scen
                 ).evaluate(implementation, gt_implementation)
