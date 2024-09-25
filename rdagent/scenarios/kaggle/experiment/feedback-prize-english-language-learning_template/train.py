@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import mean_squared_error
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -17,7 +16,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -54,13 +53,14 @@ for model, predict_func in model_l:
 
 # 5) Ensemble
 # Majority vote ensemble
+
 y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
 
 
 # 6) Save the validation metrics
-metrics = mean_squared_error(y_valid, y_valid_pred_ensemble, squared=False)
-print(f"RMLSE on valid set: {metrics}")
-pd.Series(data=[metrics], index=["RMLSE"]).to_csv("submission_score.csv")
+# metrics = mean_squared_error(y_valid, y_valid_pred_ensemble, squared=False)
+# print(f"RMLSE on valid set: {metrics}")
+# pd.Series(data=[metrics], index=["RMLSE"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
@@ -72,8 +72,12 @@ for model, predict_func in model_l:
 y_test_pred = np.mean(y_test_pred_l, axis=0)
 
 
-submission_result = pd.DataFrame(np.expm1(y_test_pred), columns=["cost"])
-submission_result.insert(0, "id", ids)
+submission_result = pd.read_csv('/kaggle/input/sample_submission.csv')
+submission_result['cohesion'] = y_test_pred[:,0]
+submission_result['syntax'] = y_test_pred[:,1]
+submission_result['vocabulary'] = y_test_pred[:,2]
+submission_result['phraseology'] = y_test_pred[:,3]
+submission_result['grammar'] = y_test_pred[:,4]
+submission_result['conventions'] = y_test_pred[:,5]
 
 submission_result.to_csv("submission.csv", index=False)
-
