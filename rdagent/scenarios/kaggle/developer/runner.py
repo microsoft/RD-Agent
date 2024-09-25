@@ -119,6 +119,9 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
 
+        if result is None:
+            raise CoderError("No result is returned from the experiment workspace")
+
         exp.result = result
         if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
