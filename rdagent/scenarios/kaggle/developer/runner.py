@@ -23,7 +23,6 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
 class KGCachedRunner(CachedRunner[ASpecificExp]):
-
     def get_cache_key(self, exp: ASpecificExp) -> str:
         codes = []
         for f in sorted((exp.experiment_workspace.workspace_path / "feature").glob("*.py"), key=lambda x: x.name):
