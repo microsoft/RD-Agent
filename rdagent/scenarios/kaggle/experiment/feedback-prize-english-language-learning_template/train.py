@@ -37,7 +37,23 @@ X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
+
 # 3) Train the model
+def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Flatten the columns of a DataFrame with MultiIndex columns,
+    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
+    '''
+    if df.columns.nlevels == 1:
+        return df
+    df.columns = ["_".join(col).strip() for col in df.columns.values]
+    return df
+
+X_train = flatten_columns(X_train)
+X_valid = flatten_columns(X_valid)
+X_test = flatten_columns(X_test)
+
+
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
@@ -53,20 +69,21 @@ for model, predict_func in model_l:
 
 # 5) Ensemble
 # Majority vote ensemble
-
 y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
 
 
 # 6) Save the validation metrics
-# metrics = mean_squared_error(y_valid, y_valid_pred_ensemble, squared=False)
-# print(f"RMLSE on valid set: {metrics}")
-# pd.Series(data=[metrics], index=["RMLSE"]).to_csv("submission_score.csv")
+def MCRMSE(y_true, y_pred):
+    return np.mean(np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0)))
+
+metrics = MCRMSE(y_valid, y_valid_pred_ensemble)
+print(f"MCRMSE on valid set: {metrics}")
+pd.Series(data=[metrics], index=["MCRMSE"]).to_csv("submission_score.csv")
 
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
 for model, predict_func in model_l:
     y_test_pred_l.append(predict_func(model, X_test))
-
 
 # For multiclass classification, use the mode of the predictions
 y_test_pred = np.mean(y_test_pred_l, axis=0)
