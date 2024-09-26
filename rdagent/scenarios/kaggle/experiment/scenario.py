@@ -33,6 +33,8 @@ class KGScenario(Scenario):
         self.competition_features = None
         self.submission_specifications = None
         self.model_output_channel = None
+        self.evaluation_desc = None 
+        self.evaluate_bool = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
@@ -73,12 +75,18 @@ class KGScenario(Scenario):
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
-
+        self.evaluation_desc = response_json_analysis.get("Evaluation Description", "No evaluation specification provided.")
+        self.evaluate_bool = response_json_analysis.get("Evaluation Boolean", "No evaluation specification provided.")
+        
     def get_competition_full_desc(self) -> str:
         return f"""Competition Type: {self.competition_type}
     Competition Description: {self.competition_description}
     Target Description: {self.target_description}
     Competition Features: {self.competition_features}
+    Submission Specifications: {self.submission_specifications}
+    Model Output Channel: {self.model_output_channel}
+    Evaluation Descriptions: {self.evaluation_desc}
+    Is the evaluation metric the higher the better: {self.evaluate_bool}
     """
 
     @property
@@ -99,6 +107,8 @@ class KGScenario(Scenario):
                 target_description=self.target_description,
                 competition_features=self.competition_features,
                 submission_specifications=self.submission_specifications,
+                evaluation_desc=self.evaluation_desc,
+                evaluate_bool=self.evaluate_bool,
             )
         )
         return background_prompt
