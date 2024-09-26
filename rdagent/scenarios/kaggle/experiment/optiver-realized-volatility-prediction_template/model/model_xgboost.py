@@ -14,15 +14,10 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
+    # Parameters for regression
     params = {
-        "objective": "reg:squarederror",
-        "eval_metric": "rmse",
-        "tree_method": "gpu_hist",  # Use GPU
-        "gpu_id": 0,  # Specify the GPU device to use
-        "eta": 0.1,
-        "max_depth": 6,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
+        "objective": "reg:squarederror",  # Use squared error for regression
+        "nthread": -1,
     }
     num_round = 200
 

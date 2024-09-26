@@ -85,6 +85,7 @@ def preprocess_script():
     X_valid = preprocess_transform(X_valid, preprocessor, numerical_cols, categorical_cols)
 
     submission_df = pd.read_csv("/kaggle/input/test.csv")
+
     ids = submission_df["row_id"]
     submission_df = submission_df.drop(["row_id"], axis=1)
 
@@ -98,5 +99,5 @@ def preprocess_script():
     # Handle missing values
     for df in [X_train, X_valid, X_test]:
         df.fillna(df.mean(), inplace=True)
-
+        
     return X_train, X_valid, y_train, y_valid, X_test, ids
