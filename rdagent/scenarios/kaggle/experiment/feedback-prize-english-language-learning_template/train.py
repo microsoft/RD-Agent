@@ -46,7 +46,7 @@ def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
     '''
     if df.columns.nlevels == 1:
         return df
-    df.columns = ["_".join(col).strip() for col in df.columns.values]
+    df.columns = ["_".join(str(col)).strip() for col in df.columns.values]
     return df
 
 X_train = flatten_columns(X_train)
