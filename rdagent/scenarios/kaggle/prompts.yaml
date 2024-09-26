@@ -173,8 +173,8 @@ model_tuning_feedback_generation:
     {{ combined_result }}
 
     Analyze the combined result in the context of its ability to:
-    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
-    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
+    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
+    2. To a large extent, the experiment with better metrics is the better one.
 
     Consider Changing Direction for Significant Gaps with the Best Result and the last round:
       - If the new results significantly differ from SOTA, consider a new direction.
@@ -234,8 +234,8 @@ factor_feedback_generation:
     {{ combined_result }}
     
     Analyze the combined result in the context of its ability to:
-    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
-    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
+    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
+    2. To a large extent, the experiment with better metrics is the better one.
     
     Consider Changing Direction for Significant Gaps with the Best Result:
       - If the new results significantly differ from the best, consider exploring a new direction.
@@ -282,8 +282,8 @@ feature_selection_feedback_generation:
     {{ combined_result }}
 
     Analyze the combined result in the context of its ability to:
-    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
-    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
+    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
+    2. To a large extent, the experiment with better metrics is the better one.
 
     In your feedback, consider:
     1. How effective is the current feature selection strategy?

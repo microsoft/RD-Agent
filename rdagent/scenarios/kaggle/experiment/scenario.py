@@ -124,6 +124,9 @@ class KGScenario(Scenario):
 
         if (data_folder / "X_valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
+            #TODO: Hardcoded for now, need to be fixed
+            if self.competition == "feedback-prize-english-language-learning": 
+                return "This is a sparse matrix of descriptive text."
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)
             data_info = buffer.getvalue()
@@ -187,7 +190,7 @@ The model code should follow the simulator:
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {KAGGLE_IMPLEMENT_SETTING.competition}
+This is the Kaggle scenario for the competition: {self.competitionn}
 """
 
     def get_scenario_all_desc(self) -> str:
