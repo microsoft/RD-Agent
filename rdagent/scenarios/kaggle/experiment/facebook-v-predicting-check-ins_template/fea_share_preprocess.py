@@ -44,21 +44,37 @@ def preprocess_script():
     train_df = preprocess_data(train_df)
     test_df = preprocess_data(test_df)
 
+    # Encode place_ids first
+    place_id_encoder = LabelEncoder()
+    train_df['place_id'] = place_id_encoder.fit_transform(train_df['place_id'])
+
     # Split features and target
     X = train_df.drop(['place_id'], axis=1)
     y = train_df['place_id']
 
-    # Split the data
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Count occurrences of each place_id
+    place_id_counts = y.value_counts()
+
+    # Identify place_ids with only one occurrence
+    single_occurrence_place_ids = place_id_counts[place_id_counts == 1].index
+
+    # Split the data, ensuring single-occurrence place_ids are in the training set
+    mask = y.isin(single_occurrence_place_ids)
+    X_train_single = X[mask]
+    y_train_single = y[mask]
+    X_remaining = X[~mask]
+    y_remaining = y[~mask]
+
+    # Split the remaining data
+    X_train_rest, X_valid, y_train_rest, y_valid = train_test_split(X_remaining, y_remaining, test_size=0.2, random_state=42, stratify=y_remaining)
+
+    # Combine the single-occurrence samples with the rest of the training data
+    X_train = pd.concat([X_train_single, X_train_rest])
+    y_train = pd.concat([y_train_single, y_train_rest])
 
     # Prepare test data
     X_test = test_df.drop('row_id', axis=1)
     test_row_ids = test_df['row_id']
-
-    # Encode place_ids
-    place_id_encoder = LabelEncoder()
-    y_train = place_id_encoder.fit_transform(y_train)
-    y_valid = place_id_encoder.transform(y_valid)
 
     # Handle missing values
     imputer = SimpleImputer(strategy="mean")
