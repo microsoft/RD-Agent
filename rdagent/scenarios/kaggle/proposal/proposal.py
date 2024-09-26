@@ -94,7 +94,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         self.initial_performance = 0.0
 
     def generate_RAG_content(self, trace: Trace) -> str:
-        if trace.knowledge_base is None:
+        if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
             return None
         same_competition_node = trace.knowledge_base.get_node_by_content(trace.scen.get_competition_full_desc())
         if same_competition_node is not None:

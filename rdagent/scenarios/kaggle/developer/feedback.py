@@ -14,9 +14,6 @@ from rdagent.core.proposal import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
-    extract_knowledge_from_feedback,
-)
 from rdagent.utils import convert2bool
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -155,13 +152,17 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         experiment_feedback = {
             "hypothesis_text": hypothesis_text,
             "current_result": current_result,
-            "tasks_factors": tasks_factors,
+            "model_code": model_code,
+            "available_features": available_features,
             "observations": observations,
             "hypothesis_evaluation": hypothesis_evaluation,
             "reason": reason,
         }
 
-        # self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        if self.scen.if_using_vector_rag:
+            self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        elif self.scen.if_using_graph_rag:
+            self.scen.trace.knowledge_base.load_from_documents([experiment_feedback], self.scen)
 
         return HypothesisFeedback(
             observations=observations,

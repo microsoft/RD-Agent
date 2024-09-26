@@ -41,11 +41,14 @@ extract_kaggle_knowledge_from_feedback_prompts:
 
 extract_knowledge_graph_from_document:
   system: |-
-    You are helping user to extract knowledge from a document.
-    The user is working on data science competitions in Kaggle in the following scenario:
-    {{ scenario }}
+    You are helping the user extract knowledge from a document.
+    {% if scenario %}
+      The user is working on data science competitions in Kaggle, with the following scenario: {{ scenario }}
+    {% else %}
+      The user is working on general data science competitions on Kaggle.
+    {% endif %}
 
-    The user has found some possible high value documents from other experts, and they need your help to extract some knowledge from these documents.
+    The user has identified valuable documents from other experts and requires your help to extract meaningful insights from them.
 
     Considering each document might contain several valuable insights, you need to extract them one by one and organize them in a structured format.
 
@@ -58,13 +61,13 @@ extract_knowledge_graph_from_document:
 
     Please provide the analysis in the following JSON format:
     {
-      "competition": "(Plain text) extracted competition information, including the competition name, type, description, target, and features",
+      "competition": "(Plain text) extracted competition information, including the competition name, type, description, target, and features (If no specific competition name or other fields are found, leave them blank).", 
       "hypothesis":
         {
           "type": "one of the hypothesis types from ['Feature engineering', 'Feature processing', 'Model feature selection', 'Model tuning']",
           "explanation": "(Plain text) extracted detailed explanation to the hypothesis"
         },
-      "experiments": "(Plain text) extracted experiments details. You can list them in bullet points.",
+      "experiments": "(Plain text) Detailed descriptions of the experiments conducted in the document, which can be listed in bullet points.",
       "code": "extracted code snippets if available",
       "conclusion": 
         {

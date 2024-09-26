@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Union
 
@@ -107,7 +108,7 @@ class KaggleExperienceBase(PDVectorBase):
     Class for handling Kaggle competition experience posts and organizing them for reference
     """
 
-    def __init__(self, path: Union[str, Path] = None, kaggle_experience_path: Union[str, Path] = None):
+    def __init__(self, vector_df_path: Union[str, Path] = None, kaggle_experience_path: Union[str, Path] = None):
         """
         Initialize the KaggleExperienceBase class
 
@@ -118,12 +119,14 @@ class KaggleExperienceBase(PDVectorBase):
         kaggle_experience_path: str or Path, optional
             Path to the Kaggle experience post data.
         """
-        super().__init__(path)
+        super().__init__(vector_df_path)
         self.kaggle_experience_path = kaggle_experience_path
         self.kaggle_experience_data = []
-
-        if kaggle_experience_path:
-            self.load_kaggle_experience(kaggle_experience_path)
+        # if path is not None and Path(path).exists():
+        #     self.load_kaggle_experience(kaggle_experience_path)
+        #     self.path = Path(path).parent / (datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl")
+        # else:
+        #     pass
 
     def add(self, document: Union[KGDocument, List[KGDocument]]):
         document.split_into_trunk()
@@ -258,7 +261,7 @@ if __name__ == "__main__":
 
     kaggle_base.add_experience_to_vector_base()
 
-    kaggle_base.save()
+    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 

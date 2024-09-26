@@ -35,9 +35,16 @@ class KGScenario(Scenario):
         self.model_output_channel = None
         self.evaluation_desc = None
         self.evaluation_metric_direction = None
+        self.vector_base = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
+        self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag
+        self.if_using_vector_rag = KAGGLE_IMPLEMENT_SETTING.if_using_vector_rag
+
+        if self.if_using_vector_rag and KAGGLE_IMPLEMENT_SETTING.rag_path:
+            self.vector_base = KaggleExperienceBase()
+            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
         self._output_format = self.output_format
         self._interface = self.interface
