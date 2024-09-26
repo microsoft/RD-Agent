@@ -30,8 +30,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-# TODO 如果已经做过数据预处理了，不需要再做了
-X_train, X_valid, y_train, y_valid, X_test, passenger_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -106,7 +105,7 @@ y_valid_pred = np.mean(y_valid_pred_l, axis=0)
 y_valid_pred = (y_valid_pred > 0.5).astype(int)
 
 mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("Final on validation set: ", mcc)
+print("MCC on validation set: ", mcc)
 
 # 6) Save the validation accuracy
 pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
@@ -122,5 +121,5 @@ y_test_pred = (y_test_pred > 0.5).astype(int)
 y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 # 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels.ravel()})
+submission_result = pd.DataFrame({"id": ids, "class": y_test_pred_labels.ravel()})
 submission_result.to_csv("submission.csv", index=False)

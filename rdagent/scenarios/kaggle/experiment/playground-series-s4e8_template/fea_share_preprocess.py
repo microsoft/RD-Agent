@@ -92,8 +92,8 @@ def preprocess_script():
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
-    passenger_ids = submission_df["id"]
+    ids = submission_df["id"]
     submission_df = submission_df.drop(["id"], axis=1)
     X_test = preprocess_transform(submission_df, preprocessor, numerical_cols, categorical_cols)
 
-    return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
+    return X_train, X_valid, y_train, y_valid, X_test, ids
