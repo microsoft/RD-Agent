@@ -1,3 +1,4 @@
+import subprocess
 from collections import defaultdict
 from typing import Any
 
@@ -79,6 +80,26 @@ class KaggleRDLoop(RDLoop):
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
+
+            if KAGGLE_IMPLEMENT_SETTING.auto_submit:
+                csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
+                try:
+                    subprocess.run(
+                        [
+                            "kaggle",
+                            "competitions",
+                            "submit",
+                            "-f",
+                            str(csv_path.absolute()),
+                            "-m",
+                            str(csv_path.parent.absolute()),
+                            KAGGLE_IMPLEMENT_SETTING.competition,
+                        ],
+                        check=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Auto submission failed: \n{e}")
+
         return exp
 
     skip_loop_error = (ModelEmptyError, FactorEmptyError)
