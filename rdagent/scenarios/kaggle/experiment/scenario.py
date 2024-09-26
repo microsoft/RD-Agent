@@ -1,6 +1,7 @@
 import io
 import json
 import pickle
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -43,8 +44,9 @@ class KGScenario(Scenario):
         self.if_using_vector_rag = KAGGLE_IMPLEMENT_SETTING.if_using_vector_rag
 
         if self.if_using_vector_rag and KAGGLE_IMPLEMENT_SETTING.rag_path:
-            self.vector_base = KaggleExperienceBase()
-            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
+            self.vector_base = KaggleExperienceBase(KAGGLE_IMPLEMENT_SETTING.rag_path)
+            self.vector_base.path = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl"
+            self.vector_base.save()
 
         self._output_format = self.output_format
         self._interface = self.interface
@@ -197,7 +199,7 @@ The model code should follow the simulator:
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {self.competitionn}
+This is the Kaggle scenario for the competition: {self.competition}
 """
 
     def get_scenario_all_desc(self) -> str:

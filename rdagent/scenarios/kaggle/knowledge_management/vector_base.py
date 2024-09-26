@@ -122,11 +122,8 @@ class KaggleExperienceBase(PDVectorBase):
         super().__init__(vector_df_path)
         self.kaggle_experience_path = kaggle_experience_path
         self.kaggle_experience_data = []
-        # if path is not None and Path(path).exists():
-        #     self.load_kaggle_experience(kaggle_experience_path)
-        #     self.path = Path(path).parent / (datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl")
-        # else:
-        #     pass
+        if kaggle_experience_path:
+            self.load_kaggle_experience(kaggle_experience_path)
 
     def add(self, document: Union[KGDocument, List[KGDocument]]):
         document.split_into_trunk()
