@@ -31,7 +31,7 @@ hypothesis_and_feedback: |-
   Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].code_dict.get("model.py")}}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
-  New Feedback for Context (For you to agree or improve upon):  {{ feedback.new_hypothesis }}
+  New Feedback for Context (For your reference):  {{ feedback.new_hypothesis }}
   Reasoning for new hypothesis:  {{ feedback.reason }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
@@ -66,8 +66,8 @@ factor_hypothesis_specification: |-
     - Suggest only one new direction at a time for clarity.
     - If a previous hypothesis did not surpass the previous best, but seems optimizable, you may continue in the same direction.
     - Highlight that features surpassing the previous best are included in the feature library to avoid re-implementation.
-  5. **1-3 Features per Generation:**
-    - Ensure each generation produces 1-3 features.
+  5. **1-3 Feature tasks per Generation:**
+    - Ensure each generation produces 1-3 feature tasks.
     - Balance simplicity and complexity to build a robust feature library.
 
 feature_experiment_output_format: |-
@@ -112,8 +112,16 @@ model_experiment_output_format: |-
 
 model_tuning_feedback_generation:
   system: |-
-    You are a professional result analysis assistant. You will receive a result and a hypothesis.
-    Your task is to provide feedback on how well the result supports or refutes the hypothesis by judging from the observation of performance increase or decrease.
+    You are an advanced assistant for analyzing results in data-driven R&D.
+    The task is described in the following scenario:
+    {{ scenario }}
+
+    You will analyze the current experiment's hypothesis, model tuning code, results, and compare them with previous experiments and the best past result. 
+    Your feedback should:
+    1. Confirm if the current result supports or refutes the hypothesis.
+    2. Compare with previous best results.
+    3. Suggest improvements or new directions.
+
     Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
     {
@@ -124,44 +132,53 @@ model_tuning_feedback_generation:
       "Replace Best Result": "yes or no"
     }
 
-    Focus on the changes in hypothesis and justify why do hypothesis evolve like this. Also, increase complexity as the hypothesis evolves  (give more layers, more neurons, and etc)
-    
-    Logic for generating a new hypothesis: If the previous hypothesis works, try to inherit from it and grow deeper. If the previous hypotheis doesn't work, try to make changes in the current level.
+    Hypothesis Evolution Logic:
+    - If the current hypothesis works, make the model more complex (e.g., add layers, neurons, etc.).
+    - If a hypothesis works, build on it. If not, adjust at the same level before growing deeper.
+    - If it doesn't, modify elements at the current level (e.g., adjust regularization, change features).
 
-    Sample hypothesis evolution loop: (This is the entire loop, see what stage you are at. We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
-      - 1st Round Hypothesis: The model should be a CNN with no feature selection.
-      - 2nd Round Hypothesis (If first round worked: CNN is the model type level, which means that we should extend to the next level, like layer configuration): The model should be a CNN. The CNN should have 5 convolutional layers, using all available features. (Reasoning: As CNN worked, we now specify the layers specification and feature selection to grow the hypothesis deeper.)
-      - 3rd Round Hypothesis (If the second round didn't work): The model should be a CNN. The CNN should have 3 convolutional layers. Use L1 regularization for feature selection. (Reasoning: As the 5-layer structure didn't work in the 2nd round hypothesis, reduce the number of layers and implement feature selection.)
-      - 4th Round Hypothesis (If the third round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Retain only features selected by L1 regularization. (As the last round worked, now proceed to the next level: activation functions)
-      - 5th Round Hypothesis (If the fourth round worked): The model should be a CNN. The CNN should have 3 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.5. Retain only features selected by L1 regularization. (Similar Reasoning & Continuing to Grow to the dropout setup)
-      - 6th Round Hypothesis (If the fourth round didn't work):  The model should be a CNN. The CNN should have 5 convolutional layers. Use Leaky ReLU activation for all layers. Use dropout regularization with a rate of 0.3. Retain features selected by PCA. (Reasoning: As the regularization rate of 0.5 didn't work, change the regularization and use PCA for feature selection while keeping other elements that worked. This means making changes at the current level.)
+    Example Hypothesis Evolution Stages: (We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
+      - Initial Hypothesis: Use CNN with no feature selection.
+      - Next Level (if successful): Add 5 convolutional layers, use all features.
+      - Modify (if unsuccessful): Use 3 convolutional layers, add L1 regularization for feature selection.
+      - Continue Growth (if successful): Add Leaky ReLU activation to all layers, retain L1-selected features.
+      - Further Growth (if successful): Add dropout regularization (0.5 rate), retain L1 features.
+      - Adjust (if unsuccessful): Use 5 layers, Leaky ReLU, dropout 0.3 rate.
 
   user: |-
-    We are in an experiment of finding hypothesis and validating or rejecting them so that in the end we have a powerful model generated.
-    Here are the context: {{context}}. 
+    We are in a process of finding and validating hypotheses to build a powerful model. Each round aims to confirm or reject hypotheses based on results.
+    Target hypothesis: 
+    {{ hypothesis_text }}
 
     {% if last_hypothesis %} 
-    Last Round Information:
-    Hypothesis: {{last_hypothesis.hypothesis}}
-    Last Task and Code: {{last_task_and_code}}
+    Previous Round (if applicable):
+      - Last Hypothesis: {{last_hypothesis.hypothesis}}
+      - Last Task and Code: {{last_task_and_code}}
+      - Last Result: {{last_result}}
     {% else %}
-    This is the first round. No previous information available. As long as the performance is not too negative (eg.ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
+      - This is the first round. No previous information available.
     {% endif %} 
-    
-    Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
-    Hypothesis: {{hypothesis.hypothesis}}
-    Experiment Setup: {{exp.sub_tasks[0]}}
-    Code Implemented: {{exp.sub_workspace_list[0].code_dict.get("model.py")}}
-    Relevant Reasoning: {{hypothesis.reason}}
 
-    Combined Results: 
+    SOTA (State of the Art) Round:
+      - SOTA Task and Code: {{sota_task_and_code}}
+      - SOTA Result: {{sota_result}}
+    
+    Current Round:
+      - Current Hypothesis: {{hypothesis.hypothesis}}
+      - Current Reasoning: {{hypothesis.reason}}
+      - Current Model_code: {{model_code}}
+      - Current Result: {{ exp.result }}
+
+    Combined Results (Compared with SOTA): 
     {{ combined_result }}
+
     Analyze the combined result in the context of its ability to:
-    1. Support or refute the hypothesis.
-    2. Show improvement or deterioration compared to the best result.
-    Consider Changing Direction for Significant Gaps with the Best Result:
-      - If the new results significantly differ from the best, consider exploring a new direction.
-      - If you've adjusted a particular hyperparameter many times without surpassing the best results for a long period, it may be time to shift focus or rethink the approach.
+    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
+    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
+
+    Consider Changing Direction for Significant Gaps with the Best Result and the last round:
+      - If the new results significantly differ from SOTA, consider a new direction.
+      - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
 
 factor_feedback_generation:
   system: |-
@@ -213,12 +230,13 @@ factor_feedback_generation:
         **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
         {% endif %}
     {% endfor %}
-    Combined Results: 
+    Combined Results (Compared with SOTA): 
     {{ combined_result }}
     
     Analyze the combined result in the context of its ability to:
-    1. Support or refute the hypothesis.
-    2. Show improvement or deterioration compared to the best result.
+    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
+    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
+    
     Consider Changing Direction for Significant Gaps with the Best Result:
       - If the new results significantly differ from the best, consider exploring a new direction.
       - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
@@ -247,45 +265,31 @@ feature_selection_feedback_generation:
     }
 
   user: |-
-    We are in an experiment of finding hypotheses for feature selection and validating or rejecting them to optimize our model's performance.
-    Here is the context: {{context}}. 
-
-    {% if last_hypothesis %} 
-    Last Round Information:
-    Hypothesis: {{last_hypothesis.hypothesis}}
-    Last Task and Code: {{last_task_and_code}}
-    Result: {{last_result}}
-    {% else %}
-    This is the first round. No previous information available. As long as the performance is not too negative (e.g., ICIR is greater than 0), treat it as successful. Do not set the threshold too high.  
-    {% endif %} 
-    
-    Current Round Information:
-    Hypothesis: {{hypothesis.hypothesis}}
-    Experiment Setup: {{exp.sub_tasks[0]}}
-    Model Code Implemented (focus on the select() method): 
-    ```python
-    {{model_code}}
-    ```
-    Relevant Reasoning: {{hypothesis.reason}}
-    Result: {{exp.result}}
-
-    Available Features:
-    {% for feature, shape in available_features %}
-      Features description: {{feature}}
-      Feature shape: {{shape}}
+    We are in an experiment of finding hypotheses for feature selection and validating or rejecting them to optimize our model's performance.    
+    Target hypothesis: 
+    {{ hypothesis_text }}
+    Tasks and Features:
+    {% for task in task_details %}
+      - {{ task.factor_name }}: {{ task.factor_description }}
+        - Feature Formulation: {{ task.factor_formulation }}
+        - Variables: {{ task.variables }}
+        - Feature Implementation: {{ task.factor_implementation }}
+        {% if task.factor_implementation == "False" %}
+        **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
+        {% endif %}
     {% endfor %}
+    Combined Results (Compared with SOTA): 
+    {{ combined_result }}
 
-    Compare and observe the results. Which result has a better return and lower risk? If the performance increases, the hypothesis should be considered positive (working). 
-    
-    Based on the hypotheses, relevant reasoning, and results (comparison), provide detailed and constructive feedback and suggest a new hypothesis for feature selection. 
+    Analyze the combined result in the context of its ability to:
+    1. Hypothesis Evaluation: Does the result support or refute the hypothesis?
+    2. Result Comparison: How does the result compare to the best? (Refer to "higher is better" or "lower is better" in the combined result).
 
     In your feedback, consider:
     1. How effective is the current feature selection strategy?
     2. Are there any patterns in the selected or discarded features that might inform future selections?
     3. How might we refine or change the feature selection approach to improve model performance?
     4. Are there any domain-specific considerations that should inform our feature selection?
-
-    Remember to focus on the select() method in the model code, as this is where feature selection is implemented.
 
 extract_model_task_from_code:
   system: |-
