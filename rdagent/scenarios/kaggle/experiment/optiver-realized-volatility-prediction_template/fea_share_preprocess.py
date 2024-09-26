@@ -99,5 +99,5 @@ def preprocess_script():
     # Handle missing values
     for df in [X_train, X_valid, X_test]:
         df.fillna(df.mean(), inplace=True)
-        
+
     return X_train, X_valid, y_train, y_valid, X_test, ids
