@@ -5,6 +5,8 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.log import rdagent_logger as logger
+from collections.abc import Sequence
+from rdagent.core.experiment import ASpecificWSForExperiment
 
 
 class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
@@ -15,6 +17,7 @@ class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
     def __init__(
         self,
         sub_tasks: list[ModelTask],
+        from_based_exp: Sequence[ASpecificWSForExperiment] = [],
         sub_gt_implementations: list[ModelFBWorkspace] = None,
     ):
         ModelExperiment.__init__(self, sub_tasks=sub_tasks)
@@ -27,3 +30,4 @@ class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
             )
         else:
             self.sub_gt_implementations = sub_gt_implementations
+        self.based_exp = from_based_exp
