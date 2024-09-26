@@ -6,7 +6,6 @@ from typing import Any
 import pandas as pd
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import KGDockerEnv

@@ -85,7 +85,7 @@ for model, predict_func in model_l:
 
 
 # For multiclass classification, use the mode of the predictions
-y_test_pred = np.mean(y_test_pred_l, axis=0)
+y_test_pred = np.mean(y_test_pred_l, axis=0).ravel()
 
 
 submission_result = pd.DataFrame(np.expm1(y_test_pred), columns=["cost"])

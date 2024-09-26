@@ -7,7 +7,6 @@ import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -25,6 +24,7 @@ class KGScenario(Scenario):
         super().__init__()
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition)
+        self.input_shape = None
         self._source_data = self.source_data
 
         self.competition_type = None
@@ -32,6 +32,7 @@ class KGScenario(Scenario):
         self.target_description = None
         self.competition_features = None
         self.submission_specifications = None
+        self.model_output_channel = None
         self._analysis_competition_description()
 
         # Move these assignments after _analysis_competition_description
@@ -41,6 +42,12 @@ class KGScenario(Scenario):
         self._background = self.background
 
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
+        self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
+
+        self._output_format = self.output_format
+        self._interface = self.interface
+        self._simulator = self.simulator
+        self._background = self.background
 
     def _analysis_competition_description(self):
         sys_prompt = (
@@ -64,25 +71,15 @@ class KGScenario(Scenario):
             json_mode=True,
         )
 
-        try:
-            response_json_analysis = json.loads(response_analysis)
-            self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
-            self.competition_description = response_json_analysis.get(
-                "Competition Description", "No description provided"
-            )
-            self.target_description = response_json_analysis.get("Target Description", "No target provided")
-            self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
-            self.submission_specifications = response_json_analysis.get(
-                "Submission Specifications", "No submission requirements provided"
-            )
-        except json.JSONDecodeError:
-            print(f"Failed to parse JSON response: {response_analysis}")
-            # Set default values if JSON parsing fails
-            self.competition_type = "Unknown"
-            self.competition_description = "No description available"
-            self.target_description = "No target available"
-            self.competition_features = "No features available"
-            self.submission_specifications = "No submission requirements available"
+        response_json_analysis = json.loads(response_analysis)
+        self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
+        self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
+        self.target_description = response_json_analysis.get("Target Description", "No target provided")
+        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.submission_specifications = response_json_analysis.get(
+            "Submission Specifications", "No submission requirements provided"
+        )
+        self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
 
     def get_competition_full_desc(self) -> str:
         return f"""Competition Type: {self.competition_type}
@@ -122,6 +119,7 @@ class KGScenario(Scenario):
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)
             data_info = buffer.getvalue()
+            self.input_shape = X_valid.shape
             return data_info
 
         preprocess_experiment = KGFactorExperiment([])
@@ -142,6 +140,8 @@ class KGScenario(Scenario):
         pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
         pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
+        self.input_shape = X_valid.shape
+
         buffer = io.StringIO()
         X_valid.info(verbose=True, buf=buffer, show_counts=True)
         data_info = buffer.getvalue()
@@ -152,7 +152,7 @@ class KGScenario(Scenario):
         return (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["kg_model_output_format"])
-            .render(submission_specifications=self.submission_specifications)
+            .render(channel=self.model_output_channel)
         )
 
     @property
@@ -165,10 +165,15 @@ The model code should follow the interface:
 
     @property
     def simulator(self) -> str:
+        kg_model_simulator = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["kg_model_simulator"])
+            .render(submission_specifications=self.submission_specifications)
+        )
         return f"""The feature code should follow the simulator:
 {prompt_dict['kg_feature_simulator']}
 The model code should follow the simulator:
-{prompt_dict['kg_model_simulator']}
+{kg_model_simulator}
 """
 
     @property

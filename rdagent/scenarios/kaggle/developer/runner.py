@@ -6,7 +6,6 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.runner import CachedRunner
@@ -98,6 +97,7 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         self.build_from_SOTA(exp)
 
         sub_ws = exp.sub_workspace_list[0]
+        # TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list.
         model_type = sub_ws.target_task.model_type
 
         if sub_ws.code_dict == {}:
@@ -118,6 +118,9 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
+
+        if result is None:
+            raise CoderError("No result is returned from the experiment workspace")
 
         exp.result = result
         if RUNNER_SETTINGS.cache_result:

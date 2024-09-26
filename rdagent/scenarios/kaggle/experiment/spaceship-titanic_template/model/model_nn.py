@@ -47,8 +47,8 @@ def fit(X_train, y_train, X_valid, y_valid):
 
     # Train the model
     model.train()
-    for epoch in range(5):
-        print(f"Epoch {epoch + 1}/5")
+    for epoch in range(100):
+        print(f"Epoch {epoch + 1}/100")
         epoch_loss = 0
         for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)  # Move data to the device
@@ -73,4 +73,4 @@ def predict(model, X):
             batch = X_tensor[i : i + 32]  # Predict in batches
             pred = model(batch).squeeze().cpu().numpy()  # Move results back to CPU
             predictions.extend(pred)
-    return np.array(predictions)  # Return boolean predictions
+    return np.array(predictions).reshape(-1, 1)  # Return predictions

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import matthews_corrcoef
 from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
@@ -122,5 +122,5 @@ y_test_pred = (y_test_pred > 0.5).astype(int)
 y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
 # 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels})
+submission_result = pd.DataFrame({"id": passenger_ids, "class": y_test_pred_labels.ravel()})
 submission_result.to_csv("submission.csv", index=False)

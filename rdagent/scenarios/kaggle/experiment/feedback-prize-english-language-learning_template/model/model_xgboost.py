@@ -4,6 +4,7 @@ motivation  of the model
 
 import pandas as pd
 import xgboost as xgb
+from sklearn.multioutput import MultiOutputRegressor
 
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
@@ -11,24 +12,22 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
     return X
 
 
+def is_sparse_df(df: pd.DataFrame) -> bool:
+    # 检查 DataFrame 中的每一列是否为稀疏类型
+    return any(isinstance(dtype, pd.SparseDtype) for dtype in df.dtypes)
+
+
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
     X_train = select(X_train)
 
-    xgb_params = {
-        "n_estimators": 280,
-        "learning_rate": 0.05,
-        "max_depth": 10,
-        "subsample": 1.0,
-        "colsample_bytree": 1.0,
-        "tree_method": "hist",
-        "enable_categorical": True,
-        "verbosity": 1,
-        "min_child_weight": 3,
-        "base_score": 4.6,
-        "random_state": 2023,
-    }
-    model = xgb.XGBRegressor(**xgb_params)
+    xgb_estimator = xgb.XGBRegressor(n_estimators=500, random_state=0, objective="reg:squarederror")
+
+    model = MultiOutputRegressor(xgb_estimator, n_jobs=2)
+
+    if is_sparse_df(X_train):
+        X_train = X_train.sparse.to_coo()
+
     model.fit(X_train, y_train)
     return model
 
@@ -38,5 +37,7 @@ def predict(model, X_test):
     Keep feature select's consistency.
     """
     X_test = select(X_test)
+    if is_sparse_df(X_test):
+        X_test = X_test.sparse.to_coo()
     y_pred = model.predict(X_test)
-    return y_pred.reshape(-1, 1)
+    return y_pred

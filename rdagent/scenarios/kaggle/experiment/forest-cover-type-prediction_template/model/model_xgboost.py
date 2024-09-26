@@ -23,7 +23,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
         "num_class": len(set(y_train)),  # Number of classes
         "nthread": -1,
     }
-    num_round = 20
+    num_round = 100
 
     evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)

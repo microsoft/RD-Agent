@@ -1,9 +1,5 @@
-"""
-motivation  of the model
-"""
-
 import pandas as pd
-import xgboost as xgb
+from sklearn.ensemble import RandomForestRegressor
 
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
@@ -12,23 +8,20 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
 
 
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
-    """Define and train the model. Merge feature_select"""
+    """Define and train the Random Forest model. Merge feature_select"""
     X_train = select(X_train)
 
-    xgb_params = {
-        "n_estimators": 280,
-        "learning_rate": 0.05,
+    rf_params = {
+        "n_estimators": 100,
         "max_depth": 10,
-        "subsample": 1.0,
-        "colsample_bytree": 1.0,
-        "tree_method": "hist",
-        "enable_categorical": True,
-        "verbosity": 1,
-        "min_child_weight": 3,
-        "base_score": 4.6,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
         "random_state": 2023,
+        "n_jobs": -1,
+        "verbose": 1,
     }
-    model = xgb.XGBRegressor(**xgb_params)
+    model = RandomForestRegressor(**rf_params)
     model.fit(X_train, y_train)
     return model
 
