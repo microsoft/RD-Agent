@@ -101,7 +101,9 @@ class BenchmarkAnalyzer:
         format_issue = sum_df_clean["FactorRowCountEvaluator"].astype(bool) & sum_df_clean[
             "FactorIndexEvaluator"
         ].astype(bool)
-        format_issue = sum_df_clean[['FactorRowCountEvaluator', 'FactorIndexEvaluator']].apply(lambda x: gmean(x), axis=1)
+        format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
+            lambda x: gmean(x), axis=1
+        )
 
         eval_series = format_issue.unstack()
         succ_rate = eval_series.T.fillna(False)
