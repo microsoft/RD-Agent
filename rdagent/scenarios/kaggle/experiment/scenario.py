@@ -124,8 +124,8 @@ class KGScenario(Scenario):
 
         if (data_folder / "X_valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
-            #TODO: Hardcoded for now, need to be fixed
-            if self.competition == "feedback-prize-english-language-learning": 
+            # TODO: Hardcoded for now, need to be fixed
+            if self.competition == "feedback-prize-english-language-learning":
                 return "This is a sparse matrix of descriptive text."
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)

@@ -43,9 +43,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         # Add a note about metric direction
         evaluation_direction = "higher" if self.scen.evaluation_metric_direction else "lower"
         evaluation_description = f"Direction of improvement (higher/lower is better) should be judged per metric. Here '{evaluation_direction}' is better for the metrics."
-        combined_df[
-            "Note"
-        ] = evaluation_description
+        combined_df["Note"] = evaluation_description
 
         return combined_df, evaluation_description
 
@@ -84,7 +82,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             combined_result, evaluation_description = self.process_results(current_result, sota_result)
         else:
             # If there are no based experiments, we'll only use the current result
-            combined_result, evaluation_description = self.process_results(current_result, current_result)  # Compare with itself
+            combined_result, evaluation_description = self.process_results(
+                current_result, current_result
+            )  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
         available_features = {
