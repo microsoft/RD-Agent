@@ -29,13 +29,13 @@ from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
 KG_ACTION_FEATURE_PROCESSING = "Feature processing"
+KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
 KG_ACTION_MODEL_FEATURE_SELECTION = "Model feature selection"
 KG_ACTION_MODEL_TUNING = "Model tuning"
 KG_ACTION_LIST = [
-    KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_FEATURE_ENGINEERING,
     *([KG_ACTION_MODEL_FEATURE_SELECTION] if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection else []),
     KG_ACTION_MODEL_TUNING,
 ]
