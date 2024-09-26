@@ -33,7 +33,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
-        based_exp: Sequence[ASpecificWSForExperiment] = [],
+        based_experiments: Sequence[ASpecificWSForExperiment] = [],
     ) -> str:
         model_information_str = target_task.get_task_information()
         model_type = target_task.model_type
@@ -41,20 +41,23 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         current_code = ""
         data_desc = None
 
-        model_file_mapping = {
-            "XGBoost": "model_xgb.py",
-            "RandomForest": "model_rf.py",
-            "LightGBM": "model_lgb.py",
-            "NN": "model_nn.py",
-        }
+        # model_file_mapping = {
+        #     "XGBoost": "model_xgb.py",
+        #     "RandomForest": "model_rf.py",
+        #     "LightGBM": "model_lgb.py",
+        #     "NN": "model_nn.py",
+        # }
 
-        for exp in based_exp:
-            if model_type in model_file_mapping:
-                current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
-            data_desc = exp.experiment_workspace.data_description
+        # for exp in based_exp:
+        #     if model_type in model_file_mapping:
+        #         current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
+        #     data_desc = exp.experiment_workspace.data_description
             
-            if current_code:
-                break  # Use the first non-empty code found
+        #     if current_code:
+        #         break  # Use the first non-empty code found
+
+        if len(based_experiments) > 0:
+            current_code = based_experiments[-1].experiment_workspace.code_dict
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
