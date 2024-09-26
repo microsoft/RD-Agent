@@ -22,6 +22,9 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
 
+from collections.abc import Sequence
+from rdagent.core.experiment import ASpecificWSForExperiment
+
 coder_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
@@ -30,23 +33,28 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
-        exp: ModelExperiment = None,  # Add this parameter
+        based_exp: Sequence[ASpecificWSForExperiment] = [],
     ) -> str:
         model_information_str = target_task.get_task_information()
         model_type = target_task.model_type
 
-        # Get the current code from the experiment using build_from_SOTA
         current_code = ""
-        if exp is not None:
-            self.build_from_SOTA(exp)
-            model_file_mapping = {
-                "XGBoost": "model_xgb.py",
-                "RandomForest": "model_rf.py",
-                "LightGBM": "model_lgb.py",
-                "NN": "model_nn.py",
-            }
+        data_desc = None
+
+        model_file_mapping = {
+            "XGBoost": "model_xgb.py",
+            "RandomForest": "model_rf.py",
+            "LightGBM": "model_lgb.py",
+            "NN": "model_nn.py",
+        }
+
+        for exp in based_exp:
             if model_type in model_file_mapping:
                 current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
+            data_desc = exp.experiment_workspace.data_description
+            
+            if current_code:
+                break  # Use the first non-empty code found
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -90,6 +98,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                         model_type=model_type,  # Add model type to the prompt
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                         queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                        data_desc=data_desc,
                     )
                     .strip("\n")
                 )
@@ -140,7 +149,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge, evo.based_experiments))  # Pass exp here
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,

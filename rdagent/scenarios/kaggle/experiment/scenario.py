@@ -36,6 +36,13 @@ class KGScenario(Scenario):
         self.evaluation_desc = None
         self.evaluation_metric_direction = None
         self._analysis_competition_description()
+
+        # Move these assignments after _analysis_competition_description
+        self._output_format = self.output_format
+        self._interface = self.interface
+        self._simulator = self.simulator
+        self._background = self.background
+
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
 
