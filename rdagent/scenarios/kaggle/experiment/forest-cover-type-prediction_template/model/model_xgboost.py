@@ -22,6 +22,8 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
         "objective": "multi:softmax",  # Use softmax for multi-class classification
         "num_class": len(set(y_train)),  # Number of classes
         "nthread": -1,
+        "tree_method": "gpu_hist",
+        "device": "cuda",
     }
     num_round = 100
 
