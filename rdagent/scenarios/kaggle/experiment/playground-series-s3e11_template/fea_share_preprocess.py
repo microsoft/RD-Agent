@@ -16,6 +16,8 @@ def preprocess_script():
         y_valid = pd.read_pickle("/kaggle/input/y_valid.pkl")
         X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
         others = pd.read_pickle("/kaggle/input/others.pkl")
+        y_train = pd.Series(y_train).reset_index(drop=True)
+        y_valid = pd.Series(y_valid).reset_index(drop=True)
 
         return X_train, X_valid, y_train, y_valid, X_test, *others
 
@@ -38,6 +40,8 @@ def preprocess_script():
     X_train, X_valid, y_train, y_valid = train_test_split(
         train[most_important_features], train["log_cost"], test_size=0.2, random_state=2023
     )
+    y_train = pd.Series(y_train).reset_index(drop=True)
+    y_valid = pd.Series(y_valid).reset_index(drop=True)
 
     # test
     test = pd.read_csv("/kaggle/input/test.csv")
