@@ -29,7 +29,6 @@ class KGKnowledgeGraph(UndirectedGraph):
                     documents.append(f.read())
             self.load_from_documents(documents=documents, scenario=scenario)
             self.dump()
-            tmp = 1
 
     def analyze_one_document(self, document_content: str, scenario: KGScenario) -> list:
         session_system_prompt = (
