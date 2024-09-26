@@ -40,14 +40,15 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 
 # 3) Train the model
 def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    '''
+    """
     Flatten the columns of a DataFrame with MultiIndex columns,
     for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    '''
+    """
     if df.columns.nlevels == 1:
         return df
     df.columns = ["_".join(str(col)).strip() for col in df.columns.values]
     return df
+
 
 X_train = flatten_columns(X_train)
 X_valid = flatten_columns(X_valid)
@@ -76,6 +77,7 @@ y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
 def MCRMSE(y_true, y_pred):
     return np.mean(np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0)))
 
+
 metrics = MCRMSE(y_valid, y_valid_pred_ensemble)
 print(f"MCRMSE on valid set: {metrics}")
 pd.Series(data=[metrics], index=["MCRMSE"]).to_csv("submission_score.csv")
@@ -89,12 +91,12 @@ for model, predict_func in model_l:
 y_test_pred = np.mean(y_test_pred_l, axis=0)
 
 
-submission_result = pd.read_csv('/kaggle/input/sample_submission.csv')
-submission_result['cohesion'] = y_test_pred[:,0]
-submission_result['syntax'] = y_test_pred[:,1]
-submission_result['vocabulary'] = y_test_pred[:,2]
-submission_result['phraseology'] = y_test_pred[:,3]
-submission_result['grammar'] = y_test_pred[:,4]
-submission_result['conventions'] = y_test_pred[:,5]
+submission_result = pd.read_csv("/kaggle/input/sample_submission.csv")
+submission_result["cohesion"] = y_test_pred[:, 0]
+submission_result["syntax"] = y_test_pred[:, 1]
+submission_result["vocabulary"] = y_test_pred[:, 2]
+submission_result["phraseology"] = y_test_pred[:, 3]
+submission_result["grammar"] = y_test_pred[:, 4]
+submission_result["conventions"] = y_test_pred[:, 5]
 
 submission_result.to_csv("submission.csv", index=False)

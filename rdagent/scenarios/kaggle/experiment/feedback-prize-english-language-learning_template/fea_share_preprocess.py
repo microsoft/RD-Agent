@@ -1,10 +1,11 @@
 import os
+import re
 
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-import re
+from sklearn.model_selection import train_test_split
+
 
 def preprocess_script():
     """
@@ -22,7 +23,7 @@ def preprocess_script():
 
     def data_cleaner(text):
         text = text.strip()
-        text = re.sub(r'\n', '', text)
+        text = re.sub(r"\n", "", text)
         text = text.lower()
         return text
 
@@ -30,20 +31,18 @@ def preprocess_script():
     train = pd.read_csv("/kaggle/input/train.csv")
     test = pd.read_csv("/kaggle/input/test.csv")
 
-    train['full_text'] = train['full_text'].apply(data_cleaner)
-    test['full_text'] = test['full_text'].apply(data_cleaner)
-    
-    y_train = train[['cohesion','syntax','vocabulary','phraseology','grammar','conventions']]
+    train["full_text"] = train["full_text"].apply(data_cleaner)
+    test["full_text"] = test["full_text"].apply(data_cleaner)
+
+    y_train = train[["cohesion", "syntax", "vocabulary", "phraseology", "grammar", "conventions"]]
 
     vectorizer = TfidfVectorizer()
-    X_train = vectorizer.fit_transform(train['full_text'])
-    X_test = vectorizer.transform(test['full_text'])
-    
+    X_train = vectorizer.fit_transform(train["full_text"])
+    X_test = vectorizer.transform(test["full_text"])
+
     X_train = pd.DataFrame.sparse.from_spmatrix(X_train)
     X_test = pd.DataFrame.sparse.from_spmatrix(X_test)
 
-    X_train, X_valid, y_train, y_valid = train_test_split(
-        X_train, y_train, test_size=0.2, random_state=42
-    )
+    X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
     return X_train, X_valid, y_train, y_valid, X_test
