@@ -1,10 +1,3 @@
-"""
-Motivation of the model:
-The Random Forest model is chosen for its robustness and ability to handle large datasets with higher dimensionality.
-It reduces overfitting by averaging multiple decision trees and typically performs well out of the box, making it a good
-baseline model for many classification tasks.
-"""
-
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -35,7 +28,8 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
 
     # Validate the model
     y_valid_pred = model.predict(X_valid_selected)
-    rmse = np.sqrt(mean_squared_error(y_valid, y_valid_pred))
+    mse = mean_squared_error(y_valid, y_valid_pred)
+    rmse = np.sqrt(mse)
     print(f"Validation RMSE: {rmse:.4f}")
 
     return model
@@ -49,4 +43,6 @@ def predict(model, X):
     X_selected = select(X)
 
     # Predict using the trained model
-    return model.predict(X_selected)
+    y_pred = model.predict(X_selected)
+
+    return y_pred.reshape(-1, 1)
