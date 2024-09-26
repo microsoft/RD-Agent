@@ -252,7 +252,8 @@ class FactorRowCountEvaluator(FactorEvaluator):
             )
         ratio = len(gen_df) / len(gt_df)
         return (
-            f"The ratio of rows in the source dataframe to the ground truth dataframe is {ratio:.2f}. Please verify the implementation.",
+            f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. " + 
+            "Please verify the implementation. " if ratio <= 0.99 else "",
             ratio,
         )
 
@@ -272,7 +273,9 @@ class FactorIndexEvaluator(FactorEvaluator):
         gen_index_set, gt_index_set = set(gen_df.index), set(gt_df.index)
         similarity = len(gen_index_set.intersection(gt_index_set)) / len(gen_index_set.union(gt_index_set))
         return (
-            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. The similarity is calculated by the number of shared indices divided by the union indices. Please check the implementation.",
+            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. 
+            The similarity is calculated by the number of shared indices divided by the union indices. " +
+            "Please check the implementation." if similarity <= 0.99 else "",
             similarity,
         )
 
@@ -435,7 +438,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif not row_result or output_format_result is False or daily_check_result is False:
+        elif row_result <= 0.99 or output_format_result is False or daily_check_result is False:
             decision_from_value_check = False
         else:
             decision_from_value_check = None
