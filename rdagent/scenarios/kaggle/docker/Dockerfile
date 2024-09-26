@@ -24,3 +24,5 @@ RUN pip install catboost
 RUN pip install xgboost
 RUN pip install sparse
 RUN pip install lightgbm 
+RUN pip install pyarrow
+RUN pip install fastparquet

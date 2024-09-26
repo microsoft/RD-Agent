@@ -11,11 +11,11 @@ from sklearn.preprocessing import OrdinalEncoder
 
 def prepreprocess():
     # Load the training data
-    train_df = pd.read_csv("/kaggle/input/optiver-realized-volatility-prediction/train.csv")
+    train_df = pd.read_csv("/kaggle/input/train.csv")
 
     # Load book and trade data
-    book_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/book_train.parquet")
-    trade_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/trade_train.parquet")
+    book_train = pd.read_parquet("/kaggle/input/book_train.parquet")
+    trade_train = pd.read_parquet("/kaggle/input/trade_train.parquet")
 
     # Merge book and trade data with train_df
     merged_df = pd.merge(train_df, book_train, on=["stock_id", "time_id"], how="left")
