@@ -536,6 +536,9 @@ def feedback_window():
             if isinstance(state.scenario, KGScenario):
                 if fbe := state.msgs[round]["ef.runner result"]:
                     submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
+                    st.markdown(
+                        f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
+                    )
                     st.download_button(
                         label="**Download** submission.csv",
                         data=submission_path.read_bytes(),
