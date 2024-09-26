@@ -18,9 +18,10 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
-    # TODO: for quick running....
+    # Parameters for regression
     params = {
-        "nthred": -1,
+        "objective": "reg:squarederror",  # Use squared error for regression
+        "nthread": -1,
     }
     num_round = 100
 
