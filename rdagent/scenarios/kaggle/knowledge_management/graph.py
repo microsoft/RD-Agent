@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
@@ -20,21 +21,31 @@ PROMPT_DICT = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
 class KGKnowledgeGraph(UndirectedGraph):
-    def __init__(self, path: str | Path | None, scenario: KGScenario) -> None:
+    def __init__(self, path: str | Path | None, scenario: KGScenario | None) -> None:
         super().__init__(path)
-        if path is not None and not Path(path).exists():
+        if path is not None and Path(path).exists():
+            self.load()
+            self.path = Path(path).parent / (
+                datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl"
+            )
+        else:
             documents = []
-            for file_path in (Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / "domain_knowledge").glob("*.case"):
+            print(Path(KAGGLE_IMPLEMENT_SETTING.domain_knowledge_path))
+            for file_path in (Path(KAGGLE_IMPLEMENT_SETTING.domain_knowledge_path)).rglob("*.case"):
                 with open(file_path, "r") as f:
                     documents.append(f.read())
             self.load_from_documents(documents=documents, scenario=scenario)
             self.dump()
 
-    def analyze_one_document(self, document_content: str, scenario: KGScenario) -> list:
+    def add_document(self, document_content: str, scenario: KGScenario | None) -> None:
+        self.load_from_documents([document_content], scenario)
+        self.dump()  # Each valid experiment will overwrite this file once again.
+
+    def analyze_one_document(self, document_content: str, scenario: KGScenario | None) -> list:
         session_system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(PROMPT_DICT["extract_knowledge_graph_from_document"]["system"])
-            .render(scenario=scenario.get_scenario_all_desc())
+            .render(scenario=scenario.get_scenario_all_desc() if scenario is not None else "")
         )
 
         session = APIBackend().build_chat_session(
@@ -53,7 +64,7 @@ class KGKnowledgeGraph(UndirectedGraph):
             user_prompt = "Continue from the last step please. Don't extract the same knowledge again."
         return knowledge_list
 
-    def load_from_documents(self, documents: List[str], scenario: KGScenario):
+    def load_from_documents(self, documents: List[str], scenario: KGScenario | None) -> None:
         knowledge_list_list = multiprocessing_wrapper(
             [
                 (
@@ -105,3 +116,7 @@ class KGKnowledgeGraph(UndirectedGraph):
         node_list = self.batch_embedding(node_list)
         for node_pair in node_pairs:
             self.add_node(node_pair[0], node_pair[1])
+
+
+if __name__ == "__main__":
+    graph = KGKnowledgeGraph(path="git_ignore_folder/kg_graph.pkl", scenario=None)

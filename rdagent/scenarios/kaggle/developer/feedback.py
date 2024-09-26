@@ -14,9 +14,6 @@ from rdagent.core.proposal import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
-    extract_knowledge_from_feedback,
-)
 from rdagent.utils import convert2bool
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -42,11 +39,10 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Add a note about metric direction
         evaluation_direction = "higher" if self.scen.evaluation_metric_direction else "lower"
-        combined_df[
-            "Note"
-        ] = f"Direction of improvement (higher/lower is better) should be judged per metric. Here '{evaluation_direction}' is better for the metrics."
+        evaluation_description = f"Direction of improvement (higher/lower is better) should be judged per metric. Here '{evaluation_direction}' is better for the metrics."
+        combined_df["Note"] = evaluation_description
 
-        return combined_df
+        return combined_df, evaluation_description
 
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
@@ -75,14 +71,17 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 except AttributeError:
                     print(f"Warning: Task {task} does not have get_task_information_and_implementation_result method")
 
+        evaluation_description = None
         # Check if there are any based experiments
         if exp.based_experiments:
             sota_result = exp.based_experiments[-1].result
             # Process the results to filter important metrics
-            combined_result = self.process_results(current_result, sota_result)
+            combined_result, evaluation_description = self.process_results(current_result, sota_result)
         else:
             # If there are no based experiments, we'll only use the current result
-            combined_result = self.process_results(current_result, current_result)  # Compare with itself
+            combined_result, evaluation_description = self.process_results(
+                current_result, current_result
+            )  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
         available_features = {
@@ -129,6 +128,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "combined_result": combined_result,  # This turn and sota
             "hypothesis_text": hypothesis_text,  # This turn
             "task_details": tasks_factors,  # This turn
+            "evaluation_description": evaluation_description,
         }
 
         usr_prompt = (
@@ -152,13 +152,17 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         experiment_feedback = {
             "hypothesis_text": hypothesis_text,
             "current_result": current_result,
-            "tasks_factors": tasks_factors,
+            "model_code": model_code,
+            "available_features": available_features,
             "observations": observations,
             "hypothesis_evaluation": hypothesis_evaluation,
             "reason": reason,
         }
 
-        # self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        if self.scen.if_using_vector_rag:
+            self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        elif self.scen.if_using_graph_rag:
+            self.scen.trace.knowledge_base.load_from_documents([experiment_feedback], self.scen)
 
         return HypothesisFeedback(
             observations=observations,

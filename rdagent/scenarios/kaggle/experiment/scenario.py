@@ -35,9 +35,16 @@ class KGScenario(Scenario):
         self.model_output_channel = None
         self.evaluation_desc = None
         self.evaluation_metric_direction = None
+        self.vector_base = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
+        self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag
+        self.if_using_vector_rag = KAGGLE_IMPLEMENT_SETTING.if_using_vector_rag
+
+        if self.if_using_vector_rag and KAGGLE_IMPLEMENT_SETTING.rag_path:
+            self.vector_base = KaggleExperienceBase()
+            self.vector_base.load(KAGGLE_IMPLEMENT_SETTING.rag_path)
 
         self._output_format = self.output_format
         self._interface = self.interface
@@ -124,6 +131,9 @@ class KGScenario(Scenario):
 
         if (data_folder / "X_valid.pkl").exists():
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
+            # TODO: Hardcoded for now, need to be fixed
+            if self.competition == "feedback-prize-english-language-learning":
+                return "This is a sparse matrix of descriptive text."
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)
             data_info = buffer.getvalue()
@@ -187,7 +197,7 @@ The model code should follow the simulator:
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {KAGGLE_IMPLEMENT_SETTING.competition}
+This is the Kaggle scenario for the competition: {self.competitionn}
 """
 
     def get_scenario_all_desc(self) -> str:
