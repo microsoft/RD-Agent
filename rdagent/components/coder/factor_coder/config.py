@@ -52,6 +52,9 @@ class FactorImplementSettings(BaseSettings):
     max_loop: int = 10
     """Maximum number of task implementation loops"""
 
+    enable_code_cot: bool = False
+    """Indicates whether to enable code cot"""
+
     knowledge_base_path: Union[str, None] = None
     """Path to the knowledge base"""
 

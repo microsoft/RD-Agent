@@ -23,6 +23,7 @@ from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.tpl import T
 
 if TYPE_CHECKING:
     from rdagent.components.coder.factor_coder.CoSTEER.knowledge_management import (
@@ -127,15 +128,10 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
 
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
 
-            system_prompt = (
-                Environment(undefined=StrictUndefined)
-                .from_string(
-                    implement_prompts["evolving_strategy_factor_implementation_v1_system"],
-                )
-                .render(
+            system_prompt = T(".prompts:evolving_strategy_factor_implementation_v1_system").r(
                     scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                )
+                    enable_code_cot=FACTOR_IMPLEMENT_SETTINGS.enable_code_cot,
             )
             session = APIBackend(use_chat_cache=FACTOR_IMPLEMENT_SETTINGS.coder_use_cache).build_chat_session(
                 session_system_prompt=system_prompt,
@@ -143,18 +139,11 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
 
             queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge
             for _ in range(10):  # max attempt to reduce the length of user_prompt
-                user_prompt = (
-                    Environment(undefined=StrictUndefined)
-                    .from_string(
-                        implement_prompts["evolving_strategy_factor_implementation_v1_user"],
-                    )
-                    .render(
+                user_prompt = T(".prompts:evolving_strategy_factor_implementation_v1_user").r(
                         factor_information_str=factor_information_str,
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                         queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                    )
-                    .strip("\n")
-                )
+                    ).strip("\n")
                 if (
                     session.build_chat_completion_message_and_calculate_token(
                         user_prompt,
@@ -228,6 +217,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                 .render(
                     scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                    enable_code_cot=FACTOR_IMPLEMENT_SETTINGS.enable_code_cot,
                 )
             )
 

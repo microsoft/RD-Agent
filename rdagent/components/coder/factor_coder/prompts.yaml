@@ -57,9 +57,46 @@ evolving_strategy_factor_implementation_v1_system: |-
   {{ queried_former_failed_knowledge[-1].feedback }}
   {% endif %}
 
+  {% if enable_code_cot %}
+  -------------- **The code standard** ----------------
+  You must write code with detailed comments to explain your thought process!!!
+  Even if other example code does not follow this, you should strictly adhere to this code standard.
+  If data processing is involved, include comments to describe the index and columns at each step.
+  Here is an example:
+  ```python
+  import pandas as pd
+  focused_fields = ["NET_PROFIT_INCL_MIN_INT_INC"]
+
+  df = pd.read_hdf("ASHAREINCOME.h5", key="data")  # type: pd.DataFrame; index with multi-level [datetime, instrument]; columns with single level that contains values like [REPORT_PERIOD, STATEMENT_TYPE,  ...,  NET_PROFIT_INCL_MIN_INT_INC]
+
+  # filter only part of the report statement
+  df = df[df["STATEMENT_TYPE"] == "408006000"]  # type: pd.DataFrame; index with multi-level [datetime, instrument]; columns with single level that contains values like [REPORT_PERIOD, STATEMENT_TYPE,  ...,  NET_PROFIT_INCL_MIN_INT_INC]
+  df = df[["REPORT_PERIOD"] + focused_fields]  # type: pd.DataFrame; index with multi-level [datetime, instrument]; columns with single level that contains values like [REPORT_PERIOD, NET_PROFIT_INCL_MIN_INT_INC]
+  df.columns.name = "field"  # type: pd.DataFrame; index with multi-level [datetime, instrument]; columns level [filed] that contains values like [REPORT_PERIOD, NET_PROFIT_INCL_MIN_INT_INC]
+  df = df.set_index("REPORT_PERIOD", append=True).unstack(level="REPORT_PERIOD")  # type: pd.DataFrame; index with multi-level [datetime, instrument]; columns mulit-level [filed, REPORT_PERIOD]
+  df = df.unstack("instrument")  # type: pd.DataFrame; index with level [datetime]; columns mulit-level [filed, REPORT_PERIOD,  instrument]
+  # fill the previous published value to later release date
+  df = df.sort_index().ffill(axis=0)  # type: pd.DataFrame; index with level [datetime]; columns mulit-level [filed, REPORT_PERIOD,  instrument]
+
+  pit_f_final = {}
+  for idx, row in df.iterrows():
+      pit_df = row.unstack("field").sort_index()  # ensure the report_period is ascending order  # type: pd.DataFrame; index with level [REPORT_PERIOD,  instrument]; columns mulit-level [filed]
+      # 1) collapse all the columns
+      pit_f = pit_df["NET_PROFIT_INCL_MIN_INT_INC"]  # type: pd.Series; index with level [REPORT_PERIOD,  instrument]
+      # 2)
+      pit_f_df = pit_f.unstack("instrument")   # type: pd.DataFrame; index with level [REPORT_PERIOD]; columns multi-level [instrument]
+      pit_f_ttm = pit_f_df.iloc[-4:, :].sum()  # this for TTM  # type: pd.Series; index with level [instrument]
+      pit_f_final[idx] = pit_f_ttm
+
+  pit_f_final = pd.DataFrame(pit_f_final).T  # type: pd.DataFrame; index with level [datetime]; columns multi-level [instrument]
+  pit_f_final = pit_f_final.stack()  # type: pd.Series; index with level [datetime, instrument]
+  pit_f_final.to_frame("net_profit_ttm").to_hdf('result.h5', key='data', mode='w')
+  ```
+  {% endif %}
+
   Please response the code in the following json format. Here is an example structure for the JSON output:
   {
-      "code": "The Python code as a string."
+      "code": "The Python code as a string that follow the code standard."
   }
 
 evolving_strategy_factor_implementation_v1_user: |-
@@ -85,6 +122,7 @@ evolving_strategy_factor_implementation_v1_user: |-
   {{ former_failed_knowledge.feedback }}
   {% endfor %}
   {% endif %}
+
 
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------

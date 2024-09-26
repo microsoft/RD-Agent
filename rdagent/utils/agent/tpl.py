@@ -17,6 +17,14 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PROJ_PATH = DIRNAME.parent.parent
 
 
+# TODO: It could be better to add the Truncator class into  T class for reusing.
+# class Truncator:
+#     def __init__(self, limit: int):
+#         self.limit = limit
+#
+#     def render_with_trunc(self, render_func, context: dict):
+
+
 # class T(SingletonBaseClass): TODO: singleton does not support args now.
 class T:
     """Use the simplest way to (C)reate a Template and (r)ender it!!"""
