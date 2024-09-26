@@ -239,9 +239,9 @@ class KGHypothesisGen(ModelHypothesisGen):
             "hypothesis_output_format": Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_output_format"])
             .render(if_using_feature_selection=KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection),
-            "hypothesis_specification": f"next experiment action is {action}"
-            if self.scen.if_action_choosing_based_on_UCB
-            else None,
+            "hypothesis_specification": (
+                f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None
+            ),
         }
         return context_dict, True
 
@@ -314,8 +314,9 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
                 )
             )
 
-        exp = KGFactorExperiment(tasks)
-        exp.based_experiments = [KGFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
+        exp = KGFactorExperiment(
+            sub_tasks=tasks, based_experiments=([KGFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]])
+        )
         return exp
 
     def convert_model_experiment(self, response: str, trace: Trace) -> KGModelExperiment:
@@ -331,8 +332,9 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
                 version=2,
             )
         )
-        exp = KGModelExperiment(tasks)
-        exp.based_experiments = [KGModelExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
+        exp = KGModelExperiment(
+            sub_tasks=tasks, based_experiments=([KGModelExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]])
+        )
         return exp
 
     def convert_response(self, response: str, trace: Trace) -> ModelExperiment:

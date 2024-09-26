@@ -23,14 +23,6 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
 class KGCachedRunner(CachedRunner[ASpecificExp]):
-    def build_from_SOTA(self, exp: ASpecificExp) -> None:
-        if len(exp.based_experiments) > 0:
-            exp.experiment_workspace.inject_code(**exp.based_experiments[-1].experiment_workspace.code_dict)
-            exp.experiment_workspace.data_description = exp.based_experiments[-1].experiment_workspace.data_description
-            exp.experiment_workspace.model_description = exp.based_experiments[
-                -1
-            ].experiment_workspace.model_description.copy()
-
     def get_cache_key(self, exp: ASpecificExp) -> str:
         codes = []
         for f in sorted((exp.experiment_workspace.workspace_path / "feature").glob("*.py"), key=lambda x: x.name):
@@ -44,7 +36,6 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         """
         For the initial development, the experiment serves as a benchmark for feature engineering.
         """
-        self.build_from_SOTA(exp)
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)
             if cache_hit:
@@ -94,7 +85,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
     def develop(self, exp: KGModelExperiment) -> KGModelExperiment:
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
-        self.build_from_SOTA(exp)
 
         sub_ws = exp.sub_workspace_list[0]
         # TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list.
@@ -175,7 +165,6 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
-        self.build_from_SOTA(exp)
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
         implemented_factor_count = 0
         for sub_ws in exp.sub_workspace_list:

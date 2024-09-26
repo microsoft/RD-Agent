@@ -70,7 +70,7 @@ class ModelCoSTEER(Developer[ModelExperiment]):
         self.rag = ModelRAGStrategy(model_knowledge_base)
 
         # init intermediate items
-        model_experiment = ModelEvolvingItem(sub_tasks=exp.sub_tasks)
+        model_experiment = ModelEvolvingItem.from_experiment(exp)
 
         self.evolve_agent = ModelRAGEvoAgent(
             max_loop=self.max_loop,

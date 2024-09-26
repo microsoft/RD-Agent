@@ -30,23 +30,31 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
-        exp: ModelExperiment = None,  # Add this parameter
+        current_exp: ModelExperiment = None,  # Add this parameter
     ) -> str:
         model_information_str = target_task.get_task_information()
         model_type = target_task.model_type
 
-        # Get the current code from the experiment using build_from_SOTA
-        current_code = ""
-        if exp is not None:
-            self.build_from_SOTA(exp)
-            model_file_mapping = {
-                "XGBoost": "model_xgb.py",
-                "RandomForest": "model_rf.py",
-                "LightGBM": "model_lgb.py",
-                "NN": "model_nn.py",
-            }
-            if model_type in model_file_mapping:
-                current_code = exp.experiment_workspace.code_dict.get(model_file_mapping[model_type], "")
+        if len(current_exp.based_experiments) == 0:
+            current_code = None
+        else:
+            current_code = ""
+            sota_exp_code_dict = current_exp.based_experiments[-1].experiment_workspace.code_dict
+            if target_task.version == 2:
+                model_file_mapping = {
+                    "XGBoost": "model/model_xgboost.py",
+                    "RandomForest": "model/model_randomforest.py",
+                    "LightGBM": "model/model_lightgbm.py",
+                    "NN": "model/model_nn.py",
+                }
+                if model_type in model_file_mapping:
+                    current_code = sota_exp_code_dict.get(model_file_mapping[model_type], None)
+                elif "model.py" in sota_exp_code_dict:
+                    current_code = sota_exp_code_dict["model.py"]
+                else:
+                    current_code = None
+            elif target_task.version == 1:
+                current_code = sota_exp_code_dict.get("model.py", None)
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -74,7 +82,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                 .render(
                     scenario=self.scen.get_scenario_all_desc(),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                    current_code=current_code,  # Add this line
+                    current_code=current_code,
                 )
             )
 
@@ -87,7 +95,6 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     )
                     .render(
                         model_information_str=model_information_str,
-                        model_type=model_type,  # Add model type to the prompt
                         queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                         queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                     )
@@ -124,7 +131,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: ModelQueriedKnowledge | None = None,
         **kwargs,
     ) -> ModelEvolvingItem:
-        # 1. Find the models that need to be evolved
+        # 1.找出需要evolve的model
         to_be_finished_task_index = []
         for index, target_model_task in enumerate(evo.sub_tasks):
             target_model_task_desc = target_model_task.get_task_information()
@@ -140,7 +147,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge, evo))
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,

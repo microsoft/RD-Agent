@@ -28,3 +28,10 @@ class FactorEvolvingItem(FactorExperiment, EvolvableSubjects):
             )
         else:
             self.sub_gt_implementations = sub_gt_implementations
+
+    @classmethod
+    def from_experiment(cls, exp: FactorExperiment) -> "FactorExperiment":
+        ei = cls(sub_tasks=exp.sub_tasks)
+        ei.based_experiments = exp.based_experiments
+        ei.experiment_workspace = exp.experiment_workspace
+        return ei

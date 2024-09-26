@@ -68,7 +68,7 @@ kg_background: |-
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
 
-  Most importantly, the output format & submission requirements are listed here: {submission_specifications}
+  So far, we only focus on Model tuning! So far, we only focus on Model tuning! So far, we only focus on Model tuning! 
 
 kg_feature_interface: |-
   Your code should contain several parts:
