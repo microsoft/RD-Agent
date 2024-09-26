@@ -9,6 +9,7 @@ release-notes.md
 __pycache__/
 *.py[cod]
 *$py.class
+bug-testing/
 
 # C extensions
 *.so
