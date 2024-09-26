@@ -1,6 +1,7 @@
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
@@ -11,21 +12,21 @@ from sklearn.preprocessing import OrdinalEncoder
 def prepreprocess():
     # Load the training data
     train_df = pd.read_csv("/kaggle/input/optiver-realized-volatility-prediction/train.csv")
-    
+
     # Load book and trade data
     book_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/book_train.parquet")
     trade_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/trade_train.parquet")
-    
+
     # Merge book and trade data with train_df
-    merged_df = pd.merge(train_df, book_train, on=['stock_id', 'time_id'], how='left')
-    merged_df = pd.merge(merged_df, trade_train, on=['stock_id', 'time_id'], how='left')
-    
+    merged_df = pd.merge(train_df, book_train, on=["stock_id", "time_id"], how="left")
+    merged_df = pd.merge(merged_df, trade_train, on=["stock_id", "time_id"], how="left")
+
     # Split the data
-    X = merged_df.drop(['target'], axis=1)
-    y = merged_df['target']
-    
+    X = merged_df.drop(["target"], axis=1)
+    y = merged_df["target"]
+
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+
     return X_train, X_valid, y_train, y_valid
 
 

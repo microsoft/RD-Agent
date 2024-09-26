@@ -5,10 +5,10 @@ It reduces overfitting by averaging multiple decision trees and typically perfor
 baseline model for many classification tasks.
 """
 
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
-import numpy as np
 
 
 def select(X: pd.DataFrame) -> pd.DataFrame:
