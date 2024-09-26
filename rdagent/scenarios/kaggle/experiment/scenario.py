@@ -199,7 +199,7 @@ The model code should follow the simulator:
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {self.competitionn}
+This is the Kaggle scenario for the competition: {self.competition}
 """
 
     def get_scenario_all_desc(self) -> str:
