@@ -23,29 +23,31 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-def process_results(current_result, sota_result):
-    # Convert the results to dataframes
-    current_df = pd.DataFrame(current_result)
-    sota_df = pd.DataFrame(sota_result)
-
-    # Combine the dataframes on the Metric index
-    combined_df = pd.concat([current_df, sota_df], axis=1)
-    combined_df.columns = ["current_df", "sota_df"]
-
-    combined_df["the largest"] = combined_df.apply(
-        lambda row: "sota_df"
-        if row["sota_df"] > row["current_df"]
-        else ("Equal" if row["sota_df"] == row["current_df"] else "current_df"),
-        axis=1,
-    )
-
-    # Add a note about metric direction
-    combined_df["Note"] = "Direction of improvement (higher/lower is better) should be judged per metric"
-
-    return combined_df
-
-
 class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+    def process_results(self, current_result, sota_result):
+        # Convert the results to dataframes
+        current_df = pd.DataFrame(current_result)
+        sota_df = pd.DataFrame(sota_result)
+
+        # Combine the dataframes on the Metric index
+        combined_df = pd.concat([current_df, sota_df], axis=1)
+        combined_df.columns = ["current_df", "sota_df"]
+
+        # combined_df["the largest"] = combined_df.apply(
+        #     lambda row: "sota_df"
+        #     if row["sota_df"] > row["current_df"]
+        #     else ("Equal" if row["sota_df"] == row["current_df"] else "current_df"),
+        #     axis=1,
+        # )
+
+        # Add a note about metric direction
+        evaluation_direction = "higher" if self.scen.evaluation_metric_direction else "lower"
+        combined_df[
+            "Note"
+        ] = f"Direction of improvement (higher/lower is better) should be judged per metric. Here '{evaluation_direction}' is better for the metrics."
+
+        return combined_df
+
     def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
@@ -77,10 +79,10 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         if exp.based_experiments:
             sota_result = exp.based_experiments[-1].result
             # Process the results to filter important metrics
-            combined_result = process_results(current_result, sota_result)
+            combined_result = self.process_results(current_result, sota_result)
         else:
             # If there are no based experiments, we'll only use the current result
-            combined_result = process_results(current_result, current_result)  # Compare with itself
+            combined_result = self.process_results(current_result, current_result)  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
 
         available_features = {
@@ -113,35 +115,34 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         # Prepare render dictionary
         render_dict = {
-            "context": self.scen.get_scenario_all_desc(),
             "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
             "last_task_and_code": last_task_and_code,
             "last_result": trace.hist[-1][1].result if trace.hist else None,
+            "sota_task_and_code": exp.based_experiments[-1].experiment_workspace.data_description
+            if exp.based_experiments
+            else None,
+            "sota_result": exp.based_experiments[-1].result if exp.based_experiments else None,
             "hypothesis": hypothesis,
             "exp": exp,
-            "model_code": model_code,
-            "available_features": available_features,
-            "combined_result": combined_result,
-            "hypothesis_text": hypothesis_text,
-            "task_details": tasks_factors,
+            "model_code": model_code,  # This turn
+            "available_features": available_features,  # This turn
+            "combined_result": combined_result,  # This turn and sota
+            "hypothesis_text": hypothesis_text,  # This turn
+            "task_details": tasks_factors,  # This turn
         }
 
-        # Generate the user prompt
         usr_prompt = (
             Environment(undefined=StrictUndefined).from_string(prompt_dict[prompt_key]["user"]).render(**render_dict)
         )
 
-        # Call the APIBackend to generate the response for hypothesis feedback
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=usr_prompt,
             system_prompt=sys_prompt,
             json_mode=True,
         )
 
-        # Parse the JSON response to extract the feedback
         response_json = json.loads(response)
 
-        # Extract fields from JSON response
         observations = response_json.get("Observations", "No observations provided")
         hypothesis_evaluation = response_json.get("Feedback for Hypothesis", "No feedback provided")
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
