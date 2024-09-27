@@ -93,4 +93,3 @@ def python_files_to_notebook(competition: str, py_dir: str):
 
     with save_path.with_suffix(".py").open("w", encoding="utf-8") as f:
         f.write(all_py)
-
