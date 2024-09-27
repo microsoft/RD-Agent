@@ -2,12 +2,16 @@ import json
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
+
 from rdagent.components.coder.factor_coder.CoSTEER import FactorCoSTEER
 from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
 from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_SELECT_MAPPING, KGModelExperiment
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
+    KG_SELECT_MAPPING,
+    KGModelExperiment,
+)
 
 KGModelCoSTEER = ModelCoSTEER
 KGFactorCoSTEER = FactorCoSTEER
