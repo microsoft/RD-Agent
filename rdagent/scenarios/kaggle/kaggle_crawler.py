@@ -170,6 +170,35 @@ def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdat
     print(f"Converted {converted_num} notebooks to text files.")
 
 
+def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> dict[str, list[str]]:
+    '''
+    {
+        "competition1": [
+            "knowledge_text1",
+            "knowledge_text2",
+            ...
+        ],
+        “competition2”: [
+            "knowledge_text1",
+            "knowledge_text2",
+            ...
+        ],
+        ...
+    }
+    '''
+    notebooks_dir = Path(local_path) / "notebooks"
+    
+    competition_knowledge_texts_dict = {}
+    for competition_dir in notebooks_dir.iterdir():
+        knowledge_texts = []
+        for text_path in competition_dir.glob("**/*.txt"):
+            text = text_path.read_text(encoding="utf-8")
+            knowledge_texts.append(text)
+
+        competition_knowledge_texts_dict[competition_dir.name] = knowledge_texts
+
+    return competition_knowledge_texts_dict
+
 # %%
 if __name__ == "__main__":
     dsagent_cs = [
