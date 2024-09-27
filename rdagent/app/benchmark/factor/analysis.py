@@ -2,9 +2,11 @@ import json
 import pickle
 from pathlib import Path
 
+import fire
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from scipy.stats import gmean
 
 from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
@@ -96,9 +98,16 @@ class BenchmarkAnalyzer:
 
         sum_df_clean["FactorRowCountEvaluator"]
 
-        format_issue = sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
+        format_issue = sum_df_clean["FactorRowCountEvaluator"].astype(bool) & sum_df_clean[
+            "FactorIndexEvaluator"
+        ].astype(bool)
+        format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
+            lambda x: gmean(x), axis=1
+        )
+
         eval_series = format_issue.unstack()
-        succ_rate = eval_series.T.fillna(False).astype(bool)  # false indicate failure
+        succ_rate = eval_series.T.fillna(False)
+
         format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
         format_succ_rate_f = self.reformat_succ_rate(format_succ_rate)
 
@@ -168,11 +177,11 @@ class Plotter:
         plt.savefig(file_name)
 
 
-if __name__ == "__main__":
+def main(path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl"):
     settings = BenchmarkSettings()
     benchmark = BenchmarkAnalyzer(settings)
     results = {
-        "1 round experiment": "git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+        "1 round experiment": path,
     }
     final_results = benchmark.process_results(results)
     final_results_df = pd.DataFrame(final_results)
@@ -180,4 +189,8 @@ if __name__ == "__main__":
     Plotter.change_fs(20)
     plot_data = final_results_df.drop(["max. accuracy", "avg. accuracy"], axis=0).T
     plot_data = plot_data.reset_index().melt("index", var_name="a", value_name="b")
-    Plotter.plot_data(plot_data, "rdagent/app/quant_factor_benchmark/comparison_plot.png")
+    Plotter.plot_data(plot_data, "./comparison_plot.png")
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

@@ -1,15 +1,12 @@
-import uuid
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import pandas as pd
 from _pytest.cacheprovider import json
-from scipy.spatial.distance import cosine
+from tqdm import tqdm
 
-from rdagent.components.knowledge_management.vector_base import (
-    KnowledgeMetaData,
-    PDVectorBase,
-)
+from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
@@ -17,7 +14,7 @@ from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
 )
 
 
-class KGKnowledgeMetaData(KnowledgeMetaData):
+class KGKnowledgeDocument(Document):
     """
     Class for handling Kaggle competition specific metadata
     """
@@ -104,7 +101,7 @@ class KGKnowledgeMetaData(KnowledgeMetaData):
         )
 
 
-KGDocument = KGKnowledgeMetaData
+KGDocument = KGKnowledgeDocument
 
 
 class KaggleExperienceBase(PDVectorBase):
@@ -126,7 +123,6 @@ class KaggleExperienceBase(PDVectorBase):
         super().__init__(vector_df_path)
         self.kaggle_experience_path = kaggle_experience_path
         self.kaggle_experience_data = []
-
         if kaggle_experience_path:
             self.load_kaggle_experience(kaggle_experience_path)
 
@@ -193,21 +189,21 @@ class KaggleExperienceBase(PDVectorBase):
         if experiment_feedback:
             extracted_knowledge = extract_knowledge_from_feedback(experiment_feedback)
 
-            document = KGKnowledgeMetaData(
-                content=experiment_feedback.get("hypothesis_text", ""),
-                label="Experiment Feedback",
-                competition_name="Experiment Result",
-                task_category=experiment_feedback.get("tasks_factors", "General Task"),
-                field="Research Feedback",
-                ranking=None,
-                score=experiment_feedback.get("current_result", None),
+            document = KGKnowledgeDocument(
+                content=extracted_knowledge.get("content", ""),
+                title=extracted_knowledge.get("title", "Experiment Feedback"),
+                competition_name=extracted_knowledge.get("competition_name", "Unknown Competition"),
+                task_category=extracted_knowledge.get("task_category", "General Task"),
+                field=extracted_knowledge.get("field", None),
+                ranking=extracted_knowledge.get("ranking", None),
+                score=extracted_knowledge.get("score", None),
             )
             document.create_embedding()
             self.add(document)
             return
 
         # Process Kaggle experience data
-        for experience in self.kaggle_experience_data:
+        for experience in tqdm(self.kaggle_experience_data):
             content = experience.get("content", "")
             label = experience.get("title", "Kaggle Experience")
             competition_name = experience.get("competition_name", "Unknown Competition")
@@ -216,7 +212,7 @@ class KaggleExperienceBase(PDVectorBase):
             ranking = experience.get("ranking", None)
             score = experience.get("score", None)
 
-            document = KGKnowledgeMetaData(
+            document = KGKnowledgeDocument(
                 content=content,
                 label=label,
                 competition_name=competition_name,
@@ -250,7 +246,7 @@ class KaggleExperienceBase(PDVectorBase):
 
         kaggle_docs = []
         for result in search_results:
-            kg_doc = KGKnowledgeMetaData().from_dict(result.__dict__)
+            kg_doc = KGKnowledgeDocument().from_dict(result.__dict__)
             kaggle_docs.append(kg_doc)
 
         return kaggle_docs, similarities

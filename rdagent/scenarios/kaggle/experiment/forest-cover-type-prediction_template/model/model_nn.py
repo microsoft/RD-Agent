@@ -1,78 +1,78 @@
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from tqdm import tqdm
-
-# Check if a GPU is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# Modified model for multi-class classification
-class HybridFeatureInteractionModel(nn.Module):
-    def __init__(self, num_features, num_classes):
-        super(HybridFeatureInteractionModel, self).__init__()
-        self.fc1 = nn.Linear(num_features, 128)
+# Define the neural network model with Batch Normalization
+class NeuralNetwork(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(NeuralNetwork, self).__init__()
+        self.layer1 = nn.Linear(input_size, 128)
         self.bn1 = nn.BatchNorm1d(128)
-        self.fc2 = nn.Linear(128, 64)
+        self.layer2 = nn.Linear(128, 64)
         self.bn2 = nn.BatchNorm1d(64)
-        self.fc3 = nn.Linear(64, num_classes)  # Output nodes equal to num_classes
-        self.dropout = nn.Dropout(0.3)
+        self.layer3 = nn.Linear(64, num_classes)
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.fc1(x)))
-        x = F.relu(self.bn2(self.fc2(x)))
-        x = self.dropout(x)
-        x = self.fc3(x)  # No activation here, use CrossEntropyLoss
+        x = torch.relu(self.bn1(self.layer1(x)))
+        x = torch.relu(self.bn2(self.layer2(x)))
+        x = torch.softmax(self.layer3(x), dim=1)
         return x
 
 
-# Training function
-def fit(X_train, y_train, X_valid, y_valid):
-    num_features = X_train.shape[1]
-    num_classes = len(np.unique(y_train))  # Determine number of classes
-    model = HybridFeatureInteractionModel(num_features, num_classes).to(device)
-    criterion = nn.CrossEntropyLoss()  # Use CrossEntropyLoss for multi-class
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
+    # Convert data to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train.values, dtype=torch.long)
+    X_valid_tensor = torch.tensor(X_valid.values, dtype=torch.float32)
+    y_valid_tensor = torch.tensor(y_valid.values, dtype=torch.long)
 
-    # Convert to TensorDataset and create DataLoader
-    train_dataset = TensorDataset(
-        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.to_numpy(), dtype=torch.long)
-    )
-    valid_dataset = TensorDataset(
-        torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.to_numpy(), dtype=torch.long)
-    )
+    # Create datasets and dataloaders
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    valid_dataset = TensorDataset(X_valid_tensor, y_valid_tensor)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
+    # Initialize the model, loss function and optimizer
+    model = NeuralNetwork(input_size=X_train.shape[1], num_classes=len(set(y_train)))
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
     # Train the model
-    model.train()
-    for epoch in range(5):  # just for quick run
-        print(f"Epoch {epoch + 1}/5")
-        epoch_loss = 0
-        for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+    num_epochs = 150
+    for epoch in range(num_epochs):
+        model.train()
+        for X_batch, y_batch in train_loader:
             optimizer.zero_grad()
             outputs = model(X_batch)
             loss = criterion(outputs, y_batch)
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item()
-        print(f"End of epoch {epoch + 1}, Avg Loss: {epoch_loss / len(train_loader):.4f}")
+
+        # Validate the model
+        model.eval()
+        valid_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for X_batch, y_batch in valid_loader:
+                outputs = model(X_batch)
+                valid_loss += criterion(outputs, y_batch).item()
+                _, predicted = torch.max(outputs, 1)
+                correct += (predicted == y_batch).sum().item()
+
+        accuracy = correct / len(valid_loader.dataset)
+        print(f"Epoch {epoch+1}/{num_epochs}, Validation Accuracy: {accuracy:.4f}")
 
     return model
 
 
-# Prediction function
 def predict(model, X):
+    X_tensor = torch.tensor(X.values, dtype=torch.float32)
     model.eval()
-    predictions = []
     with torch.no_grad():
-        X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
-        for i in tqdm(range(0, len(X_tensor), 32), desc="Predicting", leave=False):
-            batch = X_tensor[i : i + 32]
-            pred = model(batch)
-            pred = torch.argmax(pred, dim=1).cpu().numpy()  # Use argmax to get class
-            predictions.extend(pred)
-    return np.array(predictions)
+        outputs = model(X_tensor)
+        _, predicted = torch.max(outputs, 1)
+    return predicted.numpy().reshape(-1, 1)

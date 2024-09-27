@@ -117,7 +117,7 @@ class LoopBase:
                     continue
                 except CoderError as e:
                     logger.warning(f"Traceback loop {li} due to {e}")
-                    self.step_idx -= 1
+                    self.step_idx = 0
                     continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)

@@ -23,7 +23,11 @@ import docker.models
 import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from rich.progress import Progress, TextColumn
+from rich import print
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.table import Table
 
 from rdagent.log import rdagent_logger as logger
 
@@ -201,13 +205,13 @@ class DockerEnv(Env[DockerConf]):
             )
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
-            with Progress(TextColumn("{task.description}")) as p:
+            with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
                 task = p.add_task("[cyan]Building image...")
                 for part in resp_stream:
                     status_dict = json.loads(part)
                     if "error" in status_dict:
                         p.update(task, description=f"[red]error: {status_dict['error']}")
-                        raise docker.errors.BuildError(status_dict["error"])
+                        raise docker.errors.BuildError(status_dict["error"], "")
                     if "stream" in status_dict:
                         p.update(task, description=status_dict["stream"])
             logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
@@ -305,10 +309,19 @@ class DockerEnv(Env[DockerConf]):
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
+            print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumns", "\n".join(f"{k}:{v}" for k, v in volumns.items()))
+            print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
-                print(decoded_log)
+                Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
+            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
             container.stop()
             container.remove()
@@ -321,16 +334,22 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError(f"Error while running the container: {e}")
 
     def dump_python_code_run_and_get_results(
-        self, code: str, dump_file_names: list[str], local_path: str | None = None, env: dict | None = None
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+        code_dump_file_py_name: Optional[str] = None,
     ):
         """
         Dump the code into the local path and run the code.
         """
-        random_file_name = f"{uuid.uuid4()}.py"
+        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env)
+        log_output = self.run(entry, local_path, env, running_extra_volume=running_extra_volume)
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:

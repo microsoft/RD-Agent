@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import torch
-from model import fit, predict, select
+from model import fit, predict
 
 train_X = pd.DataFrame(np.random.randn(8, 30), columns=[f"{i}" for i in range(30)])
 train_y = pd.Series(np.random.randint(0, 2, 8))

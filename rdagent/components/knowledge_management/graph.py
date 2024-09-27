@@ -12,6 +12,7 @@ from rdagent.components.knowledge_management.vector_base import (
     VectorBase,
     cosine,
 )
+from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.oai.llm_utils import APIBackend
 
 Node = KnowledgeMetaData
@@ -47,14 +48,14 @@ class UndirectedNode(Node):
         )
 
 
-class Graph:
+class Graph(KnowledgeBase):
     """
     base Graph class for Knowledge Graph Search
     """
 
     def __init__(self, path: str | Path | None = None) -> None:
-        self.path = path
         self.nodes = {}
+        super().__init__(path=path)
 
     def size(self) -> int:
         return len(self.nodes)
@@ -76,22 +77,6 @@ class Graph:
             if node.content == content and node.label == label:
                 return node
         return None
-
-    @classmethod
-    def load(cls: type[Graph], path: str | Path) -> Graph:
-        """use pickle as the default load method"""
-        path = path if isinstance(path, Path) else Path(path)
-        if not path.exists():
-            return cls(path=path)
-
-        with path.open("rb") as f:
-            return pickle.load(f)
-
-    def save(self, path: str | Path) -> None:
-        """use pickle as the default save method"""
-        Path.mkdir(path.parent, exist_ok=True)
-        with path.open("wb") as f:
-            pickle.dump(self, f)
 
     @staticmethod
     def batch_embedding(nodes: list[Node]) -> list[Node]:
@@ -119,8 +104,8 @@ class UndirectedGraph(Graph):
     """
 
     def __init__(self, path: str | Path | None = None) -> None:
-        super().__init__(path=path)
         self.vector_base: VectorBase = PDVectorBase()
+        super().__init__(path=path)
 
     def __str__(self) -> str:
         return f"UndirectedGraph(nodes={self.nodes})"
@@ -173,16 +158,6 @@ class UndirectedGraph(Graph):
                 self.nodes.update({neighbor.id: neighbor})
 
             node.add_neighbor(neighbor)
-
-    @classmethod
-    def load(cls: type[UndirectedGraph], path: str | Path) -> UndirectedGraph:
-        """use pickle as the default load method"""
-        path = path if isinstance(path, Path) else Path(path)
-        if not path.exists():
-            return cls(path=path)
-
-        with path.open("rb") as f:
-            return pickle.load(f)
 
     def add_nodes(self, node: UndirectedNode, neighbors: list[UndirectedNode]) -> None:
         if not neighbors:

@@ -10,9 +10,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # Restored three-layer model structure
-class HybridFeatureInteractionModel(nn.Module):
+class FeatureInteractionModel(nn.Module):
     def __init__(self, num_features):
-        super(HybridFeatureInteractionModel, self).__init__()
+        super(FeatureInteractionModel, self).__init__()
         self.fc1 = nn.Linear(num_features, 128)
         self.bn1 = nn.BatchNorm1d(128)
         self.fc2 = nn.Linear(128, 64)
@@ -31,24 +31,26 @@ class HybridFeatureInteractionModel(nn.Module):
 # Training function
 def fit(X_train, y_train, X_valid, y_valid):
     num_features = X_train.shape[1]
-    model = HybridFeatureInteractionModel(num_features).to(device)
+    model = FeatureInteractionModel(num_features).to(device)
     criterion = nn.BCELoss()  # Binary classification problem
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     # Convert to TensorDataset and create DataLoader
     train_dataset = TensorDataset(
-        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.reshape(-1), dtype=torch.float32)
+        torch.tensor(X_train.to_numpy(), dtype=torch.float32),
+        torch.tensor(y_train.to_numpy().reshape(-1), dtype=torch.float32),
     )
     valid_dataset = TensorDataset(
-        torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.reshape(-1), dtype=torch.float32)
+        torch.tensor(X_valid.to_numpy(), dtype=torch.float32),
+        torch.tensor(y_valid.to_numpy().reshape(-1), dtype=torch.float32),
     )
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
 
     # Train the model
     model.train()
-    for epoch in range(5):
-        print(f"Epoch {epoch + 1}/5")
+    for epoch in range(50):
+        print(f"Epoch {epoch + 1}/50")
         epoch_loss = 0
         for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)  # Move data to the device
@@ -73,4 +75,4 @@ def predict(model, X):
             batch = X_tensor[i : i + 32]  # Predict in batches
             pred = model(batch).squeeze().cpu().numpy()  # Move results back to CPU
             predictions.extend(pred)
-    return np.array(predictions)  # Return boolean predictions
+    return np.array(predictions).reshape(-1, 1)  # Return predictions

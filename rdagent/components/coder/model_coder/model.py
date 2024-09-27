@@ -23,14 +23,13 @@ class ModelTask(Task):
         model_type: Optional[str] = None,
         **kwargs,
     ) -> None:
-        self.name: str = name
         self.description: str = description
         self.formulation: str = formulation
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
         self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
-        super().__init__(*args, **kwargs)
+        super().__init__(name=name, *args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
@@ -85,9 +84,10 @@ class ModelFBWorkspace(FBWorkspace):
         try:
             if MODEL_IMPL_SETTINGS.enable_execution_cache:
                 # NOTE: cache the result for the same code
-                target_file_name = md5_hash(
-                    f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}_{self.code_dict['model.py']}"
-                )
+                target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
+                for code_file_name in sorted(list(self.code_dict.keys())):
+                    target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
+                target_file_name = md5_hash(target_file_name)
                 cache_file_path = Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
                 Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
@@ -115,6 +115,7 @@ PARAM_INIT_VALUE = {param_init_value}
                 dump_file_names=["execution_feedback_str.pkl", "execution_model_output.pkl"],
                 local_path=str(self.workspace_path),
                 env={},
+                code_dump_file_py_name="model_test",
             )
             if results is None:
                 raise RuntimeError(f"Error in running the model code: {log}")

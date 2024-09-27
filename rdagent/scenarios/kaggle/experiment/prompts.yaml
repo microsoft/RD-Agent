@@ -8,6 +8,11 @@ kg_description_template:
       "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
       "Competition Description": "A brief description of the competition",
       "Target Description": "A description of the target variable to be predicted",
+      "Competition Features": "Two-line description of the overall features involved within the competition as background."
+      "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
+      "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Evaluation Description": "A brief description for what metrics are used in evaluation. An explanation of whether a higher score is better or lower is better in terms of performance."
+      "Evaluation Boolean": "True" or "False" (True means the higher score the better (like accuracy); False means the lower value the better (like loss).) 
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
@@ -20,7 +25,7 @@ kg_description_template:
 
 kg_background: |-
   You are solving a data science tasks and the type of the competition is {{ competition_type }}.
-  The competition description is:{{competition_description}}
+  The competition description is:{{competition_description}}. 
   
   We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
 
@@ -56,7 +61,7 @@ kg_background: |-
   The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:
   - Feature related:
     - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
-    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance.
+    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
     - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
@@ -106,6 +111,7 @@ kg_feature_interface: |-
   ```
 
   To Note:
+  Top 0. I have already completed the encoded labeling process, so please avoid any one-hot encoding or similar operations in the future. Focus instead on targeted and efficient feature engineering techniques, such as normalizing float-type features, filtering based on specific categories, or other concise transformations that can be quickly implemented and tested without unnecessary complexity. Also, ensure that the index of the output DataFrame matches the original DataFrame's index, and that the number of columns remains consistent across train, validation, and test sets.
   1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
   2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
     Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`
@@ -119,22 +125,19 @@ kg_feature_interface: |-
 kg_model_interface: |-
   Your code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A select() function that handles feature selection for both training and prediction phases.
-    The function should take the following arguments:
-      - X: The features as a pandas DataFrame.
-    The function should return the selected features as a pandas DataFrame.
-  3. A function called fit() that trains the model and returns the trained model. If feature selection is applied, it should be done within this function.
+  2. A function called fit() that trains the model and returns the trained model.
     The function should take the following arguments:
       - X_train: The training features as a pandas DataFrame.
       - y_train: The training labels as a pandas Series.
       - X_valid: The validation features as a pandas DataFrame.
       - y_valid: The validation labels as a pandas Series.
     The function should return the trained model.
-  4. A function called predict() that makes predictions using the trained model. If feature selection is applied, it should be done within this function.
+  3. A function called predict() that makes predictions using the trained model. 
     The function should take the following arguments:
       - model: The trained model.
       - X: The features as a pandas DataFrame.
     The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
+  """
     
   Here are some examples of how your Python code should be structured:
 
@@ -145,15 +148,9 @@ kg_model_interface: |-
   import xgboost
   from xgboost import DMatrix
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> xgboost.Booster:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       dtrain = DMatrix(X_train, label=y_train)
       dvalid = DMatrix(X_valid, label=y_valid)
       params = ...  # Set parameters to XGBoost model
@@ -165,7 +162,6 @@ kg_model_interface: |-
 
 
   def predict(model: xgboost.Booster, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       dtest = DMatrix(X)
       y_pred = model.predict(dtest)
 
@@ -179,15 +175,9 @@ kg_model_interface: |-
   from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
   from sklearn.metrics import accuracy_score
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> RandomForestClassifier | RandomForestRegressor:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = RandomForestClassifier(...)  # fir classification tasks
       model = RandomForestRegressor(...)  # for regression tasks
       model.fit(X_train, y_train, ...) # Train the model
@@ -196,7 +186,6 @@ kg_model_interface: |-
 
 
   def predict(model: RandomForestClassifier | RandomForestRegressor, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       y_pred = model.predict(X)
 
       return y_pred
@@ -208,15 +197,9 @@ kg_model_interface: |-
   import numpy as np
   from lightgbm import LGBMClassifier, LGBMRegressor
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> LGBMClassifier | LGBMRegressor:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = LGBMClassifier(...)  # for classification tasks, please add parameters here
       model = LGBMRegressor(...)  # for regression tasks, please add parameters here
 
@@ -225,7 +208,6 @@ kg_model_interface: |-
 
 
   def predict(model: LGBMClassifier | LGBMRegressor, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       y_pred = model.predict(X)
 
       return y_pred
@@ -248,13 +230,7 @@ kg_model_interface: |-
           # Define the forward pass
           return x
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame) -> torch.nn.Module:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = NNModel()  # Initialize the model, You can write your own model class
 
       optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Example optimizer, you can use any optimizer
@@ -287,7 +263,6 @@ kg_model_interface: |-
 
 
   def predict(model: torch.nn.Module, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       X = torch.tensor(X.values).float()
       model.eval()
       with torch.no_grad():
@@ -309,8 +284,15 @@ kg_feature_simulator: |-
 
 kg_model_output_format: |-
   For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
-  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions, each prediction being a single value. The output should be a 2D array with dimensions corresponding to the number of predictions and 1 column (e.g., (8, 1) if there are 8 predictions).
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions.
+  {% if channel == 1 %}
+  For each sample, the output should be a single value (e.g., (8, 1) if there are 8 samples).
+  {% else %}
+  For each sample, the output should be multiple values with {{ channel }} numbers (e.g., (8, {{ channel }}) if there are 8 samples).
+  {% endif %}
   
 kg_model_simulator: |-
   The models will be trained on the competition dataset and evaluated on their ability to predict the target. Metrics like accuracy and AUC-ROC is used to evaluate the model performance. 
   Model performance will be iteratively improved based on feedback from evaluation results.
+  Your output should follow some requirements to submit to the competition:
+  {{ submission_specifications }}

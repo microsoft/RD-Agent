@@ -1,11 +1,13 @@
+from pathlib import Path
+
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
+    EvolvingKnowledgeBase,
     EvoStep,
     Knowledge,
-    KnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )
@@ -49,12 +51,14 @@ class ModelQueriedKnowledge(QueriedKnowledge):
         self.working_task_to_similar_successful_knowledge_dict = dict()
 
 
-class ModelKnowledgeBase(KnowledgeBase):
-    def __init__(self) -> None:
+class ModelKnowledgeBase(EvolvingKnowledgeBase):
+    def __init__(self, path: str | Path = None) -> None:
         self.implementation_trace: dict[str, ModelKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
+
+        super().__init__(path)
 
     def query(self) -> QueriedKnowledge | None:
         """

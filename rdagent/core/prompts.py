@@ -1,4 +1,4 @@
-from pathlib import Path  # noqa: I001
+from pathlib import Path
 
 import yaml
 

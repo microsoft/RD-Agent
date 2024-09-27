@@ -1,3 +1,4 @@
+import subprocess
 from collections import defaultdict
 from typing import Any
 
@@ -18,10 +19,13 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_MODEL_FEATURE_SELECTION,
+    KGTrace,
 )
 
 
@@ -32,6 +36,13 @@ class KaggleRDLoop(RDLoop):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
 
+            knowledge_base = (
+                import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
+                if PROP_SETTING.knowledge_base != ""
+                else None
+            )
+            logger.log_object(knowledge_base, tag="knowledge_base")
+
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
 
@@ -40,6 +51,10 @@ class KaggleRDLoop(RDLoop):
 
             self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
             logger.log_object(self.feature_coder, tag="feature coder")
+            self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(
+                scen
+            )
+            logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
             self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
             logger.log_object(self.model_coder, tag="model coder")
 
@@ -50,7 +65,7 @@ class KaggleRDLoop(RDLoop):
 
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
-            self.trace = Trace(scen=scen)
+            self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
 
     @measure_time
@@ -58,6 +73,8 @@ class KaggleRDLoop(RDLoop):
         with logger.tag("d"):  # develop
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
                 exp = self.feature_coder.develop(prev_out["exp_gen"])
+            elif prev_out["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
+                exp = self.model_feature_selection_coder.develop(prev_out["exp_gen"])
             else:
                 exp = self.model_coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
@@ -71,6 +88,36 @@ class KaggleRDLoop(RDLoop):
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
+
+            if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
+                try:
+                    python_files_to_notebook(
+                        KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path
+                    )
+                except Exception as e:
+                    logger.error(f"Merge python files to one file failed: {e}")
+
+            if KAGGLE_IMPLEMENT_SETTING.auto_submit:
+                csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
+                try:
+                    subprocess.run(
+                        [
+                            "kaggle",
+                            "competitions",
+                            "submit",
+                            "-f",
+                            str(csv_path.absolute()),
+                            "-m",
+                            str(csv_path.parent.absolute()),
+                            KAGGLE_IMPLEMENT_SETTING.competition,
+                        ],
+                        check=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Auto submission failed: \n{e}")
+                except Exception as e:
+                    logger.error(f"Other exception when use kaggle api:\n{e}")
+
         return exp
 
     skip_loop_error = (ModelEmptyError, FactorEmptyError)
