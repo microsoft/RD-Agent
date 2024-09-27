@@ -3,14 +3,9 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.preprocessing import LabelEncoder
 
-def select(X: pd.DataFrame) -> pd.DataFrame:
-    # Ignore feature selection logic
-    return X
 
 def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series):
     """Define and train the model. Merge feature_select"""
-    X_train = select(X_train)
-    X_valid = select(X_valid)
 
     # Combine train and valid labels to get all unique labels
     all_labels = np.unique(np.concatenate([y_train, y_valid]))
@@ -44,11 +39,11 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
 
     return bst
 
+
 def predict(model, X):
     """
     Keep feature select's consistency.
     """
-    X = select(X)
     dtest = xgb.DMatrix(X)
     y_pred_prob = model.predict(dtest)
     # Convert probabilities back to original labels if needed

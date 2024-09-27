@@ -1,29 +1,32 @@
 import os
+
 import numpy as np
 import pandas as pd
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.impute import SimpleImputer
+
 
 def preprocess_data(df):
     """Preprocess the data with feature engineering."""
     # Convert time to more useful features
-    df['hour'] = df['time'] % 24
-    df['day'] = (df['time'] // 24) % 7
-    df['week'] = df['time'] // (24 * 7)
-    
+    df["hour"] = df["time"] % 24
+    df["day"] = (df["time"] // 24) % 7
+    df["week"] = df["time"] // (24 * 7)
+
     # Create distance from center feature
-    df['dist_from_center'] = np.sqrt(df['x']**2 + df['y']**2)
-    
+    df["dist_from_center"] = np.sqrt(df["x"] ** 2 + df["y"] ** 2)
+
     # Create accuracy bins
-    df['accuracy_bins'] = pd.cut(df['accuracy'], bins=5, labels=False)
-    
+    df["accuracy_bins"] = pd.cut(df["accuracy"], bins=5, labels=False)
+
     # Create interaction features
-    df['xy'] = df['x'] * df['y']
-    df['x_accuracy'] = df['x'] * df['accuracy']
-    df['y_accuracy'] = df['y'] * df['accuracy']
-    
+    df["xy"] = df["x"] * df["y"]
+    df["x_accuracy"] = df["x"] * df["accuracy"]
+    df["y_accuracy"] = df["y"] * df["accuracy"]
+
     return df
+
 
 def preprocess_script():
     """Main preprocessing function."""
@@ -46,16 +49,16 @@ def preprocess_script():
 
     # Encode place_ids
     place_id_encoder = LabelEncoder()
-    place_id_encoder.fit(train_df['place_id'])
-    train_df['place_id'] = place_id_encoder.transform(train_df['place_id'])
+    place_id_encoder.fit(train_df["place_id"])
+    train_df["place_id"] = place_id_encoder.transform(train_df["place_id"])
 
     # Split features and target for training data
-    X = train_df.drop(['place_id'], axis=1)
-    y = train_df['place_id']
+    X = train_df.drop(["place_id"], axis=1)
+    y = train_df["place_id"]
 
     # Prepare test data
-    test_row_ids = test_df['row_id']
-    X_test = test_df.drop(['row_id'], axis=1)
+    test_row_ids = test_df["row_id"]
+    X_test = test_df.drop(["row_id"], axis=1)
 
     # Ensure X_test has the same columns as X
     for col in X.columns:

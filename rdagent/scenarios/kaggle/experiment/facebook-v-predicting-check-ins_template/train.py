@@ -13,15 +13,18 @@ random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
+
 def compute_map3(y_true, y_pred):
     """Compute Mean Average Precision @ 3 for multi-class classification."""
-    return average_precision_score(y_true, y_pred, average='micro')
+    return average_precision_score(y_true, y_pred, average="micro")
+
 
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, place_id_encoder, test_row_ids, n_classes = preprocess_script()
@@ -47,29 +50,24 @@ X_valid = pd.concat(X_valid_l, axis=1)
 X_test = pd.concat(X_test_l, axis=1)
 
 # 3) Train the model
-def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    if df.columns.nlevels == 1:
-        return df
-    df.columns = ["_".join(col).strip() for col in df.columns.values]
-    return df
-
-X_train = flatten_columns(X_train)
-X_valid = flatten_columns(X_valid)
-X_test = flatten_columns(X_test)
-
 model_l = []  # list[tuple[model, predict_func, validation_score]]
 for f in DIRNAME.glob("model/model*.py"):
+    select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+    select_m = import_module_from_path(select_python_path.stem, select_python_path)
+    X_train_selected = select_m.select(X_train.copy())
+    X_valid_selected = select_m.select(X_valid.copy())
+
     m = import_module_from_path(f.stem, f)
     # Check if the fit function accepts n_classes
-    if 'n_classes' in m.fit.__code__.co_varnames:
+    if "n_classes" in m.fit.__code__.co_varnames:
         model = m.fit(X_train, y_train, X_valid, y_valid, n_classes)
     else:
         model = m.fit(X_train, y_train, X_valid, y_valid)
-    
+
     # Evaluate the model on the validation set
     y_valid_pred = m.predict(model, X_valid)
     validation_score = log_loss(y_valid, y_valid_pred)
-    
+
     model_l.append((model, m.predict, validation_score))
 
 # Sort models by validation score (lower is better for log loss)
@@ -96,9 +94,8 @@ top_3_indices = np.argsort(-y_test_pred, axis=1)[:, :3]
 top_3_place_ids = place_id_encoder.inverse_transform(top_3_indices)
 
 # Create submission DataFrame
-submission_result = pd.DataFrame({
-    'row_id': test_row_ids,
-    'place_id': [' '.join(map(str, ids)) for ids in top_3_place_ids]
-})
+submission_result = pd.DataFrame(
+    {"row_id": test_row_ids, "place_id": [" ".join(map(str, ids)) for ids in top_3_place_ids]}
+)
 
 submission_result.to_csv("submission.csv", index=False)
