@@ -57,7 +57,7 @@ def clean_and_impute_data(X_train, X_valid, X_test):
     then imputes missing values using the mean strategy.
     Also removes duplicate columns.
     """
-    # Replace inf and -inf with NaN
+    # Replace inf and -inf with NaNa
     X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
     X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
     X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -67,10 +67,5 @@ def clean_and_impute_data(X_train, X_valid, X_test):
     X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
     X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
     X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
-
-    # Remove duplicate columns
-    X_train = X_train.loc[:, ~X_train.columns.duplicated()]
-    X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-    X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
     return X_train, X_valid, X_test
