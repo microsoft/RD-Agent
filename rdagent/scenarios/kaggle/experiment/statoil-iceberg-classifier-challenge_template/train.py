@@ -19,6 +19,7 @@ def compute_metrics_for_classification(y_true, y_pred):
     """Compute log loss for classification."""
     return log_loss(y_true, y_pred)
 
+
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
 
@@ -31,11 +32,13 @@ print(X_test.head(10))
 print("test_ids.head(10):")
 print(test_ids.head(10))
 
+
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
