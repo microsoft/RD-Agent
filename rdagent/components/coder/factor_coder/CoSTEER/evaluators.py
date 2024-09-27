@@ -250,13 +250,14 @@ class FactorRowCountEvaluator(FactorEvaluator):
                 "The source dataframe is None. Please check the implementation.",
                 False,
             )
-        if gen_df.shape[0] == gt_df.shape[0]:
-            return "Both dataframes have the same rows count.", True
-        else:
-            return (
-                f"The source dataframe and the ground truth dataframe have different rows count. The source dataframe has {gen_df.shape[0]} rows, while the ground truth dataframe has {gt_df.shape[0]} rows. Please check the implementation.",
-                False,
-            )
+        ratio = len(gen_df) / len(gt_df)
+        return (
+            f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. "
+            + "Please verify the implementation. "
+            if ratio <= 0.99
+            else "",
+            ratio,
+        )
 
 
 class FactorIndexEvaluator(FactorEvaluator):
@@ -271,13 +272,15 @@ class FactorIndexEvaluator(FactorEvaluator):
                 "The source dataframe is None. Please check the implementation.",
                 False,
             )
-        if gen_df.index.equals(gt_df.index):
-            return "Both dataframes have the same index.", True
-        else:
-            return (
-                "The source dataframe and the ground truth dataframe have different index. Please check the implementation.",
-                False,
-            )
+        gen_index_set, gt_index_set = set(gen_df.index), set(gt_df.index)
+        similarity = len(gen_index_set.intersection(gt_index_set)) / len(gen_index_set.union(gt_index_set))
+        return (
+            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. The similarity is calculated by the number of shared indices divided by the union indices. "
+            + "Please check the implementation."
+            if similarity <= 0.99
+            else "",
+            similarity,
+        )
 
 
 class FactorMissingValuesEvaluator(FactorEvaluator):
@@ -413,16 +416,12 @@ class FactorValueEvaluator(FactorEvaluator):
         else:
             daily_check_result = None
 
-        # Check if both dataframe have the same rows count
+        # Check dataframe format
         if gt_implementation is not None:
-            feedback_str, single_column_result = FactorRowCountEvaluator(self.scen).evaluate(
-                implementation, gt_implementation
-            )
+            feedback_str, row_result = FactorRowCountEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
-            feedback_str, same_index_result = FactorIndexEvaluator(self.scen).evaluate(
-                implementation, gt_implementation
-            )
+            feedback_str, index_result = FactorIndexEvaluator(self.scen).evaluate(implementation, gt_implementation)
             conclusions.append(feedback_str)
 
             feedback_str, output_format_result = FactorMissingValuesEvaluator(self.scen).evaluate(
@@ -435,7 +434,7 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            if same_index_result:
+            if index_result > 0.99:
                 feedback_str, high_correlation_result = FactorCorrelationEvaluator(
                     hard_check=True, scen=self.scen
                 ).evaluate(implementation, gt_implementation)
@@ -449,7 +448,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif single_column_result is False or output_format_result is False or daily_check_result is False:
+        elif row_result <= 0.99 or output_format_result is False or daily_check_result is False:
             decision_from_value_check = False
         else:
             decision_from_value_check = None
