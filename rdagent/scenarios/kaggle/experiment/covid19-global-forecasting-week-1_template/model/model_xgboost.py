@@ -5,7 +5,7 @@ import xgboost as xgb
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model for both ConfirmedCases and Fatalities."""
     models = {}
-    for target in ['ConfirmedCases', 'Fatalities']:
+    for target in ["ConfirmedCases", "Fatalities"]:
         dtrain = xgb.DMatrix(X_train, label=y_train[target])
         dvalid = xgb.DMatrix(X_valid, label=y_valid[target])
 
