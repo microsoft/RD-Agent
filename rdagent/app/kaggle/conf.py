@@ -32,6 +32,9 @@ class KaggleBasePropSetting(BasePropSetting):
     feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
     """Feature Coder class"""
 
+    model_feature_selection_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelFeatureSelectionCoder"
+    """Model Feature Selection Coder class"""
+
     model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
     """Model Coder class"""
 
@@ -56,8 +59,6 @@ class KaggleBasePropSetting(BasePropSetting):
     rag_path: str = "git_ignore_folder/rag"
 
     if_action_choosing_based_on_UCB: bool = False
-
-    if_using_feature_selection: bool = False
 
     if_using_graph_rag: bool = False
 

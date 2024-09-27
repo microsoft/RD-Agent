@@ -117,9 +117,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
             "last_task_and_code": last_task_and_code,
             "last_result": trace.hist[-1][1].result if trace.hist else None,
-            "sota_task_and_code": exp.based_experiments[-1].experiment_workspace.data_description
-            if exp.based_experiments
-            else None,
+            "sota_task_and_code": (
+                exp.based_experiments[-1].experiment_workspace.data_description if exp.based_experiments else None
+            ),
             "sota_result": exp.based_experiments[-1].result if exp.based_experiments else None,
             "hypothesis": hypothesis,
             "exp": exp,
@@ -150,6 +150,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
 
         experiment_feedback = {
+            "current_competition": self.scen.get_competition_full_desc(),
             "hypothesis_text": hypothesis_text,
             "current_result": current_result,
             "model_code": model_code,
@@ -163,7 +164,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
             self.scen.vector_base.save()
         elif self.scen.if_using_graph_rag:
-            trace.knowledge_base.load_from_documents([experiment_feedback], self.scen)
+            trace.knowledge_base.add_document(experiment_feedback, self.scen)
 
         return HypothesisFeedback(
             observations=observations,

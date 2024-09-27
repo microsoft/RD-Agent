@@ -7,11 +7,6 @@ import xgboost as xgb
 from sklearn.multioutput import MultiOutputRegressor
 
 
-def select(X: pd.DataFrame) -> pd.DataFrame:
-    # Ignore feature selection logic
-    return X
-
-
 def is_sparse_df(df: pd.DataFrame) -> bool:
     # 检查 DataFrame 中的每一列是否为稀疏类型
     return any(isinstance(dtype, pd.SparseDtype) for dtype in df.dtypes)
@@ -19,8 +14,6 @@ def is_sparse_df(df: pd.DataFrame) -> bool:
 
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
-    X_train = select(X_train)
-
     xgb_estimator = xgb.XGBRegressor(
         n_estimators=500, random_state=0, objective="reg:squarederror", tree_method="hist", device="cuda"
     )
@@ -38,7 +31,6 @@ def predict(model, X_test):
     """
     Keep feature select's consistency.
     """
-    X_test = select(X_test)
     if is_sparse_df(X_test):
         X_test = X_test.sparse.to_coo()
     y_pred = model.predict(X_test)

@@ -30,9 +30,10 @@ for f in DIRNAME.glob("feature/feat*.py"):
     X_valid_f = cls.transform(X_valid)
     X_test_f = cls.transform(X_test)
 
-    X_train_l.append(X_train_f)
-    X_valid_l.append(X_valid_f)
-    X_test_l.append(X_test_f)
+    if X_train_f.shape[-1] == X_valid_f.shape[-1] and X_train_f.shape[-1] == X_test_f.shape[-1]:
+        X_train_l.append(X_train_f)
+        X_valid_l.append(X_valid_f)
+        X_test_l.append(X_test_f)
 
 X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_train_l))])
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
@@ -40,41 +41,34 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 
 
 # 3) Train the model
-def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Flatten the columns of a DataFrame with MultiIndex columns,
-    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    """
-    if df.columns.nlevels == 1:
-        return df
-    df.columns = ["_".join(col).strip() for col in df.columns.values]
-    return df
-
-
-X_train = flatten_columns(X_train)
-X_valid = flatten_columns(X_valid)
-X_test = flatten_columns(X_test)
-
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
+    select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+    select_m = import_module_from_path(select_python_path.stem, select_python_path)
+    X_train_selected = select_m.select(X_train.copy())
+    X_valid_selected = select_m.select(X_valid.copy())
+
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
 
 # 4) Evaluate the model on the validation set
-y_valid_pred_l = []
 metrics_all = []
-for model, predict_func in model_l:
-    y_valid_pred = predict_func(model, X_valid)
-    y_valid_pred_l.append(y_valid_pred)
+for model, predict_func, select_m in model_l:
+    X_valid_selected = select_m.select(X_valid.copy())
+    y_valid_pred = predict_func(model, X_valid_selected)
     metrics = mean_squared_error(y_valid, y_valid_pred, squared=False)
     print(f"RMLSE on valid set: {metrics}")
     metrics_all.append(metrics)
 
+# 5) Save the validation accuracy
 min_index = np.argmin(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["RMLSE"]).to_csv("submission_score.csv")
 
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
+# 6) Make predictions on the test set and save them
+X_test_selected = model_l[min_index][2].select(X_test.copy())
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
 
+# 7) Submit predictions for the test set
 submission_result = pd.DataFrame(np.expm1(y_test_pred), columns=["cost"])
 submission_result.insert(0, "id", ids)
 

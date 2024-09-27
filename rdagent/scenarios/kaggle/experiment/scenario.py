@@ -39,7 +39,6 @@ class KGScenario(Scenario):
         self.vector_base = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
-        self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
         self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag
         self.if_using_vector_rag = KAGGLE_IMPLEMENT_SETTING.if_using_vector_rag
 
