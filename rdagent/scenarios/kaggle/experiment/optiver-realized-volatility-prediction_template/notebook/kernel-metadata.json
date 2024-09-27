@@ -1,0 +1,15 @@
+{
+  "id": "bowenxian/optiver-realized-volatility-prediction_test0",
+  "title": "optiver-realized-volatility-prediction_test0",
+  "code_file": "merged_notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
