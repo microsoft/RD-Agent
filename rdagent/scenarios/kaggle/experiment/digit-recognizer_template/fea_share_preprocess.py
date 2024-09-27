@@ -12,10 +12,10 @@ def prepreprocess():
     """
     # Load and preprocess the data
     data_df = pd.read_csv("/kaggle/input/train.csv")
-    data_df = data_df.drop(["Id"], axis=1)
+    # data_df = data_df.drop(["ImageId"], axis=1)
 
-    X = data_df.drop(["Cover_Type"], axis=1)
-    y = data_df["Cover_Type"]
+    X = data_df.drop(["label"], axis=1)
+    y = data_df["label"]
 
     # Split the data into training and validation sets
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
@@ -27,22 +27,28 @@ def preprocess_script():
     """
     This method applies the preprocessing steps to the training, validation, and test datasets.
     """
-    # Load the data
-    train = pd.read_csv("/kaggle/input/train.csv")
-    test = pd.read_csv("/kaggle/input/test.csv")
+    if os.path.exists("/kaggle/input/X_train.pkl"):
+        X_train = pd.read_pickle("/kaggle/input/X_train.pkl")
+        X_valid = pd.read_pickle("/kaggle/input/X_valid.pkl")
+        y_train = pd.read_pickle("/kaggle/input/y_train.pkl")
+        y_valid = pd.read_pickle("/kaggle/input/y_valid.pkl")
+        X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
+        others = pd.read_pickle("/kaggle/input/others.pkl")
 
-    # Separate features and target
-    X = train.drop("label", axis=1)
-    y = train["label"]
+        return X_train, X_valid, y_train, y_valid, X_test, *others
 
-    # Normalize pixel values
-    X = X / 255.0
-    test = test / 255.0
+    X_train, X_valid, y_train, y_valid = prepreprocess()
 
-    # Split into train and validation sets
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Load and preprocess the test data
+    submission_df = pd.read_csv("/kaggle/input/test.csv")
+    # ids = submission_df["ImageId"]
+    X_test = submission_df
 
-    return X_train, X_valid, y_train, y_valid, test, test.index + 1
+    X_train = X_train / 255
+    X_valid = X_valid / 255
+    X_test = X_test / 255
+
+    return X_train, X_valid, y_train, y_valid, X_test
 
 
 def clean_and_impute_data(X_train, X_valid, X_test):

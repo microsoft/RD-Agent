@@ -16,7 +16,8 @@ def fit(X_train, y_train, X_valid, y_valid):
         "eval_metric": "mlogloss",
         "num_class": 10,
         "nthread": -1,
-        "tree_method": "hist",
+        "tree_method": "gpu_hist",
+        "device": "cuda",
     }
     num_round = 100
 

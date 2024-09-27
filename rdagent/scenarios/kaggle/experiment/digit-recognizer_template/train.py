@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import clean_and_impute_data, preprocess_script
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score
 
 # Set random seed for reproducibility
 SEED = 42
@@ -27,7 +27,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -78,7 +78,11 @@ for model, predict_func, select_m in model_l:
 min_index = np.argmax(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["multi-class accuracy"]).to_csv("submission_score.csv")
 
-# 6) Submit predictions for the test set
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
+# 6) Submit predictions for the test
+ids = range(1, len(X_test) + 1)
+
+# TODO: fix selection
+print(X_valid_selected.columns)
+y_test_pred = model_l[min_index][1](model_l[min_index][0], model_l[min_index][2].select(X_test))
 submission_result = pd.DataFrame({"ImageId": ids, "Label": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)
