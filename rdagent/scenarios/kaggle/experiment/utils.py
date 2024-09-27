@@ -94,9 +94,3 @@ def python_files_to_notebook(competition: str, py_dir: str):
     with save_path.with_suffix(".py").open("w", encoding="utf-8") as f:
         f.write(all_py)
 
-
-if __name__ == "__main__":
-    python_files_to_notebook(
-        "optiver-realized-volatility-prediction",
-        "/home/bowen/workspace/RD-Agent/rdagent/scenarios/kaggle/experiment/optiver-realized-volatility-prediction_template",
-    )
