@@ -387,8 +387,8 @@ class FactorValueEvaluator(FactorEvaluator):
         conclusions = []
 
         # Initialize result variables
-        single_column_result = None
-        same_index_result = None
+        row_result = 0
+        index_result = 0
         output_format_result = None
         equal_value_ratio_result = 0
         high_correlation_result = False
