@@ -20,8 +20,22 @@ def compute_metrics_for_classification(y_true, y_pred):
     return log_loss(y_true, y_pred)
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, status_encoder, test_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
 
+print("X_train.head(10):")
+print(X_train.head(10))
+print("X_valid.head(10):")
+print(X_valid.head(10))
+print("X_test.head(10):")
+print(X_test.head(10))
+print("test_ids.head(10):")
+print(test_ids.head(10))
+
+def import_module_from_path(module_name, module_path):
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -86,10 +100,12 @@ for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
     model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
 
+print("X_valid.shape", X_valid.shape)
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
 for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
+    print("y_valid_pred_l[-1].shape, y_valid.shape", y_valid_pred_l[-1].shape, y_valid.shape)
 
 # 5) Ensemble
 y_valid_pred = np.mean(y_valid_pred_l, axis=0)
@@ -107,7 +123,7 @@ for m, m_pred in model_l:
 
 y_test_pred = np.mean(y_test_pred_l, axis=0)
 
-submission_result = pd.DataFrame({"id": passenger_ids, "is_iceberg": y_test_pred})
+submission_result = pd.DataFrame({"id": test_ids, "is_iceberg": y_test_pred.ravel()})
 
 # 8) Submit predictions for the test set
 submission_result.to_csv("submission.csv", index=False)

@@ -48,7 +48,7 @@ def predict(model, X):
     X_selected = select(X)
 
     # Predict using the trained model
-    y_pred_prob = model.predict_proba(X_selected)
+    y_pred = model.predict(X_selected)
 
     # Apply threshold to get boolean predictions
-    return y_pred_prob
+    return y_pred.reshape(-1, 1)

@@ -9,7 +9,10 @@ def prepreprocess():
     """
     # Load the data
     train = pd.read_json("/kaggle/input/train.json")
+    train = train.drop(columns=['id'])
     test = pd.read_json("/kaggle/input/test.json")
+    test_ids = test['id']
+    test = test.drop(columns=['id'])
     
     # Process the data
     def process_data(df):
@@ -29,6 +32,10 @@ def prepreprocess():
         # Handle missing incidence angles
         X['inc_angle'] = X['inc_angle'].replace('na', np.nan).astype(float)
         X['inc_angle'].fillna(X['inc_angle'].mean(), inplace=True)
+
+        # print("Overview of data:")
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
+        #     print(X.head(10))
         
         return X
 
@@ -42,7 +49,7 @@ def prepreprocess():
     # Split the data into training and validation sets
     X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.20, random_state=42)
     
-    return X_train, X_valid, y_train, y_valid, X_test, test['id']
+    return X_train, X_valid, y_train, y_valid, X_test, test_ids
 
 def preprocess_script():
     """
