@@ -70,18 +70,16 @@ def extract_knowledge_from_feedback(feedback_response: dict) -> dict:
 def process_all_case_files(directory_path: str):
     output_file = Path(directory_path) / "kaggle_experience_results.json"
     json_output = []
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".case"):
-            file_path = os.path.join(directory_path, filename)
 
-            with open(file_path, "r", encoding="utf-8") as file:
-                content = file.read()
-                knowladge = extract_knowledge_from_high_score_answers(content)
-                json_output.append(knowladge)
+    for file_path in Path(directory_path).rglob("*.case"):
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+            knowledge = extract_knowledge_from_high_score_answers(content)
+            json_output.append(knowledge)
 
     with open(output_file, "w", encoding="utf-8") as json_file:
         json.dump(json_output, json_file, ensure_ascii=False)
 
 
 if __name__ == "__main__":
-    process_all_case_files(directory_path="git_ignore_folder/experience/tabular_cases_all")
+    process_all_case_files(directory_path="git_ignore_folder/data/kaggle")

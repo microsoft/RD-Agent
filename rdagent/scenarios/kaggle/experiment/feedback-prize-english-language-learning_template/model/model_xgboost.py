@@ -21,9 +21,11 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     """Define and train the model. Merge feature_select"""
     X_train = select(X_train)
 
-    xgb_estimator = xgb.XGBRegressor(n_estimators=500, random_state=0, objective="reg:squarederror")
+    xgb_estimator = xgb.XGBRegressor(
+        n_estimators=500, random_state=0, objective="reg:squarederror", tree_method="gpu_hist", device="cuda"
+    )
 
-    model = MultiOutputRegressor(xgb_estimator, n_jobs=2)
+    model = MultiOutputRegressor(xgb_estimator, n_jobs=-1)
 
     if is_sparse_df(X_train):
         X_train = X_train.sparse.to_coo()

@@ -37,10 +37,12 @@ def fit(X_train, y_train, X_valid, y_valid):
 
     # Convert to TensorDataset and create DataLoader
     train_dataset = TensorDataset(
-        torch.tensor(X_train.to_numpy(), dtype=torch.float32), torch.tensor(y_train.reshape(-1), dtype=torch.float32)
+        torch.tensor(X_train.to_numpy(), dtype=torch.float32),
+        torch.tensor(y_train.to_numpy().reshape(-1), dtype=torch.float32),
     )
     valid_dataset = TensorDataset(
-        torch.tensor(X_valid.to_numpy(), dtype=torch.float32), torch.tensor(y_valid.reshape(-1), dtype=torch.float32)
+        torch.tensor(X_valid.to_numpy(), dtype=torch.float32),
+        torch.tensor(y_valid.to_numpy().reshape(-1), dtype=torch.float32),
     )
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)

@@ -29,13 +29,13 @@ from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
 KG_ACTION_FEATURE_PROCESSING = "Feature processing"
+KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
 KG_ACTION_MODEL_FEATURE_SELECTION = "Model feature selection"
 KG_ACTION_MODEL_TUNING = "Model tuning"
 KG_ACTION_LIST = [
-    KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_FEATURE_ENGINEERING,
     *([KG_ACTION_MODEL_FEATURE_SELECTION] if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection else []),
     KG_ACTION_MODEL_TUNING,
 ]
@@ -93,8 +93,11 @@ class KGHypothesisGen(ModelHypothesisGen):
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
 
-    def generate_RAG_content(self, trace: Trace) -> str:
-        if trace.knowledge_base is None:
+    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str) -> str:
+        if self.scen.if_using_vector_rag:
+            rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
+            return "\n".join([doc.content for doc in rag_results])
+        if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
             return None
         same_competition_node = trace.knowledge_base.get_node_by_content(trace.scen.get_competition_full_desc())
         if same_competition_node is not None:
@@ -235,7 +238,7 @@ class KGHypothesisGen(ModelHypothesisGen):
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": self.generate_RAG_content(trace),
+            "RAG": self.generate_RAG_content(trace, hypothesis_and_feedback),
             "hypothesis_output_format": Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["hypothesis_output_format"])
             .render(if_using_feature_selection=KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection),

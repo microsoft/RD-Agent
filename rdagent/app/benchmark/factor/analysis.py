@@ -6,6 +6,7 @@ import fire
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from scipy.stats import gmean
 
 from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
@@ -97,9 +98,16 @@ class BenchmarkAnalyzer:
 
         sum_df_clean["FactorRowCountEvaluator"]
 
-        format_issue = sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
+        format_issue = sum_df_clean["FactorRowCountEvaluator"].astype(bool) & sum_df_clean[
+            "FactorIndexEvaluator"
+        ].astype(bool)
+        format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
+            lambda x: gmean(x), axis=1
+        )
+
         eval_series = format_issue.unstack()
-        succ_rate = eval_series.T.fillna(False).astype(bool)  # false indicate failure
+        succ_rate = eval_series.T.fillna(False)
+
         format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
         format_succ_rate_f = self.reformat_succ_rate(format_succ_rate)
 

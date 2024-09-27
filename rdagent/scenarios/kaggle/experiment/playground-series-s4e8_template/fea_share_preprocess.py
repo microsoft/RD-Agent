@@ -79,12 +79,16 @@ def preprocess_script():
         y_valid = pd.read_pickle("/kaggle/input/y_valid.pkl")
         X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
         others = pd.read_pickle("/kaggle/input/others.pkl")
+        y_train = pd.Series(y_train).reset_index(drop=True)
+        y_valid = pd.Series(y_valid).reset_index(drop=True)
 
         return X_train, X_valid, y_train, y_valid, X_test, *others
     X_train, X_valid, y_train, y_valid = prepreprocess()
 
     # Fit the preprocessor on the training data
     preprocessor, numerical_cols, categorical_cols = preprocess_fit(X_train)
+    y_train = pd.Series(y_train).reset_index(drop=True)
+    y_valid = pd.Series(y_valid).reset_index(drop=True)
 
     # Preprocess the train, validation, and test data
     X_train = preprocess_transform(X_train, preprocessor, numerical_cols, categorical_cols)

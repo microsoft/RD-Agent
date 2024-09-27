@@ -51,11 +51,17 @@ class KaggleBasePropSetting(BasePropSetting):
 
     local_data_path: str = "/data/userdata/share/kaggle"
 
+    domain_knowledge_path: str = "/data/userdata/share/kaggle/domain_knowledge"
+
     rag_path: str = "git_ignore_folder/rag"
 
     if_action_choosing_based_on_UCB: bool = False
 
     if_using_feature_selection: bool = False
+
+    if_using_graph_rag: bool = False
+
+    if_using_vector_rag: bool = False
 
     auto_submit: bool = True
 

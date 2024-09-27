@@ -85,9 +85,13 @@ def preprocess_script():
         y_valid = pd.read_pickle("/kaggle/input/y_valid.pkl")
         X_test = pd.read_pickle("/kaggle/input/X_test.pkl")
         others = pd.read_pickle("/kaggle/input/others.pkl")
+        y_train = pd.Series(y_train).reset_index(drop=True)
+        y_valid = pd.Series(y_valid).reset_index(drop=True)
 
         return X_train, X_valid, y_train, y_valid, X_test, *others
     X_train, X_valid, y_train, y_valid = prepreprocess()
+    y_train = pd.Series(y_train).reset_index(drop=True)
+    y_valid = pd.Series(y_valid).reset_index(drop=True)
 
     # Fit the preprocessor on the training data
     preprocessor, label_encoders = preprocess_fit(X_train)

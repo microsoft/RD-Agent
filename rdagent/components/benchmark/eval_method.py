@@ -125,10 +125,10 @@ class BaseEval:
         eval_res = []
         for ev in self.evaluator_l:
             try:
+                case_gen.raise_exception = True
                 eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
-            except (CoderError, AttributeError) as e:
-                # TODO: remove AttributeError.
+            except CoderError as e:
                 return e
             except Exception as e:
                 # exception when evaluation

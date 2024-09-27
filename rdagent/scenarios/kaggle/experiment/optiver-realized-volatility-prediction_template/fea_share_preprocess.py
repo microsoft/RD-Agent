@@ -11,15 +11,17 @@ from sklearn.preprocessing import OrdinalEncoder
 
 def prepreprocess():
     # Load the training data
-    train_df = pd.read_csv("/kaggle/input/optiver-realized-volatility-prediction/train.csv")
+    train_df = pd.read_csv("/kaggle/input/train.csv").head(1000)
 
     # Load book and trade data
-    book_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/book_train.parquet")
-    trade_train = pd.read_parquet("/kaggle/input/optiver-realized-volatility-prediction/trade_train.parquet")
+    book_train = pd.read_parquet("/kaggle/input/book_train.parquet").head(1000)
+    trade_train = pd.read_parquet("/kaggle/input/trade_train.parquet").head(1000)
 
     # Merge book and trade data with train_df
     merged_df = pd.merge(train_df, book_train, on=["stock_id", "time_id"], how="left")
     merged_df = pd.merge(merged_df, trade_train, on=["stock_id", "time_id"], how="left")
+
+    print(merged_df.head())
 
     # Split the data
     X = merged_df.drop(["target"], axis=1)
@@ -83,8 +85,19 @@ def preprocess_script():
     X_valid = preprocess_transform(X_valid, preprocessor, numerical_cols, categorical_cols)
 
     submission_df = pd.read_csv("/kaggle/input/test.csv")
-    ids = submission_df["id"]
-    submission_df = submission_df.drop(["id"], axis=1)
+
+    ids = submission_df["row_id"]
+    submission_df = submission_df.drop(["row_id"], axis=1)
+
+    # Add missing columns to submission_df
+    for col in X_train.columns:
+        if col not in submission_df.columns:
+            submission_df[col] = 0  # Fill with 0 or another appropriate value
+
     X_test = preprocess_transform(submission_df, preprocessor, numerical_cols, categorical_cols)
+
+    # Handle missing values
+    for df in [X_train, X_valid, X_test]:
+        df.fillna(df.mean(), inplace=True)
 
     return X_train, X_valid, y_train, y_valid, X_test, ids
