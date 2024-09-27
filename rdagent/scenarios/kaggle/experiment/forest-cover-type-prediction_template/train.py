@@ -93,6 +93,20 @@ for train_index, valid_index in kf.split(X_train):
     X_te = X_te.loc[:, ~X_te.columns.duplicated()]
 
     # Train the model
+    def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Flatten the columns of a DataFrame with MultiIndex columns,
+        for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
+        """
+        if df.columns.nlevels == 1:
+            return df
+        df.columns = ["_".join(col).strip() for col in df.columns.values]
+        return df
+
+    X_tr = flatten_columns(X_tr)
+    X_val = flatten_columns(X_val)
+    X_te = flatten_columns(X_te)
+
     model_l = []  # list[tuple[model, predict_func]]
     for f in DIRNAME.glob("model/model*.py"):
         m = import_module_from_path(f.stem, f)

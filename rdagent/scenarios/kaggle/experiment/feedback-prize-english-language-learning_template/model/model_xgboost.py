@@ -22,7 +22,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     X_train = select(X_train)
 
     xgb_estimator = xgb.XGBRegressor(
-        n_estimators=500, random_state=0, objective="reg:squarederror", tree_method="gpu_hist", device="cuda"
+        n_estimators=500, random_state=0, objective="reg:squarederror", tree_method="hist", device="cuda"
     )
 
     model = MultiOutputRegressor(xgb_estimator, n_jobs=-1)

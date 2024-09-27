@@ -1,23 +1,17 @@
 import pandas as pd
 
-"""
-Here is the feature engineering code for each task, with a class that has a fit and transform method.
-Remember
-"""
 
-
-class IdentityFeature:
+class MidPriceFeature:
     def fit(self, train_df: pd.DataFrame):
-        """
-        Fit the feature engineering model to the training data.
-        """
-        pass
+        return self
 
     def transform(self, X: pd.DataFrame):
-        """
-        Transform the input data.
-        """
-        return X
+        # Check if the required columns exist in the DataFrame
+        if "bid_price1" not in X.columns or "ask_price1" not in X.columns:
+            print("Warning: Required columns bid_price1 and ask_price1 are missing from the DataFrame")
+            return pd.DataFrame(index=X.index)
+        X["mid_price"] = (X["bid_price1"] + X["ask_price1"]) / 2
+        return X[["mid_price"]]
 
 
-feature_engineering_cls = IdentityFeature
+feature_engineering_cls = MidPriceFeature

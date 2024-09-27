@@ -101,21 +101,27 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         feature_shape = org_data.shape[-1]
         exp.experiment_workspace.data_description.append((sub_task.get_task_information(), feature_shape))
 
-        sub_model_1_description = (
-            self.extract_model_task_from_code(
-                (exp.experiment_workspace.workspace_path / "model" / "model_randomforest.py").read_text()
-            )
-            + f"""code: { (exp.experiment_workspace.workspace_path / "model" / "model_randomforest.py").read_text()}"""
-        )
-        sub_model_2_description = (
-            self.extract_model_task_from_code(
-                (exp.experiment_workspace.workspace_path / "model" / "model_xgboost.py").read_text()
-            )
-            + f"""code: { (exp.experiment_workspace.workspace_path / "model" / "model_xgboost.py").read_text()}"""
-        )
+        model_map = {
+            "XGBoost": "model_xgboost.py",
+            "RandomForest": "model_randomforest.py",
+            "LightGBM": "model_lightgbm.py",
+            "NN": "model_nn.py",
+        }
 
-        exp.experiment_workspace.model_description["XGBoost"] = sub_model_1_description
-        exp.experiment_workspace.model_description["RandomForest"] = sub_model_2_description
+        workspace_path = exp.experiment_workspace.workspace_path / "model"
+
+        for model_name, model_file in model_map.items():
+            model_file_path = workspace_path / model_file
+
+            if model_file_path.exists():
+                model_description = (
+                    self.extract_model_task_from_code(model_file_path.read_text())
+                    + f"""code: {model_file_path.read_text()}"""
+                )
+            else:
+                model_description = ""
+
+            exp.experiment_workspace.model_description[model_name] = model_description
 
         if RUNNER_SETTINGS.cache_result:
             self.dump_cache_result(exp, result)
@@ -163,8 +169,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
-        if exp.based_experiments and exp.based_experiments[-1].result is None:
-            exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
         implemented_factor_count = 0
         for sub_ws in exp.sub_workspace_list:
@@ -178,6 +182,10 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             current_feature_file_count += 1
         if implemented_factor_count == 0:
             raise FactorEmptyError("No factor is implemented")
+
+        # initial template result
+        if exp.based_experiments and exp.based_experiments[-1].result is None:
+            exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
 
         if RUNNER_SETTINGS.cache_result:
             cache_hit, result = self.get_cache_result(exp)

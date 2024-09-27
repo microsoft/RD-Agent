@@ -305,15 +305,15 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
 
         for factor_name in response_dict:
-            description = response_dict[factor_name]["description"]
-            formulation = response_dict[factor_name]["formulation"]
-            variables = response_dict[factor_name]["variables"]
+            description = (response_dict[factor_name].get("description", "Factor description not provided"),)
+            formulation = (response_dict[factor_name].get("formulation", "Factor formulation not provided"),)
+            variables = (response_dict[factor_name].get("variables", "Variables not provided"),)
             tasks.append(
                 FactorTask(
-                    factor_name=response_dict.get("factor_name", "Factor name not provided"),
-                    factor_description=response_dict.get("factor_description", "Factor description not provided"),
-                    factor_formulation=response_dict.get("factor_formulation", "Factor formulation not provided"),
-                    variables=response_dict.get("variables", "Variables not provided"),
+                    factor_name=factor_name,
+                    factor_description=description,
+                    factor_formulation=formulation,
+                    variables=variables,
                     version=2,
                 )
             )

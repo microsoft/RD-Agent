@@ -443,9 +443,10 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(ft.factor_formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v, d in ft.variables.items():
-                    mks += f"| ${v}$ | {d} |\n"
-                st.markdown(mks)
+                if isinstance(ft.variables, dict):
+                    for v, d in ft.variables.items():
+                        mks += f"| ${v}$ | {d} |\n"
+                    st.markdown(mks)
 
     elif isinstance(tasks[0], ModelTask):
         st.markdown("**Model Tasks🚩**")

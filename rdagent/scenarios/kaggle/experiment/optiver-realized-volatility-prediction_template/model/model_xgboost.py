@@ -18,7 +18,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     params = {
         "objective": "reg:squarederror",  # Use squared error for regression
         "nthread": -1,
-        "tree_method": "gpu_hist",
+        "tree_method": "hist",
         "device": "cuda",
     }
     num_round = 200

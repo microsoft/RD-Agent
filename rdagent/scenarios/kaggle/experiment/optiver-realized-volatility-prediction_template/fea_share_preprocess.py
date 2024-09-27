@@ -18,16 +18,23 @@ def prepreprocess():
     trade_train = pd.read_parquet("/kaggle/input/trade_train.parquet").head(1000)
 
     # Merge book and trade data with train_df
+    # print(book_train.columns.to_list())
+    # print(trade_train.columns.to_list())
+    # print(train_df.columns.to_list())
     merged_df = pd.merge(train_df, book_train, on=["stock_id", "time_id"], how="left")
     merged_df = pd.merge(merged_df, trade_train, on=["stock_id", "time_id"], how="left")
 
-    print(merged_df.head())
+    # print(merged_df.columns.to_list())
 
     # Split the data
     X = merged_df.drop(["target"], axis=1)
     y = merged_df["target"]
 
+    print(X.columns.to_list())
+
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    print(X_train.columns.to_list())
 
     return X_train, X_valid, y_train, y_valid
 
@@ -78,11 +85,12 @@ def preprocess_script():
         return X_train, X_valid, y_train, y_valid, X_test, *others
 
     X_train, X_valid, y_train, y_valid = prepreprocess()
+    print(X_train.columns.to_list())
 
-    preprocessor, numerical_cols, categorical_cols = preprocess_fit(X_train)
+    # preprocessor, numerical_cols, categorical_cols = preprocess_fit(X_train)
 
-    X_train = preprocess_transform(X_train, preprocessor, numerical_cols, categorical_cols)
-    X_valid = preprocess_transform(X_valid, preprocessor, numerical_cols, categorical_cols)
+    # X_train = preprocess_transform(X_train, preprocessor, numerical_cols, categorical_cols)
+    # X_valid = preprocess_transform(X_valid, preprocessor, numerical_cols, categorical_cols)
 
     submission_df = pd.read_csv("/kaggle/input/test.csv")
 
@@ -94,10 +102,10 @@ def preprocess_script():
         if col not in submission_df.columns:
             submission_df[col] = 0  # Fill with 0 or another appropriate value
 
-    X_test = preprocess_transform(submission_df, preprocessor, numerical_cols, categorical_cols)
+    # X_test = preprocess_transform(submission_df, preprocessor, numerical_cols, categorical_cols)
 
     # Handle missing values
-    for df in [X_train, X_valid, X_test]:
+    for df in [X_train, X_valid, submission_df]:
         df.fillna(df.mean(), inplace=True)
 
-    return X_train, X_valid, y_train, y_valid, X_test, ids
+    return X_train, X_valid, y_train, y_valid, submission_df, ids

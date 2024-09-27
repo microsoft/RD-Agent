@@ -16,11 +16,10 @@ np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-def compute_rmse(y_true, y_pred):
-    """Compute RMSE for regression."""
-    mse = mean_squared_error(y_true, y_pred)
-    rmse = np.sqrt(mse)
-    return rmse
+def compute_rmspe(y_true, y_pred):
+    """Compute RMSPE for regression."""
+    rmspe = np.sqrt(np.mean(((y_true - y_pred) / y_true) ** 2))
+    return rmspe
 
 
 def import_module_from_path(module_name, module_path):
@@ -38,6 +37,8 @@ print("preprocess done")
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
+
+print(X_train.columns.tolist())
 
 for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
@@ -98,26 +99,18 @@ for f in DIRNAME.glob("model/model*.py"):
 
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
+metrics_all = []
 for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
-    print(predict_func(model, X_valid).shape)
+    metrics = compute_rmspe(y_valid, y_valid_pred_l[-1].ravel())
+    print(f"RMSPE on valid set: {metrics}")
+    metrics_all.append(metrics)
 
-# 5) Ensemble
-y_valid_pred = np.mean(y_valid_pred_l, axis=0)
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["RMSPE"]).to_csv("submission_score.csv")
 
-rmse = compute_rmse(y_valid, y_valid_pred)
-print("Final RMSE on validation set: ", rmse)
-
-# 6) Save the validation RMSE
-pd.Series(data=[rmse], index=["RMSE"]).to_csv("submission_score.csv")
-
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for m, m_pred in model_l:
-    y_test_pred_l.append(m_pred(m, X_test))
-
-y_test_pred = np.mean(y_test_pred_l, axis=0).ravel()
-
-# 8) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": ids, "price": y_test_pred})
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
+print(y_test_pred)
+# 5) Submit predictions for the test set
+submission_result = pd.DataFrame({"row_id": ids, "target": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)

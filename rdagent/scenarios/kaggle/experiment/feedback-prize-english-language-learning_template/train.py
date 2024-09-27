@@ -24,6 +24,7 @@ X_test_l = []
 
 for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
+    print(X_train.head())
     cls.fit(X_train)
     X_train_f = cls.transform(X_train)
     X_valid_f = cls.transform(X_valid)
