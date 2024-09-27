@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, log_loss
 
 # Set random seed for reproducibility
 SEED = 42
@@ -57,7 +57,7 @@ X_train = flatten_columns(X_train)
 X_valid = flatten_columns(X_valid)
 X_test = flatten_columns(X_test)
 
-model_l = []  # list[tuple[model, predict_func]]
+model_l = []  # list[tuple[model, predict_func, validation_score]]
 for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
     # Check if the fit function accepts n_classes
@@ -65,32 +65,34 @@ for f in DIRNAME.glob("model/model*.py"):
         model = m.fit(X_train, y_train, X_valid, y_valid, n_classes)
     else:
         model = m.fit(X_train, y_train, X_valid, y_valid)
-    model_l.append((model, m.predict))
+    
+    # Evaluate the model on the validation set
+    y_valid_pred = m.predict(model, X_valid)
+    validation_score = log_loss(y_valid, y_valid_pred)
+    
+    model_l.append((model, m.predict, validation_score))
 
-# 4) Evaluate the model on the validation set
-y_valid_pred_l = []
-for model, predict_func in model_l:
-    y_valid_pred_l.append(predict_func(model, X_valid))
+# Sort models by validation score (lower is better for log loss)
+model_l.sort(key=lambda x: x[2])
 
-# 5) Ensemble
-y_valid_pred_proba = np.mean(y_valid_pred_l, axis=0)
+# 4) Use the best model for predictions
+best_model, best_predict_func, _ = model_l[0]
+
+# 5) Make predictions on the validation set using the best model
+y_valid_pred = best_predict_func(best_model, X_valid)
 
 # Compute metrics
-map3 = compute_map3(y_valid, y_valid_pred_proba)
+map3 = compute_map3(y_valid, y_valid_pred)
 print(f"MAP@3 on validation set: {map3}")
 
 # 6) Save the validation metrics
 pd.Series(data=[map3], index=["MAP@3"]).to_csv("submission_score.csv")
 
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for model, predict_func in model_l:
-    y_test_pred_l.append(predict_func(model, X_test))
-
-y_test_pred_proba = np.mean(y_test_pred_l, axis=0)
+# 7) Make predictions on the test set using the best model
+y_test_pred = best_predict_func(best_model, X_test)
 
 # Get top 3 predictions for each test sample
-top_3_indices = np.argsort(-y_test_pred_proba, axis=1)[:, :3]
+top_3_indices = np.argsort(-y_test_pred, axis=1)[:, :3]
 top_3_place_ids = place_id_encoder.inverse_transform(top_3_indices)
 
 # Create submission DataFrame
