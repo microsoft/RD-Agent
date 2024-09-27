@@ -392,6 +392,7 @@ class FactorValueEvaluator(FactorEvaluator):
         output_format_result = None
         equal_value_ratio_result = 0
         high_correlation_result = False
+        row_result = None
 
         # Check if both dataframe has only one columns Mute this since factor task might generate more than one columns now
         if version == 1:
@@ -448,7 +449,7 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif row_result <= 0.99 or output_format_result is False or daily_check_result is False:
+        elif row_result is not None and row_result <= 0.99 or output_format_result is False or daily_check_result is False:
             decision_from_value_check = False
         else:
             decision_from_value_check = None
