@@ -23,6 +23,8 @@
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------                        |
+| Official WeChat group release  | We created a WeChat group ([🗪QR Code](docs/WeChat_QR_code.jpg)) |
+| Official Gitter channel release  | We launch our first chatting channel in Gitter ([🗪Link](https://matrix.to/#/#rd-agent:gitter.im)) |
 | First release | **RDAgent** is released on GitHub |
 
 
