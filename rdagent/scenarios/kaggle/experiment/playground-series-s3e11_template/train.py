@@ -62,31 +62,18 @@ for f in DIRNAME.glob("model/model*.py"):
 
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
+metrics_all = []
 for model, predict_func in model_l:
     y_valid_pred = predict_func(model, X_valid)
     y_valid_pred_l.append(y_valid_pred)
-    # print(y_valid_pred)
-    # print(y_valid_pred.shape)
+    metrics = mean_squared_error(y_valid, y_valid_pred, squared=False)
+    print(f"RMLSE on valid set: {metrics}")
+    metrics_all.append(metrics)
 
-# 5) Ensemble
-# Majority vote ensemble
-y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["RMLSE"]).to_csv("submission_score.csv")
 
-
-# 6) Save the validation metrics
-metrics = mean_squared_error(y_valid, y_valid_pred_ensemble, squared=False)
-print(f"RMLSE on valid set: {metrics}")
-pd.Series(data=[metrics], index=["RMLSE"]).to_csv("submission_score.csv")
-
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for model, predict_func in model_l:
-    y_test_pred_l.append(predict_func(model, X_test))
-
-
-# For multiclass classification, use the mode of the predictions
-y_test_pred = np.mean(y_test_pred_l, axis=0).ravel()
-
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
 
 submission_result = pd.DataFrame(np.expm1(y_test_pred), columns=["cost"])
 submission_result.insert(0, "id", ids)
