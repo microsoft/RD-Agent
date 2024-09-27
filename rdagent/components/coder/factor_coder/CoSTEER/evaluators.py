@@ -448,10 +448,16 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        elif row_result <= 0.99 or output_format_result is False or daily_check_result is False:
-            decision_from_value_check = False
-        else:
-            decision_from_value_check = None
+        if version == 1:
+            if row_result <= 0.99 or output_format_result is False or daily_check_result is False:
+                decision_from_value_check = False
+            else:
+                decision_from_value_check = None
+        elif version == 2:
+            if output_format_result is False or daily_check_result is False:
+                decision_from_value_check = False
+            else:
+                decision_from_value_check = None
         return conclusion_str, decision_from_value_check
 
 
