@@ -36,7 +36,7 @@ KG_ACTION_MODEL_TUNING = "Model tuning"
 KG_ACTION_LIST = [
     KG_ACTION_FEATURE_PROCESSING,
     KG_ACTION_FEATURE_ENGINEERING,
-    *([KG_ACTION_MODEL_FEATURE_SELECTION] if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection else []),
+    KG_ACTION_MODEL_FEATURE_SELECTION,
     KG_ACTION_MODEL_TUNING,
 ]
 
@@ -82,13 +82,9 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
-        actions = ["Feature engineering", "Feature processing", "Model tuning"]
-        if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection:
-            actions.insert(2, "Model feature selection")
-        self.action_counts = dict.fromkeys(actions, 0)
-        self.reward_estimates = {action: 0.0 for action in actions}
-        if KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection:
-            self.reward_estimates["Model feature selection"] = 0.2
+        self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
+        self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
+        self.reward_estimates["Model feature selection"] = 0.2
         self.reward_estimates["Model tuning"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
@@ -239,9 +235,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": self.generate_RAG_content(trace, hypothesis_and_feedback),
-            "hypothesis_output_format": Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["hypothesis_output_format"])
-            .render(if_using_feature_selection=KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection),
+            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
                 f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None
             ),
@@ -252,14 +246,15 @@ class KGHypothesisGen(ModelHypothesisGen):
         response_dict = json.loads(response)
 
         hypothesis = KGHypothesis(
-            hypothesis=response_dict["hypothesis"],
-            reason=response_dict["reason"],
-            concise_reason=response_dict["concise_reason"],
-            concise_observation=response_dict["concise_observation"],
-            concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"],
-            action=response_dict["action"],
+            hypothesis=response_dict.get("hypothesis", "Hypothesis not provided"),
+            reason=response_dict.get("reason", "Reason not provided"),
+            concise_reason=response_dict.get("concise_reason", "Concise reason not provided"),
+            concise_observation=response_dict.get("concise_observation", "Concise observation not provided"),
+            concise_justification=response_dict.get("concise_justification", "Concise justification not provided"),
+            concise_knowledge=response_dict.get("concise_knowledge", "Concise knowledge not provided"),
+            action=response_dict.get("action", "Action not provided"),
         )
+
         return hypothesis
 
 
@@ -304,9 +299,9 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
 
         for factor_name in response_dict:
-            description = response_dict[factor_name]["description"]
-            formulation = response_dict[factor_name]["formulation"]
-            variables = response_dict[factor_name]["variables"]
+            description = (response_dict[factor_name].get("description", "Factor description not provided"),)
+            formulation = (response_dict[factor_name].get("formulation", "Factor formulation not provided"),)
+            variables = (response_dict[factor_name].get("variables", "Variables not provided"),)
             tasks.append(
                 FactorTask(
                     factor_name=factor_name,
@@ -318,7 +313,11 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             )
 
         exp = KGFactorExperiment(
-            sub_tasks=tasks, based_experiments=([KGFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]])
+            sub_tasks=tasks,
+            based_experiments=(
+                [KGFactorExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])]
+                + [t[1] for t in trace.hist if t[2]]
+            ),
         )
         return exp
 
@@ -327,16 +326,20 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
         tasks.append(
             ModelTask(
-                name=response_dict["model_name"],
-                description=response_dict["description"],
-                architecture=response_dict["architecture"],
-                hyperparameters=response_dict["hyperparameters"],
-                model_type=response_dict["model_type"],
+                name=response_dict.get("model_name", "Model name not provided"),
+                description=response_dict.get("description", "Description not provided"),
+                architecture=response_dict.get("architecture", "Architecture not provided"),
+                hyperparameters=response_dict.get("hyperparameters", "Hyperparameters not provided"),
+                model_type=response_dict.get("model_type", "Model type not provided"),
                 version=2,
             )
         )
         exp = KGModelExperiment(
-            sub_tasks=tasks, based_experiments=([KGModelExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]])
+            sub_tasks=tasks,
+            based_experiments=(
+                [KGModelExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])]
+                + [t[1] for t in trace.hist if t[2]]
+            ),
         )
         return exp
 

@@ -39,7 +39,6 @@ class KGScenario(Scenario):
         self.vector_base = None
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
-        self.if_using_feature_selection = KAGGLE_IMPLEMENT_SETTING.if_using_feature_selection
         self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag
         self.if_using_vector_rag = KAGGLE_IMPLEMENT_SETTING.if_using_vector_rag
 
@@ -135,6 +134,7 @@ class KGScenario(Scenario):
             X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
             # TODO: Hardcoded for now, need to be fixed
             if self.competition == "feedback-prize-english-language-learning":
+                self.input_shape = X_valid.shape
                 return "This is a sparse matrix of descriptive text."
             buffer = io.StringIO()
             X_valid.info(verbose=True, buf=buffer, show_counts=True)

@@ -49,8 +49,8 @@ def fit(X_train, y_train, X_valid, y_valid):
 
     # Train the model
     model.train()
-    for epoch in range(100):
-        print(f"Epoch {epoch + 1}/100")
+    for epoch in range(50):
+        print(f"Epoch {epoch + 1}/50")
         epoch_loss = 0
         for X_batch, y_batch in tqdm(train_loader, desc="Training", leave=False):
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)  # Move data to the device

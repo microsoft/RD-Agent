@@ -21,6 +21,7 @@ from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_MODEL_MAPPING
 
 coder_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -41,14 +42,8 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
             current_code = ""
             sota_exp_code_dict = current_exp.based_experiments[-1].experiment_workspace.code_dict
             if target_task.version == 2:
-                model_file_mapping = {
-                    "XGBoost": "model/model_xgboost.py",
-                    "RandomForest": "model/model_randomforest.py",
-                    "LightGBM": "model/model_lightgbm.py",
-                    "NN": "model/model_nn.py",
-                }
-                if model_type in model_file_mapping:
-                    current_code = sota_exp_code_dict.get(model_file_mapping[model_type], None)
+                if model_type in KG_MODEL_MAPPING:
+                    current_code = sota_exp_code_dict.get(KG_MODEL_MAPPING[model_type], None)
                 elif "model.py" in sota_exp_code_dict:
                     current_code = sota_exp_code_dict["model.py"]
                 else:
