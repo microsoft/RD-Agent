@@ -304,7 +304,7 @@ class FactorMissingValuesEvaluator(FactorEvaluator):
             )
 
 
-class FactorEqualValueCountEvaluator(FactorEvaluator):
+class FactorEqualValueRatioEvaluator(FactorEvaluator):
     def evaluate(
         self,
         implementation: Workspace,
@@ -430,7 +430,7 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator(self.scen).evaluate(
+            feedback_str, equal_value_ratio_result = FactorEqualValueRatioEvaluator(self.scen).evaluate(
                 implementation, gt_implementation
             )
             conclusions.append(feedback_str)

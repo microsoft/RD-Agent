@@ -8,7 +8,7 @@ from tqdm import tqdm
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorCorrelationEvaluator,
-    FactorEqualValueCountEvaluator,
+    FactorEqualValueRatioEvaluator,
     FactorEvaluator,
     FactorIndexEvaluator,
     FactorMissingValuesEvaluator,
@@ -155,7 +155,7 @@ class FactorImplementEval(BaseEval):
             FactorRowCountEvaluator(scen),
             FactorIndexEvaluator(scen),
             FactorMissingValuesEvaluator(scen),
-            FactorEqualValueCountEvaluator(scen),
+            FactorEqualValueRatioEvaluator(scen),
             FactorCorrelationEvaluator(hard_check=False, scen=scen),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
