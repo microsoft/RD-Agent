@@ -19,15 +19,10 @@ def python_files_to_notebook(competition: str, py_dir: str):
         for fea_file in fea_files
     }
 
-    model_files = list(py_dir.glob("model/*.py"))
+    model_files = list(py_dir.glob("model/model*.py"))
     model_pys = {f"{model_file.stem}": model_file.read_text().strip() for model_file in model_files}
     for k, v in model_pys.items():
-        model_pys[k] = (
-            v.replace("def select(", "def select(self, ")
-            .replace("def fit(", "def fit(self, ")
-            .replace("def predict(", "def predict(self, ")
-            .replace("= select", "= self.select")
-        )
+        model_pys[k] = v.replace("def fit(", "def fit(self, ").replace("def predict(", "def predict(self, ")
 
         lines = model_pys[k].split("\n")
         indent = False
@@ -42,6 +37,12 @@ def python_files_to_notebook(competition: str, py_dir: str):
         lines.insert(first_line, f"class {k}:\n")
         model_pys[k] = "\n".join(lines)
 
+    select_files = list(py_dir.glob("model/select*.py"))
+    select_pys = {
+        f"{select_file.stem}": select_file.read_text().replace("def select(", f"def {select_file.stem}(")
+        for select_file in select_files
+    }
+
     train_file = py_dir / "train.py"
     train_py = train_file.read_text()
 
@@ -54,9 +55,17 @@ def python_files_to_notebook(competition: str, py_dir: str):
     ).replace("cls = import_module_from_path(f.stem, f).feature_engineering_cls()", "")
 
     model_cls_list_str = "[" + ", ".join(list(model_pys.keys())) + "]"
-    train_py = train_py.replace(
-        'for f in DIRNAME.glob("model/model*.py"):', f"for mc in {model_cls_list_str}:"
-    ).replace("m = import_module_from_path(f.stem, f)", "m = mc()")
+    train_py = (
+        train_py.replace('for f in DIRNAME.glob("model/model*.py"):', f"for mc in {model_cls_list_str}:")
+        .replace("m = import_module_from_path(f.stem, f)", "m = mc()")
+        .replace('select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)', "")
+        .replace(
+            "select_m = import_module_from_path(select_python_path.stem, select_python_path)",
+            'select_m = eval(mc.__name__.replace("model", "select"))',
+        )
+        .replace("select_m.select", "select_m")
+        .replace("[2].select", "[2]")
+    )
 
     nb = nbf.v4.new_notebook()
     all_py = ""
@@ -72,6 +81,10 @@ def python_files_to_notebook(competition: str, py_dir: str):
         nb.cells.append(nbf.v4.new_code_cell(v))
         all_py += v + "\n\n"
 
+    for v in select_pys.values():
+        nb.cells.append(nbf.v4.new_code_cell(v))
+        all_py += v + "\n\n"
+
     nb.cells.append(nbf.v4.new_code_cell(train_py))
     all_py += train_py + "\n"
 
@@ -80,3 +93,10 @@ def python_files_to_notebook(competition: str, py_dir: str):
 
     with save_path.with_suffix(".py").open("w", encoding="utf-8") as f:
         f.write(all_py)
+
+
+if __name__ == "__main__":
+    python_files_to_notebook(
+        "optiver-realized-volatility-prediction",
+        "/home/bowen/workspace/RD-Agent/rdagent/scenarios/kaggle/experiment/optiver-realized-volatility-prediction_template",
+    )
