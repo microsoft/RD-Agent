@@ -150,6 +150,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
 
         experiment_feedback = {
+            "current_competition": self.scen.get_competition_full_desc(),
             "hypothesis_text": hypothesis_text,
             "current_result": current_result,
             "model_code": model_code,
@@ -163,7 +164,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
             self.scen.vector_base.save()
         elif self.scen.if_using_graph_rag:
-            trace.knowledge_base.load_from_documents([experiment_feedback], self.scen)
+            trace.knowledge_base.add_document(experiment_feedback, self.scen)
 
         return HypothesisFeedback(
             observations=observations,

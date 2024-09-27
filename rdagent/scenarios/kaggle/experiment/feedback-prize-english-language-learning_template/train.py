@@ -87,7 +87,8 @@ min_index = np.argmin(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["MCRMSE"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
+X_test_selected = select_m.select(X_test.copy())
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
 
 # 7) Submit predictions for the test set
 submission_result = pd.read_csv("/kaggle/input/sample_submission.csv")
