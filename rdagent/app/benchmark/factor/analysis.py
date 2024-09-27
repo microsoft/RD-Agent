@@ -118,7 +118,7 @@ class BenchmarkAnalyzer:
         format_succ_rate = format_issue.unstack().T.mean(axis=0).to_frame("success rate")
         format_succ_rate_f = self.reformat_index(format_succ_rate)
 
-        corr = sum_df_clean["FactorCorrelationEvaluator"]
+        corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.)
         corr = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
         corr_res = self.reformat_index(corr)
         corr_max = sum_df_clean["FactorCorrelationEvaluator"]

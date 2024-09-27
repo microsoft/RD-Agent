@@ -157,10 +157,8 @@ class FactorImplementEval(BaseEval):
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round
 
-    def eval(self):
+    def develop(self):
         gen_factor_l_all_rounds = []
-        test_cases_all_rounds = []
-        res = defaultdict(list)
         for _ in tqdm(range(self.test_round), desc="Rounds of Eval"):
             print("\n========================================================")
             print(f"Eval {_}-th times...")
@@ -177,8 +175,14 @@ class FactorImplementEval(BaseEval):
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
             gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
-            test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
+        return gen_factor_l_all_rounds
+    
+    def eval(self, gen_factor_l_all_rounds):
+        test_cases_all_rounds =[]
+        res = defaultdict(list)
+        for _ in range(self.test_round):
+            test_cases_all_rounds.extend(self.test_cases.ground_truth)
         eval_res_list = multiprocessing_wrapper(
             [
                 (self.eval_case, (gt_case, gen_factor))
