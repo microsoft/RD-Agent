@@ -171,7 +171,7 @@ def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdat
 
 
 def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> dict[str, list[str]]:
-    '''
+    """
     {
         "competition1": [
             "knowledge_text1",
@@ -185,9 +185,9 @@ def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> 
         ],
         ...
     }
-    '''
+    """
     notebooks_dir = Path(local_path) / "notebooks"
-    
+
     competition_knowledge_texts_dict = {}
     for competition_dir in notebooks_dir.iterdir():
         knowledge_texts = []
@@ -198,6 +198,7 @@ def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> 
         competition_knowledge_texts_dict[competition_dir.name] = knowledge_texts
 
     return competition_knowledge_texts_dict
+
 
 # %%
 if __name__ == "__main__":
