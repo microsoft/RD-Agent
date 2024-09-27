@@ -53,11 +53,6 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
-# Handle inf and -inf values
-X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
-
 from sklearn.impute import SimpleImputer
 
 imputer = SimpleImputer(strategy="mean")
