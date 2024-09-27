@@ -20,24 +20,15 @@ def compute_metrics_for_classification(y_true, y_pred):
     return log_loss(y_true, y_pred)
 
 
-# 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
-
-print("X_train.head(10):")
-print(X_train.head(10))
-print("X_valid.head(10):")
-print(X_valid.head(10))
-print("X_test.head(10):")
-print(X_test.head(10))
-print("test_ids.head(10):")
-print(test_ids.head(10))
-
-
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+# 1) Preprocess the data
+X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
 
 
 # 2) Auto feature engineering
@@ -81,52 +72,35 @@ X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
-
 # 3) Train the model
-def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Flatten the columns of a DataFrame with MultiIndex columns,
-    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    """
-    if df.columns.nlevels == 1:
-        return df
-    df.columns = ["_".join(col).strip() for col in df.columns.values]
-    return df
-
-
-X_train = flatten_columns(X_train)
-X_valid = flatten_columns(X_valid)
-X_test = flatten_columns(X_test)
-
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
+    select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+    select_m = import_module_from_path(select_python_path.stem, select_python_path)
+    X_train_selected = select_m.select(X_train.copy())
+    X_valid_selected = select_m.select(X_valid.copy())
+
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
 
-print("X_valid.shape", X_valid.shape)
 # 4) Evaluate the model on the validation set
-y_valid_pred_l = []
-for model, predict_func in model_l:
-    y_valid_pred_l.append(predict_func(model, X_valid))
-    print("y_valid_pred_l[-1].shape, y_valid.shape", y_valid_pred_l[-1].shape, y_valid.shape)
+metrics_all = []
+for model, predict_func, select_m in model_l:
+    X_valid_selected = select_m.select(X_valid.copy())
+    y_valid_pred = predict_func(model, X_valid_selected)
+    metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
+    print("Metrics: ", metrics)
+    metrics_all.append(metrics)
 
-# 5) Ensemble
-y_valid_pred = np.mean(y_valid_pred_l, axis=0)
+# 5) Save the validation log loss
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["Log Loss"]).to_csv("submission_score.csv")
 
-log_loss_score = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("Final log loss on validation set: ", log_loss_score)
+# 6) Make predictions on the test set and save them
+X_test_selected = model_l[min_index][2].select(X_test.copy())
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
 
-# 6) Save the validation log loss
-pd.Series(data=[log_loss_score], index=["Log Loss"]).to_csv("submission_score.csv")
 
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for m, m_pred in model_l:
-    y_test_pred_l.append(m_pred(m, X_test))
-
-y_test_pred = np.mean(y_test_pred_l, axis=0)
-
+# 7) Submit predictions for the test set
 submission_result = pd.DataFrame({"id": test_ids, "is_iceberg": y_test_pred.ravel()})
-
-# 8) Submit predictions for the test set
 submission_result.to_csv("submission.csv", index=False)

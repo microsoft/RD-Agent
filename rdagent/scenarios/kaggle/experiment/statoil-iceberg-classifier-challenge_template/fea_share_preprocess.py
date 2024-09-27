@@ -35,10 +35,6 @@ def prepreprocess():
         X["inc_angle"] = X["inc_angle"].replace("na", np.nan).astype(float)
         X["inc_angle"].fillna(X["inc_angle"].mean(), inplace=True)
 
-        # print("Overview of data:")
-        # with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
-        #     print(X.head(10))
-
         return X
 
     X_train = process_data(train)
