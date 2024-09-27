@@ -2,7 +2,6 @@ import pandas as pd
 import xgboost as xgb
 
 
-
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
     dtrain = xgb.DMatrix(X_train, label=y_train)

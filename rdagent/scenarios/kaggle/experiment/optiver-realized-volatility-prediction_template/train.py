@@ -42,9 +42,10 @@ for f in DIRNAME.glob("feature/feat*.py"):
     X_valid_f = cls.transform(X_valid)
     X_test_f = cls.transform(X_test)
 
-    X_train_l.append(X_train_f)
-    X_valid_l.append(X_valid_f)
-    X_test_l.append(X_test_f)
+    if X_train_f.shape[-1] == X_valid_f.shape[-1] and X_train_f.shape[-1] == X_test_f.shape[-1]:
+        X_train_l.append(X_train_f)
+        X_valid_l.append(X_valid_f)
+        X_test_l.append(X_test_f)
 
 X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_train_l))])
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])

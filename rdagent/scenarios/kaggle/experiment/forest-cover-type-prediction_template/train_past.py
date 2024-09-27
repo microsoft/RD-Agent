@@ -1,5 +1,6 @@
 import importlib.util
 import random
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -7,13 +8,13 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
-from collections import defaultdict
 
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
+
 
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -108,9 +109,9 @@ for train_index, valid_index in kf.split(X_train):
     for model, predict_func in model_l:
         X_valid_selected = select_m.select(X_val.copy())
         y_valid_pred = predict_func(model, X_valid_selected)
-        accuracy  = accuracy_score(y_val, y_valid_pred)
+        accuracy = accuracy_score(y_val, y_valid_pred)
         print(f"Accuracy on valid set: {accuracy}")
-        
+
         if accuracy > best_accuracy:
             best_accuracy = accuracy
             best = (model, predict_func)
