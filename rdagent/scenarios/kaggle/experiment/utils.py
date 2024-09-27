@@ -1,5 +1,6 @@
-import nbformat as nbf
 from pathlib import Path
+
+import nbformat as nbf
 
 
 def python_files_to_notebook(competition: str, py_dir: str):
@@ -9,19 +10,26 @@ def python_files_to_notebook(competition: str, py_dir: str):
     pre_file = py_dir / "fea_share_preprocess.py"
     pre_py = pre_file.read_text()
 
-    pre_py = pre_py.replace("/kaggle/input",f"/kaggle/input/{competition}")
-
+    pre_py = pre_py.replace("/kaggle/input", f"/kaggle/input/{competition}")
 
     fea_files = list(py_dir.glob("feature/*.py"))
-    fea_pys = {f"{fea_file.stem}_cls":fea_file.read_text().replace("feature_engineering_cls", f"{fea_file.stem}_cls").strip() + "()\n" for fea_file in fea_files}
-
+    fea_pys = {
+        f"{fea_file.stem}_cls": fea_file.read_text().replace("feature_engineering_cls", f"{fea_file.stem}_cls").strip()
+        + "()\n"
+        for fea_file in fea_files
+    }
 
     model_files = list(py_dir.glob("model/*.py"))
-    model_pys = {f"{model_file.stem}":model_file.read_text().strip() for model_file in model_files}
-    for k,v in model_pys.items():
-        model_pys[k] = v.replace("def select(","def select(self, ").replace("def fit(","def fit(self, ").replace("def predict(","def predict(self, ").replace("= select", "= self.select")
-        
-        lines = model_pys[k].split('\n')
+    model_pys = {f"{model_file.stem}": model_file.read_text().strip() for model_file in model_files}
+    for k, v in model_pys.items():
+        model_pys[k] = (
+            v.replace("def select(", "def select(self, ")
+            .replace("def fit(", "def fit(self, ")
+            .replace("def predict(", "def predict(self, ")
+            .replace("= select", "= self.select")
+        )
+
+        lines = model_pys[k].split("\n")
         indent = False
         first_line = -1
         for i, line in enumerate(lines):
@@ -32,20 +40,23 @@ def python_files_to_notebook(competition: str, py_dir: str):
             if indent:
                 lines[i] = "    " + line
         lines.insert(first_line, f"class {k}:\n")
-        model_pys[k] = '\n'.join(lines)
-
+        model_pys[k] = "\n".join(lines)
 
     train_file = py_dir / "train.py"
     train_py = train_file.read_text()
 
-    train_py = train_py.replace("from fea_share_preprocess import preprocess_script","")
+    train_py = train_py.replace("from fea_share_preprocess import preprocess_script", "")
     train_py = train_py.replace("DIRNAME = Path(__file__).absolute().resolve().parent", "")
 
     fea_cls_list_str = "[" + ", ".join(list(fea_pys.keys())) + "]"
-    train_py = train_py.replace('for f in DIRNAME.glob("feature/feat*.py"):', f"for cls in {fea_cls_list_str}:").replace("cls = import_module_from_path(f.stem, f).feature_engineering_cls()", "")
+    train_py = train_py.replace(
+        'for f in DIRNAME.glob("feature/feat*.py"):', f"for cls in {fea_cls_list_str}:"
+    ).replace("cls = import_module_from_path(f.stem, f).feature_engineering_cls()", "")
 
     model_cls_list_str = "[" + ", ".join(list(model_pys.keys())) + "]"
-    train_py = train_py.replace('for f in DIRNAME.glob("model/model*.py"):', f"for mc in {model_cls_list_str}:").replace("m = import_module_from_path(f.stem, f)", "m = mc()")
+    train_py = train_py.replace(
+        'for f in DIRNAME.glob("model/model*.py"):', f"for mc in {model_cls_list_str}:"
+    ).replace("m = import_module_from_path(f.stem, f)", "m = mc()")
 
     nb = nbf.v4.new_notebook()
     all_py = ""
@@ -64,8 +75,8 @@ def python_files_to_notebook(competition: str, py_dir: str):
     nb.cells.append(nbf.v4.new_code_cell(train_py))
     all_py += train_py + "\n"
 
-    with save_path.open("w", encoding='utf-8') as f:
+    with save_path.open("w", encoding="utf-8") as f:
         nbf.write(nb, f)
 
-    with save_path.with_suffix(".py").open("w", encoding='utf-8') as f:
+    with save_path.with_suffix(".py").open("w", encoding="utf-8") as f:
         f.write(all_py)

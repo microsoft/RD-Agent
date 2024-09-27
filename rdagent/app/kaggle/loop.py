@@ -82,9 +82,14 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(exp, tag="runner result")
 
             if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
-                from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
+                from rdagent.scenarios.kaggle.experiment.utils import (
+                    python_files_to_notebook,
+                )
+
                 try:
-                    python_files_to_notebook(KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path)
+                    python_files_to_notebook(
+                        KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path
+                    )
                 except Exception as e:
                     logger.error(f"Merge python files to one file failed: {e}")
 
