@@ -1,7 +1,7 @@
 import subprocess
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Tuple
 
 import pandas as pd
 
@@ -29,8 +29,15 @@ class KGFBWorkspace(FBWorkspace):
     def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
-        self.data_description: list[str] = []
-        self.model_description: dict[str, str] = {}
+        self.data_description: List[Tuple[str, int]] = []
+
+    @property
+    def model_description(self) -> dict[str, str]:
+        model_description = {}
+        for k, v in self.code_dict.items():
+            if k.startswith("model/"):
+                model_description[k] = v
+        return model_description
 
     def generate_preprocess_data(
         self,

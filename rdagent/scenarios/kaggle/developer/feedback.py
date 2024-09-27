@@ -117,9 +117,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
             "last_task_and_code": last_task_and_code,
             "last_result": trace.hist[-1][1].result if trace.hist else None,
-            "sota_task_and_code": exp.based_experiments[-1].experiment_workspace.data_description
-            if exp.based_experiments
-            else None,
+            "sota_task_and_code": (
+                exp.based_experiments[-1].experiment_workspace.data_description if exp.based_experiments else None
+            ),
             "sota_result": exp.based_experiments[-1].result if exp.based_experiments else None,
             "hypothesis": hypothesis,
             "exp": exp,

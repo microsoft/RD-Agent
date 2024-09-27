@@ -125,22 +125,19 @@ kg_feature_interface: |-
 kg_model_interface: |-
   Your code should contain several parts:
   1. The import part: import the necessary libraries.
-  2. A select() function that handles feature selection for both training and prediction phases.
-    The function should take the following arguments:
-      - X: The features as a pandas DataFrame.
-    The function should return the selected features as a pandas DataFrame.
-  3. A function called fit() that trains the model and returns the trained model. If feature selection is applied, it should be done within this function.
+  2. A function called fit() that trains the model and returns the trained model.
     The function should take the following arguments:
       - X_train: The training features as a pandas DataFrame.
       - y_train: The training labels as a pandas Series.
       - X_valid: The validation features as a pandas DataFrame.
       - y_valid: The validation labels as a pandas Series.
     The function should return the trained model.
-  4. A function called predict() that makes predictions using the trained model. If feature selection is applied, it should be done within this function.
+  3. A function called predict() that makes predictions using the trained model. 
     The function should take the following arguments:
       - model: The trained model.
       - X: The features as a pandas DataFrame.
     The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
+  """
     
   Here are some examples of how your Python code should be structured:
 
@@ -151,15 +148,9 @@ kg_model_interface: |-
   import xgboost
   from xgboost import DMatrix
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> xgboost.Booster:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       dtrain = DMatrix(X_train, label=y_train)
       dvalid = DMatrix(X_valid, label=y_valid)
       params = ...  # Set parameters to XGBoost model
@@ -171,7 +162,6 @@ kg_model_interface: |-
 
 
   def predict(model: xgboost.Booster, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       dtest = DMatrix(X)
       y_pred = model.predict(dtest)
 
@@ -185,15 +175,9 @@ kg_model_interface: |-
   from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
   from sklearn.metrics import accuracy_score
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> RandomForestClassifier | RandomForestRegressor:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = RandomForestClassifier(...)  # fir classification tasks
       model = RandomForestRegressor(...)  # for regression tasks
       model.fit(X_train, y_train, ...) # Train the model
@@ -202,7 +186,6 @@ kg_model_interface: |-
 
 
   def predict(model: RandomForestClassifier | RandomForestRegressor, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       y_pred = model.predict(X)
 
       return y_pred
@@ -214,15 +197,9 @@ kg_model_interface: |-
   import numpy as np
   from lightgbm import LGBMClassifier, LGBMRegressor
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(
       X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
   ) -> LGBMClassifier | LGBMRegressor:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = LGBMClassifier(...)  # for classification tasks, please add parameters here
       model = LGBMRegressor(...)  # for regression tasks, please add parameters here
 
@@ -231,7 +208,6 @@ kg_model_interface: |-
 
 
   def predict(model: LGBMClassifier | LGBMRegressor, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       y_pred = model.predict(X)
 
       return y_pred
@@ -254,13 +230,7 @@ kg_model_interface: |-
           # Define the forward pass
           return x
 
-
-  def select(X: pd.DataFrame) -> pd.DataFrame: ...  # Implement feature selection logic
-
-
   def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame) -> torch.nn.Module:
-      X_train = select(X_train)
-      X_valid = select(X_valid)
       model = NNModel()  # Initialize the model, You can write your own model class
 
       optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Example optimizer, you can use any optimizer
@@ -293,7 +263,6 @@ kg_model_interface: |-
 
 
   def predict(model: torch.nn.Module, X: pd.DataFrame) -> np.ndarray:
-      X = select(X)
       X = torch.tensor(X.values).float()
       model.eval()
       with torch.no_grad():

@@ -39,7 +39,7 @@ hypothesis_and_feedback: |-
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
-    "action": "If "hypothesis_specification" provides the action you need to take, please follow "hypothesis_specification" to choose the action. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate at the moment. It should be one of [{% if if_using_feature_selection %}"Feature engineering", "Feature processing", "Model feature selection", "Model tuning"{% else %}"Feature engineering", "Feature processing", "Model tuning"{% endif %}]",
+    "action": "If "hypothesis_specification" provides the action you need to take, please follow "hypothesis_specification" to choose the action. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate at the moment. It should be one of ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"]"
     "hypothesis": "The new hypothesis generated based on the information provided.",
     "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
     "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
@@ -291,26 +291,28 @@ feature_selection_feedback_generation:
     3. How might we refine or change the feature selection approach to improve model performance?
     4. Are there any domain-specific considerations that should inform our feature selection?
 
-extract_model_task_from_code:
+model_feature_selection:
   system: |-
-    You are an expert in analyzing code for machine learning models.  
-  user: |-
-    Given the following code, summarize the machine learning model including:
-    - Model architecture
-    - Hyperparameters
-    - Formulation and variables
-    - Model type (one of XGBoost, RandomForest, LightGBM, NN)
+    You are an assistant for model feature selection in machine learning. Your task is to understand the current feature groups and choose the most relevant features for the model to get the best performance.
 
-    Code:
-    {{ file_content }}
+    The user is currently working on a Kaggle competition scenario as follows:
+    {{ scenario }}
 
-    Return the information in JSON format with the following structure:
+    The user is now working on the following model type:
+    {{ model_type }}
+
+    The user will give you several feature groups and their descriptions. Your task is to select the most relevant features for the model to achieve the best performance. You should consider the following:
+    1. How well do the selected features support the scenario?
+    2. Are there any features that might be redundant or noisy?
+
+    Please answer the chosen group index in JSON format. Example JSON structure for Result Analysis:
     {
-        "name": "",
-        "description": "",
-        "architecture": "",
-        "hyperparameters": {},
-        "formulation": "",
-        "variables": {},
-        "model_type": ""
+      "Selected Group Index": [1, 3, 5], # List of selected group indices, notice: the index starts from 1
     }
+  
+  user: |-
+    Current feature groups:
+    {% for feature in feature_groups %}
+      Group {{ loop.index }}: 
+      {{ feature }}
+    {% endfor %}

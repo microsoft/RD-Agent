@@ -71,32 +71,22 @@ X_train = X_train.loc[:, ~X_train.columns.duplicated()]
 X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
 X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
-
 # 3) Train the model
-def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Flatten the columns of a DataFrame with MultiIndex columns,
-    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    """
-    if df.columns.nlevels == 1:
-        return df
-    df.columns = ["_".join(col).strip() for col in df.columns.values]
-    return df
-
-
-X_train = flatten_columns(X_train)
-X_valid = flatten_columns(X_valid)
-X_test = flatten_columns(X_test)
-
 model_l = []  # list[tuple[model, predict_func,]]
 for f in DIRNAME.glob("model/model*.py"):
+    select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+    select_m = import_module_from_path(select_python_path.stem, select_python_path)
+    X_train_selected = select_m.select(X_train.copy())
+    X_valid_selected = select_m.select(X_valid.copy())
+
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict))
 
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
 for model, predict_func in model_l:
-    y_valid_pred_l.append(predict_func(model, X_valid))
+    X_valid_selected = select_m.select(X_valid.copy())
+    y_valid_pred_l.append(predict_func(model, X_valid_selected))
 
 # 5) Ensemble
 # TODO: ensemble method in a script
@@ -113,7 +103,10 @@ pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
 # 7) Make predictions on the test set and save them
 y_test_pred_l = []
 for m, m_pred in model_l:
-    y_test_pred_l.append(m_pred(m, X_test))  # TODO Make this an ensemble. Currently it uses the last prediction
+    X_test_selected = select_m.select(X_test.copy())
+    y_test_pred_l.append(
+        m_pred(m, X_test_selected)
+    )  # TODO Make this an ensemble. Currently it uses the last prediction
 
 y_test_pred = np.mean(y_test_pred_l, axis=0)
 y_test_pred = (y_test_pred > 0.5).astype(int)
