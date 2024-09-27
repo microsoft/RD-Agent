@@ -353,7 +353,7 @@ class FactorCorrelationEvaluator(FactorEvaluator):
             )
         concat_df = pd.concat([gen_df, gt_df], axis=1)
         concat_df.columns = ["source", "gt"]
-        ic = concat_df.groupby("datetime").apply(lambda df: df["source"].corr(df["gt"])).dropna().mean()
+        ic = concat_df.groupby("datetime").apply(lambda df: df["source"].corr(df["gt"])).dropna().mean().fillna(0)
         ric = (
             concat_df.groupby("datetime")
             .apply(lambda df: df["source"].corr(df["gt"], method="spearman"))
