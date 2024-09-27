@@ -26,7 +26,7 @@ from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_MODEL_FEATURE_SELECTION,
     KGTrace,
 )
-
+from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 
 class KaggleRDLoop(RDLoop):
     @measure_time
@@ -89,9 +89,6 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(exp, tag="runner result")
 
             if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
-                from rdagent.scenarios.kaggle.experiment.utils import (
-                    python_files_to_notebook,
-                )
 
                 try:
                     python_files_to_notebook(
