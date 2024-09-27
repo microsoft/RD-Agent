@@ -32,6 +32,48 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         codes = "\n".join(codes)
         return md5_hash(codes)
 
+    def extract_model_task_from_code(self, code: str) -> str:
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["extract_model_task_from_code"]["system"])
+            .render()
+        )
+
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["extract_model_task_from_code"]["user"])
+            .render(file_content=code)
+        )
+
+        model_task_description = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+        )
+
+        try:
+            response_json_analysis = json.loads(model_task_description)
+            task_desc = f"""name: {response_json_analysis['name']}
+        description: {response_json_analysis['description']}
+        """
+            task_desc += (
+                f"formulation: {response_json_analysis['formulation']}\n"
+                if response_json_analysis.get("formulation")
+                else ""
+            )
+            task_desc += f"architecture: {response_json_analysis['architecture']}\n"
+            task_desc += (
+                f"variables: {json.dumps(response_json_analysis['variables'], indent=4)}\n"
+                if response_json_analysis.get("variables")
+                else ""
+            )
+            task_desc += f"hyperparameters: {json.dumps(response_json_analysis['hyperparameters'], indent=4)}\n"
+            task_desc += f"model_type: {response_json_analysis['model_type']}\n"
+        except json.JSONDecodeError:
+            task_desc = "Failed to parse LLM's response as JSON"
+
+        return task_desc
+
     def init_develop(self, exp: KGFactorExperiment | KGModelExperiment) -> KGFactorExperiment | KGModelExperiment:
         """
         For the initial development, the experiment serves as a benchmark for feature engineering.
@@ -120,48 +162,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
-    def extract_model_task_from_code(self, code: str) -> str:
-        sys_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["extract_model_task_from_code"]["system"])
-            .render()
-        )
-
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["extract_model_task_from_code"]["user"])
-            .render(file_content=code)
-        )
-
-        model_task_description = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
-        )
-
-        try:
-            response_json_analysis = json.loads(model_task_description)
-            task_desc = f"""name: {response_json_analysis['name']}
-        description: {response_json_analysis['description']}
-        """
-            task_desc += (
-                f"formulation: {response_json_analysis['formulation']}\n"
-                if response_json_analysis.get("formulation")
-                else ""
-            )
-            task_desc += f"architecture: {response_json_analysis['architecture']}\n"
-            task_desc += (
-                f"variables: {json.dumps(response_json_analysis['variables'], indent=4)}\n"
-                if response_json_analysis.get("variables")
-                else ""
-            )
-            task_desc += f"hyperparameters: {json.dumps(response_json_analysis['hyperparameters'], indent=4)}\n"
-            task_desc += f"model_type: {response_json_analysis['model_type']}\n"
-        except json.JSONDecodeError:
-            task_desc = "Failed to parse LLM's response as JSON"
-
-        return task_desc
-
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
