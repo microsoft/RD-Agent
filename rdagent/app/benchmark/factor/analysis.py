@@ -46,10 +46,10 @@ class BenchmarkAnalyzer:
 
     def reformat_index(self, display_df):
         """
-        reform the results from 
-        
+        reform the results from
+
         .. code-block:: python
-            
+
                               success rate
             High_Beta_Factor           0.2
 
@@ -58,7 +58,7 @@ class BenchmarkAnalyzer:
         .. code-block:: python
 
                                                     success rate
-            Category Difficulty Factor                        
+            Category Difficulty Factor
             量价       Hard       High_Beta_Factor           0.2
 
         """
@@ -113,12 +113,12 @@ class BenchmarkAnalyzer:
         # if it rasis Error when running the evaluator, we will get NaN
         # Running failures are reguarded to zero score.
         format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
-            lambda x: np.mean(x.fillna(0.)), axis=1
+            lambda x: np.mean(x.fillna(0.0)), axis=1
         )
         format_succ_rate = format_issue.unstack().T.mean(axis=0).to_frame("success rate")
         format_succ_rate_f = self.reformat_index(format_succ_rate)
 
-        corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.)
+        corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.0)
         corr = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
         corr_res = self.reformat_index(corr)
         corr_max = sum_df_clean["FactorCorrelationEvaluator"]
@@ -131,7 +131,10 @@ class BenchmarkAnalyzer:
         value_max_res = self.reformat_index(value_max)
 
         value_avg = (
-            (sum_df_clean["FactorEqualValueRatioEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
+            (sum_df_clean["FactorEqualValueRatioEvaluator"] * format_issue)
+            .unstack()
+            .T.mean(axis=0)
+            .to_frame("avg_value")
         )
         value_avg_res = self.reformat_index(value_avg)
 

@@ -177,9 +177,9 @@ class FactorImplementEval(BaseEval):
             gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
 
         return gen_factor_l_all_rounds
-    
+
     def eval(self, gen_factor_l_all_rounds):
-        test_cases_all_rounds =[]
+        test_cases_all_rounds = []
         res = defaultdict(list)
         for _ in range(self.test_round):
             test_cases_all_rounds.extend(self.test_cases.ground_truth)
