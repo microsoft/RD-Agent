@@ -62,6 +62,7 @@ st-theme
 # kaggle crawler
 selenium
 kaggle
+nbformat
 
 # tool
 seaborn

@@ -1,16 +1,24 @@
+# %%
 import json
 import subprocess
 import time
 import zipfile
+from itertools import chain
 from pathlib import Path
 
+import nbformat
+from jinja2 import Environment, StrictUndefined
+from rich import print
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 
+# %%
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
@@ -79,6 +87,121 @@ def download_data(competition: str, local_path: str = "/data/userdata/share/kagg
             zip_ref.extractall(data_path)
 
 
+def download_notebooks(
+    competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks", num: int = 15
+) -> None:
+    data_path = Path(f"{local_path}/{competition}")
+    from kaggle.api.kaggle_api_extended import KaggleApi
+
+    api = KaggleApi()
+    api.authenticate()
+
+    # judge the sort_by
+    ll = api.competition_leaderboard_view(competition)
+    score_diff = float(ll[0].score) - float(ll[-1].score)
+    if score_diff > 0:
+        sort_by = "scoreDescending"
+    else:
+        sort_by = "scoreAscending"
+
+    # download notebooks
+    nl = api.kernels_list(competition=competition, sort_by=sort_by, page=1, page_size=num)
+    for nb in nl:
+        author = nb.ref.split("/")[0]
+        api.kernels_pull(nb.ref, path=data_path / author)
+    print(f"Downloaded {len(nl)} notebooks for {competition}. ([red]{sort_by}[/red])")
+
+
+def notebook_to_knowledge(notebook_text: str) -> str:
+    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
+    sys_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["gen_knowledge_from_code_DSAgent"]["system"])
+        .render()
+    )
+
+    user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["gen_knowledge_from_code_DSAgent"]["user"])
+        .render(notebook=notebook_text)
+    )
+
+    response = APIBackend().build_messages_and_create_chat_completion(
+        user_prompt=user_prompt,
+        system_prompt=sys_prompt,
+        json_mode=False,
+    )
+    return response
+
+
+def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks") -> None:
+    data_path = Path(f"{local_path}/{competition}")
+    converted_num = 0
+
+    # convert ipynb and irnb files
+    for nb_path in chain(data_path.glob("**/*.ipynb"), data_path.glob("**/*.irnb")):
+        with nb_path.open("r", encoding="utf-8") as f:
+            nb = nbformat.read(f, as_version=4)
+        text = []
+        for cell in nb.cells:
+            if cell.cell_type == "markdown":
+                text.append(f"```markdown\n{cell.source}```")
+            elif cell.cell_type == "code":
+                text.append(f"```code\n{cell.source}```")
+        text = "\n\n".join(text)
+
+        text = notebook_to_knowledge(text)
+
+        text_path = nb_path.with_suffix(".txt")
+        text_path.write_text(text, encoding="utf-8")
+        converted_num += 1
+
+    # convert py files
+    for py_path in data_path.glob("**/*.py"):
+        with py_path.open("r", encoding="utf-8") as f:
+            text = f"```code\n{f.read()}```"
+
+        text = notebook_to_knowledge(text)
+
+        text_path = py_path.with_suffix(".txt")
+        text_path.write_text(text, encoding="utf-8")
+        converted_num += 1
+
+    print(f"Converted {converted_num} notebooks to text files.")
+
+
+def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> dict[str, list[str]]:
+    """
+    {
+        "competition1": [
+            "knowledge_text1",
+            "knowledge_text2",
+            ...
+        ],
+        “competition2”: [
+            "knowledge_text1",
+            "knowledge_text2",
+            ...
+        ],
+        ...
+    }
+    """
+    notebooks_dir = Path(local_path) / "notebooks"
+
+    competition_knowledge_texts_dict = {}
+    for competition_dir in notebooks_dir.iterdir():
+        knowledge_texts = []
+        for text_path in competition_dir.glob("**/*.txt"):
+            text = text_path.read_text(encoding="utf-8")
+            knowledge_texts.append(text)
+
+        competition_knowledge_texts_dict[competition_dir.name] = knowledge_texts
+
+    return competition_knowledge_texts_dict
+
+
+# %%
 if __name__ == "__main__":
     dsagent_cs = [
         "feedback-prize-english-language-learning",
@@ -124,14 +247,16 @@ if __name__ == "__main__":
         "store-sales-time-series-forecasting",
         "titanic",
         "tpu-getting-started",
+        # scenario competition
         "covid19-global-forecasting-week-1",
-        "birdsong-recognition",
-        "optiver-trading-at-the-close",
+        "statoil-iceberg-classifier-challenge",
+        "optiver-realized-volatility-prediction",
         "facebook-v-predicting-check-ins",
     ]
 
-    for i in dsagent_cs + other_cs:
-        crawl_descriptions(i)
+    all_cs = dsagent_cs + other_cs
+    for c in all_cs:
+        convert_notebooks_to_text(c)
     exit()
     from kaggle.api.kaggle_api_extended import KaggleApi
 

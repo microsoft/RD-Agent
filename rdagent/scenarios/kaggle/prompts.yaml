@@ -308,10 +308,38 @@ model_feature_selection:
     {
       "Selected Group Index": [1, 3, 5], # List of selected group indices, notice: the index starts from 1
     }
-  
+
   user: |-
     Current feature groups:
     {% for feature in feature_groups %}
       Group {{ loop.index }}: 
       {{ feature }}
     {% endfor %}
+
+gen_knowledge_from_code_DSAgent:
+  system: |-
+    You were a proficient data scientist.
+  user: |-
+    The following notebook (contain markdown part and code part) is a high-performing solution for a kaggle competition.
+    Please answer the following questions one by one and **as detailedly as possible**.
+    Make sure that another data scientist can exactly reproduce this copy of code based on your answer.
+    Focus on the training process.
+
+    (1) Please give a summary of the overall design.
+    (2) What is the overall model architecture? Please use a long article to answer this question as accurately and in detail as possible.
+    (3) How are the important hyper-parameters setting in this code?
+    (4) What is the optimization objective?
+    (5) What advanced machine learning technique does this copy of code use?
+    (6) What other important tricks do you think play an important role for high performance?
+    
+    Note that make sure the answers are directly included from the code or markdown text, rather than based on your assumption.
+    
+    --------------------
+    {{ notebook }}
+    --------------------
+
+gen_knowledge_from_code_RDAgent:
+  system: |-
+    You were a proficient data scientist.
+  user: |-
+    TODO...

@@ -19,6 +19,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
@@ -87,6 +88,14 @@ class KaggleRDLoop(RDLoop):
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
+
+            if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
+                try:
+                    python_files_to_notebook(
+                        KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path
+                    )
+                except Exception as e:
+                    logger.error(f"Merge python files to one file failed: {e}")
 
             if KAGGLE_IMPLEMENT_SETTING.auto_submit:
                 csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
