@@ -117,7 +117,7 @@ class FactorFBWorkspace(FBWorkspace):
                 target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
                 cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
                 Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if cache_file_path.exists() and not self.raise_exception:
+                if cache_file_path.exists():
                     cached_res = pickle.load(open(cache_file_path, "rb"))
                     if store_result and cached_res[1] is not None:
                         self.executed_factor_value_dataframe = cached_res[1]

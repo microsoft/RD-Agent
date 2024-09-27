@@ -95,10 +95,8 @@ class BenchmarkAnalyzer:
     def analyze_data(self, sum_df):
         index = [
             "FactorSingleColumnEvaluator",
-            "FactorOutputFormatEvaluator",
             "FactorRowCountEvaluator",
             "FactorIndexEvaluator",
-            "FactorMissingValuesEvaluator",
             "FactorEqualValueRatioEvaluator",
             "FactorCorrelationEvaluator",
             "run factor error",
@@ -133,7 +131,7 @@ class BenchmarkAnalyzer:
         value_max_res = self.reformat_index(value_max)
 
         value_avg = (
-            (sum_df_clean["FactorMissingValuesEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
+            (sum_df_clean["FactorEqualValueRatioEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
         )
         value_avg_res = self.reformat_index(value_avg)
 
