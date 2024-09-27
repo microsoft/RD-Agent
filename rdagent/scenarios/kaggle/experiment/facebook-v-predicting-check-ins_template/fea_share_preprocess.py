@@ -44,37 +44,32 @@ def preprocess_script():
     train_df = preprocess_data(train_df)
     test_df = preprocess_data(test_df)
 
-    # Encode place_ids first
+    # Encode place_ids
     place_id_encoder = LabelEncoder()
-    train_df['place_id'] = place_id_encoder.fit_transform(train_df['place_id'])
+    place_id_encoder.fit(train_df['place_id'])
+    train_df['place_id'] = place_id_encoder.transform(train_df['place_id'])
 
-    # Split features and target
+    # Split features and target for training data
     X = train_df.drop(['place_id'], axis=1)
     y = train_df['place_id']
 
-    # Count occurrences of each place_id
-    place_id_counts = y.value_counts()
-
-    # Identify place_ids with only one occurrence
-    single_occurrence_place_ids = place_id_counts[place_id_counts == 1].index
-
-    # Split the data, ensuring single-occurrence place_ids are in the training set
-    mask = y.isin(single_occurrence_place_ids)
-    X_train_single = X[mask]
-    y_train_single = y[mask]
-    X_remaining = X[~mask]
-    y_remaining = y[~mask]
-
-    # Split the remaining data
-    X_train_rest, X_valid, y_train_rest, y_valid = train_test_split(X_remaining, y_remaining, test_size=0.2, random_state=42, stratify=y_remaining)
-
-    # Combine the single-occurrence samples with the rest of the training data
-    X_train = pd.concat([X_train_single, X_train_rest])
-    y_train = pd.concat([y_train_single, y_train_rest])
-
     # Prepare test data
-    X_test = test_df.drop('row_id', axis=1)
     test_row_ids = test_df['row_id']
+    X_test = test_df.drop(['row_id'], axis=1)
+
+    # Ensure X_test has the same columns as X
+    for col in X.columns:
+        if col not in X_test.columns:
+            X_test[col] = 0  # or some other appropriate default value
+
+    X_test = X_test[X.columns]  # Reorder columns to match X
+
+    # Attempt stratified split, fall back to random split if necessary
+    try:
+        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    except ValueError:
+        print("Warning: Stratified split not possible. Falling back to random split.")
+        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Handle missing values
     imputer = SimpleImputer(strategy="mean")
@@ -82,4 +77,7 @@ def preprocess_script():
     X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
     X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
 
-    return X_train, X_valid, y_train, y_valid, X_test, place_id_encoder, test_row_ids
+    # Count the number of unique classes
+    n_classes = len(place_id_encoder.classes_)
+
+    return X_train, X_valid, y_train, y_valid, X_test, place_id_encoder, test_row_ids, n_classes

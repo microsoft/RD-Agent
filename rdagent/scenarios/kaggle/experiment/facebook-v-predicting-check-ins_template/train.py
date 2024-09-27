@@ -24,7 +24,7 @@ def import_module_from_path(module_name, module_path):
     return module
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, place_id_encoder, test_row_ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, place_id_encoder, test_row_ids, n_classes = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -60,7 +60,12 @@ X_test = flatten_columns(X_test)
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict_proba))
+    # Check if the fit function accepts n_classes
+    if 'n_classes' in m.fit.__code__.co_varnames:
+        model = m.fit(X_train, y_train, X_valid, y_valid, n_classes)
+    else:
+        model = m.fit(X_train, y_train, X_valid, y_valid)
+    model_l.append((model, m.predict))
 
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
