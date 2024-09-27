@@ -9,6 +9,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
+from collections import defaultdict
 
 # Set random seed for reproducibility
 SEED = 42
@@ -45,6 +46,8 @@ scaler = StandardScaler()
 
 # 3) Train and evaluate using KFold
 fold_number = 1
+model_count = defaultdict(int)
+
 for train_index, valid_index in kf.split(X_train):
     print(f"Starting fold {fold_number}...")
 
@@ -92,49 +95,39 @@ for train_index, valid_index in kf.split(X_train):
     X_val = X_val.loc[:, ~X_val.columns.duplicated()]
     X_te = X_te.loc[:, ~X_te.columns.duplicated()]
 
-    # Train the model
-    def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Flatten the columns of a DataFrame with MultiIndex columns,
-        for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-        """
-        if df.columns.nlevels == 1:
-            return df
-        df.columns = ["_".join(col).strip() for col in df.columns.values]
-        return df
-
-    X_tr = flatten_columns(X_tr)
-    X_val = flatten_columns(X_val)
-    X_te = flatten_columns(X_te)
-
     model_l = []  # list[tuple[model, predict_func]]
     for f in DIRNAME.glob("model/model*.py"):
+        select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+        select_m = import_module_from_path(select_python_path.stem, select_python_path)
+        X_train_selected = select_m.select(X_tr.copy())
+        X_valid_selected = select_m.select(X_val.copy())
+
         m = import_module_from_path(f.stem, f)
-        model_l.append((m.fit(X_tr, y_tr, X_val, y_val), m.predict))
+        model_l.append((m.fit(X_train_selected, y_tr, X_valid_selected, y_val), m.predict))
 
-    # Evaluate the model on the validation set
-    y_valid_pred_l = []
+    # 4) Evaluate the models on the validation set and choose the best one
+    best_accuracy = -1
+    best = None
     for model, predict_func in model_l:
-        y_valid_pred = predict_func(model, X_val)
-        y_valid_pred_l.append(y_valid_pred)
-        y_test_pred_l.append(predict_func(model, X_te))
+        X_valid_selected = select_m.select(X_val.copy())
+        y_valid_pred = predict_func(model, X_valid_selected)
+        accuracy  = accuracy_score(y_val, y_valid_pred)
+        print(f"Accuracy on valid set: {accuracy}")
+        
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best = (model, predict_func)
 
-    # Majority vote ensemble
-    y_valid_pred_ensemble = stats.mode(y_valid_pred_l, axis=0)[0].flatten()
-
-    # Compute metrics
-    accuracy = accuracy_score(y_val, y_valid_pred_ensemble)
-    accuracies.append(accuracy)
-    print(f"Fold {fold_number} accuracy: {accuracy}")
-
+    model_count[best] += 1
     fold_number += 1
 
-# Print average accuracy
-accuracy = np.mean(accuracies)
-print(f"Average accuracy across folds: {accuracy}")
-pd.Series(data=[accuracy], index=["multi-class accuracy"]).to_csv("submission_score.csv")
+# 5) Save the validation accuracy
+final_model = max(model_count, key=model_count.get)
+pd.Series(data=best_accuracy, index=["multi-class accuracy"]).to_csv("submission_score.csv")
 
-y_test_pred = stats.mode(y_test_pred_l, axis=0)[0].flatten() + 1
+# 6) Make predictions on the test set and save them
+X_test_selected = select_m.select(X_te.copy())
+y_test_pred = final_model[1](final_model[0], X_test_selected).flatten() + 1
 
 submission_result = pd.DataFrame(y_test_pred, columns=["Cover_Type"])
 submission_result.insert(0, "Id", ids)

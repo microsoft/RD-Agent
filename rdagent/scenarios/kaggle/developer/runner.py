@@ -3,17 +3,12 @@ import pickle
 import shutil
 from pathlib import Path
 
-from jinja2 import Environment, StrictUndefined
-
-from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.components.runner import CachedRunner
 from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
 from rdagent.core.experiment import ASpecificExp
 from rdagent.core.prompts import Prompts
-from rdagent.oai.llm_utils import APIBackend, md5_hash
+from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
     KGModelExperiment,

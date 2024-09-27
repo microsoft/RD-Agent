@@ -42,45 +42,54 @@ X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
+print(X_train.shape, X_valid.shape, X_test.shape)
+
+# Handle inf and -inf values
+X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+from sklearn.impute import SimpleImputer
+
+imputer = SimpleImputer(strategy="mean")
+
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
+X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+# Remove duplicate columns
+X_train = X_train.loc[:, ~X_train.columns.duplicated()]
+X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
+X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 # 3) Train the model
-def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Flatten the columns of a DataFrame with MultiIndex columns,
-    for (feature_0, a), (feature_0, b) -> feature_0_a, feature_0_b
-    """
-    if df.columns.nlevels == 1:
-        return df
-    df.columns = ["_".join(str(col)).strip() for col in df.columns.values]
-    return df
-
-
-X_train = flatten_columns(X_train)
-X_valid = flatten_columns(X_valid)
-X_test = flatten_columns(X_test)
-
-
-model_l = []  # list[tuple[model, predict_func]]
+model_l = []  # list[tuple[model, predict_func,]]
 for f in DIRNAME.glob("model/model*.py"):
+    select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
+    select_m = import_module_from_path(select_python_path.stem, select_python_path)
+    X_train_selected = select_m.select(X_train.copy())
+    X_valid_selected = select_m.select(X_valid.copy())
+
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train, y_train, X_valid, y_valid), m.predict))
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict))
 
 # 4) Evaluate the model on the validation set
-y_valid_pred_l = []
 metrics_all = []
 for model, predict_func in model_l:
-    y_valid_pred = predict_func(model, X_valid)
-    y_valid_pred_l.append(y_valid_pred)
+    X_valid_selected = select_m.select(X_valid.copy())
+    y_valid_pred = predict_func(model, X_valid_selected)
     metrics = MCRMSE(y_valid, y_valid_pred)
     print(f"MCRMSE on valid set: {metrics}")
     metrics_all.append(metrics)
 
+# 5) Save the validation accuracy
 min_index = np.argmin(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["MCRMSE"]).to_csv("submission_score.csv")
 
+# 6) Make predictions on the test set and save them
 y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
 
-
+# 7) Submit predictions for the test set
 submission_result = pd.read_csv("/kaggle/input/sample_submission.csv")
 submission_result["cohesion"] = y_test_pred[:, 0]
 submission_result["syntax"] = y_test_pred[:, 1]

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
 from sklearn.metrics import matthews_corrcoef
-from sklearn.preprocessing import LabelEncoder
 
 # Set random seed for reproducibility
 SEED = 42
@@ -83,36 +82,26 @@ for f in DIRNAME.glob("model/model*.py"):
     model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict))
 
 # 4) Evaluate the model on the validation set
-y_valid_pred_l = []
+metrics_all = []
 for model, predict_func in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
-    y_valid_pred_l.append(predict_func(model, X_valid_selected))
+    y_valid_pred = predict_func(model, X_valid_selected)
+    y_valid_pred = (y_valid_pred > 0.5).astype(int)
+    metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
+    print("MCC on validation set: ", metrics)
+    metrics_all.append(metrics)
 
-# 5) Ensemble
-# TODO: ensemble method in a script
-# Average the predictions and apply a threshold to determine class labels
-y_valid_pred = np.mean(y_valid_pred_l, axis=0)
-y_valid_pred = (y_valid_pred > 0.5).astype(int)
+# 5) Save the validation accuracy
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["MCC"]).to_csv("submission_score.csv")
 
-mcc = compute_metrics_for_classification(y_valid, y_valid_pred)
-print("MCC on validation set: ", mcc)
-
-# 6) Save the validation accuracy
-pd.Series(data=[mcc], index=["MCC"]).to_csv("submission_score.csv")
-
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for m, m_pred in model_l:
-    X_test_selected = select_m.select(X_test.copy())
-    y_test_pred_l.append(
-        m_pred(m, X_test_selected)
-    )  # TODO Make this an ensemble. Currently it uses the last prediction
-
-y_test_pred = np.mean(y_test_pred_l, axis=0)
+# 6) Make predictions on the test set and save them
+X_test_selected = select_m.select(X_test.copy())
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
 y_test_pred = (y_test_pred > 0.5).astype(int)
 
 y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
 
-# 8) Submit predictions for the test set
+# 7) Submit predictions for the test set
 submission_result = pd.DataFrame({"id": ids, "class": y_test_pred_labels.ravel()})
 submission_result.to_csv("submission.csv", index=False)
