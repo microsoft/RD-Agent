@@ -11,20 +11,15 @@ from sklearn.preprocessing import OrdinalEncoder
 
 def prepreprocess():
     # Load the training data
-    train_df = pd.read_csv("/kaggle/input/train.csv").head(1000)
+    train_df = pd.read_csv("/kaggle/input/train.csv")
 
     # Load book and trade data
-    book_train = pd.read_parquet("/kaggle/input/book_train.parquet").head(1000)
-    trade_train = pd.read_parquet("/kaggle/input/trade_train.parquet").head(1000)
+    book_train = pd.read_parquet("/kaggle/input/book_train.parquet")
+    trade_train = pd.read_parquet("/kaggle/input/trade_train.parquet")
 
     # Merge book and trade data with train_df
-    # print(book_train.columns.to_list())
-    # print(trade_train.columns.to_list())
-    # print(train_df.columns.to_list())
     merged_df = pd.merge(train_df, book_train, on=["stock_id", "time_id"], how="left")
     merged_df = pd.merge(merged_df, trade_train, on=["stock_id", "time_id"], how="left")
-
-    # print(merged_df.columns.to_list())
 
     # Split the data
     X = merged_df.drop(["target"], axis=1)
@@ -67,7 +62,6 @@ def preprocess_fit(X_train: pd.DataFrame):
 def preprocess_transform(X: pd.DataFrame, preprocessor, numerical_cols, categorical_cols):
     X_transformed = preprocessor.transform(X)
 
-    # Convert arrays back to DataFrames
     X_transformed = pd.DataFrame(X_transformed, columns=numerical_cols + categorical_cols, index=X.index)
 
     return X_transformed
@@ -85,12 +79,6 @@ def preprocess_script():
         return X_train, X_valid, y_train, y_valid, X_test, *others
 
     X_train, X_valid, y_train, y_valid = prepreprocess()
-    print(X_train.columns.to_list())
-
-    # preprocessor, numerical_cols, categorical_cols = preprocess_fit(X_train)
-
-    # X_train = preprocess_transform(X_train, preprocessor, numerical_cols, categorical_cols)
-    # X_valid = preprocess_transform(X_valid, preprocessor, numerical_cols, categorical_cols)
 
     submission_df = pd.read_csv("/kaggle/input/test.csv")
 
@@ -101,8 +89,6 @@ def preprocess_script():
     for col in X_train.columns:
         if col not in submission_df.columns:
             submission_df[col] = 0  # Fill with 0 or another appropriate value
-
-    # X_test = preprocess_transform(submission_df, preprocessor, numerical_cols, categorical_cols)
 
     # Handle missing values
     for df in [X_train, X_valid, submission_df]:

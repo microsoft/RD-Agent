@@ -5,9 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
 
 # Set random seed for reproducibility
 SEED = 42
@@ -17,7 +15,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 def compute_rmspe(y_true, y_pred):
-    """Compute RMSPE for regression."""
+    """Compute Root Mean Squared Percentage Error (RMSPE) for regression."""
     rmspe = np.sqrt(np.mean(((y_true - y_pred) / y_true) ** 2))
     return rmspe
 
@@ -29,16 +27,13 @@ def import_module_from_path(module_name, module_path):
     return module
 
 
-print("begin preprocess")
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
-print("preprocess done")
+
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
-
-print(X_train.columns.tolist())
 
 for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
@@ -61,8 +56,6 @@ print(X_train.shape, X_valid.shape, X_test.shape)
 X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
 X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
 X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-from sklearn.impute import SimpleImputer
 
 imputer = SimpleImputer(strategy="mean")
 
@@ -100,6 +93,7 @@ for f in DIRNAME.glob("model/model*.py"):
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
 metrics_all = []
+
 for model, predict_func in model_l:
     y_valid_pred_l.append(predict_func(model, X_valid))
     metrics = compute_rmspe(y_valid, y_valid_pred_l[-1].ravel())
@@ -107,10 +101,11 @@ for model, predict_func in model_l:
     metrics_all.append(metrics)
 
 min_index = np.argmin(metrics_all)
+
 pd.Series(data=[metrics_all[min_index]], index=["RMSPE"]).to_csv("submission_score.csv")
 
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
-print(y_test_pred)
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test).ravel()
+
 # 5) Submit predictions for the test set
 submission_result = pd.DataFrame({"row_id": ids, "target": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)
