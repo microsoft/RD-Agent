@@ -250,7 +250,7 @@ class FactorRowCountEvaluator(FactorEvaluator):
                 "The source dataframe is None. Please check the implementation.",
                 False,
             )
-        ratio = len(gen_df) / len(gt_df)
+        ratio = min(len(gen_df), len(gt_df)) / max(len(gen_df), len(gt_df))
         return (
             f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. "
             + "Please verify the implementation. "
