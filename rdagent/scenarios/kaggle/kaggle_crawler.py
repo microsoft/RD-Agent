@@ -8,7 +8,6 @@ from pathlib import Path
 
 import nbformat
 from jinja2 import Environment, StrictUndefined
-from kaggle.api.kaggle_api_extended import KaggleApi
 from rich import print
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -92,6 +91,8 @@ def download_notebooks(
     competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks", num: int = 15
 ) -> None:
     data_path = Path(f"{local_path}/{competition}")
+    from kaggle.api.kaggle_api_extended import KaggleApi
+
     api = KaggleApi()
     api.authenticate()
 
@@ -257,6 +258,8 @@ if __name__ == "__main__":
     for c in all_cs:
         convert_notebooks_to_text(c)
     exit()
+    from kaggle.api.kaggle_api_extended import KaggleApi
+
     api = KaggleApi()
     api.authenticate()
     cs = api.competitions_list()
