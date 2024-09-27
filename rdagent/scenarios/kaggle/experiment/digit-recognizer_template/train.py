@@ -80,8 +80,5 @@ pd.Series(data=[metrics_all[min_index]], index=["multi-class accuracy"]).to_csv(
 
 # 6) Submit predictions for the test set
 y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
-submission_result = pd.DataFrame({
-    'ImageId': ids,
-    'Label': y_test_pred
-})
+submission_result = pd.DataFrame({"ImageId": ids, "Label": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)

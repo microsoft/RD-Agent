@@ -32,8 +32,8 @@ def preprocess_script():
     test = pd.read_csv("/kaggle/input/test.csv")
 
     # Separate features and target
-    X = train.drop('label', axis=1)
-    y = train['label']
+    X = train.drop("label", axis=1)
+    y = train["label"]
 
     # Normalize pixel values
     X = X / 255.0
