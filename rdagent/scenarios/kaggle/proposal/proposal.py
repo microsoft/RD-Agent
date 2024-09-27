@@ -252,14 +252,15 @@ class KGHypothesisGen(ModelHypothesisGen):
         response_dict = json.loads(response)
 
         hypothesis = KGHypothesis(
-            hypothesis=response_dict["hypothesis"],
-            reason=response_dict["reason"],
-            concise_reason=response_dict["concise_reason"],
-            concise_observation=response_dict["concise_observation"],
-            concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"],
-            action=response_dict["action"],
+            hypothesis=response_dict.get("hypothesis", "Hypothesis not provided"),
+            reason=response_dict.get("reason", "Reason not provided"),
+            concise_reason=response_dict.get("concise_reason", "Concise reason not provided"),
+            concise_observation=response_dict.get("concise_observation", "Concise observation not provided"),
+            concise_justification=response_dict.get("concise_justification", "Concise justification not provided"),
+            concise_knowledge=response_dict.get("concise_knowledge", "Concise knowledge not provided"),
+            action=response_dict.get("action", "Action not provided"),
         )
+
         return hypothesis
 
 
@@ -304,9 +305,9 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
 
         for factor_name in response_dict:
-            description = response_dict[factor_name]["description"]
-            formulation = response_dict[factor_name]["formulation"]
-            variables = response_dict[factor_name]["variables"]
+            description = (response_dict[factor_name].get("description", "Factor description not provided"),)
+            formulation = (response_dict[factor_name].get("formulation", "Factor formulation not provided"),)
+            variables = (response_dict[factor_name].get("variables", "Variables not provided"),)
             tasks.append(
                 FactorTask(
                     factor_name=factor_name,
@@ -327,11 +328,11 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         tasks = []
         tasks.append(
             ModelTask(
-                name=response_dict["model_name"],
-                description=response_dict["description"],
-                architecture=response_dict["architecture"],
-                hyperparameters=response_dict["hyperparameters"],
-                model_type=response_dict["model_type"],
+                name=response_dict.get("model_name", "Model name not provided"),
+                description=response_dict.get("description", "Description not provided"),
+                architecture=response_dict.get("architecture", "Architecture not provided"),
+                hyperparameters=response_dict.get("hyperparameters", "Hyperparameters not provided"),
+                model_type=response_dict.get("model_type", "Model type not provided"),
                 version=2,
             )
         )

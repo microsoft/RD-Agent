@@ -15,6 +15,10 @@ def import_module_from_path(module_name, module_path):
     return module
 
 
+def MCRMSE(y_true, y_pred):
+    return np.mean(np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0)))
+
+
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test = preprocess_script()
 
@@ -24,6 +28,7 @@ X_test_l = []
 
 for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
+    print(X_train.head())
     cls.fit(X_train)
     X_train_f = cls.transform(X_train)
     X_valid_f = cls.transform(X_valid)
@@ -62,33 +67,18 @@ for f in DIRNAME.glob("model/model*.py"):
 
 # 4) Evaluate the model on the validation set
 y_valid_pred_l = []
+metrics_all = []
 for model, predict_func in model_l:
     y_valid_pred = predict_func(model, X_valid)
     y_valid_pred_l.append(y_valid_pred)
-    # print(y_valid_pred)
-    # print(y_valid_pred.shape)
+    metrics = MCRMSE(y_valid, y_valid_pred)
+    print(f"MCRMSE on valid set: {metrics}")
+    metrics_all.append(metrics)
 
-# 5) Ensemble
-# Majority vote ensemble
-y_valid_pred_ensemble = np.mean(y_valid_pred_l, axis=0)
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["MCRMSE"]).to_csv("submission_score.csv")
 
-
-# 6) Save the validation metrics
-def MCRMSE(y_true, y_pred):
-    return np.mean(np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0)))
-
-
-metrics = MCRMSE(y_valid, y_valid_pred_ensemble)
-print(f"MCRMSE on valid set: {metrics}")
-pd.Series(data=[metrics], index=["MCRMSE"]).to_csv("submission_score.csv")
-
-# 7) Make predictions on the test set and save them
-y_test_pred_l = []
-for model, predict_func in model_l:
-    y_test_pred_l.append(predict_func(model, X_test))
-
-# For multiclass classification, use the mode of the predictions
-y_test_pred = np.mean(y_test_pred_l, axis=0)
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test)
 
 
 submission_result = pd.read_csv("/kaggle/input/sample_submission.csv")

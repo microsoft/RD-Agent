@@ -36,12 +36,8 @@ def preprocess_script():
 
     y_train = train[["cohesion", "syntax", "vocabulary", "phraseology", "grammar", "conventions"]]
 
-    vectorizer = TfidfVectorizer()
-    X_train = vectorizer.fit_transform(train["full_text"])
-    X_test = vectorizer.transform(test["full_text"])
-
-    X_train = pd.DataFrame.sparse.from_spmatrix(X_train)
-    X_test = pd.DataFrame.sparse.from_spmatrix(X_test)
+    X_train = train[["full_text"]]
+    X_test = test[["full_text"]]
 
     X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
