@@ -41,7 +41,7 @@ class KaggleRDLoop(RDLoop):
                 if PROP_SETTING.knowledge_base != ""
                 else None
             )
-            logger.log_object(knowledge_base.__dict__, tag="knowledge_base")
+            logger.log_object(knowledge_base, tag="knowledge_base")
 
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
