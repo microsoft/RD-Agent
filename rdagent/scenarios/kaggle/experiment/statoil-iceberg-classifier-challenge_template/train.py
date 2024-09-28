@@ -29,6 +29,20 @@ def import_module_from_path(module_name, module_path):
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
+print(X_train.shape)
+# print(X_train.head())
+# 打印第一个样本的形状
+print("Shape of first sample:", X_train[0].shape)
+
+# 打印第一个样本的前几行数据
+print("Data of first sample (first few rows):")
+print(X_train[0][:5][:5])  # 打印前5行前5列
+
+# 打印第一个样本的统计信息
+print("Statistics of first sample:")
+print("Mean:", X_train[0].mean())
+print("Max:", X_train[0].max())
+print("Min:", X_train[0].min())
 
 
 # 2) Auto feature engineering
@@ -64,6 +78,8 @@ imputer = SimpleImputer(strategy="mean")
 X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
 X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
 X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+print("X_train.head():",X_train.head())
 
 # Remove duplicate columns
 X_train = X_train.loc[:, ~X_train.columns.duplicated()]
