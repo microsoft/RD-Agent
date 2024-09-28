@@ -4,7 +4,6 @@ from typing import List, Union
 
 import pandas as pd
 from _pytest.cacheprovider import json
-from tqdm import tqdm
 
 from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
 from rdagent.log import rdagent_logger as logger
@@ -190,20 +189,22 @@ class KaggleExperienceBase(PDVectorBase):
             extracted_knowledge = extract_knowledge_from_feedback(experiment_feedback)
 
             document = KGKnowledgeDocument(
-                content=extracted_knowledge.get("content", ""),
-                title=extracted_knowledge.get("title", "Experiment Feedback"),
-                competition_name=extracted_knowledge.get("competition_name", "Unknown Competition"),
-                task_category=extracted_knowledge.get("task_category", "General Task"),
-                field=extracted_knowledge.get("field", None),
-                ranking=extracted_knowledge.get("ranking", None),
-                score=extracted_knowledge.get("score", None),
+                content=experiment_feedback.get("hypothesis_text", ""),
+                label="Experiment Feedback",
+                competition_name="Experiment Result",
+                task_category=experiment_feedback.get("tasks_factors", "General Task"),
+                field="Research Feedback",
+                ranking=None,
+                score=experiment_feedback.get("current_result", None),
             )
             document.create_embedding()
             self.add(document)
             return
 
         # Process Kaggle experience data
-        for experience in tqdm(self.kaggle_experience_data):
+        logger.info(f"Processing {len(self.kaggle_experience_data)} Kaggle experience posts")
+        for experience in self.kaggle_experience_data:
+            logger.info(f"Processing experience index: {self.kaggle_experience_data.index(experience)}")
             content = experience.get("content", "")
             label = experience.get("title", "Kaggle Experience")
             competition_name = experience.get("competition_name", "Unknown Competition")
@@ -251,10 +252,22 @@ class KaggleExperienceBase(PDVectorBase):
 
         return kaggle_docs, similarities
 
+    def save(self, vector_df_path: Union[str, Path]):
+        """
+        Save the vector DataFrame to a file
+
+        Parameters:
+        ----------
+        vector_df_path: str or Path
+            Path to save the vector DataFrame.
+        """
+        self.vector_df.to_pickle(vector_df_path)
+        logger.info(f"Vector DataFrame saved to {vector_df_path}")
+
 
 if __name__ == "__main__":
     kaggle_base = KaggleExperienceBase(
-        kaggle_experience_path="git_ignore_folder/experience/tabular_cases/kaggle_experience_results.json"
+        kaggle_experience_path="git_ignore_folder/data-dsagent/kaggle_experience_results.json"
     )
 
     kaggle_base.add_experience_to_vector_base()
