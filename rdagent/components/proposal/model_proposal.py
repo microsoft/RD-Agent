@@ -50,7 +50,6 @@ class ModelHypothesisGen(HypothesisGen):
             .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["user_prompt"])
             .render(
                 targets="feature engineering and model building",
-                hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
                 RAG=context_dict["RAG"],
             )
         )
