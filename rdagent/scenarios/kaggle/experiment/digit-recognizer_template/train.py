@@ -83,6 +83,6 @@ ids = range(1, len(X_test) + 1)
 
 # TODO: fix selection
 print(X_valid_selected.columns)
-y_test_pred = model_l[min_index][1](model_l[min_index][0], model_l[min_index][2].select(X_test))
+y_test_pred = model_l[min_index][1](model_l[min_index][0], model_l[min_index][2].select(X_test)).flatten()
 submission_result = pd.DataFrame({"ImageId": ids, "Label": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)
