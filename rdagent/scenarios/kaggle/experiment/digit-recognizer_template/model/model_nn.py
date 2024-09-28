@@ -1,12 +1,9 @@
+import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
+import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
-
-
-
 
 
 # Define the neural network model with Batch Normalization
@@ -34,11 +31,12 @@ class NeuralNetwork(nn.Module):
 
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     # Convert data to PyTorch tensors and reshape it for convolutional layers
-    X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).view(-1, 1, 28, 28).to(device)  # Reshape and move to GPU
+    X_train_tensor = (
+        torch.tensor(X_train.values, dtype=torch.float32).view(-1, 1, 28, 28).to(device)
+    )  # Reshape and move to GPU
     y_train_tensor = torch.tensor(y_train.values, dtype=torch.long).to(device)
     X_valid_tensor = torch.tensor(X_valid.values, dtype=torch.float32).view(-1, 1, 28, 28).to(device)
     y_valid_tensor = torch.tensor(y_valid.values, dtype=torch.long).to(device)
-
 
     # Create datasets and dataloaders
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
