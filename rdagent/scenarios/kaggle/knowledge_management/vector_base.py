@@ -252,7 +252,7 @@ class KaggleExperienceBase(PDVectorBase):
 
         return kaggle_docs, similarities
 
-    def save(self, vector_df_path: Union[str, Path]):
+    def save(self, vector_df_save_path: Union[str, Path] = ""):
         """
         Save the vector DataFrame to a file
 
@@ -261,8 +261,12 @@ class KaggleExperienceBase(PDVectorBase):
         vector_df_path: str or Path
             Path to save the vector DataFrame.
         """
-        self.vector_df.to_pickle(vector_df_path)
-        logger.info(f"Vector DataFrame saved to {vector_df_path}")
+        if vector_df_save_path != "":
+            self.vector_df.to_pickle(vector_df_save_path)
+        else:
+            timestamp = datetime.now().strftime("%m-%d-%H-%M-%S")
+            vector_df_save_path = f"{self.path}_{timestamp}.pkl"
+        logger.info(f"Vector DataFrame saved to {vector_df_save_path}")
 
 
 if __name__ == "__main__":
