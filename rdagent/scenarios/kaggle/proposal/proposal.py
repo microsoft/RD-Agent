@@ -91,7 +91,10 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str) -> str:
         if self.scen.if_using_vector_rag:
-            rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
+            if self.scen.mini_case:
+                rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=1)
+            else:
+                rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
             return "\n".join([doc.content for doc in rag_results])
         if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
             return None
@@ -237,7 +240,8 @@ class KGHypothesisGen(ModelHypothesisGen):
             "RAG": self.generate_RAG_content(trace, hypothesis_and_feedback),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
-                f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None
+                f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None,
+                prompt_dict["hypothesis_specification"],
             ),
         }
         return context_dict, True

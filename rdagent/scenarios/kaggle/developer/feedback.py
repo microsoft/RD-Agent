@@ -162,7 +162,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         if self.scen.if_using_vector_rag:
             self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
-            self.scen.vector_base.save()
+            self.scen.vector_base.dump()
         elif self.scen.if_using_graph_rag:
             trace.knowledge_base.add_document(experiment_feedback, self.scen)
 

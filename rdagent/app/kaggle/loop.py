@@ -89,7 +89,10 @@ class KaggleRDLoop(RDLoop):
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
 
-            if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
+            if KAGGLE_IMPLEMENT_SETTING.competition in [
+                "optiver-realized-volatility-prediction",
+                "covid19-global-forecasting-week-1",
+            ]:
                 try:
                     python_files_to_notebook(
                         KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path

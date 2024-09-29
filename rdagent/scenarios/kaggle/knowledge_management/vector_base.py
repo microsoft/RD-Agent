@@ -267,12 +267,12 @@ class KaggleExperienceBase(PDVectorBase):
 
 if __name__ == "__main__":
     kaggle_base = KaggleExperienceBase(
-        kaggle_experience_path="git_ignore_folder/data-dsagent/kaggle_experience_results.json"
+        kaggle_experience_path="git_ignore_folder/data_minicase/kaggle_experience_results.json"
     )
 
     kaggle_base.add_experience_to_vector_base()
 
-    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
+    kaggle_base.save("git_ignore_folder/vector_base/kaggle_vector_base.pkl")
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 
