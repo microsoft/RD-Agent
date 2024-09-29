@@ -63,14 +63,6 @@ X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
 X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
 X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
 
-"""# Remove duplicate columns
-X_train = X_train.loc[:, ~X_train.columns.duplicated()]
-X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-X_test = X_test.loc[:, ~X_test.columns.duplicated()]"""
-
-print("Training feature names:", X_train.columns.tolist())
-print("Validation feature names:", X_valid.columns.tolist())
-
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
@@ -80,29 +72,26 @@ for f in DIRNAME.glob("model/model*.py"):
     X_train_selected = select_m.select(X_train.copy())
     X_valid_selected = select_m.select(X_valid.copy())
 
-    print("Training feature names:", X_train_selected.columns.tolist())
-    print("Validation feature names:", X_valid_selected.columns.tolist())
-
     m = import_module_from_path(f.stem, f)
-    model_name = f.stem  # 获取模型名称
-    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m), model_name)
+    model_name = f.stem
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m, model_name))
 
 # 4) Evaluate the model on the validation set
 metrics_all = []
-for model, predict_func, select_m in model_l:
+for model, predict_func, select_m, model_name in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
     r2 = compute_r2(y_valid, y_valid_pred)
-    print(f"R2 on valid set: {r2}")
+    print(f"R2 on valid set for {model_name}: {r2}")
     metrics_all.append(r2)
 
 # 5) Save the validation accuracy
-min_index = np.argmin(metrics_all)
-pd.Series(data=[metrics_all[min_index]], index=["R2"]).to_csv("submission_score.csv")
+max_index = np.argmax(metrics_all)
+pd.Series(data=[metrics_all[max_index]], index=["R2"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[min_index][2].select(X_test.copy())
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected).ravel()
+X_test_selected = model_l[max_index][2].select(X_test.copy())
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).ravel()
 
 # 7) Submit predictions for the test set
 submission_result = pd.DataFrame({"id": ids, "FloodProbability": y_test_pred})
