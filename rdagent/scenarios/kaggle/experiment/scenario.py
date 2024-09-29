@@ -37,7 +37,7 @@ class KGScenario(Scenario):
         self.evaluation_desc = None
         self.evaluation_metric_direction = None
         self.vector_base = None
-        self.dsagent = KAGGLE_IMPLEMENT_SETTING.dsagent
+        self.mini_case = KAGGLE_IMPLEMENT_SETTING.mini_case
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag

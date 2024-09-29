@@ -316,7 +316,7 @@ model_feature_selection:
       {{ feature }}
     {% endfor %}
 
-gen_knowledge_from_code_DSAgent:
+gen_knowledge_from_code_mini_case:
   system: |-
     You were a proficient data scientist.
   user: |-

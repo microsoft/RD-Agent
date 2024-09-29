@@ -91,7 +91,7 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str) -> str:
         if self.scen.if_using_vector_rag:
-            if self.scen.dsagent:
+            if self.scen.mini_case:
                 rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=1)
             else:
                 rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
