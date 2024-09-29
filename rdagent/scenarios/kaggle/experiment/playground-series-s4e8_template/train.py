@@ -88,7 +88,7 @@ for model, predict_func, select_m in model_l:
     metrics_all.append(metrics)
 
 # 5) Save the validation accuracy
-min_index = np.argmin(metrics_all)
+min_index = np.argmax(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["MCC"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them

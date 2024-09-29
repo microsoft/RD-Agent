@@ -15,11 +15,9 @@ from rdagent.components.proposal.model_proposal import (
     ModelHypothesisGen,
 )
 from rdagent.core.exception import ModelEmptyError
-from rdagent.core.exception import ModelEmptyError
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
-    KG_SELECT_MAPPING,
     KG_SELECT_MAPPING,
     KGFactorExperiment,
     KGModelExperiment,
@@ -88,9 +86,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         if self.scen.if_using_vector_rag:
             if self.scen.mini_case:
                 rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
-                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
             else:
-                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=5)
                 rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=5)
             return "\n".join([doc.content for doc in rag_results])
         if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
@@ -196,9 +192,6 @@ class KGHypothesisGen(ModelHypothesisGen):
             n_o = self.scen.action_counts[last_action]
             mu_o = self.scen.reward_estimates[last_action]
             self.scen.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
-            n_o = self.scen.action_counts[last_action]
-            mu_o = self.scen.reward_estimates[last_action]
-            self.scen.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
         else:
             # First iteration, nothing to update
             pass
@@ -206,24 +199,17 @@ class KGHypothesisGen(ModelHypothesisGen):
     def execute_next_action(self, trace: Trace) -> str:
         actions = list(self.scen.action_counts.keys())
         t = sum(self.scen.action_counts.values()) + 1
-        actions = list(self.scen.action_counts.keys())
-        t = sum(self.scen.action_counts.values()) + 1
 
         # If any action has not been tried yet, select it
         for action in actions:
             if self.scen.action_counts[action] == 0:
-            if self.scen.action_counts[action] == 0:
                 selected_action = action
-                self.scen.action_counts[selected_action] += 1
                 self.scen.action_counts[selected_action] += 1
                 return selected_action
 
         c = self.scen.confidence_parameter
-        c = self.scen.confidence_parameter
         ucb_values = {}
         for action in actions:
-            mu_o = self.scen.reward_estimates[action]
-            n_o = self.scen.action_counts[action]
             mu_o = self.scen.reward_estimates[action]
             n_o = self.scen.action_counts[action]
             ucb = mu_o + c * math.sqrt(math.log(t) / n_o)
@@ -231,7 +217,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         # Select action with highest UCB
         selected_action = max(ucb_values, key=ucb_values.get)
         self.scen.action_counts[selected_action] += 1
-        self.scen.action_counts[selected_action] += 1
+
         return selected_action
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
@@ -307,8 +293,6 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
         for experiment in experiment_list:
             for sub_task in experiment.sub_tasks:
                 model_list.extend(sub_task.get_task_information())
-            for sub_task in experiment.sub_tasks:
-                model_list.extend(sub_task.get_task_information())
 
         return {
             "target_hypothesis": str(hypothesis),
@@ -355,10 +339,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )
         model_type = response_dict.get("model_type", "Model type not provided")
-        if model_type not in KG_SELECT_MAPPING:
-            raise ModelEmptyError(
-                f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
-            )
+
         tasks.append(
             ModelTask(
                 name=response_dict.get("model_name", "Model name not provided"),
