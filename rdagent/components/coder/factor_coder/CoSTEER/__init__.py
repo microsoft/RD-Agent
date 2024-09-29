@@ -25,7 +25,6 @@ from rdagent.core.developer import Developer
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-import json
 
 
 class FactorCoSTEER(Developer[FactorExperiment]):
@@ -48,11 +47,6 @@ class FactorCoSTEER(Developer[FactorExperiment]):
         self.new_knowledge_base_path = (
             Path(FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path)
             if FACTOR_IMPLEMENT_SETTINGS.new_knowledge_base_path is not None
-            else None
-        )
-        self.data_tables_knowledge_path = (
-            Path(FACTOR_IMPLEMENT_SETTINGS.data_tables_knowledge_path)
-            if FACTOR_IMPLEMENT_SETTINGS.data_tables_knowledge_path is not None
             else None
         )
         self.with_knowledge = with_knowledge
@@ -78,7 +72,6 @@ class FactorCoSTEER(Developer[FactorExperiment]):
             factor_knowledge_base = (
                 FactorGraphKnowledgeBase(
                     init_component_list=component_init_list,
-                    data_set_knowledge_path=self.data_tables_knowledge_path,
                 )
                 if self.evolving_version == 2
                 else FactorKnowledgeBaseV1()

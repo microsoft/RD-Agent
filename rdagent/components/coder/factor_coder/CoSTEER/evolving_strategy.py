@@ -41,6 +41,15 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: QueriedKnowledge = None,
     ) -> Workspace:
         raise NotImplementedError
+    
+    @abstractmethod
+    def implement_one_factor_with_search_enhancement(
+        self,
+        target_task: FactorTask,
+        queried_knowledge: QueriedKnowledge,
+        dataset_information: dict,
+    ) -> Workspace:
+        raise NotImplementedError
 
     def evolve(
         self,
@@ -200,6 +209,146 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge,
+    ) -> str:
+        error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
+        # 1. 提取因子的背景信息
+        target_factor_task_information = target_task.get_task_information()
+
+        # 2. 检查该因子是否需要继续做（是否已经作对，是否做错太多）
+        if (
+            queried_knowledge is not None
+            and target_factor_task_information in queried_knowledge.success_task_to_knowledge_dict
+        ):
+            return queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information].implementation
+        elif queried_knowledge is not None and target_factor_task_information in queried_knowledge.failed_task_info_set:
+            return None
+        else:
+            # 3. 取出knowledge里面的经验数据（similar success、similar error、former_trace）
+            queried_similar_component_knowledge = (
+                queried_knowledge.component_with_success_task[target_factor_task_information]
+                if queried_knowledge is not None
+                else []
+            )  # A list, [success task implement knowledge]
+
+            queried_similar_error_knowledge = (
+                queried_knowledge.error_with_success_task[target_factor_task_information]
+                if queried_knowledge is not None
+                else {}
+            )  # A dict, {{error_type:[[error_imp_knowledge, success_imp_knowledge],...]},...}
+
+            queried_former_failed_knowledge = (
+                queried_knowledge.former_traces[target_factor_task_information] if queried_knowledge is not None else []
+            )
+
+            queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
+
+            system_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    implement_prompts["evolving_strategy_factor_implementation_v1_system"],
+                )
+                .render(
+                    scenario=self.scen.get_scenario_all_desc(),
+                    queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                )
+            )
+
+            session = APIBackend(use_chat_cache=FACTOR_IMPLEMENT_SETTINGS.coder_use_cache).build_chat_session(
+                session_system_prompt=system_prompt,
+            )
+
+            queried_similar_component_knowledge_to_render = queried_similar_component_knowledge
+            queried_similar_error_knowledge_to_render = queried_similar_error_knowledge
+            error_summary_critics = ""
+            # 动态地防止prompt超长
+            for _ in range(10):  # max attempt to reduce the length of user_prompt
+                # 总结error（可选）
+                if (
+                    error_summary
+                    and len(queried_similar_error_knowledge_to_render) != 0
+                    and len(queried_former_failed_knowledge_to_render) != 0
+                ):
+                    error_summary_system_prompt = (
+                        Environment(undefined=StrictUndefined)
+                        .from_string(implement_prompts["evolving_strategy_error_summary_v2_system"])
+                        .render(
+                            scenario=self.scen.get_scenario_all_desc(),
+                            factor_information_str=target_factor_task_information,
+                            code_and_feedback=queried_former_failed_knowledge_to_render[
+                                -1
+                            ].get_implementation_and_feedback_str(),
+                        )
+                        .strip("\n")
+                    )
+                    session_summary = APIBackend(
+                        use_chat_cache=FACTOR_IMPLEMENT_SETTINGS.coder_use_cache
+                    ).build_chat_session(
+                        session_system_prompt=error_summary_system_prompt,
+                    )
+                    for _ in range(10):  # max attempt to reduce the length of error_summary_user_prompt
+                        error_summary_user_prompt = (
+                            Environment(undefined=StrictUndefined)
+                            .from_string(implement_prompts["evolving_strategy_error_summary_v2_user"])
+                            .render(
+                                queried_similar_component_knowledge=queried_similar_component_knowledge_to_render,
+                            )
+                            .strip("\n")
+                        )
+                        if (
+                            session_summary.build_chat_completion_message_and_calculate_token(error_summary_user_prompt)
+                            < RD_AGENT_SETTINGS.chat_token_limit
+                        ):
+                            break
+                        elif len(queried_similar_error_knowledge_to_render) > 0:
+                            queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
+                    error_summary_critics = session_summary.build_chat_completion(
+                        user_prompt=error_summary_user_prompt,
+                        json_mode=False,
+                    )
+                # 构建user_prompt。开始写代码
+                user_prompt = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(
+                        implement_prompts["evolving_strategy_factor_implementation_v2_user"],
+                    )
+                    .render(
+                        factor_information_str=target_factor_task_information,
+                        queried_similar_component_knowledge=queried_similar_component_knowledge_to_render,
+                        queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
+                        error_summary=error_summary,
+                        error_summary_critics=error_summary_critics,
+                    )
+                    .strip("\n")
+                )
+                if (
+                    session.build_chat_completion_message_and_calculate_token(
+                        user_prompt,
+                    )
+                    < RD_AGENT_SETTINGS.chat_token_limit
+                ):
+                    break
+                elif len(queried_former_failed_knowledge_to_render) > 1:
+                    queried_former_failed_knowledge_to_render = queried_former_failed_knowledge_to_render[1:]
+                elif len(queried_similar_component_knowledge_to_render) > len(
+                    queried_similar_error_knowledge_to_render,
+                ):
+                    queried_similar_component_knowledge_to_render = queried_similar_component_knowledge_to_render[:-1]
+                elif len(queried_similar_error_knowledge_to_render) > 0:
+                    queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
+
+            response = session.build_chat_completion(
+                user_prompt=user_prompt,
+                json_mode=True,
+            )
+            code = json.loads(response)["code"]
+            return code
+
+class FactorEvolvingStrategyWithSearchEnhancement(MultiProcessEvolvingStrategy):
+    def implement_one_factor(
+        self,
+        target_task: FactorTask,
+        queried_knowledge,
+        dataset_information,
     ) -> str:
         error_summary = FACTOR_IMPLEMENT_SETTINGS.v2_error_summary
         # 1. 提取因子的背景信息
