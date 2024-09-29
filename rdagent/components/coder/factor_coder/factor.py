@@ -117,11 +117,14 @@ class FactorFBWorkspace(FBWorkspace):
                 target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
                 cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
                 Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if cache_file_path.exists() and not self.raise_exception:
+                if cache_file_path.exists():
                     cached_res = pickle.load(open(cache_file_path, "rb"))
-                    if store_result and cached_res[1] is not None:
-                        self.executed_factor_value_dataframe = cached_res[1]
-                    return cached_res
+                    if not self.raise_exception or len(cached_res) == 3:
+                        if cached_res[2]:
+                            raise cached_res[2]
+                        if store_result and cached_res[1] is not None:
+                            self.executed_factor_value_dataframe = cached_res[1]
+                        return cached_res[:1]
 
             if self.executed_factor_value_dataframe is not None:
                 return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
@@ -147,6 +150,7 @@ class FactorFBWorkspace(FBWorkspace):
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
+            execution_error = None
 
             if self.target_task.version == 1:
                 execution_code_path = code_path
@@ -177,10 +181,14 @@ class FactorFBWorkspace(FBWorkspace):
                     )
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
+                else:
+                    execution_error = CustomRuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
                 execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
+                else:
+                    execution_error = CustomRuntimeError(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
             if workspace_output_file_path.exists() and execution_success:
@@ -195,13 +203,15 @@ class FactorFBWorkspace(FBWorkspace):
                 executed_factor_value_dataframe = None
                 if self.raise_exception:
                     raise NoOutputError(execution_feedback)
+                else:
+                    execution_error = NoOutputError(execution_feedback)
 
             if store_result and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe
 
         if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
             pickle.dump(
-                (execution_feedback, executed_factor_value_dataframe),
+                (execution_feedback, executed_factor_value_dataframe, execution_error),
                 open(cache_file_path, "wb"),
             )
         return execution_feedback, executed_factor_value_dataframe

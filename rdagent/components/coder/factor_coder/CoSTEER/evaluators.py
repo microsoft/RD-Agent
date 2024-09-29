@@ -250,7 +250,7 @@ class FactorRowCountEvaluator(FactorEvaluator):
                 "The source dataframe is None. Please check the implementation.",
                 False,
             )
-        ratio = len(gen_df) / len(gt_df)
+        ratio = min(len(gen_df), len(gt_df)) / max(len(gen_df), len(gt_df))
         return (
             f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. "
             + "Please verify the implementation. "
@@ -304,7 +304,7 @@ class FactorMissingValuesEvaluator(FactorEvaluator):
             )
 
 
-class FactorEqualValueCountEvaluator(FactorEvaluator):
+class FactorEqualValueRatioEvaluator(FactorEvaluator):
     def evaluate(
         self,
         implementation: Workspace,
@@ -392,6 +392,7 @@ class FactorValueEvaluator(FactorEvaluator):
         output_format_result = None
         equal_value_ratio_result = 0
         high_correlation_result = False
+        row_result = None
 
         # Check if both dataframe has only one columns Mute this since factor task might generate more than one columns now
         if version == 1:
@@ -429,7 +430,7 @@ class FactorValueEvaluator(FactorEvaluator):
             )
             conclusions.append(feedback_str)
 
-            feedback_str, equal_value_ratio_result = FactorEqualValueCountEvaluator(self.scen).evaluate(
+            feedback_str, equal_value_ratio_result = FactorEqualValueRatioEvaluator(self.scen).evaluate(
                 implementation, gt_implementation
             )
             conclusions.append(feedback_str)
@@ -448,16 +449,15 @@ class FactorValueEvaluator(FactorEvaluator):
 
         if gt_implementation is not None and (equal_value_ratio_result > 0.99) or high_correlation_result:
             decision_from_value_check = True
-        if version == 1:
-            if row_result <= 0.99 or output_format_result is False or daily_check_result is False:
-                decision_from_value_check = False
-            else:
-                decision_from_value_check = None
-        elif version == 2:
-            if output_format_result is False or daily_check_result is False:
-                decision_from_value_check = False
-            else:
-                decision_from_value_check = None
+        elif (
+            row_result is not None
+            and row_result <= 0.99
+            or output_format_result is False
+            or daily_check_result is False
+        ):
+            decision_from_value_check = False
+        else:
+            decision_from_value_check = None
         return conclusion_str, decision_from_value_check
 
 

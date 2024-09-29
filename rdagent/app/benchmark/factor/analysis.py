@@ -4,9 +4,9 @@ from pathlib import Path
 
 import fire
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.stats import gmean
 
 from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
@@ -44,7 +44,24 @@ class BenchmarkAnalyzer:
             final_res[experiment] = processed_data.iloc[-1, :]
         return final_res
 
-    def reformat_succ_rate(self, display_df):
+    def reformat_index(self, display_df):
+        """
+        reform the results from
+
+        .. code-block:: python
+
+                              success rate
+            High_Beta_Factor           0.2
+
+        to
+
+        .. code-block:: python
+
+                                                    success rate
+            Category Difficulty Factor
+            量价       Hard       High_Beta_Factor           0.2
+
+        """
         new_idx = []
         display_df = display_df[display_df.index.isin(self.index_map.keys())]
         for idx in display_df.index:
@@ -78,11 +95,9 @@ class BenchmarkAnalyzer:
     def analyze_data(self, sum_df):
         index = [
             "FactorSingleColumnEvaluator",
-            "FactorOutputFormatEvaluator",
             "FactorRowCountEvaluator",
             "FactorIndexEvaluator",
-            "FactorMissingValuesEvaluator",
-            "FactorEqualValueCountEvaluator",
+            "FactorEqualValueRatioEvaluator",
             "FactorCorrelationEvaluator",
             "run factor error",
         ]
@@ -93,40 +108,35 @@ class BenchmarkAnalyzer:
         succ_rate = ~run_error
         succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
 
-        succ_rate_f = self.reformat_succ_rate(succ_rate)
-        succ_rate_f
+        succ_rate_f = self.reformat_index(succ_rate)
 
-        sum_df_clean["FactorRowCountEvaluator"]
-
-        format_issue = sum_df_clean["FactorRowCountEvaluator"].astype(bool) & sum_df_clean[
-            "FactorIndexEvaluator"
-        ].astype(bool)
+        # if it rasis Error when running the evaluator, we will get NaN
+        # Running failures are reguarded to zero score.
         format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
-            lambda x: gmean(x), axis=1
+            lambda x: np.mean(x.fillna(0.0)), axis=1
         )
+        format_succ_rate = format_issue.unstack().T.mean(axis=0).to_frame("success rate")
+        format_succ_rate_f = self.reformat_index(format_succ_rate)
 
-        eval_series = format_issue.unstack()
-        succ_rate = eval_series.T.fillna(False)
-
-        format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
-        format_succ_rate_f = self.reformat_succ_rate(format_succ_rate)
-
-        corr = sum_df_clean["FactorCorrelationEvaluator"] * format_issue
+        corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.0)
         corr = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
-        corr_res = self.reformat_succ_rate(corr)
-        corr_max = sum_df_clean["FactorCorrelationEvaluator"] * format_issue
+        corr_res = self.reformat_index(corr)
+        corr_max = sum_df_clean["FactorCorrelationEvaluator"]
 
         corr_max = corr_max.unstack().T.max(axis=0).to_frame("corr(only success)")
-        corr_max_res = self.reformat_succ_rate(corr_max)
+        corr_max_res = self.reformat_index(corr_max)
 
-        value_max = sum_df_clean["FactorMissingValuesEvaluator"] * format_issue
+        value_max = sum_df_clean["FactorEqualValueRatioEvaluator"]
         value_max = value_max.unstack().T.max(axis=0).to_frame("max_value")
-        value_max_res = self.reformat_succ_rate(value_max)
+        value_max_res = self.reformat_index(value_max)
 
         value_avg = (
-            (sum_df_clean["FactorMissingValuesEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
+            (sum_df_clean["FactorEqualValueRatioEvaluator"] * format_issue)
+            .unstack()
+            .T.mean(axis=0)
+            .to_frame("avg_value")
         )
-        value_avg_res = self.reformat_succ_rate(value_avg)
+        value_avg_res = self.reformat_index(value_avg)
 
         result_all = pd.concat(
             {
