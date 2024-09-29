@@ -235,6 +235,8 @@ class ChatSession:
 
 
 class APIBackend:
+    # FIXME: (xiao) I think we should skip using self.xxxx
+    # We can use self.cfg directly.  If it is hard to 兼容 different settings of backends.  We can split it into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,
@@ -381,6 +383,10 @@ class APIBackend:
         self.use_llama2 = self.cfg.use_llama2
         self.use_gcr_endpoint = self.cfg.use_gcr_endpoint
         self.retry_wait_seconds = self.cfg.retry_wait_seconds
+
+    def list_available_deployments(self):
+        if self.use_azure:
+            # TODO:
 
     def build_chat_session(
         self,
