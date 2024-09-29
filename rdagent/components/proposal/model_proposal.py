@@ -39,7 +39,7 @@ class ModelHypothesisGen(HypothesisGen):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["system_prompt"])
             .render(
-                targets="feature engineering and model building",
+                targets="model tuning",
                 scenario=self.scen.get_scenario_all_desc(),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
                 hypothesis_specification=context_dict["hypothesis_specification"],
@@ -49,7 +49,7 @@ class ModelHypothesisGen(HypothesisGen):
             Environment(undefined=StrictUndefined)
             .from_string(ModelHypothesisGen.prompts["hypothesis_gen"]["user_prompt"])
             .render(
-                targets="feature engineering and model building",
+                targets="model tuning",
                 RAG=context_dict["RAG"],
             )
         )

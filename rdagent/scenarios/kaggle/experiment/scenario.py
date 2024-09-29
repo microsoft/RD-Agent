@@ -8,7 +8,6 @@ import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -19,6 +18,17 @@ from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
 )
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
+KG_ACTION_FEATURE_PROCESSING = "Feature processing"
+KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
+KG_ACTION_MODEL_FEATURE_SELECTION = "Model feature selection"
+KG_ACTION_MODEL_TUNING = "Model tuning"
+KG_ACTION_LIST = [
+    KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_FEATURE_ENGINEERING,
+    KG_ACTION_MODEL_FEATURE_SELECTION,
+    KG_ACTION_MODEL_TUNING,
+]
 
 
 class KGScenario(Scenario):
@@ -53,6 +63,13 @@ class KGScenario(Scenario):
         self._interface = self.interface
         self._simulator = self.simulator
         self._background = self.background
+
+        self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
+        self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
+        self.reward_estimates["Model feature selection"] = 0.2
+        self.reward_estimates["Model tuning"] = 1.0
+        self.confidence_parameter = 1.0
+        self.initial_performance = 0.0
 
     def _analysis_competition_description(self):
         sys_prompt = (
@@ -204,7 +221,7 @@ The model code should follow the simulator:
 This is the Kaggle scenario for the competition: {self.competition}
 """
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(self) -> str:
         return f"""Background of the scenario:
 {self._background}
 The source dataset you can use to generate the features:

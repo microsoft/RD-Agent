@@ -23,6 +23,7 @@ def preprocess_script():
 
     # train
     train = pd.read_csv("/kaggle/input/train.csv")
+    train = train.drop(["id"], axis=1)
     train["store_sqft"] = train["store_sqft"].astype("category")
     train["salad"] = (train["salad_bar"] + train["prepared_food"]) / 2
     train["log_cost"] = np.log1p(train["cost"])
