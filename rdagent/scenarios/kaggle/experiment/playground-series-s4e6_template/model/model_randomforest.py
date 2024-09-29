@@ -5,6 +5,7 @@ Random Forest model for academic success classification.
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+import numpy as np
 
 def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series):
     """
@@ -32,4 +33,5 @@ def predict(model, X):
     """
     Make predictions using the trained model.
     """
-    return model.predict_proba(X)
+    probas = model.predict_proba(X)
+    return np.column_stack([proba[:, 1] for proba in probas])
