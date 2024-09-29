@@ -70,29 +70,6 @@ hypothesis_specification:
     feature_library_and_task_management:
       - Include features that improve performance in the feature library.
       - Each generation should focus on 1-3 feature tasks, balancing simplicity with complexity.
-hypothesis_specification:
-  Feature engineering: |-
-    Action: Feature engineering
-    description: We engineer the features for the sake of best model performance on the basis of engineering the most influential features.
-    type_of_feature_and_data_characteristics:
-      - Clearly define the feature type being introduced.
-      - Highlight the specific data patterns or characteristics the feature captures.
-      - Keep it focused—omit unnecessary details.
-    start_with_simple_features:
-      - Begin with straightforward and impactful features.
-      - Briefly explain why these features are expected to work.
-      - Avoid combining complex features at the outset.
-    increase_complexity_gradually:
-      - Add more complex features only after gathering experimental results.
-      - Discuss potential advantages and the trade-offs involved.
-      - Combine features only after simpler ones are tested and validated.
-    new_directions_and_optimizations:
-      - Justify any new direction based on data analysis or domain knowledge.
-      - Focus on one new direction at a time for clarity.
-      - If a hypothesis shows optimization potential (even without surpassing previous best results), explain why and proceed.
-    feature_library_and_task_management:
-      - Include features that improve performance in the feature library.
-      - Each generation should focus on 1-3 feature tasks, balancing simplicity with complexity.
 
   Feature processing: |-
     Action: Feature processing
