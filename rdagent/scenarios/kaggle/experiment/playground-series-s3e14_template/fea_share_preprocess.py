@@ -24,7 +24,7 @@ def preprocess_script():
     # train
     train = pd.read_csv("/kaggle/input/train.csv")
     X_train, X_valid, y_train, y_valid = train_test_split(
-        train.drop(["yield","id"], axis=1), train["yield"], test_size=0.2, random_state=2023
+        train.drop(["yield", "id"], axis=1), train["yield"], test_size=0.2, random_state=2023
     )
     y_train = pd.Series(y_train).reset_index(drop=True)
     y_valid = pd.Series(y_valid).reset_index(drop=True)
