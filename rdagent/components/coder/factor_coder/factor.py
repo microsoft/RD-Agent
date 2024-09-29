@@ -130,9 +130,9 @@ class FactorFBWorkspace(FBWorkspace):
                         # othersise we can raise the exception directly.
                         if self.raise_exception:
                             pass # pass to disable the cache mechanism
-
-                        self.executed_factor_value_dataframe = cached_res[1]
-                        return cached_res
+                        else:
+                            self.executed_factor_value_dataframe = cached_res[1]
+                            return cached_res
                     else:
                         # NOTE: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
                         if self.raise_exception and cached_res[-1] is not None:
