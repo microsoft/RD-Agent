@@ -122,7 +122,7 @@ class FBWorkspace(Workspace):
             workspace_data_file_path = workspace_path / data_file_path.name
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
-            os.symlink(data_file_path, workspace_data_file_path)
+            shutil.copy(data_file_path, workspace_data_file_path)
 
     def inject_code(self, **files: str) -> None:
         """
