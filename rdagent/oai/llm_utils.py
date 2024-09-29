@@ -235,6 +235,15 @@ class ChatSession:
 
 
 class APIBackend:
+    """
+    This is a unified interface for different backends.
+
+    (xiao) thinks integerate all kinds of API in a single class is not a good design.
+    So we should split them into different classes in `oai/backends/` in the future.
+    """
+
+    # FIXME: (xiao) We should avoid using self.xxxx.
+    # Instead, we can use self.cfg directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,

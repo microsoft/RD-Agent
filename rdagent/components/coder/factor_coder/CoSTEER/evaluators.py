@@ -89,7 +89,11 @@ class FactorCodeEvaluator(FactorEvaluator):
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
-            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+            .render(
+                scenario=self.scen.get_scenario_all_desc(target_task)
+                if self.scen is not None
+                else "No scenario description."
+            )
         )
 
         execution_feedback_to_render = execution_feedback
@@ -167,7 +171,11 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             .from_string(
                 evaluate_prompts["evaluator_output_format_system"],
             )
-            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+            .render(
+                scenario=self.scen.get_scenario_all_desc(implementation.target_task)
+                if self.scen is not None
+                else "No scenario description."
+            )
         )
 
         # TODO: with retry_context(retry_n=3, except_list=[KeyError]):
@@ -473,7 +481,11 @@ class FactorFinalDecisionEvaluator(Evaluator):
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
-            .render(scenario=self.scen.get_scenario_all_desc() if self.scen is not None else "No scenario description.")
+            .render(
+                scenario=self.scen.get_scenario_all_desc(target_task)
+                if self.scen is not None
+                else "No scenario description."
+            )
         )
         execution_feedback_to_render = execution_feedback
 

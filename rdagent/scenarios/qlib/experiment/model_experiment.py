@@ -6,6 +6,7 @@ from rdagent.components.coder.model_coder.model import (
     ModelFBWorkspace,
     ModelTask,
 )
+from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.workspace import QlibFBWorkspace
@@ -57,7 +58,7 @@ class QlibModelScenario(Scenario):
     def experiment_setting(self) -> str:
         return self._experiment_setting
 
-    def get_scenario_all_desc(self) -> str:
+    def get_scenario_all_desc(self, task: Task | None = None) -> str:
         return f"""Background of the scenario:
 {self.background}
 The interface you should follow to write the runnable code:

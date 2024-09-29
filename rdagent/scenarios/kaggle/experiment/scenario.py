@@ -8,6 +8,7 @@ import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -203,7 +204,7 @@ The model code should follow the simulator:
 This is the Kaggle scenario for the competition: {self.competition}
 """
 
-    def get_scenario_all_desc(self) -> str:
+    def get_scenario_all_desc(self, task: Task | None = None) -> str:
         return f"""Background of the scenario:
 {self._background}
 The source dataset you can use to generate the features:

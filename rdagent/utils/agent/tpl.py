@@ -18,8 +18,11 @@ PROJ_PATH = DIRNAME.parent.parent
 
 
 # class T(SingletonBaseClass): TODO: singleton does not support args now.
-class T:
-    """Use the simplest way to (C)reate a Template and (r)ender it!!"""
+class RDAT:
+    """
+    RD-Agent's Template
+    Use the simplest way to (C)reate a Template and (r)ender it!!
+    """
 
     def __init__(self, uri: str):
         """
@@ -61,3 +64,6 @@ class T:
         Render the template with the given context.
         """
         return Environment(undefined=StrictUndefined).from_string(self.template).render(**context)
+
+
+T = RDAT  # shortcuts
