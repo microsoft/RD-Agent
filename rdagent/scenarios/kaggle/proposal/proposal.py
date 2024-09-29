@@ -82,7 +82,7 @@ class KGHypothesisGen(ModelHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
-    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str) -> str:
+    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str = None) -> str:
         if self.scen.if_using_vector_rag:
             if self.scen.mini_case:
                 rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
@@ -245,7 +245,6 @@ class KGHypothesisGen(ModelHypothesisGen):
             "hypothesis_specification": (
                 f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None,
                 prompt_dict["hypothesis_specification"][action],
-                prompt_dict["hypothesis_specification"][action],
             ),
         }
         return context_dict, True
@@ -338,7 +337,6 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             raise ModelEmptyError(
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )
-        model_type = response_dict.get("model_type", "Model type not provided")
 
         tasks.append(
             ModelTask(
