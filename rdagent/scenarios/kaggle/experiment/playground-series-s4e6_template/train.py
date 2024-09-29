@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder  # Add this import
 
 import numpy as np
 import pandas as pd
