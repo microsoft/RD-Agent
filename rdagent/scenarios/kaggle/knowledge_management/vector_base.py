@@ -254,7 +254,7 @@ class KaggleExperienceBase(PDVectorBase):
 
 if __name__ == "__main__":
     kaggle_base = KaggleExperienceBase(
-        kaggle_experience_path="git_ignore_folder/experience/tabular_cases/kaggle_experience_results.json"
+        kaggle_experience_path="git_ignore_folder/data-dsagent/kaggle_experience_results.json"
     )
 
     kaggle_base.add_experience_to_vector_base()

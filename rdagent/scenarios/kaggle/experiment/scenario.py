@@ -44,9 +44,8 @@ class KGScenario(Scenario):
 
         if self.if_using_vector_rag and KAGGLE_IMPLEMENT_SETTING.rag_path:
             self.vector_base = KaggleExperienceBase(KAGGLE_IMPLEMENT_SETTING.rag_path)
-            # TODO: save or not 
-            self.vector_base.path = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "vector_db.pkl"
-            self.vector_base.save(self.vector_base.path)
+            self.vector_base.path = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl"
+            self.vector_base.save()
 
         self._output_format = self.output_format
         self._interface = self.interface
