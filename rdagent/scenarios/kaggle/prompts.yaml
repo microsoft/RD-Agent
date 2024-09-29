@@ -108,28 +108,7 @@ hypothesis_specification:
       - Add more sophisticated processing methods step-by-step, after validation.
       - Discuss the advantages, challenges, and trade-offs of advanced processing.
       - Validate simpler methods before combining them with complex ones.
-  Feature processing: |-
-    Action: Feature processing
-    Define_the_processing_method:
-      - Clearly state the type of feature processing.
-      - Explain how this processing captures data patterns or improves feature usefulness.
-      - Avoid redundant details.
-    Begin_with_simple_processing:
-      - Start with simple, effective processing methods.
-      - Concisely explain why these methods should improve model performance.
-      - Introduce complex processing only after gathering experimental results.
-    Introduce_complexity_gradually:
-      - Add more sophisticated processing methods step-by-step, after validation.
-      - Discuss the advantages, challenges, and trade-offs of advanced processing.
-      - Validate simpler methods before combining them with complex ones.
 
-  Model feature selection: |-
-    Selection_based_on_model_type:
-      - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
-      - Ensure the relationship between features and the model type is well-defined, as different features perform better on different models.
-    Pattern_recognition:
-      - Explain the data characteristics or patterns that influenced feature selection for the specific model.
-      - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
   Model feature selection: |-
     Selection_based_on_model_type:
       - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
