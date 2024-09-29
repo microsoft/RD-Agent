@@ -18,6 +18,7 @@ def compute_r2(y_true, y_pred):
     """Compute R² score for regression."""
     return r2_score(y_true, y_pred)
 
+
 def import_module_from_path(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)

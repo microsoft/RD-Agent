@@ -21,7 +21,6 @@ def prepreprocess():
 
 def preprocess_fit(X_train: pd.DataFrame):
     numerical_cols = [cname for cname in X_train.columns if X_train[cname].dtype in ["int64", "float64"]]
-    
 
     numerical_transformer = Pipeline(steps=[("imputer", SimpleImputer(strategy="mean"))])
 

@@ -11,14 +11,13 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     params = {
         "objective": "reg:squarederror",  # Use squared error for regression
         "nthread": -1,
-        'n_estimators':8000,
+        "n_estimators": 8000,
         "tree_method": "gpu_hist",
         "device": "cuda",
         "max_depth": 10,
-        'learning_rate': 0.01,
+        "learning_rate": 0.01,
     }
     num_round = 5000
-
 
     evallist = [(dtrain, "train"), (dvalid, "eval")]
     bst = xgb.train(params, dtrain, num_round, evallist)
