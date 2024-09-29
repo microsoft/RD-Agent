@@ -71,7 +71,6 @@ class FactorFBWorkspace(FBWorkspace):
     """
 
     # TODO: (Xiao) think raising errors may get better information for processing
-    FB_FROM_CACHE = "The factor value has been executed and stored in the instance variable."
     FB_EXEC_SUCCESS = "Execution succeeded without error."
     FB_CODE_NOT_SET = "code is not set."
     FB_EXECUTION_SUCCEEDED = "Execution succeeded without error."
@@ -89,7 +88,9 @@ class FactorFBWorkspace(FBWorkspace):
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
-    def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
+    def execute(
+        self, enable_cache: bool = FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache, data_type: str = "Debug"
+    ) -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
         1. make the directory in workspace path
@@ -102,8 +103,13 @@ class FactorFBWorkspace(FBWorkspace):
         5. read the factor value from the output file in the workspace path folder
         returns the execution feedback as a string and the factor value as a pandas dataframe
 
+
+        Regarding the cache mechanism:
+        1. We will store the function's return value to ensure it behaves as expected.
+        - The cached information will include a tuple with the following: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
+
         parameters:
-        store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
+        enable_cache: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
         super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
@@ -117,24 +123,32 @@ class FactorFBWorkspace(FBWorkspace):
                 target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
                 cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
                 Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if cache_file_path.exists():
+                if enable_cache and cache_file_path.exists():
                     cached_res = pickle.load(open(cache_file_path, "rb"))
-                    if not self.raise_exception or len(cached_res) == 3:
-                        if cached_res[2]:
-                            raise cached_res[2]
-                        if store_result and cached_res[1] is not None:
-                            self.executed_factor_value_dataframe = cached_res[1]
-                        return cached_res[:1]
 
-            if self.executed_factor_value_dataframe is not None:
-                return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
+                    if len(cached_res) == 2:
+                        # NOTE: this is trying to be compatible with previous results.
+                        # Previously, the exception is not saved. we should not enable the cache mechanism
+                        # othersise we can raise the exception directly.
+                        if self.raise_exception:
+                            pass  # pass to disable the cache mechanism
+                        else:
+                            self.executed_factor_value_dataframe = cached_res[1]
+                            return cached_res
+                    else:
+                        # NOTE: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
+                        if self.raise_exception and cached_res[-1] is not None:
+                            raise cached_res[-1]
+                        else:
+                            self.executed_factor_value_dataframe = cached_res[1]
+                            return cached_res[:2]
 
             if self.target_task.version == 1:
                 source_data_path = (
                     Path(
                         FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
                     )
-                    if data_type == "Debug"
+                    if data_type == "Debug"  # FIXME: (yx) don't think we should use a debug tag for this.
                     else Path(
                         FACTOR_IMPLEMENT_SETTINGS.data_folder,
                     )
@@ -206,7 +220,7 @@ class FactorFBWorkspace(FBWorkspace):
                 else:
                     execution_error = NoOutputError(execution_feedback)
 
-            if store_result and executed_factor_value_dataframe is not None:
+            if enable_cache and executed_factor_value_dataframe is not None:
                 self.executed_factor_value_dataframe = executed_factor_value_dataframe
 
         if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
