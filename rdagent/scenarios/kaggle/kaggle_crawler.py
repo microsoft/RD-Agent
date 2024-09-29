@@ -87,6 +87,15 @@ def download_data(competition: str, local_path: str = "/data/userdata/share/kagg
             zip_ref.extractall(data_path)
 
 
+def leaderboard_scores(competition: str) -> list[float]:
+    from kaggle.api.kaggle_api_extended import KaggleApi
+
+    api = KaggleApi()
+    api.authenticate()
+    ll = api.competition_leaderboard_view(competition)
+    return [float(x.score) for x in ll]
+
+
 def download_notebooks(
     competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks", num: int = 15
 ) -> None:
