@@ -6,15 +6,8 @@ import pandas as pd
 import xgboost as xgb
 
 
-def select(X: pd.DataFrame) -> pd.DataFrame:
-    # Ignore feature selection logic
-    return X
-
-
 def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame):
     """Define and train the model. Merge feature_select"""
-    X_train = select(X_train)
-
     xgb_params = {
         "n_estimators": 280,
         "learning_rate": 0.05,
@@ -37,6 +30,5 @@ def predict(model, X_test):
     """
     Keep feature select's consistency.
     """
-    X_test = select(X_test)
     y_pred = model.predict(X_test)
     return y_pred.reshape(-1, 1)

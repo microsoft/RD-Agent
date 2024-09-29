@@ -19,10 +19,12 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
+from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_MODEL_FEATURE_SELECTION,
     KGTrace,
 )
 
@@ -49,6 +51,10 @@ class KaggleRDLoop(RDLoop):
 
             self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
             logger.log_object(self.feature_coder, tag="feature coder")
+            self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(
+                scen
+            )
+            logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
             self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
             logger.log_object(self.model_coder, tag="model coder")
 
@@ -67,6 +73,8 @@ class KaggleRDLoop(RDLoop):
         with logger.tag("d"):  # develop
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
                 exp = self.feature_coder.develop(prev_out["exp_gen"])
+            elif prev_out["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
+                exp = self.model_feature_selection_coder.develop(prev_out["exp_gen"])
             else:
                 exp = self.model_coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
@@ -80,6 +88,14 @@ class KaggleRDLoop(RDLoop):
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
+
+            if KAGGLE_IMPLEMENT_SETTING.competition in ["optiver-realized-volatility-prediction"]:
+                try:
+                    python_files_to_notebook(
+                        KAGGLE_IMPLEMENT_SETTING.competition, exp.experiment_workspace.workspace_path
+                    )
+                except Exception as e:
+                    logger.error(f"Merge python files to one file failed: {e}")
 
             if KAGGLE_IMPLEMENT_SETTING.auto_submit:
                 csv_path = exp.experiment_workspace.workspace_path / "submission.csv"

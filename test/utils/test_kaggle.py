@@ -27,7 +27,7 @@ class TestTpl(unittest.TestCase):
         ws.execute()
         success = (ws.workspace_path / "submission.csv").exists()
         self.assertTrue(success, "submission.csv is not generated")
-        ws.clear()
+        # ws.clear()
 
 
 if __name__ == "__main__":

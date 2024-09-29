@@ -14,12 +14,12 @@ class KnowledgeBase:
         if self.path is not None and self.path.exists():
             with self.path.open("rb") as f:
                 self.__dict__.update(
-                    pickle.load(f).__dict__,
+                    pickle.load(f),
                 )  # TODO: because we need to align with init function, we need a less hacky way to do this
 
     def dump(self) -> None:
         if self.path is not None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            pickle.dump(self, self.path.open("wb"))
+            pickle.dump(self.__dict__, self.path.open("wb"))
         else:
             logger.warning("KnowledgeBase path is not set, dump failed.")
