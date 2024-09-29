@@ -47,7 +47,7 @@ hypothesis_output_format: |-
     "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
 
-hypothesis specification: |-
+hypothesis_specification: |-
   There are different types of hypothesis that correspond to different types of actions. The specifications are quite important here:
   1) feature_engineering:
   description: We engineer the features for the sake of best model performance on the basis of engineering the most influential features.
