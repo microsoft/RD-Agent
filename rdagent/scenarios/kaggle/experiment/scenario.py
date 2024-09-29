@@ -20,6 +20,17 @@ from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
 
 prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+KG_ACTION_FEATURE_PROCESSING = "Feature processing"
+KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
+KG_ACTION_MODEL_FEATURE_SELECTION = "Model feature selection"
+KG_ACTION_MODEL_TUNING = "Model tuning"
+KG_ACTION_LIST = [
+    KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_FEATURE_ENGINEERING,
+    KG_ACTION_MODEL_FEATURE_SELECTION,
+    KG_ACTION_MODEL_TUNING,
+]
+
 
 class KGScenario(Scenario):
     def __init__(self, competition: str) -> None:
@@ -53,6 +64,13 @@ class KGScenario(Scenario):
         self._interface = self.interface
         self._simulator = self.simulator
         self._background = self.background
+
+        self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
+        self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
+        self.reward_estimates["Model feature selection"] = 0.2
+        self.reward_estimates["Model tuning"] = 1.0
+        self.confidence_parameter = 1.0
+        self.initial_performance = 0.0
 
     def _analysis_competition_description(self):
         sys_prompt = (

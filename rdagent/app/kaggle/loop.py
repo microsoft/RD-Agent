@@ -19,14 +19,14 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
-from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
-from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-from rdagent.scenarios.kaggle.proposal.proposal import (
+from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
     KG_ACTION_MODEL_FEATURE_SELECTION,
-    KGTrace,
 )
+from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
+from rdagent.scenarios.kaggle.proposal.proposal import KGTrace
 
 
 class KaggleRDLoop(RDLoop):

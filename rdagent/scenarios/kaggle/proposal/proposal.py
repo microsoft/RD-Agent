@@ -14,9 +14,11 @@ from rdagent.components.proposal.model_proposal import (
     ModelHypothesis2Experiment,
     ModelHypothesisGen,
 )
+from rdagent.core.exception import ModelEmptyError
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
+    KG_SELECT_MAPPING,
     KGFactorExperiment,
     KGModelExperiment,
 )
@@ -29,16 +31,13 @@ from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
 
-KG_ACTION_FEATURE_PROCESSING = "Feature processing"
-KG_ACTION_FEATURE_ENGINEERING = "Feature engineering"
-KG_ACTION_MODEL_FEATURE_SELECTION = "Model feature selection"
-KG_ACTION_MODEL_TUNING = "Model tuning"
-KG_ACTION_LIST = [
-    KG_ACTION_FEATURE_PROCESSING,
+from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
+    KG_ACTION_FEATURE_PROCESSING,
+    KG_ACTION_LIST,
     KG_ACTION_MODEL_FEATURE_SELECTION,
     KG_ACTION_MODEL_TUNING,
-]
+)
 
 
 class KGHypothesis(Hypothesis):
@@ -82,19 +81,13 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
-        self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
-        self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
-        self.reward_estimates["Model feature selection"] = 0.2
-        self.reward_estimates["Model tuning"] = 1.0
-        self.confidence_parameter = 1.0
-        self.initial_performance = 0.0
 
-    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str) -> str:
+    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str = None) -> str:
         if self.scen.if_using_vector_rag:
             if self.scen.mini_case:
-                rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=1)
+                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
             else:
-                rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
+                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=5)
             return "\n".join([doc.content for doc in rag_results])
         if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
             return None
@@ -188,37 +181,42 @@ class KGHypothesisGen(ModelHypothesisGen):
                 prev_result = prev_entry[1].result
                 performance_t_minus_1 = prev_result.get("performance", 0.0)
             else:
-                performance_t_minus_1 = self.initial_performance
+                performance_t_minus_1 = self.scen.initial_performance
+
+            if self.scen.evaluation_metric_direction:
+                reward = (performance_t - performance_t_minus_1) / max(performance_t_minus_1, 1e-8)
+            else:
+                reward = (performance_t_minus_1 - performance_t) / max(performance_t_minus_1, 1e-8)
 
             reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
-            n_o = self.action_counts[last_action]
-            mu_o = self.reward_estimates[last_action]
-            self.reward_estimates[last_action] += (reward - mu_o) / n_o
+            n_o = self.scen.action_counts[last_action]
+            mu_o = self.scen.reward_estimates[last_action]
+            self.scen.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
         else:
             # First iteration, nothing to update
             pass
 
     def execute_next_action(self, trace: Trace) -> str:
-        actions = list(self.action_counts.keys())
-        t = sum(self.action_counts.values()) + 1
+        actions = list(self.scen.action_counts.keys())
+        t = sum(self.scen.action_counts.values()) + 1
 
         # If any action has not been tried yet, select it
         for action in actions:
-            if self.action_counts[action] == 0:
+            if self.scen.action_counts[action] == 0:
                 selected_action = action
-                self.action_counts[selected_action] += 1
+                self.scen.action_counts[selected_action] += 1
                 return selected_action
 
-        c = self.confidence_parameter
+        c = self.scen.confidence_parameter
         ucb_values = {}
         for action in actions:
-            mu_o = self.reward_estimates[action]
-            n_o = self.action_counts[action]
+            mu_o = self.scen.reward_estimates[action]
+            n_o = self.scen.action_counts[action]
             ucb = mu_o + c * math.sqrt(math.log(t) / n_o)
             ucb_values[action] = ucb
         # Select action with highest UCB
         selected_action = max(ucb_values, key=ucb_values.get)
-        self.action_counts[selected_action] += 1
+        self.scen.action_counts[selected_action] += 1
         return selected_action
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
@@ -237,11 +235,15 @@ class KGHypothesisGen(ModelHypothesisGen):
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": self.generate_RAG_content(trace, hypothesis_and_feedback),
+            "RAG": self.generate_RAG_content(
+                trace=trace,
+                hypothesis_and_feedback=hypothesis_and_feedback,
+                target=action if self.scen.if_action_choosing_based_on_UCB else None,
+            ),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
                 f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None,
-                prompt_dict["hypothesis_specification"],
+                prompt_dict["hypothesis_specification"][action],
             ),
         }
         return context_dict, True
@@ -287,7 +289,8 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
 
         model_list = []
         for experiment in experiment_list:
-            model_list.extend(experiment.sub_tasks)
+            for sub_task in experiment.sub_tasks:
+                model_list.extend(sub_task.get_task_information())
 
         return {
             "target_hypothesis": str(hypothesis),
@@ -328,6 +331,11 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
     def convert_model_experiment(self, response: str, trace: Trace) -> KGModelExperiment:
         response_dict = json.loads(response)
         tasks = []
+        model_type = response_dict.get("model_type", "Model type not provided")
+        if model_type not in KG_SELECT_MAPPING:
+            raise ModelEmptyError(
+                f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
+            )
         tasks.append(
             ModelTask(
                 name=response_dict.get("model_name", "Model name not provided"),
