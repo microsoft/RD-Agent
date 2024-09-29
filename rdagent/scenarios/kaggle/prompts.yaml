@@ -94,7 +94,7 @@ hypothesis_specification:
       - Explain the data characteristics or patterns that influenced feature selection for the specific model.
       - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
 
-  Model_design_and_tuning: |-
+  Model tuning: |-
     Explain the hypothesis clearly with valuable information. What kind of model are you building/tuning? What do you think is true? How you are revising and why? What are some innvations? 
     Focus_on_architecture_or_hyper_parameter_tuning_or_both:
       - Focus on designing new model architectures one at a time OR hyper-parameter tuning OR both.

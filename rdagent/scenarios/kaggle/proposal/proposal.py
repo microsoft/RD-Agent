@@ -82,7 +82,7 @@ class KGHypothesisGen(ModelHypothesisGen):
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
 
-    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str) -> str:
+    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str = None) -> str:
         if self.scen.if_using_vector_rag:
             if self.scen.mini_case:
                 rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
@@ -183,6 +183,11 @@ class KGHypothesisGen(ModelHypothesisGen):
             else:
                 performance_t_minus_1 = self.scen.initial_performance
 
+            if self.scen.evaluation_metric_direction:
+                reward = (performance_t - performance_t_minus_1) / max(performance_t_minus_1, 1e-8)
+            else:
+                reward = (performance_t_minus_1 - performance_t) / max(performance_t_minus_1, 1e-8)
+
             reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
             n_o = self.scen.action_counts[last_action]
             mu_o = self.scen.reward_estimates[last_action]
@@ -231,7 +236,9 @@ class KGHypothesisGen(ModelHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": self.generate_RAG_content(
-                trace=trace, hypothesis_and_feedback=hypothesis_and_feedback, target=action
+                trace=trace,
+                hypothesis_and_feedback=hypothesis_and_feedback,
+                target=action if self.scen.if_action_choosing_based_on_UCB else None,
             ),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
