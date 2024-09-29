@@ -103,21 +103,27 @@ class KaggleRDLoop(RDLoop):
             if KAGGLE_IMPLEMENT_SETTING.auto_submit:
                 csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
                 try:
-                    subprocess.run(
-                        [
-                            "kaggle",
-                            "competitions",
-                            "submit",
-                            "-f",
-                            str(csv_path.absolute()),
-                            "-m",
-                            str(csv_path.parent.absolute()),
-                            KAGGLE_IMPLEMENT_SETTING.competition,
-                        ],
+                    command = [
+                        "kaggle",
+                        "competitions",
+                        "submit",
+                        "-f",
+                        str(csv_path.absolute()),
+                        "-m",
+                        str(csv_path.parent.absolute()),
+                        KAGGLE_IMPLEMENT_SETTING.competition,
+                    ]
+                    logger.info(f"Executing Kaggle API command: {' '.join(command)}")
+                    result = subprocess.run(
+                        command,
                         check=True,
+                        capture_output=True,
+                        text=True
                     )
+                    logger.info(f"Kaggle API output: {result.stdout}")
                 except subprocess.CalledProcessError as e:
                     logger.error(f"Auto submission failed: \n{e}")
+                    logger.error(f"Kaggle API error output: {e.stderr}")
                 except Exception as e:
                     logger.error(f"Other exception when use kaggle api:\n{e}")
 
