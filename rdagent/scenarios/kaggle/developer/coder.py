@@ -29,7 +29,7 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
     {% if feature_index_list is not none %}
     X = X.loc[:, X.columns.levels[0][{{feature_index_list}}].tolist()]
     {% endif %}
-    X.columns = ["_".join(str(col)).strip() for col in X.columns.values]
+    X.columns = ["_".join(str(i) for i in col).strip() for col in X.columns.values]
     return X
 """
 

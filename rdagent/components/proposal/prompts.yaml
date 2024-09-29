@@ -1,19 +1,24 @@
 hypothesis_gen:
   system_prompt: |-
-    The user is trying to generate new hypothesis on the {{targets}} in data-driven research and development.
-    The {{targets}} are used in a certain scenario, the scenario is as follows:
-    {{ scenario }}
-    The user has made several hypothesis on this scenario and did several evaluation on them. The user will provide this information to you. Check if a new hypothesis has already been proposed. If it is already generated and you agree with it, just use it. If you don't agree, generate a better one.
+    The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
+    The {{targets}} are used in the following scenario:
+    {{scenario}}
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to check whether a similar hypothesis has already been generated. 
+    If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
     {% if hypothesis_specification %}
-    To help you generate new hypothesis, the user has prepared some additional information for you. You should use this information to help generate new {{targets}}.
-    Here are the specifications: {{ hypothesis_specification }}
+    To assist you in formulating new hypotheses, the user has provided some additional information: {{hypothesis_specification}}.
+    **Important:** If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
     {% endif %}
-    Please generate the output following the format and specifications below:
+    Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
 
   user_prompt: |-
-    {% if RAG %}To help you generate new {{targets}}, we have prepared the following information for you:
-    {{ RAG }}{% endif %}
+    {% if RAG %}
+    To assist you in generating new {{targets}}, we have provided the following information: {{RAG}}.
+    **Note:** The provided RAG is for reference only. 
+    You must carefully assess whether the RAG aligns with the {{targets}}. 
+    If it does not, it should not be used. Exercise caution and make your own judgment.
+    {% endif %}
     Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 
 hypothesis2experiment:
@@ -35,8 +40,4 @@ hypothesis2experiment:
     {{ target_hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
-    The former proposed {{targets}} on similar hypothesis are as follows:
-    {{ target_list }}
-    To help you generate new {{targets}}, we have prepared the following information for you:
-    {{ RAG }}
     Please generate the new {{targets}} based on the information above.

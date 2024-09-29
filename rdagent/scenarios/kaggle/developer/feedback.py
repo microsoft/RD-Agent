@@ -148,6 +148,16 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
+        leaderboard = self.scen.leaderboard
+        current_score = current_result.iloc[0]
+        sorted_scores = sorted(leaderboard, reverse=True)
+        import bisect
+
+        if self.scen.evaluation_metric_direction:
+            insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
+        else:
+            insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
+        percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
 
         experiment_feedback = {
             "current_competition": self.scen.get_competition_full_desc(),
@@ -158,6 +168,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "observations": observations,
             "hypothesis_evaluation": hypothesis_evaluation,
             "reason": reason,
+            "percentile_ranking": percentile_ranking,
         }
 
         if self.scen.if_using_vector_rag:

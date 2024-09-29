@@ -4,8 +4,10 @@ from typing import List, Union
 
 import pandas as pd
 from _pytest.cacheprovider import json
+from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
+from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
@@ -225,12 +227,14 @@ class KaggleExperienceBase(PDVectorBase):
             document.create_embedding()
             self.add(document)
 
-    def search_experience(self, query: str, topk_k: int = 5, similarity_threshold: float = 0.1):
+    def search_experience(self, target: str, query: str, topk_k: int = 5, similarity_threshold: float = 0.1):
         """
-        Search for Kaggle experience posts related to the query
+        Search for Kaggle experience posts related to the query, initially filtered by the target.
 
         Parameters:
         ----------
+        target: str
+            The target context to refine the search query.
         query: str
             The search query to find relevant experience posts.
         topk_k: int, optional
@@ -243,14 +247,48 @@ class KaggleExperienceBase(PDVectorBase):
         List[KGKnowledgeMetaData], List[float]:
             A list of the most relevant documents and their similarities.
         """
-        search_results, similarities = super().search(query, topk_k=topk_k, similarity_threshold=similarity_threshold)
 
+        # Modify the query to include the target
+        modified_query = f"The target is {target}. And I need you to query {query} based on the {target}."
+
+        # First, search based on the modified query
+        search_results, similarities = super().search(
+            modified_query, topk_k=topk_k, similarity_threshold=similarity_threshold
+        )
+
+        # If the results do not match the target well, refine the search using LLM or further adjustment
         kaggle_docs = []
         for result in search_results:
             kg_doc = KGKnowledgeDocument().from_dict(result.__dict__)
+
+            gpt_feedback = self.refine_with_LLM(target, kg_doc)
+            if gpt_feedback:
+                kg_doc.content = gpt_feedback
+
             kaggle_docs.append(kg_doc)
 
         return kaggle_docs, similarities
+
+    def refine_with_LLM(self, target: str, text: str) -> str:
+        prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
+        sys_prompt = (
+            Environment(undefined=StrictUndefined).from_string(prompt_dict["refine_with_LLM"]["system"]).render()
+        )
+
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["refine_with_LLM"]["user"])
+            .render(target=target, text=text)
+        )
+
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=False,
+        )
+
+        return response
 
     def save(self, vector_df_path: Union[str, Path]):
         """

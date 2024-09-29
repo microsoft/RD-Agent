@@ -36,7 +36,7 @@ class WebView(View):
 
     def display(self, s: Storage, watch: bool = False):
         for msg in s.iter_msg():  # iterate overtime
-            # NOTE:  iter_msg will correctly seperate the information.
+            # NOTE:  iter_msg will correctly separate the information.
             # TODO: msg may support streaming mode.
             self.ui.consume_msg(msg)
 
