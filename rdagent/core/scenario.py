@@ -4,7 +4,6 @@ from rdagent.core.experiment import Task
 
 
 class Scenario(ABC):
-
     @property
     @abstractmethod
     def background(self) -> str:
@@ -14,7 +13,7 @@ class Scenario(ABC):
     def get_source_data_desc(self, task: Task | None = None) -> str:
         """
         Source data description
-        
+
         The choice of data may vary based on the specific task at hand.
         """
 
@@ -49,7 +48,7 @@ class Scenario(ABC):
     def get_scenario_all_desc(self, task: Task | None = None) -> str:
         """
         Combine all descriptions together
-        
+
         The scenario description varies based on the task being performed.
         """
 

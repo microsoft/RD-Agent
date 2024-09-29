@@ -65,4 +65,5 @@ class RDAT:
         """
         return Environment(undefined=StrictUndefined).from_string(self.template).render(**context)
 
+
 T = RDAT  # shortcuts

@@ -1,3 +1,4 @@
+import re
 import shutil
 from pathlib import Path
 
@@ -8,7 +9,6 @@ from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.utils.env import QTDockerEnv
-import re
 
 
 def generate_data_folder_from_qlib():
@@ -50,7 +50,7 @@ def generate_data_folder_from_qlib():
     )
 
 
-def get_data_folder_intro(fname_reg: str = ".*",flags=0) -> str:
+def get_data_folder_intro(fname_reg: str = ".*", flags=0) -> str:
     """
     Directly get the info of the data folder.
     It is for preparing prompting message.
