@@ -9,13 +9,13 @@ class Scenario(ABC):
     def background(self) -> str:
         """Background information"""
 
-    @abstractmethod
     def get_source_data_desc(self, task: Task | None = None) -> str:
         """
         Source data description
 
         The choice of data may vary based on the specific task at hand.
         """
+        return ""
 
     @property
     def source_data(self) -> str:
