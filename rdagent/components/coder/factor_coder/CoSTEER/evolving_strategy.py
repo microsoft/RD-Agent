@@ -90,6 +90,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
+        from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 
         for index, target_index in enumerate(to_be_finished_task_index):
             if evo.sub_workspace_list[target_index] is None:

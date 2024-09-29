@@ -6,7 +6,7 @@ extract_kaggle_knowledge_prompts:
     
     Please provide the analysis in the following JSON format:
     {
-      "content": "all provided content",
+      "content": "Put the provided content here",
       "title": "extracted title, if available",
       "competition_name": "extracted competition name",
       "task_category": "extracted task type, e.g., Classification, Regression",
@@ -81,3 +81,13 @@ extract_knowledge_graph_from_document:
   
   user: |-
     Document content: {{ document_content }}
+
+refine_with_LLM:
+  system: |-
+    You are an experienced data science expert and an assistant, helping the user evaluate and improve content.
+  
+  user: |-
+    Here is the target: {{ target }}. 
+    Please evaluate whether the following RAG query result aligns with the target. 
+    If it does not, simply respond with "There are no relevant RAG results to support."
+    RAG query result: {{ text }}.

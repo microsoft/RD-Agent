@@ -263,15 +263,18 @@ if __name__ == "__main__":
         "facebook-v-predicting-check-ins",
     ]
 
-    all_cs = mini_case_cs + other_cs
-    for c in all_cs:
-        convert_notebooks_to_text(c)
-    exit()
-    from kaggle.api.kaggle_api_extended import KaggleApi
+    # all_cs = mini_case_cs + other_cs
+    # for c in all_cs:
+    #     convert_notebooks_to_text(c)
+    # exit()
+    # from kaggle.api.kaggle_api_extended import KaggleApi
 
-    api = KaggleApi()
-    api.authenticate()
-    cs = api.competitions_list()
-    for c in cs:
-        name = c.ref.split("/")[-1]
-        crawl_descriptions(name)
+    # api = KaggleApi()
+    # api.authenticate()
+    # cs = api.competitions_list()
+    # for c in cs:
+    #     name = c.ref.split("/")[-1]
+    #     crawl_descriptions(name)
+    res = leaderboard_scores(competition="playground-series-s4e8")
+
+# %%

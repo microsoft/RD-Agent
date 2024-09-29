@@ -8,5 +8,5 @@ def select(X: pd.DataFrame) -> pd.DataFrame:
     # For now, we assume all features are relevant. This can be expanded to feature selection logic.
     if X.columns.nlevels == 1:
         return X
-    X.columns = ["_".join(str(col)).strip() for col in X.columns.values]
+    X.columns = ["_".join(str(i) for i in col).strip() for col in X.columns.values]
     return X
