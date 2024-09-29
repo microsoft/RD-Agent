@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
-from rdagent.core.experiment import Task
 
+from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 
