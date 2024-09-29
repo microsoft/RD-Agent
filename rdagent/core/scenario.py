@@ -1,16 +1,29 @@
 from abc import ABC, abstractmethod
 
+from rdagent.core.experiment import Task
+
 
 class Scenario(ABC):
+
     @property
     @abstractmethod
     def background(self) -> str:
         """Background information"""
 
-    @property
     @abstractmethod
+    def get_source_data_desc(self, task: Task | None = None) -> str:
+        """
+        Source data description
+        
+        The choice of data may vary based on the specific task at hand.
+        """
+
+    @property
     def source_data(self) -> str:
-        """Source data description"""
+        """
+        A convenient shortcut for describing source data
+        """
+        return self.get_source_data_desc()
 
     @property
     @abstractmethod
@@ -33,8 +46,12 @@ class Scenario(ABC):
         """Rich style description to present"""
 
     @abstractmethod
-    def get_scenario_all_desc(self) -> str:
-        """Combine all the description together"""
+    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+        """
+        Combine all descriptions together
+        
+        The scenario description varies based on the task being performed.
+        """
 
     @property
     def experiment_setting(self) -> str | None:
