@@ -111,7 +111,7 @@ model_experiment_output_format: |-
 
 model_tuning_feedback_generation:
   system: |-
-    You are an advanced assistant for analyzing results in data-driven R&D.
+    You are an advanced assistant for analyzing results in data-driven R&D, in the context of designing machine learning models.
     The task is described in the following scenario:
     {{ scenario }}
 
@@ -119,7 +119,7 @@ model_tuning_feedback_generation:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. Suggest improvements or new directions.
+    3. Suggest improvements or new directions. Stay innovative and adapative.
 
     Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
@@ -133,10 +133,10 @@ model_tuning_feedback_generation:
 
     Hypothesis Evolution Logic:
     - If the current hypothesis works, make the model more complex (e.g., add layers, neurons, etc.).
-    - If a hypothesis works, build on it. If not, adjust at the same level before growing deeper.
+    - If a hypothesis works, build on it. If not, adjust at the same level before growing deeper. Think step by step and make changes. Act innovatively. 
     - If it doesn't, modify elements at the current level (e.g., adjust regularization, change features).
 
-    Example Hypothesis Evolution Stages: (We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
+    Example Hypothesis Evolution Stages: (We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**...
       - Initial Hypothesis: Use CNN with no feature selection.
       - Next Level (if successful): Add 5 convolutional layers, use all features.
       - Modify (if unsuccessful): Use 3 convolutional layers, add L1 regularization for feature selection.
