@@ -37,6 +37,7 @@ class KGScenario(Scenario):
         self.evaluation_desc = None
         self.evaluation_metric_direction = None
         self.vector_base = None
+        self.dsagent = KAGGLE_IMPLEMENT_SETTING.dsagent
         self._analysis_competition_description()
         self.if_action_choosing_based_on_UCB = KAGGLE_IMPLEMENT_SETTING.if_action_choosing_based_on_UCB
         self.if_using_graph_rag = KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag
@@ -44,7 +45,7 @@ class KGScenario(Scenario):
 
         if self.if_using_vector_rag and KAGGLE_IMPLEMENT_SETTING.rag_path:
             self.vector_base = KaggleExperienceBase(KAGGLE_IMPLEMENT_SETTING.rag_path)
-            self.vector_base.path = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl"
+            self.vector_base.path = Path(datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl")
             self.vector_base.dump()
 
         self._output_format = self.output_format
