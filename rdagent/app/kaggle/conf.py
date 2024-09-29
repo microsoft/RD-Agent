@@ -66,7 +66,7 @@ class KaggleBasePropSetting(BasePropSetting):
 
     auto_submit: bool = True
 
-    dsagent: bool = False
+    mini_case: bool = False
 
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
