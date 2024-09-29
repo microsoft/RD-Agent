@@ -240,7 +240,8 @@ class KGHypothesisGen(ModelHypothesisGen):
             "RAG": self.generate_RAG_content(trace, hypothesis_and_feedback),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
-                f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None
+                f"next experiment action is {action}" if self.scen.if_action_choosing_based_on_UCB else None,
+                prompt_dict["hypothesis_specification"],
             ),
         }
         return context_dict, True

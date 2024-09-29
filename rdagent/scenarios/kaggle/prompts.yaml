@@ -47,27 +47,80 @@ hypothesis_output_format: |-
     "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
   }
 
-factor_hypothesis_specification: |-
-  1. **Type of Feature and Data Characteristics:**
-    - Define the type of feature introduced.
-    - Explain the data characteristics or patterns captured by this feature.
-    - Omit unnecessary or redundant details.
-  2. **Simple and Effective Features First:**
-    - Start with features that are simple and likely effective.
-    - Concisely explain why these features are expected to work.
-    - Avoid complex or combined features initially.
-  3. **Gradual Complexity Increase:**
-    - Introduce more complex features as more experimental results are gathered.
-    - Discuss potential advantages and complexities.
+hypothesis_specification: |-
+  There are different types of hypothesis that correspond to different types of actions. The specifications are quite important here:
+  1) feature_engineering:
+  description: We engineer the features for the sake of best model performance on the basis of engineering the most influential features.
+  type_of_feature_and_data_characteristics:
+    - Clearly define the feature type being introduced.
+    - Highlight the specific data patterns or characteristics the feature captures.
+    - Keep it focused—omit unnecessary details.
+  start_with_simple_features:
+    - Begin with straightforward and impactful features.
+    - Briefly explain why these features are expected to work.
+    - Avoid combining complex features at the outset.
+  increase_complexity_gradually:
+    - Add more complex features only after gathering experimental results.
+    - Discuss potential advantages and the trade-offs involved.
     - Combine features only after simpler ones are tested and validated.
-  4. **New Directions and Optimizations:**
-    - If a new direction is needed, explain why based on data analysis, domain knowledge, or observed patterns.
-    - Suggest only one new direction at a time for clarity.
-    - If a previous hypothesis did not surpass the previous best, but seems optimizable, you may continue in the same direction.
-    - Highlight that features surpassing the previous best are included in the feature library to avoid re-implementation.
-  5. **1-3 Feature tasks per Generation:**
-    - Ensure each generation produces 1-3 feature tasks.
-    - Balance simplicity and complexity to build a robust feature library.
+  new_directions_and_optimizations:
+    - Justify any new direction based on data analysis or domain knowledge.
+    - Focus on one new direction at a time for clarity.
+    - If a hypothesis shows optimization potential (even without surpassing previous best results), explain why and proceed.
+  feature_library_and_task_management:
+    - Include features that improve performance in the feature library.
+    - Each generation should focus on 1-3 feature tasks, balancing simplicity with complexity.
+
+  2) feature processing:
+  define_the_processing_method:
+    - Clearly state the type of feature processing.
+    - Explain how this processing captures data patterns or improves feature usefulness.
+    - Avoid redundant details.
+  begin_with_simple_processing:
+    - Start with simple, effective processing methods.
+    - Concisely explain why these methods should improve model performance.
+    - Introduce complex processing only after gathering experimental results.
+  introduce_complexity_gradually:
+    - Add more sophisticated processing methods step-by-step, after validation.
+    - Discuss the advantages, challenges, and trade-offs of advanced processing.
+    - Validate simpler methods before combining them with complex ones.
+
+  3) model feature selection:
+  selection_based_on_model_type:
+    - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
+    - Ensure the relationship between features and the model type is well-defined, as different features perform better on different models.
+  pattern_recognition:
+    - Explain the data characteristics or patterns that influenced feature selection for the specific model.
+    - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
+
+  4) model_design_and_tuning:
+  Explain the hypothesis clearly with valuable information. What kind of model are you building/tuning? What do you think is true? How you are revising and why? What are some innvations? 
+  focus_on_architecture_or_hyper_parameter_tuning_or_both:
+    - Focus on designing new model architectures one at a time OR hyper-parameter tuning OR both.
+    - Each hypothesis should introduce a novel architecture or a significant modification to an existing one, while leveraging previous experiences and the hypothesis history.
+    - Optimize one model at a time, iterating until its potential is fully explored. Switch to a new model only when you believe the current model’s potential has been exhausted.
+  specific_to_model_type:
+    - Note that any types of tuning or model design must be specific to the model types available in our workspace.
+    - Clearly define the model type (e.g., Neural Network Models (eg, MLP, CNN, RNN, LSTM, GRU etc.), XGBoost, RandomForest, LightGBM) and the architecture/tuning being introduced.
+    - Ensure the architecture or tuning aligns with the data characteristics and the strengths or limitations of the specific model.
+  rationale_behind_architecture_and_tuning:
+    - Explain the innovation or reasoning behind the architectural design or tuning approach.
+    - Justify how the new structure or parameter change captures data patterns more effectively, improves learning efficiency, or enhances predictive power.
+  start_simple_innovate_gradually:
+    - Start with innovative yet simple changes to ensure each iteration is well-tested and the results are well-understood.
+    - Gradually introduce more complex architectural changes or hyper-parameter adjustments based on gathered results and insights.
+  introduce_one_innovation_at_a_time:
+    - Focus on testing one key innovation at a time to isolate its impact on performance.
+    - Avoid combining multiple innovations in a single iteration to maintain clarity in performance results.
+  balance_innovation_with_performance:
+    - Strive for a balance between creative design and practical, effective performance.
+    - If a design or tuning shows strong performance, document it in a "library" for future iterations.
+  iterative_testing_and_refinement:
+    - After each test, evaluate and refine the model architecture or tuning based on observed performance and data patterns.
+    - If a hypothesis shows potential but doesn't surpass previous results, continue optimizing in that direction.
+  hypothesis_statement:
+    - For each hypothesis, specify the exact innovation or tuning approach and explain why it's expected to enhance performance for the chosen model type.
+
 
 feature_experiment_output_format: |-
   According to the hypothesis, please help user design one or more feature engineering tasks.
@@ -111,7 +164,7 @@ model_experiment_output_format: |-
 
 model_tuning_feedback_generation:
   system: |-
-    You are an advanced assistant for analyzing results in data-driven R&D.
+    You are an advanced assistant for analyzing results in data-driven R&D, in the context of designing machine learning models.
     The task is described in the following scenario:
     {{ scenario }}
 
@@ -119,7 +172,7 @@ model_tuning_feedback_generation:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. Suggest improvements or new directions.
+    3. Suggest improvements or new directions. Stay innovative and adapative.
 
     Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
@@ -133,10 +186,10 @@ model_tuning_feedback_generation:
 
     Hypothesis Evolution Logic:
     - If the current hypothesis works, make the model more complex (e.g., add layers, neurons, etc.).
-    - If a hypothesis works, build on it. If not, adjust at the same level before growing deeper.
+    - If a hypothesis works, build on it. If not, adjust at the same level before growing deeper. Think step by step and make changes. Act innovatively. 
     - If it doesn't, modify elements at the current level (e.g., adjust regularization, change features).
 
-    Example Hypothesis Evolution Stages: (We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**
+    Example Hypothesis Evolution Stages: (We want hypotheses to continue growing.) Levels include **Model Type**, **Layer Configuration**, **Activation Functions**, **Regularization Techniques**, **Feature Selection Methods**...
       - Initial Hypothesis: Use CNN with no feature selection.
       - Next Level (if successful): Add 5 convolutional layers, use all features.
       - Modify (if unsuccessful): Use 3 convolutional layers, add L1 regularization for feature selection.
