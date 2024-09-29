@@ -252,23 +252,6 @@ class KaggleExperienceBase(PDVectorBase):
 
         return kaggle_docs, similarities
 
-    def save(self, vector_df_save_path: Union[str, Path] = ""):
-        """
-        Save the vector DataFrame to a file
-
-        Parameters:
-        ----------
-        vector_df_path: str or Path
-            Path to save the vector DataFrame.
-        """
-        if vector_df_save_path != "":
-            self.vector_df.to_pickle(vector_df_save_path)
-        else:
-            timestamp = datetime.now().strftime("%m-%d-%H-%M-%S")
-            vector_df_save_path = f"{self.path}_{timestamp}.pkl"
-        logger.info(f"Vector DataFrame saved to {vector_df_save_path}")
-
-
 if __name__ == "__main__":
     kaggle_base = KaggleExperienceBase(
         kaggle_experience_path="git_ignore_folder/data-dsagent/kaggle_experience_results.json"
@@ -276,7 +259,7 @@ if __name__ == "__main__":
 
     kaggle_base.add_experience_to_vector_base()
 
-    kaggle_base.save("git_ignore_folder/experience/tabular_cases/kaggle_vector_base.pkl")
+    kaggle_base.dump()
 
     print(f"There are {kaggle_base.shape()[0]} records in the vector base.")
 
