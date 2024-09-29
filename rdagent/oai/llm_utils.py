@@ -241,8 +241,8 @@ class APIBackend:
     (xiao) thinks integerate all kinds of API in a single class is not a good design.
     So we should split them into different classes in `oai/backends/` in the future. 
     """
-    # FIXME: (xiao) I think we should skip using self.xxxx
-    # We can use self.cfg directly.  If it is hard to 兼容 different settings of backends.  We can split it into multiple BaseSettings.
+    # FIXME: (xiao) We should avoid using self.xxxx.
+    # Instead, we can use self.cfg directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,
