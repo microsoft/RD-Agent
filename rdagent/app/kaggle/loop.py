@@ -114,12 +114,7 @@ class KaggleRDLoop(RDLoop):
                         KAGGLE_IMPLEMENT_SETTING.competition,
                     ]
                     logger.info(f"Executing Kaggle API command: {' '.join(command)}")
-                    result = subprocess.run(
-                        command,
-                        check=True,
-                        capture_output=True,
-                        text=True
-                    )
+                    result = subprocess.run(command, check=True, capture_output=True, text=True)
                     logger.info(f"Kaggle API output: {result.stdout}")
                 except subprocess.CalledProcessError as e:
                     logger.error(f"Auto submission failed: \n{e}")
