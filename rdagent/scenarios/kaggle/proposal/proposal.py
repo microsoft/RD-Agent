@@ -217,6 +217,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         # Select action with highest UCB
         selected_action = max(ucb_values, key=ucb_values.get)
         self.scen.action_counts[selected_action] += 1
+
         return selected_action
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
@@ -336,6 +337,7 @@ class KGHypothesis2Experiment(ModelHypothesis2Experiment):
             raise ModelEmptyError(
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )
+
         tasks.append(
             ModelTask(
                 name=response_dict.get("model_name", "Model name not provided"),

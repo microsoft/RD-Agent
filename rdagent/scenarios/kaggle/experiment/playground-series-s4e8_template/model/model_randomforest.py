@@ -15,7 +15,7 @@ def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_vali
     Define and train the Random Forest model. Merge feature selection into the pipeline.
     """
     # Initialize the Random Forest model
-    model = RandomForestClassifier(n_estimators=100, random_state=32, n_jobs=-1)
+    model = RandomForestClassifier(n_estimators=200, random_state=32, n_jobs=-1)
 
     # Fit the model
     model.fit(X_train, y_train)

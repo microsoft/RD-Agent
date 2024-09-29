@@ -13,7 +13,10 @@ from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KGFactorExperiment
-from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions
+from rdagent.scenarios.kaggle.kaggle_crawler import (
+    crawl_descriptions,
+    leaderboard_scores,
+)
 from rdagent.scenarios.kaggle.knowledge_management.vector_base import (
     KaggleExperienceBase,
 )
@@ -71,6 +74,8 @@ class KGScenario(Scenario):
         self.reward_estimates["Model tuning"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
+
+        self.leaderboard = leaderboard_scores(competition)
 
     def _analysis_competition_description(self):
         sys_prompt = (
