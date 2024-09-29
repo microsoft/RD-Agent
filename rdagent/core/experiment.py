@@ -180,7 +180,9 @@ class FBWorkspace(Workspace):
         return None
 
     def __str__(self) -> str:
-        return f"Workspace[{self.workspace_path=}" + ("]"  if self.target_task is None else f",{self.target_task.name=}]")
+        return f"Workspace[{self.workspace_path=}" + (
+            "]" if self.target_task is None else f",{self.target_task.name=}]"
+        )
 
 
 ASpecificWSForExperiment = TypeVar("ASpecificWSForExperiment", bound=Workspace)
