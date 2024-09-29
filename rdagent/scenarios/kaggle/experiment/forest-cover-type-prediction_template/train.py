@@ -76,12 +76,12 @@ for model, predict_func, select_m in model_l:
     metrics_all.append(accuracy)
 
 # 5) Save the validation accuracy
-min_index = np.argmax(metrics_all)
-pd.Series(data=[metrics_all[min_index]], index=["multi-class accuracy"]).to_csv("submission_score.csv")
+max_index = np.argmax(metrics_all)
+pd.Series(data=[metrics_all[max_index]], index=["multi-class accuracy"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[min_index][2].select(X_test.copy())
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected).flatten() + 1
+X_test_selected = model_l[max_index][2].select(X_test.copy())
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten() + 1
 
 
 # 7) Submit predictions for the test set

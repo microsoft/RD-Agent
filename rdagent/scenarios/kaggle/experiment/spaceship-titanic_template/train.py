@@ -95,12 +95,12 @@ for model, predict_func, select_m in model_l:
 
 
 # 5) Save the validation accuracy
-min_index = np.argmax(metrics_all)
-pd.Series(data=[metrics_all[min_index]], index=["MCC"]).to_csv("submission_score.csv")
+max_index = np.argmax(metrics_all)
+pd.Series(data=[metrics_all[max_index]], index=["MCC"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[min_index][2].select(X_test.copy())
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
+X_test_selected = model_l[max_index][2].select(X_test.copy())
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected)
 y_test_pred = (y_test_pred > 0.5).astype(bool)
 y_test_pred = y_test_pred.ravel()
 
