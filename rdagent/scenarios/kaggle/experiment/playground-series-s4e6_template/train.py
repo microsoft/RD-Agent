@@ -1,14 +1,13 @@
 import importlib.util
 import random
 from pathlib import Path
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import LabelEncoder  # Add this import
 
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import LabelEncoder  # Add this import
 
 # Set random seed for reproducibility
 SEED = 42
@@ -42,7 +41,7 @@ model_l = []
 for train_index, val_index in skf.split(X_train, y_train):
     X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
     y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
-    
+
     for f in DIRNAME.glob("model/model*.py"):
         select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
         select_m = import_module_from_path(select_python_path.stem, select_python_path)
