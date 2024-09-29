@@ -88,7 +88,9 @@ class FactorFBWorkspace(FBWorkspace):
         self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
-    def execute(self, enable_cache: bool = FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
+    def execute(
+        self, enable_cache: bool = FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache, data_type: str = "Debug"
+    ) -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
         1. make the directory in workspace path
@@ -129,7 +131,7 @@ class FactorFBWorkspace(FBWorkspace):
                         # Previously, the exception is not saved. we should not enable the cache mechanism
                         # othersise we can raise the exception directly.
                         if self.raise_exception:
-                            pass # pass to disable the cache mechanism
+                            pass  # pass to disable the cache mechanism
                         else:
                             self.executed_factor_value_dataframe = cached_res[1]
                             return cached_res
