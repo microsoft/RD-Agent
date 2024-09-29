@@ -102,6 +102,11 @@ class FactorFBWorkspace(FBWorkspace):
         5. read the factor value from the output file in the workspace path folder
         returns the execution feedback as a string and the factor value as a pandas dataframe
 
+
+        Regarding the cache mechanism:
+        1. We will store the function's return value to ensure it behaves as expected.
+        - The cached information will include a tuple with the following: (execution_feedback, executed_factor_value_dataframe, Exception)
+
         parameters:
         store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
@@ -119,12 +124,19 @@ class FactorFBWorkspace(FBWorkspace):
                 Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
                 if cache_file_path.exists():
                     cached_res = pickle.load(open(cache_file_path, "rb"))
-                    if not self.raise_exception or len(cached_res) == 3:
-                        if cached_res[2]:
-                            raise cached_res[2]
+
+                    if not self.raise_exception:
                         if store_result and cached_res[1] is not None:
                             self.executed_factor_value_dataframe = cached_res[1]
-                        return cached_res[:1]
+                        return cached_res[:2]
+                    else:
+                        if len(cached_res) != 3:
+                            # NOTE: this is trying to be compatible with previous results.
+                            # Previously, the exception is not saved. we should not enable the cache mechanism
+                            # othersise we can raise the exception directly.
+                            pass # pass to disable the cache mechanism
+                        else:
+                            raise cached_res[-1]
 
             if self.executed_factor_value_dataframe is not None:
                 return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
@@ -134,7 +146,7 @@ class FactorFBWorkspace(FBWorkspace):
                     Path(
                         FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
                     )
-                    if data_type == "Debug"
+                    if data_type == "Debug"  # FIXME: (yx) don't think we should use a debug tag for this.
                     else Path(
                         FACTOR_IMPLEMENT_SETTINGS.data_folder,
                     )
