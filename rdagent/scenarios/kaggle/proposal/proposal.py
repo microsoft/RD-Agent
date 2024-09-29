@@ -91,7 +91,10 @@ class KGHypothesisGen(ModelHypothesisGen):
 
     def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str) -> str:
         if self.scen.if_using_vector_rag:
-            rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
+            if self.scen.dsagent:
+                rag_results, _ = self.scen.dsagent.vector_base.search_experience(hypothesis_and_feedback, topk_k=1)
+            else:
+                rag_results, _ = self.scen.vector_base.search_experience(hypothesis_and_feedback, topk_k=5)
             return "\n".join([doc.content for doc in rag_results])
         if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
             return None
