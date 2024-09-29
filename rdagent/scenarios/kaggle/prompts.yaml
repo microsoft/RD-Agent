@@ -70,6 +70,29 @@ hypothesis_specification:
     feature_library_and_task_management:
       - Include features that improve performance in the feature library.
       - Each generation should focus on 1-3 feature tasks, balancing simplicity with complexity.
+hypothesis_specification:
+  Feature engineering: |-
+    Action: Feature engineering
+    description: We engineer the features for the sake of best model performance on the basis of engineering the most influential features.
+    type_of_feature_and_data_characteristics:
+      - Clearly define the feature type being introduced.
+      - Highlight the specific data patterns or characteristics the feature captures.
+      - Keep it focused—omit unnecessary details.
+    start_with_simple_features:
+      - Begin with straightforward and impactful features.
+      - Briefly explain why these features are expected to work.
+      - Avoid combining complex features at the outset.
+    increase_complexity_gradually:
+      - Add more complex features only after gathering experimental results.
+      - Discuss potential advantages and the trade-offs involved.
+      - Combine features only after simpler ones are tested and validated.
+    new_directions_and_optimizations:
+      - Justify any new direction based on data analysis or domain knowledge.
+      - Focus on one new direction at a time for clarity.
+      - If a hypothesis shows optimization potential (even without surpassing previous best results), explain why and proceed.
+    feature_library_and_task_management:
+      - Include features that improve performance in the feature library.
+      - Each generation should focus on 1-3 feature tasks, balancing simplicity with complexity.
 
   Feature processing: |-
     Action: Feature processing
@@ -85,7 +108,28 @@ hypothesis_specification:
       - Add more sophisticated processing methods step-by-step, after validation.
       - Discuss the advantages, challenges, and trade-offs of advanced processing.
       - Validate simpler methods before combining them with complex ones.
+  Feature processing: |-
+    Action: Feature processing
+    Define_the_processing_method:
+      - Clearly state the type of feature processing.
+      - Explain how this processing captures data patterns or improves feature usefulness.
+      - Avoid redundant details.
+    Begin_with_simple_processing:
+      - Start with simple, effective processing methods.
+      - Concisely explain why these methods should improve model performance.
+      - Introduce complex processing only after gathering experimental results.
+    Introduce_complexity_gradually:
+      - Add more sophisticated processing methods step-by-step, after validation.
+      - Discuss the advantages, challenges, and trade-offs of advanced processing.
+      - Validate simpler methods before combining them with complex ones.
 
+  Model feature selection: |-
+    Selection_based_on_model_type:
+      - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
+      - Ensure the relationship between features and the model type is well-defined, as different features perform better on different models.
+    Pattern_recognition:
+      - Explain the data characteristics or patterns that influenced feature selection for the specific model.
+      - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
   Model feature selection: |-
     Selection_based_on_model_type:
       - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
@@ -159,6 +203,8 @@ model_experiment_output_format: |-
           "hyperparameter_name_2": "value of hyperparameter 2",
           "hyperparameter_name_3": "value of hyperparameter 3"
       },
+      "model_type": "Please select only **one** model type from the following four options: XGBoost, RandomForest, LightGBM, or NN. The selected model must be unique and used as the **primary model**. You may choose an auxiliary model for support or optimization on specific tasks if necessary, but the primary model must come from the provided options."
+
       "model_type": "Please select only **one** model type from the following four options: XGBoost, RandomForest, LightGBM, or NN. The selected model must be unique and used as the **primary model**. You may choose an auxiliary model for support or optimization on specific tasks if necessary, but the primary model must come from the provided options."
 
   }
