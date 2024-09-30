@@ -765,7 +765,7 @@ def show_times(round: int):
         total_seconds = diff.seconds
         seconds = total_seconds % 60
         minutes = total_seconds // 60
-        st.markdown(f"**{k}**: {minutes} minutes {seconds} seconds")
+        st.markdown(f"**:blue[{k}]**: :red[**{minutes}**] minutes :orange[**{seconds}**] seconds")
 
 
 if state.scenario is not None:
