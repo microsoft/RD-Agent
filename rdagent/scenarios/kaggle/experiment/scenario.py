@@ -50,6 +50,8 @@ class KGScenario(Scenario):
         self.submission_specifications = None
         self.model_output_channel = None
         self.evaluation_desc = None
+        self.leaderboard = leaderboard_scores(competition)
+        self.evaluation_metric_direction = float(self.leaderboard[0].score) > float(self.leaderboard[-1].score)
         self.vector_base = None
         self.mini_case = KAGGLE_IMPLEMENT_SETTING.mini_case
         self._analysis_competition_description()
@@ -73,10 +75,6 @@ class KGScenario(Scenario):
         self.reward_estimates["Model tuning"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
-
-        self.leaderboard = leaderboard_scores(competition)
-        self.evaluation_metric_direction = float(self.leaderboard[0].score) > float(self.leaderboard[-1].score)
-
 
     def _analysis_competition_description(self):
         sys_prompt = (
