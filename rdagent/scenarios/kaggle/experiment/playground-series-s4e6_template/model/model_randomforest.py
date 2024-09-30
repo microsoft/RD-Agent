@@ -31,4 +31,4 @@ def predict(model, X):
     Make predictions using the trained model.
     """
     probas = model.predict_proba(X)
-    return np.column_stack([proba[:, 1] for proba in probas])
+    return probas
