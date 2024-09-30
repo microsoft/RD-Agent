@@ -177,6 +177,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         elif self.scen.if_using_graph_rag:
             trace.knowledge_base.add_document(experiment_feedback, self.scen)
 
+        if self.scen.if_action_choosing_based_on_UCB:
+            self.scen.action_counts[hypothesis.action] += 1
+
         return HypothesisFeedback(
             observations=observations,
             hypothesis_evaluation=hypothesis_evaluation,

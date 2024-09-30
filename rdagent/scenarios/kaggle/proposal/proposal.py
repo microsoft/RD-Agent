@@ -130,13 +130,13 @@ class KGHypothesisGen(ModelHypothesisGen):
 
         found_hypothesis_nodes = []
         for similar_node in similar_nodes:
-            for hypothesis_type in KG_ACTION_LIST:
-                hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
-                    start_node=similar_node,
-                    steps=3,
-                    constraint_labels=[hypothesis_type],
-                )
-                found_hypothesis_nodes.extend(hypothesis_nodes[:2])
+            # for hypothesis_type in KG_ACTION_LIST:
+            hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
+                start_node=similar_node,
+                steps=3,
+                constraint_labels=[target],
+            )
+            found_hypothesis_nodes.extend(hypothesis_nodes[:2])
 
         found_hypothesis_nodes = sorted(list(set(found_hypothesis_nodes)), key=lambda x: len(x.content))
 
@@ -204,7 +204,6 @@ class KGHypothesisGen(ModelHypothesisGen):
         for action in actions:
             if self.scen.action_counts[action] == 0:
                 selected_action = action
-                self.scen.action_counts[selected_action] += 1
                 return selected_action
 
         c = self.scen.confidence_parameter
@@ -216,7 +215,6 @@ class KGHypothesisGen(ModelHypothesisGen):
             ucb_values[action] = ucb
         # Select action with highest UCB
         selected_action = max(ucb_values, key=ucb_values.get)
-        self.scen.action_counts[selected_action] += 1
 
         return selected_action
 
