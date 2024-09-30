@@ -25,7 +25,7 @@ kg_description_template:
 
 kg_background: |-
   You are solving a data science tasks and the type of the competition is {{ competition_type }}.
-  The competition description is:{{competition_description}}. 
+  The competition description is: {{competition_description}}. 
   
   We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
 
