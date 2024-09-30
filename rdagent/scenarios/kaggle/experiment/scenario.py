@@ -51,7 +51,7 @@ class KGScenario(Scenario):
         self.model_output_channel = None
         self.evaluation_desc = None
         self.leaderboard = leaderboard_scores(competition)
-        self.evaluation_metric_direction = float(self.leaderboard[0].score) > float(self.leaderboard[-1].score)
+        self.evaluation_metric_direction = float(self.leaderboard[0]) > float(self.leaderboard[-1])
         self.vector_base = None
         self.mini_case = KAGGLE_IMPLEMENT_SETTING.mini_case
         self._analysis_competition_description()
