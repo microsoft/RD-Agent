@@ -50,7 +50,6 @@ class KGScenario(Scenario):
         self.submission_specifications = None
         self.model_output_channel = None
         self.evaluation_desc = None
-        self.evaluation_metric_direction = None
         self.vector_base = None
         self.mini_case = KAGGLE_IMPLEMENT_SETTING.mini_case
         self._analysis_competition_description()
@@ -76,6 +75,8 @@ class KGScenario(Scenario):
         self.initial_performance = 0.0
 
         self.leaderboard = leaderboard_scores(competition)
+        self.evaluation_metric_direction = float(self.leaderboard[0].score) > float(self.leaderboard[-1].score)
+
 
     def _analysis_competition_description(self):
         sys_prompt = (
@@ -90,6 +91,7 @@ class KGScenario(Scenario):
             .render(
                 competition_descriptions=self.competition_descriptions,
                 raw_data_information=self._source_data,
+                evaluation_metric_direction=self.evaluation_metric_direction,
             )
         )
 
@@ -110,9 +112,6 @@ class KGScenario(Scenario):
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
         self.evaluation_desc = response_json_analysis.get(
             "Evaluation Description", "No evaluation specification provided."
-        )
-        self.evaluation_metric_direction = response_json_analysis.get(
-            "Evaluation Boolean", "No evaluation specification provided."
         )
 
     def get_competition_full_desc(self) -> str:
