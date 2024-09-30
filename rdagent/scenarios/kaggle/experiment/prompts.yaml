@@ -11,8 +11,7 @@ kg_description_template:
       "Competition Features": "Two-line description of the overall features involved within the competition as background."
       "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
       "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
-      "Evaluation Description": "A brief description for what metrics are used in evaluation. An explanation of whether a higher score is better or lower is better in terms of performance."
-      "Evaluation Boolean": "True" or "False" (True means the higher score the better (like accuracy); False means the lower value the better (like loss).) 
+      "Evaluation Description": "A brief description of the metrics used in the evaluation. Please note that if `evaluation_metric_direction` is True, it indicates that higher values are better; if False, lower values are preferred."
     }
     Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
 
@@ -22,6 +21,8 @@ kg_description_template:
     {{ competition_descriptions }}
     The raw data information:
     {{ raw_data_information }}
+    Evaluation_metric_direction: 
+    {{ evaluation_metric_direction }}
 
 kg_background: |-
   You are solving a data science tasks and the type of the competition is {{ competition_type }}.
