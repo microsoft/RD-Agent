@@ -67,12 +67,13 @@ def get_file_desc(p: Path) -> str:
     p = Path(p)
 
     JJ_TPL = Environment(undefined=StrictUndefined).from_string(
-"""
+        """
 {{file_name}}
 ```{{type_desc}}
 {{content}}
 ```
-""")
+"""
+    )
 
     if p.name.endswith(".h5"):
         df = pd.read_hdf(p)
