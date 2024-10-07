@@ -16,7 +16,7 @@ qlib_factor_interface: |-
   User will write your python code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
 
 qlib_factor_strategy: |-
-  Ensure that for every step of data processing, the data format (including indexes) is clearly explained through comments.
+  Ensure that for every step of data processing, the data format (including indexes) is clearly explained through code comments.
   Each transformation or calculation should be accompanied by a detailed description of how the data is structured, especially focusing on key aspects like whether the data has multi-level indexing, how to access specific columns or index levels, and any operations that affect the data shape (e.g., `reset_index()`, `groupby()`, `merge()`).
   This step-by-step explanation will ensure clarity and accuracy in data handling. For example:
   1. **Start with multi-level index**:  
@@ -46,13 +46,6 @@ qlib_factor_strategy: |-
     # Convert to datetime format if necessary.
     df['datetime'] = pd.to_datetime(df['datetime'])
     other_df['datetime'] = pd.to_datetime(other_df['datetime'])
-    ```
- 
-  5. **Merge operations**:  
-    ```python
-    # When merging DataFrames, ensure you are merging on both 'datetime' and 'instrument'.
-    # If these are part of the index, reset the index before merging.
-    merged_df = pd.merge(df, other_df, on=['datetime', 'instrument'], how='inner')
     ```
 
 qlib_factor_output_format: |-
