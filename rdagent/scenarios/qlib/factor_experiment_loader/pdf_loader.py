@@ -22,7 +22,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
@@ -479,7 +479,7 @@ Factor variables: {variables}
 """
 
     full_str_list = [factor_name_to_full_str[factor_name] for factor_name in factor_names]
-    embeddings = create_embedding_with_multiprocessing(full_str_list)
+    embeddings = APIBackend.create_embedding(full_str_list)
 
     target_k = None
     if len(full_str_list) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
