@@ -238,7 +238,7 @@ class APIBackend:
     """
     This is a unified interface for different backends.
 
-    (xiao) thinks integerate all kinds of API in a single class is not a good design.
+    (xiao) thinks integrate all kinds of API in a single class is not a good design.
     So we should split them into different classes in `oai/backends/` in the future.
     """
 
@@ -543,21 +543,25 @@ class APIBackend:
             filtered_input_content_list = input_content_list
 
         if len(filtered_input_content_list) > 0:
-            if self.use_azure:
-                response = self.embedding_client.embeddings.create(
-                    model=self.embedding_model,
-                    input=filtered_input_content_list,
-                )
-            else:
-                response = self.embedding_client.embeddings.create(
-                    model=self.embedding_model,
-                    input=filtered_input_content_list,
-                )
-            for index, data in enumerate(response.data):
-                content_to_embedding_dict[filtered_input_content_list[index]] = data.embedding
+            for sliced_filtered_input_content_list in [
+                filtered_input_content_list[i : i + self.cfg.embedding_max_str_num]
+                for i in range(0, len(filtered_input_content_list), self.cfg.embedding_max_str_num)
+            ]:
+                if self.use_azure:
+                    response = self.embedding_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=sliced_filtered_input_content_list,
+                    )
+                else:
+                    response = self.embedding_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=sliced_filtered_input_content_list,
+                    )
+                for index, data in enumerate(response.data):
+                    content_to_embedding_dict[sliced_filtered_input_content_list[index]] = data.embedding
 
-            if self.dump_embedding_cache:
-                self.cache.embedding_set(content_to_embedding_dict)
+                if self.dump_embedding_cache:
+                    self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
     def _build_log_messages(self, messages: list[dict]) -> str:
@@ -735,26 +739,6 @@ class APIBackend:
         return self.calculate_token_from_messages(messages)
 
 
-def calculate_embedding_process(str_list: list) -> list:
-    return APIBackend().create_embedding(str_list)
-
-
-def create_embedding_with_multiprocessing(str_list: list, slice_count: int = 50, nproc: int = 8) -> list:
-    embeddings = []
-
-    pool = multiprocessing.Pool(nproc)
-    result_list = [
-        pool.apply_async(calculate_embedding_process, (str_list[index : index + slice_count],))
-        for index in range(0, len(str_list), slice_count)
-    ]
-    pool.close()
-    pool.join()
-
-    for res in result_list:
-        embeddings.extend(res.get())
-    return embeddings
-
-
 def calculate_embedding_distance_between_str_list(
     source_str_list: list[str],
     target_str_list: list[str],
@@ -762,7 +746,8 @@ def calculate_embedding_distance_between_str_list(
     if not source_str_list or not target_str_list:
         return [[]]
 
-    embeddings = create_embedding_with_multiprocessing(source_str_list + target_str_list, slice_count=50, nproc=8)
+    embeddings = APIBackend().create_embedding(source_str_list + target_str_list)
+
     source_embeddings = embeddings[: len(source_str_list)]
     target_embeddings = embeddings[len(source_str_list) :]
 
