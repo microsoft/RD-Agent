@@ -90,9 +90,11 @@ class FactorCodeEvaluator(FactorEvaluator):
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
             .render(
-                scenario=self.scen.get_scenario_all_desc(target_task)
-                if self.scen is not None
-                else "No scenario description."
+                scenario=(
+                    self.scen.get_scenario_all_desc(target_task)
+                    if self.scen is not None
+                    else "No scenario description."
+                )
             )
         )
 
@@ -172,9 +174,11 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                 evaluate_prompts["evaluator_output_format_system"],
             )
             .render(
-                scenario=self.scen.get_scenario_all_desc(implementation.target_task)
-                if self.scen is not None
-                else "No scenario description."
+                scenario=(
+                    self.scen.get_scenario_all_desc(implementation.target_task)
+                    if self.scen is not None
+                    else "No scenario description."
+                )
             )
         )
 
@@ -233,7 +237,7 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
             pd.to_datetime(gen_df.index.get_level_values("datetime"))
         except Exception:
             return (
-                "The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.",
+                f"The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.\n The head of the output dataframe is: \n{gen_df.head()}",
                 False,
             )
 
@@ -260,10 +264,12 @@ class FactorRowCountEvaluator(FactorEvaluator):
             )
         ratio = min(len(gen_df), len(gt_df)) / max(len(gen_df), len(gt_df))
         return (
-            f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. "
-            + "Please verify the implementation. "
-            if ratio <= 0.99
-            else "",
+            (
+                f"The ratio of rows count in the source dataframe to the ground truth dataframe is {ratio:.2f}. "
+                + "Please verify the implementation. "
+                if ratio <= 0.99
+                else ""
+            ),
             ratio,
         )
 
@@ -283,10 +289,12 @@ class FactorIndexEvaluator(FactorEvaluator):
         gen_index_set, gt_index_set = set(gen_df.index), set(gt_df.index)
         similarity = len(gen_index_set.intersection(gt_index_set)) / len(gen_index_set.union(gt_index_set))
         return (
-            f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. The similarity is calculated by the number of shared indices divided by the union indices. "
-            + "Please check the implementation."
-            if similarity <= 0.99
-            else "",
+            (
+                f"The source dataframe and the ground truth dataframe have different index with a similarity of {similarity:.2%}. The similarity is calculated by the number of shared indices divided by the union indices. "
+                + "Please check the implementation."
+                if similarity <= 0.99
+                else ""
+            ),
             similarity,
         )
 
@@ -482,9 +490,11 @@ class FactorFinalDecisionEvaluator(Evaluator):
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
             .render(
-                scenario=self.scen.get_scenario_all_desc(target_task)
-                if self.scen is not None
-                else "No scenario description."
+                scenario=(
+                    self.scen.get_scenario_all_desc(target_task)
+                    if self.scen is not None
+                    else "No scenario description."
+                )
             )
         )
         execution_feedback_to_render = execution_feedback
@@ -535,7 +545,9 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 final_decision = final_evaluation_dict["final_decision"]
                 final_feedback = final_evaluation_dict["final_feedback"]
 
-                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
+                if (isinstance(final_decision, str) and final_decision.lower() in ("true", "false")) or (
+                    isinstance(final_decision, int) and final_decision in (0, 1)
+                ):
                     final_decision = bool(final_decision)
 
                 return final_decision, final_feedback
@@ -668,8 +680,12 @@ class FactorEvaluatorForCoder(FactorEvaluator):
                 factor_feedback.final_decision = decision_from_value_check
                 factor_feedback.final_feedback = "Value evaluation passed, skip final decision evaluation."
             elif decision_from_value_check is not None and decision_from_value_check is False:
-                factor_feedback.code_feedback = (
-                    "Final decision is False because value evaluation gets a confident rejection to the result."
+                factor_feedback.code_feedback, _ = self.code_evaluator.evaluate(
+                    target_task=target_task,
+                    implementation=implementation,
+                    execution_feedback=factor_feedback.execution_feedback,
+                    factor_value_feedback=factor_feedback.factor_value_feedback,
+                    gt_implementation=gt_implementation,
                 )
                 factor_feedback.final_decision = decision_from_value_check
                 factor_feedback.final_feedback = "Value evaluation failed, skip final decision evaluation."

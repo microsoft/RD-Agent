@@ -565,7 +565,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     if knowledge.feedback is not None and knowledge.feedback.final_decision_based_on_gt == False
                 ]
                 queried_from_gt_knowledge_count = max(
-                    min(v2_query_component_limit // 2, len(queried_from_gt_knowledge_list)),
+                    min((v2_query_component_limit // 2 + 1), len(queried_from_gt_knowledge_list)),
                     v2_query_component_limit - len(queried_without_gt_knowledge_list),
                 )
                 factor_implementation_queried_graph_knowledge.component_with_success_task[
