@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import uuid
-import platform
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from copy import deepcopy
