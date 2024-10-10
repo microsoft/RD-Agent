@@ -118,6 +118,13 @@ evolving_strategy_factor_implementation_v2_user: |-
   {{ similar_component_knowledge.implementation.code }}
   {% endfor %}
   {% endif %}
+  {% if latest_attempt_to_latest_successful_execution is not none %}
+  You have tried to correct your former failed code but still met some errors. Here is the latest attempt to the latest successful execution, try not to get the same error to your new code:
+  =====Your latest attempt=====
+  {{ latest_attempt_to_latest_successful_execution.implementation.code }}
+  =====Feedback to your latest attempt=====
+  {{ latest_attempt_to_latest_successful_execution.feedback }}
+  {% endif %}
 
 evolving_strategy_error_summary_v2_system: |-
   User is trying to implement some factors in the following scenario:

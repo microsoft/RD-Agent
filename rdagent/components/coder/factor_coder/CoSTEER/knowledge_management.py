@@ -296,6 +296,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
             evo,
             factor_implementation_queried_graph_knowledge,
             FACTOR_IMPLEMENT_SETTINGS.v2_query_former_trace_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_add_fail_attempt_to_latest_successful_execution,
         )
         factor_implementation_queried_graph_knowledge = self.component_query(
             evo,
@@ -392,6 +393,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
         evo: EvolvableSubjects,
         factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
         v2_query_former_trace_limit: int = 5,
+        v2_add_fail_attempt_to_latest_successful_execution: bool = False,
     ) -> Union[QueriedKnowledge, set]:
         """
         Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
@@ -429,11 +431,25 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[
-                    target_factor_task_information
-                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
+                latest_attempt = None
+                if v2_add_fail_attempt_to_latest_successful_execution:
+                    # When the last successful execution is not the last one in the working trace, it means we have tried to correct it. We should tell the agent this fail trial to avoid endless loop in the future.
+                    if (
+                        len(former_trace_knowledge) > 0
+                        and len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) > 1
+                        and self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
+                            former_trace_knowledge[-1]
+                        )
+                        < len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) - 1
+                    ):
+                        latest_attempt = self.knowledgebase.working_trace_knowledge[target_factor_task_information][-1]
+
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
+                    former_trace_knowledge[-v2_query_former_trace_limit:],
+                    latest_attempt,
+                )
             else:
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = ([], None)
 
         return factor_implementation_queried_graph_knowledge
 
@@ -607,7 +623,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 ):
                     queried_last_trace = factor_implementation_queried_graph_knowledge.former_traces[
                         target_factor_task_information
-                    ][-1]
+                    ][0][-1]
                     target_index = self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
                         queried_last_trace,
                     )

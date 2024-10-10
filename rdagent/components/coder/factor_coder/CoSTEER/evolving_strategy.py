@@ -216,10 +216,16 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             )  # A dict, {{error_type:[[error_imp_knowledge, success_imp_knowledge],...]},...}
 
             queried_former_failed_knowledge = (
-                queried_knowledge.former_traces[target_factor_task_information] if queried_knowledge is not None else []
+                queried_knowledge.former_traces[target_factor_task_information][0]
+                if queried_knowledge is not None
+                else []
             )
 
             queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
+
+            latest_attempt_to_latest_successful_execution = queried_knowledge.former_traces[
+                target_factor_task_information
+            ][1]
 
             system_prompt = (
                 Environment(undefined=StrictUndefined)
@@ -296,6 +302,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         queried_similar_error_knowledge=queried_similar_error_knowledge_to_render,
                         error_summary=error_summary,
                         error_summary_critics=error_summary_critics,
+                        latest_attempt_to_latest_successful_execution=latest_attempt_to_latest_successful_execution,
                     )
                     .strip("\n")
                 )
