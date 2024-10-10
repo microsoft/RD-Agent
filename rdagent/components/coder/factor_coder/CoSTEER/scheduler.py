@@ -40,7 +40,7 @@ def LLMSelect(
         # find corresponding former trace for each task
         target_factor_task_information = evo.sub_tasks[i].get_task_information()
         if target_factor_task_information in former_trace:
-            tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information]))
+            tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information][0]))
 
     system_prompt = (
         Environment(undefined=StrictUndefined)

@@ -150,9 +150,9 @@ class FactorRAGStrategyV1(RAGStrategy):
         for target_factor_task in evo.sub_tasks:
             target_factor_task_information = target_factor_task.get_task_information()
             if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[
-                    target_factor_task_information
-                ] = self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
+                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+                )
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
@@ -164,14 +164,12 @@ class FactorRAGStrategyV1(RAGStrategy):
             ):
                 queried_knowledge.failed_task_info_set.add(target_factor_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[
-                    target_factor_task_information
-                ] = self.knowledgebase.implementation_trace.setdefault(
-                    target_factor_task_information,
-                    [],
-                )[
-                    -v1_query_former_trace_limit:
-                ]
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
+                    self.knowledgebase.implementation_trace.setdefault(
+                        target_factor_task_information,
+                        [],
+                    )[-v1_query_former_trace_limit:]
+                )
 
                 knowledge_base_success_task_list = list(
                     self.knowledgebase.success_task_info_set,
@@ -192,9 +190,9 @@ class FactorRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
-                    target_factor_task_information
-                ] = similar_successful_knowledge
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
+                    similar_successful_knowledge
+                )
         return queried_knowledge
 
 
@@ -296,6 +294,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
             evo,
             factor_implementation_queried_graph_knowledge,
             FACTOR_IMPLEMENT_SETTINGS.v2_query_former_trace_limit,
+            FACTOR_IMPLEMENT_SETTINGS.v2_add_fail_attempt_to_latest_successful_execution,
         )
         factor_implementation_queried_graph_knowledge = self.component_query(
             evo,
@@ -392,6 +391,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
         evo: EvolvableSubjects,
         factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
         v2_query_former_trace_limit: int = 5,
+        v2_add_fail_attempt_to_latest_successful_execution: bool = False,
     ) -> Union[QueriedKnowledge, set]:
         """
         Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
@@ -429,11 +429,25 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     else:
                         current_index += 1
 
-                factor_implementation_queried_graph_knowledge.former_traces[
-                    target_factor_task_information
-                ] = former_trace_knowledge[-v2_query_former_trace_limit:]
+                latest_attempt = None
+                if v2_add_fail_attempt_to_latest_successful_execution:
+                    # When the last successful execution is not the last one in the working trace, it means we have tried to correct it. We should tell the agent this fail trial to avoid endless loop in the future.
+                    if (
+                        len(former_trace_knowledge) > 0
+                        and len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) > 1
+                        and self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
+                            former_trace_knowledge[-1]
+                        )
+                        < len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) - 1
+                    ):
+                        latest_attempt = self.knowledgebase.working_trace_knowledge[target_factor_task_information][-1]
+
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
+                    former_trace_knowledge[-v2_query_former_trace_limit:],
+                    latest_attempt,
+                )
             else:
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = []
+                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = ([], None)
 
         return factor_implementation_queried_graph_knowledge
 
@@ -607,7 +621,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 ):
                     queried_last_trace = factor_implementation_queried_graph_knowledge.former_traces[
                         target_factor_task_information
-                    ][-1]
+                    ][0][-1]
                     target_index = self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
                         queried_last_trace,
                     )
