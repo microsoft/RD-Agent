@@ -373,8 +373,8 @@ class APIBackend:
                         azure_endpoint=self.embedding_api_base,
                     )
             else:
-                self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
-                self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
+                self.chat_client = openai.OpenAI(api_key=self.chat_api_key,base_url='https://api.openai.com/v1')
+                self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key,base_url='https://api.openai.com/v1')
 
         self.dump_chat_cache = self.cfg.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
         self.use_chat_cache = self.cfg.use_chat_cache if use_chat_cache is None else use_chat_cache
@@ -457,6 +457,8 @@ class APIBackend:
             former_messages,
             shrink_multiple_break=shrink_multiple_break,
         )
+        # messages[0]['content']='Hi'
+        # messages[1]['content']='Hi'        
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
             chat_completion=True,
@@ -510,7 +512,8 @@ class APIBackend:
                 if embedding:
                     return self._create_embedding_inner_function(**kwargs)
                 if chat_completion:
-                    return self._create_chat_completion_auto_continue(**kwargs)
+                    res = self._create_chat_completion_auto_continue(**kwargs)
+                    return res
             except openai.BadRequestError as e:  # noqa: PERF203
                 logger.warning(e)
                 logger.warning(f"Retrying {i+1}th time...")
@@ -575,6 +578,11 @@ class APIBackend:
             )
         return log_messages
 
+    def clean_and_parse_json(self, response):
+        # 去除 ```json 和 ``` 这些标记
+        cleaned_response = response.strip('```json').strip('```').strip()
+        return cleaned_response
+    
     def _create_chat_completion_inner_function(  # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict],
@@ -697,7 +705,9 @@ class APIBackend:
                 if self.cfg.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
             if json_mode:
-                json.loads(resp)
+                # resp = self.clean_and_parse_json(resp)
+                json.loads(resp)  # 解析并赋值给 resp
+
         if self.dump_chat_cache:
             self.cache.chat_set(input_content_json, resp)
         return resp, finish_reason

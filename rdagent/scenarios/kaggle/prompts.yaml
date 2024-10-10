@@ -36,7 +36,7 @@ hypothesis_and_feedback: |-
   {% endfor %}
 
 hypothesis_output_format: |-
-  The output should follow JSON format. The schema is as follows:
+  The output should follow pure JSON format, which can be processed by json.load(). The schema is as follows:
   {
     "action": "If "hypothesis_specification" provides the action you need to take, please follow "hypothesis_specification" to choose the action. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate at the moment. It should be one of ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"]"
     "hypothesis": "The new hypothesis generated based on the information provided.",
@@ -125,7 +125,7 @@ hypothesis_specification:
 
 feature_experiment_output_format: |-
   According to the hypothesis, please help user design one or more feature engineering tasks.
-  The output should follow JSON format. The schema is as follows:
+  The output should follow JSON format,without "```json". The schema is as follows:
   {
       "factor or group name 1": {
           "description": "description of factor or group name 1",
@@ -149,7 +149,7 @@ feature_experiment_output_format: |-
 model_experiment_output_format: |-
   According to the hypothesis, please help user design one model task.
   We only build one model from four main model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].
-  The output should follow JSON format. The schema is as follows: 
+  The output should follow JSON format which can be processed by json.load(). The schema is as follows: 
   {
       "model_name": "model_name",
       "description": "A detailed description of the model",
@@ -177,7 +177,7 @@ model_tuning_feedback_generation:
     3. Suggest improvements or new directions. Stay innovative and adapative.
 
     Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
-    Example JSON Structure for Result Analysis:
+    Example JSON Structure for Result Analysis, without "```json" or prefix or postfix:
     {
       "Observations": "Your overall observations here",
       "Feedback for Hypothesis": "Observations related to the hypothesis",
@@ -263,7 +263,7 @@ factor_feedback_generation:
       - If the new results significantly differ from the best result, consider exploring a new direction.
       - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
     Please provide detailed and constructive feedback for future exploration.
-    Respond in JSON format. Example JSON structure for Result Analysis:
+    Respond in JSON format. Example JSON structure for Result Analysis, without "```json" or prefix or postfix:
     {
       "Observations": "Your overall observations here",
       "Feedback for Hypothesis": "Observations related to the hypothesis",
@@ -309,7 +309,7 @@ feature_selection_feedback_generation:
 
     Provide detailed and constructive feedback, focusing on actionable insights for feature selection improvement.
     
-    Respond in JSON format. Example JSON structure for Result Analysis:
+    Respond in JSON format. Example JSON structure for Result Analysis, without "```json" or prefix or postfix:
     {
       "Observations": "Your overall observations here",
       "Feedback for Hypothesis": "Observations related to the hypothesis",

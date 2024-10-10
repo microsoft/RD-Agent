@@ -57,7 +57,7 @@ evolving_strategy_factor_implementation_v1_system: |-
   {{ queried_former_failed_knowledge[-1].feedback }}
   {% endif %}
 
-  Please response the code in the following json format. Here is an example structure for the JSON output:
+  Please response the code in the following json format. Here is an example structure for the JSON output, strictly without "```json" and any prefix or postfixs:
   {
       "code": "The Python code as a string."
   }
@@ -155,7 +155,7 @@ select_implementable_factor_system: |-
   {{ scenario }}
   Your job is to help the user select the easiest-to-implement factors. Some factors may be difficult to implement due to a lack of information or excessive complexity. The user will provide the number of factors you should pick and information about the factors, including their descriptions, formulas, and variable explanations.
   User will provide you the former attempt to implement the factor and the feedback to the implementation. You need to carefully review your previous attempts. Some factors have been repeatedly tried without success. You should consider discarding these factors.
-  Please analyze the difficulties of the each factors and provide the reason and response the indices of selected implementable factor in the json format. Here is an example structure for the JSON output:
+  Please analyze the difficulties of the each factors and provide the reason and response the indices of selected implementable factor in the json format. Here is an example structure for the JSON output,without "```json":
   {
       "Analysis": "Analyze the difficulties of the each factors and provide the reason why the factor can be implemented or not."
       "selected_factor": "The indices of selected factor index in the list, like [0, 2, 3].The length should be the number of factor left after filtering.",
@@ -187,7 +187,7 @@ analyze_component_prompt_v1_system: |-
   {{all_component_content}}
 
   You should find out what components does the new task have, and put their indices in a list.
-  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
+  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format,without "```json":
   {
       "component_no_list": the list containing indices of components.
   }
@@ -196,11 +196,8 @@ evaluator_output_format_system: |-
   User is trying to implement some factors in the following scenario:
   {{ scenario }}
   User will provide you the format of the output. Please help to check whether the output is align with the format.
-  Please respond in the JSON format. Here is an example structure for the JSON output:
-  {
-      "output_format_decision": True,
-      "output_format_feedback": "The output format is correct."
-  }
+  Please respond in the JSON format. Here is an example structure for the JSON output, strictly without "```json" and any prefix or postfixs:
+  {"output_format_decision": true,"output_format_feedback":"The output format is correct."}
 
 
 evaluator_final_decision_v1_system: |-
@@ -214,11 +211,8 @@ evaluator_final_decision_v1_system: |-
   2. If the value and the ground truth value have a high correlation on ic or rank ic, the implementation is considered correct.
   3. If no ground truth value is provided, the implementation is considered correct if the code executes successfully (assuming the data provided is correct). Any exceptions, including those actively raised, are considered faults of the code. Additionally, the code feedback must align with the scenario and factor description.
 
-  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
-  {
-      "final_decision": True,
-      "final_feedback": "The final feedback message",
-  }
+  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format,without "```json":
+  {"final_decision": true,"final_feedback":"The final feedback message"}
 
 evaluator_final_decision_v1_user: |-
   --------------Factor information:---------------
