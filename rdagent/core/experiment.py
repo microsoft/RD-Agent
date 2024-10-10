@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import uuid
 from abc import ABC, abstractmethod
@@ -122,7 +123,10 @@ class FBWorkspace(Workspace):
             workspace_data_file_path = workspace_path / data_file_path.name
             if workspace_data_file_path.exists():
                 workspace_data_file_path.unlink()
-            os.symlink(data_file_path, workspace_data_file_path)
+            if platform.system() == "Linux":
+                os.symlink(data_file_path, workspace_data_file_path)
+            if platform.system() == "Windows":
+                os.link(data_file_path, workspace_data_file_path)
 
     def inject_code(self, **files: str) -> None:
         """

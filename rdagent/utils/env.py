@@ -208,12 +208,15 @@ class DockerEnv(Env[DockerConf]):
             with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
                 task = p.add_task("[cyan]Building image...")
                 for part in resp_stream:
-                    status_dict = json.loads(part)
-                    if "error" in status_dict:
-                        p.update(task, description=f"[red]error: {status_dict['error']}")
-                        raise docker.errors.BuildError(status_dict["error"], "")
-                    if "stream" in status_dict:
-                        p.update(task, description=status_dict["stream"])
+                    lines = part.decode("utf-8").split("\r\n")
+                    for line in lines:
+                        if line.strip():
+                            status_dict = json.loads(line)
+                            if "error" in status_dict:
+                                p.update(task, description=f"[red]error: {status_dict['error']}")
+                                raise docker.errors.BuildError(status_dict["error"], "")
+                            if "stream" in status_dict:
+                                p.update(task, description=status_dict["stream"])
             logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
         try:
             client.images.get(self.conf.image)
