@@ -70,7 +70,7 @@ evolving_strategy_model_coder:
         {{ queried_former_failed_knowledge[-1].feedback }}
         {% endif %}
         
-        Please response the code in the following json format. Here is an example structure for the JSON output:
+        Please response the code in the following json format. Here is an example structure for the JSON output, without "```json":
         {
             "code": "The Python code as a string."
         }
