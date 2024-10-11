@@ -29,5 +29,4 @@ jobs:
 
       - name: Validate PR Title with commitlint
         run: |
-          echo "${{ github.event.pull_request.title }}" > pr-title.txt
-          npx commitlint --from=pr-title.txt --to=pr-title.txt
+          echo "${{ github.event.pull_request.title }}" | npx commitlint --config .commitlintrc.json --stdin
