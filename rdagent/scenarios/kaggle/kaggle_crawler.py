@@ -49,9 +49,27 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
             inner_text += child.get_attribute("innerHTML").strip()
         subtitles.append(inner_text)
 
+    def kaggle_description_css_selectors() -> tuple[str, str]:
+        # Get the class name of the main contents
+        ab_elm = site_body.find_element(By.ID, "abstract")
+        others_elm = ab_elm.find_element(By.XPATH, "../*[2]")
+        first_elm = others_elm.find_element(By.XPATH, "./*[1]")
+        first_content_elm = first_elm.find_element(By.XPATH, "./*[1]/*[2]")
+        selector_elm = first_content_elm.find_element(By.XPATH, "./*[1]/*[1]")
+        main_class = selector_elm.get_attribute("class").split()[-1]
+
+        # Get the class name of the citation
+        citation_elm = site_body.find_element(By.ID, "citation")
+        citation_content_elm = citation_elm.find_element(By.XPATH, "./*[1]/*[2]/*[1]/*[1]")
+        citation_class = citation_content_elm.get_attribute("class").split()[-1]
+
+        return main_class, citation_class
+
+    main_class, citation_class = kaggle_description_css_selectors()
+
     # Get main contents
     contents = []
-    elements = site_body.find_elements(By.CSS_SELECTOR, ".fbHzUd")
+    elements = site_body.find_elements(By.CSS_SELECTOR, f".{main_class}")
     for e in elements:
         content = e.get_attribute("innerHTML")
         contents.append(content)
@@ -61,14 +79,14 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
         descriptions[subtitles[i]] = contents[i]
 
     # Get the citation
-    element = site_body.find_element(By.CSS_SELECTOR, ".bZEXEC")
+    element = site_body.find_element(By.CSS_SELECTOR, f".{citation_class}")
     citation = element.get_attribute("innerHTML")
     descriptions[subtitles[-1]] = citation
 
     data_url = f"https://www.kaggle.com/competitions/{competition}/data"
     driver.get(data_url)
     time.sleep(wait)
-    data_element = driver.find_element(By.CSS_SELECTOR, ".fbHzUd")
+    data_element = driver.find_element(By.CSS_SELECTOR, f".{main_class}")
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
