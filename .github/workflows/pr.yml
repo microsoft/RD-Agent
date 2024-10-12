@@ -16,6 +16,7 @@ jobs:
   lint-title:
     runs-on: ubuntu-latest
     steps:
+      # This step is necessary because the lint title uses the .commitlintrc.js file in the project root directory.
       - name: Checkout Repository
         uses: actions/checkout@v3
 
