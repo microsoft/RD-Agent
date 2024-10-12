@@ -1,5 +1,4 @@
 module.exports = {
-    // 使用官方的 conventional 配置作为基础
     extends: ["@commitlint/config-conventional"],
     rules: {
         // Configuration Format: [level, applicability, value]
