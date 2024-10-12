@@ -31,4 +31,4 @@ jobs:
         env:
           BODY: ${{ github.event.pull_request.title }}
         run: |
-          echo "$BODY" | npx commitlint --config .commitlintrc.json
+          echo "$BODY" | npx commitlint --config .commitlintrc.js
