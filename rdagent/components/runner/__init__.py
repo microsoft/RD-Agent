@@ -17,6 +17,6 @@ class CachedRunner(Developer[ASpecificExp]):
         task_info_str = "\n".join(task_info_list)
         return md5_hash(task_info_str)
 
-    def assign_cached_result(self, exp: Experiment, result: Any) -> Experiment:
-        exp.result = result
+    def assign_cached_result(self, exp: Experiment, cached_res: Experiment) -> Experiment:
+        exp.result = cached_res.result
         return exp
