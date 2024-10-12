@@ -11,7 +11,7 @@ module.exports = {
         //     “never” - never apply the rule
         // value: the specific value of the rule, e.g. a maximum length of 100.
         // Refs: https://commitlint.js.org/reference/rules-configuration.html
-      "header-max-length": [2, "always", 150],
+      "header-max-length": [2, "always", 100],
       "type-enum": [
         2,
         "always",
