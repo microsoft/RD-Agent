@@ -6,6 +6,8 @@ from pydantic_settings import BaseSettings
 
 
 class LLMSettings(BaseSettings):
+    log_llm_chat_content: bool = True
+
     use_azure: bool = False
     use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None

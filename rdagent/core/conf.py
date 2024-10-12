@@ -14,7 +14,6 @@ class RDAgentSettings(BaseSettings):
     # Log configs
     # TODO: (xiao) think it can be a separate config.
     log_trace_path: str | None = None
-    log_llm_chat_content: bool = True
 
     # azure document intelligence configs
     azure_document_intelligence_key: str = ""

@@ -117,7 +117,9 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
                 Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str).mkdir(parents=True, exist_ok=True)
                 hash_key = hash_func(*args, **kwargs)
                 if (Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl")).exists():
-                    with Path.open(RD_AGENT_SETTINGS.pickle_cache_folder_path_str / (hash_key + ".pkl"), "rb") as f:
+                    with Path.open(
+                        Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"), "rb"
+                    ) as f:
                         cached_res = pickle.load(f)
                         return (
                             post_process_func(*args, cached_res=cached_res, **kwargs)
@@ -128,7 +130,7 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
             result = func(*args, **kwargs)
 
             if RD_AGENT_SETTINGS.cache_with_pickle:
-                with Path.open(RD_AGENT_SETTINGS.pickle_cache_folder_path_str / (hash_key + ".pkl"), "wb") as f:
+                with Path.open(Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"), "wb") as f:
                     pickle.dump(result, f)
             return result
 

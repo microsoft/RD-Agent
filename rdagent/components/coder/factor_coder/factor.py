@@ -92,7 +92,7 @@ class FactorFBWorkspace(FBWorkspace):
     def hash_func(self, data_type: str = "Debug") -> str:
         return md5_hash(data_type + self.code_dict["factor.py"])
 
-    def raise_exception(self, data_type: str, cached_res: Tuple[str, pd.DataFrame, Exception]):
+    def raise_exception(self, data_type: str = "Debug", cached_res: Tuple[str, pd.DataFrame, Exception] = ()):
         if self.raise_exception and cached_res[-1] is not None:
             raise cached_res[-1]
         else:

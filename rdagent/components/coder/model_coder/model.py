@@ -29,7 +29,9 @@ class ModelTask(Task):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
-        self.model_type: str = model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
+        self.model_type: str = (
+            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
+        )
         super().__init__(name=name, *args, **kwargs)
 
     def get_task_information(self):
@@ -74,12 +76,12 @@ class ModelFBWorkspace(FBWorkspace):
 
     def hash_func(
         self,
-        batch_size: int,
-        num_features: int,
-        num_timesteps: int,
-        num_edges: int,
-        input_value: float,
-        param_init_value: float,
+        batch_size: int = 8,
+        num_features: int = 10,
+        num_timesteps: int = 4,
+        num_edges: int = 20,
+        input_value: float = 1.0,
+        param_init_value: float = 1.0,
     ) -> str:
         target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
         for code_file_name in sorted(list(self.code_dict.keys())):
