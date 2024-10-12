@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import functools
 import importlib
 import json
 import multiprocessing as mp
 import pickle
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, ClassVar, NoReturn, cast
 
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
+
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
 class RDAgentException(Exception):  # noqa: N818
@@ -103,3 +107,31 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     with mp.Pool(processes=n) as pool:
         results = [pool.apply_async(f, args) for f, args in func_calls]
         return [result.get() for result in results]
+
+
+def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = None) -> Callable:
+    def cache_decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def cache_wrapper(*args: Any, **kwargs: Any) -> Any:
+            if RD_AGENT_SETTINGS.cache_with_pickle:
+                Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str).mkdir(parents=True, exist_ok=True)
+                hash_key = hash_func(*args, **kwargs)
+                if (Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl")).exists():
+                    with Path.open(RD_AGENT_SETTINGS.pickle_cache_folder_path_str / (hash_key + ".pkl"), "rb") as f:
+                        cached_res = pickle.load(f)
+                        return (
+                            post_process_func(*args, cached_res=cached_res, **kwargs)
+                            if post_process_func is not None
+                            else cached_res
+                        )
+
+            result = func(*args, **kwargs)
+
+            if RD_AGENT_SETTINGS.cache_with_pickle:
+                with Path.open(RD_AGENT_SETTINGS.pickle_cache_folder_path_str / (hash_key + ".pkl"), "wb") as f:
+                    pickle.dump(result, f)
+            return result
+
+        return cache_wrapper
+
+    return cache_decorator
