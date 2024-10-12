@@ -2,8 +2,17 @@ module.exports = {
     // 使用官方的 conventional 配置作为基础
     extends: ["@commitlint/config-conventional"],
     rules: {
-      // 限制提交信息头部的最大长度为150个字符
-      "header-max-length": [2, "always", 150],
+        // Configuration Format: [level, applicability, value]
+        // level: Error level, usually expressed as a number:
+        //     0 - disable rule
+        //     1 - Warning (does not prevent commits)
+        //     2 - Error (will block the commit)
+        // applicability: the conditions under which the rule applies, commonly used values:
+        //     “always” - always apply the rule
+        //     “never” - never apply the rule
+        // value: the specific value of the rule, e.g. a maximum length of 100.
+        // Refs: https://commitlint.js.org/reference/rules-configuration.html
+      "header-max-length": [2, "always", 100],
       "type-enum": [
         2,
         "always",
