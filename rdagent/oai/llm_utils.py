@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import datetime
 import hashlib
 import json
-import multiprocessing
 import os
 import re
 import sqlite3
@@ -18,10 +16,10 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
@@ -170,7 +168,7 @@ class SQliteLazyCache(SingletonBaseClass):
 class SessionChatHistoryCache(SingletonBaseClass):
     def __init__(self) -> None:
         """load all history conversation json file from self.session_cache_location"""
-        self.cache = SQliteLazyCache(cache_location=RD_AGENT_SETTINGS.prompt_cache_path)
+        self.cache = SQliteLazyCache(cache_location=LLM_SETTINGS.prompt_cache_path)
 
     def message_get(self, conversation_id: str) -> list[str]:
         return self.cache.message_get(conversation_id)
@@ -182,8 +180,7 @@ class SessionChatHistoryCache(SingletonBaseClass):
 class ChatSession:
     def __init__(self, api_backend: Any, conversation_id: str | None = None, system_prompt: str | None = None) -> None:
         self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
-        self.cfg = RD_AGENT_SETTINGS
-        self.system_prompt = system_prompt if system_prompt is not None else self.cfg.default_system_prompt
+        self.system_prompt = system_prompt if system_prompt is not None else LLM_SETTINGS.default_system_prompt
         self.api_backend = api_backend
 
     def build_chat_completion_message(self, user_prompt: str) -> list[dict[str, Any]]:
@@ -243,7 +240,7 @@ class APIBackend:
     """
 
     # FIXME: (xiao) We should avoid using self.xxxx.
-    # Instead, we can use self.cfg directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
+    # Instead, we can use LLM_SETTINGS directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,
@@ -260,37 +257,36 @@ class APIBackend:
         use_embedding_cache: bool | None = None,
         dump_embedding_cache: bool | None = None,
     ) -> None:
-        self.cfg = RD_AGENT_SETTINGS
-        if self.cfg.use_llama2:
+        if LLM_SETTINGS.use_llama2:
             self.generator = Llama.build(
-                ckpt_dir=self.cfg.llama2_ckpt_dir,
-                tokenizer_path=self.cfg.llama2_tokenizer_path,
-                max_seq_len=self.cfg.max_tokens,
-                max_batch_size=self.cfg.llams2_max_batch_size,
+                ckpt_dir=LLM_SETTINGS.llama2_ckpt_dir,
+                tokenizer_path=LLM_SETTINGS.llama2_tokenizer_path,
+                max_seq_len=LLM_SETTINGS.max_tokens,
+                max_batch_size=LLM_SETTINGS.llams2_max_batch_size,
             )
             self.encoder = None
-        elif self.cfg.use_gcr_endpoint:
-            gcr_endpoint_type = self.cfg.gcr_endpoint_type
+        elif LLM_SETTINGS.use_gcr_endpoint:
+            gcr_endpoint_type = LLM_SETTINGS.gcr_endpoint_type
             if gcr_endpoint_type == "llama2_70b":
-                self.gcr_endpoint_key = self.cfg.llama2_70b_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.llama2_70b_endpoint_deployment
-                self.gcr_endpoint = self.cfg.llama2_70b_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.llama2_70b_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.llama2_70b_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.llama2_70b_endpoint
             elif gcr_endpoint_type == "llama3_70b":
-                self.gcr_endpoint_key = self.cfg.llama3_70b_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.llama3_70b_endpoint_deployment
-                self.gcr_endpoint = self.cfg.llama3_70b_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.llama3_70b_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.llama3_70b_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.llama3_70b_endpoint
             elif gcr_endpoint_type == "phi2":
-                self.gcr_endpoint_key = self.cfg.phi2_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi2_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi2_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi2_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi2_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi2_endpoint
             elif gcr_endpoint_type == "phi3_4k":
-                self.gcr_endpoint_key = self.cfg.phi3_4k_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi3_4k_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi3_4k_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi3_4k_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi3_4k_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi3_4k_endpoint
             elif gcr_endpoint_type == "phi3_128k":
-                self.gcr_endpoint_key = self.cfg.phi3_128k_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi3_128k_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi3_128k_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi3_128k_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi3_128k_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi3_128k_endpoint
             else:
                 error_message = f"Invalid gcr_endpoint_type: {gcr_endpoint_type}"
                 raise ValueError(error_message)
@@ -299,46 +295,48 @@ class APIBackend:
                 "Authorization": ("Bearer " + self.gcr_endpoint_key),
                 "azureml-model-deployment": self.gcr_endpoint_deployment,
             }
-            self.gcr_endpoint_temperature = self.cfg.gcr_endpoint_temperature
-            self.gcr_endpoint_top_p = self.cfg.gcr_endpoint_top_p
-            self.gcr_endpoint_do_sample = self.cfg.gcr_endpoint_do_sample
-            self.gcr_endpoint_max_token = self.cfg.gcr_endpoint_max_token
+            self.gcr_endpoint_temperature = LLM_SETTINGS.gcr_endpoint_temperature
+            self.gcr_endpoint_top_p = LLM_SETTINGS.gcr_endpoint_top_p
+            self.gcr_endpoint_do_sample = LLM_SETTINGS.gcr_endpoint_do_sample
+            self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
             self.encoder = None
         else:
-            self.use_azure = self.cfg.use_azure
-            self.use_azure_token_provider = self.cfg.use_azure_token_provider
-            self.managed_identity_client_id = self.cfg.managed_identity_client_id
+            self.use_azure = LLM_SETTINGS.use_azure
+            self.use_azure_token_provider = LLM_SETTINGS.use_azure_token_provider
+            self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
             # TODO: Simplify the key design. Consider Pandatic's field alias & priority.
             self.chat_api_key = (
                 chat_api_key
-                or self.cfg.chat_openai_api_key
-                or self.cfg.openai_api_key
+                or LLM_SETTINGS.chat_openai_api_key
+                or LLM_SETTINGS.openai_api_key
                 or os.environ.get("OPENAI_API_KEY")
             )
             self.embedding_api_key = (
                 embedding_api_key
-                or self.cfg.embedding_openai_api_key
-                or self.cfg.openai_api_key
+                or LLM_SETTINGS.embedding_openai_api_key
+                or LLM_SETTINGS.openai_api_key
                 or os.environ.get("OPENAI_API_KEY")
             )
 
-            self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
+            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
-            self.chat_api_base = self.cfg.chat_azure_api_base if chat_api_base is None else chat_api_base
-            self.chat_api_version = self.cfg.chat_azure_api_version if chat_api_version is None else chat_api_version
-            self.chat_stream = self.cfg.chat_stream
-            self.chat_seed = self.cfg.chat_seed
+            self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
+            self.chat_api_version = (
+                LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version
+            )
+            self.chat_stream = LLM_SETTINGS.chat_stream
+            self.chat_seed = LLM_SETTINGS.chat_seed
 
-            self.embedding_model = self.cfg.embedding_model if embedding_model is None else embedding_model
+            self.embedding_model = LLM_SETTINGS.embedding_model if embedding_model is None else embedding_model
             self.embedding_api_base = (
-                self.cfg.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
+                LLM_SETTINGS.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
             )
             self.embedding_api_version = (
-                self.cfg.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
+                LLM_SETTINGS.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
             )
 
             if self.use_azure:
@@ -376,20 +374,22 @@ class APIBackend:
                 self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
                 self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
 
-        self.dump_chat_cache = self.cfg.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
-        self.use_chat_cache = self.cfg.use_chat_cache if use_chat_cache is None else use_chat_cache
+        self.dump_chat_cache = LLM_SETTINGS.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
+        self.use_chat_cache = LLM_SETTINGS.use_chat_cache if use_chat_cache is None else use_chat_cache
         self.dump_embedding_cache = (
-            self.cfg.dump_embedding_cache if dump_embedding_cache is None else dump_embedding_cache
+            LLM_SETTINGS.dump_embedding_cache if dump_embedding_cache is None else dump_embedding_cache
         )
-        self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
+        self.use_embedding_cache = (
+            LLM_SETTINGS.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
+        )
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
-            self.cache_file_location = self.cfg.prompt_cache_path
+            self.cache_file_location = LLM_SETTINGS.prompt_cache_path
             self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
-        self.use_llama2 = self.cfg.use_llama2
-        self.use_gcr_endpoint = self.cfg.use_gcr_endpoint
-        self.retry_wait_seconds = self.cfg.retry_wait_seconds
+        self.use_llama2 = LLM_SETTINGS.use_llama2
+        self.use_gcr_endpoint = LLM_SETTINGS.use_gcr_endpoint
+        self.retry_wait_seconds = LLM_SETTINGS.retry_wait_seconds
 
     def build_chat_session(
         self,
@@ -423,14 +423,14 @@ class APIBackend:
             if system_prompt is not None:
                 while "\n\n\n" in system_prompt:
                     system_prompt = system_prompt.replace("\n\n\n", "\n\n")
-        system_prompt = self.cfg.default_system_prompt if system_prompt is None else system_prompt
+        system_prompt = LLM_SETTINGS.default_system_prompt if system_prompt is None else system_prompt
         messages = [
             {
                 "role": "system",
                 "content": system_prompt,
             },
         ]
-        messages.extend(former_messages[-1 * self.cfg.max_past_message_include :])
+        messages.extend(former_messages[-1 * LLM_SETTINGS.max_past_message_include :])
         messages.append(
             {
                 "role": "user",
@@ -504,7 +504,7 @@ class APIBackend:
         **kwargs: Any,
     ) -> Any:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
-        max_retry = self.cfg.max_retry if self.cfg.max_retry is not None else max_retry
+        max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         for i in range(max_retry):
             try:
                 if embedding:
@@ -544,8 +544,8 @@ class APIBackend:
 
         if len(filtered_input_content_list) > 0:
             for sliced_filtered_input_content_list in [
-                filtered_input_content_list[i : i + self.cfg.embedding_max_str_num]
-                for i in range(0, len(filtered_input_content_list), self.cfg.embedding_max_str_num)
+                filtered_input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
+                for i in range(0, len(filtered_input_content_list), LLM_SETTINGS.embedding_max_str_num)
             ]:
                 if self.use_azure:
                     response = self.embedding_client.embeddings.create(
@@ -594,8 +594,8 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
-        if self.cfg.log_llm_chat_content:
+        # TODO: we can add this function back to avoid so much `LLM_SETTINGS.log_llm_chat_content`
+        if LLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
         input_content_json = json.dumps(messages)
@@ -605,18 +605,18 @@ class APIBackend:
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result, None
 
         if temperature is None:
-            temperature = self.cfg.chat_temperature
+            temperature = LLM_SETTINGS.chat_temperature
         if max_tokens is None:
-            max_tokens = self.cfg.chat_max_tokens
+            max_tokens = LLM_SETTINGS.chat_max_tokens
         if frequency_penalty is None:
-            frequency_penalty = self.cfg.chat_frequency_penalty
+            frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         if presence_penalty is None:
-            presence_penalty = self.cfg.chat_presence_penalty
+            presence_penalty = LLM_SETTINGS.chat_presence_penalty
 
         finish_reason = None
         if self.use_llama2:
@@ -626,7 +626,7 @@ class APIBackend:
                 temperature=temperature,
             )
             resp = response[0]["generation"]["content"]
-            if self.cfg.log_llm_chat_content:
+            if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         elif self.use_gcr_endpoint:
             body = str.encode(
@@ -648,7 +648,7 @@ class APIBackend:
             req = urllib.request.Request(self.gcr_endpoint, body, self.headers)  # noqa: S310
             response = urllib.request.urlopen(req)  # noqa: S310
             resp = json.loads(response.read().decode())["output"]
-            if self.cfg.log_llm_chat_content:
+            if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             kwargs = dict(
@@ -673,7 +673,7 @@ class APIBackend:
             if self.chat_stream:
                 resp = ""
                 # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
 
                 for chunk in response:
@@ -682,19 +682,19 @@ class APIBackend:
                         if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None
                         else ""
                     )
-                    if self.cfg.log_llm_chat_content:
+                    if LLM_SETTINGS.log_llm_chat_content:
                         logger.info(LogColors.CYAN + content + LogColors.END, raw=True, tag="llm_messages")
                     resp += content
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
 
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info("\n", raw=True, tag="llm_messages")
 
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
             if json_mode:
                 json.loads(resp)

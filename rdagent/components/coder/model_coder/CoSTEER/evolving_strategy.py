@@ -20,6 +20,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_MODEL_MAPPING
 
@@ -100,7 +101,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                         user_prompt=user_prompt,
                         system_prompt=system_prompt,
                     )
-                    < RD_AGENT_SETTINGS.chat_token_limit
+                    < LLM_SETTINGS.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:

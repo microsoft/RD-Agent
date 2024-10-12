@@ -19,6 +19,7 @@ from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -90,9 +91,11 @@ class ModelCodeEvaluator(Evaluator):
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_code_feedback"]["system"])
             .render(
-                scenario=self.scen.get_scenario_all_desc(target_task)
-                if self.scen is not None
-                else "No scenario description."
+                scenario=(
+                    self.scen.get_scenario_all_desc(target_task)
+                    if self.scen is not None
+                    else "No scenario description."
+                )
             )
         )
 
@@ -116,7 +119,7 @@ class ModelCodeEvaluator(Evaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
@@ -150,9 +153,11 @@ class ModelFinalEvaluator(Evaluator):
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_final_feedback"]["system"])
             .render(
-                scenario=self.scen.get_scenario_all_desc(target_task)
-                if self.scen is not None
-                else "No scenario description."
+                scenario=(
+                    self.scen.get_scenario_all_desc(target_task)
+                    if self.scen is not None
+                    else "No scenario description."
+                )
             )
         )
 
@@ -176,7 +181,7 @@ class ModelFinalEvaluator(Evaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:

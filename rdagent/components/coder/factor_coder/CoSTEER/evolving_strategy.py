@@ -22,6 +22,7 @@ from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 if TYPE_CHECKING:
@@ -160,7 +161,7 @@ class FactorEvolvingStrategy(MultiProcessEvolvingStrategy):
                     session.build_chat_completion_message_and_calculate_token(
                         user_prompt,
                     )
-                    < RD_AGENT_SETTINGS.chat_token_limit
+                    < LLM_SETTINGS.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:
@@ -281,7 +282,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                         )
                         if (
                             session_summary.build_chat_completion_message_and_calculate_token(error_summary_user_prompt)
-                            < RD_AGENT_SETTINGS.chat_token_limit
+                            < LLM_SETTINGS.chat_token_limit
                         ):
                             break
                         elif len(queried_similar_error_knowledge_to_render) > 0:
@@ -310,7 +311,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     session.build_chat_completion_message_and_calculate_token(
                         user_prompt,
                     )
-                    < RD_AGENT_SETTINGS.chat_token_limit
+                    < LLM_SETTINGS.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:
