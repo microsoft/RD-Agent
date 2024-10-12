@@ -16,6 +16,9 @@ jobs:
   lint-title:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -25,5 +28,7 @@ jobs:
         run: npm install --save-dev @commitlint/{config-conventional,cli}
 
       - name: Validate PR Title with commitlint
+        env:
+          BODY: ${{ github.event.pull_request.title }}
         run: |
-          echo "${{ github.event.pull_request.title }}" | npx commitlint --config .commitlintrc.json
+          echo "$BODY" | npx commitlint --config .commitlintrc.json
