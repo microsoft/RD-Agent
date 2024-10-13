@@ -18,5 +18,7 @@ class CachedRunner(Developer[ASpecificExp]):
         return md5_hash(task_info_str)
 
     def assign_cached_result(self, exp: Experiment, cached_res: Experiment) -> Experiment:
+        if exp.based_experiments and exp.based_experiments[-1].result is None:
+            exp.based_experiments[-1].result = cached_res.based_experiments[-1].result
         exp.result = cached_res.result
         return exp
