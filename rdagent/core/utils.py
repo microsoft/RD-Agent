@@ -125,14 +125,12 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
         @functools.wraps(func)
         def cache_wrapper(*args: Any, **kwargs: Any) -> Any:
             if RD_AGENT_SETTINGS.cache_with_pickle:
-                Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str).mkdir(parents=True, exist_ok=True)
+                target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / func.__module__
+                target_folder.mkdir(parents=True, exist_ok=True)
                 hash_key = hash_func(*args, **kwargs)
-                if (
-                    hash_key is not None
-                    and (Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl")).exists()
-                ):
+                if hash_key is not None and (target_folder / (hash_key + ".pkl")).exists():
                     with Path.open(
-                        Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"),
+                        target_folder / (hash_key + ".pkl"),
                         "rb",
                     ) as f:
                         cached_res = pickle.load(f)
@@ -142,11 +140,11 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
                             else cached_res
                         )
                 if hash_key is not None and RD_AGENT_SETTINGS.use_file_lock:
-                    with FileLock(Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".lock")):
+                    with FileLock(target_folder / (hash_key + ".lock")):
                         result = func(*args, **kwargs)
                 if hash_key is not None:
                     with Path.open(
-                        Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"),
+                        target_folder / (hash_key + ".pkl"),
                         "wb",
                     ) as f:
                         pickle.dump(result, f)
