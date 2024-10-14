@@ -201,7 +201,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     "true",
                     "false",
                 ):
-                    resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
+                    resp_dict["output_format_decision"] = resp_dict["output_format_decision"].lower() == "true"
 
                 return (
                     resp_dict["output_format_feedback"],
@@ -546,9 +546,9 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 final_decision = final_evaluation_dict["final_decision"]
                 final_feedback = final_evaluation_dict["final_feedback"]
 
-                if (isinstance(final_decision, str) and final_decision.lower() in ("true", "false")) or (
-                    isinstance(final_decision, int) and final_decision in (0, 1)
-                ):
+                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
+                    final_decision = final_decision.lower() == "true"
+                elif isinstance(final_decision, int) and final_decision in (0, 1):
                     final_decision = bool(final_decision)
 
                 return final_decision, final_feedback
