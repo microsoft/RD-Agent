@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar, NoReturn, cast
 
+from filelock import FileLock
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -137,12 +138,17 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
                             if post_process_func is not None
                             else cached_res
                         )
+                if hash_key is not None and RD_AGENT_SETTINGS.use_file_lock:
+                    with FileLock(Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".lock")):
+                        result = func(*args, **kwargs)
+                if hash_key is not None:
+                    with Path.open(
+                        Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"), "wb"
+                    ) as f:
+                        pickle.dump(result, f)
+            else:
+                result = func(*args, **kwargs)
 
-            result = func(*args, **kwargs)
-
-            if RD_AGENT_SETTINGS.cache_with_pickle and hash_key is not None:
-                with Path.open(Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / (hash_key + ".pkl"), "wb") as f:
-                    pickle.dump(result, f)
             return result
 
         return cache_wrapper
