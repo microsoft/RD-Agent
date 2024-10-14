@@ -19,6 +19,7 @@ from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -118,7 +119,7 @@ class FactorCodeEvaluator(FactorEvaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
@@ -521,7 +522,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:

@@ -22,6 +22,7 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
@@ -86,9 +87,9 @@ def classify_report_from_dict(
                 user_prompt=content,
                 system_prompt=classify_prompt,
             )
-            > RD_AGENT_SETTINGS.chat_token_limit
+            > LLM_SETTINGS.chat_token_limit
         ):
-            content = content[: -(RD_AGENT_SETTINGS.chat_token_limit // 100)]
+            content = content[: -(LLM_SETTINGS.chat_token_limit // 100)]
 
         vote_list = []
         for _ in range(vote_time):
@@ -374,7 +375,7 @@ def __check_factor_duplication_simulate_json_mode(
             APIBackend().build_messages_and_calculate_token(
                 user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]
             )
-            > RD_AGENT_SETTINGS.chat_token_limit
+            > LLM_SETTINGS.chat_token_limit
         ):
             working_list.append(current_df.iloc[: current_df.shape[0] // 2, :])
             working_list.append(current_df.iloc[current_df.shape[0] // 2 :, :])

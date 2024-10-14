@@ -6,6 +6,7 @@ from typing import Dict, Optional
 
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.env import KGDockerEnv, QTDockerEnv
 
@@ -71,6 +72,21 @@ class ModelFBWorkspace(FBWorkspace):
         (version 2) for kaggle we'll make a script to call the fit and predict function in the implementation in file `model.py` after setting the cwd into the directory
     """
 
+    def hash_func(
+        self,
+        batch_size: int = 8,
+        num_features: int = 10,
+        num_timesteps: int = 4,
+        num_edges: int = 20,
+        input_value: float = 1.0,
+        param_init_value: float = 1.0,
+    ) -> str:
+        target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
+        for code_file_name in sorted(list(self.code_dict.keys())):
+            target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
+        return md5_hash(target_file_name)
+
+    @cache_with_pickle(hash_func)
     def execute(
         self,
         batch_size: int = 8,
@@ -82,17 +98,6 @@ class ModelFBWorkspace(FBWorkspace):
     ):
         super().execute()
         try:
-            if MODEL_IMPL_SETTINGS.enable_execution_cache:
-                # NOTE: cache the result for the same code
-                target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
-                for code_file_name in sorted(list(self.code_dict.keys())):
-                    target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
-                target_file_name = md5_hash(target_file_name)
-                cache_file_path = Path(MODEL_IMPL_SETTINGS.cache_location) / f"{target_file_name}.pkl"
-                Path(MODEL_IMPL_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if cache_file_path.exists():
-                    return pickle.load(open(cache_file_path, "rb"))
-
             qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
             qtde.prepare()
 
@@ -120,12 +125,6 @@ PARAM_INIT_VALUE = {param_init_value}
             if results is None:
                 raise RuntimeError(f"Error in running the model code: {log}")
             [execution_feedback_str, execution_model_output] = results
-
-            if MODEL_IMPL_SETTINGS.enable_execution_cache:
-                pickle.dump(
-                    (execution_feedback_str, execution_model_output),
-                    open(cache_file_path, "wb"),
-                )
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"

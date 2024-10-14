@@ -4,10 +4,10 @@ import shutil
 from pathlib import Path
 
 from rdagent.components.runner import CachedRunner
-from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
 from rdagent.core.experiment import ASpecificExp
 from rdagent.core.prompts import Prompts
+from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
     KGFactorExperiment,
@@ -27,15 +27,11 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         codes = "\n".join(codes)
         return md5_hash(codes)
 
+    @cache_with_pickle(get_cache_key, CachedRunner.assign_cached_result)
     def init_develop(self, exp: KGFactorExperiment | KGModelExperiment) -> KGFactorExperiment | KGModelExperiment:
         """
         For the initial development, the experiment serves as a benchmark for feature engineering.
         """
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
 
         env_to_use = {"PYTHONPATH": "./"}
 
@@ -43,13 +39,11 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
 
         exp.result = result
 
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
-
         return exp
 
 
 class KGModelRunner(KGCachedRunner[KGModelExperiment]):
+    @cache_with_pickle(KGCachedRunner.get_cache_key, KGCachedRunner.assign_cached_result)
     def develop(self, exp: KGModelExperiment) -> KGModelExperiment:
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
@@ -65,12 +59,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
                 model_file_name = f"model/model_{model_type.lower()}.py"
                 exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
 
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
-
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
@@ -79,8 +67,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
             raise CoderError("No result is returned from the experiment workspace")
 
         exp.result = result
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
 
         return exp
 

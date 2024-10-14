@@ -291,10 +291,6 @@ class WorkspaceWindow(StWindow):
             self.container.markdown(f"`{k}`")
             self.container.code(v, language="python")
 
-        # executed_factor_value_dataframe
-        # if isinstance(ws, FactorFBWorkspace):
-        #     self.container.dataframe(ws.executed_factor_value_dataframe)
-
 
 class QlibFactorExpWindow(StWindow):
     def __init__(self, container: DeltaGenerator, show_task_info: bool = False):
@@ -622,9 +618,11 @@ class TraceWindow(StWindow):
             self.hypothesis_decisions[self.hypotheses[-1]] = msg.content.decision
             self.summary_c.markdown(
                 "\n".join(
-                    f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*"
-                    if d
-                    else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*"
+                    (
+                        f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*"
+                        if d
+                        else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*"
+                    )
                     for id, (h, d) in enumerate(self.hypothesis_decisions.items())
                 )
             )
