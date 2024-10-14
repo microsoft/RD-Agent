@@ -241,7 +241,10 @@ class KGHypothesisGen(ModelHypothesisGen):
             ),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": (
-                f"next experiment action is {action}", {prompt_dict["hypothesis_specification"][action]} if self.scen.if_action_choosing_based_on_UCB else None,
+                {
+                    "next_experiment_action": f"next experiment action is {action}",
+                    "specification": prompt_dict["hypothesis_specification"][action],
+                } if self.scen.if_action_choosing_based_on_UCB else None
             ),
         }
         return context_dict, True
