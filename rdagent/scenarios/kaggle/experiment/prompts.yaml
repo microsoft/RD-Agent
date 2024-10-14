@@ -56,7 +56,7 @@ kg_background: |-
   - Name: The name of the model.
   - Description: A description of the model.
   - Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
-  - ModelType: The type of the model, which should be one of ["XGBoost", "RandomForest", "LightGBM", "NN"].
+  - ModelType: The type of the model, which should be one of ["XGBoost", "RandomForest", "NN"].
   The model should provide clear and detailed documentation of its architecture and hyperparameters.
 
   The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:

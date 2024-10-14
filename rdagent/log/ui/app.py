@@ -88,6 +88,9 @@ if "current_tags" not in state:
 if "lround" not in state:
     state.lround = 0  # RD Loop Round
 
+if "times" not in state:
+    state.times = defaultdict(lambda: defaultdict(list))
+
 if "erounds" not in state:
     state.erounds = defaultdict(int)  # Evolving Rounds in each RD Loop
 
@@ -186,6 +189,17 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             )
 
                     state.msgs[state.lround][msg.tag].append(msg)
+
+                    # Update Times
+                    if "init" in tags:
+                        state.times[state.lround]["init"].append(msg.timestamp)
+                    if "r" in tags:
+                        state.times[state.lround]["r"].append(msg.timestamp)
+                    if "d" in tags:
+                        state.times[state.lround]["d"].append(msg.timestamp)
+                    if "ef" in tags:
+                        state.times[state.lround]["ef"].append(msg.timestamp)
+
                     # Stop Getting Logs
                     if end_func(msg):
                         break
@@ -224,6 +238,7 @@ def refresh(same_trace: bool = False):
     state.last_msg = None
     state.current_tags = []
     state.alpha158_metrics = None
+    state.times = defaultdict(lambda: defaultdict(list))
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
@@ -741,6 +756,18 @@ with st.container():
             st.markdown(state.scenario.rich_style_description + css, unsafe_allow_html=True)
 
 
+def show_times(round: int):
+    for k, v in state.times[round].items():
+        if len(v) > 1:
+            diff = v[-1] - v[0]
+        else:
+            diff = v[0] - v[0]
+        total_seconds = diff.seconds
+        seconds = total_seconds % 60
+        minutes = total_seconds // 60
+        st.markdown(f"**:blue[{k}]**: :red[**{minutes}**] minutes :orange[**{seconds}**] seconds")
+
+
 if state.scenario is not None:
     summary_window()
 
@@ -754,8 +781,12 @@ if state.scenario is not None:
             round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
         else:
             round = 1
+
+        show_times(round)
         rf_c, d_c = st.columns([2, 2])
     elif isinstance(state.scenario, GeneralModelScenario):
+        show_times(round)
+
         rf_c = st.container()
         d_c = st.container()
         round = 1
