@@ -32,9 +32,12 @@ class RDAgentSettings(BaseSettings):
     # pickle cache conf
     cache_with_pickle: bool = True  # whether to use pickle cache
     pickle_cache_folder_path_str: str = str(
-        Path.cwd() / "pickle_cache/"
+        Path.cwd() / "pickle_cache/",
     )  # the path of the folder to store the pickle cache
-    use_file_lock: bool = True  # when calling the function with same parameters, whether to use file lock to avoid executing the function multiple times
+    use_file_lock: bool = (
+        True  # when calling the function with same parameters, whether to use file lock to avoid
+        # executing the function multiple times
+    )
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()
