@@ -1,7 +1,9 @@
 import subprocess
 from collections import defaultdict
 from typing import Any
+
 import fire
+
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
@@ -25,6 +27,8 @@ from rdagent.scenarios.kaggle.experiment.scenario import (
 from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.scenarios.kaggle.proposal.proposal import KGTrace
+
+
 class KaggleRDLoop(RDLoop):
     @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
@@ -108,16 +112,6 @@ class KaggleRDLoop(RDLoop):
                     logger.error(f"Other exception when use kaggle api:\n{e}")
 
 
-    
-          
-            
-    
-
-          
-          Expand Down
-    
-    
-  
         return exp
     skip_loop_error = (ModelEmptyError, FactorEmptyError)
 def main(path=None, step_n=None, competition=None):
