@@ -81,25 +81,20 @@ class FactorFBWorkspace(FBWorkspace):
     def __init__(
         self,
         *args,
-        executed_factor_value_dataframe: pd.DataFrame = None,
         raise_exception: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
     def hash_func(self, data_type: str = "Debug") -> str:
-        return md5_hash(data_type + self.code_dict["factor.py"]) if "factor.py" in self.code_dict else None
+        return (
+            md5_hash(data_type + self.code_dict["factor.py"])
+            if ("factor.py" in self.code_dict and not self.raise_exception)
+            else None
+        )
 
-    def raise_exception(self, data_type: str = "Debug", cached_res: Tuple[str, pd.DataFrame, Exception] = ()):
-        if self.raise_exception and cached_res[-1] is not None:
-            raise cached_res[-1]
-        else:
-            self.executed_factor_value_dataframe = cached_res[1]
-            return cached_res[:2]
-
-    @cache_with_pickle(hash_func, raise_exception)
+    @cache_with_pickle(hash_func)
     def execute(self, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
