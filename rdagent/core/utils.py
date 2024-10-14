@@ -125,7 +125,9 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
         @functools.wraps(func)
         def cache_wrapper(*args: Any, **kwargs: Any) -> Any:
             if RD_AGENT_SETTINGS.cache_with_pickle:
-                target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / func.__module__
+                target_folder = (
+                    Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"{func.__module__}.{func.__name__}"
+                )
                 target_folder.mkdir(parents=True, exist_ok=True)
                 hash_key = hash_func(*args, **kwargs)
                 if hash_key is not None and (target_folder / (hash_key + ".pkl")).exists():
