@@ -61,6 +61,7 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
+
     @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
@@ -72,6 +73,7 @@ class KaggleRDLoop(RDLoop):
                 exp = self.model_coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
+
     @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
@@ -111,9 +113,11 @@ class KaggleRDLoop(RDLoop):
                 except Exception as e:
                     logger.error(f"Other exception when use kaggle api:\n{e}")
 
-
         return exp
+
     skip_loop_error = (ModelEmptyError, FactorEmptyError)
+
+
 def main(path=None, step_n=None, competition=None):
     """
     Auto R&D Evolving loop for models in a kaggle{} scenario.
@@ -132,5 +136,7 @@ def main(path=None, step_n=None, competition=None):
     else:
         kaggle_loop = KaggleRDLoop.load(path)
     kaggle_loop.run(step_n=step_n)
+
+
 if __name__ == "__main__":
     fire.Fire(main)
