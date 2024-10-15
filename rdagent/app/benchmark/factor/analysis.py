@@ -187,7 +187,11 @@ class Plotter:
         plt.savefig(file_name)
 
 
-def main(path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl", round=1, title="Comparison of Different Methods"):
+def main(
+    path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+    round=1,
+    title="Comparison of Different Methods",
+):
     settings = BenchmarkSettings()
     benchmark = BenchmarkAnalyzer(settings)
     results = {

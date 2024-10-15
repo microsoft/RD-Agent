@@ -235,7 +235,7 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
                 False,
             )
 
-        time_diff = pd.to_datetime(gen_df.index.get_level_values('datetime')).to_series().diff().dropna().unique()
+        time_diff = pd.to_datetime(gen_df.index.get_level_values("datetime")).to_series().diff().dropna().unique()
         if pd.Timedelta(minutes=1) in time_diff:
             return (
                 "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
