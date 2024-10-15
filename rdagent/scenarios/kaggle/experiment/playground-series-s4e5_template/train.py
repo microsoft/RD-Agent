@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import preprocess_script
-from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import r2_score
 
 # Set random seed for reproducibility
 SEED = 42
@@ -14,11 +14,9 @@ np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-# support various method for metrics calculation
-def compute_metrics_for_classification(y_true, y_pred):
-    """Compute MCC for classification."""
-    mcc = matthews_corrcoef(y_true, y_pred)
-    return mcc
+def compute_r2(y_true, y_pred):
+    """Compute R² score for regression."""
+    return r2_score(y_true, y_pred)
 
 
 def import_module_from_path(module_name, module_path):
@@ -53,6 +51,11 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
+# Handle inf and -inf values
+X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+
 from sklearn.impute import SimpleImputer
 
 imputer = SimpleImputer(strategy="mean")
@@ -61,10 +64,6 @@ X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
 X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
 X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
 
-# Remove duplicate columns
-X_train = X_train.loc[:, ~X_train.columns.duplicated()]
-X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-X_test = X_test.loc[:, ~X_test.columns.duplicated()]
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func,]]
@@ -75,29 +74,26 @@ for f in DIRNAME.glob("model/model*.py"):
     X_valid_selected = select_m.select(X_valid.copy())
 
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
+    model_name = f.stem
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m, model_name))
 
 # 4) Evaluate the model on the validation set
 metrics_all = []
-for model, predict_func, select_m in model_l:
+for model, predict_func, select_m, model_name in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
-    y_valid_pred = (y_valid_pred > 0.5).astype(int)
-    metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
-    print("MCC on validation set: ", metrics)
-    metrics_all.append(metrics)
+    r2 = compute_r2(y_valid, y_valid_pred)
+    print(f"R2 on valid set for {model_name}: {r2}")
+    metrics_all.append(r2)
 
 # 5) Save the validation accuracy
 max_index = np.argmax(metrics_all)
-pd.Series(data=[metrics_all[max_index]], index=["MCC"]).to_csv("submission_score.csv")
+pd.Series(data=[metrics_all[max_index]], index=["R2"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
 X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected)
-y_test_pred = (y_test_pred > 0.5).astype(int)
-
-y_test_pred_labels = np.where(y_test_pred == 1, "p", "e")  # 将整数转换回 'e' 或 'p'
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).ravel()
 
 # 7) Submit predictions for the test set
-submission_result = pd.DataFrame({"id": ids, "class": y_test_pred_labels.ravel()})
+submission_result = pd.DataFrame({"id": ids, "FloodProbability": y_test_pred})
 submission_result.to_csv("submission.csv", index=False)
