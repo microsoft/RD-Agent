@@ -195,14 +195,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
                 )
                 resp_dict = json.loads(resp)
-
-                if isinstance(resp_dict["output_format_decision"], str) and resp_dict[
-                    "output_format_decision"
-                ].lower() in (
-                    "true",
-                    "false",
-                ):
-                    resp_dict["output_format_decision"] = resp_dict["output_format_decision"].lower() == "true"
+                resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
 
                 return (
                     resp_dict["output_format_feedback"],
@@ -243,7 +236,7 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
                 False,
             )
 
-        time_diff = gen_df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+        time_diff = pd.to_datetime(gen_df.index.get_level_values("datetime")).to_series().diff().dropna().unique()
         if pd.Timedelta(minutes=1) in time_diff:
             return (
                 "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
@@ -548,11 +541,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 final_decision = final_evaluation_dict["final_decision"]
                 final_feedback = final_evaluation_dict["final_feedback"]
 
-                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
-                    final_decision = final_decision.lower() == "true"
-                elif isinstance(final_decision, int) and final_decision in (0, 1):
-                    final_decision = bool(final_decision)
-
+                final_decision = str(final_decision).lower() in ["true", "1"]
                 return final_decision, final_feedback
 
             except json.JSONDecodeError as e:

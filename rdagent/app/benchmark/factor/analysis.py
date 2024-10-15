@@ -178,20 +178,24 @@ class Plotter:
         plt.rc("figure", titlesize=font_size)
 
     @staticmethod
-    def plot_data(data, file_name):
+    def plot_data(data, file_name, title):
         plt.figure(figsize=(10, 6))
         sns.barplot(x="index", y="b", hue="a", data=data)
         plt.xlabel("Method")
         plt.ylabel("Value")
-        plt.title("Comparison of Different Methods")
+        plt.title(title)
         plt.savefig(file_name)
 
 
-def main(path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl"):
+def main(
+    path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+    round=1,
+    title="Comparison of Different Methods",
+):
     settings = BenchmarkSettings()
     benchmark = BenchmarkAnalyzer(settings)
     results = {
-        "1 round experiment": path,
+        f"{round} round experiment": path,
     }
     final_results = benchmark.process_results(results)
     final_results_df = pd.DataFrame(final_results)
@@ -199,7 +203,7 @@ def main(path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl"):
     Plotter.change_fs(20)
     plot_data = final_results_df.drop(["max. accuracy", "avg. accuracy"], axis=0).T
     plot_data = plot_data.reset_index().melt("index", var_name="a", value_name="b")
-    Plotter.plot_data(plot_data, "./comparison_plot.png")
+    Plotter.plot_data(plot_data, "./comparison_plot.png", title)
 
 
 if __name__ == "__main__":
