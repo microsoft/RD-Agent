@@ -194,13 +194,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
                 )
                 resp_dict = json.loads(resp)
-
-                if isinstance(resp_dict["output_format_decision"], str):
-                    resp_dict["output_format_decision"] = resp_dict["output_format_decision"].lower() == "true"
-                elif isinstance(resp_dict["output_format_decision"], int):
-                    resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
-                elif not isinstance(resp_dict["output_format_decision"], bool):
-                    resp_dict["output_format_decision"] = False
+                resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
 
                 return (
                     resp_dict["output_format_feedback"],
@@ -212,7 +206,6 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
 
             except KeyError as e:
                 attempts += 1
-                gen_df_info_str += f"\nAttempt {attempts}: {e}"
                 if attempts >= max_attempts:
                     raise KeyError(
                         "Response from API is missing 'output_format_decision' or 'output_format_feedback' key after multiple attempts."
@@ -546,13 +539,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 final_decision = final_evaluation_dict["final_decision"]
                 final_feedback = final_evaluation_dict["final_feedback"]
 
-                if isinstance(final_decision, str) and final_decision.lower() in ("true", "false"):
-                    final_decision = final_decision.lower() == "true"
-                elif isinstance(final_decision, int) and final_decision in (0, 1):
-                    final_decision = bool(final_decision)
-                elif not isinstance(final_decision, bool):
-                    final_decision = False
-
+                final_decision = str(final_decision).lower() in ["true", "1"]
                 return final_decision, final_feedback
 
             except json.JSONDecodeError as e:
