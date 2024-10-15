@@ -190,7 +190,8 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
 
         while attempts < max_attempts:
             try:
-                resp = APIBackend().build_messages_and_create_chat_completion(
+                api = APIBackend() if attempts == 0 else APIBackend(use_chat_cache=False)
+                resp = api.build_messages_and_create_chat_completion(
                     user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
                 )
                 resp_dict = json.loads(resp)
@@ -535,8 +536,9 @@ class FactorFinalDecisionEvaluator(Evaluator):
 
         while attempts < max_attempts:
             try:
+                api = APIBackend() if attempts == 0 else APIBackend(use_chat_cache=False)
                 final_evaluation_dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(
+                    api.build_messages_and_create_chat_completion(
                         user_prompt=user_prompt,
                         system_prompt=system_prompt,
                         json_mode=True,
