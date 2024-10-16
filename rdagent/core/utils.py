@@ -105,7 +105,7 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     """
     if n == 1:
         return [f(*args) for f, args in func_calls]
-    with mp.Pool(processes=n) as pool:
+    with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
         results = [pool.apply_async(f, args) for f, args in func_calls]
         return [result.get() for result in results]
 
