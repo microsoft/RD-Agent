@@ -133,6 +133,28 @@ class FactorCodeEvaluator(FactorEvaluator):
         return critic_response, None
 
 
+class FactorInfEvaluator(FactorEvaluator):
+    def evaluate(
+        self,
+        implementation: Workspace,
+        gt_implementation: Workspace,
+    ) -> Tuple[str, object]:
+        _, gen_df = self._get_df(gt_implementation, implementation)
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
+        INF_count = gen_df.isin([float("inf"), -float("inf")]).sum().sum()
+        if INF_count == 0:
+            return "The source dataframe does not have any infinite values.", True
+        else:
+            return (
+                f"The source dataframe has {INF_count} infinite values. Please check the implementation.",
+                False,
+            )
+
+
 class FactorSingleColumnEvaluator(FactorEvaluator):
     def evaluate(
         self,
@@ -417,6 +439,9 @@ class FactorValueEvaluator(FactorEvaluator):
                     "Output dataframe has more columns than input feature which is not acceptable in feature processing tasks. Please check the implementation to avoid generating too many columns. Consider this implementation as a failure."
                 )
 
+        feedback_str, inf_evaluate_res = FactorInfEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        conclusions.append(feedback_str)
+
         # Check if the index of the dataframe is ("datetime", "instrument")
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
@@ -465,6 +490,7 @@ class FactorValueEvaluator(FactorEvaluator):
             and row_result <= 0.99
             or output_format_result is False
             or daily_check_result is False
+            or inf_evaluate_res is False
         ):
             decision_from_value_check = False
         else:
