@@ -68,10 +68,10 @@ class FileStorage(Storage):
     def iter_msg(self, watch: bool = False) -> Generator[Message, None, None]:
         msg_l = []
         for file in self.path.glob("**/*.log"):
-            tag = ".".join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
-            with file.open("r") as f:
+            with file.open("r", encoding="utf-8") as f:
                 content = f.read()
 
             matches, next_matches = self.log_pattern.finditer(content), self.log_pattern.finditer(content)
@@ -100,7 +100,7 @@ class FileStorage(Storage):
                 msg_l.append(m)
 
         for file in self.path.glob("**/*.pkl"):
-            tag = ".".join(str(file.relative_to(self.path)).replace("/", ".").split(".")[:-3])
+            tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 
             with file.open("rb") as f:
