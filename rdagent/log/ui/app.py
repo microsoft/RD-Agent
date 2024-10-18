@@ -518,6 +518,11 @@ def research_window():
             # loaded model exp
             with c2:
                 if mem := state.msgs[round]["d.load_experiment"]:
+                    # 'load_experiment' should in 'r' now, but old version trace may in 'd', so we need to check both
+                    # TODO: modify the way to get one message with a specific tag like 'load_experiment' in the future
+                    me: QlibModelExperiment = mem[0].content
+                    tasks_window(me.sub_tasks)
+                elif mem := state.msgs[round]["r.load_experiment"]:
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 
