@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import dill as pickle  # type: ignore[import-untyped]
-
 from rdagent.log import rdagent_logger as logger
 
 

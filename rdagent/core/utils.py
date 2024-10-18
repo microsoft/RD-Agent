@@ -12,7 +12,6 @@ from typing import Any, ClassVar, NoReturn, cast
 
 from filelock import FileLock
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
-
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
@@ -91,7 +90,7 @@ def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
     """
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """
-    random.seed(seed)  # noqa: S311
+    random.seed(seed)
     return f(*args)
 
 
