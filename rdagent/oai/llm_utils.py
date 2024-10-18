@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import datetime
 import hashlib
 import json
@@ -18,7 +19,7 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.conf import RD_AGENT_SETTINGS, RDAgentSettings
 from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -241,6 +242,27 @@ class APIBackend:
     (xiao) thinks integrate all kinds of API in a single class is not a good design.
     So we should split them into different classes in `oai/backends/` in the future.
     """
+
+    class CacheSeedGen:
+        """
+        It is a global seed generator to generate a sequence of seeds.
+        This will support the feature `use_auto_chat_cache_seed_gen` claim
+
+        NOTE:
+        - This seed is specifically for the cache and is different from a regular seed.
+        - If the cache is removed, setting the same seed will not produce the same QA trace.
+        """
+        def __init__(self):
+            self.set_seed(RDAgentSettings.init_chat_cache_seed)
+
+        def set_seed(self, seed: int):
+            random.seed(seed)
+
+        def get_next_seed(self):
+            """generate next random int"""
+            return random.randint(0, 10000)
+
+    cache_seed_gen = CacheSeedGen()
 
     # FIXME: (xiao) We should avoid using self.xxxx.
     # Instead, we can use self.cfg directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
@@ -594,6 +616,9 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
+        if seed is None and RDAgentSettings.use_auto_chat_cache_seed_gen:
+            seed = self.cache_seed_gen.get_next_seed()
+
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if self.cfg.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")

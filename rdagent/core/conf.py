@@ -23,6 +23,15 @@ class RDAgentSettings(BaseSettings):
     retry_wait_seconds: int = 1
     dump_chat_cache: bool = False
     use_chat_cache: bool = False
+
+    use_auto_chat_cache_seed_gen: bool = False
+    """
+    `_create_chat_completion_inner_function` provdies a feature to pass in a seed to affect the cache hash key
+    We weant to enable a auto seed generator to get different default seed for `_create_chat_completion_inner_function` if seed is not given.
+    So the cache will only not miss you ask the same question on same round.
+    """
+    init_chat_cache_seed: int = 42
+
     dump_embedding_cache: bool = False
     use_embedding_cache: bool = False
     prompt_cache_path: str = str(Path.cwd() / "prompt_cache.db")
