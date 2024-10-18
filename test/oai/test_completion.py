@@ -5,6 +5,14 @@ import unittest
 from rdagent.oai.llm_utils import APIBackend
 
 
+def _worker(system_prompt, user_prompt):
+    api = APIBackend()
+    return api.build_messages_and_create_chat_completion(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+    )
+
+
 class TestChatCompletion(unittest.TestCase):
     def test_chat_completion(self) -> None:
         system_prompt = "You are a helpful assistant."
@@ -52,6 +60,117 @@ class TestChatCompletion(unittest.TestCase):
             - 2 pass
             - cache is not missed & same question get different answer.
         """
+        from rdagent.core.conf import RD_AGENT_SETTINGS
+        from rdagent.core.utils import multiprocessing_wrapper
+
+        system_prompt = "You are a helpful assistant."
+        user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
+
+        origin_value = (
+            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            RD_AGENT_SETTINGS.use_chat_cache,
+            RD_AGENT_SETTINGS.dump_chat_cache,
+        )
+
+        RD_AGENT_SETTINGS.use_chat_cache = True
+        RD_AGENT_SETTINGS.dump_chat_cache = True
+
+        RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
+
+        APIBackend.cache_seed_gen.set_seed(10)
+        response1 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+        response2 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+
+        APIBackend.cache_seed_gen.set_seed(20)
+        response3 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+        response4 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+
+        APIBackend.cache_seed_gen.set_seed(10)
+        response5 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+        response6 = APIBackend().build_messages_and_create_chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+
+        # Reset, for other tests
+        (
+            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            RD_AGENT_SETTINGS.use_chat_cache,
+            RD_AGENT_SETTINGS.dump_chat_cache,
+        ) = origin_value
+
+        assert (
+            response1 != response3 and response2 != response4
+        ), "Responses sequence should be determined by init_chat_cache_seed"
+        assert (
+            response1 == response5 and response2 == response6
+        ), "Responses sequence should be determined by init_chat_cache_seed"
+        assert (
+            response1 != response2 and response3 != response4 and response5 != response6
+        ), "Same question should get different response when use_auto_chat_cache_seed_gen=True"
+
+    def test_chat_cache_multiprocess(self):
+        """
+        Tests:
+        - Multi process, ask same question, enable cache
+            - 2 pass
+            - cache is not missed & same question get different answer.
+        """
+        from rdagent.core.conf import RD_AGENT_SETTINGS
+        from rdagent.core.utils import multiprocessing_wrapper
+
+        system_prompt = "You are a helpful assistant."
+        user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
+
+        origin_value = (
+            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            RD_AGENT_SETTINGS.use_chat_cache,
+            RD_AGENT_SETTINGS.dump_chat_cache,
+        )
+
+        RD_AGENT_SETTINGS.use_chat_cache = True
+        RD_AGENT_SETTINGS.dump_chat_cache = True
+
+        RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
+
+        func_calls = [(_worker, (system_prompt, user_prompt)) for _ in range(4)]
+
+        APIBackend.cache_seed_gen.set_seed(10)
+        responses1 = multiprocessing_wrapper(func_calls, n=4)
+        APIBackend.cache_seed_gen.set_seed(20)
+        responses2 = multiprocessing_wrapper(func_calls, n=4)
+        APIBackend.cache_seed_gen.set_seed(10)
+        responses3 = multiprocessing_wrapper(func_calls, n=4)
+
+        # Reset, for other tests
+        (
+            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            RD_AGENT_SETTINGS.use_chat_cache,
+            RD_AGENT_SETTINGS.dump_chat_cache,
+        ) = origin_value
+        for i in range(len(func_calls)):
+            assert (
+                responses1[i] != responses2[i] and responses1[i] == responses3[i]
+            ), "Responses sequence should be determined by init_chat_cache_seed"
+            for j in range(i + 1, len(func_calls)):
+                assert (
+                    responses1[i] != responses1[j] and responses2[i] != responses2[j]
+                ), "Same question should get different response when use_auto_chat_cache_seed_gen=True"
 
 
 if __name__ == "__main__":

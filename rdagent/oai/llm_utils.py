@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import random
 import datetime
 import hashlib
 import json
 import multiprocessing
 import os
+import random
 import re
 import sqlite3
 import ssl
@@ -19,7 +19,7 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS, RDAgentSettings
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -252,8 +252,9 @@ class APIBackend:
         - This seed is specifically for the cache and is different from a regular seed.
         - If the cache is removed, setting the same seed will not produce the same QA trace.
         """
+
         def __init__(self):
-            self.set_seed(RDAgentSettings.init_chat_cache_seed)
+            self.set_seed(RD_AGENT_SETTINGS.init_chat_cache_seed)
 
         def set_seed(self, seed: int):
             random.seed(seed)
@@ -616,7 +617,7 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        if seed is None and RDAgentSettings.use_auto_chat_cache_seed_gen:
+        if seed is None and RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen:
             seed = self.cache_seed_gen.get_next_seed()
 
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`

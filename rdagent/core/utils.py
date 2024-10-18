@@ -4,12 +4,11 @@ import importlib
 import json
 import multiprocessing as mp
 import pickle
+import random
 from collections.abc import Callable
 from typing import Any, ClassVar, NoReturn, cast
 
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
-
-from rdagent.oai.llm_utils import APIBackend
 
 
 class RDAgentException(Exception):  # noqa: N818
@@ -83,14 +82,12 @@ def import_class(class_path: str) -> Any:
     return getattr(module, class_name)
 
 
-def _subprocess_wrapper(f, seed):
+def _subprocess_wrapper(f, seed, args):
     """
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """
-    def _f(*args, **kwargs):
-        APIBackend.cache_seed_gen.set_seed(seed)
-        return f(*args, **kwargs)
-    return _f
+    random.seed(seed)
+    return f(*args)
 
 
 def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) -> list:
@@ -119,7 +116,6 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
 
     with mp.Pool(processes=n) as pool:
         results = [
-            pool.apply_async(_subprocess_wrapper(f, APIBackend.cache_seed_gen.get_next_seed()), args=args)
-            for f, args in func_calls
+            pool.apply_async(_subprocess_wrapper, args=(f, random.randint(0, 10000), args)) for f, args in func_calls
         ]
         return [result.get() for result in results]
