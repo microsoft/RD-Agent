@@ -62,18 +62,19 @@ class TestChatCompletion(unittest.TestCase):
         """
         from rdagent.core.conf import RD_AGENT_SETTINGS
         from rdagent.core.utils import multiprocessing_wrapper
+        from rdagent.oai.llm_conf import LLM_SETTINGS
 
         system_prompt = "You are a helpful assistant."
         user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
 
         origin_value = (
             RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
-            RD_AGENT_SETTINGS.use_chat_cache,
-            RD_AGENT_SETTINGS.dump_chat_cache,
+            LLM_SETTINGS.use_chat_cache,
+            LLM_SETTINGS.dump_chat_cache,
         )
 
-        RD_AGENT_SETTINGS.use_chat_cache = True
-        RD_AGENT_SETTINGS.dump_chat_cache = True
+        LLM_SETTINGS.use_chat_cache = True
+        LLM_SETTINGS.dump_chat_cache = True
 
         RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
 
@@ -110,16 +111,16 @@ class TestChatCompletion(unittest.TestCase):
         # Reset, for other tests
         (
             RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
-            RD_AGENT_SETTINGS.use_chat_cache,
-            RD_AGENT_SETTINGS.dump_chat_cache,
+            LLM_SETTINGS.use_chat_cache,
+            LLM_SETTINGS.dump_chat_cache,
         ) = origin_value
 
         assert (
             response1 != response3 and response2 != response4
-        ), "Responses sequence should be determined by init_chat_cache_seed"
+        ), "Responses sequence should be determined by 'init_chat_cache_seed'"
         assert (
             response1 == response5 and response2 == response6
-        ), "Responses sequence should be determined by init_chat_cache_seed"
+        ), "Responses sequence should be determined by 'init_chat_cache_seed'"
         assert (
             response1 != response2 and response3 != response4 and response5 != response6
         ), "Same question should get different response when use_auto_chat_cache_seed_gen=True"
@@ -133,18 +134,19 @@ class TestChatCompletion(unittest.TestCase):
         """
         from rdagent.core.conf import RD_AGENT_SETTINGS
         from rdagent.core.utils import multiprocessing_wrapper
+        from rdagent.oai.llm_conf import LLM_SETTINGS
 
         system_prompt = "You are a helpful assistant."
         user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
 
         origin_value = (
             RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
-            RD_AGENT_SETTINGS.use_chat_cache,
-            RD_AGENT_SETTINGS.dump_chat_cache,
+            LLM_SETTINGS.use_chat_cache,
+            LLM_SETTINGS.dump_chat_cache,
         )
 
-        RD_AGENT_SETTINGS.use_chat_cache = True
-        RD_AGENT_SETTINGS.dump_chat_cache = True
+        LLM_SETTINGS.use_chat_cache = True
+        LLM_SETTINGS.dump_chat_cache = True
 
         RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
 
@@ -160,13 +162,13 @@ class TestChatCompletion(unittest.TestCase):
         # Reset, for other tests
         (
             RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
-            RD_AGENT_SETTINGS.use_chat_cache,
-            RD_AGENT_SETTINGS.dump_chat_cache,
+            LLM_SETTINGS.use_chat_cache,
+            LLM_SETTINGS.dump_chat_cache,
         ) = origin_value
         for i in range(len(func_calls)):
             assert (
                 responses1[i] != responses2[i] and responses1[i] == responses3[i]
-            ), "Responses sequence should be determined by init_chat_cache_seed"
+            ), "Responses sequence should be determined by 'init_chat_cache_seed'"
             for j in range(i + 1, len(func_calls)):
                 assert (
                     responses1[i] != responses1[j] and responses2[i] != responses2[j]

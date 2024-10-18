@@ -17,11 +17,11 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.core.conf import RD_AGENT_SETTINGS
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
