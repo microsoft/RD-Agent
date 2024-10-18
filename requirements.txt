@@ -3,7 +3,6 @@ pydantic-settings
 typer[all]
 
 cython
-scipy
 python-Levenshtein
 scikit-learn
 filelock
@@ -14,8 +13,6 @@ fuzzywuzzy
 openai
 
 ruamel-yaml
-torch
-torch_geometric
 tabulate  # Convert pandas dataframe to markdown table to make it more readable to LLM
 numpy # we use numpy as default data format. So we have to install numpy
 pandas # we use pandas as default data format. So we have to install pandas
@@ -69,5 +66,4 @@ seaborn
 setuptools-scm
 
 # This is a temporary package installed to pass the test_import test
-xgboost
 lightgbm
