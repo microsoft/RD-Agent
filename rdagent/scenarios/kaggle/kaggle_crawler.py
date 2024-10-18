@@ -1,4 +1,5 @@
 # %%
+import bisect
 import json
 import subprocess
 import time
@@ -112,6 +113,26 @@ def leaderboard_scores(competition: str) -> list[float]:
     api.authenticate()
     ll = api.competition_leaderboard_view(competition)
     return [float(x.score) for x in ll]
+
+
+def score_rank(competition: str, score: float) -> tuple[int, float]:
+    """
+    Return
+    ------
+    rank: int
+    rank_percent: float
+    """
+    scores = leaderboard_scores(competition)
+    if scores[0] < scores[-1]:  # Ascending order
+        rank = bisect.bisect_right(scores, score)
+    else:  # Descending order
+        scores = scores[::-1]  # Reverse the list to use bisect
+        rank = len(scores) - bisect.bisect_right(scores, score)
+
+    rank = rank + 1
+    rank_percent = rank / len(scores) * 100
+
+    return rank, rank_percent
 
 
 def download_notebooks(
@@ -294,5 +315,6 @@ if __name__ == "__main__":
     #     name = c.ref.split("/")[-1]
     #     crawl_descriptions(name)
     res = leaderboard_scores(competition="playground-series-s4e8")
-
+    rank, rank_percent = score_rank(competition="playground-series-s4e8", score=0.9832)
+    print(rank, rank_percent)
 # %%

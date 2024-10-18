@@ -20,12 +20,6 @@ class FactorImplementSettings(BaseSettings):
     data_folder_debug: str = "git_ignore_folder/factor_implementation_source_data_debug"
     """Path to the folder containing partial financial data (for debugging)"""
 
-    cache_location: str = "git_ignore_folder/factor_implementation_execution_cache"
-    """Path to the cache location"""
-
-    enable_execution_cache: bool = True
-    """Indicates whether to enable the execution cache"""
-
     # TODO: the factor implement specific settings should not appear in this settings
     # Evolving should have a method specific settings
     # evolving related config

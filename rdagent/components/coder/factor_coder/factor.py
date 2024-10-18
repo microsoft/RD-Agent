@@ -13,6 +13,7 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import CodeFormatError, CustomRuntimeError, NoOutputError
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 
@@ -80,17 +81,21 @@ class FactorFBWorkspace(FBWorkspace):
     def __init__(
         self,
         *args,
-        executed_factor_value_dataframe: pd.DataFrame = None,
         raise_exception: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
-    def execute(
-        self, enable_cache: bool = FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache, data_type: str = "Debug"
-    ) -> Tuple[str, pd.DataFrame]:
+    def hash_func(self, data_type: str = "Debug") -> str:
+        return (
+            md5_hash(data_type + self.code_dict["factor.py"])
+            if ("factor.py" in self.code_dict and not self.raise_exception)
+            else None
+        )
+
+    @cache_with_pickle(hash_func)
+    def execute(self, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
         1. make the directory in workspace path
@@ -108,8 +113,6 @@ class FactorFBWorkspace(FBWorkspace):
         1. We will store the function's return value to ensure it behaves as expected.
         - The cached information will include a tuple with the following: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
 
-        parameters:
-        enable_cache: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
         """
         super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
@@ -118,31 +121,6 @@ class FactorFBWorkspace(FBWorkspace):
             else:
                 return self.FB_CODE_NOT_SET, None
         with FileLock(self.workspace_path / "execution.lock"):
-            if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
-                # NOTE: cache the result for the same code and same data type
-                target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
-                cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
-                Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if enable_cache and cache_file_path.exists():
-                    cached_res = pickle.load(open(cache_file_path, "rb"))
-
-                    if len(cached_res) == 2:
-                        # NOTE: this is trying to be compatible with previous results.
-                        # Previously, the exception is not saved. we should not enable the cache mechanism
-                        # othersise we can raise the exception directly.
-                        if self.raise_exception:
-                            pass  # pass to disable the cache mechanism
-                        else:
-                            self.executed_factor_value_dataframe = cached_res[1]
-                            return cached_res
-                    else:
-                        # NOTE: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
-                        if self.raise_exception and cached_res[-1] is not None:
-                            raise cached_res[-1]
-                        else:
-                            self.executed_factor_value_dataframe = cached_res[1]
-                            return cached_res[:2]
-
             if self.target_task.version == 1:
                 source_data_path = (
                     Path(
@@ -220,14 +198,6 @@ class FactorFBWorkspace(FBWorkspace):
                 else:
                     execution_error = NoOutputError(execution_feedback)
 
-            if enable_cache and executed_factor_value_dataframe is not None:
-                self.executed_factor_value_dataframe = executed_factor_value_dataframe
-
-        if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
-            pickle.dump(
-                (execution_feedback, executed_factor_value_dataframe, execution_error),
-                open(cache_file_path, "wb"),
-            )
         return execution_feedback, executed_factor_value_dataframe
 
     def __str__(self) -> str:

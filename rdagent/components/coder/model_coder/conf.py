@@ -10,10 +10,6 @@ class ModelImplSettings(BaseSettings):
 
     coder_use_cache: bool = False
 
-    cache_location: str = str(
-        (Path().cwd() / "git_ignore_folder" / "model_implementation_execution_cache").absolute(),
-    )
-
     knowledge_base_path: Union[str, None] = None
     new_knowledge_base_path: Union[str, None] = None
 
@@ -22,8 +18,6 @@ class ModelImplSettings(BaseSettings):
     query_former_trace_limit: int = 5
     query_similar_success_limit: int = 5
     fail_task_trial_limit: int = 20
-
-    enable_execution_cache: bool = True  # whether to enable the execution cache
 
 
 MODEL_IMPL_SETTINGS = ModelImplSettings()

@@ -1,9 +1,9 @@
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Union
 
 import pandas as pd
-from _pytest.cacheprovider import json
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase

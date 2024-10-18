@@ -65,7 +65,7 @@ qlib_factor_output_format: |-
   0   your factor name  40914 non-null  float64
   dtypes: float64(1)
   memory usage: <ignore>
-  None
+  Notice: The non-null count is OK to be different to the total number of entries since some instruments may not have the factor value on some days.
   One possible format of `result.h5` may be like following:
   datetime    instrument
   2020-01-02  SZ000001     -0.001796

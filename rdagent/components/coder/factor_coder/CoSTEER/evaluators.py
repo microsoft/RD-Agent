@@ -19,6 +19,7 @@ from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -118,7 +119,7 @@ class FactorCodeEvaluator(FactorEvaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
@@ -130,6 +131,28 @@ class FactorCodeEvaluator(FactorEvaluator):
         )
 
         return critic_response, None
+
+
+class FactorInfEvaluator(FactorEvaluator):
+    def evaluate(
+        self,
+        implementation: Workspace,
+        gt_implementation: Workspace,
+    ) -> Tuple[str, object]:
+        _, gen_df = self._get_df(gt_implementation, implementation)
+        if gen_df is None:
+            return (
+                "The source dataframe is None. Please check the implementation.",
+                False,
+            )
+        INF_count = gen_df.isin([float("inf"), -float("inf")]).sum().sum()
+        if INF_count == 0:
+            return "The source dataframe does not have any infinite values.", True
+        else:
+            return (
+                f"The source dataframe has {INF_count} infinite values. Please check the implementation.",
+                False,
+            )
 
 
 class FactorSingleColumnEvaluator(FactorEvaluator):
@@ -189,18 +212,12 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
 
         while attempts < max_attempts:
             try:
-                resp = APIBackend().build_messages_and_create_chat_completion(
+                api = APIBackend() if attempts == 0 else APIBackend(use_chat_cache=False)
+                resp = api.build_messages_and_create_chat_completion(
                     user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
                 )
                 resp_dict = json.loads(resp)
-
-                if isinstance(resp_dict["output_format_decision"], str) and resp_dict[
-                    "output_format_decision"
-                ].lower() in (
-                    "true",
-                    "false",
-                ):
-                    resp_dict["output_format_decision"] = bool(resp_dict["output_format_decision"])
+                resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
 
                 return (
                     resp_dict["output_format_feedback"],
@@ -241,7 +258,7 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
                 False,
             )
 
-        time_diff = gen_df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+        time_diff = pd.to_datetime(gen_df.index.get_level_values("datetime")).to_series().diff().dropna().unique()
         if pd.Timedelta(minutes=1) in time_diff:
             return (
                 "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
@@ -422,6 +439,9 @@ class FactorValueEvaluator(FactorEvaluator):
                     "Output dataframe has more columns than input feature which is not acceptable in feature processing tasks. Please check the implementation to avoid generating too many columns. Consider this implementation as a failure."
                 )
 
+        feedback_str, inf_evaluate_res = FactorInfEvaluator(self.scen).evaluate(implementation, gt_implementation)
+        conclusions.append(feedback_str)
+
         # Check if the index of the dataframe is ("datetime", "instrument")
         feedback_str, _ = FactorOutputFormatEvaluator(self.scen).evaluate(implementation, gt_implementation)
         conclusions.append(feedback_str)
@@ -470,6 +490,7 @@ class FactorValueEvaluator(FactorEvaluator):
             and row_result <= 0.99
             or output_format_result is False
             or daily_check_result is False
+            or inf_evaluate_res is False
         ):
             decision_from_value_check = False
         else:
@@ -521,7 +542,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
-                > RD_AGENT_SETTINGS.chat_token_limit
+                > LLM_SETTINGS.chat_token_limit
             ):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
@@ -534,8 +555,9 @@ class FactorFinalDecisionEvaluator(Evaluator):
 
         while attempts < max_attempts:
             try:
+                api = APIBackend() if attempts == 0 else APIBackend(use_chat_cache=False)
                 final_evaluation_dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(
+                    api.build_messages_and_create_chat_completion(
                         user_prompt=user_prompt,
                         system_prompt=system_prompt,
                         json_mode=True,
@@ -545,11 +567,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                 final_decision = final_evaluation_dict["final_decision"]
                 final_feedback = final_evaluation_dict["final_feedback"]
 
-                if (isinstance(final_decision, str) and final_decision.lower() in ("true", "false")) or (
-                    isinstance(final_decision, int) and final_decision in (0, 1)
-                ):
-                    final_decision = bool(final_decision)
-
+                final_decision = str(final_decision).lower() in ["true", "1"]
                 return final_decision, final_feedback
 
             except json.JSONDecodeError as e:

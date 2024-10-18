@@ -35,20 +35,16 @@ class KaggleRDLoop(RDLoop):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
-
             knowledge_base = (
                 import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
                 if PROP_SETTING.knowledge_base != ""
                 else None
             )
             logger.log_object(knowledge_base, tag="knowledge_base")
-
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
-
             self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
             logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
-
             self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
             logger.log_object(self.feature_coder, tag="feature coder")
             self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(
@@ -57,12 +53,10 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
             self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
             logger.log_object(self.model_coder, tag="model coder")
-
             self.feature_runner: Developer = import_class(PROP_SETTING.feature_runner)(scen)
             logger.log_object(self.feature_runner, tag="feature runner")
             self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
             logger.log_object(self.model_runner, tag="model runner")
-
             self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
@@ -88,7 +82,6 @@ class KaggleRDLoop(RDLoop):
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
             logger.log_object(exp, tag="runner result")
-
             if KAGGLE_IMPLEMENT_SETTING.competition in [
                 "optiver-realized-volatility-prediction",
                 "covid19-global-forecasting-week-1",
@@ -99,7 +92,6 @@ class KaggleRDLoop(RDLoop):
                     )
                 except Exception as e:
                     logger.error(f"Merge python files to one file failed: {e}")
-
             if KAGGLE_IMPLEMENT_SETTING.auto_submit:
                 csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
                 try:
@@ -129,21 +121,16 @@ class KaggleRDLoop(RDLoop):
 def main(path=None, step_n=None, competition=None):
     """
     Auto R&D Evolving loop for models in a kaggle{} scenario.
-
     You can continue running session by
-
     .. code-block:: bash
-
         dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
         rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
-
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
         download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
     else:
         logger.error("Please specify competition name.")
-
     if path is None:
         kaggle_loop = KaggleRDLoop(KAGGLE_IMPLEMENT_SETTING)
     else:
