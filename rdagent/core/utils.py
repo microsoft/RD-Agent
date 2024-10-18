@@ -87,7 +87,7 @@ def import_class(class_path: str) -> Any:
     return getattr(module, class_name)
 
 
-def _subprocess_wrapper(f, seed, args):
+def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
     """
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """

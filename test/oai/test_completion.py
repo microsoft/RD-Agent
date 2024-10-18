@@ -53,7 +53,7 @@ class TestChatCompletion(unittest.TestCase):
         response2 = session.build_chat_completion(user_prompt=user_prompt_2)
         assert response2 is not None
 
-    def test_chat_cache(self):
+    def test_chat_cache(self) -> None:
         """
         Tests:
         - Single process, ask same question, enable cache
@@ -125,7 +125,7 @@ class TestChatCompletion(unittest.TestCase):
             response1 != response2 and response3 != response4 and response5 != response6
         ), "Same question should get different response when use_auto_chat_cache_seed_gen=True"
 
-    def test_chat_cache_multiprocess(self):
+    def test_chat_cache_multiprocess(self) -> None:
         """
         Tests:
         - Multi process, ask same question, enable cache

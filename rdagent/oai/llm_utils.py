@@ -251,13 +251,13 @@ class APIBackend:
         - If the cache is removed, setting the same seed will not produce the same QA trace.
         """
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.set_seed(RD_AGENT_SETTINGS.init_chat_cache_seed)
 
-        def set_seed(self, seed: int):
+        def set_seed(self, seed: int) -> None:
             random.seed(seed)
 
-        def get_next_seed(self):
+        def get_next_seed(self) -> int:
             """generate next random int"""
             return random.randint(0, 10000)
 
