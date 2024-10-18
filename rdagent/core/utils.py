@@ -5,6 +5,7 @@ import importlib
 import json
 import multiprocessing as mp
 import pickle
+import random
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar, NoReturn, cast
@@ -86,10 +87,22 @@ def import_class(class_path: str) -> Any:
     return getattr(module, class_name)
 
 
+def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
+    """
+    It is a function wrapper. To ensure the subprocess has a fixed start seed.
+    """
+    random.seed(seed)
+    return f(*args)
+
+
 def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) -> list:
     """It will use multiprocessing to call the functions in func_calls with the given parameters.
     The results equals to `return  [f(*args) for f, args in func_calls]`
     It will not call multiprocessing if `n=1`
+
+    NOTE:
+    We coooperate with chat_cache_seed feature
+    We ensure get the same seed trace even we have multiple number of seed
 
     Parameters
     ----------
@@ -106,7 +119,10 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     if n == 1:
         return [f(*args) for f, args in func_calls]
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
-        results = [pool.apply_async(f, args) for f, args in func_calls]
+        results = [
+            pool.apply_async(_subprocess_wrapper, args=(f, random.randint(0, 10000), args))  # noqa: S311
+            for f, args in func_calls
+        ]
         return [result.get() for result in results]
 
 
