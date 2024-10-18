@@ -119,7 +119,8 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
         return [f(*args) for f, args in func_calls]
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
         results = [
-            pool.apply_async(_subprocess_wrapper, args=(f, random.randint(0, 10000), args)) for f, args in func_calls
+            pool.apply_async(_subprocess_wrapper, args=(f, random.randint(0, 10000), args)) # noqa: S311
+            for f, args in func_calls
         ]
         return [result.get() for result in results]
 
