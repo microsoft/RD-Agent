@@ -91,7 +91,7 @@ def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
     """
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """
-    random.seed(seed)
+    random.seed(seed)  # noqa: S311
     return f(*args)
 
 
