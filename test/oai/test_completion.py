@@ -45,6 +45,14 @@ class TestChatCompletion(unittest.TestCase):
         response2 = session.build_chat_completion(user_prompt=user_prompt_2)
         assert response2 is not None
 
+    def test_chat_cache(self):
+        """
+        Tests:
+        - Single process, ask same question, enable cache
+            - 2 pass
+            - cache is not missed & same question get different answer.
+        """
+
 
 if __name__ == "__main__":
     unittest.main()
