@@ -14,6 +14,7 @@ from filelock import FileLock
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.oai.llm_conf import LLM_SETTINGS
 
 
 class RDAgentException(Exception):  # noqa: N818
@@ -98,7 +99,7 @@ class CacheSeedGen:
     """
 
     def __init__(self) -> None:
-        self.set_seed(RD_AGENT_SETTINGS.init_chat_cache_seed)
+        self.set_seed(LLM_SETTINGS.init_chat_cache_seed)
 
     def set_seed(self, seed: int) -> None:
         random.seed(seed)

@@ -17,7 +17,6 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -596,7 +595,7 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        if seed is None and RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen:
+        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
             seed = LLM_CACHE_SEED_GEN.get_next_seed()
 
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`

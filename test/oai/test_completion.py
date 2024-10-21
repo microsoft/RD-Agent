@@ -60,7 +60,6 @@ class TestChatCompletion(unittest.TestCase):
             - 2 pass
             - cache is not missed & same question get different answer.
         """
-        from rdagent.core.conf import RD_AGENT_SETTINGS
         from rdagent.core.utils import LLM_CACHE_SEED_GEN
         from rdagent.oai.llm_conf import LLM_SETTINGS
 
@@ -68,7 +67,7 @@ class TestChatCompletion(unittest.TestCase):
         user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
 
         origin_value = (
-            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            LLM_SETTINGS.use_auto_chat_cache_seed_gen,
             LLM_SETTINGS.use_chat_cache,
             LLM_SETTINGS.dump_chat_cache,
         )
@@ -76,7 +75,7 @@ class TestChatCompletion(unittest.TestCase):
         LLM_SETTINGS.use_chat_cache = True
         LLM_SETTINGS.dump_chat_cache = True
 
-        RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
+        LLM_SETTINGS.use_auto_chat_cache_seed_gen = True
 
         LLM_CACHE_SEED_GEN.set_seed(10)
         response1 = APIBackend().build_messages_and_create_chat_completion(
@@ -110,7 +109,7 @@ class TestChatCompletion(unittest.TestCase):
 
         # Reset, for other tests
         (
-            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            LLM_SETTINGS.use_auto_chat_cache_seed_gen,
             LLM_SETTINGS.use_chat_cache,
             LLM_SETTINGS.dump_chat_cache,
         ) = origin_value
@@ -132,7 +131,6 @@ class TestChatCompletion(unittest.TestCase):
             - 2 pass
             - cache is not missed & same question get different answer.
         """
-        from rdagent.core.conf import RD_AGENT_SETTINGS
         from rdagent.core.utils import LLM_CACHE_SEED_GEN, multiprocessing_wrapper
         from rdagent.oai.llm_conf import LLM_SETTINGS
 
@@ -140,7 +138,7 @@ class TestChatCompletion(unittest.TestCase):
         user_prompt = f"Give me {2} random country names, list {2} cities in each country, and introduce them"
 
         origin_value = (
-            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            LLM_SETTINGS.use_auto_chat_cache_seed_gen,
             LLM_SETTINGS.use_chat_cache,
             LLM_SETTINGS.dump_chat_cache,
         )
@@ -148,7 +146,7 @@ class TestChatCompletion(unittest.TestCase):
         LLM_SETTINGS.use_chat_cache = True
         LLM_SETTINGS.dump_chat_cache = True
 
-        RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
+        LLM_SETTINGS.use_auto_chat_cache_seed_gen = True
 
         func_calls = [(_worker, (system_prompt, user_prompt)) for _ in range(4)]
 
@@ -161,7 +159,7 @@ class TestChatCompletion(unittest.TestCase):
 
         # Reset, for other tests
         (
-            RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen,
+            LLM_SETTINGS.use_auto_chat_cache_seed_gen,
             LLM_SETTINGS.use_chat_cache,
             LLM_SETTINGS.dump_chat_cache,
         ) = origin_value
