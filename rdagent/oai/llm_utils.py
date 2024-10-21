@@ -17,7 +17,6 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
