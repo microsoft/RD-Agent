@@ -108,7 +108,7 @@ class CacheSeedGen:
         return random.randint(0, 10000)  # noqa: S311
 
 
-cache_seed_gen = CacheSeedGen()
+LLM_CACHE_SEED_GEN = CacheSeedGen()
 
 
 def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
@@ -116,7 +116,7 @@ def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """
 
-    cache_seed_gen.set_seed(seed)
+    LLM_CACHE_SEED_GEN.set_seed(seed)
     return f(*args)
 
 
@@ -146,7 +146,7 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
 
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
         results = [
-            pool.apply_async(_subprocess_wrapper, args=(f, cache_seed_gen.get_next_seed(), args))
+            pool.apply_async(_subprocess_wrapper, args=(f, LLM_CACHE_SEED_GEN.get_next_seed(), args))
             for f, args in func_calls
         ]
         return [result.get() for result in results]

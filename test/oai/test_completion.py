@@ -61,7 +61,7 @@ class TestChatCompletion(unittest.TestCase):
             - cache is not missed & same question get different answer.
         """
         from rdagent.core.conf import RD_AGENT_SETTINGS
-        from rdagent.core.utils import cache_seed_gen
+        from rdagent.core.utils import LLM_CACHE_SEED_GEN
         from rdagent.oai.llm_conf import LLM_SETTINGS
 
         system_prompt = "You are a helpful assistant."
@@ -78,7 +78,7 @@ class TestChatCompletion(unittest.TestCase):
 
         RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen = True
 
-        cache_seed_gen.set_seed(10)
+        LLM_CACHE_SEED_GEN.set_seed(10)
         response1 = APIBackend().build_messages_and_create_chat_completion(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -88,7 +88,7 @@ class TestChatCompletion(unittest.TestCase):
             user_prompt=user_prompt,
         )
 
-        cache_seed_gen.set_seed(20)
+        LLM_CACHE_SEED_GEN.set_seed(20)
         response3 = APIBackend().build_messages_and_create_chat_completion(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -98,7 +98,7 @@ class TestChatCompletion(unittest.TestCase):
             user_prompt=user_prompt,
         )
 
-        cache_seed_gen.set_seed(10)
+        LLM_CACHE_SEED_GEN.set_seed(10)
         response5 = APIBackend().build_messages_and_create_chat_completion(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -133,7 +133,7 @@ class TestChatCompletion(unittest.TestCase):
             - cache is not missed & same question get different answer.
         """
         from rdagent.core.conf import RD_AGENT_SETTINGS
-        from rdagent.core.utils import cache_seed_gen, multiprocessing_wrapper
+        from rdagent.core.utils import LLM_CACHE_SEED_GEN, multiprocessing_wrapper
         from rdagent.oai.llm_conf import LLM_SETTINGS
 
         system_prompt = "You are a helpful assistant."
@@ -152,11 +152,11 @@ class TestChatCompletion(unittest.TestCase):
 
         func_calls = [(_worker, (system_prompt, user_prompt)) for _ in range(4)]
 
-        cache_seed_gen.set_seed(10)
+        LLM_CACHE_SEED_GEN.set_seed(10)
         responses1 = multiprocessing_wrapper(func_calls, n=4)
-        cache_seed_gen.set_seed(20)
+        LLM_CACHE_SEED_GEN.set_seed(20)
         responses2 = multiprocessing_wrapper(func_calls, n=4)
-        cache_seed_gen.set_seed(10)
+        LLM_CACHE_SEED_GEN.set_seed(10)
         responses3 = multiprocessing_wrapper(func_calls, n=4)
 
         # Reset, for other tests
