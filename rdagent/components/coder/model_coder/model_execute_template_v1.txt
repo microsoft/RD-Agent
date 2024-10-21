@@ -37,7 +37,7 @@ if MODEL_TYPE == "Graph":
 else:
     out = m(data)
 
-execution_model_output = out.cpu().detach()
+execution_model_output = out.cpu().detach().numpy()
 execution_feedback_str = f"Execution successful, output tensor shape: {execution_model_output.shape}"
 
 pickle.dump(execution_model_output, open("execution_model_output.pkl", "wb"))
