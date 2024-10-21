@@ -133,7 +133,7 @@ class TestChatCompletion(unittest.TestCase):
             - cache is not missed & same question get different answer.
         """
         from rdagent.core.conf import RD_AGENT_SETTINGS
-        from rdagent.core.utils import multiprocessing_wrapper, cache_seed_gen
+        from rdagent.core.utils import cache_seed_gen, multiprocessing_wrapper
         from rdagent.oai.llm_conf import LLM_SETTINGS
 
         system_prompt = "You are a helpful assistant."

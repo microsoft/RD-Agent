@@ -105,7 +105,8 @@ class CacheSeedGen:
 
     def get_next_seed(self) -> int:
         """generate next random int"""
-        return random.randint(0, 10000)
+        return random.randint(0, 10000)  # noqa: S311
+
 
 cache_seed_gen = CacheSeedGen()
 
