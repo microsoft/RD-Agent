@@ -18,7 +18,7 @@ import numpy as np
 import tiktoken
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.utils import SingletonBaseClass, cache_seed_gen
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -240,29 +240,6 @@ class APIBackend:
     (xiao) thinks integrate all kinds of API in a single class is not a good design.
     So we should split them into different classes in `oai/backends/` in the future.
     """
-
-    class CacheSeedGen:
-        """
-        It is a global seed generator to generate a sequence of seeds.
-        This will support the feature `use_auto_chat_cache_seed_gen` claim
-
-        NOTE:
-        - This seed is specifically for the cache and is different from a regular seed.
-        - If the cache is removed, setting the same seed will not produce the same QA trace.
-        """
-
-        def __init__(self) -> None:
-            self.set_seed(RD_AGENT_SETTINGS.init_chat_cache_seed)
-
-        def set_seed(self, seed: int) -> None:
-            random.seed(seed)
-
-        def get_next_seed(self) -> int:
-            """generate next random int"""
-            return random.randint(0, 10000)
-
-    cache_seed_gen = CacheSeedGen()
-
     # FIXME: (xiao) We should avoid using self.xxxx.
     # Instead, we can use LLM_SETTINGS directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
@@ -619,7 +596,7 @@ class APIBackend:
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
         if seed is None and RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen:
-            seed = self.cache_seed_gen.get_next_seed()
+            seed = cache_seed_gen.get_next_seed()
 
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if LLM_SETTINGS.log_llm_chat_content:
