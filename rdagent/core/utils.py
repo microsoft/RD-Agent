@@ -91,7 +91,8 @@ def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
     """
     It is a function wrapper. To ensure the subprocess has a fixed start seed.
     """
-    random.seed(seed)
+    from rdagent.oai.llm_utils import APIBackend
+    APIBackend.cache_seed_gen.set_seed(seed)
     return f(*args)
 
 
@@ -118,9 +119,11 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     """
     if n == 1:
         return [f(*args) for f, args in func_calls]
+
+    from rdagent.oai.llm_utils import APIBackend
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
         results = [
-            pool.apply_async(_subprocess_wrapper, args=(f, random.randint(0, 10000), args))  # noqa: S311
+            pool.apply_async(_subprocess_wrapper, args=(f, APIBackend.cache_seed_gen.get_next_seed(), args))
             for f, args in func_calls
         ]
         return [result.get() for result in results]
