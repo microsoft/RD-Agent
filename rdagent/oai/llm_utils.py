@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import re
 import sqlite3
 import ssl
@@ -16,7 +17,8 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -594,7 +596,10 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        # TODO: we can add this function back to avoid so much `LLM_SETTINGS.log_llm_chat_content`
+        if seed is None and RD_AGENT_SETTINGS.use_auto_chat_cache_seed_gen:
+            seed = LLM_CACHE_SEED_GEN.get_next_seed()
+
+        # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if LLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response

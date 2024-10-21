@@ -5,6 +5,7 @@ import importlib
 import json
 import multiprocessing as mp
 import pickle
+import random
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar, NoReturn, cast
@@ -86,10 +87,47 @@ def import_class(class_path: str) -> Any:
     return getattr(module, class_name)
 
 
+class CacheSeedGen:
+    """
+    It is a global seed generator to generate a sequence of seeds.
+    This will support the feature `use_auto_chat_cache_seed_gen` claim
+
+    NOTE:
+    - This seed is specifically for the cache and is different from a regular seed.
+    - If the cache is removed, setting the same seed will not produce the same QA trace.
+    """
+
+    def __init__(self) -> None:
+        self.set_seed(RD_AGENT_SETTINGS.init_chat_cache_seed)
+
+    def set_seed(self, seed: int) -> None:
+        random.seed(seed)
+
+    def get_next_seed(self) -> int:
+        """generate next random int"""
+        return random.randint(0, 10000)  # noqa: S311
+
+
+LLM_CACHE_SEED_GEN = CacheSeedGen()
+
+
+def _subprocess_wrapper(f: Callable, seed: int, args: list) -> Any:
+    """
+    It is a function wrapper. To ensure the subprocess has a fixed start seed.
+    """
+
+    LLM_CACHE_SEED_GEN.set_seed(seed)
+    return f(*args)
+
+
 def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) -> list:
     """It will use multiprocessing to call the functions in func_calls with the given parameters.
     The results equals to `return  [f(*args) for f, args in func_calls]`
     It will not call multiprocessing if `n=1`
+
+    NOTE:
+    We coooperate with chat_cache_seed feature
+    We ensure get the same seed trace even we have multiple number of seed
 
     Parameters
     ----------
@@ -105,8 +143,12 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     """
     if n == 1:
         return [f(*args) for f, args in func_calls]
+
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:
-        results = [pool.apply_async(f, args) for f, args in func_calls]
+        results = [
+            pool.apply_async(_subprocess_wrapper, args=(f, LLM_CACHE_SEED_GEN.get_next_seed(), args))
+            for f, args in func_calls
+        ]
         return [result.get() for result in results]
 
 
