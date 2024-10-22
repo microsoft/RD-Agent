@@ -111,7 +111,7 @@ The following environment variables can be set in the `.env` file to customize t
     :no-index:
 
 📋 Competition List Available
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +-----------------------------------+------------------+-----------+-------------------------------+
 | **Competition Name**              | **Task**         | **Modal** | **ID**                        |
