@@ -39,4 +39,5 @@ selenium
 nbformat
 
 # tool
+seaborn
 setuptools-scm
