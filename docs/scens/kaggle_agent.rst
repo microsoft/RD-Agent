@@ -15,18 +15,6 @@ The Kaggle Agent stands as a pivotal tool, empowering participants to seamlessly
 By utilizing the **Kaggle Agent**, data scientists can craft innovative solutions that not only uncover hidden patterns but also drive significant advancements in predictive accuracy and model robustness.
 
 
-🎥 `Demo <https://rdagent.azurewebsites.net/kaggle_loop>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. raw:: html
-
-    <div style="display: flex; justify-content: center; align-items: center;">
-      <video width="600" controls>
-        <source src="https://rdagent.azurewebsites.net/media/??????.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-
 🌟 Introduction
 ~~~~~~~~~~~~~~~~
 
