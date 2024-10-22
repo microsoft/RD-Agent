@@ -85,13 +85,14 @@ class KaggleBOLoop(LoopBase, metaclass=LoopMeta):
         return hypothesis_list
     
     def _develop(self, hypothesis):
-        exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
-        if hypothesis.action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
-            code = self.feature_coder.develop(exp)
-        elif hypothesis.action == KG_ACTION_MODEL_FEATURE_SELECTION:
-            code = self.model_feature_selection_coder.develop(exp)
-        else:
-            code = self.model_coder.develop(exp)
+        with logger.tag("d"): # develop
+            exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
+            if hypothesis.action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+                code = self.feature_coder.develop(exp)
+            elif hypothesis.action == KG_ACTION_MODEL_FEATURE_SELECTION:
+                code = self.model_feature_selection_coder.develop(exp)
+            else:
+                code = self.model_coder.develop(exp)
         return code
     
     def _estimate(self, code):
@@ -128,8 +129,8 @@ class KaggleBOLoop(LoopBase, metaclass=LoopMeta):
                 hs.append(hypotheses[i])
         m = max(results)
         index = results.index(m)
-        logger.log_object(codes[index].sub_workspace_list, tag="d.coder result")
         logger.log_object(hs[index], tag="r.hypothesis generation")
+        logger.log_object(codes[index].sub_workspace_list, tag="d.coder result")
         
         return codes[index], hs[index]
 

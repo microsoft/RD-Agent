@@ -551,6 +551,22 @@ def feedback_window():
 def evolving_window():
     title = "Development🛠️" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Development🛠️ (evolving coder)"
     st.subheader(title, divider="green", anchor="_development")
+    
+    # TODO: only for suhan, add a check before merging to main
+    if len(state.msgs[round]["d.coder result"]) != 1:
+        st.toast(":red[**Coder result Length Error!**]", icon="!")
+    ws: list[FactorFBWorkspace | ModelFBWorkspace] = state.msgs[round]["d.coder result"][-1].content
+    tab_names = [
+        w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+    ]
+    wtabs = st.tabs(tab_names)
+    for j, w in enumerate(ws):
+        with wtabs[j]:
+            # Evolving Code
+            for k, v in w.code_dict.items():
+                with st.expander(f":green[`{k}`]", expanded=True):
+                    st.code(v, language="python")
+    return
 
     # Evolving Status
     if state.erounds[round] > 0:
