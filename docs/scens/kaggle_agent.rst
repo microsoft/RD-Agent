@@ -72,5 +72,23 @@ You can try our demo by running the following command:
 
         python3 rdagent/app/kaggle/loop.py --competition [your competition name]
 
+🛠️ Usage of modules
+~~~~~~~~~~~~~~~~~~~~~
+
+.. _Env Config: 
+
+- **Env Config**
+
+The following environment variables can be set in the `.env` file to customize the application's behavior:
+
+.. autopydantic_settings:: rdagent.app.kaggle.conf.KaggleBasePropSetting
+    :settings-show-field-summary: False
+    :exclude-members: Config
+
+.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+    :settings-show-field-summary: False
+    :members: coder_use_cache, data_folder, data_folder_debug, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
+    :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler, v2_add_fail_attempt_to_latest_successful_execution
+    :no-index:
 
 

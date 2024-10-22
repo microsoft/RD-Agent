@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from pydantic_settings import BaseSettings
 
 from rdagent.components.workflow.conf import BasePropSetting
@@ -15,13 +13,6 @@ class KaggleBasePropSetting(BasePropSetting):
     # 1) overriding the default
     scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"
     """Scenario class for data mining model"""
-
-    knowledge_base: str = ""  # TODO enable this line to use the knowledge base
-    # knowledge_base: str = "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph"
-    """Knowledge base class"""
-
-    knowledge_base_path: str = "kg_graph.pkl"
-    """Knowledge base path"""
 
     hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesisGen"
     """Hypothesis generation class"""
@@ -51,22 +42,40 @@ class KaggleBasePropSetting(BasePropSetting):
     """Number of evolutions"""
 
     competition: str = ""
+    """Kaggle competition name, e.g., 'sf-crime'"""
 
     local_data_path: str = "/data/userdata/share/kaggle"
-
-    domain_knowledge_path: str = "/data/userdata/share/kaggle/domain_knowledge"
-
-    rag_path: str = "git_ignore_folder/rag"
+    """Folder storing Kaggle competition data"""
 
     if_action_choosing_based_on_UCB: bool = False
+    """Enable decision mechanism based on UCB algorithm"""
 
-    if_using_graph_rag: bool = False
+    domain_knowledge_path: str = "/data/userdata/share/kaggle/domain_knowledge"
+    """Folder storing domain knowledge files in .case format"""
+
+    rag_path: str = "git_ignore_folder/kaggle_vector_base.pkl"
+    """Base version of vector-based RAG"""
 
     if_using_vector_rag: bool = False
+    """Enable basic vector-based RAG"""
+
+    if_using_graph_rag: bool = False
+    """Enable advanced graph-based RAG"""
+
+    # Conditionally set the knowledge_base based on the use of graph RAG
+    knowledge_base: str = (
+        "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph" if if_using_graph_rag else ""
+    )
+    """Knowledge base class, uses 'KGKnowledgeGraph' when advanced graph-based RAG is enabled, otherwise empty."""
+
+    knowledge_base_path: str = "kg_graph.pkl"
+    """Advanced version of graph-based RAG"""
 
     auto_submit: bool = True
+    """Automatically upload and submit each experiment result to Kaggle platform"""
 
     mini_case: bool = False
+    """Enable mini-case study for experiments"""
 
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
