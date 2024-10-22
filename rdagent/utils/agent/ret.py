@@ -3,6 +3,7 @@ The output of a agent is very important.
 
 We think this part can be shared.
 """
+
 import re
 from abc import abstractclassmethod
 from typing import Any
