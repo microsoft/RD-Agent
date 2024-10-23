@@ -305,7 +305,8 @@ class APIBackend:
             self.encoder = None
         else:
             self.use_azure = LLM_SETTINGS.use_azure
-            self.use_azure_token_provider = LLM_SETTINGS.use_azure_token_provider
+            self.chat_use_azure_token_provider = LLM_SETTINGS.chat_use_azure_token_provider
+            self.embedding_use_azure_token_provider = LLM_SETTINGS.embedding_use_azure_token_provider
             self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
@@ -341,7 +342,7 @@ class APIBackend:
             )
 
             if self.use_azure:
-                if self.use_azure_token_provider:
+                if self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider:
                     dac_kwargs = {}
                     if self.managed_identity_client_id is not None:
                         dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
@@ -350,15 +351,11 @@ class APIBackend:
                         credential,
                         "https://cognitiveservices.azure.com/.default",
                     )
+                if self.chat_use_azure_token_provider:
                     self.chat_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
-                    )
-                    self.embedding_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
                     )
                 else:
                     self.chat_client = openai.AzureOpenAI(
@@ -366,6 +363,14 @@ class APIBackend:
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
                     )
+
+                if self.embedding_use_azure_token_provider:
+                    self.embedding_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
+                else:
                     self.embedding_client = openai.AzureOpenAI(
                         api_key=self.embedding_api_key,
                         api_version=self.embedding_api_version,

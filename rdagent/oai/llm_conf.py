@@ -9,7 +9,8 @@ class LLMSettings(BaseSettings):
     log_llm_chat_content: bool = True
 
     use_azure: bool = False
-    use_azure_token_provider: bool = False
+    chat_use_azure_token_provider: bool = False
+    embedding_use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
     max_retry: int = 10
     retry_wait_seconds: int = 1
