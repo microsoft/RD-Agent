@@ -72,6 +72,7 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
+    @cache_with_pickle(KGCachedRunner.get_cache_key, KGCachedRunner.assign_cached_result)
     def develop(self, exp: KGFactorExperiment) -> KGFactorExperiment:
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
         implemented_factor_count = 0
@@ -91,12 +92,6 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
 
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
-
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
@@ -105,8 +100,5 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             raise CoderError("No result is returned from the experiment workspace")
 
         exp.result = result
-
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
 
         return exp
