@@ -363,7 +363,7 @@ class APIBackend:
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
                     )
-                
+
                 if self.embedding_use_azure_token_provider:
                     self.embedding_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
