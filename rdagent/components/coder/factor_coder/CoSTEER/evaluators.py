@@ -220,7 +220,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                 resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
 
                 return (
-                    resp_dict["output_format_feedback"],
+                    str(resp_dict["output_format_feedback"]),
                     resp_dict["output_format_decision"],
                 )
 
