@@ -34,13 +34,14 @@ The supported scenarios are listed below:
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Doctree:
-   :hidden:
+    :maxdepth: 1
+    :caption: Doctree:
+    :hidden:
 
-   data_agent_fin
-   data_copilot_fin
-   model_agent_fin
-   model_agent_med
-   model_copilot_general
+    data_agent_fin
+    data_copilot_fin
+    model_agent_fin
+    model_agent_med
+    model_copilot_general
+    kaggle_agent
 
