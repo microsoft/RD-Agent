@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/microsoft/RD-Agent/compare/v0.3.0...v0.4.0) (2024-10-24)
+
+
+### Features
+
+* independent use_azure_token_provider on chat and embedding ([#452](https://github.com/microsoft/RD-Agent/issues/452)) ([d223004](https://github.com/microsoft/RD-Agent/commit/d223004917692e231b251330cbc8676081d5a10d))
+
 ## [0.3.0](https://github.com/microsoft/RD-Agent/compare/v0.2.1...v0.3.0) (2024-10-21)
 
 
