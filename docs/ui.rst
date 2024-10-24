@@ -38,6 +38,7 @@ Use Web App
     - Qlib Factor
     - Data Mining
     - Model from Paper
+    - Kaggle
 
 3. Click the `Config⚙️` button and input the log path (if you set the log_dir parameter, you can select a log_path in the dropdown list).
 
