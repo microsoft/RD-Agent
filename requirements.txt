@@ -1,5 +1,5 @@
 # Requirements for runtime.
-autodoc-pydantic
+pydantic-settings
 
 python-Levenshtein
 scikit-learn
@@ -24,6 +24,10 @@ azure-ai-formrecognizer
 
 # factor implementations
 tables
+
+# CI Fix Tool
+tree-sitter-python
+tree-sitter
 
 python-dotenv
 
