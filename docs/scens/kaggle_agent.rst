@@ -145,18 +145,22 @@ The following environment variables can be set in the `.env` file to customize t
 ~~~~~~~~~~~
 
 
-🧭 Example Guide of Running a specific Experiment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+🧭 Example Guide: Running a Specific Experiment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Example Competition Name: San Francisco Crime Classification (sf-crime)
+**Example Competition Name**: San Francisco Crime Classification (sf-crime)
 
-  - Set up RD-Agent Environment
+- **Set up RD-Agent Environment**
 
-  - Download Competition Data (?) (is there need to crawl the web information before running?)
+- **Download Competition Data** 
+  - Consider if you need to crawl web information before running.
 
-  - Run the Application
+- **Run the Application**
 
-  - Submit the result automatically or 手动ly
+- **Submit the Result Automatically or Manually**
 
-    if Auto: ... else: ...
+  - If Auto: ...
+  - Else: ...
+
+For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
 
