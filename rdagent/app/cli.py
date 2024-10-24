@@ -5,6 +5,7 @@ This will
 - make rdagent a nice entry and
 - autoamtically load dotenv
 """
+
 from dotenv import load_dotenv
 
 load_dotenv(".env")
