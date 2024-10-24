@@ -141,3 +141,22 @@ The following environment variables can be set in the `.env` file to customize t
 | To be continued ...                                                                              |
 +-----------------------------------+------------------+-----------+-------------------------------+
 
+🎯 Roadmap
+~~~~~~~~~~~
+
+
+🧭 Example Guide of Running a specific Experiment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Example Competition Name: San Francisco Crime Classification (sf-crime)
+
+  - Set up RD-Agent Environment
+
+  - Download Competition Data (?) (is there need to crawl the web information before running?)
+
+  - Run the Application
+
+  - Submit the result automatically or 手动ly
+
+    if Auto: ... else: ...
+
