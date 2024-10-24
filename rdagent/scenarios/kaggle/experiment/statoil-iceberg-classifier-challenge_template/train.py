@@ -49,7 +49,8 @@ print("Min:", X_train[0].min())
 X_train_l, X_valid_l = [], []
 X_test_l = []
 
-for f in DIRNAME.glob("feature/feat*.py"):
+
+"""for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
     cls.fit(X_train)
     X_train_f = cls.transform(X_train)
@@ -63,15 +64,15 @@ for f in DIRNAME.glob("feature/feat*.py"):
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
-X_test = pd.concat(X_test_l, axis=1)
+X_test = pd.concat(X_test_l, axis=1)"""
 
 
-# Handle inf and -inf values
+"""# Handle inf and -inf values
 X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
 X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_test.replace([np.inf, -np.inf], np.nan, inplace=True)"""
 
-from sklearn.impute import SimpleImputer
+"""from sklearn.impute import SimpleImputer
 
 imputer = SimpleImputer(strategy="mean")
 
@@ -84,7 +85,7 @@ print("X_train.head():",X_train.head())
 # Remove duplicate columns
 X_train = X_train.loc[:, ~X_train.columns.duplicated()]
 X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-X_test = X_test.loc[:, ~X_test.columns.duplicated()]
+X_test = X_test.loc[:, ~X_test.columns.duplicated()]"""
 
 print(X_train.shape, X_valid.shape, X_test.shape)
 
