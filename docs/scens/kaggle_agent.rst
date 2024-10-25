@@ -169,7 +169,17 @@ For more information about Kaggle API Settings, refer to the `Kaggle API <https:
 🎯 Roadmap
 ~~~~~~~~~~~
 
+**Completed:**
+
+- **Kaggle Project Schema Design** ✅
+
+- **RD-Agent Integration with kaggle schema** ✅
+
+**Ongoing:**
+
 - **Template auto generation**
+
+- **Bench Optimization**
 
   - **Online Bench**
 
