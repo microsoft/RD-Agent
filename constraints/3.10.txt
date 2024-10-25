@@ -1,6 +1,6 @@
-dill==0.3.8
+dill==0.3.9
 pillow==10.4.0
-psutil==6.0.0
-rich==13.7.0
-scipy==1.11.4
-tqdm==4.66.1
+psutil==6.1.0
+rich==13.9.2
+scipy==1.14.1
+tqdm==4.66.5
