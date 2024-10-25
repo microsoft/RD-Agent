@@ -7,6 +7,13 @@ Kaggle Agent
 **🤖 Automated Feature Engineering & Model Tuning Evolution**
 ------------------------------------------------------------------------------------------
 
+🎨 Design
+~~~~~~~~~~~
+
+.. image:: kaggle_design.png
+   :alt: Design of Kaggle Agent
+   :align: center
+
 📖 Background
 ~~~~~~~~~~~~~~
 In the landscape of data science competitions, Kaggle serves as the ultimate arena where data enthusiasts harness the power of algorithms to tackle real-world challenges.
@@ -89,7 +96,105 @@ You can try our demo by running the following command:
     
     .. code-block:: sh
 
-        python3 rdagent/app/kaggle/loop.py --competition [your competition name]
+        rdagent kaggle --competition [your competition name]
+
+    The `competition name` parameter must match the name used with the API on the Kaggle platform.
+
+
+📋 Competition List Available
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------------------------+------------------+-----------+-------------------------------+
+| **Competition Name**              | **Task**         | **Modal** | **ID**                        |
++===================================+==================+===========+===============================+
+| Media Campaign Cost Dataset       | Regression       | Tabular   | playground-series-s3e11       |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Wild Blueberry Yield Dataset      | Regression       | Tabular   | playground-series-s3e14       |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Crab Age Dataset                  | Regression       | Tabular   | playground-series-s3e16       |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Flood Prediction Dataset          | Regression       | Tabular   | playground-series-s4e5        |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Used Car Prices Dataset           | Regression       | Tabular   | playground-series-s4e9        |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Cirrhosis Outcomes Dataset        | Multi-Class      | Tabular   | playground-series-s3e26       |
++-----------------------------------+------------------+-----------+-------------------------------+
+| San Francisco Crime Classification| Multi-Class      | Tabular   | sf-crime                      |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Poisonous Mushrooms Dataset       | Classification   | Tabular   | playground-series-s4e8        |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Spaceship Titanic                 | Classification   | Tabular   | spaceship-titanic             |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Forest Cover Type Prediction      | Classification   | Tabular   | forest-cover-type-prediction  |
++-----------------------------------+------------------+-----------+-------------------------------+
+| Digit Recognizer                  | Classification   | Image     | digit-recognizer              |
++-----------------------------------+------------------+-----------+-------------------------------+
+| To be continued ...                                                                              |
++-----------------------------------+------------------+-----------+-------------------------------+
+
+
+
+🧭 Example Guide: Running a Specific Experiment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Example Competition Name**: San Francisco Crime Classification (sf-crime)
+
+- 🔧 **Set up RD-Agent Environment**
+
+- 📥 **Download Competition Data (Optional)** 
+
+  - If web information and data are not prepared locally, the RD-Agent loop will automatically download them at startup. 
+
+  - In this case, you need to configure the Kaggle API yourself, agree to the competition rules on the Kaggle page, and configure `chromedriver` for Selenium. 
+
+  - Alternatively, you can manually place the dataset in the specified location in advance.
+
+
+- 🚀 **Run the Application**
+
+  - You can directly run the application by using the following command:
+    
+    .. code-block:: sh
+
+        rdagent kaggle --competition sf-crime
+
+- 📤 **Submit the Result Automatically or Manually**
+
+  - If Auto: You need to configure the Kaggle API, agree to the competition rules on the page, and set `KG_AUTO_SUBMIT=true`.
+  
+  - Else: You can download the prediction results from the UI interface and submit them manually. For more details, refer to the :doc:`UI guide <../ui>`.
+
+For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
+
+🎯 Roadmap
+~~~~~~~~~~~
+
+**Completed:**
+
+- **Kaggle Project Schema Design** ✅
+
+- **RD-Agent Integration with kaggle schema** ✅
+
+**Ongoing:**
+
+- **Template auto generation**
+
+- **Bench Optimization**
+
+  - **Online Bench**
+
+    - **RealMLBench**
+
+      - Ongoing integration
+
+      - Auto online submission
+
+      - Batch Evaluation
+
+  - **Offline Bench**
+  
+    - MLE-Bench
+
 
 🛠️ Usage of modules
 ~~~~~~~~~~~~~~~~~~~~~
@@ -110,34 +215,4 @@ The following environment variables can be set in the `.env` file to customize t
     :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler, v2_add_fail_attempt_to_latest_successful_execution
     :no-index:
 
-📋 Competition List Available
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-+-----------------------------------+------------------+-----------+-------------------------------+
-| **Competition Name**              | **Task**         | **Modal** | **ID**                        |
-+===================================+==================+===========+===============================+
-| Media Campaign Cost Dataset       | Regression       | Tabular   | playground-series-s3e11       |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Wild Blueberry Yield Dataset      | Regression       | Tabular   | playground-series-s3e14       |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Crab Age Dataset                  | Regression       | Tabular   | playground-series-s3e16       |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Flood Prediction Dataset          | Regression       | Tabular   | playground-series-s4e5        |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Used Car Prices                   | Regression       | Tabular   | playground-series-s4e9        |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Cirrhosis Outcomes                | Multi-Class      | Tabular   | playground-series-s3e26       |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| San Francisco Crime Classification| Multi-Class      | Tabular   | sf-crime                      |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Poisonous Mushrooms               | Classification   | Tabular   | playground-series-s4e8        |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Spaceship Titanic                 | Classification   | Tabular   | spaceship-titanic             |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Forest Cover Type Prediction      | Classification   | Tabular   | forest-cover-type-prediction  |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| Digit Recognizer                  | Classification   | Image     | digit-recognizer              |
-+-----------------------------------+------------------+-----------+-------------------------------+
-| To be continued ...                                                                              |
-+-----------------------------------+------------------+-----------+-------------------------------+
 
