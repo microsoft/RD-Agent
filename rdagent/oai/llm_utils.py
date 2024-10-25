@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import re
 import sqlite3
 import ssl
@@ -16,7 +17,7 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -304,7 +305,8 @@ class APIBackend:
             self.encoder = None
         else:
             self.use_azure = LLM_SETTINGS.use_azure
-            self.use_azure_token_provider = LLM_SETTINGS.use_azure_token_provider
+            self.chat_use_azure_token_provider = LLM_SETTINGS.chat_use_azure_token_provider
+            self.embedding_use_azure_token_provider = LLM_SETTINGS.embedding_use_azure_token_provider
             self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
@@ -340,7 +342,7 @@ class APIBackend:
             )
 
             if self.use_azure:
-                if self.use_azure_token_provider:
+                if self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider:
                     dac_kwargs = {}
                     if self.managed_identity_client_id is not None:
                         dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
@@ -349,15 +351,11 @@ class APIBackend:
                         credential,
                         "https://cognitiveservices.azure.com/.default",
                     )
+                if self.chat_use_azure_token_provider:
                     self.chat_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
-                    )
-                    self.embedding_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
                     )
                 else:
                     self.chat_client = openai.AzureOpenAI(
@@ -365,6 +363,14 @@ class APIBackend:
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
                     )
+
+                if self.embedding_use_azure_token_provider:
+                    self.embedding_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
+                else:
                     self.embedding_client = openai.AzureOpenAI(
                         api_key=self.embedding_api_key,
                         api_version=self.embedding_api_version,
@@ -594,7 +600,10 @@ class APIBackend:
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        # TODO: we can add this function back to avoid so much `LLM_SETTINGS.log_llm_chat_content`
+        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
+            seed = LLM_CACHE_SEED_GEN.get_next_seed()
+
+        # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if LLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response

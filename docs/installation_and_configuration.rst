@@ -53,7 +53,7 @@ The following environment variables are standard configuration options for the u
 Use Azure Token Provider
 ------------------------
 
-If you are using the Azure token provider, you need to set the `USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
+If you are using the Azure token provider, you need to set the `CHAT_USE_AZURE_TOKEN_PROVIDER` and `EMBEDDING_USE_AZURE_TOKEN_PROVIDER` environment variable to `True`. then 
 use the environment variables provided in the `Azure Configuration section <installation_and_configuration.html#azure-openai>`_.
 
 
@@ -80,31 +80,33 @@ Configuration List
 
 - OpenAI API Setting
 
-+-----------------------------+--------------------------------------------------+-------------------------+
-| Configuration Option        | Meaning                                          | Default Value           |
-+=============================+==================================================+=========================+
-| OPENAI_API_KEY              | API key for both chat and embedding models       | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_OPENAI_API_KEY    | Use a different API key for embedding model      | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_OPENAI_API_KEY         | Set to use a different API key for chat model    | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_MODEL             | Name of the embedding model                      | text-embedding-3-small  |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_MODEL                  | Name of the chat model                           | gpt-4-turbo             |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_AZURE_API_BASE    | Base URL for the Azure OpenAI API                | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| EMBEDDING_AZURE_API_VERSION | Version of the Azure OpenAI API                  | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_AZURE_API_BASE         | Base URL for the Azure OpenAI API                | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| CHAT_AZURE_API_VERSION      | Version of the Azure OpenAI API                  | None                    |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| USE_AZURE                   | True if you are using Azure OpenAI               | False                   |
-+-----------------------------+--------------------------------------------------+-------------------------+
-| USE_AZURE_TOKEN_PROVIDER    | True if you are using a Azure Token Provider     | False                   |
-+-----------------------------+--------------------------------------------------+-------------------------+
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| Configuration Option              | Meaning                                                         | Default Value           |
++===================================+=================================================================+=========================+
+| OPENAI_API_KEY                    | API key for both chat and embedding models                      | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| EMBEDDING_OPENAI_API_KEY          | Use a different API key for embedding model                     | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| CHAT_OPENAI_API_KEY               | Set to use a different API key for chat model                   | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| EMBEDDING_MODEL                   | Name of the embedding model                                     | text-embedding-3-small  |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| CHAT_MODEL                        | Name of the chat model                                          | gpt-4-turbo             |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| EMBEDDING_AZURE_API_BASE          | Base URL for the Azure OpenAI API                               | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| EMBEDDING_AZURE_API_VERSION       | Version of the Azure OpenAI API                                 | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| CHAT_AZURE_API_BASE               | Base URL for the Azure OpenAI API                               | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| CHAT_AZURE_API_VERSION            | Version of the Azure OpenAI API                                 | None                    |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| USE_AZURE                         | True if you are using Azure OpenAI                              | False                   |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| CHAT_USE_AZURE_TOKEN_PROVIDER     | True if you are using an Azure Token Provider in chat model     | False                   |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
+| EMBEDDING_USE_AZURE_TOKEN_PROVIDER| True if you are using an Azure Token Provider in embedding model| False                   |
++-----------------------------------+-----------------------------------------------------------------+-------------------------+
 
 - Globol Setting
 
