@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 # Define the neural network model with Batch Normalization
 class NeuralNetwork(nn.Module):
     def __init__(self, input_channels, num_classes):
