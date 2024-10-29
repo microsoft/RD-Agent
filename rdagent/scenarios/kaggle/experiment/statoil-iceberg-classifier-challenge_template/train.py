@@ -35,8 +35,8 @@ print(X_train.shape)
 print("Shape of first sample:", X_train[0].shape)
 
 # 打印第一个样本的前几行数据
-print("Data of first sample (first few rows):")
-print(X_train[0][:5][:5])  # 打印前5行前5列
+#print("Data of first sample (first few rows):")
+#print(X_train[0][:5][:5])  # 打印前5行前5列
 
 # 打印第一个样本的统计信息
 print("Statistics of first sample:")
@@ -88,6 +88,7 @@ X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
 X_test = X_test.loc[:, ~X_test.columns.duplicated()]"""
 
 print(X_train.shape, X_valid.shape, X_test.shape)
+print(type(X_train), type(y_train))
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func]]
@@ -105,6 +106,7 @@ metrics_all = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
+    print(y_valid.shape, y_valid_pred.shape)
     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
     print("Metrics: ", metrics)
     metrics_all.append(metrics)
