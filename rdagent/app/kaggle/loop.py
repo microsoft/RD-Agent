@@ -130,7 +130,9 @@ def main(path=None, step_n=None, competition=None):
         KAGGLE_IMPLEMENT_SETTING.competition = competition
         download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
         if KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag:
-            KAGGLE_IMPLEMENT_SETTING.knowledge_base = "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph"
+            KAGGLE_IMPLEMENT_SETTING.knowledge_base = (
+                "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph"
+            )
     else:
         logger.error("Please specify competition name.")
     if path is None:
