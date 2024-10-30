@@ -100,7 +100,10 @@ You can try our demo by running the following command:
 
     The `competition name` parameter must match the name used with the API on the Kaggle platform.
 
-(NOTE: The code for crawling Kaggle competition information may not be applicable to your environment. If you cannot execute it normally, you can download the kaggle_data.zip in the release and unzip it to the directory configured by the KG_LOCAL_DATA_PATH environment variable. At the same time, you need to configure the kaggle.json required for authentication according to the `official instructions <https://www.kaggle.com/docs/api>`_ of Kaggle and agree to the rules of the competition before you can automatically download the competition data.)
+(NOTE: The code for crawling Kaggle competition information may not be applicable to your environment. 
+
+If you cannot execute it normally, you can refer to the following **Example Guide: Running a Specific Experiment**.)
+
 
 📋 Competition List Available
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,6 +152,8 @@ You can try our demo by running the following command:
   - In this case, you need to configure the Kaggle API yourself, agree to the competition rules on the Kaggle page, and configure `chromedriver` for Selenium. 
 
   - Alternatively, you can manually place the dataset in the specified location in advance.
+
+  - you can download the kaggle_data.zip in the release and unzip it to the directory configured by the `KG_LOCAL_DATA_PATH` environment variable. 
 
 
 - 🚀 **Run the Application**
