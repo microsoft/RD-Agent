@@ -96,7 +96,7 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     return descriptions
 
 
-def download_data(competition: str, local_path: str = "/data/userdata/share/kaggle") -> None:
+def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
     data_path = f"{local_path}/{competition}"
     if not Path(data_path).exists():
         subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
@@ -136,7 +136,7 @@ def score_rank(competition: str, score: float) -> tuple[int, float]:
 
 
 def download_notebooks(
-    competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks", num: int = 15
+    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks", num: int = 15
 ) -> None:
     data_path = Path(f"{local_path}/{competition}")
     from kaggle.api.kaggle_api_extended import KaggleApi
@@ -183,7 +183,9 @@ def notebook_to_knowledge(notebook_text: str) -> str:
     return response
 
 
-def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks") -> None:
+def convert_notebooks_to_text(
+    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks"
+) -> None:
     data_path = Path(f"{local_path}/{competition}")
     converted_num = 0
 
@@ -219,7 +221,7 @@ def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdat
     print(f"Converted {converted_num} notebooks to text files.")
 
 
-def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> dict[str, list[str]]:
+def collect_knowledge_texts(local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> dict[str, list[str]]:
     """
     {
         "competition1": [

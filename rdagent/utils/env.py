@@ -186,8 +186,6 @@ class KGDockerConf(DockerConf):
     #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
     # }
 
-    # local_data_path: str = "/data/userdata/share/kaggle"
-
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
