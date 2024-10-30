@@ -69,7 +69,7 @@ class KaggleBasePropSetting(BasePropSetting):
     knowledge_base_path: str = "kg_graph.pkl"
     """Advanced version of graph-based RAG"""
 
-    auto_submit: bool = True
+    auto_submit: bool = False
     """Automatically upload and submit each experiment result to Kaggle platform"""
 
     mini_case: bool = False

@@ -221,7 +221,29 @@ The model code should follow the simulator:
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {self.competition}
+### Kaggle Agent: Automated Feature Engineering & Model Tuning Evolution
+
+#### [Overview](#_summary)
+
+In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
+
+#### Kaggle Competition info
+
+Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{self.competition})
+
+#### [Automated R&D](#_rdloops)
+
+- **[R (Research)](#_research)**
+- Iteration of ideas and hypotheses.
+- Continuous learning and knowledge construction.
+
+- **[D (Development)](#_development)**
+- Evolving code generation, model refinement, and features generation.
+- Automated implementation and testing of models/features.
+
+#### [Objective](#_summary)
+
+To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
     def get_scenario_all_desc(self, task: Task | None = None) -> str:

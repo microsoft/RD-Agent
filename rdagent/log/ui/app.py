@@ -560,12 +560,16 @@ def feedback_window():
                     st.markdown(
                         f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
                     )
-                    st.download_button(
-                        label="**Download** submission.csv",
-                        data=submission_path.read_bytes(),
-                        file_name="submission.csv",
-                        mime="text/csv",
-                    )
+                    try:
+                        data = submission_path.read_bytes()
+                        st.download_button(
+                            label="**Download** submission.csv",
+                            data=data,
+                            file_name="submission.csv",
+                            mime="text/csv",
+                        )
+                    except Exception as e:
+                        st.markdown(f":red[**Download Button Error**]: {e}")
 
 
 def evolving_window():

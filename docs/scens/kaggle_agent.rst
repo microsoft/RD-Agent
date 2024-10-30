@@ -100,6 +100,10 @@ You can try our demo by running the following command:
 
     The `competition name` parameter must match the name used with the API on the Kaggle platform.
 
+(NOTE: The code for crawling Kaggle competition information may not be applicable to your environment. 
+
+If you cannot execute it normally, you can refer to the following **Example Guide: Running a Specific Experiment**.)
+
 
 📋 Competition List Available
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,6 +153,8 @@ You can try our demo by running the following command:
 
   - Alternatively, you can manually place the dataset in the specified location in advance.
 
+  - you can download the kaggle_data.zip in the release and unzip it to the directory configured by the `KG_LOCAL_DATA_PATH` environment variable. 
+
 
 - 🚀 **Run the Application**
 
@@ -165,6 +171,26 @@ You can try our demo by running the following command:
   - Else: You can download the prediction results from the UI interface and submit them manually. For more details, refer to the :doc:`UI guide <../ui>`.
 
 For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
+
+
+🎨 Customize one template for a new competition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to facilitate RD-Agent to generate competition codes, we have specified a competition code structure:
+
+.. image:: kaggle_template.png
+   :alt: Design of Kaggle Code Template
+   :align: center
+
+- **feature directory** contains the feature engineering code. Generally no modification is required.
+- **model directory** contains the model codes.
+  select_xx.py is used to select different features according to different models.
+  model_xx.py is the basic code of different models. Generally, only some initial parameters need to be adjusted.
+- **fea_share_preprocess.py** is some basic preprocessing code shared by different models. The degree of customization here is high, but the preprocess_script() function needs to be retained, which will be called by train.py
+- **train.py** is the main code, which connects all the codes and is also the code called during the final execution.
+
+**We will soon provide a tool for automatic/semi-automatic template generation.**
+If you want to try a different competition now, you can refer to our current template structure and content to write a new template.
+
 
 🎯 Roadmap
 ~~~~~~~~~~~
