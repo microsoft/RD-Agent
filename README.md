@@ -145,9 +145,14 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent kaggle --competition [your competition name]
 
   # 2. Specifically, you can fill the competition name as follows:
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
+  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
+  export LOCAL_DATA_PATH=path/to/git_ignore_folder/kaggle_data
   rdagent kaggle --competition sf-crime
   ```
   The [Competition List Available](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available) can be found here. 
+  
+  For more details, you can refer to the [example guide](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment).
 
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
@@ -184,15 +189,7 @@ The supported scenarios are listed below:
 | **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
 | **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
 
-- **RoadMap**: Currently, we are working hard to add new features to the Kaggle scenario, including but not limited to:
-  - **Template auto generation**
-  - **Bench Optimization**
-    - RealMLBench
-      - Ongoing integration
-      - Auto online submission
-      - Batch Evaluation
-    - Offline Bench
-      - MLE-Bench
+- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
