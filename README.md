@@ -23,7 +23,8 @@
 
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
-| --            | ------                        |
+| --            | ------      
+| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
 | Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](docs/WeChat_QR_code.jpg)) |
 | Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
 | First release | **RDAgent** is released on GitHub |
@@ -44,6 +45,7 @@ R&D is a very general scenario. The advent of RDAgent can be your
 - 💰 **Automatic Quant Factory** ([🎥Demo Video](https://rdagent.azurewebsites.net/factor_loop)|[▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s))
 - 🤖 **Data Mining Agent:** Iteratively proposing data & models ([🎥Demo Video 1](https://rdagent.azurewebsites.net/model_loop)|[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s)) ([🎥Demo Video 2](https://rdagent.azurewebsites.net/dmm)|[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4))  and implementing them by gaining knowledge from data.
 - 🦾 **Research Copilot:** Auto read research papers ([🎥Demo Video](https://rdagent.azurewebsites.net/report_model)|[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o)) / financial reports ([🎥Demo Video](https://rdagent.azurewebsites.net/report_factor)|[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)) and implement model structures or building datasets.
+- 🤖 **Kaggle Agent:** Auto Model Tuning and Feature Engineering([🎥Demo Video Coming Soon...]()) and implementing them to achieve more in competitions.
 - ...
 
 You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
@@ -137,6 +139,21 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   ```
 
+- Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application
+  ```sh
+  # 1. the competition name should must match the name used with the API on the Kaggle platform.
+  rdagent kaggle --competition [your competition name]
+
+  # 2. Specifically, you can fill the competition name as follows:
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
+  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
+  export LOCAL_DATA_PATH=path/to/git_ignore_folder/kaggle_data
+  rdagent kaggle --competition sf-crime
+  ```
+  The [Competition List Available](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available) can be found here. 
+  
+  For more details, you can refer to the [example guide](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment).
+
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
   ```sh
@@ -170,7 +187,9 @@ The supported scenarios are listed below:
 | --              | --                                     | --                                                                                 |
 | **💹 Finance**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop)[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) [▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s) <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)  |
 | **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
-| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o)    | -                                                                                  |
+| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
+
+- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
