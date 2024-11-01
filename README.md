@@ -154,8 +154,8 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   # unzip the files to your local directory
   unzip kaggle_data.zip -d /your/local/directory/kaggle_data
 
-  # set environment variables
-  export LOCAL_DATA_PATH=/your/local/directory/kaggle_data/kaggle  
+  # set environment variables at `.env` file
+  KG_LOCAL_DATA_PATH=/your/local/directory/kaggle_data/kaggle  
 
   # run the application
   rdagent kaggle --competition sf-crime

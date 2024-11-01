@@ -96,7 +96,7 @@ You can try our demo by running the following command:
     
     .. code-block:: sh
 
-        rdagent kaggle --competition [your competition name]
+        rdagent kaggle --competition [your-competition-name]
 
     The `competition name` parameter must match the name used with the API on the Kaggle platform.
 
@@ -145,15 +145,51 @@ If you cannot execute it normally, you can refer to the following **Example Guid
 
 - 🔧 **Set up RD-Agent Environment**
 
+  - Ensure that you have the RD-Agent environment properly configured before proceeding with downloading and processing the competition data. 
+
 - 📥 **Download Competition Data (Optional)** 
 
-  - If web information and data are not prepared locally, the RD-Agent loop will automatically download them at startup. 
+  - Setting the Environment variables at `.env` file:
 
-  - In this case, you need to configure the Kaggle API yourself, agree to the competition rules on the Kaggle page, and configure `chromedriver` for Selenium. 
+    .. code-block:: dotenv
 
-  - Alternatively, you can manually place the dataset in the specified location in advance.
+      KG_LOCAL_DATA_PATH=/your/local/directory/kaggle 
 
-  - you can download the kaggle_data.zip in the release and unzip it to the directory configured by the `KG_LOCAL_DATA_PATH` environment variable. 
+  - You have two options to obtain the competition data:
+
+    - **Automatic Download:**
+
+      - Prerequisites:
+
+        - Configure the Kaggle API.
+
+        - Agree to the competition rules on the Kaggle website.
+
+        - Install and configure chromedriver for Selenium.
+
+    - **Manual Download:**
+
+      - If the crawler does not run smoothly or you want to get competition description information manually, download the kaggle_data.zip file from the release page.
+
+      - Unzip the downloaded file to your desired `KG_LOCAL_DATA_PATH`.
+
+      - Competition Dataset can be downloaded at Kaggle Website, and you should unzip the file to local directory.
+
+      - Ensure the directory structure matches the following:
+
+        .. code-block:: plaintext
+
+          kaggle  
+          ├── sf-crime.json  
+          └── sf-crime  
+            ├── train.csv  
+            └── test.csv  
+        
+        - kaggle/sf-crime.json: Contains the competition description information.
+
+        - kaggle/sf-crime/train.csv: Training dataset for the competition.
+
+        - kaggle/sf-crime/test.csv: Test dataset for the competition.
 
 
 - 🚀 **Run the Application**
