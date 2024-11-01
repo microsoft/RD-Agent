@@ -102,8 +102,17 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
         subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
 
         # unzip data
-        with zipfile.ZipFile(f"{data_path}/{competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
+        unzip_data(unzip_file_path=f"{data_path}/{competition}.zip")
+        for sub_zip_file in Path(data_path).rglob("*.zip"):
+            if sub_zip_file.name == f"{competition}.zip":
+                continue
+            unzip_data(sub_zip_file)
+
+
+def unzip_data(unzip_file_path: str) -> None:
+    unzip_taget_path = Path(unzip_file_path).parent
+    with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
+        zip_ref.extractall(unzip_taget_path)
 
 
 def leaderboard_scores(competition: str) -> list[float]:
