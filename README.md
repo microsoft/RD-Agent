@@ -140,14 +140,24 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   ```
 
 - Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application
+  
+  **Note**: This application will automatically download Kaggle competition data unless you prepare the data locally. If you do not have the data locally, you need to configure the Kaggle API and agree to the corresponding competition rules on the Kaggle website.
   ```sh
   # 1. the competition name should must match the name used with the API on the Kaggle platform.
-  rdagent kaggle --competition [your competition name]
+  rdagent kaggle --competition [your-competition-name]
 
   # 2. Specifically, you can fill the competition name as follows:
+
+  # download the competition description files to youre local directory
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
-  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
-  export LOCAL_DATA_PATH=path/to/git_ignore_folder/kaggle_data
+
+  # unzip the files to your local directory
+  unzip kaggle_data.zip -d /your/local/directory/kaggle_data
+
+  # set environment variables
+  export LOCAL_DATA_PATH=/your/local/directory/kaggle_data/kaggle  
+
+  # run the application
   rdagent kaggle --competition sf-crime
   ```
   The [Competition List Available](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available) can be found here. 
