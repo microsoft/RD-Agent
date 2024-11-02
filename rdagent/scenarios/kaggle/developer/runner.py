@@ -25,6 +25,8 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         for f in sorted((exp.experiment_workspace.workspace_path / "model").glob("*.py"), key=lambda x: x.name):
             codes.append(f.read_text())
         codes = "\n".join(codes)
+        for i in range(len(exp.sub_workspace_list)):
+            codes += str(exp.sub_workspace_list[i].code_dict.values())
         return md5_hash(codes)
 
     @cache_with_pickle(get_cache_key, CachedRunner.assign_cached_result)
@@ -58,7 +60,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
             else:
                 model_file_name = f"model/model_{model_type.lower()}.py"
                 exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
-
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)
