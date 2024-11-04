@@ -326,6 +326,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
             response = session.build_chat_completion(
                 user_prompt=user_prompt,
                 json_mode=True,
+                tag=self.__class__.__name__
             )
             code = json.loads(response)["code"]
             return code

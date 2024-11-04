@@ -593,6 +593,7 @@ class APIBackend:
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
         seed: Optional[int] = None,
+        tag: str = None
     ) -> str:
         """
         seed : Optional[int]
@@ -626,7 +627,10 @@ class APIBackend:
             frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         if presence_penalty is None:
             presence_penalty = LLM_SETTINGS.chat_presence_penalty
-
+        model = self.chat_model 
+        if tag in LLM_SETTINGS.mini_tags and model == "gpt-4o":
+            model = "gpt-4o-mini"
+        
         finish_reason = None
         if self.use_llama2:
             response = self.generator.chat_completion(
@@ -661,7 +665,7 @@ class APIBackend:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             kwargs = dict(
-                model=self.chat_model,
+                model=model,
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -705,6 +709,13 @@ class APIBackend:
                 finish_reason = response.choices[0].finish_reason
                 if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
+                    logger.info(json.dumps({
+                            "tag": tag, 
+                            "total_tokens": response.usage.total_tokens, 
+                            "prompt_tokens": response.usage.prompt_tokens, 
+                            "completion_tokens": response.usage.completion_tokens,
+                            "model": model
+                        }), tag="llm_messages")
             if json_mode:
                 json.loads(resp)
         if self.dump_chat_cache:

@@ -60,8 +60,11 @@ class QlibFactorScenario(Scenario):
     def experiment_setting(self) -> str:
         return self._experiment_setting
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(self, task: Task | None = None, simple_background=False) -> str:
         """A static scenario describer"""
+        if simple_background:
+            return f"""Background of the scenario:
+{self.background}"""
         return f"""Background of the scenario:
 {self.background}
 The source data you can use:

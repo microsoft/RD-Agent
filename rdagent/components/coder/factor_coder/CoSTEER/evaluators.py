@@ -8,6 +8,7 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
@@ -92,7 +93,7 @@ class FactorCodeEvaluator(FactorEvaluator):
             .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(target_task, simple_background=FACTOR_IMPLEMENT_SETTINGS.simple_background)
                     if self.scen is not None
                     else "No scenario description."
                 )
@@ -128,6 +129,7 @@ class FactorCodeEvaluator(FactorEvaluator):
             user_prompt=user_prompt,
             system_prompt=system_prompt,
             json_mode=False,
+            tag=self.__class__.__name__
         )
 
         return critic_response, None
@@ -214,7 +216,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             try:
                 api = APIBackend() if attempts == 0 else APIBackend(use_chat_cache=False)
                 resp = api.build_messages_and_create_chat_completion(
-                    user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True
+                    user_prompt=gen_df_info_str, system_prompt=system_prompt, json_mode=True, tag=self.__class__.__name__
                 )
                 resp_dict = json.loads(resp)
                 resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
@@ -562,6 +564,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                         system_prompt=system_prompt,
                         json_mode=True,
                         seed=attempts,  # in case of useless retrying when cache enabled.
+                        tag=self.__class__.__name__
                     ),
                 )
                 final_decision = final_evaluation_dict["final_decision"]
