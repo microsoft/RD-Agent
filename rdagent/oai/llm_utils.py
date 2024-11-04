@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import random
@@ -593,7 +594,6 @@ class APIBackend:
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
         seed: Optional[int] = None,
-        tag: str = None
     ) -> str:
         """
         seed : Optional[int]
@@ -628,6 +628,12 @@ class APIBackend:
         if presence_penalty is None:
             presence_penalty = LLM_SETTINGS.chat_presence_penalty
         model = self.chat_model 
+
+        caller_locals = inspect.stack()[1].frame.f_locals
+        if 'self' in caller_locals:
+            tag = caller_locals['self'].__class__.__name__
+        else:
+            tag = inspect.stack()[1].function
         if tag in LLM_SETTINGS.mini_tags and model == "gpt-4o":
             model = "gpt-4o-mini"
         
