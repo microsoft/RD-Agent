@@ -98,11 +98,11 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    data_path = f"{local_path}/{competition}"
-    if not Path(data_path).exists():
+    zipfile_path = f"{local_path}/zip_files"
+    if not Path(zipfile_path).exists():
         try:
             subprocess.run(
-                ["kaggle", "competitions", "download", "-c", competition, "-p", data_path],
+                ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
                 check=True,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
@@ -114,7 +114,7 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
     # unzip data
     unzip_path = f"{local_path}/{competition}"
     if not Path(unzip_path).exists():
-        unzip_data(unzip_file_path=f"{data_path}/{competition}.zip", unzip_target_path=unzip_path)
+        unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
         for sub_zip_file in Path(unzip_path).rglob("*.zip"):
             unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
