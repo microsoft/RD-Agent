@@ -46,7 +46,7 @@ class Scenario(ABC):
         """Rich style description to present"""
 
     @abstractmethod
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(self, task: Task | None = None, simple_background = False) -> str:
         """
         Combine all descriptions together
 
