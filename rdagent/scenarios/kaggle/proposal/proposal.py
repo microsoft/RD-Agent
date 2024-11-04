@@ -130,7 +130,6 @@ class KGHypothesisGen(ModelHypothesisGen):
 
         found_hypothesis_nodes = []
         for similar_node in similar_nodes:
-            # for hypothesis_type in KG_ACTION_LIST:
             hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
                 start_node=similar_node,
                 steps=3,

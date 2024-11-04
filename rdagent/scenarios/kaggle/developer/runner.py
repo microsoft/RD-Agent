@@ -27,7 +27,8 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         codes = "\n".join(codes)
         if exp.sub_workspace_list is not None:
             for i in range(len(exp.sub_workspace_list)):
-                codes += str(exp.sub_workspace_list[i].code_dict.values())
+                if exp.sub_workspace_list[i] is not None:
+                    codes += str(exp.sub_workspace_list[i].code_dict.values())
         return md5_hash(codes)
 
     @cache_with_pickle(get_cache_key, CachedRunner.assign_cached_result)
