@@ -628,12 +628,12 @@ class APIBackend:
         if presence_penalty is None:
             presence_penalty = LLM_SETTINGS.chat_presence_penalty
         model = self.chat_model 
-
-        caller_locals = inspect.stack()[1].frame.f_locals
+  
+        caller_locals = inspect.stack()[4].frame.f_locals
         if 'self' in caller_locals:
             tag = caller_locals['self'].__class__.__name__
         else:
-            tag = inspect.stack()[1].function
+            tag = inspect.stack()[4].function
         if tag in LLM_SETTINGS.mini_tags and model == "gpt-4o":
             model = "gpt-4o-mini"
         
