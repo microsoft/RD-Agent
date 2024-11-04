@@ -93,7 +93,11 @@ class FactorCodeEvaluator(FactorEvaluator):
             .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task, simple_background=FACTOR_IMPLEMENT_SETTINGS.simple_background)
+                    self.scen.get_scenario_all_desc(
+                        target_task,
+                        filtered_tag="feature",
+                        simple_background=FACTOR_IMPLEMENT_SETTINGS.simple_background,
+                    )
                     if self.scen is not None
                     else "No scenario description."
                 )
@@ -199,7 +203,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(implementation.target_task)
+                    self.scen.get_scenario_all_desc(implementation.target_task, filtered_tag="feature")
                     if self.scen is not None
                     else "No scenario description."
                 )

@@ -9,10 +9,9 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
 from rdagent.components.knowledge_management.vector_base import VectorBase
-from rdagent.components.proposal.model_proposal import (
-    ModelHypothesis,
-    ModelHypothesis2Experiment,
-    ModelHypothesisGen,
+from rdagent.components.proposal import (
+    FactorAndModelHypothesis2Experiment,
+    FactorAndModelHypothesisGen,
 )
 from rdagent.core.exception import ModelEmptyError
 from rdagent.core.prompts import Prompts
@@ -67,7 +66,7 @@ Concise Knowledge: {self.concise_knowledge}
 """
 
 
-class KGHypothesisGen(ModelHypothesisGen):
+class KGHypothesisGen(FactorAndModelHypothesisGen):
     """
     # NOTE: we can share this class across different data mining scenarios
     # It may better to move the class into components folder like `rdagent/components/proposal/model_proposal.py`
@@ -251,7 +250,7 @@ class KGHypothesisGen(ModelHypothesisGen):
         }
         return context_dict, True
 
-    def convert_response(self, response: str) -> ModelHypothesis:
+    def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
 
         hypothesis = KGHypothesis(
@@ -267,9 +266,9 @@ class KGHypothesisGen(ModelHypothesisGen):
         return hypothesis
 
 
-class KGHypothesis2Experiment(ModelHypothesis2Experiment):
+class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
-        scenario = trace.scen.get_scenario_all_desc()
+        scenario = trace.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment")
         assert isinstance(hypothesis, KGHypothesis)
         experiment_output_format = (
             prompt_dict["feature_experiment_output_format"]
