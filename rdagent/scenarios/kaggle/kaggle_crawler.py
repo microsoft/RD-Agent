@@ -97,22 +97,21 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    data_path = f"{local_path}/{competition}"
-    if not Path(data_path).exists():
+    data_path = f"{local_path}/zipfiles"
+    if not Path(f"{data_path}/{competition}.zip").exists():
         subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
 
-        # unzip data
-        unzip_data(unzip_file_path=f"{data_path}/{competition}.zip")
-        for sub_zip_file in Path(data_path).rglob("*.zip"):
-            if sub_zip_file.name == f"{competition}.zip":
-                continue
-            unzip_data(sub_zip_file)
+    # unzip data
+    unzip_path = f"{local_path}/{competition}"
+    if not Path(unzip_path).exists():
+        unzip_data(unzip_file_path=f"{data_path}/{competition}.zip", unzip_target_path=unzip_path)
+        for sub_zip_file in Path(unzip_path).rglob("*.zip"):
+            unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
 
-def unzip_data(unzip_file_path: str) -> None:
-    unzip_taget_path = Path(unzip_file_path).parent
+def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
     with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
-        zip_ref.extractall(unzip_taget_path)
+        zip_ref.extractall(unzip_target_path)
 
 
 def leaderboard_scores(competition: str) -> list[float]:
