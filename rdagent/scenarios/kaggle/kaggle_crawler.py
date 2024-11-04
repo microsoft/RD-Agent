@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
@@ -97,9 +98,18 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    data_path = f"{local_path}/zipfiles"
-    if not Path(f"{data_path}/{competition}.zip").exists():
-        subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
+    data_path = f"{local_path}/{competition}"
+    if not Path(data_path).exists():
+        try:
+            subprocess.run(
+                ["kaggle", "competitions", "download", "-c", competition, "-p", data_path],
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+            raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
 
     # unzip data
     unzip_path = f"{local_path}/{competition}"

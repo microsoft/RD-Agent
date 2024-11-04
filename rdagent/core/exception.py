@@ -42,3 +42,9 @@ class ModelEmptyError(Exception):
     """
     Exceptions raised when no model is generated correctly
     """
+
+
+class KaggleError(Exception):
+    """
+    Exceptions raised when calling Kaggle API
+    """
