@@ -2,8 +2,6 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
-import os
-
 from pydantic_settings import BaseSettings
 
 from rdagent.components.workflow.conf import BasePropSetting
@@ -50,7 +48,7 @@ class KaggleBasePropSetting(BasePropSetting):
     competition: str = ""
     """Kaggle competition name, e.g., 'sf-crime'"""
 
-    local_data_path: str = os.getenv("LOCAL_DATA_PATH")
+    local_data_path: str = ""
     """Folder storing Kaggle competition data"""
 
     if_action_choosing_based_on_UCB: bool = False
