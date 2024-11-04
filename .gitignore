@@ -151,7 +151,7 @@ reports/
 # git_ignore_folder
 git_ignore_folder/
 
-#cache
+# cache
 *cache*/
 *cache.json
 
@@ -169,4 +169,11 @@ mlruns/
 
 # shell script
 *.out
-*.sh
+
+# Logs
+*.log
+logs/
+log/
+
+# Ignore results directory
+RD-Agent/rdagent/scenarios/kaggle/automated_evaluation/results/
