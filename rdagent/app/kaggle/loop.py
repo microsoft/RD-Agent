@@ -113,6 +113,28 @@ class KaggleRDLoop(RDLoop):
                 except Exception as e:
                     logger.error(f"Other exception when use kaggle api:\n{e}")
 
+            if KAGGLE_IMPLEMENT_SETTING.mle_submit:
+                csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
+                try:
+                    result = subprocess.run(
+                        [
+                            "mlebench",
+                            "grade-sample",
+                            str(csv_path.absolute()),
+                            KAGGLE_IMPLEMENT_SETTING.competition,
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    with open(exp.experiment_workspace.workspace_path / "mle_submission_report.txt", "w") as f:
+                        f.write(result.stdout)
+                        f.write(result.stderr)
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Auto submission failed: \n{e}")
+                except Exception as e:
+                    logger.error(f"Other exception when use mle api:\n{e}")
+
         return exp
 
     skip_loop_error = (ModelEmptyError, FactorEmptyError)
