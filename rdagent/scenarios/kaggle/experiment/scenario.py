@@ -65,8 +65,10 @@ class KGScenario(Scenario):
 
         self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
         self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
-        self.reward_estimates["Model feature selection"] = 0.2
-        self.reward_estimates["Model tuning"] = 1.0
+        # self.reward_estimates["Model feature selection"] = 0.2
+        # self.reward_estimates["Model tuning"] = 1.0
+        self.reward_estimates["Feature processing"] = 0.2
+        self.reward_estimates["Feature engineering"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
 
@@ -226,7 +228,29 @@ class KGScenario(Scenario):
     @property
     def rich_style_description(self) -> str:
         return f"""
-This is the Kaggle scenario for the competition: {self.competition}
+### Kaggle Agent: Automated Feature Engineering & Model Tuning Evolution
+
+#### [Overview](#_summary)
+
+In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
+
+#### Kaggle Competition info
+
+Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{self.competition})
+
+#### [Automated R&D](#_rdloops)
+
+- **[R (Research)](#_research)**
+- Iteration of ideas and hypotheses.
+- Continuous learning and knowledge construction.
+
+- **[D (Development)](#_development)**
+- Evolving code generation, model refinement, and features generation.
+- Automated implementation and testing of models/features.
+
+#### [Objective](#_summary)
+
+To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
     def get_scenario_all_desc(

@@ -59,7 +59,6 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
             else:
                 model_file_name = f"model/model_{model_type.lower()}.py"
                 exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
-
         env_to_use = {"PYTHONPATH": "./"}
 
         result = exp.experiment_workspace.execute(run_env=env_to_use)

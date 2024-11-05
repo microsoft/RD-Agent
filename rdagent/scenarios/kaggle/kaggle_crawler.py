@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
@@ -96,14 +97,58 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     return descriptions
 
 
-def download_data(competition: str, local_path: str = "/data/userdata/share/kaggle") -> None:
-    data_path = f"{local_path}/{competition}"
-    if not Path(data_path).exists():
-        subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
+def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
+    if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
+        zipfile_path = f"{local_path}/zip_files"
+        if not Path(zipfile_path).exists():
+            try:
+                subprocess.run(
+                    ["mlebench", "prepare", "-c", competition, "-p", zipfile_path],
+                    check=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+        # unzip data
+        unzip_path = Path(local_path) / f"{competition}_test"
+        if not unzip_path.exists():
+            unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
+            for sub_zip_file in unzip_path.rglob("*.zip"):
+                unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+
+        competition_path = Path(local_path) / competition
+        competition_path.mkdir(parents=True, exist_ok=True)
+        processed_data_folder_path = unzip_path / "prepared/public"
+        subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
+        subprocess.run(f"rm -rf {unzip_path}", shell=True)
+
+    else:
+        zipfile_path = f"{local_path}/zip_files"
+        if not Path(zipfile_path).exists():
+            try:
+                subprocess.run(
+                    ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
+                    check=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
 
         # unzip data
-        with zipfile.ZipFile(f"{data_path}/{competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
+        unzip_path = f"{local_path}/{competition}"
+        if not Path(unzip_path).exists():
+            unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
+            for sub_zip_file in Path(unzip_path).rglob("*.zip"):
+                unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+
+
+def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
+    with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
+        zip_ref.extractall(unzip_target_path)
 
 
 def leaderboard_scores(competition: str) -> list[float]:
@@ -136,7 +181,7 @@ def score_rank(competition: str, score: float) -> tuple[int, float]:
 
 
 def download_notebooks(
-    competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks", num: int = 15
+    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks", num: int = 15
 ) -> None:
     data_path = Path(f"{local_path}/{competition}")
     from kaggle.api.kaggle_api_extended import KaggleApi
@@ -183,7 +228,9 @@ def notebook_to_knowledge(notebook_text: str) -> str:
     return response
 
 
-def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdata/share/kaggle/notebooks") -> None:
+def convert_notebooks_to_text(
+    competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/notebooks"
+) -> None:
     data_path = Path(f"{local_path}/{competition}")
     converted_num = 0
 
@@ -219,7 +266,7 @@ def convert_notebooks_to_text(competition: str, local_path: str = "/data/userdat
     print(f"Converted {converted_num} notebooks to text files.")
 
 
-def collect_knowledge_texts(local_path: str = "/data/userdata/share/kaggle") -> dict[str, list[str]]:
+def collect_knowledge_texts(local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> dict[str, list[str]]:
     """
     {
         "competition1": [

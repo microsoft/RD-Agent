@@ -44,7 +44,7 @@ class KaggleBasePropSetting(BasePropSetting):
     competition: str = ""
     """Kaggle competition name, e.g., 'sf-crime'"""
 
-    local_data_path: str = "/data/userdata/share/kaggle"
+    local_data_path: str = ""
     """Folder storing Kaggle competition data"""
 
     if_action_choosing_based_on_UCB: bool = False
@@ -63,19 +63,19 @@ class KaggleBasePropSetting(BasePropSetting):
     """Enable advanced graph-based RAG"""
 
     # Conditionally set the knowledge_base based on the use of graph RAG
-    knowledge_base: str = (
-        "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph" if if_using_graph_rag else ""
-    )
+    knowledge_base: str = ""
     """Knowledge base class, uses 'KGKnowledgeGraph' when advanced graph-based RAG is enabled, otherwise empty."""
 
     knowledge_base_path: str = "kg_graph.pkl"
     """Advanced version of graph-based RAG"""
 
-    auto_submit: bool = True
+    auto_submit: bool = False
     """Automatically upload and submit each experiment result to Kaggle platform"""
 
     mini_case: bool = False
     """Enable mini-case study for experiments"""
+
+    if_using_mle_data: bool = False
 
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

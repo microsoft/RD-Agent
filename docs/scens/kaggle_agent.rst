@@ -100,6 +100,10 @@ You can try our demo by running the following command:
 
     The `competition name` parameter must match the name used with the API on the Kaggle platform.
 
+(NOTE: The code for crawling Kaggle competition information may not be applicable to your environment. 
+
+If you cannot execute it normally, you can refer to the following **Example Guide: Running a Specific Experiment**.)
+
 
 📋 Competition List Available
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,6 +153,8 @@ You can try our demo by running the following command:
 
   - Alternatively, you can manually place the dataset in the specified location in advance.
 
+  - you can download the kaggle_data.zip in the release and unzip it to the directory configured by the `KG_LOCAL_DATA_PATH` environment variable. 
+
 
 - 🚀 **Run the Application**
 
@@ -165,6 +171,26 @@ You can try our demo by running the following command:
   - Else: You can download the prediction results from the UI interface and submit them manually. For more details, refer to the :doc:`UI guide <../ui>`.
 
 For more information about Kaggle API Settings, refer to the `Kaggle API <https://github.com/Kaggle/kaggle-api>`_.
+
+
+🎨 Customize one template for a new competition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to facilitate RD-Agent to generate competition codes, we have specified a competition code structure:
+
+.. image:: kaggle_template.png
+   :alt: Design of Kaggle Code Template
+   :align: center
+
+- **feature directory** contains the feature engineering code. Generally no modification is required.
+- **model directory** contains the model codes.
+  select_xx.py is used to select different features according to different models.
+  model_xx.py is the basic code of different models. Generally, only some initial parameters need to be adjusted.
+- **fea_share_preprocess.py** is some basic preprocessing code shared by different models. The degree of customization here is high, but the preprocess_script() function needs to be retained, which will be called by train.py
+- **train.py** is the main code, which connects all the codes and is also the code called during the final execution.
+
+**We will soon provide a tool for automatic/semi-automatic template generation.**
+If you want to try a different competition now, you can refer to our current template structure and content to write a new template.
+
 
 🎯 Roadmap
 ~~~~~~~~~~~
@@ -212,7 +238,5 @@ The following environment variables can be set in the `.env` file to customize t
 .. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
     :settings-show-field-summary: False
     :members: coder_use_cache, data_folder, data_folder_debug, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
-    :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler, v2_add_fail_attempt_to_latest_successful_execution
+    :exclude-members: Config, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler, v2_add_fail_attempt_to_latest_successful_execution, new_knowledge_base_path, knowledge_base_path, data_folder, data_folder_debug, select_threshold
     :no-index:
-
-
