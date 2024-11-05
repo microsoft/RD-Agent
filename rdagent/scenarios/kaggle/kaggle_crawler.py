@@ -100,10 +100,11 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
     if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
-        if not Path(zipfile_path).exists():
+        zip_competition_path = Path(zipfile_path) / competition
+        if not zip_competition_path.exists():
             try:
                 subprocess.run(
-                    ["mlebench", "prepare", "-c", competition, "-p", zipfile_path],
+                    ["mlebench", "prepare", "-c", competition, "--data-dir", zipfile_path],
                     check=True,
                     stderr=subprocess.PIPE,
                     stdout=subprocess.PIPE,
@@ -111,22 +112,15 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
             except subprocess.CalledProcessError as e:
                 logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
                 raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
-        # unzip data
-        unzip_path = Path(local_path) / f"{competition}_test"
-        if not unzip_path.exists():
-            unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
-            for sub_zip_file in unzip_path.rglob("*.zip"):
-                unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
-        competition_path = Path(local_path) / competition
-        competition_path.mkdir(parents=True, exist_ok=True)
-        processed_data_folder_path = unzip_path / "prepared/public"
-        subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
-        subprocess.run(f"rm -rf {unzip_path}", shell=True)
+            competition_path = Path(local_path) / competition
+            competition_path.mkdir(parents=True, exist_ok=True)
+            processed_data_folder_path = zip_competition_path / "prepared/public"
+            subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
 
     else:
         zipfile_path = f"{local_path}/zip_files"
-        if not Path(zipfile_path).exists():
+        if not Path(f"{zipfile_path}/{competition}.zip").exists():
             try:
                 subprocess.run(
                     ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
@@ -138,12 +132,12 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
                 logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
                 raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
 
-        # unzip data
-        unzip_path = f"{local_path}/{competition}"
-        if not Path(unzip_path).exists():
-            unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
-            for sub_zip_file in Path(unzip_path).rglob("*.zip"):
-                unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+            # unzip data
+            unzip_path = f"{local_path}/{competition}"
+            if not Path(unzip_path).exists():
+                unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
+                for sub_zip_file in Path(unzip_path).rglob("*.zip"):
+                    unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
 
 def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
