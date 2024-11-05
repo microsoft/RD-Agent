@@ -117,13 +117,13 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
             unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
             for sub_zip_file in unzip_path.rglob("*.zip"):
                 unzip_data(sub_zip_file, unzip_target_path=unzip_path)
-        
+
         competition_path = Path(local_path) / competition
         competition_path.mkdir(parents=True, exist_ok=True)
         processed_data_folder_path = unzip_path / "prepared/public"
         subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
         subprocess.run(f"rm -rf {unzip_path}", shell=True)
-        
+
     else:
         zipfile_path = f"{local_path}/zip_files"
         if not Path(zipfile_path).exists():
