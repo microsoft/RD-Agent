@@ -101,7 +101,8 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
     if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
-        if not Path(zipfile_path).exists():
+        zip_file = os.path.join(zipfile_path, f"{competition}.zip")
+        if not Path(zip_file).exists():
             try:
                 subprocess.run(
                     ["mlebench", "prepare", "-c", competition, "-p", zipfile_path],
