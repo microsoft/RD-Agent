@@ -71,8 +71,10 @@ class KGScenario(Scenario):
 
         self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
         self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
-        self.reward_estimates["Model feature selection"] = 0.2
-        self.reward_estimates["Model tuning"] = 1.0
+        # self.reward_estimates["Model feature selection"] = 0.2
+        # self.reward_estimates["Model tuning"] = 1.0
+        self.reward_estimates["Feature processing"] = 0.2
+        self.reward_estimates["Feature engineering"] = 1.0
         self.confidence_parameter = 1.0
         self.initial_performance = 0.0
 

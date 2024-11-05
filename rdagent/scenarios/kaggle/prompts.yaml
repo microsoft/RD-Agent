@@ -24,7 +24,6 @@ KG_hypothesis_gen_RAG: |-
   {% endfor %}
   {% endif %}
 
-
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
@@ -101,45 +100,41 @@ hypothesis_specification:
       - Maintain a balance between simplicity and complexity to develop a diverse and robust feature library.
 
   Model feature selection: |-
-    Selection_based_on_model_type:
+    Action: Model feature selection
+
+    1. Selection based on model_type:
       - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
       - Ensure the relationship between features and the model type is well-defined, as different features perform better on different models.
-    Pattern_recognition:
+    
+    2. Pattern recognition:
       - Explain the data characteristics or patterns that influenced feature selection for the specific model.
       - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
 
   Model tuning: |-
-      Explain the hypothesis clearly with valuable information. What kind of model are you building/tuning? What do you think is true? How are you revising and why? What are some innovations? Base your hypothesis on the previous history and your understanding of the model code. "Tune" means changing the model architecture or hyperparameters. 
-      Focus_on_architecture_or_hyper_parameter_tuning_or_both:
-        - Focus on designing new model architectures one at a time OR hyper-parameter tuning OR both.
-        - Each hypothesis should introduce a novel architecture or a significant modification to an existing one, while leveraging previous experiences and the hypothesis history.
-        - Optimize one model at a time, iterating until its potential is fully explored. Switch to a new model only when you believe the current model’s potential has been exhausted.       
-      Specific_to_model_type:
-        - Note that any types of tuning or model design must be specific to the model types available in our workspace.
-        - Clearly define the model type (e.g., Neural Network Models (MLP, CNN, RNN, LSTM, GRU etc.), XGBoost, RandomForest, LightGBM) and the architecture/tuning being introduced.
-        - Ensure the architecture or tuning aligns with the data characteristics and the strengths or limitations of the specific model. 
-      Rationale_behind_architecture_and_tuning:
-        - Explain the innovation or reasoning behind the architectural design or tuning approach.
-        - Justify how the new structure or parameter change captures data patterns more effectively, improves learning efficiency, or enhances predictive power.      
-      Start_simple_innovate_gradually:
-        - Start with innovative yet simple changes to ensure each iteration is well-tested and the results are well-understood.
-        - Gradually introduce more complex architectural changes or hyper-parameter adjustments based on gathered results and insights.
-      Introduce_one_innovation_at_a_time:
-        - Focus on testing one key innovation at a time to isolate its impact on performance.
-        - Avoid combining multiple innovations in a single iteration to maintain clarity in performance results.
-      Hypothesis_statement:
-        - For each hypothesis, specify the exact innovation or tuning approach and explain why it's expected to enhance performance for the chosen model type. Eg. Instead of a general "Adjusting", specific the direction & extent. 
-      Hypothesis_examples: (Please note that they are only examples)
-        1. "Increasing the dropout rate in an MLP from 0.2 to 0.5 will help reduce overfitting and improve model generalization on validation data."
-        2. "Adding a skip connection to the CNN architecture will allow deeper layers to receive gradients more effectively, preventing vanishing gradients and improving feature learning."
-        3. "Doubling the GRU hidden units from 128 to 256 will allow the model to capture more complex temporal dependencies in time-series data, potentially improving accuracy."
-        4. "Switching the LSTM optimizer from Adam to SGD with momentum will slow down convergence, leading to more stable and refined learning over time in sparse data environments."
-        5. "Reducing the learning rate in a LightGBM model from 0.05 to 0.01 will slow down the learning process, allowing for better generalization on larger datasets."
-        6. "Incorporating a self-attention layer into the RNN model will enhance its ability to focus on important parts of the input sequence, improving sequence-to-sequence translation accuracy."
-        7. "Increasing the maximum depth of trees in a RandomForest model from 10 to 20 will allow the model to capture more complex patterns in high-dimensional data, improving performance."
-        8. "Replacing the ReLU activation with Leaky ReLU in a CNN will prevent the dying ReLU problem and improve the model’s ability to learn from negative values."
-        9. "Introducing early stopping in XGBoost with a patience of 10 rounds will prevent overfitting by halting training when the validation error no longer improves."
-        10. "Expanding the CNN kernel size from 3x3 to 5x5 in early layers will help capture larger spatial dependencies in image data, enhancing performance on image classification tasks."
+    Action: Model tuning
+      
+    1. Overview:
+    - Clearly explain your hypothesis.
+      - Which model are you tuning (one of the four types)?
+      - How are you revising it, and why?
+      - What are the innovations?
+    - Base your hypothesis on previous structures and your understanding of the model code.
+    - "Tuning" includes changing the model architecture or hyperparameters.
+
+    2. Focus on Architecture and/or Hyperparameter Tuning:
+      - Concentrate on designing new model architectures one at a time, hyperparameter tuning, or both.
+      - Each hypothesis should introduce a novel architecture or a significant modification to an existing one.
+      - Leverage prior experiences and hypothesis history.
+      - If necessary, write source code manually to implement innovations beyond existing packages.
+
+    3. Specific to Model Type:
+      - Tuning must be specific to the model types available in our workspace (e.g., Neural Networks, XGBoost, Random Forest, LightGBM).
+      - Clearly define the model type and the architecture or tuning being introduced.
+      - Ensure the changes align with data characteristics and the model's strengths or limitations.
+
+    4. Rationale Behind Architecture and Tuning:
+      - Explain the reasoning behind your architectural design or tuning approach.
+      - Justify how the new structure or parameter changes more effectively capture data patterns and improve learning efficiency.
 
 feature_experiment_output_format: |-
   According to the hypothesis, please help user design one or more feature engineering tasks.
