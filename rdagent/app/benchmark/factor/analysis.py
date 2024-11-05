@@ -181,10 +181,10 @@ class Plotter:
     def plot_data(data, file_name, title):
         plt.figure(figsize=(10, 10))
         plt.ylabel("Value")
-        colors = ['#3274A1', '#E1812C', '#3A923A', '#C03D3E']
-        plt.bar(data['a'], data['b'], color=colors, capsize=5)
+        colors = ["#3274A1", "#E1812C", "#3A923A", "#C03D3E"]
+        plt.bar(data["a"], data["b"], color=colors, capsize=5)
         for idx, row in data.iterrows():
-            plt.text(idx, row['b'] + 0.01, f"{row['b']:.2f}", ha='center', va='bottom')
+            plt.text(idx, row["b"] + 0.01, f"{row['b']:.2f}", ha="center", va="bottom")
         plt.suptitle(title, y=0.98)
         plt.xticks(rotation=45)
         plt.ylim(0, 1)

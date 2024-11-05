@@ -88,13 +88,13 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
         else:
             df_info = f"Index name: {df.index.name}\n"
         columns = df.dtypes.to_dict()
-        filtered_columns = [f"{i, j}" for i,j in columns.items() if i in variable_list]
+        filtered_columns = [f"{i, j}" for i, j in columns.items() if i in variable_list]
         if filtered_columns:
             df_info += "Related Data columns: \n"
-            df_info += ','.join(filtered_columns)
+            df_info += ",".join(filtered_columns)
         else:
             df_info += "Data columns: \n"
-            df_info += ','.join(columns)
+            df_info += ",".join(columns)
         df_info += "\n"
         if "REPORT_PERIOD" in df.columns:
             one_instrument = df.index.get_level_values("instrument")[0]

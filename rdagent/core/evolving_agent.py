@@ -25,14 +25,16 @@ class EvoAgent(ABC):
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
         filter_final_evo: bool = False,
-    ) -> EvolvableSubjects: ...
+    ) -> EvolvableSubjects:
+        ...
 
     @abstractmethod
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
         feedback: Feedback | None,
-    ) -> EvolvableSubjects: ...
+    ) -> EvolvableSubjects:
+        ...
 
 
 class RAGEvoAgent(EvoAgent):
