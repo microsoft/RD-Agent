@@ -191,7 +191,7 @@ class KGDockerConf(DockerConf):
 
     # local_data_path: str = "/data/userdata/share/kaggle"
 
-    running_timeout_period: int = 300
+    running_timeout_period: int = 600
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
