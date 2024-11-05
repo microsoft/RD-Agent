@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+import shutil
 from typing import Any, Tuple
 
 from rdagent.core.developer import Developer
@@ -20,5 +21,12 @@ class CachedRunner(Developer[ASpecificExp]):
     def assign_cached_result(self, exp: Experiment, cached_res: Experiment) -> Experiment:
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1].result = cached_res.based_experiments[-1].result
+        if cached_res.experiment_workspace.workspace_path.exists():
+            for csv_file in cached_res.experiment_workspace.workspace_path.glob("*.csv"):
+                shutil.copy(csv_file, exp.experiment_workspace.workspace_path)
+            for py_file in (cached_res.experiment_workspace.workspace_path / "feature").glob("*.py"):
+                shutil.copy(py_file, exp.experiment_workspace.workspace_path / "feature")
+            for py_file in (cached_res.experiment_workspace.workspace_path / "model").glob("*.py"):
+                shutil.copy(py_file, exp.experiment_workspace.workspace_path / "model")
         exp.result = cached_res.result
         return exp

@@ -195,7 +195,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
         buffer = io.StringIO()
         gen_df.info(buf=buffer)
-        gen_df_info_str = f"The use is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
+        gen_df_info_str = f"The user is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
@@ -517,7 +517,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(target_task, filtered_tag="feature")
                     if self.scen is not None
                     else "No scenario description."
                 )

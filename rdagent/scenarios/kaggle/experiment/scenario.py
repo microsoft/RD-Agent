@@ -200,7 +200,7 @@ class KGScenario(Scenario):
             return feature_interface
 
         model_interface = "The model code should follow the interface:\n" + (
-            Environment(undefined=StrictUndefined).from_string(prompt_dict["kg_model_interface"]).render(model_tag=tag)
+            Environment(undefined=StrictUndefined).from_string(prompt_dict["kg_model_interface"]).render(tag=tag)
         )
         if tag is None:
             return feature_interface + "\n" + model_interface
@@ -229,7 +229,9 @@ class KGScenario(Scenario):
 This is the Kaggle scenario for the competition: {self.competition}
 """
 
-    def get_scenario_all_desc(self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None) -> str:
+    def get_scenario_all_desc(
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+    ) -> str:
         def common_description() -> str:
             return f"""\n------Background of the scenario------
 {self.background}
@@ -241,11 +243,14 @@ This is the Kaggle scenario for the competition: {self.competition}
 {self.submission_specifications}
 """
 
-        def interface_and_output(tag: str | None) -> str:
+        def interface(tag: str | None) -> str:
             return f"""
 ------The interface you should follow to write the runnable code------
 {self.interface(tag)}
+"""
 
+        def output(tag: str | None) -> str:
+            return f"""
 ------The output of your code should be in the format------
 {self.output_format(tag)}
 """
@@ -257,9 +262,9 @@ This is the Kaggle scenario for the competition: {self.competition}
 """
 
         assert filtered_tag is not None, "filtered_tag should not be None in Kaggle scenario"
-        if filtered_tag == "hypothesis_and_experiment":
+        if filtered_tag == "hypothesis_and_experiment" or filtered_tag == "feedback":
             return common_description() + simulator(None)
         elif filtered_tag == "feature":
-            return common_description() + interface_and_output("feature") + simulator("feature")
+            return common_description() + interface("feature") + output("feature") + simulator("feature")
         else:
-            return common_description() + interface_and_output(filtered_tag) + simulator("model")
+            return common_description() + interface(filtered_tag) + output("model") + simulator("model")
