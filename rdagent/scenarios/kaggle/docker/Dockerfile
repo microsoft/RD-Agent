@@ -26,3 +26,4 @@ RUN pip install sparse
 RUN pip install lightgbm 
 RUN pip install pyarrow
 RUN pip install fastparquet
+RUN pip install optuna

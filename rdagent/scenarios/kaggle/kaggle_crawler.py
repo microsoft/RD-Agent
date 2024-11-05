@@ -1,6 +1,7 @@
 # %%
 import bisect
 import json
+import os
 import subprocess
 import time
 import zipfile
@@ -126,7 +127,8 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
 
     else:
         zipfile_path = f"{local_path}/zip_files"
-        if not Path(zipfile_path).exists():
+        zip_file = os.path.join(zipfile_path, f"{competition}.zip")
+        if not Path(zip_file).exists():
             try:
                 subprocess.run(
                     ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
