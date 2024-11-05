@@ -5,10 +5,7 @@ from typing import List, Tuple
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
-from rdagent.components.proposal import (
-    FactorHypothesis2Experiment,
-    FactorHypothesisGen,
-)
+from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypothesisGen
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment

@@ -1,7 +1,7 @@
 import subprocess
 from collections import defaultdict
-from typing import Any
 from concurrent.futures import TimeoutError
+from typing import Any
 
 import fire
 

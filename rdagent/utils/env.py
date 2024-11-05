@@ -7,7 +7,6 @@ Tries to create uniform environment for the agent to run;
 
 # TODO: move the scenario specific docker env into other folders.
 
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import json
 import os
 import pickle
@@ -16,6 +15,7 @@ import sys
 import uuid
 import zipfile
 from abc import abstractmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
 
