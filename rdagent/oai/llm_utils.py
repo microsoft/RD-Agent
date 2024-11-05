@@ -629,6 +629,8 @@ class APIBackend:
         if presence_penalty is None:
             presence_penalty = LLM_SETTINGS.chat_presence_penalty
   
+        # Use index 4 to skip the current function and intermediate calls,
+        # and get the locals of the caller's frame.
         caller_locals = inspect.stack()[4].frame.f_locals
         if 'self' in caller_locals:
             tag = caller_locals['self'].__class__.__name__
