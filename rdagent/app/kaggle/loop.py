@@ -144,8 +144,4 @@ def main(path=None, step_n=None, competition=None):
 
 
 if __name__ == "__main__":
-
-    from dotenv import load_dotenv
-
-    load_dotenv(override=True)
     fire.Fire(main)

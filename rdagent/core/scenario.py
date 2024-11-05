@@ -47,7 +47,10 @@ class Scenario(ABC):
 
     @abstractmethod
     def get_scenario_all_desc(
-        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+        self,
+        task: Task | None = None,
+        filtered_tag: str | None = None,
+        simple_background: bool | None = None,
     ) -> str:
         """
         Combine all descriptions together

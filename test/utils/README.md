@@ -74,7 +74,7 @@ The `QTDockerEnv` class is responsible for setting up and running Docker environ
    - **Returns**: The stdout output from the Docker container.
    - **Example**:
      ```python
-     result = qtde.timedout_run(local_path="/path/to/env_tpl", entry="qrun conf.yaml")
+     result = qtde.run(local_path="/path/to/env_tpl", entry="qrun conf.yaml")
      ```
 ---
 ### 📊 Expected Output
