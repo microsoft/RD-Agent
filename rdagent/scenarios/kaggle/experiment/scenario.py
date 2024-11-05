@@ -224,7 +224,7 @@ The model code should follow the simulator:
 This is the Kaggle scenario for the competition: {self.competition}
 """
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(self, task: Task | None = None, simple_background: bool = False) -> str:
         return f"""Background of the scenario:
 {self._background}
 The source dataset you can use to generate the features:
