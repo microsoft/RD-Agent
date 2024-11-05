@@ -66,6 +66,134 @@ Concise Knowledge: {self.concise_knowledge}
 """
 
 
+def generate_RAG_content(
+    scen: KGScenario,
+    trace: Trace,
+    hypothesis_and_feedback: str,
+    target: str = None,
+    chosen_hypothesis: str = None,
+    chosen_hypothesis_type: str = None,
+) -> str:
+    if scen.if_using_vector_rag:
+        if scen.mini_case:
+            rag_results, _ = scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
+        else:
+            rag_results, _ = scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=5)
+        return "\n".join([doc.content for doc in rag_results])
+    if scen.if_using_graph_rag is False or trace.knowledge_base is None:
+        return None
+    same_competition_node = trace.knowledge_base.get_node_by_content(trace.scen.get_competition_full_desc())
+    if same_competition_node is not None:
+        related_hypothesis_nodes = []
+        for action in KG_ACTION_LIST:
+            related_hypothesis_nodes.extend(
+                trace.knowledge_base.get_nodes_within_steps(
+                    start_node=same_competition_node,
+                    steps=1,
+                    constraint_labels=[action],
+                )[:1]
+            )
+    else:
+        related_hypothesis_nodes = []
+    experiences = []
+    for hypothesis_node in related_hypothesis_nodes:
+        experience = {"hypothesis": hypothesis_node.content}
+        experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
+            start_node=hypothesis_node, steps=1, constraint_labels=["experiments"]
+        )
+        if len(experiment_node_list) > 0:
+            experience["experiments"] = experiment_node_list[0].content
+        else:
+            experience["experiments"] = "No experiment information available."
+        conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
+            start_node=hypothesis_node, steps=1, constraint_labels=["conclusion"]
+        )
+        if len(conclusion_node_list) > 0:
+            experience["conclusion"] = conclusion_node_list[0].content
+        else:
+            experience["conclusion"] = "No conclusion information available."
+        experiences.append(experience)
+
+    found_nodes = []
+    insights = []
+    if chosen_hypothesis is not None:
+        similar_nodes = trace.knowledge_base.semantic_search(
+            node=chosen_hypothesis,
+            topk_k=2,
+        )
+
+        for similar_node in similar_nodes:
+            hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
+                start_node=similar_node,
+                steps=3,
+                constraint_labels=[chosen_hypothesis_type],
+            )
+            found_nodes.extend(hypothesis_nodes[:5])
+
+        found_nodes = sorted(list(set(found_nodes)), key=lambda x: len(x.content))
+
+        for exp_node in found_nodes[:5]:
+            insight = {"experiments": exp_node.content}
+            hypothesis_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=exp_node, steps=2, constraint_labels=KG_ACTION_LIST
+            )
+            if len(hypothesis_node_list) > 0:
+                insight["hypothesis"] = hypothesis_node_list[0].content
+            else:
+                insight["hypothesis"] = "No hypothesis information available."
+            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=exp_node, steps=2, constraint_labels=["conclusion"]
+            )
+            if len(conclusion_node_list) > 0:
+                insight["conclusion"] = conclusion_node_list[0].content
+            else:
+                insight["conclusion"] = "No conclusion information available."
+            insights.append(insight)
+    else:
+        similar_nodes = trace.knowledge_base.semantic_search(
+            node=trace.scen.get_competition_full_desc(),
+            topk_k=2,
+        )
+
+        for similar_node in similar_nodes:
+            for hypothesis_type in KG_ACTION_LIST:
+                hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
+                    start_node=similar_node,
+                    steps=3,
+                    constraint_labels=[hypothesis_type],
+                )
+                found_nodes.extend(hypothesis_nodes[:2])
+
+        found_nodes = sorted(list(set(found_nodes)), key=lambda x: len(x.content))
+
+        for hypothesis_node in found_nodes[:5]:
+            if hypothesis_node in related_hypothesis_nodes:
+                continue
+            insight = {"hypothesis": hypothesis_node.content}
+            experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=2, constraint_labels=["experiments"]
+            )
+            if len(experiment_node_list) > 0:
+                insight["experiments"] = experiment_node_list[0].content
+            else:
+                insight["experiments"] = "No experiment information available."
+            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
+                start_node=hypothesis_node, steps=2, constraint_labels=["conclusion"]
+            )
+            if len(conclusion_node_list) > 0:
+                insight["conclusion"] = conclusion_node_list[0].content
+            else:
+                insight["conclusion"] = "No conclusion information available."
+            insights.append(insight)
+
+    RAG_content = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["KG_hypothesis_gen_RAG"])
+        .render(insights=insights, experiences=experiences)
+    )
+    return RAG_content
+
+
 class KGHypothesisGen(FactorAndModelHypothesisGen):
     """
     # NOTE: we can share this class across different data mining scenarios
@@ -80,91 +208,6 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
         super().__init__(scen)
-
-    def generate_RAG_content(self, trace: Trace, hypothesis_and_feedback: str, target: str = None) -> str:
-        if self.scen.if_using_vector_rag:
-            if self.scen.mini_case:
-                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=1)
-            else:
-                rag_results, _ = self.scen.vector_base.search_experience(target, hypothesis_and_feedback, topk_k=5)
-            return "\n".join([doc.content for doc in rag_results])
-        if self.scen.if_using_graph_rag is False or trace.knowledge_base is None:
-            return None
-        same_competition_node = trace.knowledge_base.get_node_by_content(trace.scen.get_competition_full_desc())
-        if same_competition_node is not None:
-            related_hypothesis_nodes = []
-            for action in KG_ACTION_LIST:
-                related_hypothesis_nodes.extend(
-                    trace.knowledge_base.get_nodes_within_steps(
-                        start_node=same_competition_node,
-                        steps=1,
-                        constraint_labels=[action],
-                    )[:1]
-                )
-        else:
-            related_hypothesis_nodes = []
-        experiences = []
-        for hypothesis_node in related_hypothesis_nodes:
-            experience = {"hypothesis": hypothesis_node.content}
-            experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
-                start_node=hypothesis_node, steps=1, constraint_labels=["experiments"]
-            )
-            if len(experiment_node_list) > 0:
-                experience["experiments"] = experiment_node_list[0].content
-            else:
-                experience["experiments"] = "No experiment information available."
-            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
-                start_node=hypothesis_node, steps=1, constraint_labels=["conclusion"]
-            )
-            if len(conclusion_node_list) > 0:
-                experience["conclusion"] = conclusion_node_list[0].content
-            else:
-                experience["conclusion"] = "No conclusion information available."
-            experiences.append(experience)
-
-        similar_nodes = trace.knowledge_base.semantic_search(
-            node=trace.scen.get_competition_full_desc(),
-            topk_k=2,
-        )
-
-        found_hypothesis_nodes = []
-        for similar_node in similar_nodes:
-            hypothesis_nodes = trace.knowledge_base.get_nodes_within_steps(
-                start_node=similar_node,
-                steps=3,
-                constraint_labels=[target],
-            )
-            found_hypothesis_nodes.extend(hypothesis_nodes[:2])
-
-        found_hypothesis_nodes = sorted(list(set(found_hypothesis_nodes)), key=lambda x: len(x.content))
-
-        insights = []
-        for hypothesis_node in found_hypothesis_nodes[:5]:
-            if hypothesis_node in related_hypothesis_nodes:
-                continue
-            insight = {"hypothesis": hypothesis_node.content}
-            experiment_node_list = trace.knowledge_base.get_nodes_within_steps(
-                start_node=hypothesis_node, steps=1, constraint_labels=["experiments"]
-            )
-            if len(experiment_node_list) > 0:
-                insight["experiments"] = experiment_node_list[0].content
-            else:
-                insight["experiments"] = "No experiment information available."
-            conclusion_node_list = trace.knowledge_base.get_nodes_within_steps(
-                start_node=hypothesis_node, steps=1, constraint_labels=["conclusion"]
-            )
-            if len(conclusion_node_list) > 0:
-                insight["conclusion"] = conclusion_node_list[0].content
-            else:
-                insight["conclusion"] = "No conclusion information available."
-            insights.append(insight)
-
-        RAG_content = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["KG_hypothesis_gen_RAG"])
-            .render(insights=insights, experiences=experiences)
-        )
-        return RAG_content
 
     def update_reward_estimates(self, trace: Trace) -> None:
         if len(trace.hist) > 0:
@@ -232,7 +275,8 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": self.generate_RAG_content(
+            "RAG": generate_RAG_content(
+                scen=self.scen,
                 trace=trace,
                 hypothesis_and_feedback=hypothesis_and_feedback,
                 target=action if self.scen.if_action_choosing_based_on_UCB else None,
@@ -299,7 +343,13 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": model_list,
-            "RAG": ...,
+            "RAG": generate_RAG_content(
+                trace.scen,
+                trace,
+                hypothesis_and_feedback,
+                chosen_hypothesis=hypothesis.hypothesis,
+                chosen_hypothesis_type=hypothesis.action,
+            ),
         }, True
 
     def convert_feature_experiment(self, response: str, trace: Trace) -> KGFactorExperiment:
