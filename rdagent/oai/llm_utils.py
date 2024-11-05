@@ -326,6 +326,7 @@ class APIBackend:
             )
 
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
+            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
             self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
             self.chat_api_version = (
@@ -627,16 +628,16 @@ class APIBackend:
             frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         if presence_penalty is None:
             presence_penalty = LLM_SETTINGS.chat_presence_penalty
-        model = self.chat_model 
-  
+
+        # Use index 4 to skip the current function and intermediate calls,
+        # and get the locals of the caller's frame.
         caller_locals = inspect.stack()[4].frame.f_locals
-        if 'self' in caller_locals:
-            tag = caller_locals['self'].__class__.__name__
+        if "self" in caller_locals:
+            tag = caller_locals["self"].__class__.__name__
         else:
             tag = inspect.stack()[4].function
-        if tag in LLM_SETTINGS.mini_tags and model == "gpt-4o":
-            model = "gpt-4o-mini"
-        
+        model = self.chat_model_map.get(tag, self.chat_model)
+
         finish_reason = None
         if self.use_llama2:
             response = self.generator.chat_completion(
@@ -715,13 +716,18 @@ class APIBackend:
                 finish_reason = response.choices[0].finish_reason
                 if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
-                    logger.info(json.dumps({
-                            "tag": tag, 
-                            "total_tokens": response.usage.total_tokens, 
-                            "prompt_tokens": response.usage.prompt_tokens, 
-                            "completion_tokens": response.usage.completion_tokens,
-                            "model": model
-                        }), tag="llm_messages")
+                    logger.info(
+                        json.dumps(
+                            {
+                                "tag": tag,
+                                "total_tokens": response.usage.total_tokens,
+                                "prompt_tokens": response.usage.prompt_tokens,
+                                "completion_tokens": response.usage.completion_tokens,
+                                "model": model,
+                            }
+                        ),
+                        tag="llm_messages",
+                    )
             if json_mode:
                 json.loads(resp)
         if self.dump_chat_cache:
