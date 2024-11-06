@@ -283,7 +283,10 @@ class ModelCoderEvaluator(Evaluator):
         else:
             gt_np_array = None
 
-        shape_feedback, shape_decision = shape_evaluator(gen_np_array, (batch_size, 1))
+        shape_feedback, shape_decision = shape_evaluator(
+            gen_np_array,
+            (batch_size, self.scen.model_output_channel if hasattr(self.scen, "model_output_channel") else 1),
+        )
         value_feedback, value_decision = value_evaluator(gen_np_array, gt_np_array)
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
