@@ -234,7 +234,7 @@ class FactorEvolvingStrategyWithGraph(MultiProcessEvolvingStrategy):
                     implement_prompts["evolving_strategy_factor_implementation_v1_system"],
                 )
                 .render(
-                    scenario=self.scen.get_scenario_all_desc(target_task),
+                    scenario=self.scen.get_scenario_all_desc(target_task, filtered_tag="feature"),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 )
             )

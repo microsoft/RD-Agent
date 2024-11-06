@@ -58,7 +58,9 @@ class QlibModelScenario(Scenario):
     def experiment_setting(self) -> str:
         return self._experiment_setting
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+    ) -> str:
         return f"""Background of the scenario:
 {self.background}
 The interface you should follow to write the runnable code:

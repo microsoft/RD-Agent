@@ -147,6 +147,21 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
 
+                        if (
+                            state.lround == 1
+                            and len(msg.content.based_experiments) > 0
+                            and msg.content.based_experiments[-1].result is not None
+                        ):
+                            sms = msg.content.based_experiments[-1].result
+                            if isinstance(state.scenario, DMModelScenario):
+                                sms.index = ["AUROC"]
+                            elif isinstance(
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                            ):
+                                sms = sms.loc[QLIB_SELECTED_METRICS]
+                            sms.name = f"Baseline"
+                            state.metric_series.append(sms)
+
                         # common metrics
                         if msg.content.result is None:
                             if isinstance(state.scenario, DMModelScenario):

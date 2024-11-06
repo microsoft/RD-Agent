@@ -5,8 +5,8 @@ from typing import List, Tuple
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.model_coder.model import ModelExperiment, ModelTask
-from rdagent.components.proposal.model_proposal import (
-    ModelHypothesis,
+from rdagent.components.proposal import (
+    Hypothesis,
     ModelHypothesis2Experiment,
     ModelHypothesisGen,
 )
@@ -16,7 +16,7 @@ from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelExp
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib" / "prompts.yaml")
 
-DMModelHypothesis = ModelHypothesis
+DMModelHypothesis = Hypothesis
 
 
 class DMModelHypothesisGen(ModelHypothesisGen):
@@ -52,7 +52,7 @@ class DMModelHypothesisGen(ModelHypothesisGen):
         }
         return context_dict, True
 
-    def convert_response(self, response: str) -> ModelHypothesis:
+    def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
         hypothesis = DMModelHypothesis(
             hypothesis=response_dict["hypothesis"],

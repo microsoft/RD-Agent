@@ -83,7 +83,7 @@ class ModelCodeEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_code_feedback"]["system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
                     if self.scen is not None
                     else "No scenario description."
                 )
@@ -145,7 +145,7 @@ class ModelFinalEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_final_feedback"]["system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
                     if self.scen is not None
                     else "No scenario description."
                 )

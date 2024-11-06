@@ -25,11 +25,8 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         for f in sorted((exp.experiment_workspace.workspace_path / "model").glob("*.py"), key=lambda x: x.name):
             codes.append(f.read_text())
         codes = "\n".join(codes)
-        if exp.sub_workspace_list is not None:
-            for i in range(len(exp.sub_workspace_list)):
-                if exp.sub_workspace_list[i] is not None:
-                    codes += str(exp.sub_workspace_list[i].code_dict.values())
-        return md5_hash(codes)
+        cached_key_from_exp = CachedRunner.get_cache_key(self, exp)
+        return md5_hash(codes + cached_key_from_exp)
 
     @cache_with_pickle(get_cache_key, CachedRunner.assign_cached_result)
     def init_develop(self, exp: KGFactorExperiment | KGModelExperiment) -> KGFactorExperiment | KGModelExperiment:

@@ -101,7 +101,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict[prompt_key]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
+            .render(scenario=self.scen.get_scenario_all_desc(filtered_tag="feedback"))
         )
 
         last_task_and_code = None

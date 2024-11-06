@@ -25,7 +25,7 @@ KG_hypothesis_gen_RAG: |-
   {% endif %}
 
 hypothesis_and_feedback: |-
-  {% for hypothesis, experiment, feedback in trace.hist %}
+  {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}

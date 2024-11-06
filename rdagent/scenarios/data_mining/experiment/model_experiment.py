@@ -63,7 +63,9 @@ The demo showcases the iterative process of hypothesis generation, knowledge con
  
 To demonstrate the dynamic evolution of models through the R&D loop, emphasizing how each iteration enhances the model performance and reliability. The performane is measured by the AUROC score (Area Under the Receiver Operating Characteristic), which is a commonly used metric for binary classification.   """
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
+    def get_scenario_all_desc(
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+    ) -> str:
         return f"""Background of the scenario:
 {self.background}
 The interface you should follow to write the runnable code:

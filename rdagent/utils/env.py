@@ -15,6 +15,7 @@ import sys
 import uuid
 import zipfile
 from abc import abstractmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
 
@@ -138,6 +139,8 @@ class DockerConf(BaseSettings):
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
     mem_limit: str | None = "48g"  # Add memory limit attribute
 
+    running_timeout_period: int = 3600  # 1 hour
+
 
 class QlibDockerConf(DockerConf):
     class Config:
@@ -185,6 +188,8 @@ class KGDockerConf(DockerConf):
     #     # TODO connect to the place where the data is stored
     #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
     # }
+
+    running_timeout_period: int = 600
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -269,7 +274,7 @@ class DockerEnv(Env[DockerConf]):
             return {}
         return gpu_kwargs
 
-    def run(
+    def __run(
         self,
         entry: str | None = None,
         local_path: str | None = None,
@@ -333,6 +338,20 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
+
+    def run(
+        self,
+        entry: str | None = None,
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+    ):
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(self.__run, entry, local_path, env, running_extra_volume)
+            try:
+                return future.result(timeout=self.conf.running_timeout_period)
+            except TimeoutError:
+                raise TimeoutError(f"Timeout while running the container: {self.conf.running_timeout_period} seconds")
 
     def dump_python_code_run_and_get_results(
         self,

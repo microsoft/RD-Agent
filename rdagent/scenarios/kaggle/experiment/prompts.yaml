@@ -64,7 +64,7 @@ kg_background: |-
     - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
     - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
-    - "Model feature selection": The user will modify one model to select the most important features from the feature book to improve the model performance.
+    - "Model feature selection": The user will modify one model to select the part of the features from the feature book to improve the model performance.
     - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
@@ -142,6 +142,7 @@ kg_model_interface: |-
     
   Here are some examples of how your Python code should be structured:
 
+  {% if tag == "XGBoost" or tag is none %}
   For XGBoost:
   ```python
   import pandas as pd
@@ -168,7 +169,8 @@ kg_model_interface: |-
 
       return y_pred
   ```
-
+  {% endif %}
+  {% if tag == "RandomForest" or tag is none %}
   For RandomForest:
   ```python
   import pandas as pd
@@ -191,7 +193,8 @@ kg_model_interface: |-
 
       return y_pred
   ```
-
+  {% endif %}
+  {% if tag == "LightGBM" or tag is none %}
   For LightGBM:
   ```python
   import pandas as pd
@@ -213,7 +216,8 @@ kg_model_interface: |-
 
       return y_pred
   ```
-
+  {% endif %}
+  {% if tag == "NN" or tag is none %}
   For Neural Network:
   ```python
   import pandas as pd
@@ -271,6 +275,7 @@ kg_model_interface: |-
 
       return y_pred
   ```
+  {% endif %}
 
 kg_feature_simulator: |-
   The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
@@ -282,6 +287,19 @@ kg_feature_simulator: |-
   3. Remove any unnecessary features before training the model.
   4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
   5. Evaluate the performance of your preprocessing method and provide feedback.
+
+kg_feature_output_format: |-
+  The output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
+  Sample output dataframe info:
+  <class 'pandas.core.frame.DataFrame'>
+  Index: {Same to the input DataFrame}
+  Data columns (total N columns):
+  #   Column      Dtype  
+  ---  ------      -----  
+  0   feature_name_0   float64
+  1   feature_name_1  float64
+  dtypes: float64(N)
+  memory usage: {Memory usage of the output DataFrame}
 
 kg_model_output_format: |-
   For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.

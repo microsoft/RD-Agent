@@ -35,6 +35,9 @@ class FactorImplementSettings(BaseSettings):
     v2_error_summary: bool = False
     v2_knowledge_sampler: float = 1.0
 
+    simple_background: bool = False
+    """Whether to use simple background information for code feedback"""
+
     file_based_execution_timeout: int = 120
     """Timeout in seconds for each factor implementation execution"""
 

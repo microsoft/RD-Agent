@@ -76,7 +76,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     coder_prompts["evolving_strategy_model_coder"]["system"],
                 )
                 .render(
-                    scenario=self.scen.get_scenario_all_desc(),
+                    scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                     current_code=current_code,
                 )

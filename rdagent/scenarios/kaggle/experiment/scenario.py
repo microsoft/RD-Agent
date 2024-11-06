@@ -41,7 +41,6 @@ class KGScenario(Scenario):
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition)
         self.input_shape = None
-        self._source_data = self.source_data
 
         self.competition_type = None
         self.competition_description = None
@@ -64,11 +63,6 @@ class KGScenario(Scenario):
             self.vector_base.path = Path(datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S") + "_kaggle_kb.pkl")
             self.vector_base.dump()
 
-        self._output_format = self.output_format
-        self._interface = self.interface
-        self._simulator = self.simulator
-        self._background = self.background
-
         self.action_counts = dict.fromkeys(KG_ACTION_LIST, 0)
         self.reward_estimates = {action: 0.0 for action in KG_ACTION_LIST}
         # self.reward_estimates["Model feature selection"] = 0.2
@@ -90,7 +84,7 @@ class KGScenario(Scenario):
             .from_string(prompt_dict["kg_description_template"]["user"])
             .render(
                 competition_descriptions=self.competition_descriptions,
-                raw_data_information=self._source_data,
+                raw_data_information=self.source_data,
                 evaluation_metric_direction=self.evaluation_metric_direction,
             )
         )
@@ -154,71 +148,82 @@ class KGScenario(Scenario):
     def source_data(self) -> str:
         data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
 
-        if (data_folder / "X_valid.pkl").exists():
-            X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
-            # TODO: Hardcoded for now, need to be fixed
-            if self.competition == "feedback-prize-english-language-learning":
-                self.input_shape = X_valid.shape
-                return "This is a sparse matrix of descriptive text."
-            buffer = io.StringIO()
-            X_valid.info(verbose=True, buf=buffer, show_counts=True)
-            data_info = buffer.getvalue()
-            self.input_shape = X_valid.shape
-            return data_info
+        if not (data_folder / "X_valid.pkl").exists():
+            preprocess_experiment = KGFactorExperiment([])
+            (
+                X_train,
+                X_valid,
+                y_train,
+                y_valid,
+                X_test,
+                *others,
+            ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
 
-        preprocess_experiment = KGFactorExperiment([])
-        (
-            X_train,
-            X_valid,
-            y_train,
-            y_valid,
-            X_test,
-            *others,
-        ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
+            data_folder.mkdir(exist_ok=True, parents=True)
+            pickle.dump(X_train, open(data_folder / "X_train.pkl", "wb"))
+            pickle.dump(X_valid, open(data_folder / "X_valid.pkl", "wb"))
+            pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
+            pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
+            pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
+            pickle.dump(others, open(data_folder / "others.pkl", "wb"))
 
-        data_folder.mkdir(exist_ok=True, parents=True)
-        pickle.dump(X_train, open(data_folder / "X_train.pkl", "wb"))
-        pickle.dump(X_valid, open(data_folder / "X_valid.pkl", "wb"))
-        pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
-        pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
-        pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
-        pickle.dump(others, open(data_folder / "others.pkl", "wb"))
-
-        self.input_shape = X_valid.shape
+        X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
+        # TODO: Hardcoded for now, need to be fixed
+        if self.competition == "feedback-prize-english-language-learning":
+            return "This is a sparse matrix of descriptive text."
 
         buffer = io.StringIO()
-        X_valid.info(verbose=True, buf=buffer, show_counts=True)
+        X_valid.info(verbose=True, buf=buffer, show_counts=False)
         data_info = buffer.getvalue()
+        self.input_shape = X_valid.shape
         return data_info
 
-    @property
-    def output_format(self) -> str:
-        return (
+    def output_format(self, tag=None) -> str:
+        assert tag in [None, "feature", "model"]
+        feature_output_format = f"""The feature code should output following the format:
+{prompt_dict['kg_feature_output_format']}"""
+        model_output_format = f"""The model code should output following the format:\n""" + (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["kg_model_output_format"])
             .render(channel=self.model_output_channel)
         )
+        if tag is None:
+            return feature_output_format + "\n" + model_output_format
+        elif tag == "feature":
+            return feature_output_format
+        elif tag == "model":
+            return model_output_format
 
-    @property
-    def interface(self) -> str:
-        return f"""The feature code should follow the interface:
-{prompt_dict['kg_feature_interface']}
-The model code should follow the interface:
-{prompt_dict['kg_model_interface']}
-"""
+    def interface(self, tag=None) -> str:
+        assert tag in [None, "feature", "XGBoost", "RandomForest", "LightGBM", "NN"]
+        feature_interface = f"""The feature code should follow the interface:
+{prompt_dict['kg_feature_interface']}"""
+        if tag == "feature":
+            return feature_interface
 
-    @property
-    def simulator(self) -> str:
-        kg_model_simulator = (
+        model_interface = "The model code should follow the interface:\n" + (
+            Environment(undefined=StrictUndefined).from_string(prompt_dict["kg_model_interface"]).render(tag=tag)
+        )
+        if tag is None:
+            return feature_interface + "\n" + model_interface
+        else:
+            return model_interface
+
+    def simulator(self, tag=None) -> str:
+        assert tag in [None, "feature", "model"]
+        kg_feature_simulator = "The feature code will be sent to the simulator:\n" + prompt_dict["kg_feature_simulator"]
+
+        kg_model_simulator = "The model code will be sent to the simulator:\n" + (
             Environment(undefined=StrictUndefined)
             .from_string(prompt_dict["kg_model_simulator"])
             .render(submission_specifications=self.submission_specifications)
         )
-        return f"""The feature code should follow the simulator:
-{prompt_dict['kg_feature_simulator']}
-The model code should follow the simulator:
-{kg_model_simulator}
-"""
+        if tag is None:
+            return kg_feature_simulator + "\n" + kg_model_simulator
+        elif tag == "feature":
+            return kg_feature_simulator
+        elif tag == "model":
+            return kg_model_simulator
 
     @property
     def rich_style_description(self) -> str:
@@ -248,17 +253,42 @@ Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{s
 To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
-    def get_scenario_all_desc(self, task: Task | None = None) -> str:
-        return f"""Background of the scenario:
-{self._background}
-The source dataset you can use to generate the features:
-{self._source_data}
-The interface you should follow to write the runnable code:
-{self._interface}
-The output of your code should be in the format:
-{self._output_format}
-The simulator user can use to test your model:
-{self._simulator}
-The expected output & submission format specifications:
-{self.submission_specifications} # Added again to emphasize the importance
+    def get_scenario_all_desc(
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+    ) -> str:
+        def common_description() -> str:
+            return f"""\n------Background of the scenario------
+{self.background}
+
+------The source dataset you can use to generate the features------
+{self.source_data}
+
+------The expected output & submission format specifications------
+{self.submission_specifications}
 """
+
+        def interface(tag: str | None) -> str:
+            return f"""
+------The interface you should follow to write the runnable code------
+{self.interface(tag)}
+"""
+
+        def output(tag: str | None) -> str:
+            return f"""
+------The output of your code should be in the format------
+{self.output_format(tag)}
+"""
+
+        def simulator(tag: str | None) -> str:
+            return f"""
+------The simulator user can use to test your solution------
+{self.simulator(tag)}
+"""
+
+        assert filtered_tag is not None, "filtered_tag should not be None in Kaggle scenario"
+        if filtered_tag == "hypothesis_and_experiment" or filtered_tag == "feedback":
+            return common_description() + simulator(None)
+        elif filtered_tag == "feature":
+            return common_description() + interface("feature") + output("feature") + simulator("feature")
+        else:
+            return common_description() + interface(filtered_tag) + output("model") + simulator("model")
