@@ -6,8 +6,12 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     vim \  
     git \  
     build-essential \
+    git-lfs \
     && rm -rf /var/lib/apt/lists/* 
 
-RUN pip install git+https://github.com/openai/mle-bench.git
+RUN git clone https://github.com/openai/mle-bench.git
+RUN git lfs fetch --all
+RUN git lfs pull
+RUN cd mle-bench && python -m pip install -e .
 
 WORKDIR /workspace
