@@ -179,7 +179,7 @@ class KGDockerConf(DockerConf):
         env_prefix = "KG_DOCKER_"
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
     image: str = "local_kg:latest"
     # image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
@@ -190,6 +190,22 @@ class KGDockerConf(DockerConf):
     # }
 
     running_timeout_period: int = 600
+
+
+class MLEBDockerConf(DockerConf):
+    class Config:
+        env_prefix = "MLEB_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "mle_bench_docker"
+    image: str = "local_mle:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace/data_folder/"
+    default_entry: str = "mlebench prepare --all"
+    # extra_volumes: dict = {
+    #     # TODO connect to the place where the data is stored
+    #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    # }
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -427,4 +443,11 @@ class KGDockerEnv(DockerEnv):
     """Kaggle Competition Docker"""
 
     def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)
+
+
+class MLEBDockerEnv(DockerEnv):
+    """MLEBench Docker"""
+
+    def __init__(self, conf: DockerConf = MLEBDockerConf()):
         super().__init__(conf)

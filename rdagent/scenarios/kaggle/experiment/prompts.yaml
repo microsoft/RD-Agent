@@ -138,6 +138,7 @@ kg_model_interface: |-
       - model: The trained model.
       - X: The features as a pandas DataFrame.
     The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
+    Please refer to the train.py script to verify whether the output should be a class label or a probability!
   """
     
   Here are some examples of how your Python code should be structured:
@@ -302,8 +303,8 @@ kg_feature_output_format: |-
   memory usage: {Memory usage of the output DataFrame}
 
 kg_model_output_format: |-
-  For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
-  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions.
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions. 
+  Please refer to the train.py script to verify whether the output should be a class label or a probability!
   {% if channel == 1 %}
   For each sample, the output should be a single value (e.g., (8, 1) if there are 8 samples).
   {% else %}
