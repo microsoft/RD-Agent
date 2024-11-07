@@ -362,12 +362,8 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
     ):
-        with ThreadPoolExecutor() as executor:
-            future = executor.submit(self.__run, entry, local_path, env, running_extra_volume)
-            try:
-                return future.result(timeout=self.conf.running_timeout_period)
-            except TimeoutError:
-                raise TimeoutError(f"Timeout while running the container: {self.conf.running_timeout_period} seconds")
+        entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
+        self.__run(entry_add_timeout, local_path, env, running_extra_volume)
 
     def dump_python_code_run_and_get_results(
         self,
