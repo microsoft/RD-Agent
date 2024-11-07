@@ -6,6 +6,7 @@ from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
 )
+from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.scenarios.qlib.experiment.utils import get_data_folder_intro
@@ -27,6 +28,7 @@ class QlibFactorScenario(Scenario):
         self._source_data = deepcopy(get_data_folder_intro())
         self._output_format = deepcopy(prompt_dict["qlib_factor_output_format"])
         self._interface = deepcopy(prompt_dict["qlib_factor_interface"])
+        self._strategy = deepcopy(prompt_dict["qlib_factor_strategy"])
         self._simulator = deepcopy(prompt_dict["qlib_factor_simulator"])
         self._rich_style_description = deepcopy(prompt_dict["qlib_factor_rich_style_description"])
         self._experiment_setting = deepcopy(prompt_dict["qlib_factor_experiment_setting"])
@@ -35,8 +37,7 @@ class QlibFactorScenario(Scenario):
     def background(self) -> str:
         return self._background
 
-    @property
-    def source_data(self) -> str:
+    def get_source_data_desc(self, task: Task | None = None) -> str:
         return self._source_data
 
     @property
@@ -59,11 +60,17 @@ class QlibFactorScenario(Scenario):
     def experiment_setting(self) -> str:
         return self._experiment_setting
 
-    def get_scenario_all_desc(self) -> str:
+    def get_scenario_all_desc(
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+    ) -> str:
+        """A static scenario describer"""
+        if simple_background:
+            return f"""Background of the scenario:
+{self.background}"""
         return f"""Background of the scenario:
 {self.background}
 The source data you can use:
-{self.source_data}
+{self.get_source_data_desc(task)}
 The interface you should follow to write the runnable code:
 {self.interface}
 The output of your code should be in the format:

@@ -1,11 +1,13 @@
+from pathlib import Path
+
 from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelTask
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
+    EvolvingKnowledgeBase,
     EvoStep,
     Knowledge,
-    KnowledgeBase,
     QueriedKnowledge,
     RAGStrategy,
 )
@@ -49,12 +51,14 @@ class ModelQueriedKnowledge(QueriedKnowledge):
         self.working_task_to_similar_successful_knowledge_dict = dict()
 
 
-class ModelKnowledgeBase(KnowledgeBase):
-    def __init__(self) -> None:
+class ModelKnowledgeBase(EvolvingKnowledgeBase):
+    def __init__(self, path: str | Path = None) -> None:
         self.implementation_trace: dict[str, ModelKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
+
+        super().__init__(path)
 
     def query(self) -> QueriedKnowledge | None:
         """
@@ -121,9 +125,9 @@ class ModelRAGStrategy(RAGStrategy):
         for target_model_task in evo.sub_tasks:
             target_model_task_information = target_model_task.get_task_information()
             if target_model_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[
-                    target_model_task_information
-                ] = self.knowledgebase.implementation_trace[target_model_task_information][-1]
+                queried_knowledge.success_task_to_knowledge_dict[target_model_task_information] = (
+                    self.knowledgebase.implementation_trace[target_model_task_information][-1]
+                )
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
@@ -135,14 +139,12 @@ class ModelRAGStrategy(RAGStrategy):
             ):
                 queried_knowledge.failed_task_info_set.add(target_model_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[
-                    target_model_task_information
-                ] = self.knowledgebase.implementation_trace.setdefault(
-                    target_model_task_information,
-                    [],
-                )[
-                    -query_former_trace_limit:
-                ]
+                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_model_task_information] = (
+                    self.knowledgebase.implementation_trace.setdefault(
+                        target_model_task_information,
+                        [],
+                    )[-query_former_trace_limit:]
+                )
 
                 knowledge_base_success_task_list = list(
                     self.knowledgebase.success_task_info_set,
@@ -163,7 +165,7 @@ class ModelRAGStrategy(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[
-                    target_model_task_information
-                ] = similar_successful_knowledge
+                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_model_task_information] = (
+                    similar_successful_knowledge
+                )
         return queried_knowledge

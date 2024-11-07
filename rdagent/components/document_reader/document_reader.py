@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import fitz
+import requests
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from langchain.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader, PyPDFLoader
 from PIL import Image
 
 if TYPE_CHECKING:
@@ -15,7 +17,7 @@ if TYPE_CHECKING:
 from rdagent.core.conf import RD_AGENT_SETTINGS
 
 
-def load_documents_by_langchain(path: Path) -> list:
+def load_documents_by_langchain(path: str) -> list:
     """Load documents from the specified path.
 
     Args:
@@ -24,7 +26,10 @@ def load_documents_by_langchain(path: Path) -> list:
     Returns:
         list: A list of loaded documents.
     """
-    loader = PyPDFDirectoryLoader(str(path), silent_errors=True) if path.is_dir() else PyPDFLoader(str(path))
+    if Path(path).is_dir():
+        loader = PyPDFDirectoryLoader(path, silent_errors=True)
+    else:
+        loader = PyPDFLoader(path)
     return loader.load()
 
 
@@ -41,7 +46,10 @@ def process_documents_by_langchain(docs: list[Document]) -> dict[str, str]:
     content_dict = {}
 
     for doc in docs:
-        doc_name = str(Path(doc.metadata["source"]).resolve())
+        if Path(doc.metadata["source"]).exists():
+            doc_name = str(Path(doc.metadata["source"]).resolve())
+        else:
+            doc_name = doc.metadata["source"]
         doc_content = doc.page_content
 
         if doc_name not in content_dict:
@@ -52,7 +60,7 @@ def process_documents_by_langchain(docs: list[Document]) -> dict[str, str]:
     return content_dict
 
 
-def load_and_process_pdfs_by_langchain(path: Path) -> dict[str, str]:
+def load_and_process_pdfs_by_langchain(path: str) -> dict[str, str]:
     return process_documents_by_langchain(load_documents_by_langchain(path))
 
 
@@ -101,8 +109,11 @@ def load_and_process_pdfs_by_azure_document_intelligence(path: Path) -> dict[str
     return content_dict
 
 
-def extract_first_page_screenshot_from_pdf(pdf_path: Path) -> Image:
-    doc = fitz.open(pdf_path)
+def extract_first_page_screenshot_from_pdf(pdf_path: str) -> Image:
+    if not Path(pdf_path).exists():
+        doc = fitz.open(stream=io.BytesIO(requests.get(pdf_path).content), filetype="pdf")
+    else:
+        doc = fitz.open(pdf_path)
     page = doc.load_page(0)
     pix = page.get_pixmap()
     image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)

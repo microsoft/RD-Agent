@@ -2,6 +2,7 @@ import argparse
 import textwrap
 from collections import defaultdict
 from datetime import datetime, timezone
+from importlib.resources import files as rfiles
 from pathlib import Path
 from typing import Callable, Type
 
@@ -12,7 +13,6 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from streamlit import session_state as state
 from streamlit_theme import st_theme
-from rdagent.core.scenario import Scenario
 
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorSingleFeedback,
@@ -21,11 +21,13 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, Fact
 from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+from rdagent.core.scenario import Scenario
 from rdagent.log.base import Message
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.qlib_report_figure import report_figure
 from rdagent.scenarios.data_mining.experiment.model_experiment import DMModelScenario
 from rdagent.scenarios.general_model.scenario import GeneralModelScenario
+from rdagent.scenarios.kaggle.experiment.scenario import KGScenario
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenario
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
@@ -53,21 +55,23 @@ else:
     main_log_path = None
 
 
-SELECTED_METRICS = [
+QLIB_SELECTED_METRICS = [
     "IC",
     "1day.excess_return_without_cost.annualized_return",
     "1day.excess_return_without_cost.information_ratio",
     "1day.excess_return_without_cost.max_drawdown",
 ]
 
+SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+
 if "log_path" not in state:
     if main_log_path:
         state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
-        state.log_path = ""
-        st.toast(":orange[**Please Set Log Path**]", icon="⚠️")
+        state.log_path = None
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
 
-if 'scenario' not in state:
+if "scenario" not in state:
     state.scenario = None
 
 if "fs" not in state:
@@ -84,6 +88,9 @@ if "current_tags" not in state:
 
 if "lround" not in state:
     state.lround = 0  # RD Loop Round
+
+if "times" not in state:
+    state.times = defaultdict(lambda: defaultdict(list))
 
 if "erounds" not in state:
     state.erounds = defaultdict(int)  # Evolving Rounds in each RD Loop
@@ -137,23 +144,42 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
                         if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
-                            sms = msg.content.based_experiments[0].result.loc[SELECTED_METRICS]
+                            sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
 
+                        if (
+                            state.lround == 1
+                            and len(msg.content.based_experiments) > 0
+                            and msg.content.based_experiments[-1].result is not None
+                        ):
+                            sms = msg.content.based_experiments[-1].result
+                            if isinstance(state.scenario, DMModelScenario):
+                                sms.index = ["AUROC"]
+                            elif isinstance(
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                            ):
+                                sms = sms.loc[QLIB_SELECTED_METRICS]
+                            sms.name = f"Baseline"
+                            state.metric_series.append(sms)
+
                         # common metrics
                         if msg.content.result is None:
-                            state.metric_series.append(pd.Series([None], index=["AUROC"], name=f"Round {state.lround}"))
+                            if isinstance(state.scenario, DMModelScenario):
+                                state.metric_series.append(
+                                    pd.Series([None], index=["AUROC"], name=f"Round {state.lround}")
+                                )
                         else:
-                            if len(msg.content.result) < 4:
-                                ps = msg.content.result
-                                ps.index = ["AUROC"]
-                                ps.name = f"Round {state.lround}"
-                                state.metric_series.append(ps)
-                            else:
-                                sms = msg.content.result.loc[SELECTED_METRICS]
-                                sms.name = f"Round {state.lround}"
-                                state.metric_series.append(sms)
+                            sms = msg.content.result
+                            if isinstance(state.scenario, DMModelScenario):
+                                sms.index = ["AUROC"]
+                            elif isinstance(
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                            ):
+                                sms = sms.loc[QLIB_SELECTED_METRICS]
+
+                            sms.name = f"Round {state.lround}"
+                            state.metric_series.append(sms)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
@@ -172,9 +198,24 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                                 if wsf.final_decision:
                                     right_num += 1
                             wrong_num = len(msg.content) - right_num
-                            state.e_decisions[state.lround][state.erounds[state.lround]] = (right_num, wrong_num, none_num)
+                            state.e_decisions[state.lround][state.erounds[state.lround]] = (
+                                right_num,
+                                wrong_num,
+                                none_num,
+                            )
 
                     state.msgs[state.lround][msg.tag].append(msg)
+
+                    # Update Times
+                    if "init" in tags:
+                        state.times[state.lround]["init"].append(msg.timestamp)
+                    if "r" in tags:
+                        state.times[state.lround]["r"].append(msg.timestamp)
+                    if "d" in tags:
+                        state.times[state.lround]["d"].append(msg.timestamp)
+                    if "ef" in tags:
+                        state.times[state.lround]["ef"].append(msg.timestamp)
+
                     # Stop Getting Logs
                     if end_func(msg):
                         break
@@ -184,11 +225,14 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
 
 
 def refresh(same_trace: bool = False):
+    if state.log_path is None:
+        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
+        return
+
     if main_log_path:
         state.fs = FileStorage(main_log_path / state.log_path).iter_msg()
     else:
         state.fs = FileStorage(state.log_path).iter_msg()
-    
     # detect scenario
     if not same_trace:
         get_msgs_until(lambda m: not isinstance(m.content, str))
@@ -209,6 +253,7 @@ def refresh(same_trace: bool = False):
     state.last_msg = None
     state.current_tags = []
     state.alpha158_metrics = None
+    state.times = defaultdict(lambda: defaultdict(list))
 
 
 def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
@@ -258,9 +303,12 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
         shd = {k: v.__dict__ for k, v in hypotheses.items()}
     df = pd.DataFrame(shd).T
 
-    if 'concise_observation' in df.columns and 'concise_justification' in df.columns:
-        df['concise_observation'], df['concise_justification'] = df['concise_justification'], df['concise_observation']
-        df.rename(columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"}, inplace=True)
+    if "concise_observation" in df.columns and "concise_justification" in df.columns:
+        df["concise_observation"], df["concise_justification"] = df["concise_justification"], df["concise_observation"]
+        df.rename(
+            columns={"concise_observation": "concise_justification", "concise_justification": "concise_observation"},
+            inplace=True,
+        )
     if "reason" in df.columns:
         df.drop(["reason"], axis=1, inplace=True)
     if "concise_reason" in df.columns:
@@ -328,7 +376,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     st.plotly_chart(fig)
 
 def summary_window():
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         st.header("Summary📊", divider="rainbow", anchor="_summary")
         if state.lround == 0:
             return
@@ -364,7 +412,6 @@ def summary_window():
                     st.table(df.iloc[0])
                 elif df.shape[0] > 1:
                     if df.shape[1] == 1:
-                        # suhan's scenario
                         fig = px.line(df, x=df.index, y=df.columns, markers=True)
                         fig.update_layout(xaxis_title="Loop Round", yaxis_title=None)
                         st.plotly_chart(fig)
@@ -382,7 +429,8 @@ def summary_window():
                 # All Tasks
 
                 tab_names = [
-                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name for w in ws
+                    w.target_task.factor_name if isinstance(w.target_task, FactorTask) else w.target_task.name
+                    for w in ws
                 ]
                 for j in range(len(ws)):
                     if state.msgs[state.lround]["d.evolving feedback"][-1].content[j].final_decision:
@@ -422,9 +470,10 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(ft.factor_formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v, d in ft.variables.items():
-                    mks += f"| ${v}$ | {d} |\n"
-                st.markdown(mks)
+                if isinstance(ft.variables, dict):
+                    for v, d in ft.variables.items():
+                        mks += f"| ${v}$ | {d} |\n"
+                    st.markdown(mks)
 
     elif isinstance(tasks[0], ModelTask):
         st.markdown("**Model Tasks🚩**")
@@ -441,15 +490,17 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                 st.latex(mt.formulation)
 
                 mks = "| Variable | Description |\n| --- | --- |\n"
-                for v, d in mt.variables.items():
-                    mks += f"| ${v}$ | {d} |\n"
-                st.markdown(mks)
+                if mt.variables:
+                    for v, d in mt.variables.items():
+                        mks += f"| ${v}$ | {d} |\n"
+                    st.markdown(mks)
+
 
 def research_window():
     with st.container(border=True):
-        title = "Research🔍" if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)) else "Research🔍 (reader)"
+        title = "Research🔍" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Research🔍 (reader)"
         st.subheader(title, divider="blue", anchor="_research")
-        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+        if isinstance(state.scenario, SIMILAR_SCENARIOS):
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
@@ -479,18 +530,25 @@ def research_window():
             # loaded model exp
             with c2:
                 if mem := state.msgs[round]["d.load_experiment"]:
+                    # 'load_experiment' should in 'r' now, but old version trace may in 'd', so we need to check both
+                    # TODO: modify the way to get one message with a specific tag like 'load_experiment' in the future
+                    me: QlibModelExperiment = mem[0].content
+                    tasks_window(me.sub_tasks)
+                elif mem := state.msgs[round]["r.load_experiment"]:
                     me: QlibModelExperiment = mem[0].content
                     tasks_window(me.sub_tasks)
 
 def feedback_window():
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         with st.container(border=True):
-            st.subheader("Feedback📝", divider="blue", anchor="_feedback")
+            st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
-            if state.lround > 0 and isinstance(state.scenario, (QlibModelScenario, QlibFactorScenario,QlibFactorFromReportScenario)):
+            if state.lround > 0 and isinstance(
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+            ):
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
-            
+
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
                 st.markdown("**Returns📈**")
                 fig = report_figure(fbr[0].content)
@@ -507,13 +565,27 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
+            if isinstance(state.scenario, KGScenario):
+                if fbe := state.msgs[round]["ef.runner result"]:
+                    submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
+                    st.markdown(
+                        f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
+                    )
+                    try:
+                        data = submission_path.read_bytes()
+                        st.download_button(
+                            label="**Download** submission.csv",
+                            data=data,
+                            file_name="submission.csv",
+                            mime="text/csv",
+                        )
+                    except Exception as e:
+                        st.markdown(f":red[**Download Button Error**]: {e}")
+
+
 def evolving_window():
-    title = (
-        "Development🛠️"
-        if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario))
-        else "Development🛠️ (evolving coder)"
-    )
-    st.subheader(title, divider="violet", anchor="_development")
+    title = "Development🛠️" if isinstance(state.scenario, SIMILAR_SCENARIOS) else "Development🛠️ (evolving coder)"
+    st.subheader(title, divider="green", anchor="_development")
 
     # Evolving Status
     if state.erounds[round] > 0:
@@ -531,8 +603,12 @@ def evolving_window():
     # Evolving Tabs
     if state.erounds[round] > 0:
         if state.erounds[round] > 1:
-            evolving_round = st.radio("**🔄️Evolving Rounds**", horizontal=True,
-                options=range(1, state.erounds[round] + 1), index=state.erounds[round] - 1, key="show_eround"
+            evolving_round = st.radio(
+                "**🔄️Evolving Rounds**",
+                horizontal=True,
+                options=range(1, state.erounds[round] + 1),
+                index=state.erounds[round] - 1,
+                key="show_eround",
             )
         else:
             evolving_round = 1
@@ -589,14 +665,6 @@ with st.sidebar:
     st.markdown("[:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
     st.subheader(":blue[Table of Content]", divider='blue')
     st.markdown(toc)
-
-    # with st.popover(":orange[**Config⚙️**]"):
-    # with st.container(border=True):
-        # st.markdown(":blue[**log path**]")
-        # if main_log_path:
-            # if st.toggle("Manual Input"):
-            #     st.text_input("log path", key="log_path", on_change=refresh)
-            # else:
     folders = [
         folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()
     ]
@@ -605,44 +673,6 @@ with st.sidebar:
     with st.popover(":blue[**Sample Logs**]", use_container_width=True):
         st.radio("samples", folders, key="log_path", on_change=refresh, label_visibility="collapsed", format_func=lambda x: f"**{x}**\n")
 
-    # st.selectbox(f":blue[**Sample Logs**]", folders, key="log_path", on_change=refresh)
-        # else:
-        #     st.text_input("log path", key="log_path", on_change=refresh)
-
-        # with st.container(border=True):
-        #     st.markdown(":blue[**excluded configs**]")
-        #     st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
-        #     st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
-
-    c1, c2 = st.columns([1, 1], vertical_alignment="center")
-    with c1:
-        if st.button(":green[**All Loops**]", use_container_width=True):
-            if not state.fs:
-                refresh()
-            get_msgs_until(lambda m: False)
-        if st.button("**Reset**", use_container_width=True):
-            refresh(same_trace=True)
-    with c2:
-        if st.button(":green[Next Loop]", use_container_width=True):
-            if not state.fs:
-                refresh()
-            get_msgs_until(lambda m: "ef.feedback" in m.tag)
-
-        if st.button("Next Step", use_container_width=True):
-            if not state.fs:
-                refresh()
-            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
-
-    if args.debug:
-        debug = st.toggle("debug", value=False)
-
-        if debug:
-            if st.button("Single Step Run"):
-                if not state.fs:
-                    refresh()
-                get_msgs_until()
-    else:
-        debug = False
     
     st.subheader("Demo videos🎥", divider='violet')
     st.markdown("""
@@ -658,34 +688,90 @@ with st.sidebar:
 
 """)
 
+# Config Sidebar
+# with st.sidebar:
+#     st.markdown("# RD-Agent🤖  [:grey[@GitHub]](https://github.com/microsoft/RD-Agent)")
+#     st.subheader(":blue[Table of Content]", divider="blue")
+#     st.markdown(toc)
+#     st.subheader(":orange[Control Panel]", divider="red")
+
+#     with st.container(border=True):
+#         if main_log_path:
+#             lc1, lc2 = st.columns([1, 2], vertical_alignment="center")
+#             with lc1:
+#                 st.markdown(":blue[**Log Path**]")
+#             with lc2:
+#                 manually = st.toggle("Manual Input")
+#             if manually:
+#                 st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
+#             else:
+#                 folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+#                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
+#         else:
+#             st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
+
+#     c1, c2 = st.columns([1, 1], vertical_alignment="center")
+#     with c1:
+#         if st.button(":green[**All Loops**]", use_container_width=True):
+#             if not state.fs:
+#                 refresh()
+#             get_msgs_until(lambda m: False)
+#         if st.button("**Reset**", use_container_width=True):
+#             refresh(same_trace=True)
+#     with c2:
+#         if st.button(":green[Next Loop]", use_container_width=True):
+#             if not state.fs:
+#                 refresh()
+#             get_msgs_until(lambda m: "ef.feedback" in m.tag)
+
+#         if st.button("Next Step", use_container_width=True):
+#             if not state.fs:
+#                 refresh()
+#             get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
+
+    # with st.popover(":orange[**Config⚙️**]", use_container_width=True):
+    #     st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
+    #     st.multiselect("excluded log types", ["str", "dict", "list"], ["str"], key="excluded_types")
+
+    # if args.debug:
+    #     debug = st.toggle("debug", value=False)
+
+    #     if debug:
+    #         if st.button("Single Step Run"):
+    #             if not state.fs:
+    #                 refresh()
+    #             get_msgs_until()
+    # else:
+    #     debug = False
+
+
 # Debug Info Window
-if debug:
-    with st.expander(":red[**Debug Info**]", expanded=True):
-        dcol1, dcol2 = st.columns([1, 3])
-        with dcol1:
-            st.markdown(
-                f"**log path**: {state.log_path}\n\n"
-                f"**excluded tags**: {state.excluded_tags}\n\n"
-                f"**excluded types**: {state.excluded_types}\n\n"
-                f":blue[**message id**]: {sum(sum(len(tmsgs) for tmsgs in rmsgs.values()) for rmsgs in state.msgs.values())}\n\n"
-                f":blue[**round**]: {state.lround}\n\n"
-                f":blue[**evolving round**]: {state.erounds[state.lround]}\n\n"
-            )
-        with dcol2:
-            if state.last_msg:
-                st.write(state.last_msg)
-                if isinstance(state.last_msg.content, list):
-                    st.write(state.last_msg.content[0])
-                elif not isinstance(state.last_msg.content, str):
-                    st.write(state.last_msg.content.__dict__)
+# if debug:
+#     with st.expander(":red[**Debug Info**]", expanded=True):
+#         dcol1, dcol2 = st.columns([1, 3])
+#         with dcol1:
+#             st.markdown(
+#                 f"**log path**: {state.log_path}\n\n"
+#                 f"**excluded tags**: {state.excluded_tags}\n\n"
+#                 f"**excluded types**: {state.excluded_types}\n\n"
+#                 f":blue[**message id**]: {sum(sum(len(tmsgs) for tmsgs in rmsgs.values()) for rmsgs in state.msgs.values())}\n\n"
+#                 f":blue[**round**]: {state.lround}\n\n"
+#                 f":blue[**evolving round**]: {state.erounds[state.lround]}\n\n"
+#             )
+#         with dcol2:
+#             if state.last_msg:
+#                 st.write(state.last_msg)
+#                 if isinstance(state.last_msg.content, list):
+#                     st.write(state.last_msg.content[0])
+#                 elif not isinstance(state.last_msg.content, str):
+#                     st.write(state.last_msg.content.__dict__)
 
 
-
-# Main Window
-if state.fs is None:
+if state.log_path and state.fs is None:
     refresh()
 
-header_c1, header_c3 = st.columns([1, 5], vertical_alignment="center")
+# Main Window
+header_c1, header_c3 = st.columns([1, 6], vertical_alignment="center")
 with st.container():
     with header_c1:
         st.image("https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31")
@@ -719,14 +805,26 @@ with st.container():
     }}
 </style>
 """
-            st.markdown(state.scenario.rich_style_description+css, unsafe_allow_html=True)
+            st.markdown(state.scenario.rich_style_description + css, unsafe_allow_html=True)
+
+
+def show_times(round: int):
+    for k, v in state.times[round].items():
+        if len(v) > 1:
+            diff = v[-1] - v[0]
+        else:
+            diff = v[0] - v[0]
+        total_seconds = diff.seconds
+        seconds = total_seconds % 60
+        minutes = total_seconds // 60
+        st.markdown(f"**:blue[{k}]**: :red[**{minutes}**] minutes :orange[**{seconds}**] seconds")
 
 
 if state.scenario is not None:
     summary_window()
 
     # R&D Loops Window
-    if isinstance(state.scenario, (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario)):
+    if isinstance(state.scenario, SIMILAR_SCENARIOS):
         st.header("R&D Loops♾️", divider="rainbow", anchor="_rdloops")
         if len(state.msgs) > 1:
             r_options = list(state.msgs.keys())
@@ -735,8 +833,12 @@ if state.scenario is not None:
             round = st.radio("**Loops**", horizontal=True, options=r_options, index=state.lround - 1)
         else:
             round = 1
+
+        show_times(round)
         rf_c, d_c = st.columns([2, 2])
     elif isinstance(state.scenario, GeneralModelScenario):
+        show_times(round)
+
         rf_c = st.container()
         d_c = st.container()
         round = 1

@@ -1,0 +1,15 @@
+import os
+
+import numpy as np
+import pandas as pd
+from factor import feature_engineering_cls
+
+if os.path.exists("X_valid.pkl"):
+    valid_df = pd.read_pickle("X_valid.pkl").head(1000)
+else:
+    raise FileNotFoundError("No valid data found.")
+
+cls = feature_engineering_cls()
+cls.fit(valid_df)
+new_feat = cls.transform(valid_df)
+new_feat.to_hdf("result.h5", key="data", mode="w")

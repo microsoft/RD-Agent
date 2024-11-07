@@ -1,0 +1,317 @@
+kg_description_template:
+  system: |-
+    You are an assistant that extracts structured information from unstructured text.
+    The user will provide you a Kaggle competition description, and you need to extract specific details from it.
+    For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
+    Please answer in Json format with the following schema:
+    {
+      "Competition Type": "The type of competition, e.g., 'Classification', 'Regression', 'Clustering', 'Prediction", "Time-Series Forecasting",
+      "Competition Description": "A brief description of the competition",
+      "Target Description": "A description of the target variable to be predicted",
+      "Competition Features": "Two-line description of the overall features involved within the competition as background."
+      "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
+      "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Evaluation Description": "A brief description of the metrics used in the evaluation. Please note that if `evaluation_metric_direction` is True, it indicates that higher values are better; if False, lower values are preferred."
+    }
+    Since these might be very similar column names in data like one_hot_encoded columns, you can use some regex to group them together.
+
+
+  user: |-
+    Competition Description: 
+    {{ competition_descriptions }}
+    The raw data information:
+    {{ raw_data_information }}
+    Evaluation_metric_direction: 
+    {{ evaluation_metric_direction }}
+
+kg_background: |-
+  You are solving a data science tasks and the type of the competition is {{ competition_type }}.
+  The competition description is: {{competition_description}}. 
+  
+  We provide an overall script in file: train.py. The user will run the train.py script along with several feature and model scripts to train several model to get a good performance on this task.
+
+  The train.py script is as follows:
+  ```python
+  {{ train_script }}
+  ```
+  
+  The final output of our pipeline is from a ensemble of up to four models. Each model is trained on a different subset of the data.
+  The four model types are: XGBoost, RandomForest, LightGBM and Neural Network (A Pytorch model).
+  
+  The data is extracted from the competition dataset, focusing on relevant attributes in {{ competition_features }}.
+
+  The user firstly designs and implements a feature book for each model. The feature book is a combination of several features and feature groups.
+  The feature book is built from:
+  - Raw features: The raw features are the original features from the dataset.
+  - generated features: The generated features are the features that are calculated based on the raw features according to some formulations. The calculation should be align with some physical or logical meaning. Don't just simply apply some numeric operations to the raw features.
+  - feature groups: The feature groups are preprocessed group of features from the raw features like normalization, one hot encoding, etc.
+  The feature or feature group is defined in the following parts:
+  - Name: The name of the feature or feature group.
+  - Description: A description of the feature or feature group.
+  - Formulation: The formulation of the feature or feature group.
+  - Variables: The variable list used in the formulation. Notice: The variable should be a specific feature in the dataset. Please make sure the feature name is exactly the same as the feature name in the dataset.
+  
+  For each model, the user will design and implement the model in a separate script.
+  The model is defined in the following parts:
+  - Name: The name of the model.
+  - Description: A description of the model.
+  - Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
+  - ModelType: The type of the model, which should be one of ["XGBoost", "RandomForest", "LightGBM", "NN"].
+  The model should provide clear and detailed documentation of its architecture and hyperparameters.
+
+  The user tries to optimize the performance iteratively by employing one of the feature related or model related action items:
+  - Feature related:
+    - "Feature engineering": The user will design several new tasks and implement several new features. The new feature might only affect the model using all the feature book.
+    - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
+  - Model related:
+    - "Model feature selection": The user will modify one model to select the part of the features from the feature book to improve the model performance.
+    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
+
+  For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
+
+kg_feature_interface: |-
+  Your code should contain several parts:
+  1. The import part: import the necessary libraries.
+  2. A class that contains the feature engineering logic.
+    The class should have the following methods:
+      - fit: This method should fit the feature engineering model to the training data.
+      - transform: This method should transform the input data and return it.
+    For some tasks like generating new features, the fit method may not be necessary. Please pass this function as a no-op.
+  3. A variable called feature_engineering_cls that contains the class name.
+  The input to 'fit' is the training data in pandas dataframe, and the input to 'transform' is the data to be transformed in pandas dataframe.
+  The original columns should be excluded from the returned DataFrame.
+
+  Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
+  
+  The feat_eng function can be one of the following:
+  - Feature engineering: This function calculated one new feature based on the existing raw data.
+  - Feature processing: This function processes the existing raw data like normalization or one hot encoding and return the processed data in the form of a pandas DataFrame.
+
+  Here is an example of how your Python code should be structured:
+  ```python
+  import pandas as pd
+
+  class FeatureEngineeringName:
+      def fit(self, train_df: pd.DataFrame):
+          """
+          Fit the feature engineering model to the training data. 
+          For example, for one hot encoding, this would involve fitting the encoder to the training data.
+          For feature scaling, this would involve fitting the scaler to the training data.
+          """
+          return self
+
+      def transform(self, X: pd.DataFrame):
+          """
+          Transform the input data.
+          """
+          return X
+          return X.mean(axis=1).to_frame("mean_feature") # Example feature engineering
+          return X.fillna(0) # Example feature processing
+
+  feature_engineering_cls = FeatureEngineeringName
+  ```
+
+  To Note:
+  Top 0. I have already completed the encoded labeling process, so please avoid any one-hot encoding or similar operations in the future. Focus instead on targeted and efficient feature engineering techniques, such as normalizing float-type features, filtering based on specific categories, or other concise transformations that can be quickly implemented and tested without unnecessary complexity. Also, ensure that the index of the output DataFrame matches the original DataFrame's index, and that the number of columns remains consistent across train, validation, and test sets.
+  1. Ensure that your code meets these requirements and produces a feature-engineered DataFrame that contains only the newly engineered columns, aligning with the user's data and objectives.
+  2. Ensure that the index of the output DataFrame matches the index of the original DataFrame. For example:
+    Incorrect: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns)`
+    Correct: `normalized_df = pd.DataFrame(normalized_features, columns=X.columns, index=X.index)`
+  3. Ensure consistency in column count across train, validation, and test sets post-feature engineering. For example, fit PCA on the training set and apply the same transformation to validation and test sets to keep the number of columns aligned, and use OneHotEncoder may also cause different number of columns.
+  4. Ensure that the generation of new features does not drastically increase the number of columns, which can slow down data processing. For example, avoid creating pairwise interactions for all features, as this would lead to a quadratic increase in the number of columns.
+  5. Avoids raising a `ValueError` or any other exceptions that could interrupt the main program's flow. The code should not include checks that could potentially lead to a `ValueError`. Instead, focus on writing robust and fault-tolerant feature engineering functions that handle edge cases and missing data gracefully, without stopping the program.
+  6. Specific categories of features can be filtered, and processing can be applied to those categories. For example, normalization can be applied to float-type features, but such processing should not be done on one-hot encoded features.
+  7. You are participating in a Kaggle competition and need data engineering ideas that are small, efficient, and quick to execute. Your suggestions should avoid unnecessary complexity or excessive processing time. Focus on delivering concise, impactful transformations or preprocessing steps that improve model performance with minimal resource usage. Please suggest clear, targeted approaches that can be implemented and tested rapidly.
+
+kg_model_interface: |-
+  Your code should contain several parts:
+  1. The import part: import the necessary libraries.
+  2. A function called fit() that trains the model and returns the trained model.
+    The function should take the following arguments:
+      - X_train: The training features as a pandas DataFrame.
+      - y_train: The training labels as a pandas Series.
+      - X_valid: The validation features as a pandas DataFrame.
+      - y_valid: The validation labels as a pandas Series.
+    The function should return the trained model.
+  3. A function called predict() that makes predictions using the trained model. 
+    The function should take the following arguments:
+      - model: The trained model.
+      - X: The features as a pandas DataFrame.
+    The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
+  """
+    
+  Here are some examples of how your Python code should be structured:
+
+  {% if tag == "XGBoost" or tag is none %}
+  For XGBoost:
+  ```python
+  import pandas as pd
+  import numpy as np
+  import xgboost
+  from xgboost import DMatrix
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> xgboost.Booster:
+      dtrain = DMatrix(X_train, label=y_train)
+      dvalid = DMatrix(X_valid, label=y_valid)
+      params = ...  # Set parameters to XGBoost model
+      model = xgboost.train(params, dtrain, num_boost_round=100)
+      y_pred = model.predict(dvalid)
+
+      accuracy = ...  # Calculate accuracy
+      return model
+
+
+  def predict(model: xgboost.Booster, X: pd.DataFrame) -> np.ndarray:
+      dtest = DMatrix(X)
+      y_pred = model.predict(dtest)
+
+      return y_pred
+  ```
+  {% endif %}
+  {% if tag == "RandomForest" or tag is none %}
+  For RandomForest:
+  ```python
+  import pandas as pd
+  import numpy as np
+  from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+  from sklearn.metrics import accuracy_score
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> RandomForestClassifier | RandomForestRegressor:
+      model = RandomForestClassifier(...)  # fir classification tasks
+      model = RandomForestRegressor(...)  # for regression tasks
+      model.fit(X_train, y_train, ...) # Train the model
+
+      return model
+
+
+  def predict(model: RandomForestClassifier | RandomForestRegressor, X: pd.DataFrame) -> np.ndarray:
+      y_pred = model.predict(X)
+
+      return y_pred
+  ```
+  {% endif %}
+  {% if tag == "LightGBM" or tag is none %}
+  For LightGBM:
+  ```python
+  import pandas as pd
+  import numpy as np
+  from lightgbm import LGBMClassifier, LGBMRegressor
+
+  def fit(
+      X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series
+  ) -> LGBMClassifier | LGBMRegressor:
+      model = LGBMClassifier(...)  # for classification tasks, please add parameters here
+      model = LGBMRegressor(...)  # for regression tasks, please add parameters here
+
+      model.fit(X=X_train, y=y_train, eval_set=[(X_valid, y_valid)])
+      return model
+
+
+  def predict(model: LGBMClassifier | LGBMRegressor, X: pd.DataFrame) -> np.ndarray:
+      y_pred = model.predict(X)
+
+      return y_pred
+  ```
+  {% endif %}
+  {% if tag == "NN" or tag is none %}
+  For Neural Network:
+  ```python
+  import pandas as pd
+  import numpy as np
+  import torch
+  from torch.utils.data import DataLoader, TensorDataset
+
+
+  class NNModel(torch.nn.Module):
+      def __init__(self):
+          super(Model, self).__init__()
+          # Define your model here
+
+      def forward(self, x):
+          # Define the forward pass
+          return x
+
+  def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_valid: pd.DataFrame) -> torch.nn.Module:
+      model = NNModel()  # Initialize the model, You can write your own model class
+
+      optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Example optimizer, you can use any optimizer
+      criterion = torch.nn.CrossEntropyLoss()  # Example loss function, you can use any loss function
+
+      train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
+      valid_loader = DataLoader(TensorDataset(X_valid, y_valid), batch_size=64, shuffle=False)
+
+      # Example training loop, you can customize this loop as per your requirement
+      for epoch in range(10):
+          model.train()
+          for X_batch, y_batch in train_loader:
+              optimizer.zero_grad()
+              outputs = model(X_batch)
+              loss = criterion(outputs, y_batch)
+              loss.backward()
+              optimizer.step()
+
+          model.eval()
+          y_pred = []
+          with torch.no_grad():
+              for X_batch, _ in valid_loader:
+                  outputs = model(X_batch)
+                  y_pred.extend(outputs.squeeze().tolist())
+
+          y_pred = torch.tensor(y_pred)
+          accuracy = (y_pred == y_valid).float().mean()
+          # You can early stop based on the validation, please customize this as per your requirement
+      return model
+
+
+  def predict(model: torch.nn.Module, X: pd.DataFrame) -> np.ndarray:
+      X = torch.tensor(X.values).float()
+      model.eval()
+      with torch.no_grad():
+          y_pred = model(X).squeeze().numpy()
+
+      return y_pred
+  ```
+  {% endif %}
+
+kg_feature_simulator: |-
+  The data preprocessing method you provide will be used to prepare data by processing it, concatenating the results with other features, and removing unnecessary features before training the model. 
+  The processed data will then be used for model training and prediction.
+  
+  User will use your data preprocessing method to do the following steps:
+  1. Execute your Python files to process the data. (what you need to do)
+  2. Concatenate the processed features with other features and the original data.
+  3. Remove any unnecessary features before training the model.
+  4. Train a model such as LightGBM, CatBoost, LSTM, or a simple PyTorch model using the processed data.
+  5. Evaluate the performance of your preprocessing method and provide feedback.
+
+kg_feature_output_format: |-
+  The output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
+  Sample output dataframe info:
+  <class 'pandas.core.frame.DataFrame'>
+  Index: {Same to the input DataFrame}
+  Data columns (total N columns):
+  #   Column      Dtype  
+  ---  ------      -----  
+  0   feature_name_0   float64
+  1   feature_name_1  float64
+  dtypes: float64(N)
+  memory usage: {Memory usage of the output DataFrame}
+
+kg_model_output_format: |-
+  For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions.
+  {% if channel == 1 %}
+  For each sample, the output should be a single value (e.g., (8, 1) if there are 8 samples).
+  {% else %}
+  For each sample, the output should be multiple values with {{ channel }} numbers (e.g., (8, {{ channel }}) if there are 8 samples).
+  {% endif %}
+  
+kg_model_simulator: |-
+  The models will be trained on the competition dataset and evaluated on their ability to predict the target. Metrics like accuracy and AUC-ROC is used to evaluate the model performance. 
+  Model performance will be iteratively improved based on feedback from evaluation results.
+  Your output should follow some requirements to submit to the competition:
+  {{ submission_specifications }}

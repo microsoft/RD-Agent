@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import datetime
 import hashlib
+import inspect
 import json
-import multiprocessing
 import os
+import random
 import re
 import sqlite3
 import ssl
@@ -13,15 +13,15 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import tiktoken
 
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import SingletonBaseClass
+from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
@@ -90,7 +90,7 @@ class SQliteLazyCache(SingletonBaseClass):
         self.cache_location = cache_location
         db_file_exist = Path(cache_location).exists()
         # TODO: sqlite3 does not support multiprocessing.
-        self.conn = sqlite3.connect(cache_location)
+        self.conn = sqlite3.connect(cache_location, timeout=20)
         self.c = self.conn.cursor()
         if not db_file_exist:
             self.c.execute(
@@ -106,6 +106,14 @@ class SQliteLazyCache(SingletonBaseClass):
                 CREATE TABLE embedding_cache (
                     md5_key TEXT PRIMARY KEY,
                     embedding TEXT
+                )
+                """,
+            )
+            self.c.execute(
+                """
+                CREATE TABLE message_cache (
+                    conversation_id TEXT PRIMARY KEY,
+                    message TEXT
                 )
                 """,
             )
@@ -144,42 +152,37 @@ class SQliteLazyCache(SingletonBaseClass):
             )
         self.conn.commit()
 
+    def message_get(self, conversation_id: str) -> list[str]:
+        self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
+        result = self.c.fetchone()
+        if result is None:
+            return []
+        return json.loads(result[0])
+
+    def message_set(self, conversation_id: str, message_value: list[str]) -> None:
+        self.c.execute(
+            "INSERT OR REPLACE INTO message_cache (conversation_id, message) VALUES (?, ?)",
+            (conversation_id, json.dumps(message_value)),
+        )
+        self.conn.commit()
+
 
 class SessionChatHistoryCache(SingletonBaseClass):
     def __init__(self) -> None:
         """load all history conversation json file from self.session_cache_location"""
-        self.cfg = RD_AGENT_SETTINGS
-        self.session_cache_location = Path(self.cfg.session_cache_folder_location)
-        self.cache = {}
-        if not self.session_cache_location.exists():
-            logger.warning(f"Directory {self.session_cache_location} does not exist.")
-            self.session_cache_location.mkdir(parents=True, exist_ok=True)
-        json_files = [f for f in self.session_cache_location.iterdir() if f.suffix == ".json"]
-        if not json_files:
-            logger.info(f"No JSON files found in {self.session_cache_location}.")
-        for file_path in json_files:
-            conversation_id = file_path.stem
-            with file_path.open("r") as f:
-                conversation_content = json.load(f)
-                self.cache[conversation_id] = conversation_content["content"]
+        self.cache = SQliteLazyCache(cache_location=LLM_SETTINGS.prompt_cache_path)
 
     def message_get(self, conversation_id: str) -> list[str]:
-        return self.cache.get(conversation_id, [])
+        return self.cache.message_get(conversation_id)
 
     def message_set(self, conversation_id: str, message_value: list[str]) -> None:
-        self.cache[conversation_id] = message_value
-        conversation_path = self.session_cache_location / conversation_id
-        conversation_path = conversation_path.with_suffix(".json")
-        current_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
-        with conversation_path.open("w") as f:
-            json.dump({"content": message_value, "last_modified_time": current_time}, f)
+        self.cache.message_set(conversation_id, message_value)
 
 
 class ChatSession:
     def __init__(self, api_backend: Any, conversation_id: str | None = None, system_prompt: str | None = None) -> None:
         self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
-        self.cfg = RD_AGENT_SETTINGS
-        self.system_prompt = system_prompt if system_prompt is not None else self.cfg.default_system_prompt
+        self.system_prompt = system_prompt if system_prompt is not None else LLM_SETTINGS.default_system_prompt
         self.api_backend = api_backend
 
     def build_chat_completion_message(self, user_prompt: str) -> list[dict[str, Any]]:
@@ -231,6 +234,15 @@ class ChatSession:
 
 
 class APIBackend:
+    """
+    This is a unified interface for different backends.
+
+    (xiao) thinks integrate all kinds of API in a single class is not a good design.
+    So we should split them into different classes in `oai/backends/` in the future.
+    """
+
+    # FIXME: (xiao) We should avoid using self.xxxx.
+    # Instead, we can use LLM_SETTINGS directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
         *,
@@ -247,37 +259,36 @@ class APIBackend:
         use_embedding_cache: bool | None = None,
         dump_embedding_cache: bool | None = None,
     ) -> None:
-        self.cfg = RD_AGENT_SETTINGS
-        if self.cfg.use_llama2:
+        if LLM_SETTINGS.use_llama2:
             self.generator = Llama.build(
-                ckpt_dir=self.cfg.llama2_ckpt_dir,
-                tokenizer_path=self.cfg.llama2_tokenizer_path,
-                max_seq_len=self.cfg.max_tokens,
-                max_batch_size=self.cfg.llams2_max_batch_size,
+                ckpt_dir=LLM_SETTINGS.llama2_ckpt_dir,
+                tokenizer_path=LLM_SETTINGS.llama2_tokenizer_path,
+                max_seq_len=LLM_SETTINGS.max_tokens,
+                max_batch_size=LLM_SETTINGS.llams2_max_batch_size,
             )
             self.encoder = None
-        elif self.cfg.use_gcr_endpoint:
-            gcr_endpoint_type = self.cfg.gcr_endpoint_type
+        elif LLM_SETTINGS.use_gcr_endpoint:
+            gcr_endpoint_type = LLM_SETTINGS.gcr_endpoint_type
             if gcr_endpoint_type == "llama2_70b":
-                self.gcr_endpoint_key = self.cfg.llama2_70b_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.llama2_70b_endpoint_deployment
-                self.gcr_endpoint = self.cfg.llama2_70b_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.llama2_70b_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.llama2_70b_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.llama2_70b_endpoint
             elif gcr_endpoint_type == "llama3_70b":
-                self.gcr_endpoint_key = self.cfg.llama3_70b_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.llama3_70b_endpoint_deployment
-                self.gcr_endpoint = self.cfg.llama3_70b_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.llama3_70b_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.llama3_70b_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.llama3_70b_endpoint
             elif gcr_endpoint_type == "phi2":
-                self.gcr_endpoint_key = self.cfg.phi2_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi2_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi2_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi2_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi2_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi2_endpoint
             elif gcr_endpoint_type == "phi3_4k":
-                self.gcr_endpoint_key = self.cfg.phi3_4k_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi3_4k_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi3_4k_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi3_4k_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi3_4k_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi3_4k_endpoint
             elif gcr_endpoint_type == "phi3_128k":
-                self.gcr_endpoint_key = self.cfg.phi3_128k_endpoint_key
-                self.gcr_endpoint_deployment = self.cfg.phi3_128k_endpoint_deployment
-                self.gcr_endpoint = self.cfg.phi3_128k_endpoint
+                self.gcr_endpoint_key = LLM_SETTINGS.phi3_128k_endpoint_key
+                self.gcr_endpoint_deployment = LLM_SETTINGS.phi3_128k_endpoint_deployment
+                self.gcr_endpoint = LLM_SETTINGS.phi3_128k_endpoint
             else:
                 error_message = f"Invalid gcr_endpoint_type: {gcr_endpoint_type}"
                 raise ValueError(error_message)
@@ -286,50 +297,54 @@ class APIBackend:
                 "Authorization": ("Bearer " + self.gcr_endpoint_key),
                 "azureml-model-deployment": self.gcr_endpoint_deployment,
             }
-            self.gcr_endpoint_temperature = self.cfg.gcr_endpoint_temperature
-            self.gcr_endpoint_top_p = self.cfg.gcr_endpoint_top_p
-            self.gcr_endpoint_do_sample = self.cfg.gcr_endpoint_do_sample
-            self.gcr_endpoint_max_token = self.cfg.gcr_endpoint_max_token
+            self.gcr_endpoint_temperature = LLM_SETTINGS.gcr_endpoint_temperature
+            self.gcr_endpoint_top_p = LLM_SETTINGS.gcr_endpoint_top_p
+            self.gcr_endpoint_do_sample = LLM_SETTINGS.gcr_endpoint_do_sample
+            self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
             self.encoder = None
         else:
-            self.use_azure = self.cfg.use_azure
-            self.use_azure_token_provider = self.cfg.use_azure_token_provider
-            self.managed_identity_client_id = self.cfg.managed_identity_client_id
+            self.use_azure = LLM_SETTINGS.use_azure
+            self.chat_use_azure_token_provider = LLM_SETTINGS.chat_use_azure_token_provider
+            self.embedding_use_azure_token_provider = LLM_SETTINGS.embedding_use_azure_token_provider
+            self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
 
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
             # TODO: Simplify the key design. Consider Pandatic's field alias & priority.
             self.chat_api_key = (
                 chat_api_key
-                or self.cfg.chat_openai_api_key
-                or self.cfg.openai_api_key
+                or LLM_SETTINGS.chat_openai_api_key
+                or LLM_SETTINGS.openai_api_key
                 or os.environ.get("OPENAI_API_KEY")
             )
             self.embedding_api_key = (
                 embedding_api_key
-                or self.cfg.embedding_openai_api_key
-                or self.cfg.openai_api_key
+                or LLM_SETTINGS.embedding_openai_api_key
+                or LLM_SETTINGS.openai_api_key
                 or os.environ.get("OPENAI_API_KEY")
             )
 
-            self.chat_model = self.cfg.chat_model if chat_model is None else chat_model
+            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
+            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.encoder = tiktoken.encoding_for_model(self.chat_model)
-            self.chat_api_base = self.cfg.chat_azure_api_base if chat_api_base is None else chat_api_base
-            self.chat_api_version = self.cfg.chat_azure_api_version if chat_api_version is None else chat_api_version
-            self.chat_stream = self.cfg.chat_stream
-            self.chat_seed = self.cfg.chat_seed
+            self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
+            self.chat_api_version = (
+                LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version
+            )
+            self.chat_stream = LLM_SETTINGS.chat_stream
+            self.chat_seed = LLM_SETTINGS.chat_seed
 
-            self.embedding_model = self.cfg.embedding_model if embedding_model is None else embedding_model
+            self.embedding_model = LLM_SETTINGS.embedding_model if embedding_model is None else embedding_model
             self.embedding_api_base = (
-                self.cfg.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
+                LLM_SETTINGS.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
             )
             self.embedding_api_version = (
-                self.cfg.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
+                LLM_SETTINGS.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
             )
 
             if self.use_azure:
-                if self.use_azure_token_provider:
+                if self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider:
                     dac_kwargs = {}
                     if self.managed_identity_client_id is not None:
                         dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
@@ -338,15 +353,11 @@ class APIBackend:
                         credential,
                         "https://cognitiveservices.azure.com/.default",
                     )
+                if self.chat_use_azure_token_provider:
                     self.chat_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
-                    )
-                    self.embedding_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
                     )
                 else:
                     self.chat_client = openai.AzureOpenAI(
@@ -354,6 +365,14 @@ class APIBackend:
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
                     )
+
+                if self.embedding_use_azure_token_provider:
+                    self.embedding_client = openai.AzureOpenAI(
+                        azure_ad_token_provider=token_provider,
+                        api_version=self.embedding_api_version,
+                        azure_endpoint=self.embedding_api_base,
+                    )
+                else:
                     self.embedding_client = openai.AzureOpenAI(
                         api_key=self.embedding_api_key,
                         api_version=self.embedding_api_version,
@@ -363,20 +382,22 @@ class APIBackend:
                 self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
                 self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
 
-        self.dump_chat_cache = self.cfg.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
-        self.use_chat_cache = self.cfg.use_chat_cache if use_chat_cache is None else use_chat_cache
+        self.dump_chat_cache = LLM_SETTINGS.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
+        self.use_chat_cache = LLM_SETTINGS.use_chat_cache if use_chat_cache is None else use_chat_cache
         self.dump_embedding_cache = (
-            self.cfg.dump_embedding_cache if dump_embedding_cache is None else dump_embedding_cache
+            LLM_SETTINGS.dump_embedding_cache if dump_embedding_cache is None else dump_embedding_cache
         )
-        self.use_embedding_cache = self.cfg.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
+        self.use_embedding_cache = (
+            LLM_SETTINGS.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
+        )
         if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
-            self.cache_file_location = self.cfg.prompt_cache_path
+            self.cache_file_location = LLM_SETTINGS.prompt_cache_path
             self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
 
         # transfer the config to the class if the config is not supposed to change during the runtime
-        self.use_llama2 = self.cfg.use_llama2
-        self.use_gcr_endpoint = self.cfg.use_gcr_endpoint
-        self.retry_wait_seconds = self.cfg.retry_wait_seconds
+        self.use_llama2 = LLM_SETTINGS.use_llama2
+        self.use_gcr_endpoint = LLM_SETTINGS.use_gcr_endpoint
+        self.retry_wait_seconds = LLM_SETTINGS.retry_wait_seconds
 
     def build_chat_session(
         self,
@@ -397,7 +418,10 @@ class APIBackend:
         *,
         shrink_multiple_break: bool = False,
     ) -> list[dict]:
-        """build the messages to avoid implementing several redundant lines of code"""
+        """
+        build the messages to avoid implementing several redundant lines of code
+
+        """
         if former_messages is None:
             former_messages = []
         # shrink multiple break will recursively remove multiple breaks(more than 2)
@@ -407,14 +431,14 @@ class APIBackend:
             if system_prompt is not None:
                 while "\n\n\n" in system_prompt:
                     system_prompt = system_prompt.replace("\n\n\n", "\n\n")
-        system_prompt = self.cfg.default_system_prompt if system_prompt is None else system_prompt
+        system_prompt = LLM_SETTINGS.default_system_prompt if system_prompt is None else system_prompt
         messages = [
             {
                 "role": "system",
                 "content": system_prompt,
             },
         ]
-        messages.extend(former_messages[-1 * self.cfg.max_past_message_include :])
+        messages.extend(former_messages[-1 * LLM_SETTINGS.max_past_message_include :])
         messages.append(
             {
                 "role": "user",
@@ -436,7 +460,10 @@ class APIBackend:
         if former_messages is None:
             former_messages = []
         messages = self.build_messages(
-            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
+            user_prompt,
+            system_prompt,
+            former_messages,
+            shrink_multiple_break=shrink_multiple_break,
         )
         return self._try_create_chat_completion_or_embedding(
             messages=messages,
@@ -485,7 +512,7 @@ class APIBackend:
         **kwargs: Any,
     ) -> Any:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
-        max_retry = self.cfg.max_retry if self.cfg.max_retry is not None else max_retry
+        max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         for i in range(max_retry):
             try:
                 if embedding:
@@ -524,21 +551,25 @@ class APIBackend:
             filtered_input_content_list = input_content_list
 
         if len(filtered_input_content_list) > 0:
-            if self.use_azure:
-                response = self.embedding_client.embeddings.create(
-                    model=self.embedding_model,
-                    input=filtered_input_content_list,
-                )
-            else:
-                response = self.embedding_client.embeddings.create(
-                    model=self.embedding_model,
-                    input=filtered_input_content_list,
-                )
-            for index, data in enumerate(response.data):
-                content_to_embedding_dict[filtered_input_content_list[index]] = data.embedding
+            for sliced_filtered_input_content_list in [
+                filtered_input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
+                for i in range(0, len(filtered_input_content_list), LLM_SETTINGS.embedding_max_str_num)
+            ]:
+                if self.use_azure:
+                    response = self.embedding_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=sliced_filtered_input_content_list,
+                    )
+                else:
+                    response = self.embedding_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=sliced_filtered_input_content_list,
+                    )
+                for index, data in enumerate(response.data):
+                    content_to_embedding_dict[sliced_filtered_input_content_list[index]] = data.embedding
 
-            if self.dump_embedding_cache:
-                self.cache.embedding_set(content_to_embedding_dict)
+                if self.dump_embedding_cache:
+                    self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
     def _build_log_messages(self, messages: list[dict]) -> str:
@@ -563,30 +594,49 @@ class APIBackend:
         *,
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
+        seed: Optional[int] = None,
     ) -> str:
+        """
+        seed : Optional[int]
+            When retrying with cache enabled, it will keep returning the same results.
+            To make retries useful, we need to enable a seed.
+            This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
+        """
+        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
+            seed = LLM_CACHE_SEED_GEN.get_next_seed()
+
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
-        if self.cfg.log_llm_chat_content:
+        if LLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
         input_content_json = json.dumps(messages)
         input_content_json = (
-            chat_cache_prefix + input_content_json
+            chat_cache_prefix + input_content_json + f"<seed={seed}/>"
         )  # FIXME this is a hack to make sure the cache represents the round index
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result, None
 
         if temperature is None:
-            temperature = self.cfg.chat_temperature
+            temperature = LLM_SETTINGS.chat_temperature
         if max_tokens is None:
-            max_tokens = self.cfg.chat_max_tokens
+            max_tokens = LLM_SETTINGS.chat_max_tokens
         if frequency_penalty is None:
-            frequency_penalty = self.cfg.chat_frequency_penalty
+            frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         if presence_penalty is None:
-            presence_penalty = self.cfg.chat_presence_penalty
+            presence_penalty = LLM_SETTINGS.chat_presence_penalty
+
+        # Use index 4 to skip the current function and intermediate calls,
+        # and get the locals of the caller's frame.
+        caller_locals = inspect.stack()[4].frame.f_locals
+        if "self" in caller_locals:
+            tag = caller_locals["self"].__class__.__name__
+        else:
+            tag = inspect.stack()[4].function
+        model = self.chat_model_map.get(tag, self.chat_model)
 
         finish_reason = None
         if self.use_llama2:
@@ -596,7 +646,7 @@ class APIBackend:
                 temperature=temperature,
             )
             resp = response[0]["generation"]["content"]
-            if self.cfg.log_llm_chat_content:
+            if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         elif self.use_gcr_endpoint:
             body = str.encode(
@@ -618,11 +668,11 @@ class APIBackend:
             req = urllib.request.Request(self.gcr_endpoint, body, self.headers)  # noqa: S310
             response = urllib.request.urlopen(req)  # noqa: S310
             resp = json.loads(response.read().decode())["output"]
-            if self.cfg.log_llm_chat_content:
+            if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             kwargs = dict(
-                model=self.chat_model,
+                model=model,
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -643,7 +693,7 @@ class APIBackend:
             if self.chat_stream:
                 resp = ""
                 # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
 
                 for chunk in response:
@@ -652,20 +702,32 @@ class APIBackend:
                         if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None
                         else ""
                     )
-                    if self.cfg.log_llm_chat_content:
+                    if LLM_SETTINGS.log_llm_chat_content:
                         logger.info(LogColors.CYAN + content + LogColors.END, raw=True, tag="llm_messages")
                     resp += content
                     if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
 
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info("\n", raw=True, tag="llm_messages")
 
             else:
                 resp = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
-                if self.cfg.log_llm_chat_content:
+                if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
+                    logger.info(
+                        json.dumps(
+                            {
+                                "tag": tag,
+                                "total_tokens": response.usage.total_tokens,
+                                "prompt_tokens": response.usage.prompt_tokens,
+                                "completion_tokens": response.usage.completion_tokens,
+                                "model": model,
+                            }
+                        ),
+                        tag="llm_messages",
+                    )
             if json_mode:
                 json.loads(resp)
         if self.dump_chat_cache:
@@ -709,26 +771,6 @@ class APIBackend:
         return self.calculate_token_from_messages(messages)
 
 
-def calculate_embedding_process(str_list: list) -> list:
-    return APIBackend().create_embedding(str_list)
-
-
-def create_embedding_with_multiprocessing(str_list: list, slice_count: int = 50, nproc: int = 8) -> list:
-    embeddings = []
-
-    pool = multiprocessing.Pool(nproc)
-    result_list = [
-        pool.apply_async(calculate_embedding_process, (str_list[index : index + slice_count],))
-        for index in range(0, len(str_list), slice_count)
-    ]
-    pool.close()
-    pool.join()
-
-    for res in result_list:
-        embeddings.extend(res.get())
-    return embeddings
-
-
 def calculate_embedding_distance_between_str_list(
     source_str_list: list[str],
     target_str_list: list[str],
@@ -736,7 +778,8 @@ def calculate_embedding_distance_between_str_list(
     if not source_str_list or not target_str_list:
         return [[]]
 
-    embeddings = create_embedding_with_multiprocessing(source_str_list + target_str_list, slice_count=50, nproc=8)
+    embeddings = APIBackend().create_embedding(source_str_list + target_str_list)
+
     source_embeddings = embeddings[: len(source_str_list)]
     target_embeddings = embeddings[len(source_str_list) :]
 

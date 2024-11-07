@@ -1,48 +1,73 @@
+<h4 align="center">
+  <img src="docs/_static/logo.png" alt="RA-Agent logo" style="width:70%; ">
+  
+  <a href="https://rdagent.azurewebsites.net" target="_blank">🖥️ Live Demo</a> | <a href="https://rdagent.azurewebsites.net/factor_loop" target="_blank">🎥 Demo Video</a> <a href="https://www.youtube.com/watch?v=JJ4JYO3HscM&list=PLALmKB0_N3_i52fhUmPQiL4jsO354uopR" target="_blank">▶️YouTube</a>   | <a href="https://rdagent.readthedocs.io/en/latest/index.html" target="_blank">📖 Documentation</a> | <a href="#-paperwork-list"> 📃 Papers </a>
+</h3>
+
+
 [![CI](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/dependabot/dependabot-updates)
 [![Lint PR Title](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/pr.yml)
-[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml)
 [![Release.yml](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/release.yml)
+[![Platform](https://img.shields.io/badge/platform-Linux-blue)](https://pypi.org/project/rdagent/#files)
+[![PyPI](https://img.shields.io/pypi/v/rdagent)](https://pypi.org/project/rdagent/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rdagent)](https://pypi.org/project/rdagent/)
 [![Release](https://img.shields.io/github/v/release/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/releases)
+[![GitHub](https://img.shields.io/github/license/microsoft/RD-Agent)](https://github.com/microsoft/RD-Agent/blob/main/LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-<!-- TODO: License / pypi / PyPI - Python Version  --> 
+[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)
+[![Readthedocs Preview](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml/badge.svg)](https://github.com/microsoft/RD-Agent/actions/workflows/readthedocs-preview.yml) <!-- this badge is too long, please place it in the last one to make it pretty --> 
 
 # 📰 News
-| 🗞️News        | 📝Description                 |
-| --            | ------                        |
-| First release | RDAgent are release on Github |
+| 🗞️ News        | 📝 Description                 |
+| --            | ------      
+| Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
+| Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](docs/WeChat_QR_code.jpg)) |
+| Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
+| First release | **RDAgent** is released on GitHub |
 
 
 # 🌟 Introduction
+<div align="center">
+      <img src="docs/_static/scen.png" alt="Our focused scenario" style="width:80%; ">
+</div>
 
-![Our focused scenario](docs/_static/scen.jpg)
-
-RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begins with focusing on the data-driven scenarios to streamline the development of models and data. 
+RDAgent aims to automate the most critical and valuable aspects of the industrial R&D process, and we begin with focusing on the data-driven scenarios to streamline the development of models and data. 
 Methodologically, we have identified a framework with two key components: 'R' for proposing new ideas and 'D' for implementing them.
 We believe that the automatic evolution of R&D will lead to solutions of significant industrial value.
 
 
 <!-- Tag Cloud -->
 R&D is a very general scenario. The advent of RDAgent can be your
-- [🎥Automatic Quant Factory]()
-- 🤖Data mining agent: iteratively proposing [🎥data]() & [models]() and implementing them by gaining knowledge from data.
-- 🦾Research copilot: Auto read [🎥research papers]()/[🎥reports]() and implement model structures or building datasets.
+- 💰 **Automatic Quant Factory** ([🎥Demo Video](https://rdagent.azurewebsites.net/factor_loop)|[▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s))
+- 🤖 **Data Mining Agent:** Iteratively proposing data & models ([🎥Demo Video 1](https://rdagent.azurewebsites.net/model_loop)|[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s)) ([🎥Demo Video 2](https://rdagent.azurewebsites.net/dmm)|[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4))  and implementing them by gaining knowledge from data.
+- 🦾 **Research Copilot:** Auto read research papers ([🎥Demo Video](https://rdagent.azurewebsites.net/report_model)|[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o)) / financial reports ([🎥Demo Video](https://rdagent.azurewebsites.net/report_factor)|[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)) and implement model structures or building datasets.
+- 🤖 **Kaggle Agent:** Auto Model Tuning and Feature Engineering([🎥Demo Video Coming Soon...]()) and implementing them to achieve more in competitions.
 - ...
 
-You can click the [🎥link]() above to view the demo. More methods and scenarios are being added to the project to empower your R&D processes and boost productivity.
+You can click the links above to view the demo. We're continuously adding more methods and scenarios to the project to enhance your R&D processes and boost productivity. 
 
-We have a quick 🎥demo for one use case of RDAgent.
-- TODO: Demo
+Additionally, you can take a closer look at the examples in our **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**.
+
+<div align="center">
+    <a href="https://rdagent.azurewebsites.net/" target="_blank">
+        <img src="docs/_static/demo.png" alt="Watch the demo" width="80%">
+    </a>
+</div>
 
 
-# ⚡Quick start
-You can try our demo by running the following command:
+# ⚡ Quick start
+
+You can try above demos by running the following command:
+
+### 🐳 Docker installation.
+Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
 
 ### 🐍 Create a Conda Environment
-- Create a new conda environment with Python (3.10 and 3.11 are well tested in our CI):
+- Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
   conda create -n rdagent python=3.10
   ```
@@ -51,89 +76,146 @@ You can try our demo by running the following command:
   conda activate rdagent
   ```
 
-### 🛠️ Run Make Files
-TODO: `pip install rdagent` in the future.
-
-- **Navigate to the directory containing the MakeFile** and set up the development environment:
+### 🛠️ Install the RDAgent
+- You can directly install the RDAgent package from PyPI:
   ```sh
-  make dev
+  pip install rdagent
   ```
 
-### 📦 Install Pytorch
-TODO: use docker in quick start intead.
-
-- Install Pytorch and related libraries:
-  ```sh
-  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-  pip3 install torch_geometric
+### ⚙️ Configuration
+- You have to config your GPT model in the `.env`
+  ```bash
+  cat << EOF  > .env
+  OPENAI_API_KEY=<your_api_key>
+  # EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_MODEL=gpt-4-turbo
+  EOF
   ```
 
-### ⚙️ Environment Configuration
-- Place the `.env` file in the same directory as the `.env.example` file.
-  - The `.env.example` file contains the environment variables required for users using the OpenAI API (Please note that `.env.example` is an example file. `.env` is the one that will be finally used.)
-  - please refer to [Configuration](docs/build/html/installation.html#azure-openai) for the detailed explanation of the `.env`
-- Export each variable in the `.env` file:
-  ```sh
-  export $(grep -v '^#' .env | xargs)
-  ```
 ### 🚀 Run the Application
-TODO: run the front-page demo.
 
-The [🎥demo]() is implemented by the above commands.
+The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
-- Run the factor extraction and implementation application based on financial reports:
+- Run the **Automated Quantitative Trading & Iterative Factors Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor proposal and implementation application
   ```sh
-  python rdagent/app/qlib_rd_loop/factor_from_report_sh.py
+  rdagent fin_factor
   ```
 
-- Run the self-loop factor extraction and implementation application:
+- Run the **Automated Quantitative Trading & Iterative Model Evolution**: [Qlib](http://github.com/microsoft/qlib) self-loop model proposal and implementation application
   ```sh
-  python rdagent/app/qlib_rd_loop/factor.py
+  rdagent fin_model
   ```
 
-- Run the self-loop model extraction and implementation application:
+- Run the **Automated Medical Prediction Model Evolution**: Medical self-loop model proposal and implementation application
+  >(1) Apply for an account at [PhysioNet](https://physionet.org/). <br /> (2) Request access to FIDDLE preprocessed data: [FIDDLE Dataset](https://physionet.org/content/mimic-eicu-fiddle-feature/1.0.0/). <br />
+  (3) Place your username and password in `.env`.
+  ```bash
+  cat << EOF  >> .env
+  DM_USERNAME=<your_username>
+  DM_PASSWORD=<your_password>
+  EOF
+  ```
   ```sh
-  python rdagent/app/qlib_rd_loop/model.py
+  rdagent med_model
   ```
 
+- Run the **Automated Quantitative Trading & Factors Extraction from Financial Reports**:  Run the [Qlib](http://github.com/microsoft/qlib) factor extraction and implementation application based on financial reports
+  ```sh
+  # 1. Generally, you can run this scenario using the following command:
+  rdagent fin_factor_report --report_folder=<Your financial reports folder path>
 
-# Scenarios
+  # 2. Specifically, you need to prepare some financial reports first. You can follow this concrete example:
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
+  unzip all_reports.zip -d git_ignore_folder/reports
+  rdagent fin_factor_report --report_folder=git_ignore_folder/reports
+  ```
 
-We have applied RD-Agent to multiple valuable data-driven industrial scenarios..
+- Run the **Automated Model Research & Development Copilot**: model extraction and implementation application
+  ```sh
+  # 1. Generally, you can run your own papers/reports with the following command:
+  rdagent general_model <Your paper URL>
+
+  # 2. Specifically, you can do it like this. For more details and additional paper examples, use `rdagent general_model -h`:
+  rdagent general_model  "https://arxiv.org/pdf/2210.09789"
+  ```
+
+- Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application
+  
+  **Note**: This application will automatically download Kaggle competition data unless you prepare the data locally. If you do not have the data locally, you need to configure the Kaggle API and agree to the corresponding competition rules on the Kaggle website.
+  ```sh
+  # 1. the competition name should must match the name used with the API on the Kaggle platform.
+  rdagent kaggle --competition [your-competition-name]
+
+  # 2. Specifically, you can fill the competition name as follows:
+
+  # download the competition description files to youre local directory
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
+
+  # unzip the files to your local directory
+  unzip kaggle_data.zip -d /your/local/directory/kaggle_data
+
+  # set environment variables
+  export LOCAL_DATA_PATH=/your/local/directory/kaggle_data/kaggle  
+
+  # run the application
+  rdagent kaggle --competition sf-crime
+  ```
+  The [Competition List Available](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available) can be found here. 
+  
+  For more details, you can refer to the [example guide](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment).
+
+### 🖥️ Monitor the Application Results
+- You can serve our demo app to monitor the RD loop by running the following command:
+  ```sh
+  rdagent ui --port 80 --log_dir <your log folder like "log/">
+  ```
+
+# 🏭 Scenarios
+
+We have applied RD-Agent to multiple valuable data-driven industrial scenarios.
 
 
 ## 🎯 Goal: Agent for Data-driven R&D
 
-In this project, we are aiming to build a Agent to automate Data-Driven R\&D that can
-+ 📄Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
-+ 🛠️**Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
-   + Due to the limited ability of LLM in implementing at once, evolve the agent to be able to extend abilities by learning from feedback and knowledge and improve the agent's ability to implement more complex models.
-+ 💡Propose **new ideas** based on current knowledge and observations.
+In this project, we are aiming to build an Agent to automate Data-Driven R\&D that can
++ 📄 Read real-world material (reports, papers, etc.) and **extract** key formulas, descriptions of interested **features** and **models**, which are the key components of data-driven R&D .
++ 🛠️ **Implement** the extracted formulas (e.g., features, factors, and models) in runnable codes.
+   + Due to the limited ability of LLM in implementing at once, build an evolving process for the agent to improve performance by learning from feedback and knowledge.
++ 💡 Propose **new ideas** based on current knowledge and observations.
 
 <!-- ![Data-Centric R&D Overview](docs/_static/overview.png) -->
 
 ## 📈 Scenarios/Demos
 
-In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾copilot and 🤖agent. 
-- The 🦾copilot follows human instructions to automate repetitive tasks. 
-- The 🤖agent, being more autonomous, actively proposes ideas for better results in the future.
+In the two key areas of data-driven scenarios, model implementation and data building, our system aims to serve two main roles: 🦾Copilot and 🤖Agent. 
+- The 🦾Copilot follows human instructions to automate repetitive tasks. 
+- The 🤖Agent, being more autonomous, actively proposes ideas for better results in the future.
 
 The supported scenarios are listed below:
 
 | Scenario/Target | Model Implementation                   | Data Building                                                                      |
 | --              | --                                     | --                                                                                 |
-| 💹 Finance      | 🤖Iteratively Proposing Ideas & Evolving | - 🦾Auto reports reading & implementation <br/> - 🤖Iteratively Proposing Ideas & Evolving |
-| 🩺 Medical      | 🤖Iteratively Proposing Ideas & Evolving | -                                                                                  |
-| 🏭 General      | 🦾Auto paper reading & implementation    | -                                                                                  |
+| **💹 Finance**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/model_loop)[▶️YouTube](https://www.youtube.com/watch?v=dm0dWL49Bc0&t=104s) |  🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/factor_loop) [▶️YouTube](https://www.youtube.com/watch?v=X4DK2QZKaKY&t=6s) <br/>   🦾 [Auto reports reading & implementation](https://rdagent.azurewebsites.net/report_factor)[▶️YouTube](https://www.youtube.com/watch?v=ECLTXVcSx-c)  |
+| **🩺 Medical**      | 🤖 [Iteratively Proposing Ideas & Evolving](https://rdagent.azurewebsites.net/dmm)[▶️YouTube](https://www.youtube.com/watch?v=VIaSTZuoZg4) | -                                                                                  |
+| **🏭 General**      | 🦾 [Auto paper reading & implementation](https://rdagent.azurewebsites.net/report_model)[▶️YouTube](https://www.youtube.com/watch?v=BiA2SfdKQ7o) <br/> 🤖 Auto Kaggle Model Tuning   | 🤖Auto Kaggle feature Engineering |
+
+- **[RoadMap](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#roadmap)**: Currently, we are working hard to add new features to the Kaggle scenario.
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-TODO: Scenario Gallary
-- map(scenario) => knowledge list;
+Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
 
-# ⚙️Framework
+```bash
+rdagent ui --port 80 --log_dir ./demo_traces
+```
 
-![image](https://github.com/user-attachments/assets/98fce923-77ab-4982-93c8-a7a01aece766)
+Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
+
+# ⚙️ Framework
+
+<div align="center">
+    <img src="docs/_static/Framework-RDAgent.png" alt="Framework-RDAgent" width="85%">
+</div>
 
 
 Automating the R&D process in data science is a highly valuable yet underexplored area in industry. We propose a framework to push the boundaries of this important research field.
@@ -141,17 +223,18 @@ Automating the R&D process in data science is a highly valuable yet underexplore
 The research questions within this framework can be divided into three main categories:
 | Research Area | Paper/Work List |
 |--------------------|-----------------|
-| Benchmark the R&D abilities | [Benchmark](#benchmark) |
-| Idea proposal: Explore new ideas or refine existing ones | [Research](#research) |
-| Ability to realize ideas: Implement and execute ideas | [Development](#development) |
+| **Benchmark the R&D abilities** | [Benchmark](#benchmark) |
+| **Idea proposal:** Explore new ideas or refine existing ones | [Research](#research) |
+| **Ability to realize ideas:** Implement and execute ideas | [Development](#development) |
 
 We believe that the key to delivering high-quality solutions lies in the ability to evolve R&D capabilities. Agents should learn like human experts, continuously improving their R&D skills.
 
+More documents can be found in the **[📖 readthedocs](https://rdagent.readthedocs.io/)**.
 
-# 📃Paper/Work list
+# 📃 Paper/Work list
 
-## Benchmark
-- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276);
+## 📊 Benchmark
+- [Towards Data-Centric Automatic R&D](https://arxiv.org/abs/2404.11276)
 ```BibTeX
 @misc{chen2024datacentric,
     title={Towards Data-Centric Automatic R&D},
@@ -164,15 +247,15 @@ We believe that the key to delivering high-quality solutions lies in the ability
 ```
 ![image](https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841)
 
-## Research
+## 🔍 Research
 
 In a data mining expert's daily research and development process, they propose a hypothesis (e.g., a model structure like RNN can capture patterns in time-series data), design experiments (e.g., finance data contains time-series and we can verify the hypothesis in this scenario), implement the experiment as code (e.g., Pytorch model structure), and then execute the code to get feedback (e.g., metrics, loss curve, etc.). The experts learn from the feedback and improve in the next iteration.
 
 Based on the principles above, we have established a basic method framework that continuously proposes hypotheses, verifies them, and gets feedback from the real-world practice. This is the first scientific research automation framework that supports linking with real-world verification.
 
-[Demos](#📈 Scenarios/Demos) are released.
+For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.azurewebsites.net)**.
 
-## Development
+## 🛠️ Development
 
 - [Collaborative Evolving Strategy for Automatic Data-Centric Development](https://arxiv.org/abs/2407.18690)
 ```BibTeX
@@ -188,18 +271,21 @@ Based on the principles above, we have established a basic method framework that
 ![image](https://github.com/user-attachments/assets/75d9769b-0edd-4caf-9d45-57d1e577054b)
 
 
-# Contributing
+# 🤝 Contributing
 
-More documents can be found in the [📚readthedocs](). TODO: add link
-
-## Guidance
+## 📝 Guidelines
 This project welcomes contributions and suggestions.
-You can find issues in the issues list or simply running `grep -r "TODO:"`.
+Contributing to this project is straightforward and rewarding. Whether it's solving an issue, addressing a bug, enhancing documentation, or even correcting a typo, every contribution is valuable and helps improve RDAgent.
 
-Making contributions is not a hard thing. Solving an issue(maybe just answering a question raised in issues list ), fixing/issuing a bug, improving the documents and even fixing a typo are important contributions to RDAgent.
+To get started, you can explore the issues list, or search for `TODO:` comments in the codebase by running the command `grep -r "TODO:"`.
+
 <img src="https://img.shields.io/github/contributors-anon/microsoft/RD-Agent"/>
 
-<a href="https://github.com/microsoft/RD-Agent/graphs/contributors"><img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=240&columns=18" /></a>
+<a href="https://github.com/microsoft/RD-Agent/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=microsoft/RD-Agent&max=100&columns=15" />
+</a>
 
-# Disclaimer
-**The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.**
+Before we released RD-Agent as an open-source project on GitHub, it was an internal project within our group. Unfortunately, the internal commit history was not preserved when we removed some confidential code. As a result, some contributions from our group members, including Haotian Chen, Wenjun Feng, Haoxue Wang, Zeqi Ye, Xinjie Shen, and Jinhui Li, were not included in the public commits.
+
+# ⚖️ Legal disclaimer
+<p style="line-height: 1; font-style: italic;">The RD-agent is provided “as is”, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. The RD-agent is aimed to facilitate research and development process in the financial industry and not ready-to-use for any financial investment or advice. Users shall independently assess and test the risks of the RD-agent in a specific use scenario, ensure the responsible use of AI technology, including but not limited to developing and integrating risk mitigation measures, and comply with all applicable laws and regulations in all applicable jurisdictions. The RD-agent does not provide financial opinions or reflect the opinions of Microsoft, nor is it designed to replace the role of qualified financial professionals in formulating, assessing, and approving finance products. The inputs and outputs of the RD-agent belong to the users and users shall assume all liability under any theory of liability, whether in contract, torts, regulatory, negligence, products liability, or otherwise, associated with use of the RD-agent and any inputs and outputs thereof.</p>

@@ -36,7 +36,7 @@ class WebView(View):
 
     def display(self, s: Storage, watch: bool = False):
         for msg in s.iter_msg():  # iterate overtime
-            # NOTE:  iter_msg will correctly seperate the information.
+            # NOTE:  iter_msg will correctly separate the information.
             # TODO: msg may support streaming mode.
             self.ui.consume_msg(msg)
 
@@ -290,10 +290,6 @@ class WorkspaceWindow(StWindow):
         for k, v in ws.code_dict.items():
             self.container.markdown(f"`{k}`")
             self.container.code(v, language="python")
-
-        # executed_factor_value_dataframe
-        # if isinstance(ws, FactorFBWorkspace):
-        #     self.container.dataframe(ws.executed_factor_value_dataframe)
 
 
 class QlibFactorExpWindow(StWindow):
@@ -586,7 +582,7 @@ class TraceWindow(StWindow):
         self.show_llm = show_llm
         self.show_common_logs = show_common_logs
         image_c, scen_c = container.columns([2, 3], vertical_alignment="center")
-        image_c.image("scen.jpg")
+        image_c.image("scen.png")
         scen_c.container(border=True).markdown(QlibModelScenario().rich_style_description)
         top_container = container.container()
         col1, col2 = top_container.columns([2, 3])
@@ -622,9 +618,11 @@ class TraceWindow(StWindow):
             self.hypothesis_decisions[self.hypotheses[-1]] = msg.content.decision
             self.summary_c.markdown(
                 "\n".join(
-                    f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*"
-                    if d
-                    else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*"
+                    (
+                        f"{id+1}. :green[{self.hypotheses[id].hypothesis}]\n\t>*{self.hypotheses[id].concise_reason}*"
+                        if d
+                        else f"{id+1}. {self.hypotheses[id].hypothesis}\n\t>*{self.hypotheses[id].concise_reason}*"
+                    )
                     for id, (h, d) in enumerate(self.hypothesis_decisions.items())
                 )
             )

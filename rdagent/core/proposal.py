@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp, Experiment
+from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.scenario import Scenario
 
 if TYPE_CHECKING:
@@ -83,12 +84,14 @@ Reason: {self.reason}"""
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
+ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 
 
-class Trace(Generic[ASpecificScen]):
-    def __init__(self, scen: ASpecificScen) -> None:
+class Trace(Generic[ASpecificScen, ASpecificKB]):
+    def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
         self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
+        self.knowledge_base: ASpecificKB | None = knowledge_base
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""

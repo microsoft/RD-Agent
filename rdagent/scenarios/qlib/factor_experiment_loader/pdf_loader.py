@@ -12,6 +12,7 @@ from jinja2 import Environment, StrictUndefined
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
+from tqdm.auto import tqdm
 
 from rdagent.components.document_reader.document_reader import (
     load_and_process_pdfs_by_langchain,
@@ -21,7 +22,8 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend, create_embedding_with_multiprocessing
+from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.factor_experiment_loader.json_loader import (
     FactorExperimentLoaderFromDict,
 )
@@ -62,7 +64,7 @@ def classify_report_from_dict(
     res_dict = {}
     classify_prompt = document_process_prompts["classify_system"]
 
-    for key, value in report_dict.items():
+    for key, value in tqdm(report_dict.items()):
         if not key.endswith(".pdf"):
             continue
         file_name = key
@@ -85,9 +87,9 @@ def classify_report_from_dict(
                 user_prompt=content,
                 system_prompt=classify_prompt,
             )
-            > RD_AGENT_SETTINGS.chat_token_limit
+            > LLM_SETTINGS.chat_token_limit
         ):
-            content = content[: -(RD_AGENT_SETTINGS.chat_token_limit // 100)]
+            content = content[: -(LLM_SETTINGS.chat_token_limit // 100)]
 
         vote_list = []
         for _ in range(vote_time):
@@ -273,6 +275,49 @@ def merge_file_to_factor_dict_to_factor_dict(
     return factor_dict_simple_deduplication
 
 
+def __check_factor_dict_relevance(
+    factor_df_string: str,
+) -> dict[str, dict[str, str]]:
+    extract_result_resp = APIBackend().build_messages_and_create_chat_completion(
+        system_prompt=document_process_prompts["factor_relevance_system"],
+        user_prompt=factor_df_string,
+        json_mode=True,
+    )
+    return json.loads(extract_result_resp)
+
+
+def check_factor_relevance(
+    factor_dict: dict[str, dict[str, str]],
+) -> tuple[dict[str, dict[str, str]], dict[str, dict[str, str]]]:
+    factor_relevance_dict = {}
+
+    factor_df = pd.DataFrame(factor_dict).T
+    factor_df.index.names = ["factor_name"]
+
+    while factor_df.shape[0] > 0:
+        result_list = multiprocessing_wrapper(
+            [
+                (__check_factor_dict_relevance, (factor_df.iloc[i : i + 50, :].to_string(),))
+                for i in range(0, factor_df.shape[0], 50)
+            ],
+            n=RD_AGENT_SETTINGS.multi_proc_n,
+        )
+
+        for result in result_list:
+            for factor_name, relevance in result.items():
+                factor_relevance_dict[factor_name] = relevance
+
+        factor_df = factor_df[~factor_df.index.isin(factor_relevance_dict)]
+
+    filtered_factor_dict = {
+        factor_name: factor_dict[factor_name]
+        for factor_name in factor_dict
+        if factor_relevance_dict[factor_name]["relevance"]
+    }
+
+    return factor_relevance_dict, filtered_factor_dict
+
+
 def __check_factor_dict_viability_simulate_json_mode(
     factor_df_string: str,
 ) -> dict[str, dict[str, str]]:
@@ -319,28 +364,48 @@ def check_factor_viability(
 def __check_factor_duplication_simulate_json_mode(
     factor_df: pd.DataFrame,
 ) -> list[list[str]]:
-    session = APIBackend().build_chat_session(
-        session_system_prompt=document_process_prompts["factor_duplicate_system"],
-    )
     current_user_prompt = factor_df.to_string()
 
-    generated_duplicated_groups = []
-    for _ in range(10):
-        extract_result_resp = session.build_chat_completion(
-            user_prompt=current_user_prompt,
-            json_mode=True,
-        )
-        ret_dict = json.loads(extract_result_resp)
-        if len(ret_dict) == 0:
-            return generated_duplicated_groups
+    working_list = [factor_df]
+    final_list = []
+
+    while len(working_list) > 0:
+        current_df = working_list.pop(0)
+        if (
+            APIBackend().build_messages_and_calculate_token(
+                user_prompt=current_df.to_string(), system_prompt=document_process_prompts["factor_duplicate_system"]
+            )
+            > LLM_SETTINGS.chat_token_limit
+        ):
+            working_list.append(current_df.iloc[: current_df.shape[0] // 2, :])
+            working_list.append(current_df.iloc[current_df.shape[0] // 2 :, :])
         else:
-            generated_duplicated_groups.extend(ret_dict)
-            current_user_prompt = """Continue to extract duplicated groups. If no more duplicated group found please respond empty dict."""
+            final_list.append(current_df)
+
+    generated_duplicated_groups = []
+    for current_df in final_list:
+        current_factor_to_string = current_df.to_string()
+        session = APIBackend().build_chat_session(
+            session_system_prompt=document_process_prompts["factor_duplicate_system"],
+        )
+        for _ in range(10):
+            extract_result_resp = session.build_chat_completion(
+                user_prompt=current_factor_to_string,
+                json_mode=True,
+            )
+            ret_dict = json.loads(extract_result_resp)
+            if len(ret_dict) == 0:
+                return generated_duplicated_groups
+            else:
+                generated_duplicated_groups.extend(ret_dict)
+                current_factor_to_string = """Continue to extract duplicated groups. If no more duplicated group found please respond empty dict."""
     return generated_duplicated_groups
 
 
 def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
     x_normalized = normalize(embeddings)
+
+    np.random.seed(42)
 
     kmeans = KMeans(
         n_clusters=k,
@@ -359,7 +424,7 @@ def __kmeans_embeddings(embeddings: np.ndarray, k: int = 20) -> list[list[str]]:
         return np.argmax(similarity, axis=1)
 
     # Initializes the cluster center
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(seed=42)
     centroids = rng.choice(x_normalized, size=k, replace=False)
 
     # Iterate until convergence or the maximum number of iterations is reached
@@ -415,7 +480,7 @@ Factor variables: {variables}
 """
 
     full_str_list = [factor_name_to_full_str[factor_name] for factor_name in factor_names]
-    embeddings = create_embedding_with_multiprocessing(full_str_list)
+    embeddings = APIBackend.create_embedding(full_str_list)
 
     target_k = None
     if len(full_str_list) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
@@ -424,7 +489,7 @@ Factor variables: {variables}
     else:
         for k in range(
             len(full_str_list) // RD_AGENT_SETTINGS.max_input_duplicate_factor_group,
-            30,
+            RD_AGENT_SETTINGS.max_kmeans_group_number,
         ):
             kmeans_index_group = __kmeans_embeddings(embeddings=embeddings, k=k)
             if len(kmeans_index_group[0]) < RD_AGENT_SETTINGS.max_input_duplicate_factor_group:
@@ -435,26 +500,22 @@ Factor variables: {variables}
 
     duplication_names_list = []
 
-    pool = mp.Pool(target_k)
-    result_list = [
-        pool.apply_async(
-            __check_factor_duplication_simulate_json_mode,
-            (factor_df.loc[factor_name_group, :],),
-        )
-        for factor_name_group in factor_name_groups
-    ]
+    result_list = multiprocessing_wrapper(
+        [
+            (__check_factor_duplication_simulate_json_mode, (factor_df.loc[factor_name_group, :],))
+            for factor_name_group in factor_name_groups
+        ],
+        n=RD_AGENT_SETTINGS.multi_proc_n,
+    )
 
-    pool.close()
-    pool.join()
+    duplication_names_list = []
 
-    for result in result_list:
-        deduplication_factor_names_list = result.get()
-        for deduplication_factor_names in deduplication_factor_names_list:
-            filter_factor_names = [
-                factor_name for factor_name in set(deduplication_factor_names) if factor_name in factor_dict
-            ]
-            if len(filter_factor_names) > 1:
-                duplication_names_list.append(filter_factor_names)
+    for deduplication_factor_names_list in result_list:
+        filter_factor_names = [
+            factor_name for factor_name in set(deduplication_factor_names_list) if factor_name in factor_dict
+        ]
+        if len(filter_factor_names) > 1:
+            duplication_names_list.append(filter_factor_names)
 
     return duplication_names_list
 
@@ -465,6 +526,8 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 ) -> list[list[str]]:
     final_duplication_names_list = []
     current_round_factor_dict = factor_dict
+
+    # handle multi-round deduplication
     for _ in range(10):
         duplication_names_list = __deduplicate_factor_dict(current_round_factor_dict)
 
@@ -480,11 +543,13 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
         else:
             break
 
+    # sort the final list of duplicates by their length, largest first
     final_duplication_names_list = sorted(final_duplication_names_list, key=lambda x: len(x), reverse=True)
 
-    to_replace_dict = {}
+    to_replace_dict = {}  # to map duplicates to the target factor names
     for duplication_names in duplication_names_list:
         if factor_viability_dict is not None:
+            # check viability of each factor in the duplicates group
             viability_list = [factor_viability_dict[name]["viability"] for name in duplication_names]
             if True not in viability_list:
                 continue
@@ -499,6 +564,7 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
     llm_deduplicated_factor_dict = {}
     added_lower_name_set = set()
     for factor_name in factor_dict:
+        # only add factors that haven't been replaced and are not duplicates
         if factor_name not in to_replace_dict and factor_name.lower() not in added_lower_name_set:
             if factor_viability_dict is not None and not factor_viability_dict[factor_name]["viability"]:
                 continue
@@ -509,9 +575,9 @@ def deduplicate_factors_by_llm(  # noqa: C901, PLR0912
 
 
 class FactorExperimentLoaderFromPDFfiles(FactorExperimentLoader):
-    def load(self, file_or_folder_path: Path) -> dict:
+    def load(self, file_or_folder_path: str) -> dict:
         with logger.tag("docs"):
-            docs_dict = load_and_process_pdfs_by_langchain(Path(file_or_folder_path))
+            docs_dict = load_and_process_pdfs_by_langchain(file_or_folder_path)
             logger.log_object(docs_dict)
 
         selected_report_dict = classify_report_from_dict(report_dict=docs_dict, vote_time=1)

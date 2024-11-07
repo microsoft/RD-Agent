@@ -6,12 +6,11 @@ import pandas as pd
 from pandarallel import pandarallel
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.core.utils import cache_with_pickle, multiprocessing_wrapper
 
 pandarallel.initialize(verbose=1)
 
 from rdagent.components.runner import CachedRunner
-from rdagent.components.runner.conf import RUNNER_SETTINGS
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
@@ -71,6 +70,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         IC_max = IC_max.unstack().max(axis=0)
         return new_feature.iloc[:, IC_max[IC_max < 0.99].index]
 
+    @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
     def develop(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
         """
         Generate the experiment by processing and combining factor data,
@@ -78,12 +78,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         """
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
-
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
 
         if exp.based_experiments:
             SOTA_factor = None
@@ -120,8 +114,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         )
 
         exp.result = result
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
 
         return exp
 
@@ -143,7 +135,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         for exp in exp_or_list:
             # Iterate over sub-implementations and execute them to get each factor data
             message_and_df_list = multiprocessing_wrapper(
-                [(implementation.execute, (False, "All")) for implementation in exp.sub_workspace_list],
+                [(implementation.execute, ("All",)) for implementation in exp.sub_workspace_list],
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
             for message, df in message_and_df_list:

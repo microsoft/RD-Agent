@@ -8,11 +8,9 @@ from tqdm import tqdm
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
     FactorCorrelationEvaluator,
-    FactorEqualValueCountEvaluator,
+    FactorEqualValueRatioEvaluator,
     FactorEvaluator,
     FactorIndexEvaluator,
-    FactorMissingValuesEvaluator,
-    FactorOutputFormatEvaluator,
     FactorRowCountEvaluator,
     FactorSingleColumnEvaluator,
 )
@@ -20,7 +18,7 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.developer import Developer
 from rdagent.core.exception import CoderError
-from rdagent.core.experiment import Task, Workspace
+from rdagent.core.experiment import Experiment, Task, Workspace
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
@@ -33,11 +31,34 @@ EVAL_RES = Dict[
 class TestCase:
     def __init__(
         self,
-        target_task: list[Task] = [],
-        ground_truth: list[Workspace] = [],
+        target_task: Task,
+        ground_truth: Workspace,
     ):
-        self.ground_truth = ground_truth
         self.target_task = target_task
+        self.ground_truth = ground_truth
+
+
+class TestCases:
+    def __init__(self, test_case_l: list[TestCase] = []):
+        # self.test_case_l = [TestCase(task, gt) for task, gt in zip(target_task, ground_truth)]
+        self.test_case_l = test_case_l
+
+    def __getitem__(self, item):
+        return self.test_case_l[item]
+
+    def __len__(self):
+        return len(self.test_case_l)
+
+    def get_exp(self):
+        return Experiment([case.target_task for case in self.test_case_l])
+
+    @property
+    def target_task(self):
+        return [case.target_task for case in self.test_case_l]
+
+    @property
+    def ground_truth(self):
+        return [case.ground_truth for case in self.test_case_l]
 
 
 class BaseEval:
@@ -48,13 +69,13 @@ class BaseEval:
     def __init__(
         self,
         evaluator_l: List[FactorEvaluator],
-        test_cases: List[TestCase],
+        test_cases: TestCases,
         generate_method: Developer,
         catch_eval_except: bool = True,
     ):
         """Parameters
         ----------
-        test_cases : List[TestCase]
+        test_cases : TestCases
             cases to be evaluated, ground truth are included in the test cases.
         evaluator_l : List[FactorEvaluator]
             A list of evaluators to evaluate the generated code.
@@ -102,6 +123,7 @@ class BaseEval:
         eval_res = []
         for ev in self.evaluator_l:
             try:
+                case_gen.raise_exception = True
                 eval_res.append((ev, ev.evaluate(implementation=case_gen, gt_implementation=case_gt)))
                 # if the corr ev is successfully evaluated and achieve the best performance, then break
             except CoderError as e:
@@ -118,7 +140,7 @@ class BaseEval:
 class FactorImplementEval(BaseEval):
     def __init__(
         self,
-        test_cases: TestCase,
+        test_cases: TestCases,
         method: Developer,
         *args,
         scen: Scenario,
@@ -127,26 +149,22 @@ class FactorImplementEval(BaseEval):
     ):
         online_evaluator_l = [
             FactorSingleColumnEvaluator(scen),
-            FactorOutputFormatEvaluator(scen),
             FactorRowCountEvaluator(scen),
             FactorIndexEvaluator(scen),
-            FactorMissingValuesEvaluator(scen),
-            FactorEqualValueCountEvaluator(scen),
+            FactorEqualValueRatioEvaluator(scen),
             FactorCorrelationEvaluator(hard_check=False, scen=scen),
         ]
         super().__init__(online_evaluator_l, test_cases, method, *args, **kwargs)
         self.test_round = test_round
 
-    def eval(self):
+    def develop(self):
         gen_factor_l_all_rounds = []
-        test_cases_all_rounds = []
-        res = defaultdict(list)
         for _ in tqdm(range(self.test_round), desc="Rounds of Eval"):
             print("\n========================================================")
             print(f"Eval {_}-th times...")
             print("========================================================\n")
             try:
-                gen_factor_l = self.generate_method.develop(self.test_cases.target_task)
+                gen_factor_l = self.generate_method.develop(self.test_cases.get_exp())
             except KeyboardInterrupt:
                 # TODO: Why still need to save result after KeyboardInterrupt?
                 print("Manually interrupted the evaluation. Saving existing results")
@@ -157,8 +175,14 @@ class FactorImplementEval(BaseEval):
                     "The number of cases to eval should be equal to the number of test cases.",
                 )
             gen_factor_l_all_rounds.extend(gen_factor_l.sub_workspace_list)
-            test_cases_all_rounds.extend(self.test_cases.ground_truth)
 
+        return gen_factor_l_all_rounds
+
+    def eval(self, gen_factor_l_all_rounds):
+        test_cases_all_rounds = []
+        res = defaultdict(list)
+        for _ in range(self.test_round):
+            test_cases_all_rounds.extend(self.test_cases.ground_truth)
         eval_res_list = multiprocessing_wrapper(
             [
                 (self.eval_case, (gt_case, gen_factor))

@@ -6,6 +6,9 @@
 Welcome to RDAgent's documentation!
 ===================================
 
+.. image:: _static/logo.png
+   :alt: RD-Agent Logo
+
 .. toctree::
    :maxdepth: 3
    :caption: Doctree:
@@ -19,6 +22,8 @@ Welcome to RDAgent's documentation!
    development
    api_reference
    policy
+
+   GitHub <https://github.com/microsoft/RD-Agent>
 
 
 Indices and tables

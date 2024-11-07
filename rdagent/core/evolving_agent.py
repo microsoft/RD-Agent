@@ -25,16 +25,14 @@ class EvoAgent(ABC):
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
         filter_final_evo: bool = False,
-    ) -> EvolvableSubjects:
-        ...
+    ) -> EvolvableSubjects: ...
 
     @abstractmethod
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
         feedback: Feedback | None,
-    ) -> EvolvableSubjects:
-        ...
+    ) -> EvolvableSubjects: ...
 
 
 class RAGEvoAgent(EvoAgent):
@@ -78,6 +76,8 @@ class RAGEvoAgent(EvoAgent):
             )
             # TODO: Due to design issues, we have chosen to ignore this mypy error.
             logger.log_object(evo.sub_workspace_list, tag="evolving code")  # type: ignore[attr-defined]
+            for sw in evo.sub_workspace_list:  # type: ignore[attr-defined]
+                logger.info(f"evolving code workspace: {sw}")
 
             # 4. Pack evolve results
             es = EvoStep(evo, queried_knowledge)

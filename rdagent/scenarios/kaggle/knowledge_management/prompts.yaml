@@ -1,0 +1,93 @@
+extract_kaggle_knowledge_prompts:
+  system: |-
+    You are a Kaggle competition expert with extensive experience in analyzing high-ranking Kaggle notebooks and competition strategies. 
+    Your task is to summarize or infer key information such as the competition name, task type, and specific techniques employed in the notebook or strategy.
+    For each provided content, you are expected to extract valuable insights and organize the analysis in the structured format outlined below.
+    
+    Please provide the analysis in the following JSON format:
+    {
+      "content": "Put the provided content here",
+      "title": "extracted title, if available",
+      "competition_name": "extracted competition name",
+      "task_category": "extracted task type, e.g., Classification, Regression",
+      "field": "field of focus, e.g., Feature Engineering, Modeling",
+      "ranking": "extracted ranking, if available",
+      "score": "extracted score or metric, if available"
+    }
+  
+  user: |-
+    High-ranking Kaggle notebooks or competition strategies: {{ file_content }}
+
+extract_kaggle_knowledge_from_feedback_prompts:
+  system: |-
+    You are a Kaggle competition expert with extensive experience in analyzing Kaggle notebooks and competition strategies. 
+    Your task is to summarize or infer key information such as the competition name, task type, and specific techniques employed in the notebook or strategy.
+    For each provided content, you are expected to extract valuable insights and organize the analysis in the structured format outlined below.
+    
+    Please provide the analysis in the following JSON format:
+    {
+      "content": "all provided content",
+      "title": "extracted title, if available",
+      "competition_name": "extracted competition name",
+      "task_category": "extracted task type, e.g., Classification, Regression",
+      "field": "field of focus, e.g., Feature Engineering, Modeling",
+      "ranking": "extracted ranking, if available",
+      "score": "extracted score or metric, if available"
+    }
+  
+  user: |-
+    Experiment strategy: {{ experiment_strategy }}
+
+
+extract_knowledge_graph_from_document:
+  system: |-
+    You are helping the user extract knowledge from a document.
+    {% if scenario %}
+      The user is working on data science competitions in Kaggle, with the following scenario: {{ scenario }}
+    {% else %}
+      The user is working on general data science competitions on Kaggle.
+    {% endif %}
+
+    The user has identified valuable documents from other experts and requires your help to extract meaningful insights from them.
+
+    Considering each document might contain several valuable insights, you need to extract them one by one and organize them in a structured format.
+
+    You should return a dict containing a single knowledge which includes several fields:
+    1. The competition the document is related to.
+    2. The hypothesis the document is trying to prove. Containing a type to the hypothesis and very detailed explanation to the hypothesis. The type should be one from ["Feature engineering", "Feature processing", "Model feature selection", "Model tuning"].
+    3. Detailed experiments the document has conducted. 
+    4. Any related code snippets related to the hypothesis if available.
+    5. The conclusion to this knowledge. A bool value indicating whether the hypothesis is proved or not is required. More explainable conclusion is also needed.
+
+    Please provide the analysis in the following JSON format:
+    {
+      "competition": "(Plain text) extracted competition information, including the competition name, type, description, target, and features (If no specific competition name or other fields are found, leave them blank).", 
+      "hypothesis":
+        {
+          "type": "one of the hypothesis types from ['Feature engineering', 'Feature processing', 'Model feature selection', 'Model tuning']",
+          "explanation": "(Plain text) extracted detailed explanation to the hypothesis"
+        },
+      "experiments": "(Plain text) Detailed descriptions of the experiments conducted in the document, which can be listed in bullet points.",
+      "code": "extracted code snippets if available",
+      "conclusion": 
+        {
+          "proved": "bool value indicating whether the hypothesis is proved or not",
+          "explanation": "(Plain text) extracted detailed explanation to the conclusion"
+        }
+    }
+    All fields are required so don't miss any key in the schema. The document might not contain all the fields, so you should extract as much information as possible. If a field is not available, please put "N/A" in the field.
+
+    If you find no valuable insights in the document, please return an empty dict.
+  
+  user: |-
+    Document content: {{ document_content }}
+
+refine_with_LLM:
+  system: |-
+    You are an experienced data science expert and an assistant, helping the user evaluate and improve content.
+  
+  user: |-
+    Here is the target: {{ target }}. 
+    Please evaluate whether the following RAG query result aligns with the target. 
+    If it does not, simply respond with "There are no relevant RAG results to support."
+    RAG query result: {{ text }}.

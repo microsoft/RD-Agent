@@ -7,10 +7,10 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
-from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 scheduler_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -40,7 +40,7 @@ def LLMSelect(
         # find corresponding former trace for each task
         target_factor_task_information = evo.sub_tasks[i].get_task_information()
         if target_factor_task_information in former_trace:
-            tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information]))
+            tasks.append((i, evo.sub_tasks[i], former_trace[target_factor_task_information][0]))
 
     system_prompt = (
         Environment(undefined=StrictUndefined)
@@ -68,7 +68,7 @@ def LLMSelect(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
             )
-            < RD_AGENT_SETTINGS.chat_token_limit
+            < LLM_SETTINGS.chat_token_limit
         ):
             break
 

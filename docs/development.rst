@@ -2,26 +2,35 @@
 For Development
 =========================
 
+If you want to try the latest version or contribute to RD-Agent. You can install it from the source and follow the commands in this page.
+
+   .. code-block:: bash
+
+      git clone https://github.com/microsoft/RD-Agent
+
+
 🔧Prepare for development
 =========================
 
 - Set up the development environment.
 
-   ```bash
-   make dev
-   ```
+   .. code-block:: bash
+
+      make dev
 
 - Run linting and checking.
 
-   ```bash
-   make lint
-   ```
+   .. code-block:: bash
+
+      make lint
+
 
 - Some linting issues can be fixed automatically. We have added a command in the Makefile for easy use.
 
-  ```bash
-  make auto-lint
-  ```
+   .. code-block:: bash
+
+      make auto-lint
+
 
 
 Code Structure
@@ -73,4 +82,4 @@ File Naming Convention
    * - `conf.py`
      - The configuration for the module, app, and project.
 
-<!-- TODO: renaming files -->
+.. <!-- TODO: renaming files -->

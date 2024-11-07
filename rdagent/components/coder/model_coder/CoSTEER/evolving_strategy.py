@@ -11,12 +11,18 @@ from rdagent.components.coder.model_coder.CoSTEER.evolvable_subjects import (
 from rdagent.components.coder.model_coder.CoSTEER.knowledge_management import (
     ModelQueriedKnowledge,
 )
-from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.model_coder.model import (
+    ModelExperiment,
+    ModelFBWorkspace,
+    ModelTask,
+)
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import multiprocessing_wrapper
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_MODEL_MAPPING
 
 coder_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -26,8 +32,25 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: ModelQueriedKnowledge = None,
+        current_exp: ModelExperiment = None,  # Add this parameter
     ) -> str:
         model_information_str = target_task.get_task_information()
+        model_type = target_task.model_type
+
+        if len(current_exp.based_experiments) == 0:
+            current_code = None
+        else:
+            current_code = ""
+            sota_exp_code_dict = current_exp.based_experiments[-1].experiment_workspace.code_dict
+            if target_task.version == 2:
+                if model_type in KG_MODEL_MAPPING:
+                    current_code = sota_exp_code_dict.get(KG_MODEL_MAPPING[model_type], None)
+                elif "model.py" in sota_exp_code_dict:
+                    current_code = sota_exp_code_dict["model.py"]
+                else:
+                    current_code = None
+            elif target_task.version == 1:
+                current_code = sota_exp_code_dict.get("model.py", None)
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation
@@ -53,8 +76,9 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                     coder_prompts["evolving_strategy_model_coder"]["system"],
                 )
                 .render(
-                    scenario=self.scen.get_scenario_all_desc(),
+                    scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                    current_code=current_code,
                 )
             )
 
@@ -77,7 +101,7 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
                         user_prompt=user_prompt,
                         system_prompt=system_prompt,
                     )
-                    < RD_AGENT_SETTINGS.chat_token_limit
+                    < LLM_SETTINGS.chat_token_limit
                 ):
                     break
                 elif len(queried_former_failed_knowledge_to_render) > 1:
@@ -119,15 +143,14 @@ class ModelCoderEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_model, (evo.sub_tasks[target_index], queried_knowledge, evo))
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
         for index, target_index in enumerate(to_be_finished_task_index):
-            if evo.sub_workspace_list[target_index] is None:
-                evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
+            evo.sub_workspace_list[target_index] = ModelFBWorkspace(target_task=evo.sub_tasks[target_index])
             evo.sub_workspace_list[target_index].inject_code(**{"model.py": result[index]})
 
         evo.corresponding_selection = to_be_finished_task_index

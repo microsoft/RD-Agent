@@ -18,7 +18,7 @@ In `RD-Agent/` folder, run:
 
 .. code-block:: bash
 
-    streamlit run rdagent/log/ui/app.py --server.port <port> -- --log_dir <log_dir> [--debug]
+    rdagent ui --port <port> --log_dir <log_dir like "log/"> [--debug]
 
 This will start a web app on `http://localhost:<port>`.
 
@@ -31,11 +31,14 @@ Use Web App
 
 1. Open the sidebar.
 
+.. TODO: update these
+
 2. Select the scenario you want to show. There are some pre-defined scenarios:
     - Qlib Model
     - Qlib Factor
     - Data Mining
     - Model from Paper
+    - Kaggle
 
 3. Click the `Config⚙️` button and input the log path (if you set the log_dir parameter, you can select a log_path in the dropdown list).
 

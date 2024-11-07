@@ -1,17 +1,7 @@
-import shutil
-import uuid
-from pathlib import Path
-
-import pandas as pd
-
-from rdagent.components.coder.model_coder.model import ModelExperiment, ModelFBWorkspace
 from rdagent.components.runner import CachedRunner
-from rdagent.components.runner.conf import RUNNER_SETTINGS
-from rdagent.core.developer import Developer
 from rdagent.core.exception import ModelEmptyError
-from rdagent.log import rdagent_logger as logger
+from rdagent.core.utils import cache_with_pickle
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-from rdagent.utils.env import QTDockerEnv
 
 
 class QlibModelRunner(CachedRunner[QlibModelExperiment]):
@@ -27,13 +17,8 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
     - let LLM modify model.py
     """
 
+    @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
     def develop(self, exp: QlibModelExperiment) -> QlibModelExperiment:
-        if RUNNER_SETTINGS.cache_result:
-            cache_hit, result = self.get_cache_result(exp)
-            if cache_hit:
-                exp.result = result
-                return exp
-
         if exp.sub_workspace_list[0].code_dict.get("model.py") is None:
             raise ModelEmptyError("model.py is empty")
         # to replace & inject code
@@ -49,7 +34,5 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         result = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
 
         exp.result = result
-        if RUNNER_SETTINGS.cache_result:
-            self.dump_cache_result(exp, result)
 
         return exp

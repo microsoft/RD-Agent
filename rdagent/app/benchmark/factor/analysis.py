@@ -2,7 +2,9 @@ import json
 import pickle
 from pathlib import Path
 
+import fire
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -42,7 +44,24 @@ class BenchmarkAnalyzer:
             final_res[experiment] = processed_data.iloc[-1, :]
         return final_res
 
-    def reformat_succ_rate(self, display_df):
+    def reformat_index(self, display_df):
+        """
+        reform the results from
+
+        .. code-block:: python
+
+                              success rate
+            High_Beta_Factor           0.2
+
+        to
+
+        .. code-block:: python
+
+                                                    success rate
+            Category Difficulty Factor
+            量价       Hard       High_Beta_Factor           0.2
+
+        """
         new_idx = []
         display_df = display_df[display_df.index.isin(self.index_map.keys())]
         for idx in display_df.index:
@@ -63,12 +82,12 @@ class BenchmarkAnalyzer:
         for i in x:
             order_v.append(
                 {
-                    "avg. Run successful rate": 0,
-                    "avg. Format successful rate": 1,
-                    "avg. Correlation (value only)": 2,
-                    "max. Correlation": 3,
-                    "max. accuracy": 4,
-                    "avg. accuracy": 5,
+                    "Avg Run SR": 0,
+                    "Avg Format SR": 1,
+                    "Avg Correlation": 2,
+                    "Max Correlation": 3,
+                    "Max Accuracy": 4,
+                    "Avg Accuracy": 5,
                 }.get(i, i),
             )
         return order_v
@@ -76,11 +95,9 @@ class BenchmarkAnalyzer:
     def analyze_data(self, sum_df):
         index = [
             "FactorSingleColumnEvaluator",
-            "FactorOutputFormatEvaluator",
             "FactorRowCountEvaluator",
             "FactorIndexEvaluator",
-            "FactorMissingValuesEvaluator",
-            "FactorEqualValueCountEvaluator",
+            "FactorEqualValueRatioEvaluator",
             "FactorCorrelationEvaluator",
             "run factor error",
         ]
@@ -91,42 +108,44 @@ class BenchmarkAnalyzer:
         succ_rate = ~run_error
         succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
 
-        succ_rate_f = self.reformat_succ_rate(succ_rate)
-        succ_rate_f
+        succ_rate_f = self.reformat_index(succ_rate)
 
-        sum_df_clean["FactorRowCountEvaluator"]
+        # if it rasis Error when running the evaluator, we will get NaN
+        # Running failures are reguarded to zero score.
+        format_issue = sum_df_clean[["FactorRowCountEvaluator", "FactorIndexEvaluator"]].apply(
+            lambda x: np.mean(x.fillna(0.0)), axis=1
+        )
+        format_succ_rate = format_issue.unstack().T.mean(axis=0).to_frame("success rate")
+        format_succ_rate_f = self.reformat_index(format_succ_rate)
 
-        format_issue = sum_df_clean["FactorRowCountEvaluator"] & sum_df_clean["FactorIndexEvaluator"]
-        eval_series = format_issue.unstack()
-        succ_rate = eval_series.T.fillna(False).astype(bool)  # false indicate failure
-        format_succ_rate = succ_rate.mean(axis=0).to_frame("success rate")
-        format_succ_rate_f = self.reformat_succ_rate(format_succ_rate)
-
-        corr = sum_df_clean["FactorCorrelationEvaluator"] * format_issue
+        corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.0)
         corr = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
-        corr_res = self.reformat_succ_rate(corr)
-        corr_max = sum_df_clean["FactorCorrelationEvaluator"] * format_issue
+        corr_res = self.reformat_index(corr)
+        corr_max = sum_df_clean["FactorCorrelationEvaluator"]
 
         corr_max = corr_max.unstack().T.max(axis=0).to_frame("corr(only success)")
-        corr_max_res = self.reformat_succ_rate(corr_max)
+        corr_max_res = self.reformat_index(corr_max)
 
-        value_max = sum_df_clean["FactorMissingValuesEvaluator"] * format_issue
+        value_max = sum_df_clean["FactorEqualValueRatioEvaluator"]
         value_max = value_max.unstack().T.max(axis=0).to_frame("max_value")
-        value_max_res = self.reformat_succ_rate(value_max)
+        value_max_res = self.reformat_index(value_max)
 
         value_avg = (
-            (sum_df_clean["FactorMissingValuesEvaluator"] * format_issue).unstack().T.mean(axis=0).to_frame("avg_value")
+            (sum_df_clean["FactorEqualValueRatioEvaluator"] * format_issue)
+            .unstack()
+            .T.mean(axis=0)
+            .to_frame("avg_value")
         )
-        value_avg_res = self.reformat_succ_rate(value_avg)
+        value_avg_res = self.reformat_index(value_avg)
 
         result_all = pd.concat(
             {
-                "avg. Correlation (value only)": corr_res.iloc[:, 0],
-                "avg. Format successful rate": format_succ_rate_f.iloc[:, 0],
-                "avg. Run successful rate": succ_rate_f.iloc[:, 0],
-                "max. Correlation": corr_max_res.iloc[:, 0],
-                "max. accuracy": value_max_res.iloc[:, 0],
-                "avg. accuracy": value_avg_res.iloc[:, 0],
+                "Avg Correlation": corr_res.iloc[:, 0],
+                "Avg Format SR": format_succ_rate_f.iloc[:, 0],
+                "Avg Run SR": succ_rate_f.iloc[:, 0],
+                "Max Correlation": corr_max_res.iloc[:, 0],
+                "Max Accuracy": value_max_res.iloc[:, 0],
+                "Avg Accuracy": value_avg_res.iloc[:, 0],
             },
             axis=1,
         )
@@ -159,25 +178,38 @@ class Plotter:
         plt.rc("figure", titlesize=font_size)
 
     @staticmethod
-    def plot_data(data, file_name):
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x="index", y="b", hue="a", data=data)
-        plt.xlabel("Method")
+    def plot_data(data, file_name, title):
+        plt.figure(figsize=(10, 10))
         plt.ylabel("Value")
-        plt.title("Comparison of Different Methods")
+        colors = ["#3274A1", "#E1812C", "#3A923A", "#C03D3E"]
+        plt.bar(data["a"], data["b"], color=colors, capsize=5)
+        for idx, row in data.iterrows():
+            plt.text(idx, row["b"] + 0.01, f"{row['b']:.2f}", ha="center", va="bottom")
+        plt.suptitle(title, y=0.98)
+        plt.xticks(rotation=45)
+        plt.ylim(0, 1)
+        plt.tight_layout()
         plt.savefig(file_name)
 
 
-if __name__ == "__main__":
+def main(
+    path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+    round=1,
+    title="Comparison of Different Methods",
+):
     settings = BenchmarkSettings()
     benchmark = BenchmarkAnalyzer(settings)
     results = {
-        "1 round experiment": "git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
+        f"{round} round experiment": path,
     }
     final_results = benchmark.process_results(results)
     final_results_df = pd.DataFrame(final_results)
 
     Plotter.change_fs(20)
-    plot_data = final_results_df.drop(["max. accuracy", "avg. accuracy"], axis=0).T
+    plot_data = final_results_df.drop(["Max Accuracy", "Avg Accuracy"], axis=0).T
     plot_data = plot_data.reset_index().melt("index", var_name="a", value_name="b")
-    Plotter.plot_data(plot_data, "rdagent/app/quant_factor_benchmark/comparison_plot.png")
+    Plotter.plot_data(plot_data, "./comparison_plot.png", title)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

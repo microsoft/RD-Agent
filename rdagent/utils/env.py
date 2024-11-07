@@ -4,12 +4,18 @@ The motiviation of the utils is for environment management
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
 """
+
 # TODO: move the scenario specific docker env into other folders.
 
+import json
 import os
+import pickle
 import subprocess
 import sys
+import uuid
+import zipfile
 from abc import abstractmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 from typing import Dict, Generic, Optional, TypeVar
 
@@ -18,6 +24,11 @@ import docker.models
 import docker.models.containers
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from rich import print
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.table import Table
 
 from rdagent.log import rdagent_logger as logger
 
@@ -112,9 +123,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[
-        Path
-    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -126,6 +137,9 @@ class DockerConf(BaseSettings):
     network: str | None = "bridge"  # the network mode for the docker
     shm_size: str | None = None
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
+    mem_limit: str | None = "48g"  # Add memory limit attribute
+
+    running_timeout_period: int = 3600  # 1 hour
 
 
 class QlibDockerConf(DockerConf):
@@ -143,6 +157,7 @@ class QlibDockerConf(DockerConf):
 
 
 class DMDockerConf(DockerConf):
+    # Data Mining Docker
     class Config:
         env_prefix = "DM_DOCKER_"
 
@@ -159,6 +174,24 @@ class DMDockerConf(DockerConf):
     shm_size: str | None = "16g"
 
 
+class KGDockerConf(DockerConf):
+    class Config:
+        env_prefix = "KG_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    image: str = "local_kg:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace/kg_workspace/"
+    default_entry: str = "python train.py"
+    # extra_volumes: dict = {
+    #     # TODO connect to the place where the data is stored
+    #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    # }
+
+    running_timeout_period: int = 600
+
+
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
@@ -170,14 +203,58 @@ class DockerEnv(Env[DockerConf]):
         client = docker.from_env()
         if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
-            image, logs = client.images.build(
+            resp_stream = client.api.build(
                 path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
             )
+            if isinstance(resp_stream, str):
+                logger.info(resp_stream)
+            with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
+                task = p.add_task("[cyan]Building image...")
+                for part in resp_stream:
+                    lines = part.decode("utf-8").split("\r\n")
+                    for line in lines:
+                        if line.strip():
+                            status_dict = json.loads(line)
+                            if "error" in status_dict:
+                                p.update(task, description=f"[red]error: {status_dict['error']}")
+                                raise docker.errors.BuildError(status_dict["error"], "")
+                            if "stream" in status_dict:
+                                p.update(task, description=status_dict["stream"])
             logger.info(f"Finished building the image from dockerfile: {self.conf.dockerfile_folder_path}")
         try:
             client.images.get(self.conf.image)
         except docker.errors.ImageNotFound:
-            client.images.pull(self.conf.image)
+            image_pull = client.api.pull(self.conf.image, stream=True, decode=True)
+            current_status = ""
+            layer_set = set()
+            completed_layers = 0
+            with Progress(TextColumn("{task.description}"), TextColumn("{task.fields[progress]}")) as sp:
+                main_task = sp.add_task("[cyan]Pulling image...", progress="")
+                status_task = sp.add_task("[bright_magenta]layer status", progress="")
+                for line in image_pull:
+                    if "error" in line:
+                        sp.update(status_task, description=f"[red]error", progress=line["error"])
+                        raise docker.errors.APIError(line["error"])
+
+                    layer_id = line["id"]
+                    status = line["status"]
+                    p_text = line.get("progress", None)
+
+                    if layer_id not in layer_set:
+                        layer_set.add(layer_id)
+
+                    if p_text:
+                        current_status = p_text
+
+                    if status == "Pull complete" or status == "Already exists":
+                        completed_layers += 1
+
+                    sp.update(main_task, progress=f"[green]{completed_layers}[white]/{len(layer_set)} layers completed")
+                    sp.update(
+                        status_task,
+                        description=f"[bright_magenta]layer {layer_id} [yellow]{status}",
+                        progress=current_status,
+                    )
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
@@ -186,9 +263,9 @@ class DockerEnv(Env[DockerConf]):
         if not self.conf.enable_gpu:
             return {}
         gpu_kwargs = {
-            "device_requests": [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
-            if self.conf.enable_gpu
-            else None,
+            "device_requests": (
+                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
+            ),
         }
         try:
             client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
@@ -197,7 +274,13 @@ class DockerEnv(Env[DockerConf]):
             return {}
         return gpu_kwargs
 
-    def run(self, entry: str | None = None, local_path: str | None = None, env: dict | None = None):
+    def __run(
+        self,
+        entry: str | None = None,
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+    ) -> str:
         if env is None:
             env = {}
         client = docker.from_env()
@@ -210,6 +293,9 @@ class DockerEnv(Env[DockerConf]):
             volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
+                volumns[lp] = {"bind": rp, "mode": "rw"}
+        if running_extra_volume is not None:
+            for lp, rp in running_extra_volume.items():
                 volumns[lp] = {"bind": rp, "mode": "rw"}
 
         log_output = ""
@@ -225,13 +311,23 @@ class DockerEnv(Env[DockerConf]):
                 # auto_remove=True, # remove too fast might cause the logs not to be get
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
+                mem_limit=self.conf.mem_limit,  # Set memory limit
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
+            print(Rule("[bold green]Docker Logs Begin[/bold green]", style="dark_orange"))
+            table = Table(title="Run Info", show_header=False)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Value", style="bold magenta")
+            table.add_row("Entry", entry)
+            table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+            table.add_row("Volumns", "\n".join(f"{k}:{v}" for k, v in volumns.items()))
+            print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
-                print(decoded_log)
+                Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
+            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
             container.stop()
             container.remove()
@@ -242,6 +338,47 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
+
+    def run(
+        self,
+        entry: str | None = None,
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+    ):
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(self.__run, entry, local_path, env, running_extra_volume)
+            try:
+                return future.result(timeout=self.conf.running_timeout_period)
+            except TimeoutError:
+                raise TimeoutError(f"Timeout while running the container: {self.conf.running_timeout_period} seconds")
+
+    def dump_python_code_run_and_get_results(
+        self,
+        code: str,
+        dump_file_names: list[str],
+        local_path: str | None = None,
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+        code_dump_file_py_name: Optional[str] = None,
+    ):
+        """
+        Dump the code into the local path and run the code.
+        """
+        random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
+        with open(os.path.join(local_path, random_file_name), "w") as f:
+            f.write(code)
+        entry = f"python {random_file_name}"
+        log_output = self.run(entry, local_path, env, running_extra_volume=running_extra_volume)
+        results = []
+        os.remove(os.path.join(local_path, random_file_name))
+        for name in dump_file_names:
+            if os.path.exists(os.path.join(local_path, f"{name}")):
+                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
+                os.remove(os.path.join(local_path, f"{name}"))
+            else:
+                return log_output, None
+        return log_output, results
 
 
 class QTDockerEnv(DockerEnv):
@@ -284,3 +421,10 @@ class DMDockerEnv(DockerEnv):
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
+
+
+class KGDockerEnv(DockerEnv):
+    """Kaggle Competition Docker"""
+
+    def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)

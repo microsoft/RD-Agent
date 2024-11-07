@@ -9,9 +9,11 @@ from typing import Tuple, Union
 import pandas as pd
 from filelock import FileLock
 
+from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.core.exception import CodeFormatError, CustomRuntimeError, NoOutputError
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 
@@ -24,20 +26,36 @@ class FactorTask(Task):
         factor_name,
         factor_description,
         factor_formulation,
+        *args,
         variables: dict = {},
         resource: str = None,
+        factor_implementation: bool = False,
+        **kwargs,
     ) -> None:
-        self.factor_name = factor_name
+        self.factor_name = (
+            factor_name  # TODO: remove it in the later version. Keep it only for pickle version compatibility
+        )
         self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.variables = variables
         self.factor_resources = resource
+        self.factor_implementation = factor_implementation
+        super().__init__(name=factor_name, *args, **kwargs)
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}
 factor_description: {self.factor_description}
 factor_formulation: {self.factor_formulation}
 variables: {str(self.variables)}"""
+
+    def get_task_information_and_implementation_result(self):
+        return {
+            "factor_name": self.factor_name,
+            "factor_description": self.factor_description,
+            "factor_formulation": self.factor_formulation,
+            "variables": str(self.variables),
+            "factor_implementation": str(self.factor_implementation),
+        }
 
     @staticmethod
     def from_dict(dict):
@@ -54,7 +72,6 @@ class FactorFBWorkspace(FBWorkspace):
     """
 
     # TODO: (Xiao) think raising errors may get better information for processing
-    FB_FROM_CACHE = "The factor value has been executed and stored in the instance variable."
     FB_EXEC_SUCCESS = "Execution succeeded without error."
     FB_CODE_NOT_SET = "code is not set."
     FB_EXECUTION_SUCCEEDED = "Execution succeeded without error."
@@ -64,39 +81,38 @@ class FactorFBWorkspace(FBWorkspace):
     def __init__(
         self,
         *args,
-        executed_factor_value_dataframe=None,
-        raise_exception=False,
+        raise_exception: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.executed_factor_value_dataframe = executed_factor_value_dataframe
         self.raise_exception = raise_exception
 
-    @staticmethod
-    def link_data_to_workspace(data_path: Path, workspace_path: Path):
-        data_path = Path(data_path)
-        workspace_path = Path(workspace_path)
-        for data_file_path in data_path.iterdir():
-            workspace_data_file_path = workspace_path / data_file_path.name
-            if workspace_data_file_path.exists():
-                workspace_data_file_path.unlink()
-            subprocess.run(
-                ["ln", "-s", data_file_path, workspace_data_file_path],
-                check=False,
-            )
+    def hash_func(self, data_type: str = "Debug") -> str:
+        return (
+            md5_hash(data_type + self.code_dict["factor.py"])
+            if ("factor.py" in self.code_dict and not self.raise_exception)
+            else None
+        )
 
-    def execute(self, store_result: bool = False, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
+    @cache_with_pickle(hash_func)
+    def execute(self, data_type: str = "Debug") -> Tuple[str, pd.DataFrame]:
         """
         execute the implementation and get the factor value by the following steps:
         1. make the directory in workspace path
         2. write the code to the file in the workspace path
         3. link all the source data to the workspace path folder
-        4. execute the code
+        if call_factor_py is True:
+            4. execute the code
+        else:
+            4. generate a script from template to import the factor.py dump get the factor value to result.h5
         5. read the factor value from the output file in the workspace path folder
         returns the execution feedback as a string and the factor value as a pandas dataframe
 
-        parameters:
-        store_result: if True, store the factor value in the instance variable, this feature is to be used in the gt implementation to avoid multiple execution on the same gt implementation
+
+        Regarding the cache mechanism:
+        1. We will store the function's return value to ensure it behaves as expected.
+        - The cached information will include a tuple with the following: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
+
         """
         super().execute()
         if self.code_dict is None or "factor.py" not in self.code_dict:
@@ -105,40 +121,38 @@ class FactorFBWorkspace(FBWorkspace):
             else:
                 return self.FB_CODE_NOT_SET, None
         with FileLock(self.workspace_path / "execution.lock"):
-            if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
-                # NOTE: cache the result for the same code and same data type
-                target_file_name = md5_hash(data_type + self.code_dict["factor.py"])
-                cache_file_path = Path(FACTOR_IMPLEMENT_SETTINGS.cache_location) / f"{target_file_name}.pkl"
-                Path(FACTOR_IMPLEMENT_SETTINGS.cache_location).mkdir(exist_ok=True, parents=True)
-                if cache_file_path.exists() and not self.raise_exception:
-                    cached_res = pickle.load(open(cache_file_path, "rb"))
-                    if store_result and cached_res[1] is not None:
-                        self.executed_factor_value_dataframe = cached_res[1]
-                    return cached_res
-
-            if self.executed_factor_value_dataframe is not None:
-                return self.FB_FROM_CACHE, self.executed_factor_value_dataframe
-
-            source_data_path = (
-                Path(
-                    FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
+            if self.target_task.version == 1:
+                source_data_path = (
+                    Path(
+                        FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
+                    )
+                    if data_type == "Debug"  # FIXME: (yx) don't think we should use a debug tag for this.
+                    else Path(
+                        FACTOR_IMPLEMENT_SETTINGS.data_folder,
+                    )
                 )
-                if data_type == "Debug"
-                else Path(
-                    FACTOR_IMPLEMENT_SETTINGS.data_folder,
-                )
-            )
+            elif self.target_task.version == 2:
+                # TODO you can change the name of the data folder for a better understanding
+                source_data_path = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / KAGGLE_IMPLEMENT_SETTING.competition
 
             source_data_path.mkdir(exist_ok=True, parents=True)
             code_path = self.workspace_path / f"factor.py"
 
-            self.link_data_to_workspace(source_data_path, self.workspace_path)
+            self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
+            execution_error = None
+
+            if self.target_task.version == 1:
+                execution_code_path = code_path
+            elif self.target_task.version == 2:
+                execution_code_path = self.workspace_path / f"{uuid.uuid4()}.py"
+                execution_code_path.write_text((Path(__file__).parent / "factor_execution_template.txt").read_text())
+
             try:
                 subprocess.check_output(
-                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {code_path}",
+                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {execution_code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
@@ -150,7 +164,7 @@ class FactorFBWorkspace(FBWorkspace):
 
                 execution_feedback = (
                     e.output.decode()
-                    .replace(str(code_path.parent.absolute()), r"/path/to")
+                    .replace(str(execution_code_path.parent.absolute()), r"/path/to")
                     .replace(str(site.getsitepackages()[0]), r"/path/to/site-packages")
                 )
                 if len(execution_feedback) > 2000:
@@ -159,10 +173,14 @@ class FactorFBWorkspace(FBWorkspace):
                     )
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
+                else:
+                    execution_error = CustomRuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
                 execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
+                else:
+                    execution_error = CustomRuntimeError(execution_feedback)
 
             workspace_output_file_path = self.workspace_path / "result.h5"
             if workspace_output_file_path.exists() and execution_success:
@@ -177,15 +195,9 @@ class FactorFBWorkspace(FBWorkspace):
                 executed_factor_value_dataframe = None
                 if self.raise_exception:
                     raise NoOutputError(execution_feedback)
+                else:
+                    execution_error = NoOutputError(execution_feedback)
 
-            if store_result and executed_factor_value_dataframe is not None:
-                self.executed_factor_value_dataframe = executed_factor_value_dataframe
-
-        if FACTOR_IMPLEMENT_SETTINGS.enable_execution_cache:
-            pickle.dump(
-                (execution_feedback, executed_factor_value_dataframe),
-                open(cache_file_path, "wb"),
-            )
         return execution_feedback, executed_factor_value_dataframe
 
     def __str__(self) -> str:
@@ -207,3 +219,4 @@ class FactorFBWorkspace(FBWorkspace):
 
 
 FactorExperiment = Experiment
+FeatureExperiment = Experiment

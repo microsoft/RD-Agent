@@ -1,6 +1,6 @@
 import fire
 
-from rdagent.app.data_mining.conf import PROP_SETTING
+from rdagent.app.data_mining.conf import MED_PROP_SETTING
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import ModelEmptyError
 
@@ -11,6 +11,8 @@ class ModelRDLoop(RDLoop):
 
 def main(path=None, step_n=None):
     """
+    Auto R&D Evolving loop for models in a medical scenario.
+
     You can continue running session by
 
     .. code-block:: python
@@ -19,7 +21,7 @@ def main(path=None, step_n=None):
 
     """
     if path is None:
-        model_loop = ModelRDLoop(PROP_SETTING)
+        model_loop = ModelRDLoop(MED_PROP_SETTING)
     else:
         model_loop = ModelRDLoop.load(path)
     model_loop.run(step_n=step_n)
