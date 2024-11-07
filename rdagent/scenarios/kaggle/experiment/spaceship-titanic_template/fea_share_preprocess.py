@@ -104,7 +104,6 @@ def preprocess_script():
     submission_df = pd.read_csv("/kaggle/input/test.csv")
     passenger_ids = submission_df["PassengerId"]
     submission_df = submission_df.drop(["PassengerId"], axis=1)
-    submission_df = submission_df.drop(["Transported"], axis=1)  # Drop the target column when processing mlebench data
     X_test = preprocess_transform(submission_df, preprocessor, label_encoders)
 
     return X_train, X_valid, y_train, y_valid, X_test, passenger_ids
