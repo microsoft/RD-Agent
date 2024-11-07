@@ -507,7 +507,7 @@ def research_window():
             # pdf image
             if pim := state.msgs[round]["r.extract_factors_and_implement.load_pdf_screenshot"]:
                 for i in range(min(2, len(pim))):
-                    st.image(pim[i].content, use_column_width=True)
+                    st.image(pim[i].content, use_container_width=True)
 
             # Hypothesis
             if hg := state.msgs[round]["r.hypothesis generation"]:
@@ -528,7 +528,7 @@ def research_window():
             with c1:
                 if pim := state.msgs[round]["r.pdf_image"]:
                     for i in range(len(pim)):
-                        st.image(pim[i].content, use_column_width=True)
+                        st.image(pim[i].content, use_container_width=True)
 
             # loaded model exp
             with c2:
@@ -795,7 +795,7 @@ with st.container():
 with st.container():
     image_c, scen_c = st.columns([3, 3], vertical_alignment="center")
     with image_c:
-        st.image("./git_ignore_folder/rdagent_frame2.svg", use_column_width=True)
+        st.image("./git_ignore_folder/rdagent_frame2.svg", use_container_width=True)
     with scen_c:
         st.header("Scenario Description📖", divider="green", anchor="_scenario")
         if state.scenario is not None:
