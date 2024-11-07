@@ -200,7 +200,7 @@ kg_feedback_generation_user: |-
 
   {% if last_hypothesis_and_feedback %}
   The user has made some hypothesis and conducted experiments to validate them, and the results are as follows:
-  hypothesis: {{ hypothesis_and_feedback[0].hypothesis }}
+  hypothesis: {{ last_hypothesis_and_feedback[0].hypothesis }}
   feedback decision: {{ last_hypothesis_and_feedback[1].decision }} 
   reason: {{ last_hypothesis_and_feedback[1].reason }}
   {% endif %}
