@@ -109,13 +109,14 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
         ):
             mleb_env = MLEBDockerEnv()
             mleb_env.prepare()
+            (Path(local_path) / "zip_files").mkdir(parents=True, exist_ok=True)
+            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
             mleb_env.run(
                 f"mlebench prepare -c {competition} --data-dir ./zip_files",
                 local_path=local_path,
                 running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
             )
-            mleb_env.run(f"/bin/sh -c 'mkdir ./{competition}'", local_path=local_path)
             mleb_env.run(
                 f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
             )
