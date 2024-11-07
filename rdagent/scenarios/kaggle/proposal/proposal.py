@@ -383,7 +383,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         response_dict = json.loads(response)
         tasks = []
         model_type = response_dict.get("model_type", "Model type not provided")
-        if model_type not in KG_SELECT_MAPPING:
+        if not isinstance(model_type, str) or model_type not in KG_SELECT_MAPPING:
             raise ModelEmptyError(
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )
