@@ -139,30 +139,34 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   rdagent general_model  "https://arxiv.org/pdf/2210.09789"
   ```
 
-- Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application
+- Run the **Automated Kaggle Model Tuning & Feature Engineering**:  self-loop model proposal and feature engineering implementation application <br />
+  > Using **sf-crime** *(San Francisco Crime Classification)* as an example. <br />
+  > 1. Register and login on the [Kaggle](https://www.kaggle.com/) website. <br />
+  > 2. Configuring the Kaggle API. <br />
+  > (1) Click on the avatar (usually in the top right corner of the page) -> `Settings` -> `Create New Token`, A file called `kaggle.json` will be downloaded. <br />
+  > (2) Move `kaggle.json` to `~/.config/kaggle/` <br />
+  > (3) Modify the permissions of the kaggle.json file. Reference command: `chmod 600 ~/.config/kaggle/kaggle.json` <br />
+  > 3. Join the competition: Click `Join the competition` -> `I Understand and Accept` at the bottom of the [competition details page](https://www.kaggle.com/competitions/sf-crime/data).
+  ```bash
+  # Generally, you can run the Kaggle competition program with the following command:
+  rdagent kaggle --competition <your competition name>
   
-  **Note**: This application will automatically download Kaggle competition data unless you prepare the data locally. If you do not have the data locally, you need to configure the Kaggle API and agree to the corresponding competition rules on the Kaggle website.
-  ```sh
-  # 1. the competition name should must match the name used with the API on the Kaggle platform.
-  rdagent kaggle --competition [your-competition-name]
-
-  # 2. Specifically, you can fill the competition name as follows:
-
-  # download the competition description files to youre local directory
+  # Specifically, you will need to first prepare some competition description files and configure the competition description file path, which you can follow for this specific example:
+  
+  # 1. Prepare the competition description files
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
+  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
 
-  # unzip the files to your local directory
-  unzip kaggle_data.zip -d /your/local/directory/kaggle_data
+  # 2. Add the competition description file path to the `.env` file.
+  dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
 
-  # set environment variables at `.env` file
-  KG_LOCAL_DATA_PATH=/your/local/directory/kaggle_data/kaggle  
-
-  # run the application
+  # 3. run the application
   rdagent kaggle --competition sf-crime
   ```
-  The [Competition List Available](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available) can be found here. 
-  
-  For more details, you can refer to the [example guide](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment).
+  > **Description of the above example:** <br />
+  > - Kaggle competition data, contains two parts: competition description file (json file) and competition dataset (zip file). We prepare the competition description file for you, the competition dataset will be downloaded automatically when you run the program, as in the example. <br />
+  > - If you want to download the competition description file automatically, you need to install chromedriver, The instructions for installing chromedriver can be found in the [documentation](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment). <br />
+  > - The **Competition List Available** can be found [here](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available). <br />
 
 ### 🖥️ Monitor the Application Results
 - You can serve our demo app to monitor the RD loop by running the following command:
