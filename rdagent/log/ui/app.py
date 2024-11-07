@@ -549,7 +549,7 @@ def feedback_window():
             if state.lround > 0 and isinstance(
                 state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
             ):
-                with st.expander("**Config⚙️**", expanded=True):
+                with st.expander("**Config⚙️**", expanded=False):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
 
             if fbr := state.msgs[round]["ef.Quantitative Backtesting Chart"]:
@@ -568,22 +568,23 @@ def feedback_window():
 - **Reason**: {h.reason}"""
                 )
 
-            if isinstance(state.scenario, KGScenario):
-                if fbe := state.msgs[round]["ef.runner result"]:
-                    submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
-                    st.markdown(
-                        f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
-                    )
-                    try:
-                        data = submission_path.read_bytes()
-                        st.download_button(
-                            label="**Download** submission.csv",
-                            data=data,
-                            file_name="submission.csv",
-                            mime="text/csv",
-                        )
-                    except Exception as e:
-                        st.markdown(f":red[**Download Button Error**]: {e}")
+            # Download button and Exp Workspace
+            # if isinstance(state.scenario, KGScenario):
+            #     if fbe := state.msgs[round]["ef.runner result"]:
+            #         submission_path = fbe[0].content.experiment_workspace.workspace_path / "submission.csv"
+            #         st.markdown(
+            #             f":green[**Exp Workspace**]: {str(fbe[0].content.experiment_workspace.workspace_path.absolute())}"
+            #         )
+            #         try:
+            #             data = submission_path.read_bytes()
+            #             st.download_button(
+            #                 label="**Download** submission.csv",
+            #                 data=data,
+            #                 file_name="submission.csv",
+            #                 mime="text/csv",
+            #             )
+            #         except Exception as e:
+            #             st.markdown(f":red[**Download Button Error**]: {e}")
 
 
 def evolving_window():
