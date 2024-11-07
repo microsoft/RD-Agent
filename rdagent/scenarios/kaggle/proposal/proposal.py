@@ -273,6 +273,15 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
         if self.scen.if_action_choosing_based_on_UCB:
             action = self.execute_next_action(trace)
 
+        hypothesis_specification = f"Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the merformance' is specific and actionable."
+        if self.scen.if_action_choosing_based_on_UCB:
+            hypothesis_specification += (
+                "\n\nNext experiment action is "
+                + action
+                + "\nspecification: "
+                + prompt_dict["hypothesis_specification"][action]
+            )
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": generate_RAG_content(
@@ -282,14 +291,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
                 target=action if self.scen.if_action_choosing_based_on_UCB else None,
             ),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": (
-                {
-                    "next_experiment_action": f"next experiment action is {action}",
-                    "specification": prompt_dict["hypothesis_specification"][action],
-                }
-                if self.scen.if_action_choosing_based_on_UCB
-                else None
-            ),
+            "hypothesis_specification": hypothesis_specification,
         }
         return context_dict, True
 

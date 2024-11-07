@@ -91,10 +91,13 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         for sub_ws in exp.sub_workspace_list:
             if sub_ws.code_dict == {}:
                 continue
+            execued_df = sub_ws.execute()[1]
+            if execued_df is None:
+                continue
             implemented_factor_count += 1
             target_feature_file_name = f"feature/feature_{current_feature_file_count:05d}.py"
             exp.experiment_workspace.inject_code(**{target_feature_file_name: sub_ws.code_dict["factor.py"]})
-            feature_shape = sub_ws.execute()[1].shape[-1]
+            feature_shape = execued_df.shape[-1]
             exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
             current_feature_file_count += 1
         if implemented_factor_count == 0:
