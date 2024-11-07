@@ -178,9 +178,9 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             hypothesis_node = UndirectedNode(content=hypothesis.hypothesis, label=hypothesis.action)
             exp_code_nodes = []
             for exp, code in current_sub_exps_to_code.items():
-                exp_node = UndirectedNode(content=exp, label="experiments")
-                code_node = UndirectedNode(content=code, label="code")
-                exp_code_nodes.extend([exp_node, code_node])
+                exp_code_nodes.append(UndirectedNode(content=exp, label="experiments"))
+                if code != "":
+                    exp_code_nodes.append(UndirectedNode(content=code, label="code"))
             conclusion_node = UndirectedNode(content=response, label="conclusion")
             all_nodes = [competition_node, hypothesis_node, *exp_code_nodes, conclusion_node]
             all_nodes = trace.knowledge_base.batch_embedding(all_nodes)
