@@ -637,6 +637,8 @@ def evolving_window():
         for j, w in enumerate(ws):
             with wtabs[j]:
                 # Evolving Code
+                print(w.workspace_path)
+                st.markdown(f"**Workspace Path**: {w.workspace_path}")
                 for k, v in w.code_dict.items():
                     with st.expander(f":green[`{k}`]", expanded=True):
                         st.code(v, language="python")

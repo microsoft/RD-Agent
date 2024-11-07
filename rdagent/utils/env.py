@@ -363,7 +363,7 @@ class DockerEnv(Env[DockerConf]):
         running_extra_volume: dict | None = None,
     ):
         entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
-        self.__run(entry_add_timeout, local_path, env, running_extra_volume)
+        return self.__run(entry_add_timeout, local_path, env, running_extra_volume)
 
     def dump_python_code_run_and_get_results(
         self,
