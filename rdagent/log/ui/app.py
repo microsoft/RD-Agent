@@ -40,7 +40,8 @@ from PIL import Image
 icon = Image.open("./git_ignore_folder/rd_icon.png")
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon=icon, initial_sidebar_state="expanded")
 
-
+URL_SCENARIO = st.query_params.get("scenario")
+st.write(URL_SCENARIO)
 # 获取log_path参数
 parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
 parser.add_argument("--log_dir", type=str, help="Path to the log directory")
@@ -66,7 +67,10 @@ SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, Qli
 
 if "log_path" not in state:
     if main_log_path:
-        state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
+        if URL_SCENARIO and URL_SCENARIO in ["Finance Data Building", "Finance Model Implementation", "Finance Data Building (Reports)", "General Model Implementation", "Medical Model Implementation"]:
+            state.log_path = Path(URL_SCENARIO)
+        else:
+            state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
     else:
         state.log_path = None
         st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
@@ -341,7 +345,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     hover_texts = [
         hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
         for i in df.index
-        if i != "alpha158"
+        if i != "alpha158" and i != "Baseline"
     ]
     if state.alpha158_metrics is not None:
         hover_texts = ["Baseline: alpha158"] + hover_texts
@@ -672,6 +676,25 @@ with st.sidebar:
     # cc1, cc2 = st.columns([2, 1])
     with st.popover(":blue[**Sample Logs**]", use_container_width=True):
         st.radio("samples", folders, key="log_path", on_change=refresh, label_visibility="collapsed", format_func=lambda x: f"**{x}**\n")
+    
+    c1, c2 = st.columns([1, 1], vertical_alignment="center")
+    with c1:
+        if st.button(":green[**All Loops**]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: False)
+        if st.button("**Reset**", use_container_width=True):
+            refresh(same_trace=True)
+    with c2:
+        if st.button(":green[Next Loop]", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "ef.feedback" in m.tag)
+
+        if st.button("Next Step", use_container_width=True):
+            if not state.fs:
+                refresh()
+            get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
     
     st.subheader("Demo videos🎥", divider='violet')
@@ -709,25 +732,6 @@ with st.sidebar:
 #                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
 #         else:
 #             st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
-
-#     c1, c2 = st.columns([1, 1], vertical_alignment="center")
-#     with c1:
-#         if st.button(":green[**All Loops**]", use_container_width=True):
-#             if not state.fs:
-#                 refresh()
-#             get_msgs_until(lambda m: False)
-#         if st.button("**Reset**", use_container_width=True):
-#             refresh(same_trace=True)
-#     with c2:
-#         if st.button(":green[Next Loop]", use_container_width=True):
-#             if not state.fs:
-#                 refresh()
-#             get_msgs_until(lambda m: "ef.feedback" in m.tag)
-
-#         if st.button("Next Step", use_container_width=True):
-#             if not state.fs:
-#                 refresh()
-#             get_msgs_until(lambda m: "d.evolving feedback" in m.tag)
 
     # with st.popover(":orange[**Config⚙️**]", use_container_width=True):
     #     st.multiselect("excluded log tags", ["llm_messages"], ["llm_messages"], key="excluded_tags")
