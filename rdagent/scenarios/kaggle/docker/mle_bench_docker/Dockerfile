@@ -10,8 +10,8 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN git clone https://github.com/openai/mle-bench.git
-RUN git lfs fetch --all
-RUN git lfs pull
+RUN cd mle-bench && git lfs fetch --all
+RUN cd mle-bench && git lfs pull
 RUN cd mle-bench && python -m pip install -e .
 
 WORKDIR /workspace

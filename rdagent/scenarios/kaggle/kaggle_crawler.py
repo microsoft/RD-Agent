@@ -115,15 +115,12 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
                 local_path=local_path,
                 running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
             )
-
             mleb_env.run(f"/bin/sh -c 'mkdir ./{competition}'", local_path=local_path)
             mleb_env.run(
                 f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
             )
-            mleb_env.run(f"mv ./{competition}/test.csv ./{competition}/valid.csv", local_path=local_path)
-
             mleb_env.run(
-                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/private/* ./{competition}'",
+                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/private/test.csv ./{competition}/valid.csv'",
                 local_path=local_path,
             )
 
