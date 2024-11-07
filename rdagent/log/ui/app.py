@@ -41,7 +41,6 @@ icon = Image.open("./git_ignore_folder/rd_icon.png")
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon=icon, initial_sidebar_state="expanded")
 
 URL_SCENARIO = st.query_params.get("scenario")
-st.write(URL_SCENARIO)
 # 获取log_path参数
 parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
 parser.add_argument("--log_dir", type=str, help="Path to the log directory")
@@ -410,7 +409,7 @@ def summary_window():
                     if state.alpha158_metrics is not None:
                         selected = ["alpha158"] + [i for i in df.index if state.h_decisions[int(i[6:])]]
                     else:
-                        selected = [i for i in df.index if state.h_decisions[int(i[6:])]]
+                        selected = [i for i in df.index if i=="Baseline" or state.h_decisions[int(i[6:])]]
                     df = df.loc[selected]
                 if df.shape[0] == 1:
                     st.table(df.iloc[0])
@@ -838,10 +837,10 @@ if state.scenario is not None:
         else:
             round = 1
 
-        show_times(round)
+        # show_times(round)
         rf_c, d_c = st.columns([2, 2])
     elif isinstance(state.scenario, GeneralModelScenario):
-        show_times(round)
+        # show_times(round)
 
         rf_c = st.container()
         d_c = st.container()
