@@ -274,6 +274,13 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
             action = self.execute_next_action(trace)
 
         hypothesis_specification = f"Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the merformance' is specific and actionable."
+        if len(trace.hist) > 0:
+            sota_features = str(trace.hist[-1][1].based_experiments[-1].experiment_workspace.data_description)
+            sota_models = json.dumps(
+                trace.hist[-1][1].based_experiments[-1].experiment_workspace.model_description, indent=2
+            )
+            sota_result = trace.hist[-1][1].based_experiments[-1].result
+            hypothesis_specification += f"\nYour hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether your hypothesis is right on this specific ecompetition. \n\nSOTA Features: {sota_features}\n\nSOTA Models: {sota_models}\n\nSOTA Result: {sota_result}"
         if self.scen.if_action_choosing_based_on_UCB:
             hypothesis_specification += (
                 "\n\nNext experiment action is "
