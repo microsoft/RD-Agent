@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
@@ -97,13 +98,51 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    data_path = f"{local_path}/{competition}"
-    if not Path(data_path).exists():
-        subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
+    if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
+        zipfile_path = f"{local_path}/zip_files"
+        zip_competition_path = Path(zipfile_path) / competition
+        if not zip_competition_path.exists():
+            try:
+                subprocess.run(
+                    ["mlebench", "prepare", "-c", competition, "--data-dir", zipfile_path],
+                    check=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
 
-        # unzip data
-        with zipfile.ZipFile(f"{data_path}/{competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
+            competition_path = Path(local_path) / competition
+            competition_path.mkdir(parents=True, exist_ok=True)
+            processed_data_folder_path = zip_competition_path / "prepared/public"
+            subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
+
+    else:
+        zipfile_path = f"{local_path}/zip_files"
+        if not Path(f"{zipfile_path}/{competition}.zip").exists():
+            try:
+                subprocess.run(
+                    ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
+                    check=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+
+            # unzip data
+            unzip_path = f"{local_path}/{competition}"
+            if not Path(unzip_path).exists():
+                unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
+                for sub_zip_file in Path(unzip_path).rglob("*.zip"):
+                    unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+
+
+def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
+    with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
+        zip_ref.extractall(unzip_target_path)
 
 
 def leaderboard_scores(competition: str) -> list[float]:

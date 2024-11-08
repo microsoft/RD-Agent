@@ -5,18 +5,14 @@ from typing import List, Tuple
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
-from rdagent.components.proposal.factor_proposal import (
-    FactorHypothesis,
-    FactorHypothesis2Experiment,
-    FactorHypothesisGen,
-)
+from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypothesisGen
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
-QlibFactorHypothesis = FactorHypothesis
+QlibFactorHypothesis = Hypothesis
 
 
 class QlibFactorHypothesisGen(FactorHypothesisGen):
@@ -41,7 +37,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         }
         return context_dict, True
 
-    def convert_response(self, response: str) -> FactorHypothesis:
+    def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
         hypothesis = QlibFactorHypothesis(
             hypothesis=response_dict["hypothesis"],

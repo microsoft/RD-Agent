@@ -1,5 +1,6 @@
 import subprocess
 from collections import defaultdict
+from concurrent.futures import TimeoutError
 from typing import Any
 
 import fire
@@ -115,7 +116,7 @@ class KaggleRDLoop(RDLoop):
 
         return exp
 
-    skip_loop_error = (ModelEmptyError, FactorEmptyError)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError, TimeoutError)
 
 
 def main(path=None, step_n=None, competition=None):
