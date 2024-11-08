@@ -138,17 +138,19 @@ Here's an enhanced outline of the steps:
         └── sf-crime
           └── ...
         
-      - kaggle_data/zip_files/sf-crime.zip: Competition dataset zip files downloaded from the Kaggle website.
+      - ``kaggle_data/zip_files/sf-crime.zip:`` Competition dataset zip files downloaded from the Kaggle website.
 
-      - kaggle_data/sf-crime.json: Competition description file.
+      - ``kaggle_data/sf-crime.json:`` Competition description file.
 
-      - kaggle_data/sf-crime: The target folder for unzipping the competition dataset.
+      - ``kaggle_data/sf-crime:`` The target folder for unzipping the competition dataset.
 
 - 🗳️ **Join the competition**
 
   - If your Kaggle API account has not joined a competition, you will need to join the competition before running the program.
-  - At the bottom of the competition details page, you can find the ``Join the competition`` button, click on it and select ``I Understand and Accept`` to join the competition.
-  - In the **Competition List Available** below, you can jump to the competition details page.
+    
+    - At the bottom of the competition details page, you can find the ``Join the competition`` button, click on it and select ``I Understand and Accept`` to join the competition.
+    
+    - In the **Competition List Available** below, you can jump to the competition details page.
 
 - 🚀 **Run the Application**
 
