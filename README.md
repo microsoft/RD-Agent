@@ -166,7 +166,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   ```
   > **Description of the above example:** <br />
   > - Kaggle competition data, contains two parts: competition description file (json file) and competition dataset (zip file). We prepare the competition description file for you, the competition dataset will be downloaded automatically when you run the program, as in the example. <br />
-  > - If you want to download the competition description file automatically, you need to install chromedriver, The instructions for installing chromedriver can be found in the [documentation](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide-running-a-specific-experiment). <br />
+  > - If you want to download the competition description file automatically, you need to install chromedriver, The instructions for installing chromedriver can be found in the [documentation](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#example-guide). <br />
   > - The **Competition List Available** can be found [here](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available). <br />
 
 ### 🖥️ Monitor the Application Results
