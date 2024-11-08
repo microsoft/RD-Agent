@@ -37,6 +37,7 @@ kg_background: |-
   
   The final output of our pipeline is from a ensemble of up to four models. Each model is trained on a different subset of the data.
   The four model types are: XGBoost, RandomForest, LightGBM and Neural Network (A Pytorch model).
+  About the Neural Network model, You can try different architectures and hyperparameters to improve the performance. You can even use a pytorch model to ensemble the other three types of models. Try to open your mind on the NN model.
   
   The data is extracted from the competition dataset, focusing on relevant attributes in {{ competition_features }}.
 
