@@ -81,6 +81,8 @@ kg_feature_interface: |-
   The input to 'fit' is the training data in pandas dataframe, and the input to 'transform' is the data to be transformed in pandas dataframe.
   The original columns should be excluded from the returned DataFrame.
 
+  Notice: Since we have a very big dataset, the feature engineering should be efficient and fast. Otherwise, please sufficiently exploit the multiprocessing or parallel computing to speed up the feature engineering process!
+
   Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
   
   The feat_eng function can be one of the following:
