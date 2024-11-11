@@ -5,19 +5,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import clean_and_impute_data, preprocess_script
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score
 
 # Set random seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-
-def compute_metrics_for_classification(y_true, y_pred):
-    """Compute MCC for classification."""
-    mcc = matthews_corrcoef(y_true, y_pred)
-    return mcc
 
 
 def import_module_from_path(module_name, module_path):
@@ -45,6 +39,7 @@ for f in DIRNAME.glob("feature/feat*.py"):
         X_train_l.append(X_train_f)
         X_valid_l.append(X_valid_f)
         X_test_l.append(X_test_f)
+        print(f"Feature [{f.stem}] has been added to the feature list")
 
 X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_train_l))])
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
@@ -65,6 +60,7 @@ for f in DIRNAME.glob("model/model*.py"):
 
     m = import_module_from_path(f.stem, f)
     model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
+    print(f"Model [{f.stem}] has been trained")
 
 # 4) Evaluate the model on the validation set
 metrics_all = []
@@ -72,7 +68,7 @@ for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
     accuracy = accuracy_score(y_valid, y_valid_pred)
-    print(f"final accuracy on valid set: {accuracy}")
+    print(f"[{type(model).__name__}] MCC on valid set: {accuracy}")
     metrics_all.append(accuracy)
 
 # 5) Save the validation accuracy
