@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fea_share_preprocess import clean_and_impute_data, preprocess_script
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import matthews_corrcoef, root_mean_squared_error
 
 # Set random seed for reproducibility
 SEED = 42
@@ -71,21 +71,21 @@ metrics_all = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
-    accuracy = accuracy_score(y_valid, y_valid_pred)
-    print(f"final accuracy on valid set: {accuracy}")
-    metrics_all.append(accuracy)
+    rmse = root_mean_squared_error(y_valid, y_valid_pred)
+    print(f"final root mean squared error on valid set: {rmse}")
+    metrics_all.append(rmse)
 
 # 5) Save the validation accuracy
-max_index = np.argmax(metrics_all)
-pd.Series(data=[metrics_all[max_index]], index=["multi-class accuracy"]).to_csv("submission_score.csv")
+min_index = np.argmin(metrics_all)
+pd.Series(data=[metrics_all[min_index]], index=["root mean squared error"]).to_csv("submission_score.csv")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten() + 1
+X_test_selected = model_l[min_index][2].select(X_test.copy())
+y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected).flatten() + 1
 
 
 # 7) Submit predictions for the test set
-submission_result = pd.DataFrame(y_test_pred, columns=["Cover_Type"])
-submission_result.insert(0, "Id", ids)
+submission_result = pd.DataFrame(y_test_pred, columns=["fare_amount"])
+submission_result.insert(0, "key", ids)
 
 submission_result.to_csv("submission.csv", index=False)

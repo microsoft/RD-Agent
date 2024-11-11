@@ -6,7 +6,7 @@ Remember
 """
 
 
-class IdentityFeature:
+class DatetimeFeature:
     def fit(self, train_df: pd.DataFrame):
         """
         Fit the feature engineering model to the training data.
@@ -17,7 +17,14 @@ class IdentityFeature:
         """
         Transform the input data.
         """
+        X['pickup_datetime'] = pd.to_datetime(X['pickup_datetime'],format="%Y-%m-%d %H:%M:%S UTC")
+        X['hour'] = X.pickup_datetime.dt.hour
+        X['day'] = X.pickup_datetime.dt.day
+        X['month'] = X.pickup_datetime.dt.month
+        X['weekday'] = X.pickup_datetime.dt.weekday
+        X['year'] = X.pickup_datetime.dt.year
+        X.drop(columns=['pickup_datetime'], inplace=True)
         return X
 
 
-feature_engineering_cls = IdentityFeature
+feature_engineering_cls = DatetimeFeature

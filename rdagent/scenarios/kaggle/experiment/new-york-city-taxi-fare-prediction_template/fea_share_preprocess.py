@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 
+index_name = "key"
+label_name = "fare_amount"
 
 def prepreprocess():
     """
@@ -12,10 +14,10 @@ def prepreprocess():
     """
     # Load and preprocess the data
     data_df = pd.read_csv("/kaggle/input/train.csv")
-    data_df = data_df.drop(["Id"], axis=1)
+    data_df = data_df.drop([index_name], axis=1)
 
-    X = data_df.drop(["Cover_Type"], axis=1)
-    y = data_df["Cover_Type"] - 1
+    X = data_df.drop([label_name], axis=1)
+    y = data_df[label_name]
 
     # Split the data into training and validation sets
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
@@ -41,8 +43,8 @@ def preprocess_script():
 
     # Load and preprocess the test data
     submission_df = pd.read_csv("/kaggle/input/test.csv")
-    ids = submission_df["Id"]
-    X_test = submission_df.drop(["Id"], axis=1)
+    ids = submission_df[index_name]
+    X_test = submission_df.drop([index_name], axis=1)
 
     return X_train, X_valid, y_train, y_valid, X_test, ids
 
