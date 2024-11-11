@@ -17,7 +17,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 # Support various method for metrics calculation
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute log loss for classification."""
-    all_classes = np.unique(y_true)
+    all_classes = np.arange(39)
     logloss = log_loss(y_true, y_pred, labels=all_classes)
     return logloss
 
@@ -32,6 +32,11 @@ def import_module_from_path(module_name, module_path):
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids = preprocess_script()
 
+X_train = X_train.iloc[: X_train.shape[0] // 10]
+y_train = y_train.iloc[: y_train.shape[0] // 10]
+X_valid = X_valid.iloc[: X_valid.shape[0] // 10]
+y_valid = y_valid.iloc[: y_valid.shape[0] // 10]
+X_test = X_test.iloc[: X_test.shape[0] // 10]
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
