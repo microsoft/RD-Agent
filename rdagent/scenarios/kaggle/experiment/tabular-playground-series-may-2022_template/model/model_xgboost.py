@@ -13,15 +13,15 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
     params = {
-        'learning_rate': 0.5,
-        'max_depth': 10,
+        "learning_rate": 0.5,
+        "max_depth": 10,
         "device": "cuda",
         "tree_method": "hist",
         "objective": "binary:logistic",
     }
     num_boost_round = 10
-    
-    model = xgb.train(params, dtrain, num_boost_round=num_boost_round, evals=[(dvalid, 'validation')], verbose_eval=100)
+
+    model = xgb.train(params, dtrain, num_boost_round=num_boost_round, evals=[(dvalid, "validation")], verbose_eval=100)
     return model
 
 
