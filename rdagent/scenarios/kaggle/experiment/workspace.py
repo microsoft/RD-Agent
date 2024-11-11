@@ -26,10 +26,11 @@ pickle.dump(others, open("others.pkl", "wb"))
 
 
 class KGFBWorkspace(FBWorkspace):
-    def __init__(self, template_folder_path: Path, *args, **kwargs) -> None:
+    def __init__(self, template_folder_path: Path, *args, entry="python train.py", **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
         self.data_description: List[Tuple[str, int]] = []
+        self.entry = entry  # this is for debugging (you may want to change it into `sleep 1000`)
 
     @property
     def model_description(self) -> dict[str, str]:
@@ -85,7 +86,7 @@ class KGFBWorkspace(FBWorkspace):
 
         execute_log = kgde.run(
             local_path=str(self.workspace_path),
-            entry=f"python train.py",
+            entry=self.entry,
             env=run_env,
             running_extra_volume=running_extra_volume,
         )
