@@ -6,8 +6,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 
 
-index_col_name = "key"
-
 def prepreprocess():
     """
     This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
