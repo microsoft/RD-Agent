@@ -29,8 +29,6 @@ hypothesis_and_feedback: |-
   Hypothesis {{ loop.index }}: {{ hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
-  New Feedback for Context (For your reference):  {{ feedback.new_hypothesis }}
-  Reasoning for new hypothesis:  {{ feedback.reason }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
 
