@@ -13,14 +13,19 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
     dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
     params = {
-        "learning_rate": 0.5,
-        "max_depth": 10,
-        "device": "cuda",
+        "learning_rate": 0.1,
+        "subsample": 0.95,
+        "colsample_bytree": 0.11,
+        "max_depth": 2,
+        "booster": "gbtree",
+        "reg_lambda": 66.1,
+        "reg_alpha": 15.9,
+        "random_state": 42,
         "tree_method": "hist",
-        "objective": "binary:logistic",
-        "eval_metric": "auc",
+        "device": "cuda",
+        "eval_metric": "mae",
     }
-    num_boost_round = 10
+    num_boost_round = 1000
 
     model = xgb.train(params, dtrain, num_boost_round=num_boost_round, evals=[(dvalid, "validation")], verbose_eval=100)
     return model
@@ -31,5 +36,5 @@ def predict(model: xgb.Booster, X):
     Keep feature select's consistency.
     """
     dtest = xgb.DMatrix(X)
-    y_pred = pd.Series([round(v) for v in model.predict(dtest)])
+    y_pred = model.predict(dtest)
     return y_pred
