@@ -1,21 +1,21 @@
 """
 Motivation of the model:
-The Random Forest model is chosen for its robustness and ability to handle large datasets with higher dimensionality.
-It reduces overfitting by averaging multiple decision trees and typically performs well out of the box, making it a good
-baseline model for many classification tasks.
+The Linear Regression model is chosen for its simplicity and interpretability. It is a good starting point for regression tasks
+and provides a baseline to compare more complex models against. Linear Regression assumes a linear relationship between the 
+features and the target variable, which can be a reasonable assumption for many problems.
 """
 
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
 
 def fit(X_train: pd.DataFrame, y_train: pd.Series, X_valid: pd.DataFrame, y_valid: pd.Series):
     """
-    Define and train the Random Forest model. Merge feature selection into the pipeline.
+    Define and train the Linear Regression model. Merge feature selection into the pipeline.
     """
-    # Initialize the Random Forest model
-    model = RandomForestRegressor(n_estimators=200, random_state=32, n_jobs=-1)
+    # Initialize the Linear Regression model
+    model = LinearRegression()
 
     # Fit the model
     model.fit(X_train, y_train)
