@@ -66,7 +66,10 @@ kg_background: |-
     - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
     - "Model feature selection": The user will modify one model to select the part of the features from the feature book to improve the model performance.
-    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance. Notice: The user has installed optuna and scikit-learn libraries. You are welcome to use these libraries to automatically optimize the hyperparameters of the model when training the model. Since we don't have a lot of time to train the model, please use a small number of trials with no more than thirty to optimize the hyperparameters.
+    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance. 
+  Notice: You can automatically optimize the hyperparameters of the model using some library when training the model. Since we don't have a lot of time to train the model, please use a small number of trials to optimize the hyperparameters. 
+  Our validation set split is not deterministic, so when you are using hyperparameter tuning, you can merge training and validation and use cross validation method to tune the hyperparameters.
+  One you have determine the best model parameter, you should retrain the model on all training and validation set to get the final model.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
 
