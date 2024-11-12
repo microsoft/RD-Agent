@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fea_share_preprocess import clean_and_impute_data, preprocess_script
+from fea_share_preprocess import preprocess_script
 from sklearn.metrics import accuracy_score
 
 # Set random seed for reproducibility
@@ -22,7 +22,7 @@ def import_module_from_path(module_name, module_path):
 
 
 # 1) Preprocess the data
-X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
+X_train, X_valid, y_train, y_valid, X_test, ids, label_encoder = preprocess_script()
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -48,7 +48,7 @@ X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_t
 print(X_train.shape, X_valid.shape, X_test.shape)
 
 # Handle inf and -inf values
-X_train, X_valid, X_test = clean_and_impute_data(X_train, X_valid, X_test)
+# X_train, X_valid, X_test = clean_and_impute_data(X_train, X_valid, X_test)
 
 
 model_l = []  # list[tuple[model, predict_func]]
@@ -77,7 +77,7 @@ pd.Series(data=[metrics_all[max_index]], index=["multi-class accuracy"]).to_csv(
 
 # 6) Make predictions on the test set and save them
 X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten() + 1
+y_test_pred = label_encoder.inverse_transform(model_l[max_index][1](model_l[max_index][0], X_test_selected))
 
 
 # 7) Submit predictions for the test set
