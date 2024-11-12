@@ -72,7 +72,7 @@ pd.Series(data=[metrics_all[max_index]], index=["AUROC"]).to_csv("submission_sco
 
 # 6) Make predictions on the test set and save them
 X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten() + 1
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten()
 
 
 # 7) Submit predictions for the test set
