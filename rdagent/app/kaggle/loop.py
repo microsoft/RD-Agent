@@ -1,6 +1,4 @@
 import subprocess
-from collections import defaultdict
-from concurrent.futures import TimeoutError
 from typing import Any
 
 import fire
@@ -14,7 +12,6 @@ from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
     HypothesisGen,
-    Trace,
 )
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
@@ -116,7 +113,7 @@ class KaggleRDLoop(RDLoop):
 
         return exp
 
-    skip_loop_error = (ModelEmptyError, FactorEmptyError, TimeoutError)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError)
 
 
 def main(path=None, step_n=None, competition=None):

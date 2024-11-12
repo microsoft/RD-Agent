@@ -409,7 +409,7 @@ def summary_window():
                     if state.alpha158_metrics is not None:
                         selected = ["alpha158"] + [i for i in df.index if state.h_decisions[int(i[6:])]]
                     else:
-                        selected = [i for i in df.index if state.h_decisions[int(i[6:])]]
+                        selected = [i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]]
                     df = df.loc[selected]
                 if df.shape[0] == 1:
                     st.table(df.iloc[0])
@@ -637,6 +637,7 @@ def evolving_window():
         for j, w in enumerate(ws):
             with wtabs[j]:
                 # Evolving Code
+                st.markdown(f"**Workspace Path**: {w.workspace_path}")
                 for k, v in w.code_dict.items():
                     with st.expander(f":green[`{k}`]", expanded=True):
                         st.code(v, language="python")
@@ -681,6 +682,7 @@ with st.sidebar:
                 st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
             else:
                 folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                folders = sorted(folders, key=lambda x: x.name)
                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
         else:
             st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)

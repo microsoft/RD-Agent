@@ -84,23 +84,54 @@ for f in DIRNAME.glob("model/model*.py"):
     model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
 
 # 4) Evaluate the model on the validation set
-metrics_all = []
+# metrics_all = []
+# for model, predict_func, select_m in model_l:
+#     X_valid_selected = select_m.select(X_valid.copy())
+#     y_valid_pred = predict_func(model, X_valid_selected)
+#     y_valid_pred = (y_valid_pred > 0.5).astype(int)
+#     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
+#     print(f"Accuracy on valid set: {metrics}")
+#     metrics_all.append(metrics)
+
+# 4) Use grid search to find the best ensemble model
+valid_pred_list = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
+    valid_pred_list.append(y_valid_pred)
+
+metrics_all = []
+weight_list = []
+searched_set = set()
+for i in range(1000):
+    weight = np.random.randint(0, high=10, size=(len(valid_pred_list),), dtype="i")
+    if str(weight.tolist()) in searched_set or weight.sum() == 0:
+        continue
+    weight = weight / weight.sum()
+    searched_set.add(str(weight.tolist()))
+    y_valid_pred = np.zeros_like(valid_pred_list[0])
+    for j in range(len(valid_pred_list)):
+        y_valid_pred += valid_pred_list[j] * weight[j]
     y_valid_pred = (y_valid_pred > 0.5).astype(int)
     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
-    print(f"Accuracy on valid set: {metrics}")
     metrics_all.append(metrics)
+    weight_list.append(weight)
 
 
 # 5) Save the validation accuracy
 max_index = np.argmax(metrics_all)
 pd.Series(data=[metrics_all[max_index]], index=["MCC"]).to_csv("submission_score.csv")
+print(f"Accuracy on valid set: {metrics_all[max_index]}")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected)
+test_pred_list = []
+for model, predict_func, select_m in model_l:
+    X_test_selected = select_m.select(X_test.copy())
+    y_test_pred = predict_func(model, X_test_selected)
+    test_pred_list.append(y_test_pred)
+y_test_pred = np.zeros_like(test_pred_list[0])
+for j in range(len(test_pred_list)):
+    y_test_pred += test_pred_list[j] * weight_list[max_index][j]
 y_test_pred = (y_test_pred > 0.5).astype(bool)
 y_test_pred = y_test_pred.ravel()
 

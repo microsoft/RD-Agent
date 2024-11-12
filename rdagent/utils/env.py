@@ -179,7 +179,7 @@ class KGDockerConf(DockerConf):
         env_prefix = "KG_DOCKER_"
 
     build_from_dockerfile: bool = True
-    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker"
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
     image: str = "local_kg:latest"
     # image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
@@ -190,6 +190,22 @@ class KGDockerConf(DockerConf):
     # }
 
     running_timeout_period: int = 600
+
+
+class MLEBDockerConf(DockerConf):
+    class Config:
+        env_prefix = "MLEB_DOCKER_"
+
+    build_from_dockerfile: bool = True
+    dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "mle_bench_docker"
+    image: str = "local_mle:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/workspace/data_folder/"
+    default_entry: str = "mlebench prepare --all"
+    # extra_volumes: dict = {
+    #     # TODO connect to the place where the data is stored
+    #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
+    # }
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -346,12 +362,8 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
     ):
-        with ThreadPoolExecutor() as executor:
-            future = executor.submit(self.__run, entry, local_path, env, running_extra_volume)
-            try:
-                return future.result(timeout=self.conf.running_timeout_period)
-            except TimeoutError:
-                raise TimeoutError(f"Timeout while running the container: {self.conf.running_timeout_period} seconds")
+        entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
+        return self.__run(entry_add_timeout, local_path, env, running_extra_volume)
 
     def dump_python_code_run_and_get_results(
         self,
@@ -427,4 +439,11 @@ class KGDockerEnv(DockerEnv):
     """Kaggle Competition Docker"""
 
     def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
+        super().__init__(conf)
+
+
+class MLEBDockerEnv(DockerEnv):
+    """MLEBench Docker"""
+
+    def __init__(self, conf: DockerConf = MLEBDockerConf()):
         super().__init__(conf)
