@@ -4,23 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-
-
-def prepreprocess():
-    """
-    This method loads the data, drops the unnecessary columns, and splits it into train and validation sets.
-    """
-    # Load and preprocess the data
-    data_df = pd.read_csv("/kaggle/input/train.csv")
-    data_df = data_df.drop(["Id"], axis=1)
-
-    X = data_df.drop(["Cover_Type"], axis=1)
-    y = data_df["Cover_Type"] - 1
-
-    # Split the data into training and validation sets
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
-
-    return X_train, X_valid, y_train, y_valid
+from sklearn.preprocessing import LabelEncoder
 
 
 def preprocess_script():
@@ -37,14 +21,23 @@ def preprocess_script():
 
         return X_train, X_valid, y_train, y_valid, X_test, *others
 
-    X_train, X_valid, y_train, y_valid = prepreprocess()
+    label_encoder = LabelEncoder()
+    data_df = pd.read_csv("/kaggle/input/train.csv")
+    data_df = data_df.drop(["Id"], axis=1)
+    data_df["Cover_Type"] = label_encoder.fit_transform(data_df["Cover_Type"])
+
+    X = data_df.drop(["Cover_Type", "Soil_Type7", "Soil_Type15"], axis=1)
+    y = data_df["Cover_Type"]
+
+    # Split the data into training and validation sets
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.20, random_state=42)
 
     # Load and preprocess the test data
-    submission_df = pd.read_csv("/kaggle/input/test.csv")
-    ids = submission_df["Id"]
-    X_test = submission_df.drop(["Id"], axis=1)
+    test_df = pd.read_csv("/kaggle/input/test.csv")
+    ids = test_df["Id"]
+    X_test = test_df.drop(["Id", "Soil_Type7", "Soil_Type15"], axis=1)
 
-    return X_train, X_valid, y_train, y_valid, X_test, ids
+    return X_train, X_valid, y_train, y_valid, X_test, ids, label_encoder
 
 
 def clean_and_impute_data(X_train, X_valid, X_test):

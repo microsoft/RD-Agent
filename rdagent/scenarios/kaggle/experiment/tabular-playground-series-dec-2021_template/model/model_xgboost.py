@@ -15,13 +15,14 @@ def fit(X_train: pd.DataFrame, y_train: pd.DataFrame, X_valid: pd.DataFrame, y_v
         "objective": "multi:softmax",  # Use softmax for multi-class classification
         "num_class": len(set(y_train)),  # Number of classes
         "nthread": -1,
-        "tree_method": "gpu_hist",
+        "tree_method": "hist",
         "device": "cuda",
+        "eval_metric": "merror",
     }
     num_round = 100
 
-    evallist = [(dtrain, "train"), (dvalid, "eval")]
-    bst = xgb.train(params, dtrain, num_round, evallist)
+    evallist = [(dtrain, "train"), (dvalid, "valid")]
+    bst = xgb.train(params, dtrain, num_round, evallist, verbose_eval=10)
 
     return bst
 
