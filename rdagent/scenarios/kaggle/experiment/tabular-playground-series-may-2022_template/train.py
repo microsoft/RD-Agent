@@ -58,7 +58,7 @@ for f in DIRNAME.glob("model/model*.py"):
     print(f"Model [{f.stem}] has been trained")
 
 # 4) Evaluate the model on the validation set
-sub_submission = pd.DataFrame(columns=['Model', 'score'])
+sub_submission = pd.DataFrame(columns=["Model", "score"])
 metrics_all = []
 for model, predict_func, select_m, model_name in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
@@ -66,7 +66,7 @@ for model, predict_func, select_m, model_name in model_l:
     auroc = roc_auc_score(y_valid, y_valid_pred)
     print(f"[{type(model).__name__}] AUROC on valid set: {auroc}")
     metrics_all.append(auroc)
-    sub_submission = sub_submission._append({'Model': model_name, 'score': auroc}, ignore_index=True)
+    sub_submission = sub_submission._append({"Model": model_name, "score": auroc}, ignore_index=True)
 sub_submission.to_csv("sub_submission_score.csv")
 
 # 5) Save the validation accuracy
