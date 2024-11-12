@@ -17,7 +17,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 # Support various method for metrics calculation
 def compute_metrics_for_classification(y_true, y_pred):
     """Compute log loss for classification."""
-    all_classes = np.unique(y_true)
+    all_classes = np.arange(39)
     logloss = log_loss(y_true, y_pred, labels=all_classes)
     return logloss
 
@@ -32,6 +32,11 @@ def import_module_from_path(module_name, module_path):
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, category_encoder, test_ids = preprocess_script()
 
+X_train = X_train.iloc[: X_train.shape[0] // 10]
+y_train = y_train.iloc[: y_train.shape[0] // 10]
+X_valid = X_valid.iloc[: X_valid.shape[0] // 10]
+y_valid = y_valid.iloc[: y_valid.shape[0] // 10]
+X_test = X_test.iloc[: X_test.shape[0] // 10]
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -85,21 +90,54 @@ for f in DIRNAME.glob("model/model*.py"):
     model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
 
 # 4) Evaluate the model on the validation set
-metrics_all = []
+# metrics_all = []
+# for model, predict_func, select_m in model_l:
+#     X_valid_selected = select_m.select(X_valid.copy())
+#     y_valid_pred = predict_func(model, X_valid_selected)
+#     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
+#     print(f"log_loss on valid set: {metrics}")
+#     metrics_all.append(metrics)
+# 4) Use grid search to find the best ensemble model
+valid_pred_list = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
+    valid_pred_list.append(y_valid_pred)
+
+metrics_all = []
+weight_list = []
+searched_set = set()
+for i in range(100):
+    weight = np.random.randint(0, high=10, size=(len(valid_pred_list),), dtype="i")
+    if str(weight.tolist()) in searched_set or weight.sum() == 0:
+        continue
+    weight = weight / weight.sum()
+    searched_set.add(str(weight.tolist()))
+    y_valid_pred = np.zeros_like(valid_pred_list[0])
+    for j in range(len(valid_pred_list)):
+        y_valid_pred += valid_pred_list[j] * weight[j]
+    # normalize y_valid_pred each row to sum 1
+    y_valid_pred = y_valid_pred / y_valid_pred.sum(axis=1)[:, np.newaxis]
     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
-    print(f"log_loss on valid set: {metrics}")
     metrics_all.append(metrics)
+    weight_list.append(weight)
+
 
 # 5) Save the validation accuracy
 min_index = np.argmin(metrics_all)
 pd.Series(data=[metrics_all[min_index]], index=["log_loss"]).to_csv("submission_score.csv")
+print(f"Accuracy on valid set: {metrics_all[min_index]}")
 
 # 6) Make predictions on the test set and save them
-X_test_selected = model_l[min_index][2].select(X_test.copy())
-y_test_pred = model_l[min_index][1](model_l[min_index][0], X_test_selected)
+test_pred_list = []
+for model, predict_func, select_m in model_l:
+    X_test_selected = select_m.select(X_test.copy())
+    y_test_pred = predict_func(model, X_test_selected)
+    test_pred_list.append(y_test_pred)
+y_test_pred = np.zeros_like(test_pred_list[0])
+for j in range(len(test_pred_list)):
+    y_test_pred += test_pred_list[j] * weight_list[min_index][j]
+y_test_pred = y_test_pred / y_test_pred.sum(axis=1)[:, np.newaxis]
 
 
 # 7) Submit predictions for the test set

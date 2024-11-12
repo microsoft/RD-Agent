@@ -142,7 +142,7 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     list
 
     """
-    if n == 1:
+    if n == 1 or max(1, min(n, len(func_calls))) == 1:
         return [f(*args) for f, args in func_calls]
 
     with mp.Pool(processes=max(1, min(n, len(func_calls)))) as pool:

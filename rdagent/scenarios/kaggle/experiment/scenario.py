@@ -285,8 +285,9 @@ To automatically optimize performance metrics within the validation set or Kaggl
 {self.simulator(tag)}
 """
 
-        assert filtered_tag is not None, "filtered_tag should not be None in Kaggle scenario"
-        if filtered_tag == "hypothesis_and_experiment" or filtered_tag == "feedback":
+        if filtered_tag is None:
+            return common_description() + interface(None) + output(None) + simulator(None)
+        elif filtered_tag == "hypothesis_and_experiment" or filtered_tag == "feedback":
             return common_description() + simulator(None)
         elif filtered_tag == "feature":
             return common_description() + interface("feature") + output("feature") + simulator("feature")

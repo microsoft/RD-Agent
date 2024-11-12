@@ -273,6 +273,22 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
         if self.scen.if_action_choosing_based_on_UCB:
             action = self.execute_next_action(trace)
 
+        hypothesis_specification = f"Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the performance' is specific and actionable."
+        if len(trace.hist) > 0:
+            sota_features = str(trace.hist[-1][1].based_experiments[-1].experiment_workspace.data_description)
+            sota_models = json.dumps(
+                trace.hist[-1][1].based_experiments[-1].experiment_workspace.model_description, indent=2
+            )
+            sota_result = trace.hist[-1][1].based_experiments[-1].result
+            hypothesis_specification += f"\nYour hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether your hypothesis is right on this specific ecompetition. \n\nSOTA Features: {sota_features}\n\nSOTA Models: {sota_models}\n\nSOTA Result: {sota_result}"
+        if self.scen.if_action_choosing_based_on_UCB:
+            hypothesis_specification += (
+                "\n\nNext experiment action is "
+                + action
+                + "\nspecification: "
+                + prompt_dict["hypothesis_specification"][action]
+            )
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "RAG": generate_RAG_content(
@@ -282,14 +298,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
                 target=action if self.scen.if_action_choosing_based_on_UCB else None,
             ),
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
-            "hypothesis_specification": (
-                {
-                    "next_experiment_action": f"next experiment action is {action}",
-                    "specification": prompt_dict["hypothesis_specification"][action],
-                }
-                if self.scen.if_action_choosing_based_on_UCB
-                else None
-            ),
+            "hypothesis_specification": hypothesis_specification,
         }
         return context_dict, True
 
@@ -383,7 +392,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         response_dict = json.loads(response)
         tasks = []
         model_type = response_dict.get("model_type", "Model type not provided")
-        if model_type not in KG_SELECT_MAPPING:
+        if not isinstance(model_type, str) or model_type not in KG_SELECT_MAPPING:
             raise ModelEmptyError(
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )

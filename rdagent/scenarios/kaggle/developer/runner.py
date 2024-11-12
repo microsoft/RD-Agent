@@ -5,7 +5,7 @@ from pathlib import Path
 
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
-from rdagent.core.experiment import ASpecificExp
+from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
@@ -27,6 +27,18 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
         codes = "\n".join(codes)
         cached_key_from_exp = CachedRunner.get_cache_key(self, exp)
         return md5_hash(codes + cached_key_from_exp)
+
+    def assign_cached_result(self, exp: Experiment, cached_res: Experiment) -> Experiment:
+        exp = CachedRunner.assign_cached_result(self, exp, cached_res)
+        if cached_res.experiment_workspace.workspace_path.exists():
+            for csv_file in cached_res.experiment_workspace.workspace_path.glob("*.csv"):
+                shutil.copy(csv_file, exp.experiment_workspace.workspace_path)
+            for py_file in (cached_res.experiment_workspace.workspace_path / "feature").glob("*.py"):
+                shutil.copy(py_file, exp.experiment_workspace.workspace_path / "feature")
+            for py_file in (cached_res.experiment_workspace.workspace_path / "model").glob("*.py"):
+                shutil.copy(py_file, exp.experiment_workspace.workspace_path / "model")
+        exp.experiment_workspace.data_description = cached_res.experiment_workspace.data_description
+        return exp
 
     @cache_with_pickle(get_cache_key, CachedRunner.assign_cached_result)
     def init_develop(self, exp: KGFactorExperiment | KGModelExperiment) -> KGFactorExperiment | KGModelExperiment:
@@ -79,10 +91,13 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         for sub_ws in exp.sub_workspace_list:
             if sub_ws.code_dict == {}:
                 continue
+            execued_df = sub_ws.execute()[1]
+            if execued_df is None:
+                continue
             implemented_factor_count += 1
             target_feature_file_name = f"feature/feature_{current_feature_file_count:05d}.py"
             exp.experiment_workspace.inject_code(**{target_feature_file_name: sub_ws.code_dict["factor.py"]})
-            feature_shape = sub_ws.execute()[1].shape[-1]
+            feature_shape = execued_df.shape[-1]
             exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
             current_feature_file_count += 1
         if implemented_factor_count == 0:
