@@ -2,6 +2,7 @@ import json
 import pickle
 import shutil
 from pathlib import Path
+import pandas as pd
 
 from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
@@ -52,6 +53,11 @@ class KGCachedRunner(CachedRunner[ASpecificExp]):
 
         exp.result = result
 
+        sub_result_score_path = Path(exp.experiment_workspace.workspace_path) / "sub_submission_score.csv"
+        if sub_result_score_path.exists():
+            sub_submission_df = pd.read_csv(sub_result_score_path)
+            exp.sub_results = sub_submission_df.set_index('Model')['score'].to_dict()
+
         return exp
 
 
@@ -79,6 +85,10 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
             raise CoderError("No result is returned from the experiment workspace")
 
         exp.result = result
+        sub_result_score_path = Path(exp.experiment_workspace.workspace_path) / "sub_submission_score.csv"
+        if sub_result_score_path.exists():
+            sub_submission_df = pd.read_csv(sub_result_score_path)
+            exp.sub_results = sub_submission_df.set_index('Model')['score'].to_dict()
 
         return exp
 
@@ -115,5 +125,9 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
             raise CoderError("No result is returned from the experiment workspace")
 
         exp.result = result
+        sub_result_score_path = Path(exp.experiment_workspace.workspace_path) / "sub_submission_score.csv"
+        if sub_result_score_path.exists():
+            sub_submission_df = pd.read_csv(sub_result_score_path)
+            exp.sub_results = sub_submission_df.set_index('Model')['score'].to_dict()
 
         return exp

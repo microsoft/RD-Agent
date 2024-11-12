@@ -96,6 +96,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         sota_features = str(exp.based_experiments[-1].experiment_workspace.data_description)
         sota_models = json.dumps(exp.based_experiments[-1].experiment_workspace.model_description, indent=2)
         sota_result = exp.based_experiments[-1].result
+        sota_sub_results = exp.based_experiments[-1].sub_results
 
         current_hypothesis = hypothesis.hypothesis
         current_hypothesis_reason = hypothesis.reason
@@ -113,6 +114,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             }
         current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
         current_result = exp.result
+        current_sub_results = exp.sub_results
 
         last_hypothesis_and_feedback = None
         if trace.hist and len(trace.hist) > 0:
@@ -123,11 +125,13 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             "sota_features": sota_features,
             "sota_models": sota_models,
             "sota_result": sota_result,
+            "sota_sub_results": sota_sub_results,
             "current_hypothesis": current_hypothesis,
             "current_hypothesis_reason": current_hypothesis_reason,
             "current_target_action": current_target_action,
             "current_sub_exps_to_code": current_sub_exps_to_code_str,
             "current_result": current_result,
+            "current_sub_results": current_sub_results,
             "combined_result": combined_result,
             "evaluation_description": evaluation_description,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,

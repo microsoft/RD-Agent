@@ -181,14 +181,20 @@ kg_feedback_generation_user: |-
   The SOTA solution for the task is as follows:
   Features and its corresponding channel: {{ sota_features }}
   Models and its corresponding code: {{ sota_models }}
-  final result to the SOTA solution: {{ sota_result }}
+  Final result of the SOTA solution (we select the best-performing model's metric as the final result): {{ sota_result }}
+  {% if sota_sub_results %}
+  Sub-results of all sub-models: {{ sota_sub_results }}
+  {% endif %}
 
   Current solution to be evaluated:
   Hypothesis: {{ current_hypothesis }}
   Reasoning: {{ current_hypothesis_reason }}
-  current target action: {{ current_target_action }}
-  experiments conducted and their code: {{ current_sub_exps_to_code }}
-  final result to the current solution: {{ current_result }}
+  Current target action: {{ current_target_action }}
+  Experiments conducted and their code: {{ current_sub_exps_to_code }}
+  Final result of the current solution (we select the best-performing model's metric as the final result): {{ current_result }}
+  {% if current_sub_results %}
+  Sub-results of all sub-models: {{ current_sub_results }}
+  {% endif %}
 
   A more detailed comparison between the current solution and the SOTA solution:
   {{ combined_result }}
@@ -207,6 +213,7 @@ kg_feedback_generation_user: |-
   Consider Changing Direction for Significant Gaps with the Best Result and the last round:
     - If the new results significantly differ from SOTA, consider a new direction.
     - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
+    - If it is model tuning, focus on comparing the SOTA's Sub-results of all sub-models: {{ sota_sub_results }} with the current experiment's Sub-results of all sub-models: {{ current_sub_results }}. For example, identify which model is currently the best, which model was adjusted in this experiment, and whether the adjustment was effective. Determine if there is potential to continue with this model or if another model shows more promise.
 
 model_tuning_feedback_generation:
   system: |-
