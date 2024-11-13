@@ -23,6 +23,7 @@ def import_module_from_path(module_name, module_path):
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
+mask = X_valid['u_out'] == 0
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -46,6 +47,7 @@ X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
 
 
+
 model_l = []  # list[tuple[model, predict_func]]
 for f in DIRNAME.glob("model/model*.py"):
     select_python_path = f.with_name(f.stem.replace("model", "select") + f.suffix)
@@ -62,7 +64,9 @@ metrics_all = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
-    mae = mean_absolute_error(y_valid, y_valid_pred)
+    y_valid_filtered = y_valid[mask]
+    y_valid_pred_filtered = y_valid_pred[mask]
+    mae = mean_absolute_error(y_valid_filtered, y_valid_pred_filtered)
     print(f"[{type(model).__name__}] MAE on valid set: {mae}")
     metrics_all.append(mae)
 
