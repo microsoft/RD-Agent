@@ -1,6 +1,7 @@
 # %%
 import bisect
 import json
+import shutil
 import subprocess
 import time
 import zipfile
@@ -124,7 +125,18 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
                 f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/private/test.csv ./{competition}/valid.csv'",
                 local_path=local_path,
             )
-
+            # NOTE:
+            # Patching:  due to mle has special renaming mechanism for different competition;
+            # We have to switch the schema back to a uniform one;
+            if competition in {"new-york-city-taxi-fare-prediction"}:
+                cpath = Path(local_path) / f"{competition}"
+                labels_path = cpath / "labels.csv"
+                train_path = cpath / "train.csv"
+                if labels_path.exists():
+                    shutil.copy(labels_path, train_path)
+                else:
+                    logger.error(f"labels.csv not found in {cpath}")
+                    raise FileNotFoundError(f"{labels_path} does not exist")
     else:
         zipfile_path = f"{local_path}/zip_files"
         if not Path(f"{zipfile_path}/{competition}.zip").exists():

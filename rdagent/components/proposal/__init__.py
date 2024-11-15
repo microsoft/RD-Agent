@@ -19,7 +19,6 @@ prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
 class LLMHypothesisGen(HypothesisGen):
-
     def __init__(self, scen: Scenario):
         super().__init__(scen)
 

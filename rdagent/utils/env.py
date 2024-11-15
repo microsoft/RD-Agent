@@ -190,6 +190,9 @@ class KGDockerConf(DockerConf):
     # }
 
     running_timeout_period: int = 600
+    mem_limit: str | None = (
+        "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    )
 
 
 class MLEBDockerConf(DockerConf):
@@ -206,6 +209,9 @@ class MLEBDockerConf(DockerConf):
     #     # TODO connect to the place where the data is stored
     #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
     # }
+    mem_limit: str | None = (
+        "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    )
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3
@@ -335,6 +341,8 @@ class DockerEnv(Env[DockerConf]):
             table = Table(title="Run Info", show_header=False)
             table.add_column("Key", style="bold cyan")
             table.add_column("Value", style="bold magenta")
+            table.add_row("Container ID", container.id)
+            table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
             table.add_row("Volumns", "\n".join(f"{k}:{v}" for k, v in volumns.items()))
