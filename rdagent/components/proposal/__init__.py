@@ -24,12 +24,10 @@ class LLMHypothesisGen(HypothesisGen):
 
     # The following methods are scenario related so they should be implemented in the subclass
     @abstractmethod
-    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
-        ...
+    def prepare_context(self, trace: Trace) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str) -> Hypothesis:
-        ...
+    def convert_response(self, response: str) -> Hypothesis: ...
 
     def gen(self, trace: Trace) -> Hypothesis:
         context_dict, json_flag = self.prepare_context(trace)
@@ -81,12 +79,10 @@ class FactorAndModelHypothesisGen(LLMHypothesisGen):
 
 class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
     @abstractmethod
-    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
-        ...
+    def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str, trace: Trace) -> Experiment:
-        ...
+    def convert_response(self, response: str, trace: Trace) -> Experiment: ...
 
     def convert(self, hypothesis: Hypothesis, trace: Trace) -> Experiment:
         context, json_flag = self.prepare_context(hypothesis, trace)
