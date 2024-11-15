@@ -23,7 +23,7 @@ def import_module_from_path(module_name, module_path):
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, ids = preprocess_script()
-mask = X_valid['u_out'] == 0
+mask = X_valid["u_out"] == 0
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
@@ -45,7 +45,6 @@ for f in DIRNAME.glob("feature/feat*.py"):
 X_train = pd.concat(X_train_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_train_l))])
 X_valid = pd.concat(X_valid_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_valid_l))])
 X_test = pd.concat(X_test_l, axis=1, keys=[f"feature_{i}" for i in range(len(X_test_l))])
-
 
 
 model_l = []  # list[tuple[model, predict_func]]
