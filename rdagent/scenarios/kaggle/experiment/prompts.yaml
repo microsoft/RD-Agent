@@ -37,6 +37,7 @@ kg_background: |-
   
   The final output of our pipeline is from a ensemble of up to four models. Each model is trained on a different subset of the data.
   The four model types are: XGBoost, RandomForest, LightGBM and Neural Network (A Pytorch model).
+  About the Neural Network model, You can try different architectures and hyperparameters to improve the performance. You can even use a pytorch model to ensemble the other three types of models. Try to open your mind on the NN model.
   
   The data is extracted from the competition dataset, focusing on relevant attributes in {{ competition_features }}.
 
@@ -65,7 +66,10 @@ kg_background: |-
     - "Feature processing": The user will design a new task to process the feature book like normalization or one hot encoding to improve the model performance. Any processing with help of a deep model is not included in this task.
   - Model related:
     - "Model feature selection": The user will modify one model to select the part of the features from the feature book to improve the model performance.
-    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance.
+    - "Model tuning": The user will tune the hyperparameters of XGBoost, RandomForest or LightGBM or build or improve the NN model to improve the model performance. 
+  Notice: You can automatically optimize the hyperparameters of the model using some library when training the model. Since we don't have a lot of time to train the model, please use a small number of trials to optimize the hyperparameters. 
+  Our validation set split is not deterministic, so when you are using hyperparameter tuning, you can merge training and validation and use cross validation method to tune the hyperparameters.
+  One you have determine the best model parameter, you should retrain the model on all training and validation set to get the final model.
 
   For each loop, you need to help user decide which action item to choose and provide the corresponding code to implement the action item.
 
@@ -80,6 +84,8 @@ kg_feature_interface: |-
   3. A variable called feature_engineering_cls that contains the class name.
   The input to 'fit' is the training data in pandas dataframe, and the input to 'transform' is the data to be transformed in pandas dataframe.
   The original columns should be excluded from the returned DataFrame.
+
+  Notice: Since we have a very big dataset, the feature engineering should be efficient and fast. Otherwise, please sufficiently exploit the multiprocessing or parallel computing to speed up the feature engineering process!
 
   Exception handling will be managed externally, so avoid using try-except blocks in your code. The user will handle any exceptions that arise and provide feedback as needed.
   
@@ -138,8 +144,8 @@ kg_model_interface: |-
       - model: The trained model.
       - X: The features as a pandas DataFrame.
     The function should return the predicted probabilities or boolean predictions in numpy.ndarray format.
-  """
-    
+    Please refer to the train.py script to verify whether the output should be a class label or a probability!
+
   Here are some examples of how your Python code should be structured:
 
   {% if tag == "XGBoost" or tag is none %}
@@ -302,8 +308,8 @@ kg_feature_output_format: |-
   memory usage: {Memory usage of the output DataFrame}
 
 kg_model_output_format: |-
-  For feature related tasks, the output should be a pandas DataFrame with the new features. The columns should be the new features, and the rows should correspond to the number of samples in the input DataFrame.
-  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions.
+  For model related tasks, the output should be an np.ndarray with the appropriate number of predictions. 
+  Please refer to the train.py script to verify whether the output should be a class label or a probability!
   {% if channel == 1 %}
   For each sample, the output should be a single value (e.g., (8, 1) if there are 8 samples).
   {% else %}

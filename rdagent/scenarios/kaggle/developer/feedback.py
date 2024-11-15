@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
@@ -14,6 +15,7 @@ from rdagent.core.proposal import (
 )
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.kaggle.experiment.kaggle_experiment import KG_SELECT_MAPPING
 from rdagent.utils import convert2bool
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
@@ -59,17 +61,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             Any: The feedback generated for the given experiment and hypothesis.
         """
         logger.info("Generating feedback...")
-        hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
-        tasks_factors = []
-        if exp.sub_tasks:
-            tasks_factors = []
-            for task in exp.sub_tasks:
-                try:
-                    task_info = task.get_task_information_and_implementation_result()
-                    tasks_factors.append(task_info)
-                except AttributeError:
-                    print(f"Warning: Task {task} does not have get_task_information_and_implementation_result method")
 
         evaluation_description = None
         # Check if there are any based experiments
@@ -83,11 +75,6 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 current_result, current_result
             )  # Compare with itself
             print("Warning: No previous experiments to compare against. Using current result as baseline.")
-
-        available_features = {
-            task_info: feature_shape for task_info, feature_shape in exp.experiment_workspace.data_description
-        }
-        model_code = exp.experiment_workspace.model_description
 
         # Generate the user prompt based on the action type
         if hypothesis.action == "Model tuning":
@@ -104,35 +91,56 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
             .render(scenario=self.scen.get_scenario_all_desc(filtered_tag="feedback"))
         )
 
-        last_task_and_code = None
-        if trace.hist:
-            last_task_and_code = (
-                trace.hist[-1][1].experiment_workspace.data_description
-                if trace.hist[-1][0].action == "Feature engineering" or trace.hist[-1][0].action == "Feature processing"
-                else trace.hist[-1][1].experiment_workspace.model_description
-            )
+        sota_exp = exp.based_experiments[-1] if exp.based_experiments else None
+        assert sota_exp is not None
+        sota_features = str(exp.based_experiments[-1].experiment_workspace.data_description)
+        sota_models = json.dumps(exp.based_experiments[-1].experiment_workspace.model_description, indent=2)
+        sota_result = exp.based_experiments[-1].result
+        sota_sub_results = exp.based_experiments[-1].sub_results
+
+        current_hypothesis = hypothesis.hypothesis
+        current_hypothesis_reason = hypothesis.reason
+        current_target_action = hypothesis.action
+        current_sub_exps_to_code = {}
+        if hypothesis.action == "Model tuning":
+            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].code
+        elif hypothesis.action == "Model feature selection":
+            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.code_dict[
+                KG_SELECT_MAPPING[exp.sub_tasks[0].model_type]
+            ]
+        else:
+            current_sub_exps_to_code = {
+                sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
+            }
+        current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
+        current_result = exp.result
+        current_sub_results = exp.sub_results
+
+        last_hypothesis_and_feedback = None
+        if trace.hist and len(trace.hist) > 0:
+            last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
 
         # Prepare render dictionary
         render_dict = {
-            "last_hypothesis": trace.hist[-1][0] if trace.hist else None,
-            "last_task_and_code": last_task_and_code,
-            "last_result": trace.hist[-1][1].result if trace.hist else None,
-            "sota_task_and_code": (
-                exp.based_experiments[-1].experiment_workspace.data_description if exp.based_experiments else None
-            ),
-            "sota_result": exp.based_experiments[-1].result if exp.based_experiments else None,
-            "hypothesis": hypothesis,
-            "exp": exp,
-            "model_code": model_code,  # This turn
-            "available_features": available_features,  # This turn
-            "combined_result": combined_result,  # This turn and sota
-            "hypothesis_text": hypothesis_text,  # This turn
-            "task_details": tasks_factors,  # This turn
+            "sota_features": sota_features,
+            "sota_models": sota_models,
+            "sota_result": sota_result,
+            "sota_sub_results": sota_sub_results,
+            "current_hypothesis": current_hypothesis,
+            "current_hypothesis_reason": current_hypothesis_reason,
+            "current_target_action": current_target_action,
+            "current_sub_exps_to_code": current_sub_exps_to_code_str,
+            "current_result": current_result,
+            "current_sub_results": current_sub_results,
+            "combined_result": combined_result,
             "evaluation_description": evaluation_description,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
         }
 
         usr_prompt = (
-            Environment(undefined=StrictUndefined).from_string(prompt_dict[prompt_key]["user"]).render(**render_dict)
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["kg_feedback_generation_user"])
+            .render(**render_dict)
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -160,22 +168,29 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
 
         experiment_feedback = {
-            "current_competition": self.scen.get_competition_full_desc(),
-            "hypothesis_text": hypothesis_text,
+            "hypothesis_text": current_hypothesis,
+            "tasks_factors": current_sub_exps_to_code,
             "current_result": current_result,
-            "model_code": model_code,
-            "available_features": available_features,
-            "observations": observations,
-            "hypothesis_evaluation": hypothesis_evaluation,
-            "reason": reason,
-            "percentile_ranking": percentile_ranking,
         }
 
         if self.scen.if_using_vector_rag:
+            raise NotImplementedError("Vector RAG is not implemented yet since there are plenty bugs!")
             self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
             self.scen.vector_base.dump()
         elif self.scen.if_using_graph_rag:
-            trace.knowledge_base.add_document(experiment_feedback, self.scen)
+            competition_node = UndirectedNode(content=self.scen.get_competition_full_desc(), label="competition")
+            hypothesis_node = UndirectedNode(content=hypothesis.hypothesis, label=hypothesis.action)
+            exp_code_nodes = []
+            for exp, code in current_sub_exps_to_code.items():
+                exp_code_nodes.append(UndirectedNode(content=exp, label="experiments"))
+                if code != "":
+                    exp_code_nodes.append(UndirectedNode(content=code, label="code"))
+            conclusion_node = UndirectedNode(content=response, label="conclusion")
+            all_nodes = [competition_node, hypothesis_node, *exp_code_nodes, conclusion_node]
+            all_nodes = trace.knowledge_base.batch_embedding(all_nodes)
+            for node in all_nodes:
+                if node is not competition_node:
+                    trace.knowledge_base.add_node(node, competition_node)
 
         if self.scen.if_action_choosing_based_on_UCB:
             self.scen.action_counts[hypothesis.action] += 1

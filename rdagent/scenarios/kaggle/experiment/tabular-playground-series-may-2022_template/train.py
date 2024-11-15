@@ -54,17 +54,20 @@ for f in DIRNAME.glob("model/model*.py"):
     X_valid_selected = select_m.select(X_valid.copy())
 
     m = import_module_from_path(f.stem, f)
-    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m))
+    model_l.append((m.fit(X_train_selected, y_train, X_valid_selected, y_valid), m.predict, select_m, f.stem))
     print(f"Model [{f.stem}] has been trained")
 
 # 4) Evaluate the model on the validation set
+sub_submission = pd.DataFrame(columns=["Model", "score"])
 metrics_all = []
-for model, predict_func, select_m in model_l:
+for model, predict_func, select_m, model_name in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
     auroc = roc_auc_score(y_valid, y_valid_pred)
     print(f"[{type(model).__name__}] AUROC on valid set: {auroc}")
     metrics_all.append(auroc)
+    sub_submission = sub_submission._append({"Model": model_name, "score": auroc}, ignore_index=True)
+sub_submission.to_csv("sub_submission_score.csv")
 
 # 5) Save the validation accuracy
 max_index = np.argmax(metrics_all)
@@ -72,7 +75,7 @@ pd.Series(data=[metrics_all[max_index]], index=["AUROC"]).to_csv("submission_sco
 
 # 6) Make predictions on the test set and save them
 X_test_selected = model_l[max_index][2].select(X_test.copy())
-y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten() + 1
+y_test_pred = model_l[max_index][1](model_l[max_index][0], X_test_selected).flatten()
 
 
 # 7) Submit predictions for the test set
