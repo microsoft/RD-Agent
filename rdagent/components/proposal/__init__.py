@@ -72,7 +72,7 @@ class ModelHypothesisGen(LLMHypothesisGen):
         self.targets = "model tuning"
 
 
-class FactorAndModelHypothesisGen(FactorHypothesisGen):
+class FactorAndModelHypothesisGen(LLMHypothesisGen):
     def __init__(self, scen: Scenario):
         super().__init__(scen)
         self.targets = "feature engineering and model building"

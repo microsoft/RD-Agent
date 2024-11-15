@@ -31,5 +31,5 @@ def predict(model: xgb.Booster, X):
     Keep feature select's consistency.
     """
     dtest = xgb.DMatrix(X)
-    y_pred = pd.Series([round(v) for v in model.predict(dtest)])
+    y_pred = model.predict(dtest).reshape(-1, 1)
     return y_pred

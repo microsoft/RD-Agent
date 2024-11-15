@@ -22,6 +22,7 @@ class UndirectedNode(Node):
     def __init__(self, content: str = "", label: str = "", embedding: Any = None) -> None:
         super().__init__(content, label, embedding)
         self.neighbors: set[UndirectedNode] = set()
+        assert isinstance(content, str), "content must be a string"
 
     def add_neighbor(self, node: UndirectedNode) -> None:
         self.neighbors.add(node)

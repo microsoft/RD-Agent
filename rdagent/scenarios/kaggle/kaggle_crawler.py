@@ -19,6 +19,7 @@ from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.env import MLEBDockerEnv
 
 # %%
 options = webdriver.ChromeOptions()
@@ -101,22 +102,28 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
     if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
-        if not zip_competition_path.exists():
-            try:
-                subprocess.run(
-                    ["mlebench", "prepare", "-c", competition, "--data-dir", zipfile_path],
-                    check=True,
-                    stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                )
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
-                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+        if (
+            not zip_competition_path.exists()
+            or not (Path(local_path) / competition).exists()
+            or list((Path(local_path) / competition).iterdir()) == []
+        ):
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
+            (Path(local_path) / "zip_files").mkdir(parents=True, exist_ok=True)
+            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
-            competition_path = Path(local_path) / competition
-            competition_path.mkdir(parents=True, exist_ok=True)
-            processed_data_folder_path = zip_competition_path / "prepared/public"
-            subprocess.run(f"cp -r {processed_data_folder_path}/* {competition_path}", shell=True)
+            mleb_env.run(
+                f"mlebench prepare -c {competition} --data-dir ./zip_files",
+                local_path=local_path,
+                running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
+            )
+            mleb_env.run(
+                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
+            )
+            mleb_env.run(
+                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/private/test.csv ./{competition}/valid.csv'",
+                local_path=local_path,
+            )
 
     else:
         zipfile_path = f"{local_path}/zip_files"

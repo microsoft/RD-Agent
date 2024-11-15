@@ -409,7 +409,7 @@ def summary_window():
                     if state.alpha158_metrics is not None:
                         selected = ["alpha158"] + [i for i in df.index if state.h_decisions[int(i[6:])]]
                     else:
-                        selected = [i for i in df.index if state.h_decisions[int(i[6:])]]
+                        selected = [i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]]
                     df = df.loc[selected]
                 if df.shape[0] == 1:
                     st.table(df.iloc[0])
@@ -637,6 +637,7 @@ def evolving_window():
         for j, w in enumerate(ws):
             with wtabs[j]:
                 # Evolving Code
+                st.markdown(f"**Workspace Path**: {w.workspace_path}")
                 for k, v in w.code_dict.items():
                     with st.expander(f":green[`{k}`]", expanded=True):
                         st.code(v, language="python")
