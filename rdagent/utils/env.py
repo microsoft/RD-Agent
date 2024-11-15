@@ -341,6 +341,7 @@ class DockerEnv(Env[DockerConf]):
             table = Table(title="Run Info", show_header=False)
             table.add_column("Key", style="bold cyan")
             table.add_column("Value", style="bold magenta")
+            table.add_row("Image", self.conf.image)
             table.add_row("Container ID", container.id)
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)

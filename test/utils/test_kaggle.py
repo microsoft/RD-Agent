@@ -20,10 +20,12 @@ class TestTpl(unittest.TestCase):
         competition = KAGGLE_IMPLEMENT_SETTING.competition
         print(f"[bold orange]{competition}[/bold orange]")
         download_data(competition)
+        # FIXME: supporting previous competition
         ws = KGFBWorkspace(
             template_folder_path=Path(__file__).parent.parent.parent
-            / "rdagent/scenarios/kaggle/experiment"
-            / f"{competition}_template"
+            / "rdagent/scenarios/kaggle/tpl_ex"
+            / f"{competition}",
+            # entry="sleep 200",
         )
         print(ws.workspace_path)
         ws.execute()
