@@ -123,9 +123,9 @@ class LocalEnv(Env[LocalConf]):
 
 class DockerConf(BaseSettings):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[Path] = (
-        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
-    )
+    dockerfile_folder_path: Optional[
+        Path
+    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -173,6 +173,7 @@ class DMDockerConf(DockerConf):
     }
     shm_size: str | None = "16g"
 
+
 class KGDockerConf(DockerConf):
     class Config:
         env_prefix = "KG_DOCKER_"
@@ -189,7 +190,9 @@ class KGDockerConf(DockerConf):
     # }
 
     running_timeout_period: int = 600
-    mem_limit: str | None = "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    mem_limit: str | None = (
+        "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    )
 
 
 class MLEBDockerConf(DockerConf):
@@ -206,7 +209,9 @@ class MLEBDockerConf(DockerConf):
     #     # TODO connect to the place where the data is stored
     #     Path("git_ignore_folder/data").resolve(): "/root/.data/"
     # }
-    mem_limit: str | None = "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    mem_limit: str | None = (
+        "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    )
 
 
 # physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3

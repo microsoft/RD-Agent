@@ -17,13 +17,13 @@ class DatetimeFeature:
         """
         Transform the input data.
         """
-        X['pickup_datetime'] = pd.to_datetime(X['pickup_datetime'],format="%Y-%m-%d %H:%M:%S UTC")
-        X['hour'] = X.pickup_datetime.dt.hour
-        X['day'] = X.pickup_datetime.dt.day
-        X['month'] = X.pickup_datetime.dt.month
-        X['weekday'] = X.pickup_datetime.dt.weekday
-        X['year'] = X.pickup_datetime.dt.year
-        X.drop(columns=['pickup_datetime'], inplace=True)
+        X["pickup_datetime"] = pd.to_datetime(X["pickup_datetime"], format="%Y-%m-%d %H:%M:%S UTC")
+        X["hour"] = X.pickup_datetime.dt.hour
+        X["day"] = X.pickup_datetime.dt.day
+        X["month"] = X.pickup_datetime.dt.month
+        X["weekday"] = X.pickup_datetime.dt.weekday
+        X["year"] = X.pickup_datetime.dt.year
+        X.drop(columns=["pickup_datetime"], inplace=True)
         return X
 
 
