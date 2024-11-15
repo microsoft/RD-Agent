@@ -210,8 +210,10 @@ Different scenarios vary in entrance and configuration. Please check the detaile
 
 Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
 
+**Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+
 ```bash
-rdagent ui --port 80 --log_dir ./demo_traces
+rdagent ui --port 19899 --log_dir ./demo_traces
 ```
 
 Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.

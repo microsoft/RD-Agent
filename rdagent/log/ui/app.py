@@ -680,7 +680,11 @@ with st.sidebar:
             if manually:
                 st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
             else:
-                folders = [folder.relative_to(main_log_path) for folder in main_log_path.iterdir() if folder.is_dir()]
+                folders = [
+                    folder.relative_to(main_log_path)
+                    for folder in main_log_path.iterdir()
+                    if folder.is_dir() and any((folder / "__session__").exists for folder in folder.iterdir())
+                ]
                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
         else:
             st.text_input(":blue[**log path**]", key="log_path", on_change=refresh)
