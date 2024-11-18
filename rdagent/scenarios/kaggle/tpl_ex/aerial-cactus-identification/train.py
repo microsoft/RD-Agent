@@ -182,7 +182,7 @@ model.add(Activation('sigmoid'))
 
 
 model.compile(loss=keras.losses.binary_crossentropy,
-              optimizer=keras.optimizers.Adam(lr=0.001),
+              optimizer=keras.optimizers.Adam(learning_rate=0.001),
               metrics=['accuracy'])
 
 
@@ -190,7 +190,7 @@ model.compile(loss=keras.losses.binary_crossentropy,
 
 
 callbacks = [EarlyStopping(monitor='val_loss', patience=25),
-             ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
+             ModelCheckpoint(filepath='best_model.keras', monitor='val_loss', save_best_only=True)]
 
 
 # # Training
@@ -199,7 +199,7 @@ callbacks = [EarlyStopping(monitor='val_loss', patience=25),
 
 
 epochs = 100
-history = model.fit_generator(train_generator,
+history = model.fit(train_generator,
           validation_data=validation_generator,
           epochs=epochs,
           verbose=1,
@@ -220,8 +220,8 @@ plt.show()
 # In[13]:
 
 
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
 plt.show()
 
 
@@ -232,7 +232,7 @@ plt.show()
 # In[14]:
 
 
-model.load_weights("best_model.h5")
+model.load_weights("best_model.keras")
 
 
 # In[15]:
@@ -254,7 +254,7 @@ test_generator = test_datagen.flow_from_directory(
 # In[16]:
 
 
-pred=model.predict_generator(test_generator,verbose=1)
+pred=model.predict(test_generator,verbose=1)
 pred_binary = [0 if value<0.50 else 1 for value in pred]  
 
 
