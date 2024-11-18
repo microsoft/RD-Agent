@@ -25,8 +25,8 @@ from rdagent.app.kaggle.loop import main as kaggle_main
 from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
-from rdagent.app.utils.info import collect_info
 from rdagent.app.utils.health_check import health_check
+from rdagent.app.utils.info import collect_info
 
 
 def ui(port=80, log_dir="", debug=False):
