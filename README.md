@@ -84,14 +84,25 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```
 
 ### ⚙️ Configuration
-- You have to config your GPT model in the `.env`
+- If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
-  OPENAI_API_KEY=<your_api_key>
+  OPENAI_API_KEY=<replace_with_your_openai_api_key>
   # EMBEDDING_MODEL=text-embedding-3-small
   CHAT_MODEL=gpt-4-turbo
   EOF
   ```
+- If you are using the `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
+  ```bash
+  cat << EOF  > .env
+  USE_AZURE=True
+  OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+  # EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_MODEL=<replace_it_with_the_name_of_your_chat_model.>
+  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_Azure_OpenAI_API>
+  EOF
+  ```
+- For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
 
@@ -170,9 +181,11 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   > - The **Competition List Available** can be found [here](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available). <br />
 
 ### 🖥️ Monitor the Application Results
-- You can serve our demo app to monitor the RD loop by running the following command:
+- You can run the following command for our demo program to see the run logs.
+
+**Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
   ```sh
-  rdagent ui --port 80 --log_dir <your log folder like "log/">
+  rdagent ui --port 19899 --log_dir <your log folder like "log/">
   ```
 
 # 🏭 Scenarios
