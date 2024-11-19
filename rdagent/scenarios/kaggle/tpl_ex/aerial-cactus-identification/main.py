@@ -17,6 +17,7 @@ import os
 from shutil import copyfile, move
 from tqdm import tqdm
 import h5py
+from PIL import Image
 
 
 # Just a quick check to make verify Tensorflow version and whether the GPU is found.
@@ -103,27 +104,35 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 batch_size = 64
 
+def load_images_from_folder(folder):
+    images = []
+    labels = []
+    for label in ['true', 'false']:
+        path = os.path.join(folder, label)
+        for filename in os.listdir(path):
+            img = Image.open(os.path.join(path, filename))
+            if img is not None:
+                images.append(np.array(img))
+                labels.append(1 if label == 'true' else 0)
+    return np.array(images), np.array(labels)
+
+train_images, train_labels = load_images_from_folder("../sorted_training")
+validation_images, validation_labels = load_images_from_folder("../sorted_validation")
+
 train_datagen = ImageDataGenerator(
     rescale=1. / 255,
     horizontal_flip=True,
     vertical_flip=True)
 
-train_data_dir = "../sorted_training"
-train_generator = train_datagen.flow_from_directory(
-    train_data_dir,
-    shuffle=True,
-    target_size=(32, 32),
+train_generator = train_datagen.flow(
+    train_images, train_labels,
     batch_size=batch_size,
-    class_mode='binary')
-
+    shuffle=True)
 
 validation_datagen = ImageDataGenerator(rescale=1. / 255)
-validation_data_dir = "../sorted_validation"
-validation_generator = validation_datagen.flow_from_directory(
-    validation_data_dir,
-    target_size=(32, 32),
-    batch_size=batch_size,
-    class_mode='binary')
+validation_generator = validation_datagen.flow(
+    validation_images, validation_labels,
+    batch_size=batch_size)
 
 input_shape = (32,32,3)
 num_classes = 2
@@ -213,25 +222,30 @@ history = model.fit(train_generator,
 # Load the best performing model based on the validation loss.
 
 # In[14]:
-
-
-model.load_weights("best_model.keras")
-
-
-# In[15]:
-
+def load_test_images(folder):
+    images = []
+    filenames = []
+    for filename in os.listdir(folder):
+        img = Image.open(os.path.join(folder, filename))
+        if img is not None:
+            images.append(np.array(img))
+            filenames.append(filename)
+    return np.array(images), filenames
 
 test_folder = "/kaggle/input/test/"
-test_datagen = ImageDataGenerator(
-    rescale=1. / 255)
+test_images, test_filenames = load_test_images(test_folder)
 
-test_generator = test_datagen.flow_from_directory(
-    directory=test_folder,
-    target_size=(32,32),
+test_datagen = ImageDataGenerator(rescale=1. / 255)
+
+test_generator = test_datagen.flow(
+    test_images,
     batch_size=1,
-    class_mode='binary',
     shuffle=False
 )
+
+# Store filenames separately
+test_filenames = [os.path.basename(filename) for filename in test_filenames]
+
 
 
 # In[16]:
@@ -248,8 +262,8 @@ pred_binary = [0 if value<0.50 else 1 for value in pred]
 
 csv_file = open("submission.csv","w")
 csv_file.write("id,has_cactus\n")
-for filename, prediction in zip(test_generator.filenames,pred_binary):
-    name = filename.split("/")[1].replace(".tif","")
+for filename, prediction in zip(test_filenames, pred_binary):
+    name = filename.replace(".tif", "")
     csv_file.write(str(name)+","+str(prediction)+"\n")
 csv_file.close()
 
