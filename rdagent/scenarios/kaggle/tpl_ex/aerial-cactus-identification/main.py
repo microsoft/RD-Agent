@@ -18,6 +18,7 @@ from shutil import copyfile, move
 from tqdm import tqdm
 import h5py
 from PIL import Image
+from sklearn.model_selection import train_test_split
 
 
 # Just a quick check to make verify Tensorflow version and whether the GPU is found.
@@ -43,43 +44,21 @@ training_df.head()
 # In[4]:
 
 
-src = "/kaggle/input/train/"
-dst = "../sorted_training/"
+def load_images_and_labels(csv_file, image_folder):
+    images = []
+    labels = []
+    df = pd.read_csv(csv_file)
+    for idx, row in df.iterrows():
+        img = Image.open(os.path.join(image_folder, row["id"]))
+        if img is not None:
+            images.append(np.array(img))
+            labels.append(row["has_cactus"])
+    return np.array(images), np.array(labels)
 
-os.mkdir(dst)
-os.mkdir(dst+"true")
-os.mkdir(dst+"false")
+images, labels = load_images_and_labels("/kaggle/input/train.csv", "/kaggle/input/train/")
 
-with tqdm(total=len(list(training_df.iterrows()))) as pbar:
-    for idx, row in training_df.iterrows():
-        pbar.update(1)
-        if row["has_cactus"] == 1:
-            copyfile(src+row["id"], dst+"true/"+row["id"])
-        else:
-            copyfile(src+row["id"], dst+"false/"+row["id"])
-
-
-# I then extract the validation from the folder where I stored the training set. Note that this time, the files are moved and not just copied.
-
-# In[5]:
-
-
-src = "../sorted_training/"
-dst = "../sorted_validation/"
-
-os.mkdir(dst)
-os.mkdir(dst+"true")
-os.mkdir(dst+"false")
-
-validation_df = training_df.sample(n=int(len(training_df)/10))
-
-with tqdm(total=len(list(validation_df.iterrows()))) as pbar:
-    for idx, row in validation_df.iterrows():
-        pbar.update(1)
-        if row["has_cactus"] == 1:
-            move(src+"true/"+row["id"], dst+"true/"+row["id"])
-        else:
-            move(src+"false/"+row["id"], dst+"false/"+row["id"])
+train_images, validation_images, train_labels, validation_labels = train_test_split(
+    images, labels, test_size=0.1, random_state=42)
 
 
 # # Load the dataset
@@ -104,20 +83,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 batch_size = 64
 
-def load_images_from_folder(folder):
-    images = []
-    labels = []
-    for label in ['true', 'false']:
-        path = os.path.join(folder, label)
-        for filename in os.listdir(path):
-            img = Image.open(os.path.join(path, filename))
-            if img is not None:
-                images.append(np.array(img))
-                labels.append(1 if label == 'true' else 0)
-    return np.array(images), np.array(labels)
 
-train_images, train_labels = load_images_from_folder("../sorted_training")
-validation_images, validation_labels = load_images_from_folder("../sorted_validation")
 
 train_datagen = ImageDataGenerator(
     rescale=1. / 255,
