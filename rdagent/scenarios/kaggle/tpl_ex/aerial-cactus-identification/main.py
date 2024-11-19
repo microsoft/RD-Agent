@@ -36,29 +36,13 @@ print(tf.test.is_gpu_available())
 
 # In[3]:
 
-
-training_df = pd.read_csv("/kaggle/input/train.csv")
-training_df.head()
+from load_data import load_from_raw_data
 
 
-# In[4]:
-
-
-def load_images_and_labels(csv_file, image_folder):
-    images = []
-    labels = []
-    df = pd.read_csv(csv_file)
-    for idx, row in df.iterrows():
-        img = Image.open(os.path.join(image_folder, row["id"]))
-        if img is not None:
-            images.append(np.array(img))
-            labels.append(row["has_cactus"])
-    return np.array(images), np.array(labels)
-
-images, labels = load_images_and_labels("/kaggle/input/train.csv", "/kaggle/input/train/")
+train_images, train_labels, test_images, test_ids  = load_from_raw_data()
 
 train_images, validation_images, train_labels, validation_labels = train_test_split(
-    images, labels, test_size=0.1, random_state=42)
+    train_images, train_labels, test_size=0.1, random_state=42)
 
 
 # # Load the dataset
@@ -187,20 +171,6 @@ history = model.fit(train_generator,
 
 # Load the best performing model based on the validation loss.
 
-# In[14]:
-def load_test_images(folder):
-    images = []
-    filenames = []
-    for filename in os.listdir(folder):
-        img = Image.open(os.path.join(folder, filename))
-        if img is not None:
-            images.append(np.array(img))
-            filenames.append(filename)
-    return np.array(images), filenames
-
-test_folder = "/kaggle/input/test/"
-test_images, test_filenames = load_test_images(test_folder)
-
 test_datagen = ImageDataGenerator(rescale=1. / 255)
 
 test_generator = test_datagen.flow(
@@ -209,8 +179,6 @@ test_generator = test_datagen.flow(
     shuffle=False
 )
 
-# Store filenames separately
-test_filenames = [os.path.basename(filename) for filename in test_filenames]
 
 
 
@@ -228,8 +196,7 @@ pred_binary = [0 if value<0.50 else 1 for value in pred]
 
 csv_file = open("submission.csv","w")
 csv_file.write("id,has_cactus\n")
-for filename, prediction in zip(test_filenames, pred_binary):
-    name = filename.replace(".tif", "")
-    csv_file.write(str(name)+","+str(prediction)+"\n")
+for tid, prediction in zip(test_ids, pred_binary):
+    csv_file.write(str(tid)+","+str(prediction)+"\n")
 csv_file.close()
 
