@@ -29,18 +29,33 @@ def import_module_from_path(module_name, module_path):
 
 # 1) Preprocess the data
 X_train, X_valid, y_train, y_valid, X_test, test_ids = preprocess_script()
+print(X_train.shape)
+# print(X_train.head())
+# 打印第一个样本的形状
+print("Shape of first sample:", X_train[0].shape)
+
+# 打印第一个样本的前几行数据
+#print("Data of first sample (first few rows):")
+#print(X_train[0][:5][:5])  # 打印前5行前5列
+
+# 打印第一个样本的统计信息
+print("Statistics of first sample:")
+print("Mean:", X_train[0].mean())
+print("Max:", X_train[0].max())
+print("Min:", X_train[0].min())
 
 
 # 2) Auto feature engineering
 X_train_l, X_valid_l = [], []
 X_test_l = []
 
-for f in DIRNAME.glob("feature/feat*.py"):
+
+"""for f in DIRNAME.glob("feature/feat*.py"):
     cls = import_module_from_path(f.stem, f).feature_engineering_cls()
     cls.fit(X_train)
-    X_train_f = cls.transform(X_train.copy())
-    X_valid_f = cls.transform(X_valid.copy())
-    X_test_f = cls.transform(X_test.copy())
+    X_train_f = cls.transform(X_train)
+    X_valid_f = cls.transform(X_valid)
+    X_test_f = cls.transform(X_test)
 
     if X_train_f.shape[-1] == X_valid_f.shape[-1] and X_train_f.shape[-1] == X_test_f.shape[-1]:
         X_train_l.append(X_train_f)
@@ -49,15 +64,15 @@ for f in DIRNAME.glob("feature/feat*.py"):
 
 X_train = pd.concat(X_train_l, axis=1)
 X_valid = pd.concat(X_valid_l, axis=1)
-X_test = pd.concat(X_test_l, axis=1)
+X_test = pd.concat(X_test_l, axis=1)"""
 
 
-# Handle inf and -inf values
+"""# Handle inf and -inf values
 X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
 X_valid.replace([np.inf, -np.inf], np.nan, inplace=True)
-X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+X_test.replace([np.inf, -np.inf], np.nan, inplace=True)"""
 
-from sklearn.impute import SimpleImputer
+"""from sklearn.impute import SimpleImputer
 
 imputer = SimpleImputer(strategy="mean")
 
@@ -65,12 +80,15 @@ X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
 X_valid = pd.DataFrame(imputer.transform(X_valid), columns=X_valid.columns)
 X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
 
+print("X_train.head():",X_train.head())
+
 # Remove duplicate columns
 X_train = X_train.loc[:, ~X_train.columns.duplicated()]
 X_valid = X_valid.loc[:, ~X_valid.columns.duplicated()]
-X_test = X_test.loc[:, ~X_test.columns.duplicated()]
+X_test = X_test.loc[:, ~X_test.columns.duplicated()]"""
 
 print(X_train.shape, X_valid.shape, X_test.shape)
+print(type(X_train), type(y_train))
 
 # 3) Train the model
 model_l = []  # list[tuple[model, predict_func]]
@@ -88,6 +106,7 @@ metrics_all = []
 for model, predict_func, select_m in model_l:
     X_valid_selected = select_m.select(X_valid.copy())
     y_valid_pred = predict_func(model, X_valid_selected)
+    print(y_valid.shape, y_valid_pred.shape)
     metrics = compute_metrics_for_classification(y_valid, y_valid_pred)
     print("Metrics: ", metrics)
     metrics_all.append(metrics)
