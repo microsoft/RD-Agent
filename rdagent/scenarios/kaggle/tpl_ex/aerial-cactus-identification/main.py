@@ -18,7 +18,7 @@ train_images, validation_images, train_labels, validation_labels = train_test_sp
 
 # Model workflow
 from model01 import model_workflow
-val_pred, test_pred, hyper_param = model_workflow(train_images, train_labels, validation_images, validation_labels, test_images)
+val_pred, test_pred = model_workflow(train_images, train_labels, validation_images, validation_labels, test_images)
 
 
 # Ensemble
