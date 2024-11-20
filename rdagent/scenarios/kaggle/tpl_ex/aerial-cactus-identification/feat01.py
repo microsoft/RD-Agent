@@ -1,6 +1,13 @@
 import numpy as np
 
-def feat_eng(X: np.ndarray, y: np.ndarray | None = None, X_fit: np.ndarray | None = None, y_fit: np.ndarray | None = None, param: object | None = None) -> tuple[np.ndarray, np.ndarray | None, object]:
+
+def feat_eng(
+    X: np.ndarray,
+    y: np.ndarray | None = None,
+    X_fit: np.ndarray | None = None,
+    y_fit: np.ndarray | None = None,
+    param: object | None = None,
+) -> tuple[np.ndarray, np.ndarray | None, object]:
     """
     Perform feature engineering on the input data.
 
@@ -35,7 +42,7 @@ def feat_eng(X: np.ndarray, y: np.ndarray | None = None, X_fit: np.ndarray | Non
 
     Typical usage:
     .. code-block:: python
-        
+
         X_transformed, y_transformed, fitted_param = feat_eng(X, y, X, y)
         X_test_transformed, _, _ = feat_eng(X_test, fitted_param)
     """
