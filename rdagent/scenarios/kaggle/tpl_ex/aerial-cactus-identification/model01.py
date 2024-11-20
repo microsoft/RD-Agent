@@ -63,8 +63,6 @@ def model_workflow(X: np.ndarray,
 
     # The dataset being relatively small, data augmentation is very important to generalise and learn what a cactus look like. Based on the fact that cactus detection seems like an easy problem and we're dealing with a small amount of data, the batch size is kept small as training will be quick anyway.
 
-    # In[7]:
-
     batch_size = 64
 
     train_datagen = ImageDataGenerator(rescale=1. / 255, horizontal_flip=True, vertical_flip=True)
@@ -80,9 +78,6 @@ def model_workflow(X: np.ndarray,
     # # Model Creation: Convolutional Neural Network
 
     # Some really insightful comments about deep learning model optimization can be found here (https://karpathy.github.io/2019/04/25/recipe/ ).
-
-    # In[8]:
-
     dropout_dense_layer = 0.6
 
     model = Sequential()
@@ -124,22 +119,15 @@ def model_workflow(X: np.ndarray,
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
-    # In[9]:
-
     model.compile(loss=keras.losses.binary_crossentropy,
                   optimizer=keras.optimizers.Adam(learning_rate=0.001),
                   metrics=['accuracy'])
-
-    # In[10]:
-
     callbacks = [
         EarlyStopping(monitor='val_loss', patience=25),
         ModelCheckpoint(filepath='best_model.keras', monitor='val_loss', save_best_only=True)
     ]
 
     # # Training
-
-    # In[11]:
 
     epochs = 100
     history = model.fit(train_generator,

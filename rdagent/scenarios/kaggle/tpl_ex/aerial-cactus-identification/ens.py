@@ -5,7 +5,7 @@ def ens_and_decision(test_pred: np.ndarray, val_pred: np.ndarray, val_label: np.
     """
     Handle following:
     1) Ensemble predictions using a simple average.
-    2) Make final decsion after ensemble.
+    2) Make final decsion after ensemble (convert the predictions to final).
 
     Parameters
     ----------
