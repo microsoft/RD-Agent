@@ -64,11 +64,7 @@ QLIB_SELECTED_METRICS = [
 SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
 
 if "log_path" not in state:
-    if main_log_path:
-        state.log_path = next(main_log_path.iterdir()).relative_to(main_log_path)
-    else:
-        state.log_path = None
-        st.toast(":red[**Please Set Log Path!**]", icon="⚠️")
+    state.log_path = None
 
 if "scenario" not in state:
     state.scenario = None
@@ -684,7 +680,7 @@ with st.sidebar:
                 folders = [
                     folder.relative_to(main_log_path)
                     for folder in main_log_path.iterdir()
-                    if folder.is_dir() and any((folder / "__session__").exists for folder in folder.iterdir())
+                    if folder.is_dir() and folder.joinpath("__session__").exists() and folder.joinpath("__session__").is_dir()
                 ]
                 folders = sorted(folders, key=lambda x: x.name)
                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
