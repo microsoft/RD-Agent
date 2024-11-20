@@ -141,7 +141,7 @@ def model_workflow(X: np.ndarray,
 
     # In[11]:
 
-    epochs = 100
+    epochs = 2
     history = model.fit(train_generator,
                         validation_data=validation_generator,
                         epochs=epochs,
@@ -157,7 +157,6 @@ def model_workflow(X: np.ndarray,
 
     test_generator = test_datagen.flow(test_images, batch_size=1, shuffle=False)
 
-    # In[16]:
 
     test_pred = model.predict(test_generator, verbose=1)
     return None, test_pred, hyper_param

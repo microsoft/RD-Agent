@@ -26,7 +26,7 @@ pickle.dump(others, open("others.pkl", "wb"))
 
 
 class KGFBWorkspace(FBWorkspace):
-    def __init__(self, template_folder_path: Path, *args, entry="python train.py", **kwargs) -> None:
+    def __init__(self, template_folder_path: Path, *args, entry="python main.py", **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.inject_code_from_folder(template_folder_path)
         self.data_description: List[Tuple[str, int]] = []

@@ -180,8 +180,8 @@ class KGDockerConf(DockerConf):
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
-    image: str = "local_kg:latest"
-    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    # image: str = "local_kg:latest"
+    image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
     default_entry: str = "python train.py"
     # extra_volumes: dict = {
