@@ -306,8 +306,6 @@ class DockerEnv(Env[DockerConf]):
         if env is None:
             env = {}
         client = docker.from_env()
-        if entry is None:
-            entry = self.conf.default_entry
 
         volumns = {}
         if local_path is not None:
@@ -341,6 +339,7 @@ class DockerEnv(Env[DockerConf]):
             table = Table(title="Run Info", show_header=False)
             table.add_column("Key", style="bold cyan")
             table.add_column("Value", style="bold magenta")
+            table.add_row("Image", self.conf.image)
             table.add_row("Container ID", container.id)
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
@@ -370,6 +369,8 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
     ):
+        if entry is None:
+            entry = self.conf.default_entry
         entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
         return self.__run(entry_add_timeout, local_path, env, running_extra_volume)
 
