@@ -25,7 +25,6 @@ class TestTpl(unittest.TestCase):
             template_folder_path=Path(__file__).parent.parent.parent
             / "rdagent/scenarios/kaggle/tpl_ex"
             / f"{competition}",
-            # entry="sleep 200",
         )
         print(ws.workspace_path)
         ws.execute()

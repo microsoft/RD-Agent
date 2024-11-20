@@ -180,8 +180,8 @@ class KGDockerConf(DockerConf):
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
-    # image: str = "local_kg:latest"
-    image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    image: str = "local_kg:latest"
+    # image: str = "gcr.io/kaggle-gpu-images/python:latest"
     mount_path: str = "/workspace/kg_workspace/"
     default_entry: str = "python train.py"
     # extra_volumes: dict = {
@@ -306,8 +306,6 @@ class DockerEnv(Env[DockerConf]):
         if env is None:
             env = {}
         client = docker.from_env()
-        if entry is None:
-            entry = self.conf.default_entry
 
         volumns = {}
         if local_path is not None:
@@ -371,6 +369,8 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
     ):
+        if entry is None:
+            entry = self.conf.default_entry
         entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
         return self.__run(entry_add_timeout, local_path, env, running_extra_volume)
 

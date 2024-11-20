@@ -141,7 +141,7 @@ def model_workflow(X: np.ndarray,
 
     # In[11]:
 
-    epochs = 2
+    epochs = 100
     history = model.fit(train_generator,
                         validation_data=validation_generator,
                         epochs=epochs,
