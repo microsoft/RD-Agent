@@ -19,7 +19,7 @@ class TestRDAgentImports(unittest.TestCase):
             fstr = str(file)
             if "meta_tpl" in fstr:
                 continue
-            if "_template" in fstr:
+            if "template" in fstr or "tpl" in fstr:
                 continue
             if "model_coder" in fstr:
                 continue

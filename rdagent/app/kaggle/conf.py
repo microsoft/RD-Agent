@@ -44,7 +44,7 @@ class KaggleBasePropSetting(BasePropSetting):
     competition: str = ""
     """Kaggle competition name, e.g., 'sf-crime'"""
 
-    template_path: str = "rdagent/scenarios/kaggle/experiment"
+    template_path: str = "rdagent/scenarios/kaggle/experiment/templates"
     """Kaggle competition base templates path"""
 
     local_data_path: str = ""
