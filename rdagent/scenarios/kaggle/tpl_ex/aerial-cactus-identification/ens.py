@@ -42,7 +42,7 @@ def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray]
     
     weighted_valid_pred_score = roc_auc_score(val_label, weighted_valid_pred)
     
-    scores_df = pd.DataFrame({'Model': range(len(val_pred_l)) + ['weighted_average_ensemble'], 'AUROC': scores + [weighted_valid_pred_score]})
+    scores_df = pd.DataFrame({'Model': list(range(len(val_pred_l))) + ['weighted_average_ensemble'], 'AUROC': scores + [weighted_valid_pred_score]})
     scores_df.to_csv('scores.csv', index=False)
     
     pred_binary_l = [0 if value < 0.50 else 1 for value in weighted_test_pred]
