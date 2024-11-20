@@ -13,6 +13,11 @@ hypothesis_gen:
     {{ hypothesis_output_format }}
 
   user_prompt: |-
+    {% if hypothesis_and_feedback|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
+    {% else %}It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{ hypothesis_and_feedback }}
+    {% endif %}
     {% if RAG %}
     To assist you in generating new {{targets}}, we have provided the following information: {{RAG}}.
     **Note:** The provided RAG is for reference only. 

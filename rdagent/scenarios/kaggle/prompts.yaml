@@ -24,14 +24,11 @@ KG_hypothesis_gen_RAG: |-
   {% endfor %}
   {% endif %}
 
-
 hypothesis_and_feedback: |-
-  {% for hypothesis, experiment, feedback in trace.hist %}
+  {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
-  New Feedback for Context (For your reference):  {{ feedback.new_hypothesis }}
-  Reasoning for new hypothesis:  {{ feedback.reason }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
 
@@ -101,45 +98,41 @@ hypothesis_specification:
       - Maintain a balance between simplicity and complexity to develop a diverse and robust feature library.
 
   Model feature selection: |-
-    Selection_based_on_model_type:
+    Action: Model feature selection
+
+    1. Selection based on model_type:
       - Specify which features are being selected and explain why, considering the model type (e.g., NN, Random Forest, LightGBM, XGBoost).
       - Ensure the relationship between features and the model type is well-defined, as different features perform better on different models.
-    Pattern_recognition:
+    
+    2. Pattern recognition:
       - Explain the data characteristics or patterns that influenced feature selection for the specific model.
       - Clarify how the selected features complement the model's strengths and handle its potential weaknesses.
 
   Model tuning: |-
-      Explain the hypothesis clearly with valuable information. What kind of model are you building/tuning? What do you think is true? How are you revising and why? What are some innovations? Base your hypothesis on the previous history and your understanding of the model code. "Tune" means changing the model architecture or hyperparameters. 
-      Focus_on_architecture_or_hyper_parameter_tuning_or_both:
-        - Focus on designing new model architectures one at a time OR hyper-parameter tuning OR both.
-        - Each hypothesis should introduce a novel architecture or a significant modification to an existing one, while leveraging previous experiences and the hypothesis history.
-        - Optimize one model at a time, iterating until its potential is fully explored. Switch to a new model only when you believe the current model’s potential has been exhausted.       
-      Specific_to_model_type:
-        - Note that any types of tuning or model design must be specific to the model types available in our workspace.
-        - Clearly define the model type (e.g., Neural Network Models (MLP, CNN, RNN, LSTM, GRU etc.), XGBoost, RandomForest, LightGBM) and the architecture/tuning being introduced.
-        - Ensure the architecture or tuning aligns with the data characteristics and the strengths or limitations of the specific model. 
-      Rationale_behind_architecture_and_tuning:
-        - Explain the innovation or reasoning behind the architectural design or tuning approach.
-        - Justify how the new structure or parameter change captures data patterns more effectively, improves learning efficiency, or enhances predictive power.      
-      Start_simple_innovate_gradually:
-        - Start with innovative yet simple changes to ensure each iteration is well-tested and the results are well-understood.
-        - Gradually introduce more complex architectural changes or hyper-parameter adjustments based on gathered results and insights.
-      Introduce_one_innovation_at_a_time:
-        - Focus on testing one key innovation at a time to isolate its impact on performance.
-        - Avoid combining multiple innovations in a single iteration to maintain clarity in performance results.
-      Hypothesis_statement:
-        - For each hypothesis, specify the exact innovation or tuning approach and explain why it's expected to enhance performance for the chosen model type. Eg. Instead of a general "Adjusting", specific the direction & extent. 
-      Hypothesis_examples: (Please note that they are only examples)
-        1. "Increasing the dropout rate in an MLP from 0.2 to 0.5 will help reduce overfitting and improve model generalization on validation data."
-        2. "Adding a skip connection to the CNN architecture will allow deeper layers to receive gradients more effectively, preventing vanishing gradients and improving feature learning."
-        3. "Doubling the GRU hidden units from 128 to 256 will allow the model to capture more complex temporal dependencies in time-series data, potentially improving accuracy."
-        4. "Switching the LSTM optimizer from Adam to SGD with momentum will slow down convergence, leading to more stable and refined learning over time in sparse data environments."
-        5. "Reducing the learning rate in a LightGBM model from 0.05 to 0.01 will slow down the learning process, allowing for better generalization on larger datasets."
-        6. "Incorporating a self-attention layer into the RNN model will enhance its ability to focus on important parts of the input sequence, improving sequence-to-sequence translation accuracy."
-        7. "Increasing the maximum depth of trees in a RandomForest model from 10 to 20 will allow the model to capture more complex patterns in high-dimensional data, improving performance."
-        8. "Replacing the ReLU activation with Leaky ReLU in a CNN will prevent the dying ReLU problem and improve the model’s ability to learn from negative values."
-        9. "Introducing early stopping in XGBoost with a patience of 10 rounds will prevent overfitting by halting training when the validation error no longer improves."
-        10. "Expanding the CNN kernel size from 3x3 to 5x5 in early layers will help capture larger spatial dependencies in image data, enhancing performance on image classification tasks."
+    Action: Model tuning
+      
+    1. Overview:
+    - Clearly explain your hypothesis.
+      - Which model are you tuning (one of the four types)?
+      - How are you revising it, and why?
+      - What are the innovations?
+    - Base your hypothesis on previous structures and your understanding of the model code.
+    - "Tuning" includes changing the model architecture or hyperparameters.
+
+    2. Focus on Architecture and/or Hyperparameter Tuning:
+      - Concentrate on designing new model architectures one at a time, hyperparameter tuning, or both.
+      - Each hypothesis should introduce a novel architecture or a significant modification to an existing one.
+      - Leverage prior experiences and hypothesis history.
+      - If necessary, write source code manually to implement innovations beyond existing packages.
+
+    3. Specific to Model Type:
+      - Tuning must be specific to the model types available in our workspace (e.g., Neural Networks, XGBoost, Random Forest, LightGBM).
+      - Clearly define the model type and the architecture or tuning being introduced.
+      - Ensure the changes align with data characteristics and the model's strengths or limitations.
+
+    4. Rationale Behind Architecture and Tuning:
+      - Explain the reasoning behind your architectural design or tuning approach.
+      - Justify how the new structure or parameter changes more effectively capture data patterns and improve learning efficiency.
 
 feature_experiment_output_format: |-
   According to the hypothesis, please help user design one or more feature engineering tasks.
@@ -182,6 +175,46 @@ model_experiment_output_format: |-
   }
   Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
+kg_feedback_generation_user: |-
+  We are in a process of finding and validating hypotheses to build a powerful model. Each round aims to confirm or reject hypotheses based on results.
+
+  The SOTA solution for the task is as follows:
+  Features and its corresponding channel: {{ sota_features }}
+  Models and its corresponding code: {{ sota_models }}
+  Final result of the SOTA solution (we select the best-performing model's metric as the final result): {{ sota_result }}
+  {% if sota_sub_results %}
+  Sub-results of all sub-models: {{ sota_sub_results }}
+  {% endif %}
+
+  Current solution to be evaluated:
+  Hypothesis: {{ current_hypothesis }}
+  Reasoning: {{ current_hypothesis_reason }}
+  Current target action: {{ current_target_action }}
+  Experiments conducted and their code: {{ current_sub_exps_to_code }}
+  Final result of the current solution (we select the best-performing model's metric as the final result): {{ current_result }}
+  {% if current_sub_results %}
+  Sub-results of all sub-models: {{ current_sub_results }}
+  {% endif %}
+
+  A more detailed comparison between the current solution and the SOTA solution:
+  {{ combined_result }}
+
+  Some information about comparing the current solution with the SOTA solution:
+  {{ evaluation_description }}
+
+  {% if last_hypothesis_and_feedback %}
+  The user has made some hypothesis and conducted experiments to validate them, and the results are as follows:
+  hypothesis: {{ last_hypothesis_and_feedback[0].hypothesis }}
+  feedback decision: {{ last_hypothesis_and_feedback[1].decision }} 
+  reason: {{ last_hypothesis_and_feedback[1].reason }}
+  {% endif %}
+  Please refer to these hypothesis and feedback to help you recommend new hypothesis
+
+  Consider Changing Direction for Significant Gaps with the Best Result and the last round:
+    - If the new results significantly differ from SOTA, consider a new direction.
+    - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
+    - If it is model tuning, focus on comparing the SOTA's Sub-results of all sub-models: {{ sota_sub_results }} with the current experiment's Sub-results of all sub-models: {{ current_sub_results }}. For example, identify which model is currently the best, which model was adjusted in this experiment, and whether the adjustment was effective. Determine if there is potential to continue with this model or if another model shows more promise.
+
 model_tuning_feedback_generation:
   system: |-
     You are an advanced assistant for analyzing results in data-driven R&D, in the context of designing machine learning models.
@@ -216,41 +249,6 @@ model_tuning_feedback_generation:
       - Continue Growth (if successful): Add Leaky ReLU activation to all layers, retain L1-selected features.
       - Further Growth (if successful): Add dropout regularization (0.5 rate), retain L1 features.
       - Adjust (if unsuccessful): Use 5 layers, Leaky ReLU, dropout 0.3 rate.
-
-  user: |-
-    We are in a process of finding and validating hypotheses to build a powerful model. Each round aims to confirm or reject hypotheses based on results.
-    Target hypothesis: 
-    {{ hypothesis_text }}
-
-    {% if last_hypothesis %} 
-    Previous Round (if applicable):
-      - Last Hypothesis: {{last_hypothesis.hypothesis}}
-      - Last Task and Code: {{last_task_and_code}}
-      - Last Result: {{last_result}}
-    {% else %}
-      - This is the first round. No previous information available.
-    {% endif %} 
-
-    SOTA (State of the Art) Round:
-      - SOTA Task and Code: {{sota_task_and_code}}
-      - SOTA Result: {{sota_result}}
-    
-    Current Round:
-      - Current Hypothesis: {{hypothesis.hypothesis}}
-      - Current Reasoning: {{hypothesis.reason}}
-      - Current Model_code: {{model_code}}
-      - Current Result: {{ exp.result }}
-
-    Combined Results (Compared with SOTA): 
-    {{ combined_result }}
-
-    Analyze the combined result in the context of its ability to:
-    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
-    2. To a large extent, the experiment with better metrics is the better one.
-
-    Consider Changing Direction for Significant Gaps with the Best Result and the last round:
-      - If the new results significantly differ from SOTA, consider a new direction.
-      - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
 
 factor_feedback_generation:
   system: |-
@@ -289,41 +287,18 @@ factor_feedback_generation:
       "Reasoning": "Reasoning for the new hypothesis",
       "Replace Best Result": "yes or no"
     }
-  user: |-
-    Target hypothesis: 
-    {{ hypothesis_text }}
-    Tasks and Features:
-    {% for task in task_details %}
-      - {{ task.factor_name }}: {{ task.factor_description }}
-        - Feature Formulation: {{ task.factor_formulation }}
-        - Variables: {{ task.variables }}
-        - Feature Implementation: {{ task.factor_implementation }}
-        {% if task.factor_implementation == "False" %}
-        **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
-        {% endif %}
-    {% endfor %}
-    Combined Results (Compared with SOTA): 
-    {{ combined_result }}
-    
-    Analyze the combined result in the context of its ability to:
-    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
-    2. To a large extent, the experiment with better metrics is the better one.
-    
-    Consider Changing Direction for Significant Gaps with the Best Result:
-      - If the new results significantly differ from the best, consider exploring a new direction.
-      - Avoid re-implementing previous features as those that surpassed the best are already included in the feature library and will be used in each run.
-    Note: Only features with 'Feature Implementation' as True are implemented and tested in this experiment. If 'Feature Implementation' is False, the hypothesis for that feature cannot be verified in this run.
-
 
 feature_selection_feedback_generation:
   system: |-
     You are a professional feature selection assistant for machine learning models. Your task is to analyze the current feature selection strategy, evaluate its effectiveness, and suggest improvements.
+    The task is described in the following scenario:
+    {{ scenario }}
     
-    Consider the following when analyzing:
-    1. How well does the current feature selection support the hypothesis?
-    2. Which features seem to contribute most to the model's performance?
-    3. Are there any features that might be redundant or noisy?
-    4. What new feature selection strategies might improve the model?
+    In your feedback, consider:
+    1. How effective is the current feature selection strategy?
+    2. Are there any patterns in the selected or discarded features that might inform future selections?
+    3. How might we refine or change the feature selection approach to improve model performance?
+    4. Are there any domain-specific considerations that should inform our feature selection?
 
     Provide detailed and constructive feedback, focusing on actionable insights for feature selection improvement.
     
@@ -336,32 +311,6 @@ feature_selection_feedback_generation:
       "Replace Best Result": "yes or no"
     }
 
-  user: |-
-    We are in an experiment of finding hypotheses for feature selection and validating or rejecting them to optimize our model's performance.    
-    Target hypothesis: 
-    {{ hypothesis_text }}
-    Tasks and Features:
-    {% for task in task_details %}
-      - {{ task.factor_name }}: {{ task.factor_description }}
-        - Feature Formulation: {{ task.factor_formulation }}
-        - Variables: {{ task.variables }}
-        - Feature Implementation: {{ task.factor_implementation }}
-        {% if task.factor_implementation == "False" %}
-        **Note: This feature was not implemented in the current experiment. Only the hypothesis for implemented features can be verified.**
-        {% endif %}
-    {% endfor %}
-    Combined Results (Compared with SOTA): 
-    {{ combined_result }}
-
-    Analyze the combined result in the context of its ability to:
-    1. Result Comparison: How does the result compare to the best? {{ evaluation_description }}
-    2. To a large extent, the experiment with better metrics is the better one.
-
-    In your feedback, consider:
-    1. How effective is the current feature selection strategy?
-    2. Are there any patterns in the selected or discarded features that might inform future selections?
-    3. How might we refine or change the feature selection approach to improve model performance?
-    4. Are there any domain-specific considerations that should inform our feature selection?
 
 model_feature_selection:
   system: |-

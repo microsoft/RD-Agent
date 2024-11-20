@@ -44,7 +44,7 @@ class KaggleBasePropSetting(BasePropSetting):
     competition: str = ""
     """Kaggle competition name, e.g., 'sf-crime'"""
 
-    local_data_path: str = "/data/userdata/share/kaggle"
+    local_data_path: str = ""
     """Folder storing Kaggle competition data"""
 
     if_action_choosing_based_on_UCB: bool = False
@@ -74,6 +74,8 @@ class KaggleBasePropSetting(BasePropSetting):
 
     mini_case: bool = False
     """Enable mini-case study for experiments"""
+
+    if_using_mle_data: bool = False
 
 
 KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()

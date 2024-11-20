@@ -1,6 +1,7 @@
 # %%
 import bisect
 import json
+import shutil
 import subprocess
 import time
 import zipfile
@@ -15,9 +16,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.env import MLEBDockerEnv
 
 # %%
 options = webdriver.ChromeOptions()
@@ -97,13 +100,68 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
 
 
 def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    data_path = f"{local_path}/{competition}"
-    if not Path(data_path).exists():
-        subprocess.run(["kaggle", "competitions", "download", "-c", competition, "-p", data_path])
+    if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
+        zipfile_path = f"{local_path}/zip_files"
+        zip_competition_path = Path(zipfile_path) / competition
+        if (
+            not zip_competition_path.exists()
+            or not (Path(local_path) / competition).exists()
+            or list((Path(local_path) / competition).iterdir()) == []
+        ):
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
+            (Path(local_path) / "zip_files").mkdir(parents=True, exist_ok=True)
+            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
-        # unzip data
-        with zipfile.ZipFile(f"{data_path}/{competition}.zip", "r") as zip_ref:
-            zip_ref.extractall(data_path)
+            mleb_env.run(
+                f"mlebench prepare -c {competition} --data-dir ./zip_files",
+                local_path=local_path,
+                running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
+            )
+            mleb_env.run(
+                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
+            )
+            mleb_env.run(
+                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/private/test.csv ./{competition}/valid.csv'",
+                local_path=local_path,
+            )
+            # NOTE:
+            # Patching:  due to mle has special renaming mechanism for different competition;
+            # We have to switch the schema back to a uniform one;
+            if competition in {"new-york-city-taxi-fare-prediction"}:
+                cpath = Path(local_path) / f"{competition}"
+                labels_path = cpath / "labels.csv"
+                train_path = cpath / "train.csv"
+                if labels_path.exists():
+                    shutil.copy(labels_path, train_path)
+                else:
+                    logger.error(f"labels.csv not found in {cpath}")
+                    raise FileNotFoundError(f"{labels_path} does not exist")
+    else:
+        zipfile_path = f"{local_path}/zip_files"
+        if not Path(f"{zipfile_path}/{competition}.zip").exists():
+            try:
+                subprocess.run(
+                    ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
+                    check=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+                raise KaggleError(f"Download failed: {e}, stderr: {e.stderr}, stdout: {e.stdout}")
+
+            # unzip data
+            unzip_path = f"{local_path}/{competition}"
+            if not Path(unzip_path).exists():
+                unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
+                for sub_zip_file in Path(unzip_path).rglob("*.zip"):
+                    unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+
+
+def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
+    with zipfile.ZipFile(unzip_file_path, "r") as zip_ref:
+        zip_ref.extractall(unzip_target_path)
 
 
 def leaderboard_scores(competition: str) -> list[float]:

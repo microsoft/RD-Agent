@@ -90,5 +90,7 @@ class LLMSettings(BaseSettings):
     gcr_endpoint_do_sample: bool = False
     gcr_endpoint_max_token: int = 100
 
+    chat_model_map: str = "{}"
+
 
 LLM_SETTINGS = LLMSettings()

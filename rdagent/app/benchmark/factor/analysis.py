@@ -82,12 +82,12 @@ class BenchmarkAnalyzer:
         for i in x:
             order_v.append(
                 {
-                    "avg. Run successful rate": 0,
-                    "avg. Format successful rate": 1,
-                    "avg. Correlation (value only)": 2,
-                    "max. Correlation": 3,
-                    "max. accuracy": 4,
-                    "avg. accuracy": 5,
+                    "Avg Run SR": 0,
+                    "Avg Format SR": 1,
+                    "Avg Correlation": 2,
+                    "Max Correlation": 3,
+                    "Max Accuracy": 4,
+                    "Avg Accuracy": 5,
                 }.get(i, i),
             )
         return order_v
@@ -140,12 +140,12 @@ class BenchmarkAnalyzer:
 
         result_all = pd.concat(
             {
-                "avg. Correlation (value only)": corr_res.iloc[:, 0],
-                "avg. Format successful rate": format_succ_rate_f.iloc[:, 0],
-                "avg. Run successful rate": succ_rate_f.iloc[:, 0],
-                "max. Correlation": corr_max_res.iloc[:, 0],
-                "max. accuracy": value_max_res.iloc[:, 0],
-                "avg. accuracy": value_avg_res.iloc[:, 0],
+                "Avg Correlation": corr_res.iloc[:, 0],
+                "Avg Format SR": format_succ_rate_f.iloc[:, 0],
+                "Avg Run SR": succ_rate_f.iloc[:, 0],
+                "Max Correlation": corr_max_res.iloc[:, 0],
+                "Max Accuracy": value_max_res.iloc[:, 0],
+                "Avg Accuracy": value_avg_res.iloc[:, 0],
             },
             axis=1,
         )
@@ -179,11 +179,16 @@ class Plotter:
 
     @staticmethod
     def plot_data(data, file_name, title):
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x="index", y="b", hue="a", data=data)
-        plt.xlabel("Method")
+        plt.figure(figsize=(10, 10))
         plt.ylabel("Value")
-        plt.title(title)
+        colors = ["#3274A1", "#E1812C", "#3A923A", "#C03D3E"]
+        plt.bar(data["a"], data["b"], color=colors, capsize=5)
+        for idx, row in data.iterrows():
+            plt.text(idx, row["b"] + 0.01, f"{row['b']:.2f}", ha="center", va="bottom")
+        plt.suptitle(title, y=0.98)
+        plt.xticks(rotation=45)
+        plt.ylim(0, 1)
+        plt.tight_layout()
         plt.savefig(file_name)
 
 
@@ -201,7 +206,7 @@ def main(
     final_results_df = pd.DataFrame(final_results)
 
     Plotter.change_fs(20)
-    plot_data = final_results_df.drop(["max. accuracy", "avg. accuracy"], axis=0).T
+    plot_data = final_results_df.drop(["Max Accuracy", "Avg Accuracy"], axis=0).T
     plot_data = plot_data.reset_index().melt("index", var_name="a", value_name="b")
     Plotter.plot_data(plot_data, "./comparison_plot.png", title)
 

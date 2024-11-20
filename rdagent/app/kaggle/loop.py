@@ -1,5 +1,4 @@
 import subprocess
-from collections import defaultdict
 from typing import Any
 
 import fire
@@ -13,7 +12,6 @@ from rdagent.core.proposal import (
     Hypothesis2Experiment,
     HypothesisExperiment2Feedback,
     HypothesisGen,
-    Trace,
 )
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class

@@ -8,6 +8,7 @@ from typing import List, Tuple
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
 from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
     FactorEvolvingItem,
 )
@@ -92,7 +93,11 @@ class FactorCodeEvaluator(FactorEvaluator):
             .from_string(evaluate_prompts["evaluator_code_feedback_v1_system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(
+                        target_task,
+                        filtered_tag="feature",
+                        simple_background=FACTOR_IMPLEMENT_SETTINGS.simple_background,
+                    )
                     if self.scen is not None
                     else "No scenario description."
                 )
@@ -190,7 +195,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
         buffer = io.StringIO()
         gen_df.info(buf=buffer)
-        gen_df_info_str = f"The use is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
+        gen_df_info_str = f"The user is currently working on a feature related task.\nThe output dataframe info is:\n{buffer.getvalue()}"
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
@@ -198,7 +203,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
             )
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(implementation.target_task)
+                    self.scen.get_scenario_all_desc(implementation.target_task, filtered_tag="feature")
                     if self.scen is not None
                     else "No scenario description."
                 )
@@ -512,7 +517,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_final_decision_v1_system"])
             .render(
                 scenario=(
-                    self.scen.get_scenario_all_desc(target_task)
+                    self.scen.get_scenario_all_desc(target_task, filtered_tag="feature")
                     if self.scen is not None
                     else "No scenario description."
                 )
