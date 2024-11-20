@@ -31,11 +31,15 @@ done
 shift $((OPTIND -1))
 
 # Check if directory and jobs are set
-if [ -z "$DIR" ] || [ -z "$OBS" ] || [ $# -eq 0 ]; then
+if [ -z "$DIR" ] || [ -z "$JOBS" ] || [ $# -eq 0 ]; then
   usage
 fi
 
 COMMAND="$@"
+
+# Before running commands
+echo "Running experiments with following env files:"
+find "$DIR" -name "*.env" -exec echo "{}" \;
 
 # Export and run each .env file in parallel
 find "$DIR" -name "*.env" | xargs -n 1 -P "$JOBS" -I {} sh -c "
@@ -44,3 +48,4 @@ find "$DIR" -name "*.env" | xargs -n 1 -P "$JOBS" -I {} sh -c "
   set +a
   $COMMAND
 "
+
