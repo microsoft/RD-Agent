@@ -20,10 +20,9 @@ class TestTpl(unittest.TestCase):
         competition = KAGGLE_IMPLEMENT_SETTING.competition
         print(f"[bold orange]{competition}[/bold orange]")
         download_data(competition)
-        # FIXME: supporting previous competition
         ws = KGFBWorkspace(
             template_folder_path=Path(__file__).parent.parent.parent
-            / "rdagent/scenarios/kaggle/tpl_ex"
+            / KAGGLE_IMPLEMENT_SETTING.template_path
             / f"{competition}",
         )
         print(ws.workspace_path)
