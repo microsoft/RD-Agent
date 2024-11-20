@@ -1,7 +1,6 @@
-import shutil
-import docker
 import socket
-import subprocess
+
+import docker
 
 from rdagent.log import rdagent_logger as logger
 
