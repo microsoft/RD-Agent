@@ -23,7 +23,7 @@ val_pred, test_pred, hyper_param = model_workflow(train_images, train_labels, va
 
 # Ensemble
 from ens import ens_and_decision
-pred_binary = ens_and_decision(test_pred, val_pred, validation_labels)
+pred_binary = ens_and_decision([test_pred], [val_pred], validation_labels)
 
 
 # Save
