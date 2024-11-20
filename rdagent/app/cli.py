@@ -29,7 +29,7 @@ from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
 
 
-def ui(port=80, log_dir="", debug=False):
+def ui(port=19899, log_dir="", debug=False):
     """
     start web app to show the log traces.
     """

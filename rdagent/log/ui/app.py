@@ -677,10 +677,15 @@ with st.sidebar:
             if manually:
                 st.text_input("log path", key="log_path", on_change=refresh, label_visibility="collapsed")
             else:
+                # The webpage only displays valid folders.
+                # If the __session__ folder exists in a subfolder of the log folder, it is considered a valid folder,
+                # otherwise it is considered an invalid folder.
                 folders = [
                     folder.relative_to(main_log_path)
                     for folder in main_log_path.iterdir()
-                    if folder.is_dir() and folder.joinpath("__session__").exists() and folder.joinpath("__session__").is_dir()
+                    if folder.is_dir()
+                    and folder.joinpath("__session__").exists()
+                    and folder.joinpath("__session__").is_dir()
                 ]
                 folders = sorted(folders, key=lambda x: x.name)
                 st.selectbox(f"**Select from `{main_log_path}`**", folders, key="log_path", on_change=refresh)
