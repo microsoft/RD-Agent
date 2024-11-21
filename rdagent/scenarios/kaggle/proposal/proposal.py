@@ -17,6 +17,7 @@ from rdagent.core.exception import ModelEmptyError
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import Hypothesis, Scenario, Trace
 from rdagent.scenarios.kaggle.experiment.kaggle_experiment import (
+    KG_MODEL_MAPPING,
     KG_SELECT_MAPPING,
     KGFactorExperiment,
     KGModelExperiment,
@@ -397,22 +398,29 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
                 f"Invalid model type '{model_type}'. Allowed model types are: {', '.join(KG_SELECT_MAPPING)}."
             )
 
+        based_experiments = [KGModelExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])] + [
+            t[1] for t in trace.hist if t[2]
+        ]
+        model_type = response_dict.get("model_type", "Model type not provided")
+        if model_type in KG_MODEL_MAPPING:
+            base_code = based_experiments[-1].experiment_workspace.code_dict.get(KG_MODEL_MAPPING[model_type], None)
+        else:
+            base_code = None
+
         tasks.append(
             ModelTask(
                 name=response_dict.get("model_name", "Model name not provided"),
                 description=response_dict.get("description", "Description not provided"),
                 architecture=response_dict.get("architecture", "Architecture not provided"),
                 hyperparameters=response_dict.get("hyperparameters", "Hyperparameters not provided"),
-                model_type=response_dict.get("model_type", "Model type not provided"),
+                model_type=model_type,
                 version=2,
+                base_code=base_code,
             )
         )
         exp = KGModelExperiment(
             sub_tasks=tasks,
-            based_experiments=(
-                [KGModelExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])]
-                + [t[1] for t in trace.hist if t[2]]
-            ),
+            based_experiments=based_experiments,
         )
         return exp
 

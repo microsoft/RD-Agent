@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pickle
 import subprocess
 import uuid
 from pathlib import Path
@@ -10,15 +9,15 @@ import pandas as pd
 from filelock import FileLock
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.CoSTEER.task import CoSTEERTask
+from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.core.exception import CodeFormatError, CustomRuntimeError, NoOutputError
-from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.utils import cache_with_pickle
-from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 
 
-class FactorTask(Task):
+class FactorTask(CoSTEERTask):
     # TODO:  generalized the attributes into the Task
     # - factor_* -> *
     def __init__(
@@ -124,11 +123,11 @@ class FactorFBWorkspace(FBWorkspace):
             if self.target_task.version == 1:
                 source_data_path = (
                     Path(
-                        FACTOR_IMPLEMENT_SETTINGS.data_folder_debug,
+                        FACTOR_COSTEER_SETTINGS.data_folder_debug,
                     )
                     if data_type == "Debug"  # FIXME: (yx) don't think we should use a debug tag for this.
                     else Path(
-                        FACTOR_IMPLEMENT_SETTINGS.data_folder,
+                        FACTOR_COSTEER_SETTINGS.data_folder,
                     )
                 )
             elif self.target_task.version == 2:
@@ -152,11 +151,11 @@ class FactorFBWorkspace(FBWorkspace):
 
             try:
                 subprocess.check_output(
-                    f"{FACTOR_IMPLEMENT_SETTINGS.python_bin} {execution_code_path}",
+                    f"{FACTOR_COSTEER_SETTINGS.python_bin} {execution_code_path}",
                     shell=True,
                     cwd=self.workspace_path,
                     stderr=subprocess.STDOUT,
-                    timeout=FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout,
+                    timeout=FACTOR_COSTEER_SETTINGS.file_based_execution_timeout,
                 )
                 execution_success = True
             except subprocess.CalledProcessError as e:
@@ -176,7 +175,7 @@ class FactorFBWorkspace(FBWorkspace):
                 else:
                     execution_error = CustomRuntimeError(execution_feedback)
             except subprocess.TimeoutExpired:
-                execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_IMPLEMENT_SETTINGS.file_based_execution_timeout} seconds."
+                execution_feedback += f"Execution timeout error and the timeout is set to {FACTOR_COSTEER_SETTINGS.file_based_execution_timeout} seconds."
                 if self.raise_exception:
                     raise CustomRuntimeError(execution_feedback)
                 else:
