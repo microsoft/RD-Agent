@@ -587,7 +587,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
         return None, None
 
 
-class FactorSingleFeedback:
+class FactorSingleFeedback(Feedback):
     """This class is a feedback to single implementation which is generated from an evaluator."""
 
     def __init__(

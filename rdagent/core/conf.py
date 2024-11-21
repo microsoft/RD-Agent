@@ -1,14 +1,49 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from pydantic_settings import BaseSettings
-
 # TODO: use pydantic for other modules in Qlib
-# from pydantic_settings import BaseSettings
+from pathlib import Path
+from typing import Any, List, Tuple, Type
+
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 
-class RDAgentSettings(BaseSettings):
+class ExtendedEnvSettingsSource(EnvSettingsSource):
+    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+        if prefixes := self.config.get("env_prefixes"):
+            for prefix in prefixes:
+                self.env_prefix = prefix
+                env_val, field_key, value_is_complex = super().get_field_value(field, field_name)
+                if env_val is not None:
+                    return env_val, field_key, value_is_complex
+
+        return super().get_field_value(field, field_name)
+
+
+class ExtendedSettingsConfigDict(SettingsConfigDict, total=False):
+    env_prefixes: List[str] | None
+
+
+class ExtendedBaseSettings(BaseSettings):
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (ExtendedEnvSettingsSource(settings_cls),)
+
+
+class RDAgentSettings(ExtendedBaseSettings):
     # TODO: (xiao) I think LLMSetting may be a better name.
     # TODO: (xiao) I think most of the config should be in oai.config
     # Log configs

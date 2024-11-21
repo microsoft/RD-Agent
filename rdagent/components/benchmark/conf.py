@@ -2,12 +2,12 @@ from dataclasses import field
 from pathlib import Path
 from typing import Optional
 
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 DIRNAME = Path("./")
 
 
-class BenchmarkSettings(BaseSettings):
+class BenchmarkSettings(ExtendedBaseSettings):
     class Config:
         env_prefix = "BENCHMARK_"
         """Use `BENCHMARK_` as prefix for environment variables"""

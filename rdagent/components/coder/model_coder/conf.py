@@ -1,10 +1,9 @@
-from pathlib import Path
 from typing import Union
 
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 
-class ModelImplSettings(BaseSettings):
+class ModelImplSettings(ExtendedBaseSettings):
     class Config:
         env_prefix = "MODEL_CODER_"  # Use MODEL_CODER_ as prefix for environment variables
 

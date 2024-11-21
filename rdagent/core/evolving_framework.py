@@ -80,7 +80,7 @@ class RAGStrategy(ABC):
     """Retrieval Augmentation Generation Strategy"""
 
     def __init__(self, knowledgebase: EvolvingKnowledgeBase) -> None:
-        self.knowledgebase = knowledgebase
+        self.knowledgebase: EvolvingKnowledgeBase = knowledgebase
 
     @abstractmethod
     def query(

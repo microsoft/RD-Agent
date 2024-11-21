@@ -1,12 +1,11 @@
-from pathlib import Path
 from typing import Literal, Union
 
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 SELECT_METHOD = Literal["random", "scheduler"]
 
 
-class FactorImplementSettings(BaseSettings):
+class FactorImplementSettings(ExtendedBaseSettings):
     class Config:
         env_prefix = "FACTOR_CODER_"
         """Use `FACTOR_CODER_` as prefix for environment variables"""

@@ -1,14 +1,12 @@
-from pydantic_settings import BaseSettings
-
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class ModelBasePropSetting(BasePropSetting):
-    class Config:
-        env_prefix = "QLIB_MODEL_"
-        """Use `QLIB_MODEL_` as prefix for environment variables"""
-        protected_namespaces = ()
-        """Add 'model_' to the protected namespaces"""
+    model_config = ExtendedSettingsConfigDict(
+        env_prefixes=("QLIB_MODEL_", BasePropSetting.Config.env_prefix),
+        protected_namespaces=(),
+    )
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
@@ -34,11 +32,10 @@ class ModelBasePropSetting(BasePropSetting):
 
 
 class FactorBasePropSetting(BasePropSetting):
-    class Config:
-        env_prefix = "QLIB_FACTOR_"
-        """Use `QLIB_FACTOR_` as prefix for environment variables"""
-        protected_namespaces = ()
-        """Add 'factor_' to the protected namespaces"""
+    model_config = ExtendedSettingsConfigDict(
+        env_prefixes=("QLIB_FACTOR_", BasePropSetting.Config.env_prefix),
+        protected_namespaces=(),
+    )
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
