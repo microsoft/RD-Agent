@@ -15,9 +15,9 @@ class KnowledgeBase:
             with self.path.open("rb") as f:
                 loaded = pickle.load(f)
                 if isinstance(loaded, dict):
-                    self.__dict__.update({k: v for k, v in loaded.items() if not k == "path"})
+                    self.__dict__.update({k: v for k, v in loaded.items() if k != "path"})
                 else:
-                    self.__dict__.update({k: v for k, v in loaded.__dict__.items() if not k == "path"})
+                    self.__dict__.update({k: v for k, v in loaded.__dict__.items() if k != "path"})
 
     def dump(self) -> None:
         if self.path is not None:

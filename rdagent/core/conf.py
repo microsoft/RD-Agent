@@ -2,9 +2,10 @@ from __future__ import annotations
 
 # TODO: use pydantic for other modules in Qlib
 from pathlib import Path
-from typing import Any, List, Tuple, Type
+from typing import Any, TYPE_CHECKING
 
-from pydantic.fields import FieldInfo
+if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,
@@ -16,7 +17,7 @@ from pydantic_settings import (
 class ExtendedEnvSettingsSource(EnvSettingsSource):
     def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
         # Dynamically gather prefixes from the current and parent classes
-        prefixes = [self.config.get("env_prefix", "")] or []
+        prefixes = [self.config.get("env_prefix", "")]
         if hasattr(self.settings_cls, "__bases__"):
             for base in self.settings_cls.__bases__:
                 if hasattr(base, "model_config"):
@@ -40,12 +41,12 @@ class ExtendedBaseSettings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: Type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,  # noqa
+        env_settings: PydanticBaseSettingsSource,  # noqa
+        dotenv_settings: PydanticBaseSettingsSource,  # noqa
+        file_secret_settings: PydanticBaseSettingsSource,  # noqa
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (ExtendedEnvSettingsSource(settings_cls),)
 
 
