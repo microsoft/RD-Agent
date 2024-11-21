@@ -67,6 +67,11 @@ You can try above demos by running the following command:
 ### 🐳 Docker installation.
 Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
 
+**Note:** rdagent provides a command to check if the docker installation was successful.
+  ```sh
+  rdagent health_check
+  ```
+
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
@@ -84,7 +89,12 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```
 
 ### ⚙️ Configuration
-- If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
+- The demos requires following ability:
+  - ChatCompletion
+  - json_mode
+  - embedding query
+
+- For example: If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
@@ -92,7 +102,7 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   CHAT_MODEL=gpt-4-turbo
   EOF
   ```
-- If you are using the `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
+- However, not every API services support these features by devault. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
   USE_AZURE=True
@@ -183,9 +193,16 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
 ### 🖥️ Monitor the Application Results
 - You can run the following command for our demo program to see the run logs.
 
-**Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
   ```sh
   rdagent ui --port 19899 --log_dir <your log folder like "log/">
+  ```
+
+  **Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+
+  You can check if a port is occupied by running the following command.
+
+  ```sh
+  rdagent health_check
   ```
 
 # 🏭 Scenarios
@@ -223,10 +240,16 @@ Different scenarios vary in entrance and configuration. Please check the detaile
 
 Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
 
-**Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
-
 ```bash
 rdagent ui --port 19899 --log_dir ./demo_traces
+```
+
+**Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+
+You can check if a port is occupied by running the following command.
+
+```sh
+rdagent health_check
 ```
 
 Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
