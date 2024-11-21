@@ -16,7 +16,7 @@ from pydantic_settings import (
 class ExtendedEnvSettingsSource(EnvSettingsSource):
     def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
         # Dynamically gather prefixes from the current and parent classes
-        prefixes = [self.config.get("env_prefix")] or []
+        prefixes = [self.config.get("env_prefix", "")] or []
         if hasattr(self.settings_cls, "__bases__"):
             for base in self.settings_cls.__bases__:
                 if hasattr(base, "model_config"):
@@ -32,8 +32,7 @@ class ExtendedEnvSettingsSource(EnvSettingsSource):
         return super().get_field_value(field, field_name)
 
 
-class ExtendedSettingsConfigDict(SettingsConfigDict, total=False):
-    env_prefix: str | None
+class ExtendedSettingsConfigDict(SettingsConfigDict, total=False): ...
 
 
 class ExtendedBaseSettings(BaseSettings):
