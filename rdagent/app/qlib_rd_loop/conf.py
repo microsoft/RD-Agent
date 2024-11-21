@@ -3,10 +3,7 @@ from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class ModelBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("QLIB_MODEL_", BasePropSetting.Config.env_prefix),
-        protected_namespaces=(),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_MODEL_", protected_namespaces=())
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
@@ -32,10 +29,7 @@ class ModelBasePropSetting(BasePropSetting):
 
 
 class FactorBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("QLIB_FACTOR_", BasePropSetting.Config.env_prefix),
-        protected_namespaces=(),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_FACTOR_", protected_namespaces=())
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"

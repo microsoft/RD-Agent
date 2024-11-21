@@ -140,9 +140,7 @@ class DockerConf(ExtendedBaseSettings):
 
 
 class QlibDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("QLIB_DOCKER_", DockerConf.Config.env_prefix),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
@@ -155,9 +153,7 @@ class QlibDockerConf(DockerConf):
 
 
 class DMDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("DM_DOCKER_", DockerConf.Config.env_prefix),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="DM_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
@@ -173,9 +169,7 @@ class DMDockerConf(DockerConf):
 
 
 class KGDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("KG_DOCKER_", DockerConf.Config.env_prefix),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="KG_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
@@ -195,9 +189,7 @@ class KGDockerConf(DockerConf):
 
 
 class MLEBDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("MLEB_DOCKER_", DockerConf.Config.env_prefix),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="MLEB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "mle_bench_docker"

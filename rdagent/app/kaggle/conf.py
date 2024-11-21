@@ -3,10 +3,7 @@ from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class KaggleBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("KG_", BasePropSetting.Config.env_prefix),
-        protected_namespaces=(),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="KG_", protected_namespaces=())
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"

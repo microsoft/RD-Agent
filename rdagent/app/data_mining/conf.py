@@ -5,10 +5,7 @@ from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class MedBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(
-        env_prefixes=("DM_", BasePropSetting.Config.env_prefix),
-        protected_namespaces=(),
-    )
+    model_config = ExtendedSettingsConfigDict(env_prefix="DM_", protected_namespaces=())
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.data_mining.experiment.model_experiment.DMModelScenario"
