@@ -2,10 +2,11 @@ from __future__ import annotations
 
 # TODO: use pydantic for other modules in Qlib
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo
+
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,

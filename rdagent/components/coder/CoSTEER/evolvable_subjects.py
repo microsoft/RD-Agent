@@ -1,7 +1,5 @@
-
-from rdagent.core.experiment import FBWorkspace
 from rdagent.core.evolving_framework import EvolvableSubjects
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.scenario import Task
 from rdagent.log import rdagent_logger as logger
 
