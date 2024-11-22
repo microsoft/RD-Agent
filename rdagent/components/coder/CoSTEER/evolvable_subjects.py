@@ -1,4 +1,5 @@
-from rdagent.components.coder.factor_coder.factor import FBWorkspace
+
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.core.experiment import Experiment
 from rdagent.core.scenario import Task
