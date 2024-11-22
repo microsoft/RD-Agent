@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
+from rdagent.components.coder.model_coder import ModelCoSTEER
 from rdagent.components.loader.task_loader import ModelTaskLoaderJson, ModelWsLoader
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
