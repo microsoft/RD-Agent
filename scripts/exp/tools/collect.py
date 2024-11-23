@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime
+from rdagent.log.storage import FileStorage
 
 def collect_results(dir_path) -> list[dict]:
     summary = []
@@ -9,52 +10,46 @@ def collect_results(dir_path) -> list[dict]:
         for file in files:
             if file.endswith("_result.json"):
                 config_name = file.replace("_result.json", "")
-                with open(os.path.join(root, file), "r") as f:
-                    data = json.load(f)
-                    # Extract both CV and Kaggle submission results
-                    summary.append({
-                        "config": config_name,
-                        "cv_results": data.get("cv_score", None),
-                        "kaggle_score": data.get("kaggle_score", None),
-                        "trace": data.get("trace", {})
-                    })
+                log_storage = FileStorage(Path(root))
+                
+                score = None
+                # Extract score from trace using the same approach as UI
+                for msg in log_storage.iter_msg():
+                    if "runner result" in msg.tag:
+                        if msg.content.result is not None:
+                            score = msg.content.result
+                            break
+                
+                summary.append({
+                    "config": config_name,
+                    "score": score,
+                    "workspace": str(root)
+                })
     return summary
 
 def generate_summary(results, output_path):
     summary = {
         "configs": {},
-        "best_cv_result": {"config": None, "score": None},
-        "best_kaggle_result": {"config": None, "score": None},
+        "best_result": {"config": None, "score": None},
         "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S")
     }
     
     for result in results:
         config = result["config"]
         metrics = {
-            "cv_score": result["cv_results"],
-            "kaggle_score": result["kaggle_score"],
-            "iterations": len(result["trace"].get("steps", [])),
-            "best_model": result["trace"].get("best_model")
+            "score": result["score"],
+            "workspace": result["workspace"]
         }
         
         summary["configs"][config] = metrics
         
-        # Update best CV result
-        if (metrics["cv_score"] is not None and 
-            (summary["best_cv_result"]["score"] is None or 
-             metrics["cv_score"] > summary["best_cv_result"]["score"])):
-            summary["best_cv_result"].update({
+        # Update best result
+        if (result["score"] is not None and 
+            (summary["best_result"]["score"] is None or 
+             result["score"] > summary["best_result"]["score"])):
+            summary["best_result"].update({
                 "config": config,
-                "score": metrics["cv_score"]
-            })
-            
-        # Update best Kaggle result
-        if (metrics["kaggle_score"] is not None and 
-            (summary["best_kaggle_result"]["score"] is None or 
-             metrics["kaggle_score"] > summary["best_kaggle_result"]["score"])):
-            summary["best_kaggle_result"].update({
-                "config": config,
-                "score": metrics["kaggle_score"]
+                "score": result["score"]
             })
     
     with open(output_path, "w") as f:
