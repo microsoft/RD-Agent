@@ -10,7 +10,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import KGDockerEnv
 
-KG_FEATURE_PREPROCESS_SCRIPT = """import pickle
+KG_FEATURE_PREPROCESS_SCRIPT_v1 = """import pickle
 
 from fea_share_preprocess import preprocess_script
 
@@ -20,6 +20,18 @@ pickle.dump(X_train, open("X_train.pkl", "wb"))
 pickle.dump(X_valid, open("X_valid.pkl", "wb"))
 pickle.dump(y_train, open("y_train.pkl", "wb"))
 pickle.dump(y_valid, open("y_valid.pkl", "wb"))
+pickle.dump(X_test, open("X_test.pkl", "wb"))
+pickle.dump(others, open("others.pkl", "wb"))
+"""
+
+KG_FEATURE_PREPROCESS_SCRIPT_v2 = """import pickle
+
+from load_data import load_from_raw_data
+
+X, y, X_test, others = load_from_raw_data()
+
+pickle.dump(X, open("X.pkl", "wb"))
+pickle.dump(y, open("y.pkl", "wb"))
 pickle.dump(X_test, open("X_test.pkl", "wb"))
 pickle.dump(others, open("others.pkl", "wb"))
 """
@@ -45,29 +57,52 @@ class KGFBWorkspace(FBWorkspace):
         kgde = KGDockerEnv(KAGGLE_IMPLEMENT_SETTING.competition)
         kgde.prepare()
 
-        execute_log, results = kgde.dump_python_code_run_and_get_results(
-            code=KG_FEATURE_PREPROCESS_SCRIPT,
-            local_path=str(self.workspace_path),
-            dump_file_names=[
-                "X_train.pkl",
-                "X_valid.pkl",
-                "y_train.pkl",
-                "y_valid.pkl",
-                "X_test.pkl",
-                "others.pkl",
-            ],
-            running_extra_volume=(
-                {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
-                if KAGGLE_IMPLEMENT_SETTING.competition
-                else None
-            ),
-        )
-        if results is None:
-            logger.error("Feature preprocess failed.")
-            raise Exception("Feature preprocess failed.")
+        if KAGGLE_IMPLEMENT_SETTING.template_path != "rdagent/scenarios/kaggle/tpl_ex":
+            execute_log, results = kgde.dump_python_code_run_and_get_results(
+                code=KG_FEATURE_PREPROCESS_SCRIPT_v1,
+                local_path=str(self.workspace_path),
+                dump_file_names=[
+                    "X_train.pkl",
+                    "X_valid.pkl",
+                    "y_train.pkl",
+                    "y_valid.pkl",
+                    "X_test.pkl",
+                    "others.pkl",
+                ],
+                running_extra_volume=(
+                    {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
+                    if KAGGLE_IMPLEMENT_SETTING.competition
+                    else None
+                ),
+            )
+            if results is None:
+                logger.error("Feature preprocess failed.")
+                raise Exception("Feature preprocess failed.")
+            else:
+                X_train, X_valid, y_train, y_valid, X_test, others = results
+                return X_train, X_valid, y_train, y_valid, X_test, *others
         else:
-            X_train, X_valid, y_train, y_valid, X_test, others = results
-            return X_train, X_valid, y_train, y_valid, X_test, *others
+            execute_log, results = kgde.dump_python_code_run_and_get_results(
+                code=KG_FEATURE_PREPROCESS_SCRIPT_v2,
+                local_path=str(self.workspace_path),
+                dump_file_names=[
+                    "X.pkl",
+                    "y.pkl",
+                    "X_test.pkl",
+                    "others.pkl",
+                ],
+                running_extra_volume=(
+                    {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}
+                    if KAGGLE_IMPLEMENT_SETTING.competition
+                    else None
+                ),
+            )
+            if results is None:
+                logger.error("Feature preprocess failed.")
+                raise Exception("Feature preprocess failed.")
+            else:
+                X, y, X_test, others = results
+                return X, y, X_test, others
 
     def execute(self, run_env: dict = {}, *args, **kwargs) -> str:
         logger.info(f"Running the experiment in {self.workspace_path}")
