@@ -1,14 +1,9 @@
-from pydantic_settings import BaseSettings
-
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class KaggleBasePropSetting(BasePropSetting):
-    class Config:
-        env_prefix = "KG_"
-        """Use `KG_` as prefix for environment variables"""
-        protected_namespaces = ()
-        """Do not allow overriding of these namespaces"""
+    model_config = ExtendedSettingsConfigDict(env_prefix="KG_", protected_namespaces=())
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"

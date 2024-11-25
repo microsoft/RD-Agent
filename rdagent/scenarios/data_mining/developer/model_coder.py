@@ -1,3 +1,3 @@
-from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
+from rdagent.components.coder.model_coder import ModelCoSTEER
 
 DMModelCoSTEER = ModelCoSTEER

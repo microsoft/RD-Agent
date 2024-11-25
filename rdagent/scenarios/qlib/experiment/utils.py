@@ -8,7 +8,7 @@ import pandas as pd
 # render it with jinja
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
+from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.utils.env import QTDockerEnv
 
 
@@ -30,24 +30,24 @@ def generate_data_folder_from_qlib():
         Path(__file__).parent / "factor_data_template" / "daily_pv_debug.h5"
     ).exists(), "daily_pv_debug.h5 is not generated."
 
-    Path(FACTOR_IMPLEMENT_SETTINGS.data_folder).mkdir(parents=True, exist_ok=True)
+    Path(FACTOR_COSTEER_SETTINGS.data_folder).mkdir(parents=True, exist_ok=True)
     shutil.copy(
         Path(__file__).parent / "factor_data_template" / "daily_pv_all.h5",
-        Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / "daily_pv.h5",
+        Path(FACTOR_COSTEER_SETTINGS.data_folder) / "daily_pv.h5",
     )
     shutil.copy(
         Path(__file__).parent / "factor_data_template" / "README.md",
-        Path(FACTOR_IMPLEMENT_SETTINGS.data_folder) / "README.md",
+        Path(FACTOR_COSTEER_SETTINGS.data_folder) / "README.md",
     )
 
-    Path(FACTOR_IMPLEMENT_SETTINGS.data_folder_debug).mkdir(parents=True, exist_ok=True)
+    Path(FACTOR_COSTEER_SETTINGS.data_folder_debug).mkdir(parents=True, exist_ok=True)
     shutil.copy(
         Path(__file__).parent / "factor_data_template" / "daily_pv_debug.h5",
-        Path(FACTOR_IMPLEMENT_SETTINGS.data_folder_debug) / "daily_pv.h5",
+        Path(FACTOR_COSTEER_SETTINGS.data_folder_debug) / "daily_pv.h5",
     )
     shutil.copy(
         Path(__file__).parent / "factor_data_template" / "README.md",
-        Path(FACTOR_IMPLEMENT_SETTINGS.data_folder_debug) / "README.md",
+        Path(FACTOR_COSTEER_SETTINGS.data_folder_debug) / "README.md",
     )
 
 
@@ -142,14 +142,14 @@ def get_data_folder_intro(fname_reg: str = ".*", flags=0, variable_mapping=None)
     """
 
     if (
-        not Path(FACTOR_IMPLEMENT_SETTINGS.data_folder).exists()
-        or not Path(FACTOR_IMPLEMENT_SETTINGS.data_folder_debug).exists()
+        not Path(FACTOR_COSTEER_SETTINGS.data_folder).exists()
+        or not Path(FACTOR_COSTEER_SETTINGS.data_folder_debug).exists()
     ):
         # FIXME: (xiao) I think this is writing in a hard-coded way.
         # get data folder intro does not imply that we are generating the data folder.
         generate_data_folder_from_qlib()
     content_l = []
-    for p in Path(FACTOR_IMPLEMENT_SETTINGS.data_folder_debug).iterdir():
+    for p in Path(FACTOR_COSTEER_SETTINGS.data_folder_debug).iterdir():
         if re.match(fname_reg, p.name, flags) is not None:
             if variable_mapping:
                 content_l.append(get_file_desc(p, variable_mapping.get(p.stem, [])))

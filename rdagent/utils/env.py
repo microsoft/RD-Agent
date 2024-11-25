@@ -11,25 +11,22 @@ import json
 import os
 import pickle
 import subprocess
-import sys
 import uuid
-import zipfile
 from abc import abstractmethod
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
-from typing import Dict, Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 import docker
 import docker.models
 import docker.models.containers
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
 from rich import print
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
 
+from rdagent.core.conf import ExtendedBaseSettings, ExtendedSettingsConfigDict
 from rdagent.log import rdagent_logger as logger
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
@@ -37,8 +34,8 @@ ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
 class Env(Generic[ASpecificBaseModel]):
     """
-    We use BaseModel as the setting due to the featurs it provides
-    - It provides base typing and checking featurs.
+    We use BaseModel as the setting due to the features it provides
+    - It provides base typing and checking features.
     - loading and dumping the information will be easier: for example, we can use package like `pydantic-yaml`
     """
 
@@ -121,7 +118,7 @@ class LocalEnv(Env[LocalConf]):
 ## Docker Environment -----
 
 
-class DockerConf(BaseSettings):
+class DockerConf(ExtendedBaseSettings):
     build_from_dockerfile: bool = False
     dockerfile_folder_path: Optional[Path] = (
         None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
@@ -143,8 +140,7 @@ class DockerConf(BaseSettings):
 
 
 class QlibDockerConf(DockerConf):
-    class Config:
-        env_prefix = "QLIB_DOCKER_"  # Use QLIB_DOCKER_ as prefix for environment variables
+    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
@@ -157,9 +153,7 @@ class QlibDockerConf(DockerConf):
 
 
 class DMDockerConf(DockerConf):
-    # Data Mining Docker
-    class Config:
-        env_prefix = "DM_DOCKER_"
+    model_config = ExtendedSettingsConfigDict(env_prefix="DM_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
@@ -175,8 +169,7 @@ class DMDockerConf(DockerConf):
 
 
 class KGDockerConf(DockerConf):
-    class Config:
-        env_prefix = "KG_DOCKER_"
+    model_config = ExtendedSettingsConfigDict(env_prefix="KG_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
@@ -196,8 +189,7 @@ class KGDockerConf(DockerConf):
 
 
 class MLEBDockerConf(DockerConf):
-    class Config:
-        env_prefix = "MLEB_DOCKER_"
+    model_config = ExtendedSettingsConfigDict(env_prefix="MLEB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "mle_bench_docker"

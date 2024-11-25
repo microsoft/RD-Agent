@@ -157,7 +157,7 @@ The following environment variables can be set in the `.env` file to customize t
     :show-inheritance:
     :exclude-members: Config
 
-.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorImplementSettings
+.. autopydantic_settings:: rdagent.components.coder.factor_coder.config.FactorCoSTEERSettings
     :settings-show-field-summary: False
     :members: coder_use_cache, data_folder, data_folder_debug, file_based_execution_timeout, select_method, select_threshold, max_loop, knowledge_base_path, new_knowledge_base_path
     :exclude-members: Config, python_bin, fail_task_trial_limit, v1_query_former_trace_limit, v1_query_similar_success_limit, v2_query_component_limit, v2_query_error_limit, v2_query_former_trace_limit, v2_error_summary, v2_knowledge_sampler

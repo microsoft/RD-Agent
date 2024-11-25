@@ -4,14 +4,14 @@ import traceback
 from pathlib import Path
 from typing import Dict, Optional
 
-from rdagent.components.coder.model_coder.conf import MODEL_IMPL_SETTINGS
-from rdagent.core.experiment import Experiment, FBWorkspace, Task
+from rdagent.components.coder.CoSTEER.task import CoSTEERTask
+from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.env import KGDockerEnv, QTDockerEnv
 
 
-class ModelTask(Task):
+class ModelTask(CoSTEERTask):
     def __init__(
         self,
         name: str,

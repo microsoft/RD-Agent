@@ -1,35 +1,28 @@
 import io
 import json
-import re
 from abc import abstractmethod
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
-from rdagent.components.coder.factor_coder.CoSTEER.evolvable_subjects import (
-    FactorEvolvingItem,
-)
+from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evaluation import Evaluator, Feedback
-from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
-from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
-evaluate_prompts = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
-class FactorEvaluator(Evaluator):
-    # TODO:
-    # I think we should have unified interface for all evaluates, for examples.
-    # So we should adjust the interface of other factors
+class FactorEvaluator:
+    """Although the init method is same to Evaluator, but we want to emphasize they are different"""
+
+    def __init__(self, scen=None) -> None:
+        self.scen = scen
+
     @abstractmethod
     def evaluate(
         self,
@@ -81,7 +74,7 @@ class FactorCodeEvaluator(FactorEvaluator):
         target_task: FactorTask,
         implementation: Workspace,
         execution_feedback: str,
-        factor_value_feedback: str = "",
+        value_feedback: str = "",
         gt_implementation: Workspace = None,
         **kwargs,
     ):
@@ -96,7 +89,7 @@ class FactorCodeEvaluator(FactorEvaluator):
                     self.scen.get_scenario_all_desc(
                         target_task,
                         filtered_tag="feature",
-                        simple_background=FACTOR_IMPLEMENT_SETTINGS.simple_background,
+                        simple_background=FACTOR_COSTEER_SETTINGS.simple_background,
                     )
                     if self.scen is not None
                     else "No scenario description."
@@ -115,7 +108,7 @@ class FactorCodeEvaluator(FactorEvaluator):
                     factor_information=factor_information,
                     code=code,
                     execution_feedback=execution_feedback_to_render,
-                    factor_value_feedback=factor_value_feedback,
+                    value_feedback=value_feedback,
                     gt_code=gt_implementation.code if gt_implementation else None,
                 )
             )
@@ -503,7 +496,7 @@ class FactorValueEvaluator(FactorEvaluator):
         return conclusion_str, decision_from_value_check
 
 
-class FactorFinalDecisionEvaluator(Evaluator):
+class FactorFinalDecisionEvaluator(FactorEvaluator):
     def evaluate(
         self,
         target_task: FactorTask,
@@ -535,7 +528,7 @@ class FactorFinalDecisionEvaluator(Evaluator):
                     factor_information=target_task.get_task_information(),
                     execution_feedback=execution_feedback_to_render,
                     code_feedback=code_feedback,
-                    factor_value_feedback=(
+                    value_feedback=(
                         value_feedback
                         if value_feedback is not None
                         else "No Ground Truth Value provided, so no evaluation on value is performed."
@@ -585,198 +578,3 @@ class FactorFinalDecisionEvaluator(Evaluator):
                     ) from e
 
         return None, None
-
-
-class FactorSingleFeedback:
-    """This class is a feedback to single implementation which is generated from an evaluator."""
-
-    def __init__(
-        self,
-        execution_feedback: str = None,
-        value_generated_flag: bool = False,
-        code_feedback: str = None,
-        factor_value_feedback: str = None,
-        final_decision: bool = None,
-        final_feedback: str = None,
-        final_decision_based_on_gt: bool = None,
-    ) -> None:
-        self.execution_feedback = execution_feedback
-        self.value_generated_flag = value_generated_flag
-        self.code_feedback = code_feedback
-        self.factor_value_feedback = factor_value_feedback
-        self.final_decision = final_decision
-        self.final_feedback = final_feedback
-        self.final_decision_based_on_gt = final_decision_based_on_gt
-
-    def __str__(self) -> str:
-        return f"""------------------Factor Execution Feedback------------------
-{self.execution_feedback}
-------------------Factor Code Feedback------------------
-{self.code_feedback}
-------------------Factor Value Feedback------------------
-{self.factor_value_feedback}
-------------------Factor Final Feedback------------------
-{self.final_feedback}
-------------------Factor Final Decision------------------
-This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
-"""
-
-
-class FactorMultiFeedback(
-    Feedback,
-    List[FactorSingleFeedback],
-):
-    """Feedback contains a list, each element is the corresponding feedback for each factor implementation."""
-
-
-class FactorEvaluatorForCoder(FactorEvaluator):
-    """This class is the v1 version of evaluator for a single factor implementation.
-    It calls several evaluators in share modules to evaluate the factor implementation.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.value_evaluator = FactorValueEvaluator(self.scen)
-        self.code_evaluator = FactorCodeEvaluator(self.scen)
-        self.final_decision_evaluator = FactorFinalDecisionEvaluator(self.scen)
-
-    def evaluate(
-        self,
-        target_task: FactorTask,
-        implementation: Workspace,
-        gt_implementation: Workspace = None,
-        queried_knowledge: QueriedKnowledge = None,
-        **kwargs,
-    ) -> FactorSingleFeedback:
-        if implementation is None:
-            return None
-
-        target_task_information = target_task.get_task_information()
-        if (
-            queried_knowledge is not None
-            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
-        ):
-            return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
-        elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
-            return FactorSingleFeedback(
-                execution_feedback="This task has failed too many times, skip implementation.",
-                value_generated_flag=False,
-                code_feedback="This task has failed too many times, skip code evaluation.",
-                factor_value_feedback="This task has failed too many times, skip value evaluation.",
-                final_decision=False,
-                final_feedback="This task has failed too many times, skip final decision evaluation.",
-                final_decision_based_on_gt=False,
-            )
-        else:
-            factor_feedback = FactorSingleFeedback()
-
-            # 1. Get factor execution feedback to generated implementation and remove the long list of numbers in execution feedback
-            (
-                execution_feedback,
-                gen_df,
-            ) = implementation.execute()
-
-            execution_feedback = re.sub(r"(?<=\D)(,\s+-?\d+\.\d+){50,}(?=\D)", ", ", execution_feedback)
-            factor_feedback.execution_feedback = "\n".join(
-                [line for line in execution_feedback.split("\n") if "warning" not in line.lower()]
-            )
-
-            # 2. Get factor value feedback
-            if gen_df is None:
-                factor_feedback.factor_value_feedback = "No factor value generated, skip value evaluation."
-                factor_feedback.value_generated_flag = False
-                decision_from_value_check = None
-            else:
-                factor_feedback.value_generated_flag = True
-                (
-                    factor_feedback.factor_value_feedback,
-                    decision_from_value_check,
-                ) = self.value_evaluator.evaluate(
-                    implementation=implementation, gt_implementation=gt_implementation, version=target_task.version
-                )
-
-            factor_feedback.final_decision_based_on_gt = gt_implementation is not None
-
-            if decision_from_value_check is not None and decision_from_value_check is True:
-                # To avoid confusion, when same_value_or_high_correlation is True, we do not need code feedback
-                factor_feedback.code_feedback = "Final decision is True and there are no code critics."
-                factor_feedback.final_decision = decision_from_value_check
-                factor_feedback.final_feedback = "Value evaluation passed, skip final decision evaluation."
-            elif decision_from_value_check is not None and decision_from_value_check is False:
-                factor_feedback.code_feedback, _ = self.code_evaluator.evaluate(
-                    target_task=target_task,
-                    implementation=implementation,
-                    execution_feedback=factor_feedback.execution_feedback,
-                    factor_value_feedback=factor_feedback.factor_value_feedback,
-                    gt_implementation=gt_implementation,
-                )
-                factor_feedback.final_decision = decision_from_value_check
-                factor_feedback.final_feedback = "Value evaluation failed, skip final decision evaluation."
-            else:
-                factor_feedback.code_feedback, _ = self.code_evaluator.evaluate(
-                    target_task=target_task,
-                    implementation=implementation,
-                    execution_feedback=factor_feedback.execution_feedback,
-                    factor_value_feedback=factor_feedback.factor_value_feedback,
-                    gt_implementation=gt_implementation,
-                )
-                (
-                    factor_feedback.final_decision,
-                    factor_feedback.final_feedback,
-                ) = self.final_decision_evaluator.evaluate(
-                    target_task=target_task,
-                    execution_feedback=factor_feedback.execution_feedback,
-                    value_feedback=factor_feedback.factor_value_feedback,
-                    code_feedback=factor_feedback.code_feedback,
-                )
-            return factor_feedback
-
-
-class FactorMultiEvaluator(Evaluator):
-    def __init__(self, single_evaluator, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.single_factor_implementation_evaluator = single_evaluator
-
-    def evaluate(
-        self,
-        evo: FactorEvolvingItem,
-        queried_knowledge: QueriedKnowledge = None,
-        **kwargs,
-    ) -> FactorMultiFeedback:
-        multi_implementation_feedback = multiprocessing_wrapper(
-            [
-                (
-                    self.single_factor_implementation_evaluator.evaluate,
-                    (
-                        evo.sub_tasks[index],
-                        evo.sub_workspace_list[index],
-                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
-                        queried_knowledge,
-                    ),
-                )
-                for index in range(len(evo.sub_tasks))
-            ],
-            n=RD_AGENT_SETTINGS.multi_proc_n,
-        )
-
-        final_decision = [
-            None if single_feedback is None else single_feedback.final_decision
-            for single_feedback in multi_implementation_feedback
-        ]
-        logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
-
-        for index in range(len(evo.sub_tasks)):
-            if final_decision[index]:
-                evo.sub_tasks[index].factor_implementation = True
-
-        return multi_implementation_feedback
-
-
-# TODO:
-def shorten_prompt(tpl: str, render_kwargs: dict, shorten_key: str, max_trail: int = 10) -> str:
-    """When the prompt is too long. We have to shorten it.
-    But we should not truncate the prompt directly, so we should find the key we want to shorten and then shorten it.
-    """
-    # TODO: this should replace most of code in
-    # - FactorFinalDecisionEvaluator.evaluate
-    # - FactorCodeEvaluator.evaluate

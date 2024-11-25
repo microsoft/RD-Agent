@@ -1,23 +1,21 @@
-from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
-    ModelFBWorkspace,
-    ModelTask,
-)
 from rdagent.core.evolving_framework import EvolvableSubjects
+from rdagent.core.experiment import Experiment, FBWorkspace
+from rdagent.core.scenario import Task
 from rdagent.log import rdagent_logger as logger
 
 
-class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
+class EvolvingItem(Experiment, EvolvableSubjects):
     """
-    Intermediate item of model implementation.
+    Intermediate item of factor implementation.
     """
 
     def __init__(
         self,
-        sub_tasks: list[ModelTask],
-        sub_gt_implementations: list[ModelFBWorkspace] = None,
+        sub_tasks: list[Task],
+        sub_gt_implementations: list[FBWorkspace] = None,
     ):
-        ModelExperiment.__init__(self, sub_tasks=sub_tasks)
+        Experiment.__init__(self, sub_tasks=sub_tasks)
+        self.corresponding_selection: list = None
         if sub_gt_implementations is not None and len(
             sub_gt_implementations,
         ) != len(self.sub_tasks):
@@ -29,7 +27,7 @@ class ModelEvolvingItem(ModelExperiment, EvolvableSubjects):
             self.sub_gt_implementations = sub_gt_implementations
 
     @classmethod
-    def from_experiment(cls, exp: ModelExperiment) -> "ModelEvolvingItem":
+    def from_experiment(cls, exp: Experiment) -> Experiment:
         ei = cls(sub_tasks=exp.sub_tasks)
         ei.based_experiments = exp.based_experiments
         ei.experiment_workspace = exp.experiment_workspace

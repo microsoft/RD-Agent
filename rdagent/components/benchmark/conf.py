@@ -2,12 +2,12 @@ from dataclasses import field
 from pathlib import Path
 from typing import Optional
 
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 DIRNAME = Path("./")
 
 
-class BenchmarkSettings(BaseSettings):
+class BenchmarkSettings(ExtendedBaseSettings):
     class Config:
         env_prefix = "BENCHMARK_"
         """Use `BENCHMARK_` as prefix for environment variables"""
@@ -24,7 +24,7 @@ class BenchmarkSettings(BaseSettings):
     bench_test_case_n: Optional[int] = None
     """how many test cases to run; If not given, all test cases will be run"""
 
-    bench_method_cls: str = "rdagent.components.coder.factor_coder.CoSTEER.FactorCoSTEER"
+    bench_method_cls: str = "rdagent.components.coder.CoSTEER.FactorCoSTEER"
     """method to be used for test cases"""
 
     bench_method_extra_kwargs: dict = field(

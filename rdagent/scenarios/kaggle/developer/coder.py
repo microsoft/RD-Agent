@@ -3,8 +3,8 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.CoSTEER import FactorCoSTEER
-from rdagent.components.coder.model_coder.CoSTEER import ModelCoSTEER
+from rdagent.components.coder.factor_coder import FactorCoSTEER
+from rdagent.components.coder.model_coder import ModelCoSTEER
 from rdagent.core.developer import Developer
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_utils import APIBackend

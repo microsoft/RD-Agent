@@ -1,14 +1,57 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from pydantic_settings import BaseSettings
-
 # TODO: use pydantic for other modules in Qlib
-# from pydantic_settings import BaseSettings
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
+
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 
-class RDAgentSettings(BaseSettings):
+class ExtendedEnvSettingsSource(EnvSettingsSource):
+    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+        # Dynamically gather prefixes from the current and parent classes
+        prefixes = [self.config.get("env_prefix", "")]
+        if hasattr(self.settings_cls, "__bases__"):
+            for base in self.settings_cls.__bases__:
+                if hasattr(base, "model_config"):
+                    parent_prefix = base.model_config.get("env_prefix")
+                    if parent_prefix and parent_prefix not in prefixes:
+                        prefixes.append(parent_prefix)
+        for prefix in prefixes:
+            self.env_prefix = prefix
+            env_val, field_key, value_is_complex = super().get_field_value(field, field_name)
+            if env_val is not None:
+                return env_val, field_key, value_is_complex
+
+        return super().get_field_value(field, field_name)
+
+
+class ExtendedSettingsConfigDict(SettingsConfigDict, total=False): ...
+
+
+class ExtendedBaseSettings(BaseSettings):
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,  # noqa
+        env_settings: PydanticBaseSettingsSource,  # noqa
+        dotenv_settings: PydanticBaseSettingsSource,  # noqa
+        file_secret_settings: PydanticBaseSettingsSource,  # noqa
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (ExtendedEnvSettingsSource(settings_cls),)
+
+
+class RDAgentSettings(ExtendedBaseSettings):
     # TODO: (xiao) I think LLMSetting may be a better name.
     # TODO: (xiao) I think most of the config should be in oai.config
     # Log configs
