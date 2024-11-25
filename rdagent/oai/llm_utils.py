@@ -405,6 +405,7 @@ class APIBackend:
 
         This function attempts to handle several edge cases.
         """
+
         # 1) cases
         def _azure_patch(model: str) -> str:
             """
