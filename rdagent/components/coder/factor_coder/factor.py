@@ -147,7 +147,10 @@ class FactorFBWorkspace(FBWorkspace):
                 execution_code_path = code_path
             elif self.target_task.version == 2:
                 execution_code_path = self.workspace_path / f"{uuid.uuid4()}.py"
-                execution_code_path.write_text((Path(__file__).parent / "factor_execution_template.txt").read_text())
+                if KAGGLE_IMPLEMENT_SETTING.template_path == "rdagent/scenarios/kaggle/tpl_ex":
+                    execution_code_path.write_text((Path(__file__).parent / "factor_execution_template_v2.txt").read_text())
+                else:
+                    execution_code_path.write_text((Path(__file__).parent / "factor_execution_template_v1.txt").read_text())
 
             try:
                 subprocess.check_output(

@@ -1,0 +1,16 @@
+import os
+import h5py
+import numpy as np
+import pandas as pd
+from feat01 import feat_eng
+
+if os.path.exists("X.pkl"):
+    X = pd.read_pickle("X.pkl")
+    y = pd.read_pickle("y.pkl")
+else:
+    raise FileNotFoundError("No valid data found.")
+
+X, y, p = feat_eng(X, y)
+
+with h5py.File('result.h5', 'w') as hf:
+    hf.create_dataset('default', data=X)
