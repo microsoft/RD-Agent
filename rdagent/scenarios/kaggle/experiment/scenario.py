@@ -128,9 +128,7 @@ class KGScenario(Scenario):
             Path(__file__).resolve()
             / Path(KAGGLE_IMPLEMENT_SETTING.template_path).resolve()
             / KAGGLE_IMPLEMENT_SETTING.competition
-            / "train.py"
-            if KAGGLE_IMPLEMENT_SETTING.template_path != "rdagent/scenarios/kaggle/tpl_ex"
-            else "main.py"
+            / ("train.py" if KAGGLE_IMPLEMENT_SETTING.template_path != "rdagent/scenarios/kaggle/tpl_ex" else "main.py")
         ).read_text()
 
         background_prompt = (

@@ -1,5 +1,5 @@
 import os
-import h5py
+
 import numpy as np
 import pandas as pd
 from feat01 import feat_eng
@@ -12,5 +12,5 @@ else:
 
 X, y, p = feat_eng(X, y)
 
-with h5py.File('result.h5', 'w') as hf:
-    hf.create_dataset('default', data=X)
+X = pd.dataframe(X)
+X.to_hdf("result.h5", key="data", mode="w")
