@@ -100,6 +100,9 @@ class CoSTEERRAGStrategyV1(RAGStrategy):
         *,
         return_knowledge: bool = False,
     ) -> Knowledge | None:
+        raise NotImplementedError(
+            "This method should be considered as an un-implemented method because we encourage everyone to use v2."
+        )
         if len(evolving_trace) == self.current_generated_trace_count:
             return
         else:
@@ -139,6 +142,9 @@ class CoSTEERRAGStrategyV1(RAGStrategy):
         evo: EvolvableSubjects,
         evolving_trace: list[EvoStep],
     ) -> CoSTEERQueriedKnowledge | None:
+        raise NotImplementedError(
+            "This method should be considered as an un-implemented method because we encourage everyone to use v2."
+        )
         v1_query_former_trace_limit = self.settings.v1_query_former_trace_limit
         v1_query_similar_success_limit = self.settings.v1_query_similar_success_limit
         fail_task_trial_limit = self.settings.fail_task_trial_limit
@@ -237,7 +243,7 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                     target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_workspace_list[task_index]
                     single_feedback: CoSTEERSingleFeedback = feedback[task_index]
-                    if single_feedback is None:
+                    if implementation is None or single_feedback is None:
                         continue
                     single_knowledge = CoSTEERKnowledge(
                         target_task=target_task,
