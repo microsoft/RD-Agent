@@ -148,6 +148,21 @@ class KGScenario(Scenario):
     def source_data(self) -> str:
         data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
 
+        if KAGGLE_IMPLEMENT_SETTING.template_path == "rdagent/scenarios/kaggle/tpl_ex":
+            if not (data_folder / "X.pkl").exists():
+                preprocess_experiment = KGFactorExperiment([])
+                X, y, X_test, others = preprocess_experiment.experiment_workspace.generate_preprocess_data()
+
+                data_folder.mkdir(exist_ok=True, parents=True)
+                pickle.dump(X, open(data_folder / "X.pkl", "wb"))
+                pickle.dump(y, open(data_folder / "y.pkl", "wb"))
+                pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
+                pickle.dump(others, open(data_folder / "others.pkl", "wb"))
+
+            X = pd.read_pickle(data_folder / "X.pkl")
+            self.input_shape = X.shape
+            return str(self.input_shape)
+
         if not (data_folder / "X_valid.pkl").exists():
             preprocess_experiment = KGFactorExperiment([])
             (
