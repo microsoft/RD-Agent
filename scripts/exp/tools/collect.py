@@ -3,61 +3,65 @@ import json
 from pathlib import Path
 from datetime import datetime
 from rdagent.log.storage import FileStorage
+from rdagent.scenarios.kaggle.kaggle_crawler import (
+    leaderboard_scores,
+)
 
-def collect_results(dir_path) -> list[dict]:
+def collect_results(log_path) -> list[dict]:
     summary = []
-    for root, _, files in os.walk(dir_path):
-        for file in files:
-            if file.endswith("_result.json"):
-                config_name = file.replace("_result.json", "")
-                log_storage = FileStorage(Path(root))
-                
-                score = None
-                # Extract score from trace using the same approach as UI
-                for msg in log_storage.iter_msg():
-                    if "runner result" in msg.tag:
-                        if msg.content.result is not None:
-                            score = msg.content.result
-                            break
-                
+    log_storage = FileStorage(Path(log_path))
+    evaluation_metric_direction = None
+    # Extract score from trace using the same approach as UI
+    for msg in log_storage.iter_msg():
+        if "scenario" in msg.tag:
+            competition_name = msg.content.competition # Find the competition name     
+            leaderboard = leaderboard_scores(competition_name)
+            evaluation_metric_direction = float(leaderboard[0]) > float(leaderboard[-1])
+ 
+        if "runner result" in msg.tag:
+            if msg.content.result is not None:
+                score = msg.content.result
                 summary.append({
-                    "config": config_name,
+                    "competition_name": competition_name,
                     "score": score,
-                    "workspace": str(root)
+                    "workspace": msg.content.experiment_workspace.workspace_path,
+                    "evaluation_metric_direction": evaluation_metric_direction
                 })
     return summary
 
 def generate_summary(results, output_path):
     summary = {
-        "configs": {},
-        "best_result": {"config": None, "score": None},
-        "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S")
+        "configs": {}, #TODO: add config? 
+        "best_result": {"competition_name": None, "score": None},
+        "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+        #Add other metrics that we want to track in the future (eg. is there successive increase?)
     }
-    
     for result in results:
-        config = result["config"]
-        metrics = {
-            "score": result["score"],
-            "workspace": result["workspace"]
-        }
-        
-        summary["configs"][config] = metrics
-        
         # Update best result
-        if (result["score"] is not None and 
-            (summary["best_result"]["score"] is None or 
-             result["score"] > summary["best_result"]["score"])):
-            summary["best_result"].update({
-                "config": config,
-                "score": result["score"]
-            })
+        # If the evaluation metric is higher, it is better
+        if result["evaluation_metric_direction"]:
+            if (result["score"] is not None and 
+                (summary["best_result"]["score"] is None or 
+                result["score"] > summary["best_result"]["score"])):
+                summary["best_result"].update({
+                    "score": result["score"],
+                    "competition_name": result["competition_name"]
+                })
+        else:
+            if (result["score"] is not None and 
+                (summary["best_result"]["score"] is None or 
+                result["score"] < summary["best_result"]["score"])):
+                summary["best_result"].update({
+                    "score": result["score"],
+                    "competition_name": result["competition_name"]
+                })
     
     with open(output_path, "w") as f:
         json.dump(summary, f, indent=4)
 
 if __name__ == "__main__":
-    result_dir = os.path.join(os.getenv("EXP_DIR"), "results")
-    results = collect_results(result_dir)
-    generate_summary(results, os.path.join(result_dir, "summary.json"))
-    print("Summary generated successfully at ", os.path.join(result_dir, "summary.json"))
+    sample_result_dir = Path("/home/bowen/workspace/RD-Agent/log/MAY2022_5")
+    results = collect_results(sample_result_dir )
+    generate_summary(results, os.path.join(sample_result_dir, "summary.json"))
+    print("Summary generated successfully at ", os.path.join(sample_result_dir, "summary.json"))
 
