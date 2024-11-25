@@ -295,7 +295,6 @@ class APIBackend:
             self.headers = {
                 "Content-Type": "application/json",
                 "Authorization": ("Bearer " + self.gcr_endpoint_key),
-                "azureml-model-deployment": self.gcr_endpoint_deployment,
             }
             self.gcr_endpoint_temperature = LLM_SETTINGS.gcr_endpoint_temperature
             self.gcr_endpoint_top_p = LLM_SETTINGS.gcr_endpoint_top_p
@@ -303,6 +302,8 @@ class APIBackend:
             self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
+            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.encoder = None
         else:
             self.use_azure = LLM_SETTINGS.use_azure
@@ -684,7 +685,6 @@ class APIBackend:
                             "parameters": {
                                 "temperature": self.gcr_endpoint_temperature,
                                 "top_p": self.gcr_endpoint_top_p,
-                                "do_sample": self.gcr_endpoint_do_sample,
                                 "max_new_tokens": self.gcr_endpoint_max_token,
                             },
                         },
