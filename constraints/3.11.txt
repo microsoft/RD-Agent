@@ -1,7 +1,7 @@
-azure-identity==1.17.1
+azure-identity==1.19.0
 dill==0.3.9
-pillow==10.4.0
+pillow==11.0.0
 psutil==6.1.0
-rich==13.9.2
+rich==13.9.4
 scipy==1.14.1
-tqdm==4.66.5
+tqdm==4.67.1
