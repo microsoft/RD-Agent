@@ -9,6 +9,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
+    CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.model_coder.model import (
     ModelExperiment,
@@ -41,7 +42,11 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             else []
         )
 
-        queried_former_failed_knowledge_to_render = queried_former_failed_knowledge
+        queried_former_failed_knowledge_to_render = (
+            queried_former_failed_knowledge[0]
+            if isinstance(queried_knowledge, CoSTEERQueriedKnowledgeV2)
+            else queried_former_failed_knowledge
+        )
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
