@@ -28,9 +28,9 @@ evaluator_code_feedback_v1_user: |-
   {{ code }}
   --------------Execution feedback:---------------
   {{ execution_feedback }}
-  {% if factor_value_feedback is not none %}
+  {% if value_feedback is not none %}
   --------------Factor value feedback:---------------
-  {{ factor_value_feedback }}
+  {{ value_feedback }}
   {% endif %}
   {% if gt_code is not none %}
   --------------Ground truth Python code:---------------
@@ -62,36 +62,12 @@ evolving_strategy_factor_implementation_v1_system: |-
       "code": "The Python code as a string."
   }
 
-evolving_strategy_factor_implementation_v1_user: |-
-  --------------Target factor information:---------------
-  {{ factor_information_str }}
-
-  {% if queried_similar_successful_knowledge|length != 0 %}
-  --------------Correct code to similar factors:---------------
-  {% for similar_successful_knowledge in queried_similar_successful_knowledge %}
-  =====Factor {{loop.index}}:=====
-  {{ similar_successful_knowledge.target_task.get_task_information() }}
-  =====Code:=====
-  {{ similar_successful_knowledge.implementation.code }}
-  {% endfor %}
-  {% endif %}
-
-  {% if queried_former_failed_knowledge|length != 0 %}
-  --------------Former failed code:---------------
-  {% for former_failed_knowledge in queried_former_failed_knowledge %}
-  =====Code to implementation {{ loop.index }}=====
-  {{ former_failed_knowledge.implementation.code }}
-  =====Feedback to implementation {{ loop.index }}=====
-  {{ former_failed_knowledge.feedback }}
-  {% endfor %}
-  {% endif %}
-
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
 
   {% if queried_similar_error_knowledge|length != 0 %}
-  {% if not error_summary %}
+  {% if error_summary_critics is none %}
   Recall your last failure, your implementation met some errors.
   When doing other tasks, you met some similar errors but you finally solve them. Here are some examples:
   {% for error_content, similar_error_knowledge in queried_similar_error_knowledge %} 
@@ -108,14 +84,14 @@ evolving_strategy_factor_implementation_v2_user: |-
   {{error_summary_critics}}
   {% endif %}
   {% endif %}
-  {% if queried_similar_component_knowledge|length != 0 %}
+  {% if queried_similar_successful_knowledge|length != 0 %}
   Here are some success implements of similar component tasks, take them as references:
   --------------Correct code to similar factors:---------------
-  {% for similar_component_knowledge in queried_similar_component_knowledge %}
+  {% for similar_successful_knowledge in queried_similar_successful_knowledge %}
   =====Factor {{loop.index}}:=====
-  {{ similar_component_knowledge.target_task.get_task_information() }}
+  {{ similar_successful_knowledge.target_task.get_task_information() }}
   =====Code:=====
-  {{ similar_component_knowledge.implementation.code }}
+  {{ similar_successful_knowledge.implementation.code }}
   {% endfor %}
   {% endif %}
   {% if latest_attempt_to_latest_successful_execution is not none %}
@@ -189,16 +165,6 @@ select_implementable_factor_user: |-
   {% endif %}
   {% endfor %}
 
-analyze_component_prompt_v1_system: |-
-  User is getting a new task that might consist of the components below (given in component_index: component_description):
-  {{all_component_content}}
-
-  You should find out what components does the new task have, and put their indices in a list.
-  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
-  {
-      "component_no_list": the list containing indices of components.
-  }
-
 evaluator_output_format_system: |-
   User is trying to implement some factors in the following scenario:
   {{ scenario }}
@@ -235,4 +201,4 @@ evaluator_final_decision_v1_user: |-
   --------------Code feedback:---------------
   {{ code_feedback }}
   --------------Factor value feedback:---------------
-  {{ factor_value_feedback }}
+  {{ value_feedback }}

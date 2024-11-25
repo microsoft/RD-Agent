@@ -14,11 +14,9 @@ from plotly.subplots import make_subplots
 from streamlit import session_state as state
 from streamlit_theme import st_theme
 
-from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
-    FactorSingleFeedback,
-)
+from rdagent.components.coder.factor_coder.evaluators import FactorSingleFeedback
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
-from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
+from rdagent.components.coder.model_coder.evaluators import ModelSingleFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback
 from rdagent.core.scenario import Scenario
@@ -256,7 +254,7 @@ def refresh(same_trace: bool = False):
     state.times = defaultdict(lambda: defaultdict(list))
 
 
-def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
+def evolving_feedback_window(wsf: FactorSingleFeedback | ModelSingleFeedback):
     if isinstance(wsf, FactorSingleFeedback):
         ffc, efc, cfc, vfc = st.tabs(
             ["**Final Feedback🏁**", "Execution Feedback🖥️", "Code Feedback📄", "Value Feedback🔢"]
@@ -268,8 +266,8 @@ def evolving_feedback_window(wsf: FactorSingleFeedback | ModelCoderFeedback):
         with cfc:
             st.markdown(wsf.code_feedback)
         with vfc:
-            st.markdown(wsf.factor_value_feedback)
-    elif isinstance(wsf, ModelCoderFeedback):
+            st.markdown(wsf.value_feedback)
+    elif isinstance(wsf, ModelSingleFeedback):
         ffc, efc, cfc, msfc, vfc = st.tabs(
             [
                 "**Final Feedback🏁**",

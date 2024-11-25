@@ -1,0 +1,10 @@
+
+analyze_component_prompt_v1_system: |-
+  User is getting a new task that might consist of the components below (given in component_index: component_description):
+  {{all_component_content}}
+
+  You should find out what components does the new task have, and put their indices in a list.
+  Please response the critic in the json format. Here is an example structure for the JSON output, please strictly follow the format:
+  {
+      "component_no_list": the list containing indices of components.
+  }

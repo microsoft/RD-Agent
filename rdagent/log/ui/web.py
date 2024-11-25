@@ -9,11 +9,9 @@ import plotly.express as px
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
-    FactorSingleFeedback,
-)
+from rdagent.components.coder.factor_coder.evaluators import FactorSingleFeedback
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
-from rdagent.components.coder.model_coder.CoSTEER.evaluators import ModelCoderFeedback
+from rdagent.components.coder.model_coder.evaluators import ModelSingleFeedback
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
 from rdagent.core.proposal import Hypothesis, HypothesisFeedback, Trace
 from rdagent.log.base import Message, Storage, View
@@ -233,7 +231,7 @@ class FactorFeedbackWindow(StWindow):
 ### :blue[Factor Code Feedback]
 {fb.code_feedback}
 ### :blue[Factor Value Feedback]
-{fb.factor_value_feedback}
+{fb.value_feedback}
 ### :blue[Factor Final Feedback]
 {fb.final_feedback}
 ### :blue[Factor Final Decision]
@@ -243,8 +241,8 @@ This implementation is {'SUCCESS' if fb.final_decision else 'FAIL'}.
 
 
 class ModelFeedbackWindow(StWindow):
-    def consume_msg(self, msg: Message | ModelCoderFeedback):
-        mb: ModelCoderFeedback = msg.content if isinstance(msg, Message) else msg
+    def consume_msg(self, msg: Message | ModelSingleFeedback):
+        mb: ModelSingleFeedback = msg.content if isinstance(msg, Message) else msg
 
         self.container.markdown(
             f"""### :blue[Model Execution Feedback]
@@ -425,7 +423,7 @@ class SimpleTraceWindow(StWindow):
                     inner_class=FactorFeedbackWindow,
                     tab_names=self.evolving_tasks,
                 )
-            elif isinstance(msg.content[0], ModelCoderFeedback):
+            elif isinstance(msg.content[0], ModelSingleFeedback):
                 self.current_win = ObjectsTabsWindow(
                     self.container.expander("Model Feedbacks"),
                     inner_class=ModelFeedbackWindow,
@@ -519,7 +517,7 @@ class EvolvingWindow(StWindow):
                     ObjectsTabsWindow(
                         self.container.container(), inner_class=FactorFeedbackWindow, tab_names=self.evolving_tasks
                     ).consume_msg(msg)
-                elif isinstance(msg.content[0], ModelCoderFeedback):
+                elif isinstance(msg.content[0], ModelSingleFeedback):
                     self.container.markdown("**Model Feedbacks🔍**")
                     ObjectsTabsWindow(
                         self.container.container(), inner_class=ModelFeedbackWindow, tab_names=self.evolving_tasks

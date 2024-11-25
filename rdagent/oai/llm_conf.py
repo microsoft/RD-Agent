@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 
-class LLMSettings(BaseSettings):
+class LLMSettings(ExtendedBaseSettings):
     log_llm_chat_content: bool = True
 
     use_azure: bool = False

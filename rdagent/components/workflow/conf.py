@@ -1,16 +1,10 @@
-from pydantic_settings import BaseSettings
+from rdagent.core.conf import ExtendedBaseSettings
 
 
-class BasePropSetting(BaseSettings):
+class BasePropSetting(ExtendedBaseSettings):
     """
     The common part of the config for RD Loop to propose and development
     You can add following config in the subclass to distinguish the environment variables.
-
-    .. code-block:: python
-
-        class Config:
-            env_prefix = "DM_MODEL_"  # Use MODEL_CODER_ as prefix for environment variables
-            protected_namespaces = ()  # Add 'model_' to the protected namespaces
     """
 
     scen: str = ""

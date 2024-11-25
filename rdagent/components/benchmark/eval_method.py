@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple, Union
 import pandas as pd
 from tqdm import tqdm
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
-from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
+from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
+from rdagent.components.coder.factor_coder.eva_utils import (
     FactorCorrelationEvaluator,
     FactorEqualValueRatioEvaluator,
     FactorEvaluator,

@@ -83,7 +83,7 @@ evolving_strategy_model_coder:
         --------------Correct code to similar models:---------------
         {% for similar_successful_knowledge in queried_similar_successful_knowledge %}
         =====Model {{loop.index}}:=====
-        {{ similar_successful_knowledge.target_task.get_model_information() }}
+        {{ similar_successful_knowledge.target_task.get_task_information() }}
         =====Code:=====
         {{ similar_successful_knowledge.implementation.code }}
         {% endfor %}

@@ -22,8 +22,8 @@ class TestTpl(unittest.TestCase):
         download_data(competition)
         ws = KGFBWorkspace(
             template_folder_path=Path(__file__).parent.parent.parent
-            / "rdagent/scenarios/kaggle/experiment"
-            / f"{competition}_template"
+            / KAGGLE_IMPLEMENT_SETTING.template_path
+            / f"{competition}",
         )
         print(ws.workspace_path)
         ws.execute()

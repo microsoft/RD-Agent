@@ -10,15 +10,13 @@ from typing import Union
 
 from jinja2 import Environment, StrictUndefined
 
-from rdagent.components.coder.factor_coder.config import FACTOR_IMPLEMENT_SETTINGS
-from rdagent.components.coder.factor_coder.CoSTEER.evaluators import (
-    FactorSingleFeedback,
-)
-from rdagent.components.coder.factor_coder.factor import FactorTask
+from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 from rdagent.components.knowledge_management.graph import (
     UndirectedGraph,
     UndirectedNode,
 )
+from rdagent.core.evolving_agent import Feedback
 from rdagent.core.evolving_framework import (
     EvolvableSubjects,
     EvolvingKnowledgeBase,
@@ -27,8 +25,9 @@ from rdagent.core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from rdagent.core.experiment import Workspace
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
+from rdagent.core.scenario import Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import (
     APIBackend,
@@ -36,66 +35,64 @@ from rdagent.oai.llm_utils import (
 )
 
 
-class FactorKnowledge(Knowledge):
+class CoSTEERKnowledge(Knowledge):
     def __init__(
         self,
-        target_task: FactorTask,
-        implementation: Workspace,
-        feedback: FactorSingleFeedback,
+        target_task: Task,
+        implementation: FBWorkspace,
+        feedback: Feedback,
     ) -> None:
-        """
-        Initialize a FactorKnowledge object. The FactorKnowledge object is used to store a factor implementation without the ground truth code and value.
-
-        Args:
-            factor (Factor): The factor object associated with the KnowledgeManagement.
-
-        Returns:
-            None
-        """
         self.target_task = target_task
         self.implementation = implementation.copy()
         self.feedback = feedback
 
     def get_implementation_and_feedback_str(self) -> str:
-        return f"""------------------Factor implementation code:------------------
+        return f"""------------------implementation code:------------------
 {self.implementation.code}
-------------------Factor implementation feedback:------------------
+------------------implementation feedback:------------------
 {self.feedback!s}
 """
 
 
-class FactorQueriedKnowledge(QueriedKnowledge):
+class CoSTEERQueriedKnowledge(QueriedKnowledge):
     def __init__(self, success_task_to_knowledge_dict: dict = {}, failed_task_info_set: set = set()) -> None:
         self.success_task_to_knowledge_dict = success_task_to_knowledge_dict
         self.failed_task_info_set = failed_task_info_set
 
 
-class FactorKnowledgeBaseV1(EvolvingKnowledgeBase):
+class CoSTEERKnowledgeBaseV1(EvolvingKnowledgeBase):
     def __init__(self, path: str | Path = None) -> None:
-        self.implementation_trace: dict[str, FactorKnowledge] = dict()
+        self.implementation_trace: dict[str, CoSTEERKnowledge] = dict()
         self.success_task_info_set: set[str] = set()
 
         self.task_to_embedding = dict()
         super().__init__(path)
 
-    def query(self) -> QueriedKnowledge | None:
+    def query(self) -> CoSTEERQueriedKnowledge | None:
         """
         Query the knowledge base to get the queried knowledge. So far is handled in RAG strategy.
         """
         raise NotImplementedError
 
 
-class FactorQueriedKnowledgeV1(FactorQueriedKnowledge):
-    def __init__(self) -> None:
-        self.working_task_to_former_failed_knowledge_dict = dict()
-        self.working_task_to_similar_successful_knowledge_dict = dict()
-        super().__init__()
+class CoSTEERQueriedKnowledgeV1(CoSTEERQueriedKnowledge):
+    def __init__(
+        self,
+        *args,
+        task_to_former_failed_traces: dict = {},
+        task_to_similar_task_successful_knowledge: dict = {},
+        **kwargs,
+    ) -> None:
+        self.task_to_former_failed_traces = task_to_former_failed_traces
+        self.task_to_similar_task_successful_knowledge = task_to_similar_task_successful_knowledge
+        super().__init__(*args, **kwargs)
 
 
-class FactorRAGStrategyV1(RAGStrategy):
-    def __init__(self, knowledgebase: FactorKnowledgeBaseV1) -> None:
+class CoSTEERRAGStrategyV1(RAGStrategy):
+    def __init__(self, knowledgebase: CoSTEERKnowledgeBaseV1, settings: CoSTEERSettings) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
+        self.settings = settings
 
     def generate_knowledge(
         self,
@@ -103,6 +100,9 @@ class FactorRAGStrategyV1(RAGStrategy):
         *,
         return_knowledge: bool = False,
     ) -> Knowledge | None:
+        raise NotImplementedError(
+            "This method should be considered as an un-implemented method because we encourage everyone to use v2."
+        )
         if len(evolving_trace) == self.current_generated_trace_count:
             return
         else:
@@ -120,7 +120,7 @@ class FactorRAGStrategyV1(RAGStrategy):
                     single_feedback = feedback[task_index]
                     if single_feedback is None:
                         continue
-                    single_knowledge = FactorKnowledge(
+                    single_knowledge = CoSTEERKnowledge(
                         target_task=target_task,
                         implementation=implementation,
                         feedback=single_feedback,
@@ -141,32 +141,35 @@ class FactorRAGStrategyV1(RAGStrategy):
         self,
         evo: EvolvableSubjects,
         evolving_trace: list[EvoStep],
-    ) -> QueriedKnowledge | None:
-        v1_query_former_trace_limit = FACTOR_IMPLEMENT_SETTINGS.v1_query_former_trace_limit
-        v1_query_similar_success_limit = FACTOR_IMPLEMENT_SETTINGS.v1_query_similar_success_limit
-        fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
+    ) -> CoSTEERQueriedKnowledge | None:
+        raise NotImplementedError(
+            "This method should be considered as an un-implemented method because we encourage everyone to use v2."
+        )
+        v1_query_former_trace_limit = self.settings.v1_query_former_trace_limit
+        v1_query_similar_success_limit = self.settings.v1_query_similar_success_limit
+        fail_task_trial_limit = self.settings.fail_task_trial_limit
 
-        queried_knowledge = FactorQueriedKnowledgeV1()
-        for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_task_information()
-            if target_factor_task_information in self.knowledgebase.success_task_info_set:
-                queried_knowledge.success_task_to_knowledge_dict[target_factor_task_information] = (
-                    self.knowledgebase.implementation_trace[target_factor_task_information][-1]
+        queried_knowledge = CoSTEERQueriedKnowledgeV1()
+        for target_task in evo.sub_tasks:
+            target_task_information = target_task.get_task_information()
+            if target_task_information in self.knowledgebase.success_task_info_set:
+                queried_knowledge.success_task_to_knowledge_dict[target_task_information] = (
+                    self.knowledgebase.implementation_trace[target_task_information][-1]
                 )
             elif (
                 len(
                     self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
+                        target_task_information,
                         [],
                     ),
                 )
                 >= fail_task_trial_limit
             ):
-                queried_knowledge.failed_task_info_set.add(target_factor_task_information)
+                queried_knowledge.failed_task_info_set.add(target_task_information)
             else:
-                queried_knowledge.working_task_to_former_failed_knowledge_dict[target_factor_task_information] = (
+                queried_knowledge.task_to_former_failed_traces[target_task_information] = (
                     self.knowledgebase.implementation_trace.setdefault(
-                        target_factor_task_information,
+                        target_task_information,
                         [],
                     )[-v1_query_former_trace_limit:]
                 )
@@ -175,7 +178,7 @@ class FactorRAGStrategyV1(RAGStrategy):
                     self.knowledgebase.success_task_info_set,
                 )
                 similarity = calculate_embedding_distance_between_str_list(
-                    [target_factor_task_information],
+                    [target_task_information],
                     knowledge_base_success_task_list,
                 )[0]
                 similar_indexes = sorted(
@@ -190,33 +193,36 @@ class FactorRAGStrategyV1(RAGStrategy):
                     )[-1]
                     for index in similar_indexes
                 ]
-                queried_knowledge.working_task_to_similar_successful_knowledge_dict[target_factor_task_information] = (
+                queried_knowledge.task_to_similar_task_successful_knowledge[target_task_information] = (
                     similar_successful_knowledge
                 )
         return queried_knowledge
 
 
-class FactorQueriedGraphKnowledge(FactorQueriedKnowledge):
+class CoSTEERQueriedKnowledgeV2(CoSTEERQueriedKnowledgeV1):
     # Aggregation of knowledge
     def __init__(
         self,
-        former_traces: dict = {},
-        component_with_success_task: dict = {},
-        error_with_success_task: dict = {},
+        task_to_former_failed_traces: dict = {},
+        task_to_similar_task_successful_knowledge: dict = {},
+        task_to_similar_error_successful_knowledge: dict = {},
         **kwargs,
     ) -> None:
-        self.former_traces = former_traces
-        self.component_with_success_task = component_with_success_task
-        self.error_with_success_task = error_with_success_task
-        super().__init__(**kwargs)
+        self.task_to_similar_error_successful_knowledge = task_to_similar_error_successful_knowledge
+        super().__init__(
+            task_to_former_failed_traces=task_to_former_failed_traces,
+            task_to_similar_task_successful_knowledge=task_to_similar_task_successful_knowledge,
+            **kwargs,
+        )
 
 
-class FactorGraphRAGStrategy(RAGStrategy):
-    prompt = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+class CoSTEERRAGStrategyV2(RAGStrategy):
+    prompt = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-    def __init__(self, knowledgebase: FactorGraphKnowledgeBase) -> None:
+    def __init__(self, knowledgebase: CoSTEERKnowledgeBaseV2, settings: CoSTEERSettings) -> None:
         super().__init__(knowledgebase)
         self.current_generated_trace_count = 0
+        self.settings = settings
 
     def generate_knowledge(
         self,
@@ -233,14 +239,13 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 implementations = evo_step.evolvable_subjects
                 feedback = evo_step.feedback
                 for task_index in range(len(implementations.sub_tasks)):
-                    single_feedback = feedback[task_index]
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_workspace_list[task_index]
-                    single_feedback = feedback[task_index]
-                    if single_feedback is None:
+                    single_feedback: CoSTEERSingleFeedback = feedback[task_index]
+                    if implementation is None or single_feedback is None:
                         continue
-                    single_knowledge = FactorKnowledge(
+                    single_knowledge = CoSTEERKnowledge(
                         target_task=target_task,
                         implementation=implementation,
                         feedback=single_feedback,
@@ -271,7 +276,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                                 )
                             else:
                                 error_analysis_result = self.analyze_error(
-                                    single_feedback.factor_value_feedback,
+                                    single_feedback.value_feedback,
                                     feedback_type="value",
                                 )
                             self.knowledgebase.working_trace_error_analysis.setdefault(
@@ -284,35 +289,35 @@ class FactorGraphRAGStrategy(RAGStrategy):
             self.current_generated_trace_count = len(evolving_trace)
             return None
 
-    def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> QueriedKnowledge | None:
-        conf_knowledge_sampler = FACTOR_IMPLEMENT_SETTINGS.v2_knowledge_sampler
-        factor_implementation_queried_graph_knowledge = FactorQueriedGraphKnowledge(
+    def query(self, evo: EvolvableSubjects, evolving_trace: list[EvoStep]) -> CoSTEERQueriedKnowledge | None:
+        conf_knowledge_sampler = self.settings.v2_knowledge_sampler
+        queried_knowledge_v2 = CoSTEERQueriedKnowledgeV2(
             success_task_to_knowledge_dict=self.knowledgebase.success_task_to_knowledge_dict,
         )
 
-        factor_implementation_queried_graph_knowledge = self.former_trace_query(
+        queried_knowledge_v2 = self.former_trace_query(
             evo,
-            factor_implementation_queried_graph_knowledge,
-            FACTOR_IMPLEMENT_SETTINGS.v2_query_former_trace_limit,
-            FACTOR_IMPLEMENT_SETTINGS.v2_add_fail_attempt_to_latest_successful_execution,
+            queried_knowledge_v2,
+            self.settings.v2_query_former_trace_limit,
+            self.settings.v2_add_fail_attempt_to_latest_successful_execution,
         )
-        factor_implementation_queried_graph_knowledge = self.component_query(
+        queried_knowledge_v2 = self.component_query(
             evo,
-            factor_implementation_queried_graph_knowledge,
-            FACTOR_IMPLEMENT_SETTINGS.v2_query_component_limit,
+            queried_knowledge_v2,
+            self.settings.v2_query_component_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
-        factor_implementation_queried_graph_knowledge = self.error_query(
+        queried_knowledge_v2 = self.error_query(
             evo,
-            factor_implementation_queried_graph_knowledge,
-            FACTOR_IMPLEMENT_SETTINGS.v2_query_error_limit,
+            queried_knowledge_v2,
+            self.settings.v2_query_error_limit,
             knowledge_sampler=conf_knowledge_sampler,
         )
-        return factor_implementation_queried_graph_knowledge
+        return queried_knowledge_v2
 
     def analyze_component(
         self,
-        target_factor_task_information,
+        target_task_information,
     ) -> list[UndirectedNode]:  # Hardcode: certain component nodes
         all_component_nodes = self.knowledgebase.graph.get_all_nodes_by_label_list(["component"])
         if not len(all_component_nodes):
@@ -328,7 +333,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
             )
         )
 
-        analyze_component_user_prompt = target_factor_task_information
+        analyze_component_user_prompt = target_task_information
         try:
             component_no_list = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
@@ -389,33 +394,31 @@ class FactorGraphRAGStrategy(RAGStrategy):
     def former_trace_query(
         self,
         evo: EvolvableSubjects,
-        factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
+        queried_knowledge_v2: CoSTEERQueriedKnowledgeV2,
         v2_query_former_trace_limit: int = 5,
         v2_add_fail_attempt_to_latest_successful_execution: bool = False,
-    ) -> Union[QueriedKnowledge, set]:
+    ) -> Union[CoSTEERQueriedKnowledge, set]:
         """
         Query the former trace knowledge of the working trace, and find all the failed task information which tried more than fail_task_trial_limit times
         """
-        fail_task_trial_limit = FACTOR_IMPLEMENT_SETTINGS.fail_task_trial_limit
+        fail_task_trial_limit = self.settings.fail_task_trial_limit
 
-        for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_task_information()
+        for target_task in evo.sub_tasks:
+            target_task_information = target_task.get_task_information()
             if (
-                target_factor_task_information not in self.knowledgebase.success_task_to_knowledge_dict
-                and target_factor_task_information in self.knowledgebase.working_trace_knowledge
-                and len(self.knowledgebase.working_trace_knowledge[target_factor_task_information])
-                >= fail_task_trial_limit
+                target_task_information not in self.knowledgebase.success_task_to_knowledge_dict
+                and target_task_information in self.knowledgebase.working_trace_knowledge
+                and len(self.knowledgebase.working_trace_knowledge[target_task_information]) >= fail_task_trial_limit
             ):
-                factor_implementation_queried_graph_knowledge.failed_task_info_set.add(target_factor_task_information)
+                queried_knowledge_v2.failed_task_info_set.add(target_task_information)
 
             if (
-                target_factor_task_information not in self.knowledgebase.success_task_to_knowledge_dict
-                and target_factor_task_information
-                not in factor_implementation_queried_graph_knowledge.failed_task_info_set
-                and target_factor_task_information in self.knowledgebase.working_trace_knowledge
+                target_task_information not in self.knowledgebase.success_task_to_knowledge_dict
+                and target_task_information not in queried_knowledge_v2.failed_task_info_set
+                and target_task_information in self.knowledgebase.working_trace_knowledge
             ):
                 former_trace_knowledge = copy.copy(
-                    self.knowledgebase.working_trace_knowledge[target_factor_task_information],
+                    self.knowledgebase.working_trace_knowledge[target_task_information],
                 )
                 # in former trace query we will delete the right trace in the following order:[..., value_generated_flag is True, value_generated_flag is False, ...]
                 # because we think this order means a deterioration of the trial (like a wrong gradient descent)
@@ -434,47 +437,44 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     # When the last successful execution is not the last one in the working trace, it means we have tried to correct it. We should tell the agent this fail trial to avoid endless loop in the future.
                     if (
                         len(former_trace_knowledge) > 0
-                        and len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) > 1
-                        and self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
+                        and len(self.knowledgebase.working_trace_knowledge[target_task_information]) > 1
+                        and self.knowledgebase.working_trace_knowledge[target_task_information].index(
                             former_trace_knowledge[-1]
                         )
-                        < len(self.knowledgebase.working_trace_knowledge[target_factor_task_information]) - 1
+                        < len(self.knowledgebase.working_trace_knowledge[target_task_information]) - 1
                     ):
-                        latest_attempt = self.knowledgebase.working_trace_knowledge[target_factor_task_information][-1]
+                        latest_attempt = self.knowledgebase.working_trace_knowledge[target_task_information][-1]
 
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = (
+                queried_knowledge_v2.task_to_former_failed_traces[target_task_information] = (
                     former_trace_knowledge[-v2_query_former_trace_limit:],
                     latest_attempt,
                 )
             else:
-                factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information] = ([], None)
+                queried_knowledge_v2.task_to_former_failed_traces[target_task_information] = ([], None)
 
-        return factor_implementation_queried_graph_knowledge
+        return queried_knowledge_v2
 
     def component_query(
         self,
         evo: EvolvableSubjects,
-        factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
+        queried_knowledge_v2: CoSTEERQueriedKnowledgeV2,
         v2_query_component_limit: int = 5,
         knowledge_sampler: float = 1.0,
-    ) -> QueriedKnowledge | None:
-        # queried_component_knowledge = FactorQueriedGraphComponentKnowledge()
-        for target_factor_task in evo.sub_tasks:
-            target_factor_task_information = target_factor_task.get_task_information()
+    ) -> CoSTEERQueriedKnowledge | None:
+        for target_task in evo.sub_tasks:
+            target_task_information = target_task.get_task_information()
             if (
-                target_factor_task_information in self.knowledgebase.success_task_to_knowledge_dict
-                or target_factor_task_information in factor_implementation_queried_graph_knowledge.failed_task_info_set
+                target_task_information in self.knowledgebase.success_task_to_knowledge_dict
+                or target_task_information in queried_knowledge_v2.failed_task_info_set
             ):
-                factor_implementation_queried_graph_knowledge.component_with_success_task[
-                    target_factor_task_information
-                ] = []
+                queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information] = []
             else:
-                if target_factor_task_information not in self.knowledgebase.task_to_component_nodes:
-                    self.knowledgebase.task_to_component_nodes[target_factor_task_information] = self.analyze_component(
-                        target_factor_task_information,
+                if target_task_information not in self.knowledgebase.task_to_component_nodes:
+                    self.knowledgebase.task_to_component_nodes[target_task_information] = self.analyze_component(
+                        target_task_information,
                     )
 
-                component_analysis_result = self.knowledgebase.task_to_component_nodes[target_factor_task_information]
+                component_analysis_result = self.knowledgebase.task_to_component_nodes[target_task_information]
 
                 if len(component_analysis_result) > 1:
                     task_des_node_list = self.knowledgebase.graph_query_by_intersection(
@@ -485,9 +485,7 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 else:
                     task_des_node_list = []
                     single_component_constraint = v2_query_component_limit
-                factor_implementation_queried_graph_knowledge.component_with_success_task[
-                    target_factor_task_information
-                ] = []
+                queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information] = []
                 for component_node in component_analysis_result:
                     # Reverse iterate, a trade-off with intersection search
                     count = 0
@@ -518,19 +516,19 @@ class FactorGraphRAGStrategy(RAGStrategy):
                             ]
                         if (
                             target_knowledge
-                            not in factor_implementation_queried_graph_knowledge.component_with_success_task[
-                                target_factor_task_information
+                            not in queried_knowledge_v2.task_to_similar_task_successful_knowledge[
+                                target_task_information
                             ]
                         ):
-                            factor_implementation_queried_graph_knowledge.component_with_success_task[
-                                target_factor_task_information
+                            queried_knowledge_v2.task_to_similar_task_successful_knowledge[
+                                target_task_information
                             ].append(target_knowledge)
 
                 # finally add embedding related knowledge
                 knowledge_base_success_task_list = list(self.knowledgebase.success_task_to_knowledge_dict)
 
                 similarity = calculate_embedding_distance_between_str_list(
-                    [target_factor_task_information],
+                    [target_task_information],
                     knowledge_base_success_task_list,
                 )[0]
                 similar_indexes = sorted(
@@ -545,28 +543,24 @@ class FactorGraphRAGStrategy(RAGStrategy):
                 for knowledge in embedding_similar_successful_knowledge:
                     if (
                         knowledge
-                        not in factor_implementation_queried_graph_knowledge.component_with_success_task[
-                            target_factor_task_information
-                        ]
+                        not in queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information]
                     ):
-                        factor_implementation_queried_graph_knowledge.component_with_success_task[
-                            target_factor_task_information
-                        ].append(knowledge)
+                        queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information].append(
+                            knowledge
+                        )
 
                 if knowledge_sampler > 0:
-                    factor_implementation_queried_graph_knowledge.component_with_success_task[
-                        target_factor_task_information
-                    ] = [
+                    queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information] = [
                         knowledge
-                        for knowledge in factor_implementation_queried_graph_knowledge.component_with_success_task[
-                            target_factor_task_information
+                        for knowledge in queried_knowledge_v2.task_to_similar_task_successful_knowledge[
+                            target_task_information
                         ]
                         if random.uniform(0, 1) <= knowledge_sampler
                     ]
 
                 # Make sure no less than half of the knowledge are from GT
-                queried_knowledge_list = factor_implementation_queried_graph_knowledge.component_with_success_task[
-                    target_factor_task_information
+                queried_knowledge_list = queried_knowledge_v2.task_to_similar_task_successful_knowledge[
+                    target_task_information
                 ]
                 queried_from_gt_knowledge_list = [
                     knowledge
@@ -582,51 +576,43 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     min((v2_query_component_limit // 2 + 1), len(queried_from_gt_knowledge_list)),
                     v2_query_component_limit - len(queried_without_gt_knowledge_list),
                 )
-                factor_implementation_queried_graph_knowledge.component_with_success_task[
-                    target_factor_task_information
-                ] = (
+                queried_knowledge_v2.task_to_similar_task_successful_knowledge[target_task_information] = (
                     queried_from_gt_knowledge_list[:queried_from_gt_knowledge_count]
                     + queried_without_gt_knowledge_list[: v2_query_component_limit - queried_from_gt_knowledge_count]
                 )
 
-        return factor_implementation_queried_graph_knowledge
+        return queried_knowledge_v2
 
     def error_query(
         self,
         evo: EvolvableSubjects,
-        factor_implementation_queried_graph_knowledge: FactorQueriedGraphKnowledge,
+        queried_knowledge_v2: CoSTEERQueriedKnowledgeV2,
         v2_query_error_limit: int = 5,
         knowledge_sampler: float = 1.0,
-    ) -> QueriedKnowledge | None:
-        # queried_error_knowledge = FactorQueriedGraphErrorKnowledge()
-        for task_index, target_factor_task in enumerate(evo.sub_tasks):
-            target_factor_task_information = target_factor_task.get_task_information()
-            factor_implementation_queried_graph_knowledge.error_with_success_task[target_factor_task_information] = {}
+    ) -> CoSTEERQueriedKnowledge | None:
+        for task_index, target_task in enumerate(evo.sub_tasks):
+            target_task_information = target_task.get_task_information()
+            queried_knowledge_v2.task_to_similar_error_successful_knowledge[target_task_information] = []
             if (
-                target_factor_task_information in self.knowledgebase.success_task_to_knowledge_dict
-                or target_factor_task_information in factor_implementation_queried_graph_knowledge.failed_task_info_set
+                target_task_information in self.knowledgebase.success_task_to_knowledge_dict
+                or target_task_information in queried_knowledge_v2.failed_task_info_set
             ):
-                factor_implementation_queried_graph_knowledge.error_with_success_task[
-                    target_factor_task_information
-                ] = []
+                queried_knowledge_v2.task_to_similar_error_successful_knowledge[target_task_information] = []
             else:
-                factor_implementation_queried_graph_knowledge.error_with_success_task[
-                    target_factor_task_information
-                ] = []
+                queried_knowledge_v2.task_to_similar_error_successful_knowledge[target_task_information] = []
                 if (
-                    target_factor_task_information in self.knowledgebase.working_trace_error_analysis
-                    and len(self.knowledgebase.working_trace_error_analysis[target_factor_task_information]) > 0
-                    and len(factor_implementation_queried_graph_knowledge.former_traces[target_factor_task_information])
-                    > 0
+                    target_task_information in self.knowledgebase.working_trace_error_analysis
+                    and len(self.knowledgebase.working_trace_error_analysis[target_task_information]) > 0
+                    and len(queried_knowledge_v2.task_to_former_failed_traces[target_task_information]) > 0
                 ):
-                    queried_last_trace = factor_implementation_queried_graph_knowledge.former_traces[
-                        target_factor_task_information
-                    ][0][-1]
-                    target_index = self.knowledgebase.working_trace_knowledge[target_factor_task_information].index(
+                    queried_last_trace = queried_knowledge_v2.task_to_former_failed_traces[target_task_information][0][
+                        -1
+                    ]
+                    target_index = self.knowledgebase.working_trace_knowledge[target_task_information].index(
                         queried_last_trace,
                     )
                     last_knowledge_error_analysis_result = self.knowledgebase.working_trace_error_analysis[
-                        target_factor_task_information
+                        target_task_information
                     ][target_index]
                 else:
                     last_knowledge_error_analysis_result = []
@@ -719,14 +705,14 @@ class FactorGraphRAGStrategy(RAGStrategy):
                     ]
 
                 same_error_success_knowledge_pair_list = same_error_success_knowledge_pair_list[:v2_query_error_limit]
-                factor_implementation_queried_graph_knowledge.error_with_success_task[
-                    target_factor_task_information
-                ] = same_error_success_knowledge_pair_list
+                queried_knowledge_v2.task_to_similar_error_successful_knowledge[target_task_information] = (
+                    same_error_success_knowledge_pair_list
+                )
 
-        return factor_implementation_queried_graph_knowledge
+        return queried_knowledge_v2
 
 
-class FactorGraphKnowledgeBase(EvolvingKnowledgeBase):
+class CoSTEERKnowledgeBaseV2(EvolvingKnowledgeBase):
     def __init__(self, init_component_list=None, path: str | Path = None) -> None:
         """
         Load knowledge, offer brief information of knowledge and common handle interfaces
@@ -749,7 +735,7 @@ class FactorGraphKnowledgeBase(EvolvingKnowledgeBase):
         # Add already success task
         self.success_task_to_knowledge_dict = {}
 
-        # key:node_id(for task trace and success implement), value:knowledge instance(aka 'FactorKnowledge')
+        # key:node_id(for task trace and success implement), value:knowledge instance(aka 'CoSTEERKnowledge')
         self.node_to_implementation_knowledge_dict = {}
 
         # store the task description to component nodes

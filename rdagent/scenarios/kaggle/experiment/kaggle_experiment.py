@@ -38,7 +38,9 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = KGFBWorkspace(
-            template_folder_path=Path(__file__).parent / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template"
+            template_folder_path=Path(__file__).resolve()
+            / Path(KAGGLE_IMPLEMENT_SETTING.template_path).resolve()
+            / KAGGLE_IMPLEMENT_SETTING.competition
         )
         if len(self.based_experiments) > 0:
             self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
@@ -62,7 +64,9 @@ class KGFactorExperiment(FeatureExperiment[FactorTask, KGFBWorkspace, FactorFBWo
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = KGFBWorkspace(
-            template_folder_path=Path(__file__).parent / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template"
+            template_folder_path=Path(__file__).resolve()
+            / Path(KAGGLE_IMPLEMENT_SETTING.template_path).resolve()
+            / KAGGLE_IMPLEMENT_SETTING.competition
         )
         if len(self.based_experiments) > 0:
             self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)

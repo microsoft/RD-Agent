@@ -206,7 +206,7 @@ class Experiment(
         sub_tasks: Sequence[ASpecificTask],
         based_experiments: Sequence[ASpecificWSForExperiment] = [],
     ) -> None:
-        self.sub_tasks = sub_tasks
+        self.sub_tasks: Sequence[ASpecificTask] = sub_tasks
         self.sub_workspace_list: list[ASpecificWSForSubTasks | None] = [None] * len(self.sub_tasks)
         self.based_experiments: Sequence[ASpecificWSForExperiment] = based_experiments
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
