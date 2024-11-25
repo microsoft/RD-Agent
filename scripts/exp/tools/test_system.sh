@@ -5,23 +5,15 @@ TEST_DIR="test_run"
 mkdir -p "$TEST_DIR/results"
 mkdir -p "$TEST_DIR/logs"
 
-# Test 1: Environment loading verification
-echo "Testing environment loading..."
-./scripts/exp/tools/run_envs.sh -d scripts/exp/ablation/env -j 1 -- env | grep "if_using"
+# Define paths
+ENV_DIR="/home/v-xisenwang/RD-Agent/scripts/exp/ablation/env"
+PYTHON_SCRIPT="/home/v-xisenwang/RD-Agent/rdagent/app/kaggle/loop.py"
 
-# Test 2: Run actual experiments
-echo "Running experiments with different configurations..."
-./scripts/exp/tools/run_envs.sh -d scripts/exp/ablation/env -j 4 -- \
-    python -m rdagent.app.kaggle.loop \
-    --competition "titanic" \
-    --result_path "${TEST_DIR}/results/$(basename {} .env)_result.json"
+# Run the experiment
+echo "Running experiments..."
+dotenv run -- ./scripts/exp/tools/run_envs.sh -d "$ENV_DIR" -j 4 -- \
+    python "$PYTHON_SCRIPT" \
+    --competition "spaceship-titanic" \ 
 
-# Test 3: Result collection
-echo "Collecting and analyzing results..."
-EXP_DIR="$TEST_DIR" python scripts/exp/tools/collect.py
-
-# Display results location
-echo "Test results available at: $TEST_DIR"
-
-# Cleanup
-rm -rf "$TEST_DIR"
+# Cleanup (optional - comment out if you want to keep results)
+# rm -rf "$TEST_DIR"

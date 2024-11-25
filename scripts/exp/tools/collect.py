@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 from pathlib import Path
 from datetime import datetime
 from rdagent.log.storage import FileStorage
@@ -56,12 +57,27 @@ def generate_summary(results, output_path):
                     "competition_name": result["competition_name"]
                 })
     
-    with open(output_path, "w") as f:
+    with open(output_path, "w") as f: 
         json.dump(summary, f, indent=4)
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Collect and summarize experiment results')
+    parser.add_argument('--log_path', type=str, required=True,
+                       help='Path to the log directory containing experiment results')
+    parser.add_argument('--output_name', type=str, default='summary.json',
+                       help='Name of the output summary file (default: summary.json)')
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    sample_result_dir = Path("/home/bowen/workspace/RD-Agent/log/MAY2022_5")
-    results = collect_results(sample_result_dir )
-    generate_summary(results, os.path.join(sample_result_dir, "summary.json"))
-    print("Summary generated successfully at ", os.path.join(sample_result_dir, "summary.json"))
+    args = parse_args()
+    log_path = Path(args.log_path)
+    
+    # Verify the log path exists
+    if not log_path.exists():
+        raise FileNotFoundError(f"Log path does not exist: {log_path}")
+    
+    results = collect_results(log_path)
+    output_path = log_path / args.output_name
+    generate_summary(results, output_path)
+    print("Summary generated successfully at", output_path)
 
