@@ -27,10 +27,8 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge = None,
-        current_exp: ModelExperiment = None,  # Add this parameter
     ) -> str:
         model_information_str = target_task.get_task_information()
-        model_type = target_task.model_type
 
         if queried_knowledge is not None and model_information_str in queried_knowledge.success_task_to_knowledge_dict:
             return queried_knowledge.success_task_to_knowledge_dict[model_information_str].implementation

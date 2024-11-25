@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Tuple
+from typing import List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS

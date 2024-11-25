@@ -1,34 +1,18 @@
-import io
-import json
 import re
-from abc import abstractmethod
-from pathlib import Path
-from typing import List, Tuple
-
-import pandas as pd
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.eva_utils import (
     FactorCodeEvaluator,
     FactorFinalDecisionEvaluator,
     FactorValueEvaluator,
 )
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evaluation import Evaluator, Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import Task, Workspace
-from rdagent.core.prompts import Prompts
-from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.experiment import Workspace
 
 FactorSingleFeedback = CoSTEERSingleFeedback
 FactorMultiFeedback = CoSTEERMultiFeedback

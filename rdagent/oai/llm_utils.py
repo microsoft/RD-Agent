@@ -327,7 +327,7 @@ class APIBackend:
 
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
-            self.encoder = tiktoken.encoding_for_model(self.chat_model)
+            self.encoder = tiktoken.encoding_for_model(self.chat_model.split("_")[0])
             self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
             self.chat_api_version = (
                 LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version

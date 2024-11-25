@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-import json
 from abc import abstractmethod
-from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
@@ -21,8 +16,6 @@ from rdagent.core.experiment import Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Task
 from rdagent.core.utils import multiprocessing_wrapper
-from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.oai.llm_utils import APIBackend
 
 implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 

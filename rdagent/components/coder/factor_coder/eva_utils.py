@@ -9,7 +9,6 @@ from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.core.evaluation import Evaluator
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
