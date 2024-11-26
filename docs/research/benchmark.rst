@@ -105,6 +105,5 @@ Related Paper
 
 .. image:: https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841
 
-To replicate the benchmark detailed in the paper, please consult the factors listed in the following file:
-
-    .. file:: ../_static/RD2bench.json
+To replicate the benchmark detailed in the paper, please consult the factors listed in the following file: `RD2bench.json <../_static/RD2bench.json>`_.
+Please note use ``only_correct_format=False`` when evaluating the results.

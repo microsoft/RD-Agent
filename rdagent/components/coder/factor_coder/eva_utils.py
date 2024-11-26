@@ -221,7 +221,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     str(resp_dict["output_format_feedback"]),
                     resp_dict["output_format_decision"],
                 )
-            except (KeyError, json.JSONDecodeError ) as e:
+            except (KeyError, json.JSONDecodeError) as e:
                 attempts += 1
                 if attempts >= max_attempts:
                     raise KeyError(
