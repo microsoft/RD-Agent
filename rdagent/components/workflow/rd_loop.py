@@ -10,7 +10,7 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
     Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
+    Experiment2Feedback,
     HypothesisGen,
     Trace,
 )
@@ -39,7 +39,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             self.runner: Developer = import_class(PROP_SETTING.runner)(scen)
             logger.log_object(self.runner, tag="runner")
 
-            self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+            self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = Trace(scen=scen)
             super().__init__()

@@ -103,6 +103,23 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         return None, None
 
 
+class ExpGen(ABC):
+    @abstractmethod
+    def gen(self, trace: Trace) -> Experiment:
+        """
+        Generate the experiment based on the trace.
+
+        `ExpGen().gen()` play a role like
+
+        .. code-block:: python
+
+            # ExpGen().gen() ==
+            Hypothesis2Experiment().convert(
+                HypothesisGen().gen(trace)
+            )
+        """
+
+
 class HypothesisGen(ABC):
     # NOTE: the design is a little wierd
     # - Sometimes we want accurate access the prompts in a specific level
@@ -141,7 +158,7 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 # Boolean, Reason, Confidence, etc.
 
 
-class HypothesisExperiment2Feedback(ABC):
+class Experiment2Feedback(ABC):
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks
     & their comparisons with previous performances"""
 
@@ -149,11 +166,12 @@ class HypothesisExperiment2Feedback(ABC):
         self.scen = scen
 
     @abstractmethod
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
+        # TODO: return a hypothesis feedback seems wierd now. Maybe we should return an ExerimentFeedback?
         error_message = "generate_feedback method is not implemented."
         raise NotImplementedError(error_message)

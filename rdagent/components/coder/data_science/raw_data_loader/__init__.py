@@ -1,3 +1,15 @@
+"""
+
+Loop should not large change excclude
+- Action Choice[current data loader & spec]
+- other should share
+    - Propose[choice] => Task[Choice] => CoSTEER => 
+        - 
+
+Extra feature:
+- cache
+"""
+
 # from rdagent.components.coder.CoSTEER import CoSTEER
 # from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 # from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator

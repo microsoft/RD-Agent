@@ -10,7 +10,7 @@ from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
-    HypothesisExperiment2Feedback,
+    Experiment2Feedback,
     HypothesisFeedback,
     Trace,
 )
@@ -22,14 +22,15 @@ feedback_prompts = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class DMModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class DMModelExperiment2Feedback(Experiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
+        hypothesis = exp.hypothesis
 
         logger.info("Generating feedback...")
         # Define the system prompt for hypothesis feedback

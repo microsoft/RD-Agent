@@ -1,10 +1,12 @@
+
 import subprocess
-from typing import Any
+from typing import Any, Literal
 
 import fire
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
+from rdagent.components.workflow.dummy import DummyHypothesisGen
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
@@ -30,15 +32,26 @@ from rdagent.scenarios.kaggle.proposal.proposal import KGTrace
 class KaggleRDLoop(RDLoop):
     @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
+
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
+
+            ### shared components in the workflow  # TODO: check if 
             knowledge_base = (
                 import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
                 if PROP_SETTING.knowledge_base != ""
                 else None
             )
             logger.log_object(knowledge_base, tag="knowledge_base")
+
+            # 1) task generation from scratch
+            # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
+            
+            # 2) task generation from a complete solution
+            self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
+
+
             self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
             self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
@@ -57,6 +70,7 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(self.model_runner, tag="model runner")
             self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
+
             self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
 
@@ -74,6 +88,9 @@ class KaggleRDLoop(RDLoop):
 
     @measure_time
     def running(self, prev_out: dict[str, Any]):
+        if not self.exp_gen.is_complete():
+            raise NextLoopExcpetion()
+
         with logger.tag("ef"):  # evaluate and feedback
             if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
                 exp = self.feature_runner.develop(prev_out["coding"])

@@ -34,12 +34,16 @@ class FactorTask(CoSTEERTask):
         self.factor_name = (
             factor_name  # TODO: remove it in the later version. Keep it only for pickle version compatibility
         )
-        self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.variables = variables
         self.factor_resources = resource
         self.factor_implementation = factor_implementation
-        super().__init__(name=factor_name, *args, **kwargs)
+        super().__init__(name=factor_name, description=factor_description, *args, **kwargs)
+
+    @property
+    def factor_description(self):
+        """for compatibility"""
+        return self.description
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}

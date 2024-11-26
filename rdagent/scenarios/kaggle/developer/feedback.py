@@ -9,7 +9,7 @@ from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Hypothesis,
-    HypothesisExperiment2Feedback,
+    Experiment2Feedback,
     HypothesisFeedback,
     Trace,
 )
@@ -22,7 +22,7 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class KGExperiment2Feedback(Experiment2Feedback):
     def process_results(self, current_result, sota_result):
         # Convert the results to dataframes
         current_df = pd.DataFrame(current_result)
@@ -46,7 +46,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         return combined_df, evaluation_description
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
@@ -60,6 +60,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
+        hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
         current_result = exp.result
 
