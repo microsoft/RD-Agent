@@ -13,9 +13,10 @@ from rdagent.components.benchmark.eval_method import FactorImplementEval
 
 
 class BenchmarkAnalyzer:
-    def __init__(self, settings):
+    def __init__(self, settings, only_correct_format=False):
         self.settings = settings
         self.index_map = self.load_index_map()
+        self.only_correct_format = only_correct_format
 
     def load_index_map(self):
         index_map = {}
@@ -119,11 +120,13 @@ class BenchmarkAnalyzer:
         format_succ_rate_f = self.reformat_index(format_succ_rate)
 
         corr = sum_df_clean["FactorCorrelationEvaluator"].fillna(0.0)
-        corr = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
-        corr_res = self.reformat_index(corr)
-        corr_max = sum_df_clean["FactorCorrelationEvaluator"]
+        if self.only_correct_format:
+            corr = corr.loc[format_issue == 1.0]
 
-        corr_max = corr_max.unstack().T.max(axis=0).to_frame("corr(only success)")
+        corr_res = corr.unstack().T.mean(axis=0).to_frame("corr(only success)")
+        corr_res = self.reformat_index(corr_res)
+
+        corr_max = corr.unstack().T.max(axis=0).to_frame("corr(only success)")
         corr_max_res = self.reformat_index(corr_max)
 
         value_max = sum_df_clean["FactorEqualValueRatioEvaluator"]
@@ -150,8 +153,14 @@ class BenchmarkAnalyzer:
             axis=1,
         )
 
-        df = result_all.sort_index(axis=1, key=self.result_all_key_order)
+        df = result_all.sort_index(axis=1, key=self.result_all_key_order).sort_index(axis=0)
         print(df)
+
+        print()
+        print(df.groupby("Category").mean())
+
+        print()
+        print(df.mean())
 
         # Calculate the mean of each column
         mean_values = df.fillna(0.0).mean()
@@ -196,9 +205,10 @@ def main(
     path="git_ignore_folder/eval_results/res_promptV220240724-060037.pkl",
     round=1,
     title="Comparison of Different Methods",
+    only_correct_format=False,
 ):
     settings = BenchmarkSettings()
-    benchmark = BenchmarkAnalyzer(settings)
+    benchmark = BenchmarkAnalyzer(settings, only_correct_format=only_correct_format)
     results = {
         f"{round} round experiment": path,
     }

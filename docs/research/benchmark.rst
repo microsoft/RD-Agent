@@ -5,21 +5,12 @@ Benchmark
 Introduction
 =============
 
-
-Benchmarking the capabilities of the R&D is a very important research problem of the research area.
-
-Currently we are continuously exploring how to benchmark them.
-
-The current benchmarks are listed in this page
-
+Benchmarking the capabilities of R&D is a crucial research problem in this area. We are continuously exploring methods to benchmark these capabilities. The current benchmarks are listed on this page.
 
 Development Capability Benchmarking
 ===================================
 
-
-Benchmark is used to evaluate the effectiveness of factors with fixed data.
-
-It mainly includes the following steps:
+Benchmarking is used to evaluate the effectiveness of factors with fixed data. It mainly includes the following steps:
 
 1. :ref:`read and prepare the eval_data <data>`
 
@@ -27,34 +18,31 @@ It mainly includes the following steps:
 
 3. :ref:`declare the eval method and pass the arguments <config>`
 
-4. :ref:`run the eval <run>` 
+4. :ref:`run the eval <run>`
 
-5. :ref:`save and show the result <show>` 
+5. :ref:`save and show the result <show>`
 
-Configuration 
+Configuration
 -------------
 .. _config:
 
 .. autopydantic_settings:: rdagent.components.benchmark.conf.BenchmarkSettings
 
 Example
-++++++++
++++++++
 .. _example:
 
-The default value for ``bench_test_round`` is 10, and it will take about 2 hours to run 10 rounds.
-To modify it from ``10`` to ``2`` you can adjust this by adding environment variables in the .env file as shown below.
+The default value for ``bench_test_round`` is 10, which takes about 2 hours to run. To modify it from ``10`` to ``2``, adjust the environment variables in the .env file as shown below.
 
 .. code-block:: Properties
 
-      BENCHMARK_BENCH_TEST_ROUND=1
+      BENCHMARK_BENCH_TEST_ROUND=2
 
 Data Format
 -------------
 .. _data:
 
-The sample data in ``bench_data_path`` is a dictionary where each key represents a factor name. 
-
-The value associated with each key is factor data containing the following information:
+The sample data in ``bench_data_path`` is a dictionary where each key represents a factor name. The value associated with each key is factor data containing the following information:
 
 - **description**: A textual description of the factor.
 - **formulation**: A LaTeX formula representing the model's formulation.
@@ -63,22 +51,24 @@ The value associated with each key is factor data containing the following infor
 - **Difficulty**: The difficulty level of implementing or understanding the factor.
 - **gt_code**: A piece of code associated with the factor.
 
-Here is the example of this data format:
+Here is an example of this data format:
 
 .. literalinclude:: ../../rdagent/components/benchmark/example.json
    :language: json
+
+Ensure the data is placed in the ``FACTOR_COSTEER_SETTINGS.data_folder_debug``. The data files should be in ``.h5`` or ``.md`` format and must not be stored in any subfolders. LLM-Agents will review the file content and implement the tasks.
+
+.. TODO: Add a script to automatically generate the data in the `rdagent/app/quant_factor_benchmark/data` folder.
 
 Run Benchmark
 -------------
 .. _run:
 
-Start benchmark after finishing the :doc:`../installation_and_configuration`.
+Start the benchmark after completing the :doc:`../installation_and_configuration`.
 
 .. code-block:: Properties
 
-      python rdagent/app/quant_factor_benchmark/eval.py
-
-
+      dotenv run -- python rdagent/app/benchmark/factor/eval.py
 
 Once completed, a pkl file will be generated, and its path will be printed on the last line of the console.
 
@@ -86,17 +76,15 @@ Show Result
 -------------
 .. _show:
 
-The ``analysis.py`` script is used to read data from pkl and convert it to an image.
-Modify the python code in ``rdagent/app/quant_factor_benchmark/analysis.py`` to specify the path to the pkl file and the output path for the png file.
+The ``analysis.py`` script reads data from the pkl file and converts it to an image. Modify the Python code in ``rdagent/app/quant_factor_benchmark/analysis.py`` to specify the path to the pkl file and the output path for the png file.
 
 .. code-block:: Properties
 
-      python rdagent/app/quant_factor_benchmark/analysis.py
+      dotenv run -- python rdagent/app/benchmark/factor/analysis.py <log/path to.pkl>
 
 A png file will be saved to the designated path as shown below.
 
 .. image:: ../_static/benchmark.png
-
 
 Related Paper
 -------------
@@ -116,3 +104,6 @@ Related Paper
     }
 
 .. image:: https://github.com/user-attachments/assets/494f55d3-de9e-4e73-ba3d-a787e8f9e841
+
+To replicate the benchmark detailed in the paper, please consult the factors listed in the following file: `RD2bench.json <../_static/RD2bench.json>`_.
+Please note use ``only_correct_format=False`` when evaluating the results.

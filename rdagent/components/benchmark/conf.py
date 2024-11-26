@@ -12,9 +12,6 @@ class BenchmarkSettings(ExtendedBaseSettings):
         env_prefix = "BENCHMARK_"
         """Use `BENCHMARK_` as prefix for environment variables"""
 
-    ground_truth_dir: Path = DIRNAME / "ground_truth"
-    """ground truth dir"""
-
     bench_data_path: Path = DIRNAME / "example.json"
     """data for benchmark"""
 
@@ -24,7 +21,7 @@ class BenchmarkSettings(ExtendedBaseSettings):
     bench_test_case_n: Optional[int] = None
     """how many test cases to run; If not given, all test cases will be run"""
 
-    bench_method_cls: str = "rdagent.components.coder.CoSTEER.FactorCoSTEER"
+    bench_method_cls: str = "rdagent.components.coder.factor_coder.FactorCoSTEER"
     """method to be used for test cases"""
 
     bench_method_extra_kwargs: dict = field(

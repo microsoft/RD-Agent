@@ -158,14 +158,20 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[:-1]
             elif len(queried_similar_error_knowledge_to_render) > 0:
                 queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
-        code = json.loads(
-            APIBackend(
-                use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
-            ).build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["code"]
-        return code
+        for _ in range(10):
+            try:
+                code = json.loads(
+                    APIBackend(
+                        use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
+                    ).build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    )
+                )["code"]
+                return code
+            except json.decoder.JSONDecodeError:
+                pass
+        else:
+            return ""  # return empty code if failed to get code after 10 attempts
 
     def assign_code_list_to_evo(self, code_list, evo):
         for index in range(len(evo.sub_tasks)):

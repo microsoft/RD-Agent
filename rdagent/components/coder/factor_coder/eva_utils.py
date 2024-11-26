@@ -221,15 +221,11 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     str(resp_dict["output_format_feedback"]),
                     resp_dict["output_format_decision"],
                 )
-
-            except json.JSONDecodeError as e:
-                raise ValueError("Failed to decode JSON response from API.") from e
-
-            except KeyError as e:
+            except (KeyError, json.JSONDecodeError) as e:
                 attempts += 1
                 if attempts >= max_attempts:
                     raise KeyError(
-                        "Response from API is missing 'output_format_decision' or 'output_format_feedback' key after multiple attempts."
+                        "Wrong JSON Response or missing 'output_format_decision' or 'output_format_feedback' key after multiple attempts."
                     ) from e
 
         return "Failed to evaluate output format after multiple attempts.", False

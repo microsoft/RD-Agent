@@ -1,0 +1,332 @@
+{
+  "alpha053_15": {
+    "description": "Reversal class factor, negative delta of a ratio involving close, low, and high prices over 15 days.",
+    "formulation": "-1 times Deltaleft(frac{(text{close} - text{low}) - (text{high} - text{close})}{text{close} - text{low}}, 15right)",
+    "variables": {
+      "Delta(x, d)": "Change in 'x' over 'd' days.",
+      "text{close}": "Closing price of the stock.",
+      "text{low}": "Lowest price of the stock for the day.",
+      "text{high}": "Highest price of the stock for the day."
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha053\nnew_df['ratio'] =  (new_df['$close'] - new_df['$low'] - (new_df['$high'] - new_df['$close'])) / (new_df['$close'] - new_df['$low'])\n# the change of ratio in new_df over the 15 days\nnew_df['result']=-new_df['ratio'].diff(15)\n# transfer the result to series\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "liquidity_imbalance": {
+    "description": "liquidity_imbalance=std(minute trading liquidity_imbalance)/mean(minute trading liquidity_imbalance).",
+    "formulation": "liquidity_imbalance = frac{text{std}(text{minute trading liquidity_imbalance})}{text{mean}(text{minute liquidity_imbalance})}",
+    "variables": {
+      "std(minute liquidity_imbalance)": "Standard deviation of trading liquidity_imbalance for each minute of the trading day.",
+      "mean(minute liquidity_imbalance)": "Mean of trading liquidity_imbalance for each minute of the trading day.",
+      "liquidity_imbalance": "(bid_size-ask_size)/(bid_size+ask_size), we use something like bidV for the size"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['liquidity_imbalance']=(sample_df['bidV']-sample_df['askV'])/(sample_df['bidV']+sample_df['askV'])\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['liquidity_imbalance']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['liquidity_imbalance'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['liquidity_imbalance']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "liquidity_imbalance_2": {
+    "description": "liquidity_imbalance=std(minute trading liquidity_imbalance)/mean(minute trading liquidity_imbalance).",
+    "formulation": "liquidity_imbalance = frac{text{std}(text{minute trading liquidity_imbalance})}{text{mean}(text{minute liquidity_imbalance})}",
+    "variables": {
+      "std(minute liquidity_imbalance)": "Standard deviation of trading liquidity_imbalance for each minute of the trading day.",
+      "mean(minute liquidity_imbalance)": "Mean of trading liquidity_imbalance for each minute of the trading day.",
+      "liquidity_imbalance": "(bid_size-ask_size)/2*(bid_size+ask_size), we use something like bidV for the size"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['liquidity_imbalance']=(sample_df['bidV']-sample_df['askV'])/((sample_df['bidV']+sample_df['askV'])*2)\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['liquidity_imbalance']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['liquidity_imbalance'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['liquidity_imbalance']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "liquidity_imbalance_3": {
+    "description": "liquidity_imbalance=std(minute trading liquidity_imbalance)/mean(minute trading liquidity_imbalance).",
+    "formulation": "liquidity_imbalance = frac{text{std}(text{minute trading liquidity_imbalance})}{text{mean}(text{minute liquidity_imbalance})}",
+    "variables": {
+      "std(minute liquidity_imbalance)": "Standard deviation of trading liquidity_imbalance for each minute of the trading day.",
+      "mean(minute liquidity_imbalance)": "Mean of trading liquidity_imbalance for each minute of the trading day.",
+      "liquidity_imbalance": "(bid_size-ask_size)/3*(bid_size+ask_size), we use something like bidV for the size"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['liquidity_imbalance']=(sample_df['bidV']-sample_df['askV'])/((sample_df['bidV']+sample_df['askV'])*3)\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['liquidity_imbalance']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['liquidity_imbalance'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['liquidity_imbalance']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "micro_price": {
+    "description": "micro_price=std(minute trading micro_price)/mean(minute trading micro_price).",
+    "formulation": "micro_price = frac{text{std}(text{minute trading micro_price})}{text{mean}(text{minute micro_price})}",
+    "variables": {
+      "std(minute micro_price)": "Standard deviation of trading micro_price for each minute of the trading day.",
+      "mean(minute micro_price)": "Mean of trading micro_price for each minute of the trading day.",
+      "micro_price": "((df['bid_price'] * df['ask_size']) + (df['ask_price'] * df['bid_size'])) / (df['bid_size'] + df['ask_size'])"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['micro_price']=(sample_df['bid']*sample_df['askV']+sample_df['ask']*sample_df['bidV'])/(sample_df['bidV']+sample_df['askV'])\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['micro_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['micro_price'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['micro_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "micro_price_2": {
+    "description": "micro_price_2=std(minute trading micro_price)/mean(minute trading micro_price).",
+    "formulation": "micro_price_2 = frac{text{std}(text{minute trading micro_price})}{text{mean}(text{minute micro_price})}",
+    "variables": {
+      "std(minute micro_price)": "Standard deviation of trading micro_price for each minute of the trading day.",
+      "mean(minute micro_price)": "Mean of trading micro_price for each minute of the trading day.",
+      "micro_price": "((df['bid_price'] * df['ask_size']) + (df['ask_price'] * df['bid_size'])) / 2*(df['bid_size'] + df['ask_size']), we use something like bidV for the size"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['micro_price']=(sample_df['bid']*sample_df['askV']+sample_df['ask']*sample_df['bidV'])/((sample_df['bidV']+sample_df['askV'])*2)\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['micro_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['micro_price'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['micro_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "micro_price_3": {
+    "description": "micro_price_3=std(minute trading micro_price)/mean(minute trading micro_price).",
+    "formulation": "micro_price_3 = frac{text{std}(text{minute trading micro_price})}{text{mean}(text{minute micro_price})}",
+    "variables": {
+      "std(minute micro_price)": "Standard deviation of trading micro_price for each minute of the trading day.",
+      "mean(minute micro_price)": "Mean of trading micro_price for each minute of the trading day.",
+      "micro_price": "((df['bid_price'] * df['ask_size']) + (df['ask_price'] * df['bid_size'])) / 3*(df['bid_size'] + df['ask_size']), we use something like bidV for the size"
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['micro_price']=(sample_df['bid']*sample_df['askV']+sample_df['ask']*sample_df['bidV'])/((sample_df['bidV']+sample_df['askV'])*3)\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['micro_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\n# Calculate Z value for each instrument per day\nstats['micro_price'] = stats['std'] / stats['mean']\n# Display the calculated Z values\nresult=stats['micro_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "mid_price": {
+    "description": "mid_price=std(minute trading mid_price)/mean(minute trading mid_price).",
+    "formulation": "mid_price = frac{text{std}(text{minute trading mid price})}{text{mean}(text{minute mid price})}",
+    "variables": {
+      "std(minute mid_price)": "Standard deviation of trading mid_price for each minute of the trading day.",
+      "mean(minute mid_price)": "Mean of trading mid_price for each minute of the trading day.",
+      "mid_price": "The average of the bid and ask prices."
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['mid_price']=(sample_df['bid']+sample_df['ask'])/2\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['mid_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\nstats['mid_price'] = stats['std'] / stats['mean']\nresult=stats['mid_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "mid_price_2": {
+    "description": "mid_price=std(minute trading mid_price)/mean(minute trading mid_price).",
+    "formulation": "mid_price = frac{text{std}(text{minute trading mid price})}{text{mean}(text{minute mid price})}",
+    "variables": {
+      "std(minute mid_price)": "Standard deviation of trading mid_price for each minute of the trading day.",
+      "mean(minute mid_price)": "Mean of trading mid_price for each minute of the trading day.",
+      "mid_price_2": "the average of the bid and ask prices plus the the average of the bid and ask size (bidV and askV)."
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['mid_price']=(sample_df['bid']+sample_df['ask'])/2+(sample_df['bidV']+sample_df['askV'])/2\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['mid_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\nstats['mid_price'] = stats['std'] / stats['mean']\nresult=stats['mid_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "mid_price_3": {
+    "description": "mid_price=std(minute trading mid_price)/mean(minute trading mid_price).",
+    "formulation": "mid_price = frac{text{std}(text{minute trading mid price})}{text{mean}(text{minute mid price})}",
+    "variables": {
+      "std(minute mid_price)": "Standard deviation of trading mid_price for each minute of the trading day.",
+      "mean(minute mid_price)": "Mean of trading mid_price for each minute of the trading day.",
+      "mid_price_3": "The coefficient of variation (CV) of the mid-price for each minute of the trading day, calculated as the standard deviation of the mid-price divided by the mean mid-price."
+    },
+    "Category": "High-Frequency",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_hf = pd.read_hdf('high_freq.h5')\nsample_df= data_hf.reset_index()\n# Convert 'datetime' column to datetime and extract date for grouping\nsample_df['date'] = sample_df['datetime'].dt.date\nsample_df['mid_price']=(sample_df['bid']+sample_df['ask'])/3\n# Group by instrument and date\ngrouped = sample_df.groupby(['date','instrument'])['mid_price']\n# Calculate mean and standard deviation of the volume for each group\nstats = grouped.agg(['mean', 'std'])\nstats['mid_price'] = stats['std'] / stats['mean']\nresult=stats['mid_price']\nresult.index.names = ['datetime','instrument']\n# result = result.swaplevel().sort_index()\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE": {
+    "description": "Constructed using the ranking difference between PB and ROE, with regression versions of PB and ROE replacing original PB and ROE to obtain reconstructed factor values.",
+    "formulation": "text{rank}(PB_t) - rank(ROE_t)",
+    "variables": {
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\ndata = data_f.reset_index()\n# Calculate the rank of PB and ROE\ndata['PB_rank'] = data.groupby('datetime')['B/P'].rank()\ndata['ROE_rank'] = data.groupby('datetime')['ROE'].rank()\n# Calculate the difference between the ranks\ndata['PB_ROE'] = data['PB_rank'] - data['ROE_rank']\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['PB_ROE']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE_2": {
+    "description": "Constructed using the ranking difference between PB/2 and ROE, with regression versions of PB and ROE replacing original PB and ROE to obtain reconstructed factor values.",
+    "formulation": "text{rank}(PB_t)/2 - rank(ROE_t)",
+    "variables": {
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\ndata = data_f.reset_index()\n# Calculate the rank of PB and ROE\ndata['PB_rank'] = data.groupby('datetime')['B/P'].rank()\ndata['ROE_rank'] = data.groupby('datetime')['ROE'].rank()\n# Calculate the difference between the ranks\ndata['PB_ROE'] = data['PB_rank']/2 - data['ROE_rank']\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['PB_ROE']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE_3": {
+    "description": "Constructed using the ranking difference between PB/3 and ROE, with regression versions of PB and ROE replacing original PB and ROE to obtain reconstructed factor values.",
+    "formulation": "text{rank}(PB_t)/3 - rank(ROE_t)",
+    "variables": {
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\ndata = data_f.reset_index()\n# Calculate the rank of PB and ROE\ndata['PB_rank'] = data.groupby('datetime')['B/P'].rank()\ndata['ROE_rank'] = data.groupby('datetime')['ROE'].rank()\n# Calculate the difference between the ranks\ndata['PB_ROE'] = data['PB_rank']/3 - data['ROE_rank']\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(data['PB_ROE']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE_movement": {
+    "description": "PB_ROE_movement=five day PB_ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "PB_ROE_movement = 5_day_movement(PB_ROE), PB_ROE = text{rank}(PB_t) - rank(ROE_t)",
+    "variables": {
+      "PB_ROE": "the ranking difference between PB and ROE.",
+      "5_day_PB_ROE_movement": "1 if PB_ROE is higher than the PB_ROE 5 days ago, -1 if PB_ROE is lower than the PB_ROE 5 days ago, 0 if PB_ROE is the same as the PB_ROE 5 days ago.",
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Calculate the rank of PB and ROE\nsample_df['PB_rank'] = sample_df.groupby('datetime')['B/P'].rank()\nsample_df['ROE_rank'] = sample_df.groupby('datetime')['ROE'].rank()\nsample_df['PB_ROE'] = sample_df['PB_rank'] - sample_df['ROE_rank']\n# Group by instrument and date\nsample_df['PB_ROE_movement'] = sample_df['PB_ROE'].diff(periods=5).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['PB_ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE_movement_10": {
+    "description": "PB_ROE_movement=10 days PB_ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "PB_ROE_movement = 10_day_movement(PB_ROE), PB_ROE = text{rank}(PB_t) - rank(ROE_t)",
+    "variables": {
+      "PB_ROE": "the ranking difference between PB and ROE.",
+      "10_day_PB_ROE_movement": "1 if PB_ROE is higher than the PB_ROE 10 days ago, -1 if PB_ROE is lower than the PB_ROE 10 days ago, 0 if PB_ROE is the same as the PB_ROE 10 days ago.",
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Calculate the rank of PB and ROE\nsample_df['PB_rank'] = sample_df.groupby('datetime')['B/P'].rank()\nsample_df['ROE_rank'] = sample_df.groupby('datetime')['ROE'].rank()\nsample_df['PB_ROE'] = sample_df['PB_rank'] - sample_df['ROE_rank']\n# Group by instrument and date\nsample_df['PB_ROE_movement'] = sample_df['PB_ROE'].diff(periods=10).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['PB_ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "PB_ROE_movement_20": {
+    "description": "PB_ROE_movement=20 days PB_ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "PB_ROE_movement = 20_day_movement(PB_ROE), PB_ROE = text{rank}(PB_t) - rank(ROE_t)",
+    "variables": {
+      "PB_ROE": "the ranking difference between PB and ROE.",
+      "20_day_PB_ROE_movement": "1 if PB_ROE is higher than the PB_ROE 20 days ago, -1 if PB_ROE is lower than the PB_ROE 20 days ago, 0 if PB_ROE is the same as the PB_ROE 20 days ago.",
+      "text{rank}(PB_t)": "Ranking of regression version PB on cross-section at time t.",
+      "text{rank}(ROE_t)": "Ranking of regression version single-quarter ROE on cross-section at time t."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Calculate the rank of PB and ROE\nsample_df['PB_rank'] = sample_df.groupby('datetime')['B/P'].rank()\nsample_df['ROE_rank'] = sample_df.groupby('datetime')['ROE'].rank()\nsample_df['PB_ROE'] = sample_df['PB_rank'] - sample_df['ROE_rank']\n# Group by instrument and date\nsample_df['PB_ROE_movement'] = sample_df['PB_ROE'].diff(periods=20).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['PB_ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['PB_ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "ROE_movement": {
+    "description": "ROE_movement=five day ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "ROE_movement = 5_day_movement(ROE)",
+    "variables": {
+      "ROE": "ROE in fundamental statistics.",
+      "5_day_ROE_movement": "1 if ROE is higher than the ROE 5 days ago, -1 if ROE is lower than the ROE 5 days ago, 0 if ROE is the same as the ROE 5 days ago."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Group by instrument and date\nsample_df['ROE_movement'] = sample_df['ROE'].diff(periods=5).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "ROE_movement_10": {
+    "description": "ROE_movement_10=ten day ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "ROE_movement = 10_day_movement(ROE)",
+    "variables": {
+      "ROE": "ROE in fundamental statistics.",
+      "10_day_ROE_movement": "1 if ROE is higher than the ROE 10 days ago, -1 if ROE is lower than the ROE 10 days ago, 0 if ROE is the same as the ROE 10 days ago."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Group by instrument and date\nsample_df['ROE_movement'] = sample_df['ROE'].diff(periods=10).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "ROE_movement_20": {
+    "description": "ROE_movement_20=20 day ROE movement indicator(-1 and 1 or 0).",
+    "formulation": "ROE_movement_20 = 20_day_movement(ROE)",
+    "variables": {
+      "ROE": "ROE in fundamental statistics.",
+      "20_day_ROE_movement": "1 if ROE is higher than the ROE 20 days ago, -1 if ROE is lower than the ROE 20 days ago, 0 if ROE is the same as the ROE 20 days ago."
+    },
+    "Category": "Fundamentals",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_f = pd.read_hdf('daily_f.h5')\nsample_df = data_f.reset_index()\n# Group by instrument and date\nsample_df['ROE_movement'] = sample_df['ROE'].diff(periods=20).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))\n#calculate the mid_price_movement ratio for each day\n# set the datetime and instrument as index and drop the original index\nresult=pd.DataFrame(sample_df['ROE_movement']).set_index(data_f.index)\n# transfer the result to series\nresult=result['ROE_movement']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff": {
+    "description": "alpha_pv_diff is defined as the ratio of the difference between close prices 10 days change and open prices 10 days change to the sum of the highest minus lowest prices plus a small constant.",
+    "formulation": "frac{(text{close_diff10} - text{open_diff10})}{(text{high} - text{low} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(10) - new_df['$open'].diff(10)) / (new_df['$high'] - new_df['$low'] + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff_15": {
+    "description": "alpha_pv_diff is defined as the ratio of the difference between close prices 15 days change and open prices 15 days change to the sum of the highest minus lowest prices plus a small constant.",
+    "formulation": "frac{(text{close_diff15} - text{open_diff15})}{(text{high} - text{low} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(15) - new_df['$open'].diff(15)) / (new_df['$high'] - new_df['$low'] + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff_20": {
+    "description": "alpha_pv_diff is defined as the ratio of the difference between close prices 20 days change and open prices 20 days change to the sum of the highest minus lowest prices plus a small constant.",
+    "formulation": "frac{(text{close_diff20} - text{open_diff20})}{(text{high} - text{low} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Medium",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(20) - new_df['$open'].diff(20)) / (new_df['$high'] - new_df['$low'] + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff_pct": {
+    "description": "alpha_pv is defined as the ratio of the difference between close prices 10 days change and open prices 10 days change to the sum of the highest prices 10 days change ratio minus lowest prices 10 days change ratio plus a small constant.",
+    "formulation": "frac{(text{close_diff10} - text{open_diff10})}{(text{high_pct10} - text{low_pct10} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(10) - new_df['$open'].diff(10)) / (new_df['$high'].pct_change(10) - new_df['$low'].pct_change(10) + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff_pct_15": {
+    "description": "alpha_pv is defined as the ratio of the difference between close prices 15 days change and open prices 15 days change to the sum of the highest prices 10 days change ratio minus lowest prices 10 days change ratio plus a small constant.",
+    "formulation": "frac{(text{close_diff15} - text{open_diff15})}{(text{high_pct10} - text{low_pct10} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(15) - new_df['$open'].diff(15)) / (new_df['$high'].pct_change(10) - new_df['$low'].pct_change(10) + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha_pv_diff_pct_20": {
+    "description": "alpha_pv is defined as the ratio of the difference between close prices 20 days change and open prices 20 days change to the sum of the highest prices 10 days change ratio minus lowest prices 10 days change ratio plus a small constant.",
+    "formulation": "frac{(text{close_diff20} - text{open_diff20})}{(text{high_pct10} - text{low_pct10} + 0.001)}",
+    "variables": {
+      "close": "Closing price of the stock",
+      "open": "Opening price of the stock",
+      "high": "Highest price of the stock during the day",
+      "low": "Lowest price of the stock during the day"
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Hard",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha101\nnew_df['result'] = (new_df['$close'].diff(20) - new_df['$open'].diff(20)) / (new_df['$high'].pct_change(10) - new_df['$low'].pct_change(10) + 0.001)\n# keep the index of the original dataframe\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\n# transfer the result to series\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha053": {
+    "description": "Reversal class factor, negative delta of a ratio involving close, low, and high prices over 9 days.",
+    "formulation": "-1 times Deltaleft(frac{(text{close} - text{low}) - (text{high} - text{close})}{text{close} - text{low}}, 9right)",
+    "variables": {
+      "Delta(x, d)": "Change in 'x' over 'd' days.",
+      "text{close}": "Closing price of the stock.",
+      "text{low}": "Lowest price of the stock for the day.",
+      "text{high}": "Highest price of the stock for the day."
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha053\nnew_df['ratio'] =  (new_df['$close'] - new_df['$low'] - (new_df['$high'] - new_df['$close'])) / (new_df['$close'] - new_df['$low'])\n# the change of ratio in new_df over the 9 days\nnew_df['result']=-new_df['ratio'].diff(9)\n# transfer the result to series\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  },
+  "alpha053_5": {
+    "description": "Reversal class factor, negative delta of a ratio involving close, low, and high prices over 5 days.",
+    "formulation": "-1 times Deltaleft(frac{(text{close} - text{low}) - (text{high} - text{close})}{text{close} - text{low}}, 5right)",
+    "variables": {
+      "Delta(x, d)": "Change in 'x' over 'd' days.",
+      "text{close}": "Closing price of the stock.",
+      "text{low}": "Lowest price of the stock for the day.",
+      "text{high}": "Highest price of the stock for the day."
+    },
+    "Category": "Volume&Price",
+    "Difficulty": "Easy",
+    "gt_code": "import pandas as pd\ndata_pv = pd.read_hdf('daily_pv.h5')\nnew_df= data_pv.reset_index()\n# Calculate Alpha053\nnew_df['ratio'] =  (new_df['$close'] - new_df['$low'] - (new_df['$high'] - new_df['$close'])) / (new_df['$close'] - new_df['$low'])\n# the change of ratio in new_df over the 5 days\nnew_df['result']=-new_df['ratio'].diff(5)\n# transfer the result to series\nresult=pd.DataFrame(new_df['result']).set_index(data_pv.index)\nresult=result['result']\nresult.to_hdf('result.h5', key='data')"
+  }
+}
