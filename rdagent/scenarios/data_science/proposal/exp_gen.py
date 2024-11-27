@@ -40,17 +40,18 @@ class DSExpGen(ExpGen):
             #
             for o in ORDER:
                 if o in self.complete_component:
+                    # we already have the component, the skip
                     continue
                 elif o == "DataLoadSpec":
                     # TODO return a description of the data loading task
-                    system = T(".prompts:DataLoaderSpec.system").r()
-                    user = T(".prompts:DataLoaderSpec.user").r()
-                    data_load_exp = APIBackend().build_messages_and_create_chat_completion(
-                        user_prompt=user,
-                        system_prompt=system,
-                        json_mode=True,
-                    )
-                    dlt = DataLoaderTask(name="DataLoaderTask", description=data_load_exp)
+                    # system = T(".prompts:DataLoaderSpec.system").r()
+                    # user = T(".prompts:DataLoaderSpec.user").r()
+                    # data_load_exp = APIBackend().build_messages_and_create_chat_completion(
+                    #     user_prompt=user,
+                    #     system_prompt=system,
+                    #     json_mode=True,
+                    # )
+                    dlt = DataLoaderTask(name="DataLoaderTask", description="")
                     exp = DataLoaderExperiment(
                         sub_tasks=[dlt],
                     )
