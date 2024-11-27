@@ -1,0 +1,9 @@
+scen_desc: -|
+  ------Background of the scenario------
+  {{scen.background}}
+
+  ------The source dataset you can use to generate the features------
+  {{scen.source_data}}
+
+  ------The expected output & submission format specifications------
+  {{scen.submission_specifications}}

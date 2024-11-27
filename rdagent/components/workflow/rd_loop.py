@@ -3,12 +3,12 @@ Model workflow with session control
 It is from `rdagent/app/qlib_rd_loop/model.py` and try to replace `rdagent/app/qlib_rd_loop/RDAgent.py`
 """
 
-import time
 from typing import Any
 
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
+    Hypothesis,
     Hypothesis2Experiment,
     Experiment2Feedback,
     HypothesisGen,
@@ -21,7 +21,13 @@ from rdagent.log.time import measure_time
 from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
+class NextLoopException(Exception):
+    """TODO: should we place in in rdagent/core/exception.py?"""
+    pass
+
+
 class RDLoop(LoopBase, metaclass=LoopMeta):
+
     @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
@@ -44,24 +50,31 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             self.trace = Trace(scen=scen)
             super().__init__()
 
+    # excluded steps
     @measure_time
-    def propose(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):  # research
-            hypothesis = self.hypothesis_gen.gen(self.trace)
-            logger.log_object(hypothesis, tag="hypothesis generation")
+    def _propose(self):
+        hypothesis = self.hypothesis_gen.gen(self.trace)
+        logger.log_object(hypothesis, tag="hypothesis generation")
         return hypothesis
 
     @measure_time
-    def exp_gen(self, prev_out: dict[str, Any]):
-        with logger.tag("r"):  # research
-            exp = self.hypothesis2experiment.convert(prev_out["propose"], self.trace)
-            logger.log_object(exp.sub_tasks, tag="experiment generation")
+    def _exp_gen(self, hypothesis: Hypothesis):
+        exp = self.hypothesis2experiment.convert(hypothesis, self.trace)
+        logger.log_object(exp.sub_tasks, tag="experiment generation")
         return exp
+
+    # included steps
+    @measure_time
+    def direct_exp_gen(self, prev_out: dict[str, Any]):
+        with logger.tag("r"):  # research
+            hypo = self._propose()
+            exp = self._exp_gen(hypo)
+        return {"propose": hypo, "exp_gen": exp}
 
     @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["exp_gen"])
+            exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
@@ -74,7 +87,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     @measure_time
     def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["propose"], self.trace)
+        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["direct_exp_gen"]["propose"], self.trace)
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["propose"], prev_out["running"], feedback))
+        self.trace.hist.append((prev_out["direct_exp_gen"]["propose"], prev_out["running"], feedback))

@@ -2,20 +2,23 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
-class KaggleBasePropSetting(BasePropSetting):
+class DataScienceBasePropSetting(BasePropSetting):
     model_config = ExtendedSettingsConfigDict(env_prefix="DS_", protected_namespaces=())
 
     # Main components
     ## Scen
-    scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"
+    scen: str = "rdagent.scenarios.data_science.scen.DataScienceScen"
     """Scenario class for data mining model"""
 
     ## proposal
-    hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesisGen"
-    """Hypothesis generation class"""
+    exp_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen"
 
-    hypothesis2experiment: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesis2Experiment"
-    """Hypothesis to experiment class"""
+    # the two below should be used in ExpGen
+    # hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesisGen"
+    # """Hypothesis generation class"""
+    #
+    # hypothesis2experiment: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesis2Experiment"
+    # """Hypothesis to experiment class"""
 
     ## dev/coder
     feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
@@ -85,4 +88,4 @@ class KaggleBasePropSetting(BasePropSetting):
     """Enable advanced graph-based RAG"""
 
 
-KAGGLE_IMPLEMENT_SETTING = KaggleBasePropSetting()
+DS_RD_SETTING = DataScienceBasePropSetting()

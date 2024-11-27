@@ -29,6 +29,9 @@ class RDAT:
         here are some uri usages
             case 1) "a.b.c:x.y.z"
                 It will load DIRNAME/a/b/c.yaml as `yaml` and load yaml[x][y][z]
+
+                Form example, if you want to load "rdagent/scenarios/kaggle/experiment/prompts.yaml"
+                `a.b.c` should be "scenarios.kaggle.experiment.prompts" and "rdagent" should be exclude
             case 2) ".c:x.y.z"
                 It will load c.yaml in caller's (who call `T(uri)`) directory as `yaml` and load yaml[x][y][z]
 

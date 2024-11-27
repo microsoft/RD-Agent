@@ -104,6 +104,10 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
 
 
 class ExpGen(ABC):
+
+    def __init__(self, scen: Scenario) -> None:
+        self.scen = scen
+
     @abstractmethod
     def gen(self, trace: Trace) -> Experiment:
         """

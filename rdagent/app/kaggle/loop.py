@@ -63,19 +63,19 @@ class KaggleRDLoop(RDLoop):
     @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
-                exp = self.feature_coder.develop(prev_out["exp_gen"])
-            elif prev_out["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
-                exp = self.model_feature_selection_coder.develop(prev_out["exp_gen"])
+            if prev_out["direct_exp_gen"]["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+                exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
+                exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             else:
-                exp = self.model_coder.develop(prev_out["exp_gen"])
+                exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
     @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
-            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+            if prev_out["direct_exp_gen"]["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
                 exp = self.feature_runner.develop(prev_out["coding"])
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
