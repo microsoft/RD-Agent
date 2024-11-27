@@ -146,7 +146,7 @@ def main(path=None, step_n=None, competition=None):
     Auto R&D Evolving loop for models in a kaggle{} scenario.
     You can continue running session by
     .. code-block:: bash
-        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
+        dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
         rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
     """
     if competition is not None:

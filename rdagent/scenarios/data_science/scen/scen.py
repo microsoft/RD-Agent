@@ -83,7 +83,7 @@ class DataScienceScen(Scenario):
         # - If we have not implement load data and dump cache
         # - describe the raw data
         # phase2: (cache detected)
-        # - Describe the cached data.
+        # - Describe the cached data (preprocessed data).
         return "!!!!!!!!! I'm the fake source data !!!!!!!!"
         raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
 
