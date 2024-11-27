@@ -1,11 +1,17 @@
+import json
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.scenario import prompt_dict as kaggle_prompt_dict
-from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions, leaderboard_scores
+from rdagent.scenarios.kaggle.experiment.scenario import (
+    prompt_dict as kaggle_prompt_dict,
+)
+from rdagent.scenarios.kaggle.kaggle_crawler import (
+    crawl_descriptions,
+    leaderboard_scores,
+)
 from rdagent.utils.agent.tpl import T
-import json
 
 
 class DataScienceScen(Scenario):
@@ -27,9 +33,9 @@ class DataScienceScen(Scenario):
     def _analysis_competition_description(self):
         sys_prompt = T("scenarios.kaggle.experiment.prompts:kg_description_template.system").r()
         user_prompt = T("scenarios.kaggle.experiment.prompts:kg_description_template.user").r(
-                competition_descriptions=self.competition_descriptions,
-                raw_data_information=self.source_data,
-                evaluation_metric_direction=self.evaluation_metric_direction,
+            competition_descriptions=self.competition_descriptions,
+            raw_data_information=self.source_data,
+            evaluation_metric_direction=self.evaluation_metric_direction,
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
@@ -43,11 +49,13 @@ class DataScienceScen(Scenario):
         self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
         self.target_description = response_json_analysis.get("Target Description", "No target provided")
         self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
-        self.submission_specifications = response_json_analysis.get("Submission Specifications",
-                                                                    "No submission requirements provided")
+        self.submission_specifications = response_json_analysis.get(
+            "Submission Specifications", "No submission requirements provided"
+        )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
-        self.evaluation_desc = response_json_analysis.get("Evaluation Description",
-                                                          "No evaluation specification provided.")
+        self.evaluation_desc = response_json_analysis.get(
+            "Evaluation Description", "No evaluation specification provided."
+        )
 
     def get_competition_full_desc(self) -> str:
         evaluation_direction = "higher the better" if self.evaluation_metric_direction else "lower the better"

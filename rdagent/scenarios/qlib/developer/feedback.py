@@ -7,8 +7,8 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
-    Hypothesis,
     Experiment2Feedback,
+    Hypothesis,
     HypothesisFeedback,
     Trace,
 )

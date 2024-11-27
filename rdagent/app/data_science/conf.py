@@ -66,7 +66,9 @@ class DataScienceBasePropSetting(BasePropSetting):
     knowledge_base: str = ""
     """Knowledge base class, uses 'KGKnowledgeGraph' when advanced graph-based RAG is enabled, otherwise empty."""
 
-    domain_knowledge_path: str = "/data/userdata/share/kaggle/domain_knowledge"  # TODO: It should be sth like knowledge_base_kwargs
+    domain_knowledge_path: str = (
+        "/data/userdata/share/kaggle/domain_knowledge"  # TODO: It should be sth like knowledge_base_kwargs
+    )
     """Folder storing domain knowledge files in .case format"""
 
     knowledge_base_path: str = "kg_graph.pkl"

@@ -12,6 +12,7 @@ from rdagent.utils.env import KGDockerEnv, QTDockerEnv
 
 # TODO: Complete the implementation of the class DataLoaderTask and class DataLoaderFBWorkspace
 
+
 class DataLoaderTask(CoSTEERTask):
     def __init__(
         self,
@@ -20,7 +21,7 @@ class DataLoaderTask(CoSTEERTask):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(name=name,desc=description, *args, **kwargs)
+        super().__init__(name=name, desc=description, *args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
