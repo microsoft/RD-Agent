@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.experiment import Task
@@ -87,11 +88,16 @@ class DataScienceScen(Scenario):
     def source_data(self) -> str:
         # TODO: remove me if not used
         # TODO: (bowen)
-        # phase1:
-        # - If we have not implement load data and dump cache
-        # - describe the raw data
-        # phase2: (cache detected)
-        # - Describe the cached data (preprocessed data).
+        if Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.competition}/cache").exists():
+            # phase2: (cache detected)
+            # - Describe the cached data (preprocessed data).
+            pass
+        else:
+            # phase1:
+            # - If we have not implement load data and dump cache
+            # - describe the raw data
+            return self.competition_descriptions['Data Description']
+            
         return "!!!!!!!!! I'm the fake source data !!!!!!!!"
         raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
 
