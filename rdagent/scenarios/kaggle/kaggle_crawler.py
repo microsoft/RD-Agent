@@ -31,7 +31,9 @@ options.add_argument("--headless")
 service = Service("/usr/local/bin/chromedriver")
 
 
-def crawl_descriptions(competition: str, local_data_path: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
+def crawl_descriptions(
+    competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
+) -> dict[str, str]:
     if (fp := Path(f"{local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:

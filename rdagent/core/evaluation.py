@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 import typing
+from abc import ABC, abstractmethod
+
 from rdagent.core.scenario import Scenario
 
 if typing.TYPE_CHECKING:

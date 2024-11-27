@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-import typing
 import platform
 import shutil
+import typing
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Generic, Optional, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+
 if typing.TYPE_CHECKING:
     from rdagent.core.proposal import Hypothesis
 
@@ -36,6 +37,7 @@ class AbsTask(ABC):
         Get the task information string to build the unique key
         """
 
+
 class Task(AbsTask):
     def __init__(self, name: str, version: int = 1, description: str = "") -> None:
         super().__init__(name, version)
@@ -43,6 +45,7 @@ class Task(AbsTask):
 
     def get_task_information(self) -> str:
         return f"{self.name}_{self.version}: {self.desc}"
+
 
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 

@@ -8,8 +8,8 @@ from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
-    Hypothesis,
     Experiment2Feedback,
+    Hypothesis,
     HypothesisFeedback,
     Trace,
 )

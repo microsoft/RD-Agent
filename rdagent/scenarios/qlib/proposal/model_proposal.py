@@ -80,7 +80,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "RAG": None,
         }, True
 
-    def convert_response(self, response: str, hypothesis: Hypothesis,  trace: Trace) -> ModelExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
         response_dict = json.loads(response)
         tasks = []
         for model_name in response_dict:

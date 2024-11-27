@@ -1,4 +1,3 @@
-
 import subprocess
 from typing import Any, Literal
 
@@ -6,12 +5,12 @@ import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.components.workflow.rd_loop import RDLoop, NextLoopException
+from rdagent.components.workflow.rd_loop import NextLoopException, RDLoop
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     ExpGen,
     Hypothesis2Experiment,
-    Experiment2Feedback,
     HypothesisGen,
     Trace,
 )
@@ -21,7 +20,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-
 
 
 class DataScienceRDLoop(RDLoop):
@@ -34,7 +32,7 @@ class DataScienceRDLoop(RDLoop):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
             logger.log_object(scen, tag="scenario")
 
-            ### shared components in the workflow  # TODO: check if 
+            ### shared components in the workflow  # TODO: check if
             knowledge_base = (
                 import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
                 if PROP_SETTING.knowledge_base != ""
@@ -47,7 +45,6 @@ class DataScienceRDLoop(RDLoop):
 
             # 2) task generation from a complete solution
             self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-
 
             # self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             # logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
@@ -63,7 +60,6 @@ class DataScienceRDLoop(RDLoop):
             # logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
             # self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
             # logger.log_object(self.model_coder, tag="model coder")
-
 
             # TODO: now we only need on runner
             # self.feature_runner: Developer = import_class(PROP_SETTING.feature_runner)(scen)
@@ -87,7 +83,10 @@ class DataScienceRDLoop(RDLoop):
     @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            if prev_out["direct_exp_gen"]["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+            if prev_out["direct_exp_gen"]["propose"].action in [
+                KG_ACTION_FEATURE_ENGINEERING,
+                KG_ACTION_FEATURE_PROCESSING,
+            ]:
                 exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
                 exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
@@ -102,7 +101,10 @@ class DataScienceRDLoop(RDLoop):
             raise NextLoopExcpetion()
 
         with logger.tag("ef"):  # evaluate and feedback
-            if prev_out["direct_exp_gen"]["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+            if prev_out["direct_exp_gen"]["propose"].action in [
+                KG_ACTION_FEATURE_ENGINEERING,
+                KG_ACTION_FEATURE_PROCESSING,
+            ]:
                 exp = self.feature_runner.develop(prev_out["coding"])
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
@@ -112,9 +114,7 @@ class DataScienceRDLoop(RDLoop):
                 "covid19-global-forecasting-week-1",
             ]:
                 try:
-                    python_files_to_notebook(
-                        DS_RD_SETTING.competition, exp.experiment_workspace.workspace_path
-                    )
+                    python_files_to_notebook(DS_RD_SETTING.competition, exp.experiment_workspace.workspace_path)
                 except Exception as e:
                     logger.error(f"Merge python files to one file failed: {e}")
             if DS_RD_SETTING.auto_submit:
@@ -146,7 +146,7 @@ def main(path=None, step_n=None, competition=None):
     Auto R&D Evolving loop for models in a kaggle{} scenario.
     You can continue running session by
     .. code-block:: bash
-        dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
+        dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
         rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
     """
     if competition is not None:

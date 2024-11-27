@@ -8,9 +8,9 @@ from typing import Any
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.core.developer import Developer
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     Hypothesis,
     Hypothesis2Experiment,
-    Experiment2Feedback,
     HypothesisGen,
     Trace,
 )
@@ -23,6 +23,7 @@ from rdagent.utils.workflow import LoopBase, LoopMeta
 
 class NextLoopException(Exception):
     """TODO: should we place in in rdagent/core/exception.py?"""
+
     pass
 
 
@@ -87,7 +88,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     @measure_time
     def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(prev_out["running"], prev_out["direct_exp_gen"]["propose"], self.trace)
+        feedback = self.summarizer.generate_feedback(
+            prev_out["running"], prev_out["direct_exp_gen"]["propose"], self.trace
+        )
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["direct_exp_gen"]["propose"], prev_out["running"], feedback))
