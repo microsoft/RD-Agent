@@ -37,9 +37,9 @@ class AbsTask(ABC):
         """
 
 class Task(AbsTask):
-    def __init__(self, name: str, version: int = 1, desc: str = "") -> None:
+    def __init__(self, name: str, version: int = 1, description: str = "") -> None:
         super().__init__(name, version)
-        self.description = desc
+        self.description = description
 
     def get_task_information(self) -> str:
         return f"{self.name}_{self.version}: {self.desc}"
