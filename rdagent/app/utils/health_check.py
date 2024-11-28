@@ -5,26 +5,13 @@ import docker
 from rdagent.log import rdagent_logger as logger
 
 
-def run_hello_world():
-    try:
-        client = docker.from_env()
-        client.images.pull("hello-world")
-        container = client.containers.run("hello-world", detach=True)
-        logs = container.logs().decode("utf-8")
-        print(logs)
-        container.remove()
-        print("Container removed successfully.")
-    except docker.errors.DockerException as e:
-        print(f"An error occurred: {e}")
-    return logs
-
-
 def check_docker() -> None:
     try:
         client = docker.from_env()
         client.images.pull("hello-world")
         container = client.containers.run("hello-world", detach=True)
         logs = container.logs().decode("utf-8")
+        print(logs)
         container.remove()
         logger.info(f"The docker status is normal")
     except docker.errors.DockerException as e:
