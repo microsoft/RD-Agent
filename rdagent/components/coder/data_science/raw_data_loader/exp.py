@@ -21,7 +21,7 @@ class DataLoaderTask(CoSTEERTask):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(name=name, desc=description, *args, **kwargs)
+        super().__init__(name=name, description=description, *args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
