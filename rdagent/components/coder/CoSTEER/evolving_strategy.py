@@ -32,6 +32,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         queried_knowledge: QueriedKnowledge = None,
     ) -> dict[str, str]:  # FIXME: fix interface of previous implement
         """
+        This method will input the task & current workspace,
+        and output the modification to applied to the workspace.
+        (i.e. replace the content <filename> with <content>)
 
         Return
         ------

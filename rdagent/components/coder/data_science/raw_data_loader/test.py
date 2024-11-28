@@ -1,5 +1,6 @@
 """
 Helper functions for testing the raw_data_loader coder(CoSTEER-based) component.
+- Does the developer loop work correctly
 
 It is NOT:
 - it is not interface unittest(i.e. workspace evaluator in the CoSTEER Loop)

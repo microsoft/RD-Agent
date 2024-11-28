@@ -37,7 +37,6 @@ class DSExpGen(ExpGen):
             LLMHypothesisGen
             LLMHypothesis2Experiment
         else:
-            #
             for o in ORDER:
                 if o in self.complete_component:
                     # we already have the component, the skip
