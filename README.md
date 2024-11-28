@@ -67,11 +67,6 @@ You can try above demos by running the following command:
 ### 🐳 Docker installation.
 Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
 
-**Note:** rdagent provides a command to check if the docker installation was successful.
-  ```sh
-  rdagent health_check
-  ```
-
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
   ```sh
@@ -87,6 +82,15 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```sh
   pip install rdagent
   ```
+
+### 💊 Health check
+- rdagent provides a health check that currently checks two things.
+  - whether the docker installation was successful.
+  - whether the default port used by the [rdagent ui](https://github.com/microsoft/RD-Agent?tab=readme-ov-file#%EF%B8%8F-monitor-the-application-results) is occupied.
+  ```sh
+  rdagent health_check
+  ```
+
 
 ### ⚙️ Configuration
 - The demos requires following ability:
@@ -106,10 +110,14 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```bash
   cat << EOF  > .env
   USE_AZURE=True
-  OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
-  # EMBEDDING_MODEL=text-embedding-3-small
-  CHAT_MODEL=<replace_it_with_the_name_of_your_chat_model.>
-  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_Azure_OpenAI_API>
+  EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+  EMBEDDING_AZURE_API_BASE=<replace_with_your_azure_endpoint>
+  EMBEDDING_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
+  EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+  CHAT_AZURE_API_BASE=<replace_with_your_azure_endpoint>
+  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
+  CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
   EOF
   ```
 - For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
