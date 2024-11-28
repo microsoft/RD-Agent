@@ -25,10 +25,11 @@ from rdagent.app.kaggle.loop import main as kaggle_main
 from rdagent.app.qlib_rd_loop.factor import main as fin_factor
 from rdagent.app.qlib_rd_loop.factor_from_report import main as fin_factor_report
 from rdagent.app.qlib_rd_loop.model import main as fin_model
+from rdagent.app.utils.health_check import health_check
 from rdagent.app.utils.info import collect_info
 
 
-def ui(port=80, log_dir="", debug=False):
+def ui(port=19899, log_dir="", debug=False):
     """
     start web app to show the log traces.
     """
@@ -52,6 +53,7 @@ def app():
             "med_model": med_model,
             "general_model": general_model,
             "ui": ui,
+            "health_check": health_check,
             "collect_info": collect_info,
             "kaggle": kaggle_main,
         }

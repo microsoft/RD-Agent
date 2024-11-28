@@ -42,7 +42,6 @@ def extract_models_and_implement(report_file_path: str) -> None:
     with logger.tag("d"):
         exp = QlibModelCoSTEER(scenario).develop(exp)
         logger.log_object(exp, tag="developed_experiment")
-    return exp
 
 
 if __name__ == "__main__":
