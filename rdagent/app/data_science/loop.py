@@ -20,7 +20,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-
+from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)
@@ -45,7 +45,7 @@ class DataScienceRDLoop(RDLoop):
 
             # 2) task generation from a complete solution
             self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-
+            self.data_loader_coder: DataLoaderCoSTEER = import_class(PROP_SETTING.data_loader_coder)(scen)
             # self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
             # logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
             # self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
@@ -83,16 +83,17 @@ class DataScienceRDLoop(RDLoop):
     @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            if prev_out["direct_exp_gen"]["propose"].action in [
-                KG_ACTION_FEATURE_ENGINEERING,
-                KG_ACTION_FEATURE_PROCESSING,
-            ]:
-                exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
-                exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            else:
-                exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-            logger.log_object(exp.sub_workspace_list, tag="coder result")
+            exp = self.data_loader_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            # if prev_out["direct_exp_gen"]["propose"].action in [
+            #     KG_ACTION_FEATURE_ENGINEERING,
+            #     KG_ACTION_FEATURE_PROCESSING,
+            # ]:
+            #     exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            # elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
+            #     exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            # else:
+            #     exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            # logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
     @measure_time

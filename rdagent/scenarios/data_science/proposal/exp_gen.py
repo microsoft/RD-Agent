@@ -1,7 +1,7 @@
 from argparse import ONE_OR_MORE
 from typing import Literal
 
-from rdagent.components.coder.data_science.raw_data_loader.raw_data_loader import (
+from rdagent.components.coder.data_science.raw_data_loader.exp import (
     DataLoaderExperiment,
     DataLoaderFBWorkspace,
     DataLoaderTask,

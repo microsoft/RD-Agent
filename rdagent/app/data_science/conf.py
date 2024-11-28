@@ -21,14 +21,17 @@ class DataScienceBasePropSetting(BasePropSetting):
     # """Hypothesis to experiment class"""
 
     ## dev/coder
-    feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
-    """Feature Coder class"""
+    data_loader_coder: str = "rdagent.components.coder.data_science.raw_data_loader.DataLoaderCoSTEER"
+    """Data Loader CoSTEER"""
+    
+    # feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
+    # """Feature Coder class"""
 
-    model_feature_selection_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelFeatureSelectionCoder"
-    """Model Feature Selection Coder class"""
+    # model_feature_selection_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelFeatureSelectionCoder"
+    # """Model Feature Selection Coder class"""
 
-    model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
-    """Model Coder class"""
+    # model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
+    # """Model Coder class"""
 
     ## dev/runner
     feature_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGFactorRunner"
