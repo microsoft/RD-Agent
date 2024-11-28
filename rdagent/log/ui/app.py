@@ -73,9 +73,7 @@ def filter_log_folders(main_log_path):
     folders = [
         folder.relative_to(main_log_path)
         for folder in main_log_path.iterdir()
-        if folder.is_dir()
-        and folder.joinpath("__session__").exists()
-        and folder.joinpath("__session__").is_dir()
+        if folder.is_dir() and folder.joinpath("__session__").exists() and folder.joinpath("__session__").is_dir()
     ]
     folders = sorted(folders, key=lambda x: x.name)
     return folders
