@@ -2,6 +2,7 @@
 Beyond previous tests
 - 
 """
+
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
@@ -19,6 +20,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     Test workflow:
     - Build train, valid, and test data to run it, and test the output (e.g., shape, value, etc.)
     """
+
     def evaluate(
         self,
         target_task: Task,
@@ -48,7 +50,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 class XXX2SpecEval:
     """
     Based on XXX1SpecEval, but considering the following case:
-    
+
     Motivation case:
     - Sometimes we don't need validation (e.g., simple models not prone to overfitting, or data is too scarce to split).
 
@@ -77,7 +79,7 @@ class XXX4SpecEval:
     """
     Motivation case:
     - After obtaining good hyperparameters, we retrain the model.
-    
+
     Test workflow:
     - Test1: Since we have already tested it in XXX2SpecEval, we'll focus on another aspect.
         - Input:

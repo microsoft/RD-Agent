@@ -96,8 +96,8 @@ class DataScienceScen(Scenario):
             # phase1:
             # - If we have not implement load data and dump cache
             # - describe the raw data
-            return self.competition_descriptions['Data Description']
-            
+            return self.competition_descriptions["Data Description"]
+
         return "!!!!!!!!! I'm the fake source data !!!!!!!!"
         raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
 

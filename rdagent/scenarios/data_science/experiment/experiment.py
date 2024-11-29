@@ -1,20 +1,14 @@
 from copy import deepcopy
 from pathlib import Path
 
-from rdagent.core.experiment import Experiment
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.raw_data_loader.exp import (
     DataLoaderFBWorkspace,
     DataLoaderTask,
 )
-from rdagent.components.coder.factor_coder.factor import (
-    FactorFBWorkspace,
-    FactorTask,
-)
-from rdagent.components.coder.model_coder.model import (
-    ModelFBWorkspace,
-    ModelTask,
-)
+from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
+from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
+from rdagent.core.experiment import Experiment
 from rdagent.scenarios.data_science.experiment.workspace import DSFBWorkspace
 
 # KG_MODEL_TYPE_XGBOOST = "XGBoost"
@@ -35,7 +29,6 @@ from rdagent.scenarios.data_science.experiment.workspace import DSFBWorkspace
 #     KG_MODEL_TYPE_LIGHTGBM: "model/select_lightgbm.py",
 #     KG_MODEL_TYPE_NN: "model/select_nn.py",
 # }
-
 
 
 class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DataLoaderFBWorkspace]):

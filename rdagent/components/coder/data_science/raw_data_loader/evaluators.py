@@ -2,11 +2,12 @@
 # (GPT) if it aligns with the spec & rationality of the spec.
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
+    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
-    CoSTEERMultiFeedback
 )
-from rdagent.core.experiment import Task, Workspace
 from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.experiment import Task, Workspace
+
 
 class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
     def evaluate(
@@ -17,4 +18,4 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> CoSTEERSingleFeedback:
-        
+        pass

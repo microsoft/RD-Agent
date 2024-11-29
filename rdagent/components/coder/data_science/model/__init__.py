@@ -1,13 +1,18 @@
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
-from rdagent.core.scenario import Scenario
-from rdagent.components.coder.CoSTEER.evolving_strategy import MultiProcessEvolvingStrategy
+from rdagent.components.coder.CoSTEER.evolving_strategy import (
+    MultiProcessEvolvingStrategy,
+)
+from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERQueriedKnowledge,
+)
 from rdagent.components.coder.data_science.model.exp import ModelTask
-from rdagent.components.coder.CoSTEER.knowledge_management import CoSTEERQueriedKnowledge
+from rdagent.core.scenario import Scenario
 
 # from rdagent.utils.agent.tpl import T
 # T(".prompts:model_generator.user").r()
+
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -20,7 +25,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         def Model():
             pass
         """
-    
+
     def assign_code_list_to_evo(self, code_list: list, evo) -> None:
         """
         Assign the code list to the evolving item.

@@ -10,7 +10,7 @@ from rdagent.utils.env import DockerEnv, DSDockerConf
 
 
 class DSFBWorkspace(FBWorkspace):
-    
+
     # TODO: use the cache_with_pickle decorator.
     def execute(self, run_env: dict = {}, *args, **kwargs) -> pd.DataFrame:
         """
@@ -35,9 +35,7 @@ class DSFBWorkspace(FBWorkspace):
 
         running_extra_volume = {}
         if DS_RD_SETTING.competition:
-            running_extra_volume = {
-                DS_RD_SETTING.local_data_path + "/" + DS_RD_SETTING.competition: "/kaggle/input"
-            }
+            running_extra_volume = {DS_RD_SETTING.local_data_path + "/" + DS_RD_SETTING.competition: "/kaggle/input"}
         else:
             running_extra_volume = {}
 

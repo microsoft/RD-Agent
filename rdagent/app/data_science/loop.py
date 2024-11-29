@@ -4,6 +4,7 @@ from typing import Any, Literal
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import NextLoopException, RDLoop
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
@@ -20,7 +21,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
+
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)

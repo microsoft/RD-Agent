@@ -25,10 +25,15 @@ File structure
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
-from rdagent.components.coder.CoSTEER.evolving_strategy import MultiProcessEvolvingStrategy
-from rdagent.components.coder.CoSTEER.knowledge_management import CoSTEERQueriedKnowledge
+from rdagent.components.coder.CoSTEER.evolving_strategy import (
+    MultiProcessEvolvingStrategy,
+)
+from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERQueriedKnowledge,
+)
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.core.scenario import Scenario
+
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -36,7 +41,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: DataLoaderTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
     ) -> str:
-        ... # prompting
+        ...  # prompting
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
 

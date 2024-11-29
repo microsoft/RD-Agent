@@ -187,6 +187,7 @@ class KGDockerConf(DockerConf):
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
 
+
 class DSDockerConf(DockerConf):
     model_config = ExtendedSettingsConfigDict(env_prefix="DS_DOCKER_")
 
@@ -199,6 +200,7 @@ class DSDockerConf(DockerConf):
     mem_limit: str | None = (
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
+
 
 class MLEBDockerConf(DockerConf):
     model_config = ExtendedSettingsConfigDict(env_prefix="MLEB_DOCKER_")

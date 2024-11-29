@@ -23,7 +23,7 @@ class DataScienceBasePropSetting(BasePropSetting):
     ## dev/coder
     data_loader_coder: str = "rdagent.components.coder.data_science.raw_data_loader.DataLoaderCoSTEER"
     """Data Loader CoSTEER"""
-    
+
     # feature_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGFactorCoSTEER"
     # """Feature Coder class"""
 

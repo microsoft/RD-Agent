@@ -6,12 +6,13 @@ It is NOT:
 - it is not interface unittest(i.e. workspace evaluator in the CoSTEER Loop)
 """
 
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExperiment
+from rdagent.scenarios.data_science.scen import DataScienceScen
 
-def develop_one_competition(competition: str): # -> experiment
+
+def develop_one_competition(competition: str):  # -> experiment
     scen = DataScienceScen(competition=competition)
     data_loader_coder = DataLoaderCoSTEER(scen)
 

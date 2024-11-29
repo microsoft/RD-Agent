@@ -9,6 +9,7 @@ from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.env import DockerEnv, DSDockerConf
+
 # TODO: Complete the implementation of the class DataLoaderTask and class DataLoaderFBWorkspace
 
 
@@ -89,9 +90,7 @@ class ModelFBWorkspace(FBWorkspace):
         return md5_hash(target_file_name)
 
     @cache_with_pickle(hash_func)
-    def execute(
-        self
-    ):
+    def execute(self):
         super().execute()
         try:
             de = DockerEnv(DSDockerConf())
