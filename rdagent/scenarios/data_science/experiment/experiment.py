@@ -41,33 +41,29 @@ from rdagent.scenarios.data_science.experiment.workspace import DSFBWorkspace
 class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DataLoaderFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = DataLoaderFBWorkspace()
+        self.experiment_workspace = DSFBWorkspace()
 
 
 class ModelExperiment(Experiment[ModelTask, DSFBWorkspace, ModelFBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = DSFBWorkspace(
-            template_folder_path=Path(__file__).resolve()
-            / Path(DS_RD_SETTING.template_path).resolve()
-            / DS_RD_SETTING.competition
-        )
-        if len(self.based_experiments) > 0:
-            self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
-            self.experiment_workspace.data_description = deepcopy(
-                self.based_experiments[-1].experiment_workspace.data_description
-            )
-        else:
-            self.experiment_workspace.data_description = [
-                (
-                    FactorTask(
-                        factor_name="Original features",
-                        factor_description="The original features",
-                        factor_formulation="",
-                    ).get_task_information(),
-                    source_feature_size,
-                )
-            ]
+        self.experiment_workspace = DSFBWorkspace()
+        # if len(self.based_experiments) > 0:
+        #     self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
+        #     self.experiment_workspace.data_description = deepcopy(
+        #         self.based_experiments[-1].experiment_workspace.data_description
+        #     )
+        # else:
+        #     self.experiment_workspace.data_description = [
+        #         (
+        #             FactorTask(
+        #                 factor_name="Original features",
+        #                 factor_description="The original features",
+        #                 factor_formulation="",
+        #             ).get_task_information(),
+        #             source_feature_size,
+        #         )
+        #     ]
 
 
 class FactorExperiment(Experiment[FactorTask, DSFBWorkspace, FactorFBWorkspace]):

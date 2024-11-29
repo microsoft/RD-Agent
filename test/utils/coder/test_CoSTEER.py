@@ -28,8 +28,13 @@ class CoSTEERTest(unittest.TestCase):
         # 1) Build the model experiment/task/workspace from tpl_ex
         # 2) build an according CoSTEER
         # 3) test the results
+        from rdagent.components.coder.data_science.model.test import develop_one_competition
+        
+        exp = develop_one_competition("aerial-cactus-identification")
+        
         pass
 
 
 if __name__ == "__main__":
     unittest.main()
+    # pytest test/utils/coder/test_CoSTEER.py
