@@ -55,9 +55,15 @@ def feature_eng(X: np.ndarray, y: np.ndarray | None = None, X_fit: np.ndarray | 
 - Implement a function to manage the model workflow with the following signature:
 
 ```python
-def model_workflow(X: np.ndarray, y: np.ndarray, val_X: np.ndarray = None, val_y: np.ndarray = None, test_X: np.ndarray = None, **hyper_params) -> tuple[np.ndarray | None, np.ndarray | None]:
+def model_workflow(X: np.ndarray, y: np.ndarray, val_X: np.ndarray = None, val_y: np.ndarray = None, test_X: np.ndarray = None, **hyper_params; dict = {}) -> tuple[np.ndarray | None, np.ndarray | None, dict]:
     """
-    Manages the workflow of a machine learning model, including training, validation, and testing.
+    Manages the workflow of a machine learning model, including training, validation.
+    The testing&validation's inference is included, as well
+
+    - If test/valid exist, output inference on them
+    - Follow the hyperparameter if exists.
+        - the returned hyperparameter should align with the input(except the newly generated early stop)
+    - If valid exist, add <early stop> to update the hyperparameter
 
     Parameters
     ----------
@@ -76,7 +82,7 @@ def model_workflow(X: np.ndarray, y: np.ndarray, val_X: np.ndarray = None, val_y
 
     Returns
     -------
-    tuple[np.ndarray | None, np.ndarray | None]
+    tuple[np.ndarray | None, np.ndarray | None, dict]
         Predictions on the validation data, predictions on the test data
     """
 ```
