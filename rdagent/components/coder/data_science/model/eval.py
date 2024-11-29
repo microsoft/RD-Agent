@@ -2,11 +2,16 @@
 Beyond previous tests
 - 
 """
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEEREvaluator,
+    CoSTEERMultiFeedback,
+    CoSTEERSingleFeedback,
+)
 
 
 # Below are unit tests for testing the specification of the implemented model ------------------
 #
-class XXX1SpecEval:
+class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     """
     Motivation case:
     - Simplest case, we already split the data into train_data, valid_data, and test_data. We require the model to learn (optionally validate on valid data), and infer on test data.
@@ -14,6 +19,30 @@ class XXX1SpecEval:
     Test workflow:
     - Build train, valid, and test data to run it, and test the output (e.g., shape, value, etc.)
     """
+    def evaluate(
+        self,
+        target_task: Task,
+        implementation: Workspace,
+        gt_implementation: Workspace,
+        queried_knowledge: QueriedKnowledge = None,
+        **kwargs,
+    ) -> ModelSingleFeedback:
+        target_task_information = target_task.get_task_information()
+        if (
+            queried_knowledge is not None
+            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
+        ):
+            return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
+        elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
+            return ModelSingleFeedback(
+                execution_feedback="This task has failed too many times, skip implementation.",
+                shape_feedback="This task has failed too many times, skip implementation.",
+                value_feedback="This task has failed too many times, skip implementation.",
+                code_feedback="This task has failed too many times, skip implementation.",
+                final_feedback="This task has failed too many times, skip implementation.",
+                final_decision=False,
+            )
+        assert isinstance(target_task, ModelTask)
 
 
 class XXX2SpecEval:
