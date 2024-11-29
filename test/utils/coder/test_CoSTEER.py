@@ -18,6 +18,10 @@ class CoSTEERTest(unittest.TestCase):
         # 3) test the results
         # - check spec.md
         # - check data_loader.py
+        from rdagent.components.coder.data_science.raw_data_loader.test import develop_one_competition
+
+        exp = develop_one_competition("aerial-cactus-identification")
+        
         pass
 
     def test_model(self):

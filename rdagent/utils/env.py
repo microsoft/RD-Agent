@@ -187,6 +187,18 @@ class KGDockerConf(DockerConf):
         "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
     )
 
+class DSDockerConf(DockerConf):
+    model_config = ExtendedSettingsConfigDict(env_prefix="DS_DOCKER_")
+
+    build_from_dockerfile: bool = False
+    image: str = "gcr.io/kaggle-gpu-images/python:latest"
+    mount_path: str = "/kaggle/workspace"
+    default_entry: str = "python main.py"
+
+    running_timeout_period: int = 600
+    mem_limit: str | None = (
+        "48g"  # Add memory limit attribute # new-york-city-taxi-fare-prediction may need more memory
+    )
 
 class MLEBDockerConf(DockerConf):
     model_config = ExtendedSettingsConfigDict(env_prefix="MLEB_DOCKER_")

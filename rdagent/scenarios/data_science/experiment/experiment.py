@@ -1,60 +1,53 @@
 from copy import deepcopy
 from pathlib import Path
 
+from rdagent.core.experiment import Experiment
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.data_science.raw_data_loader.raw_data_loader import (
-    DataLoaderExperiment,
+from rdagent.components.coder.data_science.raw_data_loader.exp import (
     DataLoaderFBWorkspace,
     DataLoaderTask,
 )
 from rdagent.components.coder.factor_coder.factor import (
     FactorFBWorkspace,
     FactorTask,
-    FeatureExperiment,
 )
 from rdagent.components.coder.model_coder.model import (
-    ModelExperiment,
     ModelFBWorkspace,
     ModelTask,
 )
-from rdagent.scenarios.data_science.experiment.workspace import KGFBWorkspace
+from rdagent.scenarios.data_science.experiment.workspace import DSFBWorkspace
 
-KG_MODEL_TYPE_XGBOOST = "XGBoost"
-KG_MODEL_TYPE_RANDOMFOREST = "RandomForest"
-KG_MODEL_TYPE_LIGHTGBM = "LightGBM"
-KG_MODEL_TYPE_NN = "NN"
+# KG_MODEL_TYPE_XGBOOST = "XGBoost"
+# KG_MODEL_TYPE_RANDOMFOREST = "RandomForest"
+# KG_MODEL_TYPE_LIGHTGBM = "LightGBM"
+# KG_MODEL_TYPE_NN = "NN"
 
-KG_MODEL_MAPPING = {
-    KG_MODEL_TYPE_XGBOOST: "model/model_xgboost.py",
-    KG_MODEL_TYPE_RANDOMFOREST: "model/model_randomforest.py",
-    KG_MODEL_TYPE_LIGHTGBM: "model/model_lightgbm.py",
-    KG_MODEL_TYPE_NN: "model/model_nn.py",
-}
+# KG_MODEL_MAPPING = {
+#     KG_MODEL_TYPE_XGBOOST: "model/model_xgboost.py",
+#     KG_MODEL_TYPE_RANDOMFOREST: "model/model_randomforest.py",
+#     KG_MODEL_TYPE_LIGHTGBM: "model/model_lightgbm.py",
+#     KG_MODEL_TYPE_NN: "model/model_nn.py",
+# }
 
-KG_SELECT_MAPPING = {
-    KG_MODEL_TYPE_XGBOOST: "model/select_xgboost.py",
-    KG_MODEL_TYPE_RANDOMFOREST: "model/select_randomforest.py",
-    KG_MODEL_TYPE_LIGHTGBM: "model/select_lightgbm.py",
-    KG_MODEL_TYPE_NN: "model/select_nn.py",
-}
+# KG_SELECT_MAPPING = {
+#     KG_MODEL_TYPE_XGBOOST: "model/select_xgboost.py",
+#     KG_MODEL_TYPE_RANDOMFOREST: "model/select_randomforest.py",
+#     KG_MODEL_TYPE_LIGHTGBM: "model/select_lightgbm.py",
+#     KG_MODEL_TYPE_NN: "model/select_nn.py",
+# }
 
 
-class KGDataLoaderExperiment(DataLoaderExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspace]):
-    # TODO: complete the implementation
+
+class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DataLoaderFBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = DataLoaderFBWorkspace()
+
+
+class ModelExperiment(Experiment[ModelTask, DSFBWorkspace, ModelFBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        # TODO: It seems there are some problems as the folder has not been created.
-        # self.experiment_workspace = KGFBWorkspace(
-        #     template_folder_path=Path(__file__).resolve()
-        #     / Path(DS_RD_SETTING.template_path).resolve()
-        #     / DS_RD_SETTING.competition
-        # )
-
-
-class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspace]):
-    def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFBWorkspace(
+        self.experiment_workspace = DSFBWorkspace(
             template_folder_path=Path(__file__).resolve()
             / Path(DS_RD_SETTING.template_path).resolve()
             / DS_RD_SETTING.competition
@@ -77,10 +70,10 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
             ]
 
 
-class KGFactorExperiment(FeatureExperiment[FactorTask, KGFBWorkspace, FactorFBWorkspace]):
+class FactorExperiment(Experiment[FactorTask, DSFBWorkspace, FactorFBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = KGFBWorkspace(
+        self.experiment_workspace = DSFBWorkspace(
             template_folder_path=Path(__file__).resolve()
             / Path(DS_RD_SETTING.template_path).resolve()
             / DS_RD_SETTING.competition

@@ -105,10 +105,7 @@ class FBWorkspace(Workspace):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.code_dict: dict[str, Any] = {}
-        self.code_dict = (
-            {}
-        )  # The code injected into the folder, store them in the variable to reproduce the former result
+        self.code_dict: dict[str, Any] = {} # The code injected into the folder, store them in the variable to reproduce the former result
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
 
     @property
