@@ -12,7 +12,6 @@ from rdagent.utils.env import DockerEnv, DSDockerConf
 
 # TODO: Complete the implementation of the class DataLoaderTask and class DataLoaderFBWorkspace
 
-
 class ModelTask(CoSTEERTask):
     def __init__(
         self,
@@ -31,7 +30,8 @@ class ModelTask(CoSTEERTask):
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
         self.model_type: str = (
-            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
+            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model 
+            # TODO: More Models Supported
         )
         super().__init__(name=name, description=description, *args, **kwargs)
 
@@ -52,7 +52,6 @@ description: {self.description}
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
-
 
 class ModelFBWorkspace(FBWorkspace):
     """
@@ -75,32 +74,23 @@ class ModelFBWorkspace(FBWorkspace):
         (version 2) for kaggle we'll make a script to call the fit and predict function in the implementation in file `model.py` after setting the cwd into the directory
     """
 
-    def hash_func(
-        self,
-        batch_size: int = 8,
-        num_features: int = 10,
-        num_timesteps: int = 4,
-        num_edges: int = 20,
-        input_value: float = 1.0,
-        param_init_value: float = 1.0,
-    ) -> str:
-        target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
-        for code_file_name in sorted(list(self.code_dict.keys())):
-            target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
-        return md5_hash(target_file_name)
-
-    @cache_with_pickle(hash_func)
     def execute(self):
         super().execute()
         try:
             de = DockerEnv(DSDockerConf())
             de.prepare()
+            np.save(os.path.join(self.workspace_path, "train_X.npy"), train_X)  
+            np.save(os.path.join(self.workspace_path, "train_y.npy"), train_y)  
+            np.save(os.path.join(self.workspace_path, "val_X.npy"), val_X)  
+            np.save(os.path.join(self.workspace_path, "val_y.npy"), val_y)  
+            np.save(os.path.join(self.workspace_path, "test_X.npy"), test_X)  
+            # TODO: generate dataset automatically
 
             dump_code = (Path(__file__).parent / "model_execute_template.txt").read_text()
 
             log, results = de.dump_python_code_run_and_get_results(
                 code=dump_code,
-                dump_file_names=["execution_feedback_str.pkl", "execution_model_output.pkl"],
+                dump_file_names=["execution_feedback_str.pkl", "val_pred.pkl", "test_pred.pkl"],  
                 local_path=str(self.workspace_path),
                 env={},
                 code_dump_file_py_name="model_test",
@@ -111,10 +101,12 @@ class ModelFBWorkspace(FBWorkspace):
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
-            execution_model_output = None
+            val_pred_array = None  
+            test_pred_array = None 
 
         if len(execution_feedback_str) > 2000:
             execution_feedback_str = (
                 execution_feedback_str[:1000] + "....hidden long error message...." + execution_feedback_str[-1000:]
             )
-        return execution_feedback_str, execution_model_output
+        return execution_feedback_str, val_pred_array, test_pred_array 
+    

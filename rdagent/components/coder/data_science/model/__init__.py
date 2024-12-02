@@ -44,7 +44,7 @@ class ModelCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         eva = CoSTEERMultiEvaluator(
-            # ModelCoSTEEREvaluator(scen=scen), scen=scen
+            ModelCoSTEEREvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = ModelMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 

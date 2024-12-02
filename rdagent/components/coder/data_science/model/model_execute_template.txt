@@ -1,24 +1,43 @@
-import os
-import pickle
+"""
+adapt for cv models
+"""
 
-import numpy as np
-import pandas as pd
-import torch
-from model import fit, predict
+import os  
+import pickle  
+import traceback  
+  
+import numpy as np  
+from model import model_workflow  
+  
+train_X = np.load("train_X.npy")  
+train_y = np.load("train_y.npy")  
+val_X = np.load("val_X.npy")  
+val_y = np.load("val_y.npy")  
+test_X = np.load("test_X.npy")  
+  
 
-train_X = pd.DataFrame(np.random.randn(8, 30), columns=[f"{i}" for i in range(30)])
-train_y = pd.Series(np.random.randint(0, 2, 8))
-valid_X = pd.DataFrame(np.random.randn(8, 30), columns=[f"{i}" for i in range(30)])
-valid_y = pd.Series(np.random.randint(0, 2, 8))
-
-model = fit(train_X, train_y, valid_X, valid_y)
-execution_model_output = predict(model, valid_X)
-
-if isinstance(execution_model_output, torch.Tensor):
-    execution_model_output = execution_model_output.cpu().detach().numpy()
-
-
-execution_feedback_str = f"Execution successful, output numpy ndarray shape: {execution_model_output.shape}"
-
-pickle.dump(execution_model_output, open("execution_model_output.pkl", "wb"))
-pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))
+# Call model_workflow  
+val_pred, test_pred, updated_hyper_params = model_workflow(  
+    X=train_X,  
+    y=train_y,  
+    val_X=val_X,  
+    val_y=val_y,  
+    test_X=test_X,  
+    hyper_params={}  
+)  
+ 
+execution_feedback_str = "Execution successful.\n"  
+if val_pred is not None:  
+    execution_feedback_str += f"Validation predictions shape: {val_pred.shape}\n"  
+else:  
+    execution_feedback_str += "Validation predictions are None.\n"  
+if test_pred is not None:  
+    execution_feedback_str += f"Test predictions shape: {test_pred.shape}\n"  
+else:  
+    execution_feedback_str += "Test predictions are None.\n"  
+  
+# Save the outputs  
+pickle.dump(val_pred, open("val_pred.pkl", "wb"))  
+pickle.dump(test_pred, open("test_pred.pkl", "wb"))  
+pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))  
+  
