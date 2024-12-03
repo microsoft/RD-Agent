@@ -54,26 +54,6 @@ description: {self.description}
         return f"<{self.__class__.__name__} {self.name}>"
 
 class ModelFBWorkspace(FBWorkspace):
-    """
-    It is a Pytorch model implementation task;
-    All the things are placed in a folder.
-
-    Folder
-    - data source and documents prepared by `prepare`
-        - Please note that new data may be passed in dynamically in `execute`
-    - code (file `model.py` ) injected by `inject_code`
-        - the `model.py` that contains a variable named `model_cls` which indicates the implemented model structure
-            - `model_cls` is a instance of `torch.nn.Module`;
-
-    We support two ways of interface:
-        (version 1) for qlib we'll make a script to import the model in the implementation in file `model.py` after setting the cwd into the directory
-            - from model import model_cls
-            - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
-            - And then verify the model.
-
-        (version 2) for kaggle we'll make a script to call the fit and predict function in the implementation in file `model.py` after setting the cwd into the directory
-    """
-
     def execute(self):
         super().execute()
         try:
