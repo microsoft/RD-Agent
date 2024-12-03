@@ -160,6 +160,8 @@ evaluator_final_feedback:
         {{ model_information }}
         --------------Model Execution feedback:---------------
         {{ model_execution_feedback }}
+        --------------Model shape feedback:---------------
+        {{ model_shape_feedback }}
         --------------Model Code feedback:---------------
         {{ model_code_feedback }}
         --------------Model value feedback:---------------
