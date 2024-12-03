@@ -87,6 +87,7 @@ class ModelCoSTEEREvaluator(CoSTEEREvaluator):
             implementation=implementation,
             gt_implementation=gt_implementation,
             model_execution_feedback=model_execution_feedback,
+            model_shape_feedback=shape_feedback,
             model_value_feedback=value_feedback,
             model_code_feedback=code_feedback,
         )

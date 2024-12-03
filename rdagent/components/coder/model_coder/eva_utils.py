@@ -123,6 +123,7 @@ class ModelFinalEvaluator(Evaluator):
         implementation: Workspace,
         gt_implementation: Workspace,
         model_execution_feedback: str,
+        model_shape_feedback: str,
         model_value_feedback: str,
         model_code_feedback: str,
     ):
@@ -154,6 +155,7 @@ class ModelFinalEvaluator(Evaluator):
                 .render(
                     model_information=target_task.get_task_information(),
                     model_execution_feedback=execution_feedback_to_render,
+                    model_shape_feedback=model_shape_feedback,
                     model_code_feedback=model_code_feedback,
                     model_value_feedback=model_value_feedback,
                 )
