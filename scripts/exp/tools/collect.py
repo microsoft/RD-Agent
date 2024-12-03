@@ -7,6 +7,7 @@ from rdagent.log.storage import FileStorage
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     leaderboard_scores,
 )
+import pandas as pd
 
 def collect_results(log_path) -> list[dict]:
     summary = []
@@ -39,24 +40,32 @@ def generate_summary(results, output_path):
     }
     for result in results:
         # Update best result
-        # If the evaluation metric is higher, it is better
         if result["evaluation_metric_direction"]:
             if (result["score"] is not None and 
                 (summary["best_result"]["score"] is None or 
-                result["score"] > summary["best_result"]["score"])):
+                (result["score"].iloc[0] > summary["best_result"]["score"]))):
                 summary["best_result"].update({
-                    "score": result["score"],
+                    "score": result["score"].iloc[0] if isinstance(result["score"], pd.Series) else result["score"],
                     "competition_name": result["competition_name"]
                 })
         else:
             if (result["score"] is not None and 
                 (summary["best_result"]["score"] is None or 
-                result["score"] < summary["best_result"]["score"])):
+                (result["score"].iloc[0] < summary["best_result"]["score"]))):
                 summary["best_result"].update({
-                    "score": result["score"],
+                    "score": result["score"].iloc[0] if isinstance(result["score"], pd.Series) else result["score"],
                     "competition_name": result["competition_name"]
                 })
     
+    # Convert Series to scalar or list if necessary
+    for key, value in summary.items():
+        if isinstance(value, pd.Series):
+            summary[key] = value.tolist()  # Convert Series to list
+        elif isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                if isinstance(sub_value, pd.Series):
+                    value[sub_key] = sub_value.tolist()  # Convert Series to list
+
     with open(output_path, "w") as f: 
         json.dump(summary, f, indent=4)
 
