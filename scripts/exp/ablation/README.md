@@ -4,9 +4,10 @@ This document outlines the environment configurations for the ablation studies. 
 
 | Name      | .env         | Description                               | Available? |
 |-----------|--------------|-------------------------------------------|------------|
-| max       | max.env     | Enables all features                      | No         |
-| minicase  | minicase.env | Enables minicase and DS-Agent             | Yes        |
+| basic | basic.env | Standard case of RDAgent                         | Yes       | 
+| minicase  | minicase.env | Enables minicase and DS-Agent             | Yes       |
 | pro       | pro.env     | Standard case with vector RAG             | Yes        |
+| max       | max.env     | Enables all features                      | No         |
 
 ## Notes
 
