@@ -49,7 +49,7 @@ Basic example:
 ./run_envs.sh -d env_files -j 1 -- echo "Hello"
 ```
 
-Practical example:
+Practical example (running the kaggle loop file):
 
 ```
 dotenv run -- ./run_envs.sh -d RD-Agent/scripts/exp/ablation/env -j 1 -- python RD-Agent/rdagent/app/kaggle/loop.py

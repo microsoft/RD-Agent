@@ -5,9 +5,9 @@ TEST_DIR="test_run"
 mkdir -p "$TEST_DIR/results"
 mkdir -p "$TEST_DIR/logs"
 
-# Define paths
-ENV_DIR="/home/v-xisenwang/RD-Agent/scripts/exp/ablation/env"
-PYTHON_SCRIPT="/home/v-xisenwang/RD-Agent/rdagent/app/kaggle/loop.py"
+# Define relative paths inside the folder RDAgent
+ENV_DIR="scripts/exp/ablation/env" # The folder of environments to apply
+PYTHON_SCRIPT="rdagent/app/kaggle/loop.py" # The main file for running 
 
 # Run the experiment
 echo "Running experiments..."
