@@ -5,7 +5,9 @@ Generate dataset to test the model workflow output
 from pathlib import Path
 
 from rdagent.components.coder.data_science.model import ModelCoSTEER
-from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.model.eval import ModelGeneralCaseSpecEvaluator
+
+from rdagent.components.coder.data_science.model.exp import ModelTask, ModelFBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import ModelExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
@@ -16,19 +18,36 @@ def develop_one_competition(competition: str):
     model_coder = ModelCoSTEER(scen)
 
     # Create the experiment
-    mt = ModelTask(name="ModelTask", description="", base_code="import pandas...")
+    mt = ModelTask(
+        name="ModelTask", 
+        description="A CNN Model", 
+        architecture="\hat{y}_u = CNN(X_u)", 
+        variables="variables: {'\\hat{y}_u': 'The predicted output for node u', 'X_u': 'The input features for node u'}", 
+        hyperparameters="...",
+        base_code="import pandas...",
+    )
     exp = ModelExperiment(
         sub_tasks=[mt],
     )
 
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
-    injected_file_names = ["spec.md", "load_data.py", "feat01.py"]
+    injected_file_names = ["spec.md", "load_data.py", "feat01.py", "model01.py"]
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
         exp.experiment_workspace.inject_code(**{file_name: file_path.read_text()})
 
     # Run the experiment
-    exp = model_coder.develop(exp)
+    # exp = model_coder.develop(exp)
+    # test the evaluator
+    eva = ModelGeneralCaseSpecEvaluator(scen=scen)
+    modelexp = ModelFBWorkspace()
+    for file_name in injected_file_names:
+        file_path = tpl_ex_path / file_name
+        modelexp.inject_code(**{file_name: file_path.read_text()})
+    
+    exp.feedback = eva.evaluate(target_task=mt, queried_knowledge=None, implementation=modelexp, gt_implementation=None)
+    print("hello world")
+    print(exp.feedback)
 
 
 if __name__ == "__main__":

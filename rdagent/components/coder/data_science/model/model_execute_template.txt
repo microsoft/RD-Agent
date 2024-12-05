@@ -7,22 +7,27 @@ import pickle
 import traceback  
   
 import numpy as np  
-from model import model_workflow  
+from model01 import model_workflow  
   
-train_X = np.load("train_X.npy")  
-train_y = np.load("train_y.npy")  
-val_X = np.load("val_X.npy")  
-val_y = np.load("val_y.npy")  
-test_X = np.load("test_X.npy")  
+# train_X = np.load("train_X.npy")  
+# train_y = np.load("train_y.npy")  
+# val_X = np.load("val_X.npy")  
+# val_y = np.load("val_y.npy")  
+# test_X = np.load("test_X.npy")
+train_X = np.random.rand(8, 64, 64, 3)
+train_y = np.random.rand(8, 1)
+val_X = np.random.rand(8, 64, 64, 3)
+val_y = np.random.rand(8, 1)
+test_X = np.random.rand(8, 64, 64, 3)
   
 
 # Call model_workflow  
-val_pred, test_pred, updated_hyper_params = model_workflow(  
+val_pred, test_pred = model_workflow(  
     X=train_X,  
     y=train_y,  
     val_X=val_X,  
     val_y=val_y,  
-    test_X=test_X,  
+    test_X=None, 
     hyper_params={}  
 )  
  
@@ -37,7 +42,7 @@ else:
     execution_feedback_str += "Test predictions are None.\n"  
   
 # Save the outputs  
-pickle.dump(val_pred, open("val_pred.pkl", "wb"))  
-pickle.dump(test_pred, open("test_pred.pkl", "wb"))  
+pred_list = [val_pred, test_pred]  
+pickle.dump(pred_list, open("pred_list.pkl", "wb"))  
 pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))  
   

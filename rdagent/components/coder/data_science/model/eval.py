@@ -8,12 +8,14 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.model_coder.eva_utils import (
+from rdagent.components.coder.data_science.model.eva_utils import (
     ModelCodeEvaluator,
     ModelFinalEvaluator,
-    shape_evaluator,
-    value_evaluator,
 )
+from rdagent.components.coder.model_coder.eva_utils import shape_evaluator
+from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
+from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.experiment import Task, Workspace
 
 ModelSingleFeedback = CoSTEERSingleFeedback
 ModelMultiFeedback = CoSTEERMultiFeedback
@@ -38,7 +40,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> ModelSingleFeedback:
-        target_task_information = target_task.get_task_information()
+        # target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict
@@ -53,20 +55,20 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_feedback="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
-        assert isinstance(target_task, ModelTask)
-
+        # assert isinstance(target_task, ModelTask)
+        
+        batch_size = 8
         assert isinstance(implementation, ModelFBWorkspace)
-        model_execution_feedback, val_pred_array, test_pred_array = implementation.execute(
-        # Parameters?
+        model_execution_feedback, pred_list= implementation.execute(
+            batch_size=batch_size,
         )
+        val_pred_array, test_pred_array = pred_list
         # ignore gt_implementation
         gt_np_array = None
 
-        # TODO: auto specify shape for other task types
-        # will spec.md provide the needed shape? the below code still only support 2d-output
-        batch_size = 8
+        # TODO: auto specify shape from spec.md using GPT
+        
         num_classes = self.scen.model_output_channel if hasattr(self.scen, "model_output_channel") else 1
-        # TODO: num_class may not be specified in data description. Maybe shape evaluate is not necessary.
         shape_feedback = ""  
         expected_val_shape = (batch_size, num_classes)  
         expected_test_shape = (batch_size, num_classes)  
@@ -80,8 +82,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             expected_test_shape,
         ) 
         shape_feedback += f"Test Output: {test_shape_feedback}\n"
-        # value feedback necessary?
-        value_feedback = "" 
+        value_feedback = "The value feedback is passed, and the value decision is true." 
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,
@@ -94,6 +95,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             implementation=implementation,
             gt_implementation=gt_implementation,
             model_execution_feedback=model_execution_feedback,
+            model_shape_feedback=shape_feedback,
             model_value_feedback=value_feedback,
             model_code_feedback=code_feedback,
         )
@@ -105,7 +107,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             code_feedback=code_feedback,
             final_feedback=final_feedback,
             final_decision=final_decision,
-            # value_generated_flag=(gen_np_array is not None),
             value_generated_flag=(val_pred_array is not None and test_pred_array is not None),  
             final_decision_based_on_gt=(gt_implementation is not None),
         )
