@@ -70,6 +70,9 @@ class KaggleBasePropSetting(BasePropSetting):
     auto_submit: bool = False
     """Automatically upload and submit each experiment result to Kaggle platform"""
 
+    mle_submit: bool = False
+    """Automatically upload and submit each experiment result to mlebench"""
+
     mini_case: bool = False
     """Enable mini-case study for experiments"""
 

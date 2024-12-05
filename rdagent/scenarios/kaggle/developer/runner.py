@@ -95,6 +95,35 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
 
         return exp
 
+class MLEModelRunner(KGCachedRunner[KGModelExperiment]):
+    @cache_with_pickle(KGCachedRunner.get_cache_key, KGCachedRunner.assign_cached_result)
+    def develop(self, exp: KGModelExperiment) -> KGModelExperiment:
+        if exp.based_experiments and exp.based_experiments[-1].result is None:
+            exp.based_experiments[-1] = self.init_develop(exp.based_experiments[-1])
+
+        sub_ws = exp.sub_workspace_list[0]
+        if sub_ws is not None:
+            # TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list.
+            model_type = sub_ws.target_task.model_type
+
+            if sub_ws.code_dict == {}:
+                raise ModelEmptyError("No model is implemented.")
+            else:
+                model_file_name = f"model/model_{model_type.lower()}.py"
+                exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
+        env_to_use = {"PYTHONPATH": "./"}
+
+        result = exp.experiment_workspace.execute(run_env=env_to_use)
+
+        if result is None:
+            raise CoderError("No result is returned from the experiment workspace")
+
+        report_path = exp.experiment_workspace.workspace_path / "mle_submission_report.txt"
+        with open(report_path, "r") as f:
+            exp.result = f.read()
+
+        return exp
+
 
 class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
     @cache_with_pickle(KGCachedRunner.get_cache_key, KGCachedRunner.assign_cached_result)
