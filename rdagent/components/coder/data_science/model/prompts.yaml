@@ -129,14 +129,6 @@ evaluator_code_feedback:
         {{ code }}
         --------------Execution feedback:---------------
         {{ model_execution_feedback }}
-        {% if model_value_feedback is not none %}
-        --------------Model value feedback:---------------
-        {{ model_value_feedback }}
-        {% endif %}
-        {% if gt_code is not none %}
-        --------------Ground truth Python code:---------------
-        {{ gt_code }}
-        {% endif %}
 
 
 evaluator_final_feedback:
@@ -164,5 +156,3 @@ evaluator_final_feedback:
         {{ model_shape_feedback }}
         --------------Model Code feedback:---------------
         {{ model_code_feedback }}
-        --------------Model value feedback:---------------
-        {{ model_value_feedback }}

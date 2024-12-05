@@ -19,14 +19,10 @@ class ModelCodeEvaluator(Evaluator):
         self,
         target_task: Task,
         implementation: Workspace,
-        gt_implementation: Workspace,
         model_execution_feedback: str = "",
-        model_value_feedback: str = "",
     ):
         assert isinstance(target_task, ModelTask)
         assert isinstance(implementation, ModelFBWorkspace)
-        if gt_implementation is not None:
-            assert isinstance(gt_implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
         code = implementation.code
@@ -55,8 +51,6 @@ class ModelCodeEvaluator(Evaluator):
                     model_information=model_task_information,
                     code=code,
                     model_execution_feedback=execution_feedback_to_render,
-                    model_value_feedback=model_value_feedback,
-                    gt_code=gt_implementation.code if gt_implementation else None,
                 )
             )
             if (
@@ -84,16 +78,13 @@ class ModelFinalEvaluator(Evaluator):
         self,
         target_task: Task,
         implementation: Workspace,
-        gt_implementation: Workspace,
         model_execution_feedback: str,
         model_shape_feedback: str,
-        model_value_feedback: str,
         model_code_feedback: str,
     ):
         assert isinstance(target_task, ModelTask)
         assert isinstance(implementation, ModelFBWorkspace)
-        if gt_implementation is not None:
-            assert isinstance(gt_implementation, ModelFBWorkspace)
+
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
@@ -121,7 +112,6 @@ class ModelFinalEvaluator(Evaluator):
                     model_execution_feedback=execution_feedback_to_render,
                     model_shape_feedback=model_shape_feedback,
                     model_code_feedback=model_code_feedback,
-                    model_value_feedback=model_value_feedback,
                 )
             )
             if (

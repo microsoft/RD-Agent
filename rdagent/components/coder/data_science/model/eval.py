@@ -29,7 +29,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     - Simplest case, we already split the data into train_data, valid_data, and test_data. We require the model to learn (optionally validate on valid data), and infer on test data.
 
     Test workflow:
-    - Build train, valid, and test data to run it, and test the output (e.g., shape, value, etc.)
+    - Build train, valid, and test data to run it, and test the output (e.g., shape, etc.)
     """
 
     def evaluate(
@@ -63,8 +63,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             batch_size=batch_size,
         )
         val_pred_array, test_pred_array = pred_list
-        # ignore gt_implementation
-        gt_np_array = None
 
         # TODO: auto specify shape from spec.md using GPT
         
@@ -82,21 +80,17 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             expected_test_shape,
         ) 
         shape_feedback += f"Test Output: {test_shape_feedback}\n"
-        value_feedback = "The value feedback is passed, and the value decision is true." 
+        value_feedback = "The value feedback is ignored, and the value decision is automatically set as true." 
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,
-            gt_implementation=gt_implementation,
             model_execution_feedback=model_execution_feedback,
-            model_value_feedback="\n".join([shape_feedback, value_feedback]),
         )
         final_feedback, final_decision = ModelFinalEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,
-            gt_implementation=gt_implementation,
             model_execution_feedback=model_execution_feedback,
             model_shape_feedback=shape_feedback,
-            model_value_feedback=value_feedback,
             model_code_feedback=code_feedback,
         )
 
@@ -107,8 +101,8 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             code_feedback=code_feedback,
             final_feedback=final_feedback,
             final_decision=final_decision,
-            value_generated_flag=(val_pred_array is not None and test_pred_array is not None),  
-            final_decision_based_on_gt=(gt_implementation is not None),
+            value_generated_flag=(val_pred_array is not None and test_pred_array is not None),
+            final_decision_based_on_gt=False,
         )
 
 
@@ -120,7 +114,7 @@ class XXX2SpecEval:
     - Sometimes we don't need validation (e.g., simple models not prone to overfitting, or data is too scarce to split).
 
     Test workflow:
-    - Build train and test data to run it, and test the output (e.g., shape, value, etc.)
+    - Build train and test data to run it, and test the output (e.g., shape, etc.)
     - valid_data == None
     """
 

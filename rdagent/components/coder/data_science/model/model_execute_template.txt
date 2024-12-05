@@ -27,7 +27,7 @@ val_pred, test_pred = model_workflow(
     y=train_y,  
     val_X=val_X,  
     val_y=val_y,  
-    test_X=None, 
+    test_X=test_X,
     hyper_params={}  
 )  
  
