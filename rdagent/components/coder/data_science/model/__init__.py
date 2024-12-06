@@ -4,6 +4,7 @@ from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
+from rdagent.components.coder.data_science.model.eval import ModelGeneralCaseSpecEvaluator
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
@@ -44,8 +45,9 @@ class ModelCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         eva = CoSTEERMultiEvaluator(
-            ModelCoSTEEREvaluator(scen=scen), scen=scen
+            ModelGeneralCaseSpecEvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
+        # eva = ModelGeneralCaseSpecEvaluator(scen=scen)
         es = ModelMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=1, scen=scen, **kwargs)
+        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)

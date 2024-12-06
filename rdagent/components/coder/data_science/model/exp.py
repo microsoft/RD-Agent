@@ -56,38 +56,38 @@ description: {self.description}
 
 
 class ModelFBWorkspace(FBWorkspace):
-    def execute(self):
+    def execute(
+        self,
+        batch_size: int = 8,    
+    ):
         super().execute()
         try:
             de = DockerEnv(DSDockerConf())
             de.prepare()
-            np.save(os.path.join(self.workspace_path, "train_X.npy"), train_X)
-            np.save(os.path.join(self.workspace_path, "train_y.npy"), train_y)
-            np.save(os.path.join(self.workspace_path, "val_X.npy"), val_X)
-            np.save(os.path.join(self.workspace_path, "val_y.npy"), val_y)
-            np.save(os.path.join(self.workspace_path, "test_X.npy"), test_X)
+
+            # self.code_dict["spec.md"]
             # TODO: generate dataset automatically
 
             dump_code = (Path(__file__).parent / "model_execute_template.txt").read_text()
 
             log, results = de.dump_python_code_run_and_get_results(
                 code=dump_code,
-                dump_file_names=["execution_feedback_str.pkl", "val_pred.pkl", "test_pred.pkl"],
+                dump_file_names=["execution_feedback_str.pkl", "pred_list.pkl"],  
                 local_path=str(self.workspace_path),
                 env={},
                 code_dump_file_py_name="model_test",
             )
             if results is None:
                 raise RuntimeError(f"Error in running the model code: {log}")
-            [execution_feedback_str, execution_model_output] = results
+            [execution_feedback_str, pred_list] = results
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
-            val_pred_array = None
-            test_pred_array = None
+            pred_list  = None  
 
         if len(execution_feedback_str) > 2000:
             execution_feedback_str = (
                 execution_feedback_str[:1000] + "....hidden long error message...." + execution_feedback_str[-1000:]
             )
-        return execution_feedback_str, val_pred_array, test_pred_array
+        return execution_feedback_str, pred_list 
+    
