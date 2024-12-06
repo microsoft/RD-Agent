@@ -12,6 +12,7 @@ from rdagent.utils.env import DockerEnv, DSDockerConf
 
 # TODO: Complete the implementation of the class DataLoaderTask and class DataLoaderFBWorkspace
 
+
 class ModelTask(CoSTEERTask):
     def __init__(
         self,
@@ -30,7 +31,7 @@ class ModelTask(CoSTEERTask):
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
         self.model_type: str = (
-            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model 
+            model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
             # TODO: More Models Supported
         )
         super().__init__(name=name, description=description, *args, **kwargs)
@@ -52,6 +53,7 @@ description: {self.description}
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
+
 
 class ModelFBWorkspace(FBWorkspace):
     def execute(

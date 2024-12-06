@@ -14,6 +14,7 @@ from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+
 # This shape evaluator is also used in data_science
 def shape_evaluator(prediction: np.ndarray, target_shape: Tuple = None) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
