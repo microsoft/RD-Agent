@@ -175,6 +175,16 @@ model_experiment_output_format: |-
   }
   Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
+data_loader_experiment_output_format: |-
+  According to the hypothesis, please help user design one data loader task.
+  The output should follow JSON format. The schema is as follows:
+  {
+      "data loader name": {
+          "description": "description of the overall data loader for the data science workflow",
+      }
+      # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+  }
+
 kg_feedback_generation_user: |-
   We are in a process of finding and validating hypotheses to build a powerful model. Each round aims to confirm or reject hypotheses based on results.
 
