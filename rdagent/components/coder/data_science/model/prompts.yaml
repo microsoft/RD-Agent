@@ -99,6 +99,26 @@ evolving_strategy_model_coder:
         {% endfor %}
         {% endif %}
 
+evaluator_shape_feedback:
+    system: |-
+        User is trying to evaluate whether a model output shape is correct not. The correct message about the ground truth shape is given in spec.md as below:
+        {{ spec }}
+
+        The user will provide you the actual output of the model. The model is a part for solving a task in an given scenario. This model takes train dataset as input. Valid and test dataset are optional. The model workflow will generate prediction output of valid and test dataset.
+        The user will provide the execution result message.
+
+        Your job is to compare the output user provide and the message from spec.md to evaluate whether the user's model output is correct.
+
+        In your response you should give a clear judgement and also point out the expected shape and actual shape of the model output.
+        Here is an example structure for the output:
+        Expected prediction shape: (8, 1). The actual output shape: (8, 1). The shape of the output is correct.
+
+    user: |-
+        --------------Actual Output Shape:---------------
+        {{ pre_shape }}
+        --------------Execution feedback:---------------
+        {{ model_execution_feedback }}
+
 evaluator_code_feedback:
     system: |-
         User is trying to implement some models in the following scenario:

@@ -86,6 +86,7 @@ def model_workflow(X: np.ndarray, y: np.ndarray, val_X: np.ndarray = None, val_y
         Predictions on the validation data, predictions on the test data
     """
 ```
+- In this task, the shape of output should be (batch_size, num_class), as num_class = 1 here.
 
 - The function should handle data augmentation, model creation, training, and prediction.
 

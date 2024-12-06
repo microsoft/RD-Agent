@@ -14,6 +14,65 @@ from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+def expected_shape_detect(
+    prediction: np.ndarray,    
+    spec_message: str,
+    model_execution_feedback: str,
+) -> str:
+    if prediction is None:
+        return "No output generated from the model. Skip value evaluation"
+    elif spec_message is None:
+        return (
+            "No spec provided. Shape evaluation not impractical",
+        )
+    else:
+        pre_shape = prediction.shape
+
+        system_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(evaluate_prompts["evaluator_shape_feedback"]["system"])
+            .render(
+                spec=(
+                    spec_message
+                    if spec_message is not None
+                    else "No spec description provided."
+                )
+            )
+        )
+
+        execution_feedback_to_render = model_execution_feedback
+
+        for _ in range(10):  # 10 times to split the content is enough
+            user_prompt = (
+                Environment(undefined=StrictUndefined)
+                .from_string(
+                    evaluate_prompts["evaluator_shape_feedback"]["user"],
+                )
+                .render(
+                    pre_shape=pre_shape,
+                    model_execution_feedback=execution_feedback_to_render,
+                )
+            )
+            if (
+                APIBackend().build_messages_and_calculate_token(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+                > LLM_SETTINGS.chat_token_limit
+            ):
+                execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
+            else:
+                break
+        
+        critic_response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=False,
+        )
+
+        return critic_response
+
+
 class ModelCodeEvaluator(Evaluator):
     def evaluate(
         self,
@@ -25,7 +84,7 @@ class ModelCodeEvaluator(Evaluator):
         assert isinstance(implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
-        code = implementation.code
+        code = implementation.code_dict["model01.py"]
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
