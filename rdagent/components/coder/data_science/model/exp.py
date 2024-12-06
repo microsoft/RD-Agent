@@ -10,8 +10,6 @@ from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
-# TODO: Complete the implementation of the class DataLoaderTask and class DataLoaderFBWorkspace
-
 
 class ModelTask(CoSTEERTask):
     def __init__(

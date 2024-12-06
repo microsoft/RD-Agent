@@ -39,7 +39,6 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.data_science.experiment.experiment import DataLoaderFBWorkspace
 from rdagent.utils.agent.tpl import T
 
 
@@ -76,7 +75,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         data_loader_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt)
+            APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True)
         )["code"]
 
         return {
@@ -100,7 +99,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.experiment_workspace
-                # evo.sub_workspace_list[index] = DataLoaderFBWorkspace(target_task=evo.sub_tasks[index])
+                # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_code(**code_list[index])
         return evo

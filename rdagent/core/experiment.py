@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Generic, Optional, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.utils.env import Env
 
 if typing.TYPE_CHECKING:
     from rdagent.core.proposal import Hypothesis
@@ -105,6 +106,7 @@ class FBWorkspace(Workspace):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        # TODO: rename it to file_dict;   inject_code -> inject_files
         self.code_dict: dict[str, Any] = (
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
@@ -185,12 +187,15 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.code_dict = {}
 
-    def execute(self) -> object | None:
+    def execute(self, env: Env | None = None, entry: str | None = None) -> object | None:
         """
         Before each execution, make sure to prepare and inject code
         """
         self.prepare()
         self.inject_code(**self.code_dict)
+        # TODO: env should be not None in new design (no code can run without environment)
+        if env is not None and entry is not None:
+            return env.run(entry, self.workspace_path)
         return None
 
     def __str__(self) -> str:

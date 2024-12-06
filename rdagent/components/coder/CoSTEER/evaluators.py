@@ -12,6 +12,9 @@ from rdagent.log import rdagent_logger as logger
 
 
 class CoSTEERSingleFeedback(Feedback):
+    # TODO: (xiao)
+    # it should be a subclass of FBWorkspaceExeFeedback
+    # A better name of it may be NormalFeedback
     """This class is a base class for all code generator feedback to single implementation"""
 
     def __init__(

@@ -100,3 +100,26 @@ data_loader_coder:
 
     ---------Data Loader Specification---------
     {{ data_loader_spec }}
+
+
+data_loader_eval:
+  system: |-
+    You are data scientist.
+    You are testing the data_loader with the following code
+    ```python
+    {{test_code}}
+    ```
+    You'll be given the stdout of your testing scripts.
+    Please respond with your feedback in the following JSON format and order
+    ```json
+    {
+        "execution": "Describe how well the data loader executed, including any errors or issues encountered.",
+        "checking": "Detail the checks performed on the data loaded, including data integrity and correctness.",
+        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
+        "final_decision": <true/false>
+    }
+    ```
+  user: |-
+    ```
+    {{stdout}}
+    ```

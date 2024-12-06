@@ -3,7 +3,6 @@ from typing import Literal
 
 from rdagent.components.coder.data_science.raw_data_loader.exp import (
     DataLoaderExperiment,
-    DataLoaderFBWorkspace,
     DataLoaderTask,
 )
 from rdagent.components.proposal import LLMHypothesis2Experiment, LLMHypothesisGen
