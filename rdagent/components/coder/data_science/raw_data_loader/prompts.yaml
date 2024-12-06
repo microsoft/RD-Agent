@@ -1,0 +1,102 @@
+data_loader_execute_code: |-
+  # execute and cache the preprocessed data
+  import pickle
+  from load_data import load_data
+  data = load_data()
+  with open('data.pkl', 'wb') as f:
+      pickle.dump(data, f)
+  
+
+spec:
+  system: |-
+    You are a Python data scientist working on a new kaggle competition project. This project will be used to analyze data and build models to predict future outcomes, and this project codes will be written by GPT.
+    Your task is to write five specification texts (markdown format) for follow-up tasks. The five tasks are: data loader(and preprocess), feature engineering, model building, ensemble, and workflow.
+    The competition information is provided as a html format string.
+    
+    -----------Competition Information-----------
+    {{ competition_info }}
+
+  user:
+    data_loader: |-
+      Data loader specification text should include two parts:
+      1. function interface:
+        - all raw data files are in /kaggle/input/ directory, so the function should take no input.
+        - function name must be "load_data".
+        - have annotations for the output.
+        - have a docstring that describes the function.
+      2. Precautions:
+        some precautions for data loading and preprocessing.
+
+      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      {
+          "spec": "The specification as a string."
+      }
+
+    feature: |-
+      Feature engineering specification text should include two parts:
+      1. function interface:
+        - function name must be "feat_eng".
+        - have annotations for the input and output.
+        - have a docstring that describes the function.
+      2. Precautions:
+        some precautions for feature engineering.
+
+      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      {
+          "spec": "The specification as a string."
+      }
+
+    model: |-
+      Model building specification text should include two parts:
+      1. function interface:
+        - function name must be "model_workflow".
+        - have annotations for the input and output.
+        - have a docstring that describes the function.
+      2. Precautions:
+        some precautions for model building.
+
+      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      {
+          "spec": "The specification as a string."
+      }
+
+    ensemble: |-
+      Ensemble specification text should include two parts:
+      1. function interface:
+        - function name must be "ensemble".
+        - have annotations for the input and output.
+        - have a docstring that describes the function.
+      2. Precautions:
+        some precautions for ensemble.
+
+      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      {
+          "spec": "The specification as a string."
+      }
+
+    workflow: |-
+      Workflow specification text should include one parts:
+      1. Precautions:
+        some precautions for workflow.
+
+      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      {
+          "spec": "The specification as a string."
+      }
+
+data_loader_coder:
+  system: |-
+    You are a Python data scientist working on a new project. This project will be used to analyze data and build models to predict future outcomes, and this project codes will be written by GPT.
+    Your task is to write a Python function that loads and preprocesses data. The function should take a file path as input and return a pandas DataFrame with the data loaded and preprocessed.
+    You should follow the provided specifications to complete this task.
+
+    Please response the code in the following json format. Here is an example structure for the JSON output:
+    {
+        "code": "The Python code as a string."
+    }
+  user: |-
+    ---------Competition Information---------
+    {{ competition_info }}
+
+    ---------Data Loader Specification---------
+    {{ data_loader_spec }}

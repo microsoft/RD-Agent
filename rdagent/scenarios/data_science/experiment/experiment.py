@@ -31,7 +31,7 @@ from rdagent.scenarios.data_science.experiment.workspace import DSFBWorkspace
 # }
 
 
-class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DataLoaderFBWorkspace]):
+class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DSFBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = DSFBWorkspace()
@@ -40,6 +40,8 @@ class DataLoaderExperiment(Experiment[DataLoaderTask, DSFBWorkspace, DataLoaderF
 class ModelExperiment(Experiment[ModelTask, DSFBWorkspace, ModelFBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        
+        # TODO: use previeous workspace
         self.experiment_workspace = DSFBWorkspace()
         # if len(self.based_experiments) > 0:
         #     self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)

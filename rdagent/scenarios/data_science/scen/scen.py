@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.experiment import Task

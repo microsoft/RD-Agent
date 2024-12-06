@@ -57,7 +57,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         assert isinstance(implementation, ModelFBWorkspace)
         model_execution_feedback, val_pred_array, test_pred_array = implementation.execute(
-        # Parameters?
+            # Parameters?
         )
         # ignore gt_implementation
         gt_np_array = None
@@ -67,21 +67,21 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         batch_size = 8
         num_classes = self.scen.model_output_channel if hasattr(self.scen, "model_output_channel") else 1
         # TODO: num_class may not be specified in data description. Maybe shape evaluate is not necessary.
-        shape_feedback = ""  
-        expected_val_shape = (batch_size, num_classes)  
-        expected_test_shape = (batch_size, num_classes)  
+        shape_feedback = ""
+        expected_val_shape = (batch_size, num_classes)
+        expected_test_shape = (batch_size, num_classes)
         val_shape_feedback, val_shape_decision = shape_evaluator(
-            val_pred_array, 
+            val_pred_array,
             expected_val_shape,
         )
-        shape_feedback += f"Validation Output: {val_shape_feedback}\n"    
+        shape_feedback += f"Validation Output: {val_shape_feedback}\n"
         test_shape_feedback, test_shape_decision = shape_evaluator(
-            test_pred_array, 
+            test_pred_array,
             expected_test_shape,
-        ) 
+        )
         shape_feedback += f"Test Output: {test_shape_feedback}\n"
         # value feedback necessary?
-        value_feedback = "" 
+        value_feedback = ""
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,
@@ -106,7 +106,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             final_feedback=final_feedback,
             final_decision=final_decision,
             # value_generated_flag=(gen_np_array is not None),
-            value_generated_flag=(val_pred_array is not None and test_pred_array is not None),  
+            value_generated_flag=(val_pred_array is not None and test_pred_array is not None),
             final_decision_based_on_gt=(gt_implementation is not None),
         )
 
