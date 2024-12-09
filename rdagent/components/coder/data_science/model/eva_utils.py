@@ -14,7 +14,7 @@ from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
-def expected_shape_detect(
+def expected_shape_evaluate(
     prediction: np.ndarray,    
     spec_message: str,
     model_execution_feedback: str,
@@ -84,6 +84,7 @@ class ModelCodeEvaluator(Evaluator):
         assert isinstance(implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
+        # TODO: avoid hardcode of file name
         code = implementation.code_dict["model01.py"]
 
         system_prompt = (
@@ -91,6 +92,7 @@ class ModelCodeEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_code_feedback"]["system"])
             .render(
                 scenario=(
+                    # TODO: Here replaced with ds scen information
                     # self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
                     # if self.scen is not None
                     # else "No scenario description."
@@ -150,6 +152,7 @@ class ModelFinalEvaluator(Evaluator):
             .from_string(evaluate_prompts["evaluator_final_feedback"]["system"])
             .render(
                 scenario=(
+                    # TODO: Here replaced with ds scen information
                     # self.scen.get_scenario_all_desc(target_task, filtered_tag=target_task.model_type)
                     # if self.scen is not None
                     # else "No scenario description."

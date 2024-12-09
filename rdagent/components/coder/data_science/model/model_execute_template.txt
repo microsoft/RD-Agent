@@ -22,7 +22,7 @@ test_X = np.random.rand(8, 64, 64, 3)
   
 
 # Call model_workflow  
-val_pred, test_pred = model_workflow(  
+val_pred, test_pred, hypers = model_workflow(  
     X=train_X,  
     y=train_y,  
     val_X=val_X,  
@@ -42,7 +42,7 @@ else:
     execution_feedback_str += "Test predictions are None.\n"  
   
 # Save the outputs  
-pred_list = [val_pred, test_pred]  
+pred_list = [val_pred, test_pred, hypers]  
 pickle.dump(pred_list, open("pred_list.pkl", "wb"))  
 pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))  
   

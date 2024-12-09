@@ -21,7 +21,8 @@ class ModelTask(CoSTEERTask):
         hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
-        model_type: Optional[str] = None,
+        model_type: Optional[str] = None,   
+        spec: str,
         **kwargs,
     ) -> None:
         self.formulation: str = formulation
@@ -32,6 +33,7 @@ class ModelTask(CoSTEERTask):
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
             # TODO: More Models Supported
         )
+        self.spec: str = spec
         super().__init__(name=name, description=description, *args, **kwargs)
 
     def get_task_information(self):

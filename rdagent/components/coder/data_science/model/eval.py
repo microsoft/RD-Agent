@@ -11,10 +11,9 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.data_science.model.eva_utils import (
     ModelCodeEvaluator,
     ModelFinalEvaluator,
-    expected_shape_detect,
+    expected_shape_evaluate,
 )
-from rdagent.components.coder.model_coder.eva_utils import shape_evaluator
-from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 
@@ -41,7 +40,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> ModelSingleFeedback:
-        # target_task_information = target_task.get_task_information()
+        target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict
@@ -67,14 +66,15 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if pred_list is None:
             shape_feedback += "No output generated from the model. No shape evaluation conducted."
         else:
-            val_pred_array, test_pred_array = pred_list
-            spec_message = implementation.code_dict["spec.md"]
-            val_shape_feedback = expected_shape_detect(
+            val_pred_array, test_pred_array, hypers = pred_list
+            # spec_message = implementation.code_dict["spec/model.md"]
+            spec_message = target_task.spec
+            val_shape_feedback = expected_shape_evaluate(
                 val_pred_array,
                 spec_message,
                 model_execution_feedback=model_execution_feedback,
             )
-            test_shape_feedback = expected_shape_detect(
+            test_shape_feedback = expected_shape_evaluate(
                 test_pred_array,
                 spec_message,
                 model_execution_feedback=model_execution_feedback,
