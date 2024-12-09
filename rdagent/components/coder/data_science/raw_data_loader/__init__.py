@@ -98,7 +98,6 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if code_list[index] is None:
                 continue
             if evo.sub_workspace_list[index] is None:
-                evo.experiment_workspace
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_code(**code_list[index])
