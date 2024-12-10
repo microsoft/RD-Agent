@@ -1,7 +1,6 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
 import json
-from abc import abstractclassmethod
 from dataclasses import dataclass
 from os import system
 from rdagent.components.coder.CoSTEER.evaluators import (
