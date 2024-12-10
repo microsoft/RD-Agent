@@ -1,14 +1,8 @@
 import json
-from pathlib import Path
-from typing import Literal
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.core.experiment import Task
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.experiment.scenario import (
-    prompt_dict as kaggle_prompt_dict,
-)
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     leaderboard_scores,
@@ -28,8 +22,10 @@ class DataScienceScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition, DS_RD_SETTING.local_data_path)
-        self.leaderboard = leaderboard_scores(competition)
-        self.evaluation_metric_direction = float(self.leaderboard[0]) > float(self.leaderboard[-1])
+        
+        leaderboard = leaderboard_scores(competition)
+        self.evaluation_metric_direction = float(leaderboard[0]) > float(leaderboard[-1])
+
         self._analysis_competition_description()
 
     def _analysis_competition_description(self):
@@ -86,31 +82,6 @@ class DataScienceScen(Scenario):
         return background_prompt
 
     @property
-    def source_data(self) -> str:
-        # TODO: remove me if not used
-        # TODO: (bowen)
-        if Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.competition}/cache").exists():
-            # phase2: (cache detected)
-            # - Describe the cached data (preprocessed data).
-            pass
-        else:
-            # phase1:
-            # - If we have not implement load data and dump cache
-            # - describe the raw data
-            return self.competition_descriptions["Data Description"]
-
-        return "!!!!!!!!! I'm the fake source data !!!!!!!!"
-        raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
-
-    def output_format(self, tag=None) -> str:
-        # TODO: remove me if not used
-        raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
-
-    def simulator(self, tag=None) -> str:
-        # TODO: remove me if not used
-        raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
-
-    @property
     def rich_style_description(self) -> str:
         return f"""
 ### Kaggle Agent: Automated Feature Engineering & Model Tuning Evolution
@@ -138,9 +109,5 @@ Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{s
 To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
-    def get_scenario_all_desc(self, task: Task | None = None, filtered_tag: str | None = None) -> str:
-        # TODO: remove me if not used
-        raise NotImplementedError(f"We are not sure how it is called. We place a exception here")
-        # if filtered_tag is None:
-        #     return common_description() + interface(None) + output(None) + simulator(None)
-        # NOTE: we suggest such implementation: `return T(".prompts:scen_desc").r()`
+    def get_scenario_all_desc(self) -> str:
+        return T(".prompts:scen_desc").r(scen=self)
