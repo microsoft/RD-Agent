@@ -30,7 +30,7 @@ class KaggleBasePropSetting(BasePropSetting):
     model_runner: str = "rdagent.scenarios.kaggle.developer.runner.KGModelRunner"
     """Model Runner class"""
 
-    summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGHypothesisExperiment2Feedback"
+    summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGExperiment2Feedback"
     """Summarizer class"""
 
     evolving_n: int = 10

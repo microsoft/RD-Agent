@@ -30,7 +30,16 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: Task,
         queried_knowledge: QueriedKnowledge = None,
-    ) -> Workspace:
+    ) -> dict[str, str]:  # FIXME: fix interface of previous implement
+        """
+        This method will input the task & current workspace,
+        and output the modification to applied to the workspace.
+        (i.e. replace the content <filename> with <content>)
+
+        Return
+        ------
+        The new files {<filename>: <content>} to update the workspace.
+        """
         raise NotImplementedError
 
     def select_one_round_tasks(

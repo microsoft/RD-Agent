@@ -80,7 +80,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "RAG": None,
         }, True
 
-    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
 
@@ -97,7 +97,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
                 )
             )
 
-        exp = QlibFactorExperiment(tasks)
+        exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
         exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
 
         unique_tasks = []

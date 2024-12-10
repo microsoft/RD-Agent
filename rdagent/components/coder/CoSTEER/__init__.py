@@ -105,4 +105,5 @@ class CoSTEER(Developer[Experiment]):
             pickle.dump(self.knowledge_base, open(self.new_knowledge_base_path, "wb"))
             logger.info(f"New knowledge base saved to {self.new_knowledge_base_path}")
         exp.sub_workspace_list = experiment.sub_workspace_list
+        exp.experiment_workspace = experiment.experiment_workspace
         return exp

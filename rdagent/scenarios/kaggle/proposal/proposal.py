@@ -362,7 +362,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             ),
         }, True
 
-    def convert_feature_experiment(self, response: str, trace: Trace) -> KGFactorExperiment:
+    def convert_feature_experiment(self, response: str, hypothesis: Hypothesis, trace: Trace) -> KGFactorExperiment:
         response_dict = json.loads(response)
         tasks = []
 
@@ -386,10 +386,11 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
                 [KGFactorExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])]
                 + [t[1] for t in trace.hist if t[2]]
             ),
+            hypothesis=hypothesis,
         )
         return exp
 
-    def convert_model_experiment(self, response: str, trace: Trace) -> KGModelExperiment:
+    def convert_model_experiment(self, response: str, hypothesis: Hypothesis, trace: Trace) -> KGModelExperiment:
         response_dict = json.loads(response)
         tasks = []
         model_type = response_dict.get("model_type", "Model type not provided")
@@ -421,14 +422,15 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         exp = KGModelExperiment(
             sub_tasks=tasks,
             based_experiments=based_experiments,
+            hypothesis=hypothesis,
         )
         return exp
 
-    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
         if self.current_action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
-            return self.convert_feature_experiment(response, trace)
+            return self.convert_feature_experiment(response, hypothesis, trace)
         elif self.current_action in [KG_ACTION_MODEL_FEATURE_SELECTION, KG_ACTION_MODEL_TUNING]:
-            return self.convert_model_experiment(response, trace)
+            return self.convert_model_experiment(response, hypothesis, trace)
 
 
 class KGTrace(Trace[KGScenario, KGKnowledgeGraph]):
