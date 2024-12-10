@@ -233,7 +233,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
             reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
             n_o = self.scen.action_counts[last_action]
             mu_o = self.scen.reward_estimates[last_action]
-            self.scen.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
+            self.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
         else:
             # First iteration, nothing to update
             pass

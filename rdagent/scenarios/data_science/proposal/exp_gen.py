@@ -11,13 +11,51 @@ from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExper
 
 from rdagent.components.proposal import LLMHypothesis2Experiment, LLMHypothesisGen
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import ExpGen, Trace
+from rdagent.core.proposal import ExpGen, Trace, Hypothesis
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
-COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Workflow", "Ensemble"]
+COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]
 ORDER = COMPONENT.__args__
+
+
+class DSHypothesis(Hypothesis):
+    def __init__(
+        self,
+        hypothesis: str,
+        reason: str,
+        concise_reason: str,
+        concise_observation: str,
+        concise_justification: str,
+        concise_knowledge: str,
+        action: COMPONENT,
+    ) -> None:
+        super().__init__(
+            hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
+        )
+        self.action = action
+
+    def __str__(self) -> str:
+        return f"""Chosen Action: {self.action}
+Hypothesis: {self.hypothesis}
+Reason: {self.reason}
+Concise Reason & Knowledge: {self.concise_reason}
+Concise Observation: {self.concise_observation}
+Concise Justification: {self.concise_justification}
+Concise Knowledge: {self.concise_knowledge}
+"""
+
+
+class DSHypothesisGen(LLMHypothesisGen):
+    def get_next_action(self, trace):
+        pass
+
+    def prepare_context(self, trace):
+        pass
+    
+    def convert_response(self, response):
+        pass
 
 
 class DSExpGen(ExpGen):
@@ -35,29 +73,59 @@ class DSExpGen(ExpGen):
     def gen(self, trace: Trace) -> Experiment:
         if self.is_complete():
             # proposal + design
-            pass
+            hypothesis: DSHypothesis = DSHypothesisGen(scen=self.scen).gen(trace)
+
             # TODO: We can create subclasses for them if we need two components
-            LLMHypothesisGen
-            LLMHypothesis2Experiment
+            # LLMHypothesisGen
+            # LLMHypothesis2Experiment
+            if hypothesis.action == "DataLoadSpec":
+                pass
+            elif hypothesis.action == "FeatureEng":
+                pass
+            elif hypothesis.action == "Model":
+                pass
+            elif hypothesis.action == "Ensemble":
+                pass
+            elif hypothesis.action == "Workflow":
+                pass
         else:
             for o in ORDER:
                 if o in self.complete_component:
-                    # we already have the component, the skip
+                    # we already have the component, then skip
                     continue
                 elif o == "DataLoadSpec":
-                    # TODO return a description of the data loading task
-                    # system = T(".prompts:DataLoaderSpec.system").r()
-                    # user = T(".prompts:DataLoaderSpec.user").r()
-                    # data_load_exp = APIBackend().build_messages_and_create_chat_completion(
-                    #     user_prompt=user,
-                    #     system_prompt=system,
-                    #     json_mode=True,
-                    # )
                     dlt = DataLoaderTask(name="DataLoaderTask", description="")
                     exp = DataLoaderExperiment(
                         sub_tasks=[dlt],
                     )
+                    self.complete_component.add(o)
                     return exp
-                else:
-                    ...  # two components
+                elif o == "FeatureEng":
+                    ft = FeatureTask(name="FeatureTask", description="")
+                    exp = FeatureExperiment(
+                        sub_tasks=[ft],
+                    )
+                    self.complete_component.add(o)
+                    return exp
+                elif o == "Model":
+                    mt = ModelTask(name="ModelTask", description="")
+                    exp = ModelExperiment(
+                        sub_tasks=[mt],
+                    )
+                    self.complete_component.add(o)
+                    return exp
+                elif o == "Ensemble":
+                    et = EnsembleTask(name="EnsembleTask", description="")
+                    exp = EnsembleExperiment(
+                        sub_tasks=[et],
+                    )
+                    self.complete_component.add(o)
+                    return exp
+                elif o == "Workflow":
+                    wt = WorkflowTask(name="WorkflowTask", description="")
+                    exp = WorkflowExperiment(
+                        sub_tasks=[wt],
+                    )
+                    self.complete_component.add(o)
+                    return exp
         return super().gen(trace)

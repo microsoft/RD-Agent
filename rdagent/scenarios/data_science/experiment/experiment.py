@@ -32,6 +32,16 @@ class DataLoaderExperiment(Experiment[DataLoaderTask, FBWorkspace, FBWorkspace])
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
+class ModelExperiment(Experiment[ModelTask, FBWorkspace, FBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None: # TODO: use previeous step workspace
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = FBWorkspace()
+
+class FeatureExperiment(Experiment[FeatureTask, FBWorkspace, FBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = FBWorkspace()
+
 class EnsembleExperiment(Experiment[EnsembleTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -42,48 +52,3 @@ class WorkflowExperiment(Experiment[WorkflowTask, FBWorkspace, FBWorkspace]):
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
-
-class ModelExperiment(Experiment[ModelTask, FBWorkspace, FBWorkspace]):
-    def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        
-        # TODO: use previeous workspace
-        self.experiment_workspace = FBWorkspace()
-        # if len(self.based_experiments) > 0:
-        #     self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
-        #     self.experiment_workspace.data_description = deepcopy(
-        #         self.based_experiments[-1].experiment_workspace.data_description
-        #     )
-        # else:
-        #     self.experiment_workspace.data_description = [
-        #         (
-        #             FactorTask(
-        #                 factor_name="Original features",
-        #                 factor_description="The original features",
-        #                 factor_formulation="",
-        #             ).get_task_information(),
-        #             source_feature_size,
-        #         )
-        #     ]
-
-
-class FeatureExperiment(Experiment[FeatureTask, FBWorkspace, FBWorkspace]):
-    def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.experiment_workspace = FBWorkspace()
-        # if len(self.based_experiments) > 0:
-        #     self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
-        #     self.experiment_workspace.data_description = deepcopy(
-        #         self.based_experiments[-1].experiment_workspace.data_description
-        #     )
-        # else:
-        #     self.experiment_workspace.data_description = [
-        #         (
-        #             FactorTask(
-        #                 factor_name="Original features",
-        #                 factor_description="The original features",
-        #                 factor_formulation="",
-        #             ).get_task_information(),
-        #             source_feature_size,
-        #         )
-        #     ]
