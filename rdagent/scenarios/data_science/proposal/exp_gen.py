@@ -1,10 +1,14 @@
 from argparse import ONE_OR_MORE
 from typing import Literal
 
-from rdagent.components.coder.data_science.raw_data_loader.exp import (
-    DataLoaderExperiment,
-    DataLoaderTask,
-)
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.feature_process.exp import FeatureTask
+from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+
+from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExperiment, FeatureExperiment, ModelExperiment, EnsembleExperiment, WorkflowExperiment
+
 from rdagent.components.proposal import LLMHypothesis2Experiment, LLMHypothesisGen
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import ExpGen, Trace

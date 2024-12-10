@@ -1,14 +1,11 @@
-from copy import deepcopy
-from pathlib import Path
+from rdagent.core.experiment import Experiment, FBWorkspace
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.data_science.raw_data_loader.exp import (
-    DataLoaderTask,
-)
-from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
-from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
-from rdagent.core.experiment import Experiment
-from rdagent.scenarios.data_science.experiment.workspace import FBWorkspace
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.feature_process.exp import FeatureTask
+from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+
 
 # KG_MODEL_TYPE_XGBOOST = "XGBoost"
 # KG_MODEL_TYPE_RANDOMFOREST = "RandomForest"
@@ -35,8 +32,18 @@ class DataLoaderExperiment(Experiment[DataLoaderTask, FBWorkspace, FBWorkspace])
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
+class EnsembleExperiment(Experiment[EnsembleTask, FBWorkspace, FBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = FBWorkspace()
 
-class ModelExperiment(Experiment[ModelTask, FBWorkspace, ModelFBWorkspace]):
+class WorkflowExperiment(Experiment[WorkflowTask, FBWorkspace, FBWorkspace]):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.experiment_workspace = FBWorkspace()
+
+
+class ModelExperiment(Experiment[ModelTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         
@@ -60,27 +67,23 @@ class ModelExperiment(Experiment[ModelTask, FBWorkspace, ModelFBWorkspace]):
         #     ]
 
 
-class FactorExperiment(Experiment[FactorTask, FBWorkspace, FactorFBWorkspace]):
+class FeatureExperiment(Experiment[FeatureTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, source_feature_size: int = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.experiment_workspace = FBWorkspace(
-            template_folder_path=Path(__file__).resolve()
-            / Path(DS_RD_SETTING.template_path).resolve()
-            / DS_RD_SETTING.competition
-        )
-        if len(self.based_experiments) > 0:
-            self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
-            self.experiment_workspace.data_description = deepcopy(
-                self.based_experiments[-1].experiment_workspace.data_description
-            )
-        else:
-            self.experiment_workspace.data_description = [
-                (
-                    FactorTask(
-                        factor_name="Original features",
-                        factor_description="The original features",
-                        factor_formulation="",
-                    ).get_task_information(),
-                    source_feature_size,
-                )
-            ]
+        self.experiment_workspace = FBWorkspace()
+        # if len(self.based_experiments) > 0:
+        #     self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
+        #     self.experiment_workspace.data_description = deepcopy(
+        #         self.based_experiments[-1].experiment_workspace.data_description
+        #     )
+        # else:
+        #     self.experiment_workspace.data_description = [
+        #         (
+        #             FactorTask(
+        #                 factor_name="Original features",
+        #                 factor_description="The original features",
+        #                 factor_formulation="",
+        #             ).get_task_information(),
+        #             source_feature_size,
+        #         )
+        #     ]
