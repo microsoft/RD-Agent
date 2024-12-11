@@ -1,0 +1,6 @@
+scen_desc: -|
+  ------Background of the scenario------
+  {{scen.background}}
+
+  ------The expected output & submission format specifications------
+  {{scen.submission_specifications}}

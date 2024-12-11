@@ -62,9 +62,6 @@ def model_workflow(
     train_datagen = ImageDataGenerator(rescale=1.0 / 255, horizontal_flip=True, vertical_flip=True)
     train_generator = train_datagen.flow(train_images, train_labels, batch_size=batch_size, shuffle=True)
 
-    validation_datagen = ImageDataGenerator(rescale=1.0 / 255)
-    validation_generator = validation_datagen.flow(validation_images, validation_labels, batch_size=batch_size)
-
     # Get input shape from the training data
     input_shape = X.shape[1:]
     num_classes = hyper_params.get("num_classes", 2)
@@ -122,20 +119,35 @@ def model_workflow(
 
     # Training
     epochs = hyper_params.get("epochs", 100)
-    history = model.fit(
-        train_generator,
-        validation_data=validation_generator,
-        epochs=epochs,
-        verbose=1,
-        shuffle=True,
-        callbacks=callbacks,
-    )
-    # Predict on validation data
-    val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
+    if val_X is not None and val_y is not None:
+        validation_datagen = ImageDataGenerator(rescale=1.0 / 255)
+        validation_generator = validation_datagen.flow(validation_images, validation_labels, batch_size=batch_size)
+        history = model.fit(
+            train_generator,
+            validation_data=validation_generator,
+            epochs=epochs,
+            verbose=1,
+            shuffle=True,
+            callbacks=callbacks,
+        )
+        # Predict on validation data
+        val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
+    else:
+        history = model.fit(
+            train_generator,
+            epochs=epochs,
+            verbose=1,
+            shuffle=True,
+            callbacks=callbacks,
+        )
+        val_pred = None
 
-    # Load the test data and evaluate the model
-    test_datagen = ImageDataGenerator(rescale=1.0 / 255)
-    test_generator = test_datagen.flow(test_images, batch_size=1, shuffle=False)
+    # Predict on test data
+    if test_X is not None:
+        test_datagen = ImageDataGenerator(rescale=1.0 / 255)
+        test_generator = test_datagen.flow(test_images, batch_size=1, shuffle=False)
+        test_pred = model.predict(test_generator, verbose=1)
+    else:
+        test_pred = None
 
-    test_pred = model.predict(test_generator, verbose=1)
     return val_pred, test_pred
