@@ -62,12 +62,13 @@ class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
     def gen(self, trace: Trace) -> Experiment:
+        successful_components = set()
+        for h, _, hf in trace.hist:
+            if hf.decision:
+                successful_components.add(h.component)
+        
         def is_complete():
             """is all components complete"""
-            successful_components = set()
-            for h, _, hf in trace.hist:
-                if hf.decision:
-                    successful_components.add(h.component)
             return set(ORDER) == successful_components
 
         if is_complete():
@@ -89,7 +90,7 @@ class DSExpGen(ExpGen):
                 pass
         else:
             for o in ORDER:
-                if o in self.complete_component:
+                if o in successful_components:
                     # we already have the component, then skip
                     continue
                 elif o == "DataLoadSpec":
