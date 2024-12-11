@@ -29,15 +29,15 @@ class DSHypothesis(Hypothesis):
         concise_observation: str,
         concise_justification: str,
         concise_knowledge: str,
-        action: COMPONENT,
+        component: COMPONENT,
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
-        self.action = action
+        self.component = component
 
     def __str__(self) -> str:
-        return f"""Chosen Action: {self.action}
+        return f"""Chosen Component: {self.component}
 Hypothesis: {self.hypothesis}
 Reason: {self.reason}
 Concise Reason & Knowledge: {self.concise_reason}
@@ -61,17 +61,16 @@ class DSHypothesisGen(LLMHypothesisGen):
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
-    def __init__(self, scen: Scenario) -> None:
-        self.complete_component: set[COMPONENT] = set()  # Initialize as an empty set
-        super().__init__(scen)
-
-    def is_complete(self):
-        """is all components complete"""
-        # TODO: place it into ExpGen
-        return self.complete_component == set(COMPONENT.__args__)
-
     def gen(self, trace: Trace) -> Experiment:
-        if self.is_complete():
+        def is_complete():
+            """is all components complete"""
+            successful_components = set()
+            for h, _, hf in trace.hist:
+                if hf.decision:
+                    successful_components.add(h.component)
+            return set(ORDER) == successful_components
+
+        if is_complete():
             # proposal + design
             hypothesis: DSHypothesis = DSHypothesisGen(scen=self.scen).gen(trace)
 
