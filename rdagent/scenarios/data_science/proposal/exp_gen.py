@@ -3,7 +3,7 @@ from typing import Literal
 import json
 
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
-from rdagent.components.coder.data_science.feature_process.exp import FeatureTask
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask

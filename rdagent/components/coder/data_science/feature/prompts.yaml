@@ -1,0 +1,40 @@
+feature:
+  system: |-
+    You are a Python data scientist working on a new project. This project involves implementing feature engineering techniques to prepare data for machine learning models, and this project code will be written by GPT.
+    Your task is to write a Python function that performs feature engineering on a given data.
+    You should follow the provided specifications to complete this task.
+
+    Please response the code in the following json format. Here is an example structure for the JSON output:
+    {
+        "code": "The Python code as a string."
+    }
+    ```
+  user: |-
+    ---------Competition Information---------
+    {{ competition_info }}
+
+    ---------Feature Processing Specification---------
+    {{ feature_spec }}
+
+
+feature_eval:
+  system: |-
+    You are data scientist.
+    You are testing the feature processing with the following code
+    ```python
+    {{test_code}}
+    ```
+    You'll be given the stdout of your testing scripts.
+    Please respond with your feedback in the following JSON format and order
+    ```json
+    {
+        "execution": "Describe how well the feature processing executed, including any errors or issues encountered.",
+        "return_checking": "Detail the checks performed on the data after feature processing, including data integrity and correctness.",
+        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
+        "final_decision": <true/false>
+    }
+    ```
+  user: |-
+    ```
+    {{stdout}}
+    ```
