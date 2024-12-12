@@ -6,7 +6,7 @@ Beyond previous tests
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
-    CoSTEERSingleFeedback,
+    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.components.coder.data_science.model.eva_utils import (
     ModelCodeEvaluator,
@@ -17,7 +17,7 @@ from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 
-ModelSingleFeedback = CoSTEERSingleFeedback
+ModelSingleFeedback = CoSTEERSingleFeedbackDeprecated
 ModelMultiFeedback = CoSTEERMultiFeedback
 
 

@@ -11,7 +11,7 @@ from typing import Union
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedbackDeprecated
 from rdagent.components.knowledge_management.graph import (
     UndirectedGraph,
     UndirectedNode,
@@ -242,7 +242,7 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_workspace_list[task_index]
-                    single_feedback: CoSTEERSingleFeedback = feedback[task_index]
+                    single_feedback: CoSTEERSingleFeedbackDeprecated = feedback[task_index]
                     if implementation is None or single_feedback is None:
                         continue
                     single_knowledge = CoSTEERKnowledge(

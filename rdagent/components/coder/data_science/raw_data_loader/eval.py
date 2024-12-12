@@ -7,6 +7,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
+    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evaluation import Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
@@ -18,24 +19,7 @@ from pathlib import Path
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-# TODO:
-# 1. It seems logically sound, but we currently lack a scenario to apply it.
-# 2. If it proves to be useful, relocate it to a more general location.
-#
-# class FBWorkspaceExeFeedback(Feedback):
-#     """
-#     It pairs with FBWorkspace in the abstract level.
-#     """
-#     # ws: FBWorkspace   # potential
-#     stdout: str
-
-
-@dataclass
-class DataLoaderEvalFeedback(Feedback):
-    execution: str
-    checking: str  # inlucding every check in the testing (constraints about the generated value)
-    code: str
-    final_decision: bool
+DataLoaderEvalFeedback = CoSTEERSingleFeedback
 
 
 class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
@@ -47,14 +31,14 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERSingleFeedback:
+    ) -> CoSTEERSingleFeedbackDeprecated:
 
         target_task_information = target_task.get_task_information()
         if (queried_knowledge is not None and
                 target_task_information in queried_knowledge.success_task_to_knowledge_dict):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
-            return CoSTEERSingleFeedback(
+            return CoSTEERSingleFeedbackDeprecated(
                 execution_feedback="This task has failed too many times, skip implementation.",
                 shape_feedback="This task has failed too many times, skip implementation.",
                 value_feedback="This task has failed too many times, skip implementation.",
