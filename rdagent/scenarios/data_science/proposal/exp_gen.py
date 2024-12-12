@@ -1,5 +1,6 @@
 from argparse import ONE_OR_MORE
 from typing import Literal
+import json
 
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.feature_process.exp import FeatureTask
@@ -52,10 +53,30 @@ class DSHypothesisGen(LLMHypothesisGen):
         pass
 
     def prepare_context(self, trace):
-        pass
-    
+        hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
+        
+        # TODO: how to generate sota solution
+        sota_solution = ""
+        hypothesis_specification = T(".prompts:hypothesis_specification").r(sota_solution=sota_solution)
+        
+        return {
+            "hypothesis_and_feedback": hypothesis_and_feedback,
+            # TODO: "RAG": "",
+            "hypothesis_output_format": T(".prompts:output_format.hypothesis").r(),
+            "hypothesis_specification": hypothesis_specification,
+        }, True
+
     def convert_response(self, response):
-        pass
+        response_dict = json.loads(response)
+        return DSHypothesis(
+            hypothesis=response_dict.get("hypothesis", "Hypothesis not provided"),
+            reason=response_dict.get("reason", "Reason not provided"),
+            concise_reason=response_dict.get("concise_reason", "Concise reason not provided"),
+            concise_observation=response_dict.get("concise_observation", "Concise observation not provided"),
+            concise_justification=response_dict.get("concise_justification", "Concise justification not provided"),
+            concise_knowledge=response_dict.get("concise_knowledge", "Concise knowledge not provided"),
+            component=response_dict.get("component", "Component not provided"),
+        )
 
 
 class DSExpGen(ExpGen):
@@ -74,19 +95,17 @@ class DSExpGen(ExpGen):
         if is_complete():
             # proposal + design
             hypothesis: DSHypothesis = DSHypothesisGen(scen=self.scen).gen(trace)
-
-            # TODO: We can create subclasses for them if we need two components
-            # LLMHypothesisGen
-            # LLMHypothesis2Experiment
-            if hypothesis.action == "DataLoadSpec":
+            scenario = trace.scen.get_scenario_all_desc()
+            
+            if hypothesis.component == "DataLoadSpec":
                 pass
-            elif hypothesis.action == "FeatureEng":
+            elif hypothesis.component == "FeatureEng":
                 pass
-            elif hypothesis.action == "Model":
+            elif hypothesis.component == "Model":
                 pass
-            elif hypothesis.action == "Ensemble":
+            elif hypothesis.component == "Ensemble":
                 pass
-            elif hypothesis.action == "Workflow":
+            elif hypothesis.component == "Workflow":
                 pass
         else:
             for o in ORDER:
