@@ -11,7 +11,7 @@ from typing import Union
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedbackDeprecated
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 from rdagent.components.knowledge_management.graph import (
     UndirectedGraph,
     UndirectedNode,
@@ -242,7 +242,7 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                     target_task = implementations.sub_tasks[task_index]
                     target_task_information = target_task.get_task_information()
                     implementation = implementations.sub_workspace_list[task_index]
-                    single_feedback: CoSTEERSingleFeedbackDeprecated = feedback[task_index]
+                    single_feedback: CoSTEERSingleFeedback = feedback[task_index]
                     if implementation is None or single_feedback is None:
                         continue
                     single_knowledge = CoSTEERKnowledge(
@@ -269,15 +269,15 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                         else:
                             # generate error node and store into knowledge base
                             error_analysis_result = []
-                            if not single_feedback.value_generated_flag:
+                            if single_feedback.return_checking:
                                 error_analysis_result = self.analyze_error(
-                                    single_feedback.execution_feedback,
-                                    feedback_type="execution",
+                                    single_feedback.return_checking,
+                                    feedback_type="value",
                                 )
                             else:
                                 error_analysis_result = self.analyze_error(
-                                    single_feedback.value_feedback,
-                                    feedback_type="value",
+                                    single_feedback.execution,
+                                    feedback_type="execution",
                                 )
                             self.knowledgebase.working_trace_error_analysis.setdefault(
                                 target_task_information,
