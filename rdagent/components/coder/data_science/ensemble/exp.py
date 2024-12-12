@@ -14,9 +14,16 @@ class EnsembleTask(CoSTEERTask):
         name: str,
         description: str,
         spec: str,
+        *args, 
         **kwargs,
     ) -> None:
-        pass
+        super().__init__(name=name, description=description, spec=spec, *args, **kwargs)
+
+    def get_task_information(self):
+        task_desc = f"""name: {self.name}
+        description: {self.description}
+        """
+        return task_desc
 
     @staticmethod
     def from_dict(dict):
