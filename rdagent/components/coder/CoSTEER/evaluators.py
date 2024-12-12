@@ -41,6 +41,7 @@ class CoSTEERSingleFeedback(Feedback):
     # value_feedback, shape_feedback, value_generated_flag
     code: str
     final_decision: bool
+    final_decision_based_on_gt: bool | None = None
 
     def __str__(self) -> str:
         return f"""------------------Execution------------------

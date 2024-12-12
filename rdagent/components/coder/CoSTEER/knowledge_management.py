@@ -425,8 +425,8 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                 current_index = 1
                 while current_index < len(former_trace_knowledge):
                     if (
-                        not former_trace_knowledge[current_index].feedback.value_generated_flag
-                        and former_trace_knowledge[current_index - 1].feedback.value_generated_flag
+                        not former_trace_knowledge[current_index].feedback.return_checking
+                        and former_trace_knowledge[current_index - 1].feedback.return_checking
                     ):
                         former_trace_knowledge.pop(current_index)
                     else:
