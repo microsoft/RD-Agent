@@ -3,6 +3,12 @@ ensemble_coder:
     You are a Python data scientist working on model ensemble implementation. Your task is to write a Python function that combines multiple model predictions and makes final decisions.
     You should follow the provided specifications to complete this task.
 
+    -----------Competition Information-----------
+    {{ competition_info }}
+
+    -----------Ensemble Specification-----------
+    {{ ensemble_spec }}
+
     Please respond with the code in the following json format:
     {
         "code": "The Python code as a string."
