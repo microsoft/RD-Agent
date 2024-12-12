@@ -1,3 +1,52 @@
+hypothesis_gen:
+  system: |-
+    The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
+    The {{targets}} are used in the following scenario:
+    {{scenario}}
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to check whether a similar hypothesis has already been generated. 
+    If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
+    {% if hypothesis_specification %}
+    To assist you in formulating new hypotheses, the user has provided some additional information: {{hypothesis_specification}}.
+    **Important:** If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+    {% endif %}
+    Please generate the output using the following format and specifications:
+    {{ hypothesis_output_format }}
+
+  user: |-
+    {% if hypothesis_and_feedback|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
+    {% else %}It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{ hypothesis_and_feedback }}
+    {% endif %}
+    {% if RAG %}
+    To assist you in generating new {{targets}}, we have provided the following information: {{RAG}}.
+    **Note:** The provided RAG is for reference only. 
+    You must carefully assess whether the RAG aligns with the {{targets}}. 
+    If it does not, it should not be used. Exercise caution and make your own judgment.
+    {% endif %}
+    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+
+hypothesis2task:
+  system: |-
+    The user is trying to generate new {{targets}} based on the hypothesis generated in the previous step. 
+    The {{targets}} are used in certain scenario, the scenario is as follows:
+    {{ scenario }}
+    The user will use the {{targets}} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{targets}} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed {{targets}} on similar hypothesis.
+    4. Some additional information to help you generate new {{targets}}.
+    Please generate the output following the format below:
+    {{ task_output_format }}
+    
+  user: |-
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The target hypothesis you are targeting to generate {{targets}} for is as follows:
+    {{ target_hypothesis }}
+    The former hypothesis and the corresponding feedbacks are as follows:
+    {{ hypothesis_and_feedback }}
+    Please generate the new {{targets}} based on the information above.
+
 hypothesis_and_feedback: |-
   {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
   Hypothesis {{ loop.index }}: {{ hypothesis }}
@@ -24,22 +73,27 @@ output_format:
       "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
     }
   data_loader: |-
-
+    According to the hypothesis, please help user design one data loader task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "description of the overall data loader for the data science workflow",
+        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+    }
   feature: |-
     According to the hypothesis, please help user design one or more feature engineering tasks.
     The output should follow JSON format. The schema is as follows:
     {
-        "factor or group name 1": {
-            "description": "description of factor or group name 1",
-            "formulation": "latex formulation of factor or group name 1",
+        "feature name 1": {
+            "description": "description of feature name 1",
+            "formulation": "latex formulation of feature or group name 1",
             "variables": {
                 "variable or function name 1": "description of variable or function 1",
                 "variable or function name 2": "description of variable or function 2"
             }
         },
-        "factor or group name 2": {
-            "description": "description of factor or group name 2",
-            "formulation": "latex formulation of factor or group name 2",
+        "feature name 2": {
+            "description": "description of feature name 2",
+            "formulation": "latex formulation of feature or group name 2",
             "variables": {
                 "variable or function name 1": "description of variable or function 1",
                 "variable or function name 2": "description of variable or function 2"
@@ -49,7 +103,6 @@ output_format:
     }
   model: |-
     According to the hypothesis, please help user design one model task.
-    We only build one model from four main model types: ["XGBoost", "RandomForest", "LightGBM", "NN"].
     The output should follow JSON format. The schema is as follows: 
     {
         "model_name": "model_name",
@@ -60,8 +113,6 @@ output_format:
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "model_type": "Please select only **one** model type from the following four options: XGBoost, RandomForest, LightGBM, or NN. The selected model must be unique and used as the **primary model**. You may choose an auxiliary model for support or optimization on specific tasks if necessary, but the primary model must come from the provided options."
-
     }
     Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
   ensemble: |-

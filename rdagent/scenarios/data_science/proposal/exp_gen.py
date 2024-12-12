@@ -10,7 +10,6 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 
 from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExperiment, FeatureExperiment, ModelExperiment, EnsembleExperiment, WorkflowExperiment
 
-from rdagent.components.proposal import LLMHypothesis2Experiment, LLMHypothesisGen
 from rdagent.core.experiment import Experiment
 from rdagent.core.proposal import ExpGen, Trace, Hypothesis
 from rdagent.core.scenario import Scenario
@@ -47,38 +46,6 @@ Concise Justification: {self.concise_justification}
 Concise Knowledge: {self.concise_knowledge}
 """
 
-
-class DSHypothesisGen(LLMHypothesisGen):
-    def get_next_action(self, trace):
-        pass
-
-    def prepare_context(self, trace):
-        hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
-        
-        # TODO: how to generate sota solution
-        sota_solution = ""
-        hypothesis_specification = T(".prompts:hypothesis_specification").r(sota_solution=sota_solution)
-        
-        return {
-            "hypothesis_and_feedback": hypothesis_and_feedback,
-            # TODO: "RAG": "",
-            "hypothesis_output_format": T(".prompts:output_format.hypothesis").r(),
-            "hypothesis_specification": hypothesis_specification,
-        }, True
-
-    def convert_response(self, response):
-        response_dict = json.loads(response)
-        return DSHypothesis(
-            hypothesis=response_dict.get("hypothesis", "Hypothesis not provided"),
-            reason=response_dict.get("reason", "Reason not provided"),
-            concise_reason=response_dict.get("concise_reason", "Concise reason not provided"),
-            concise_observation=response_dict.get("concise_observation", "Concise observation not provided"),
-            concise_justification=response_dict.get("concise_justification", "Concise justification not provided"),
-            concise_knowledge=response_dict.get("concise_knowledge", "Concise knowledge not provided"),
-            component=response_dict.get("component", "Component not provided"),
-        )
-
-
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
@@ -93,16 +60,89 @@ class DSExpGen(ExpGen):
             return set(ORDER) == successful_components
 
         if is_complete():
-            # proposal + design
-            hypothesis: DSHypothesis = DSHypothesisGen(scen=self.scen).gen(trace)
+            # base info
             scenario = trace.scen.get_scenario_all_desc()
+            hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
             
+            # 1. hypothesis gen
+            # TODO: how to generate sota solution
+            sota_solution = ""
+            system_prompt = T(".prompts:hypothesis_gen.system").r(
+                targets="data science project",
+                scenario=scenario,
+                hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+                )
+            user_prompt = T(".prompts:hypothesis_gen.user").r(
+                targets="data science project",
+                hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+            resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True))
+            hypothesis = DSHypothesis(
+                hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
+                reason=resp_dict.get("reason", "Reason not provided"),
+                concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
+                concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
+                concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
+                concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
+                component=resp_dict.get("component", "Component not provided"),
+            )
+            
+            # 2. gen experiment
             if hypothesis.component == "DataLoadSpec":
                 pass
             elif hypothesis.component == "FeatureEng":
-                pass
+                # TODO: RAG
+                feature_task_output_format = T(".prompts:output_format.feature").r()
+                
+                system_prompt = T(".prompts:hypothesis2task.system").r(
+                    targets="Feature Engineering",
+                    scenario=scenario,
+                    task_output_format=feature_task_output_format,
+                    )
+                user_prompt = T(".prompts:hypothesis2task.user").r(
+                    targets="Feature Engineering",
+                    target_hypothesis=str(hypothesis),
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    )
+                
+                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                tasks = []
+                for fn in resp_dict:
+                    ft = FeatureTask(
+                        name=fn,
+                        description=resp_dict[fn].get("description", "Factor description not provided"),
+                        formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
+                        variables=resp_dict[fn].get("variables", "Variables not provided"),
+                        )
+                
+                return FeatureExperiment(sub_tasks=tasks, hypothesis=hypothesis)
             elif hypothesis.component == "Model":
-                pass
+                model_task_output_format = T(".prompts:output_format.model").r()
+                
+                system_prompt = T(".prompts:hypothesis2task.system").r(
+                    targets="Models",
+                    scenario=scenario,
+                    task_output_format=model_task_output_format,
+                    )
+                user_prompt = T(".prompts:hypothesis2task.user").r(
+                    targets="Models",
+                    target_hypothesis=str(hypothesis),
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    )
+                
+                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                tasks = []
+                mt = ModelTask(
+                    name=resp_dict.get("model_name", "Model name not provided"),
+                    description=resp_dict.get("description", "Model description not provided"),
+                    architecture=resp_dict.get("architecture", "Model architecture not provided"),
+                    hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
+                    base_code="",
+                )
+                
+                return ModelExperiment(sub_tasks=tasks, hypothesis=hypothesis)
             elif hypothesis.component == "Ensemble":
                 pass
             elif hypothesis.component == "Workflow":
