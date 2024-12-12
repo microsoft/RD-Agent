@@ -114,7 +114,7 @@ data_loader_eval:
     ```json
     {
         "execution": "Describe how well the data loader executed, including any errors or issues encountered.",
-        "checking": "Detail the checks performed on the data loaded, including data integrity and correctness.",
+        "return_checking": "Detail the checks performed on the data loaded, including data integrity and correctness.",
         "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
     }
