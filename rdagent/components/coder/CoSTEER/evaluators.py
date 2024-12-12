@@ -81,6 +81,19 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         self.shape_feedback = shape_feedback  # Not general enough. So 
 
     # TODO: @property
+    @property
+    def execution(self):
+        return self.execution_feedback
+    
+    @property
+    def return_checking(self):
+        if self.value_generated_flag:
+            return f"value feedback: {self.value_feedback}\n\nshape feedback: {self.shape_feedback}"
+        return None
+    
+    @property
+    def code(self):
+        return self.code_feedback
 
     def __str__(self) -> str:
         return f"""------------------Execution Feedback------------------
