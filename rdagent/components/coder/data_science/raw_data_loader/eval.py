@@ -16,7 +16,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DSDockerConf, DockerEnv
 from pathlib import Path
-
+from rdagent.app.data_science.conf import DS_RD_SETTING
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 DataLoaderEvalFeedback = CoSTEERSingleFeedback
@@ -47,7 +47,11 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        de = DockerEnv(conf=DSDockerConf())
+        ds_docker_conf = DSDockerConf()
+        ds_docker_conf.extra_volumes = {
+            f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.competition}": "/kaggle/input"
+        }
+        de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated tempory content?
         fname = "data_loader_test.py"
