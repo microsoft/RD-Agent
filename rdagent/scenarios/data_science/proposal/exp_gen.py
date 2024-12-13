@@ -95,11 +95,12 @@ class DSExpGen(ExpGen):
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Data loader and specification generation",
                     scenario=scenario,
+                    hypothesis=hypothesis,
                     task_output_format=data_loader_task_output_format,
                     )
-                usre_prompt = T(".prompts:task_gen.user").r(
+                user_prompt = T(".prompts:task_gen.user").r(
                     targets="Data loader and specification generation",
-                    target_hypothesis=str(hypothesis),
+                    hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
                     )
                 
@@ -116,11 +117,12 @@ class DSExpGen(ExpGen):
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Feature Engineering",
                     scenario=scenario,
+                    hypothesis=hypothesis,
                     task_output_format=feature_task_output_format,
                     )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Feature Engineering",
-                    target_hypothesis=str(hypothesis),
+                    hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
                     )
                 
@@ -141,11 +143,12 @@ class DSExpGen(ExpGen):
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Models",
                     scenario=scenario,
+                    hypothesis=hypothesis,
                     task_output_format=model_task_output_format,
                     )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Models",
-                    target_hypothesis=str(hypothesis),
+                    hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
                     )
                 
@@ -165,11 +168,12 @@ class DSExpGen(ExpGen):
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Ensemble",
                     scenario=scenario,
+                    hypothesis=hypothesis,
                     task_output_format=ensemble_task_output_format,
                     )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Ensemble",
-                    target_hypothesis=str(hypothesis),
+                    hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
                     )
                 
@@ -186,11 +190,12 @@ class DSExpGen(ExpGen):
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Workflow",
                     scenario=scenario,
+                    hypothesis=hypothesis,
                     task_output_format=workflow_task_output_format,
                     )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Workflow",
-                    target_hypothesis=str(hypothesis),
+                    hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
                     )
                 
@@ -207,12 +212,25 @@ class DSExpGen(ExpGen):
                     # we already have the component, then skip
                     continue
                 elif o == "DataLoadSpec":
-                    dlt = DataLoaderTask(name="DataLoaderTask", description="")
-                    exp = DataLoaderExperiment(
-                        sub_tasks=[dlt],
+                    data_loader_task_output_format = T(".prompts:output_format.data_loader").r()
+                    system_prompt = T(".prompts:task_gen.system").r(
+                        targets="Data loader and specification generation",
+                        scenario=scenario,
+                        hypothesis=None,
+                        task_output_format=data_loader_task_output_format,
                     )
-                    self.complete_component.add(o)
-                    return exp
+                    user_prompt = T(".prompts:task_gen.user").r(
+                        targets="Data loader and specification generation",
+                        hypothesis=None,
+                    )
+                    
+                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                    dt = DataLoaderTask(
+                        name="Data loader and specification generation",
+                        description=resp_dict.get("description", "Data loader and specification generation description not provided"),
+                    )
+                
+                    return DataLoaderExperiment(sub_tasks=[dt], hypothesis=hypothesis)
                 elif o == "FeatureEng":
                     ft = FeatureTask(name="FeatureTask", description="")
                     exp = FeatureExperiment(

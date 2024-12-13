@@ -50,7 +50,7 @@ task_gen:
     {% if hypothesis is not None %}
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The target hypothesis you are targeting to generate {{targets}} for is as follows:
-    {{ target_hypothesis }}
+    {{ hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
     Please generate the new {{targets}} based on the information above.
