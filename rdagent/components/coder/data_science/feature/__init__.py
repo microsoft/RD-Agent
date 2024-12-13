@@ -1,23 +1,3 @@
-# from rdagent.components.coder.CoSTEER import CoSTEER
-# from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-# from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
-# from rdagent.core.scenario import Scenario
-
-
-# class FeatureCoSTEER(CoSTEER):
-#     def __init__(
-#         self,
-#         scen: Scenario,
-#         *args,
-#         **kwargs,
-#     ) -> None:
-#         eva = CoSTEERMultiEvaluator(
-#             FeatureCoSTEEREvaluator(scen=scen), scen=scen
-#         )  # Please specify whether you agree running your eva in parallel or not
-#         es = FeatureMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
-
-#         super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=1, scen=scen, **kwargs)
-
 import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
@@ -30,9 +10,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
-from rdagent.components.coder.data_science.raw_data_loader.eval import (
-    DataLoaderCoSTEEREvaluator,
-)
+from rdagent.components.coder.data_science.feature.eval import FeatureCoSTEEREvaluator
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
@@ -87,7 +65,7 @@ class FeatureCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         eva = CoSTEERMultiEvaluator(
-            DataLoaderCoSTEEREvaluator(scen=scen), scen=scen
+            FeatureCoSTEEREvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = FeatureMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 

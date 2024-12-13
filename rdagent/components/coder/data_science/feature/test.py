@@ -6,15 +6,10 @@ It is NOT:
 - it is not interface unittest(i.e. workspace evaluator in the CoSTEER Loop)
 """
 
-import pickle
-
 from rdagent.components.coder.data_science.feature import FeatureCoSTEER
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.scenarios.data_science.experiment.experiment import FeatureExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
-
-# from rdagent.components.coder.data_science.feature.es import ModelMultiProcessEvolvingStrategy
-
 
 def develop_one_competition(competition: str):  # -> experiment
     scen = DataScienceScen(competition=competition)

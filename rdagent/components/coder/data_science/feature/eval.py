@@ -10,10 +10,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import FBWorkspace, Task, Workspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -47,7 +48,9 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        de = DockerEnv(conf=DSDockerConf())
+        ds_docker_conf = DSDockerConf()
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+        de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated tempory content?
         fname = "feature_test.py"
@@ -56,8 +59,8 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_code(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        system_prompt = T(".prompts:feature.system").r(test_code=test_code)
-        user_prompt = T(".prompts:feature.user").r(stdout=stdout)
+        system_prompt = T(".prompts:feature_eval.system").r(test_code=test_code)
+        user_prompt = T(".prompts:feature_eval.user").r(stdout=stdout)
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return FeatureEvalFeedback(**json.loads(resp))

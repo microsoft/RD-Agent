@@ -4,7 +4,7 @@
 - Implement a function for feature engineering with the following signature:
 
 ```python
-def feature_eng(X: np.ndarray, y: np.ndarray | None = None, X_fit: np.ndarray | None = None, y_fit: np.ndarray | None = None, param: object | None = None) -> tuple[np.ndarray, np.ndarray | None, object]:
+def feat_eng(X: np.ndarray, y: np.ndarray | None = None, X_fit: np.ndarray | None = None, y_fit: np.ndarray | None = None, param: object | None = None) -> tuple[np.ndarray, np.ndarray | None, object]:
     """
     Perform feature engineering on the input data.
 

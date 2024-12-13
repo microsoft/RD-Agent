@@ -2,6 +2,7 @@ feature:
   system: |-
     You are a Python data scientist working on a new project. This project involves implementing feature engineering techniques to prepare data for machine learning models, and this project code will be written by GPT.
     Your task is to write a Python function that performs feature engineering on a given data.
+    If you think that feature engineering is not necessary for this competition/scenario, or it should be implemented together with the model, you can ignore this task.
     You should follow the provided specifications to complete this task.
 
     Please response the code in the following json format. Here is an example structure for the JSON output:
