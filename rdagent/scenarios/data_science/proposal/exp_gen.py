@@ -92,12 +92,12 @@ class DSExpGen(ExpGen):
             # 2. gen experiment
             if hypothesis.component == "DataLoadSpec":
                 data_loader_task_output_format = T(".prompts:output_format.data_loader").r()
-                system_prompt = T(".prompts:hypothesis2task.system").r(
+                system_prompt = T(".prompts:task_gen.system").r(
                     targets="Data loader and specification generation",
                     scenario=scenario,
                     task_output_format=data_loader_task_output_format,
                     )
-                usre_prompt = T(".prompts:hypothesis2task.user").r(
+                usre_prompt = T(".prompts:task_gen.user").r(
                     targets="Data loader and specification generation",
                     target_hypothesis=str(hypothesis),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -113,12 +113,12 @@ class DSExpGen(ExpGen):
             elif hypothesis.component == "FeatureEng":
                 # TODO: RAG
                 feature_task_output_format = T(".prompts:output_format.feature").r()
-                system_prompt = T(".prompts:hypothesis2task.system").r(
+                system_prompt = T(".prompts:task_gen.system").r(
                     targets="Feature Engineering",
                     scenario=scenario,
                     task_output_format=feature_task_output_format,
                     )
-                user_prompt = T(".prompts:hypothesis2task.user").r(
+                user_prompt = T(".prompts:task_gen.user").r(
                     targets="Feature Engineering",
                     target_hypothesis=str(hypothesis),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -138,12 +138,12 @@ class DSExpGen(ExpGen):
             elif hypothesis.component == "Model":
                 model_task_output_format = T(".prompts:output_format.model").r()
                 
-                system_prompt = T(".prompts:hypothesis2task.system").r(
+                system_prompt = T(".prompts:task_gen.system").r(
                     targets="Models",
                     scenario=scenario,
                     task_output_format=model_task_output_format,
                     )
-                user_prompt = T(".prompts:hypothesis2task.user").r(
+                user_prompt = T(".prompts:task_gen.user").r(
                     targets="Models",
                     target_hypothesis=str(hypothesis),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -162,12 +162,12 @@ class DSExpGen(ExpGen):
             elif hypothesis.component == "Ensemble":
                 ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
                 
-                system_prompt = T(".prompts:hypothesis2task.system").r(
+                system_prompt = T(".prompts:task_gen.system").r(
                     targets="Ensemble",
                     scenario=scenario,
                     task_output_format=ensemble_task_output_format,
                     )
-                user_prompt = T(".prompts:hypothesis2task.user").r(
+                user_prompt = T(".prompts:task_gen.user").r(
                     targets="Ensemble",
                     target_hypothesis=str(hypothesis),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -183,12 +183,12 @@ class DSExpGen(ExpGen):
             elif hypothesis.component == "Workflow":
                 workflow_task_output_format = T(".prompts:output_format.workflow").r()
                 
-                system_prompt = T(".prompts:hypothesis2task.system").r(
+                system_prompt = T(".prompts:task_gen.system").r(
                     targets="Workflow",
                     scenario=scenario,
                     task_output_format=workflow_task_output_format,
                     )
-                user_prompt = T(".prompts:hypothesis2task.user").r(
+                user_prompt = T(".prompts:task_gen.user").r(
                     targets="Workflow",
                     target_hypothesis=str(hypothesis),
                     hypothesis_and_feedback=hypothesis_and_feedback,
