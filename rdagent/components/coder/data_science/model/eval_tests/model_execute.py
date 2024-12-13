@@ -30,6 +30,8 @@ val_pred, test_pred, hypers = model_workflow(
     test_X=test_X,
     hyper_params={}  
 )  
+#val_pred = np.random.rand(8, 1)
+#test_pred = np.random.rand(8, 1)
  
 execution_feedback_str = "Execution successful.\n"  
 if val_pred is not None:  
@@ -39,10 +41,6 @@ else:
 if test_pred is not None:  
     execution_feedback_str += f"Test predictions shape: {test_pred.shape}\n"  
 else:  
-    execution_feedback_str += "Test predictions are None.\n"  
-  
-# Save the outputs  
-pred_list = [val_pred, test_pred, hypers]  
-pickle.dump(pred_list, open("pred_list.pkl", "wb"))  
-pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))  
-  
+    execution_feedback_str += "Test predictions are None.\n"  ''
+
+print(execution_feedback_str)

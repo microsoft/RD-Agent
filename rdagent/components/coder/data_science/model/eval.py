@@ -2,10 +2,11 @@
 Beyond previous tests
 - 
 """
-
+import json
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
+    CoSTEERSingleFeedback,
     CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.components.coder.data_science.model.eva_utils import (
@@ -13,11 +14,17 @@ from rdagent.components.coder.data_science.model.eva_utils import (
     ModelFinalEvaluator,
     expected_shape_evaluate,
 )
-from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import Task, Workspace
+from rdagent.core.experiment import Task, Workspace, FBWorkspace
+from rdagent.utils.env import DSDockerConf, DockerEnv
+from rdagent.oai.llm_utils import APIBackend
+from pathlib import Path
+from rdagent.utils.agent.tpl import T
 
-ModelSingleFeedback = CoSTEERSingleFeedbackDeprecated
+DIRNAME = Path(__file__).absolute().resolve().parent
+
+
+ModelSingleFeedback = CoSTEERSingleFeedback
 ModelMultiFeedback = CoSTEERMultiFeedback
 
 
@@ -35,11 +42,11 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     def evaluate(
         self,
         target_task: Task,
-        implementation: Workspace,
-        gt_implementation: Workspace,
+        implementation: FBWorkspace,
+        gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> ModelSingleFeedback:
+    ) -> CoSTEERSingleFeedbackDeprecated:
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -58,54 +65,29 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # assert isinstance(target_task, ModelTask)
 
         batch_size = 8
-        assert isinstance(implementation, ModelFBWorkspace)
-        model_execution_feedback, pred_list = implementation.execute(
+        assert isinstance(implementation, FBWorkspace)
+        """model_execution_feedback, pred_list= implementation.execute(
             batch_size=batch_size,
+        )"""
+        de = DockerEnv(conf=DSDockerConf())
+        fname = "model_execute.py"
+        with (DIRNAME / "eval_tests" / "model_execute.py").open("r") as f:
+            test_code = f.read()
+            implementation.inject_code(**{fname: test_code})
+        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        system_prompt = T(".prompts:model_eval.system").r(
+            test_code=test_code,
+            scenario="No scenario information yet.",
+            spec=target_task.spec,
         )
-        shape_feedback = ""
-        if pred_list is None:
-            shape_feedback += "No output generated from the model. No shape evaluation conducted."
-        else:
-            val_pred_array, test_pred_array, hypers = pred_list
-            # spec_message = implementation.code_dict["spec/model.md"]
-            spec_message = target_task.spec
-            val_shape_feedback = expected_shape_evaluate(
-                val_pred_array,
-                spec_message,
-                model_execution_feedback=model_execution_feedback,
-            )
-            test_shape_feedback = expected_shape_evaluate(
-                test_pred_array,
-                spec_message,
-                model_execution_feedback=model_execution_feedback,
-            )
+        user_prompt = T(".prompts:model_eval.user").r(
+            stdout=stdout,
+            code=implementation.code_dict["model01.py"],
+        )
+        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+        return ModelSingleFeedback(**json.loads(resp))
 
-            shape_feedback += f"Validation Output: {val_shape_feedback}\n"
-            shape_feedback += f"Test Output: {test_shape_feedback}\n"
-        value_feedback = "The value feedback is ignored, and the value decision is automatically set as true."
-        code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
-            target_task=target_task,
-            implementation=implementation,
-            model_execution_feedback=model_execution_feedback,
-        )
-        final_feedback, final_decision = ModelFinalEvaluator(scen=self.scen).evaluate(
-            target_task=target_task,
-            implementation=implementation,
-            model_execution_feedback=model_execution_feedback,
-            model_shape_feedback=shape_feedback,
-            model_code_feedback=code_feedback,
-        )
-
-        return ModelSingleFeedback(
-            execution_feedback=model_execution_feedback,
-            shape_feedback=shape_feedback,
-            value_feedback=value_feedback,
-            code_feedback=code_feedback,
-            final_feedback=final_feedback,
-            final_decision=final_decision,
-            value_generated_flag=(pred_list is not None),
-            final_decision_based_on_gt=False,
-        )
+    """feedback"""
 
 
 class XXX2SpecEval:
