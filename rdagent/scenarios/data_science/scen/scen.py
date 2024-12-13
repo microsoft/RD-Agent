@@ -22,7 +22,7 @@ class DataScienceScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
         self.competition_descriptions = crawl_descriptions(competition, DS_RD_SETTING.local_data_path)
-        
+
         leaderboard = leaderboard_scores(competition)
         self.evaluation_metric_direction = float(leaderboard[0]) > float(leaderboard[-1])
 

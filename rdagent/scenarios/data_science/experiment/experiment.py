@@ -1,11 +1,9 @@
-from rdagent.core.experiment import Experiment, FBWorkspace
-
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
-from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-
+from rdagent.core.experiment import Experiment, FBWorkspace
 
 # KG_MODEL_TYPE_XGBOOST = "XGBoost"
 # KG_MODEL_TYPE_RANDOMFOREST = "RandomForest"
@@ -32,23 +30,26 @@ class DataLoaderExperiment(Experiment[DataLoaderTask, FBWorkspace, FBWorkspace])
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
+
 class ModelExperiment(Experiment[ModelTask, FBWorkspace, FBWorkspace]):
-    def __init__(self, *args, **kwargs) -> None: # TODO: use previeous step workspace
+    def __init__(self, *args, **kwargs) -> None:  # TODO: use previeous step workspace
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
+
 
 class FeatureExperiment(Experiment[FeatureTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
+
 class EnsembleExperiment(Experiment[EnsembleTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
 
+
 class WorkflowExperiment(Experiment[WorkflowTask, FBWorkspace, FBWorkspace]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.experiment_workspace = FBWorkspace()
-

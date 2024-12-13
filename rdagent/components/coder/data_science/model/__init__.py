@@ -1,14 +1,17 @@
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
-
-from rdagent.components.coder.data_science.model.eval import ModelGeneralCaseSpecEvaluator
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.model.es import (
+    ModelMultiProcessEvolvingStrategy,
+)
+from rdagent.components.coder.data_science.model.eval import (
+    ModelGeneralCaseSpecEvaluator,
+)
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.scenario import Scenario
-from rdagent.components.coder.data_science.model.es import ModelMultiProcessEvolvingStrategy
 
 # from rdagent.utils.agent.tpl import T
 # T(".prompts:model_generator.user").r()

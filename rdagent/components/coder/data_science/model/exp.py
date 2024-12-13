@@ -21,7 +21,7 @@ class ModelTask(CoSTEERTask):
         hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
-        model_type: Optional[str] = None,   
+        model_type: Optional[str] = None,
         spec: str,
         **kwargs,
     ) -> None:
@@ -58,7 +58,7 @@ description: {self.description}
 class ModelFBWorkspace(FBWorkspace):
     def execute(
         self,
-        batch_size: int = 8,    
+        batch_size: int = 8,
     ):
         super().execute()
         try:
@@ -72,7 +72,7 @@ class ModelFBWorkspace(FBWorkspace):
 
             log, results = de.dump_python_code_run_and_get_results(
                 code=dump_code,
-                dump_file_names=["execution_feedback_str.pkl", "pred_list.pkl"],  
+                dump_file_names=["execution_feedback_str.pkl", "pred_list.pkl"],
                 local_path=str(self.workspace_path),
                 env={},
                 code_dump_file_py_name="model_test",
@@ -83,11 +83,10 @@ class ModelFBWorkspace(FBWorkspace):
 
         except Exception as e:
             execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
-            pred_list  = None  
+            pred_list = None
 
         if len(execution_feedback_str) > 2000:
             execution_feedback_str = (
                 execution_feedback_str[:1000] + "....hidden long error message...." + execution_feedback_str[-1000:]
             )
-        return execution_feedback_str, pred_list 
-    
+        return execution_feedback_str, pred_list

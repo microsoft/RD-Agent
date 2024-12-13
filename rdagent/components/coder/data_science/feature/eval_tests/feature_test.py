@@ -6,18 +6,19 @@ A qualified data loader should support following features
 
 Please make sure the stdout is rich enough to support informative feedback
 """
-import pickle
+
 import logging
+import pickle
+
 from feat01 import feature_eng
 
-
-
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Load data
 from load_data import load_from_raw_data
 from sklearn.model_selection import train_test_split
+
 X, y, X_test, test_ids = load_from_raw_data()
 
 X, y, X_param = feat_eng(X, y)
@@ -34,7 +35,5 @@ assert not y.isnull().values.any(), "Missing values found in labels"
 
 logging.info("Data loader test passed successfully. Length of test images matches length of test IDs.")
 
-with open('data.pkl', 'wb') as f:
+with open("data.pkl", "wb") as f:
     pickle.dump((X, y, X_test, test_ids), f)
-
-

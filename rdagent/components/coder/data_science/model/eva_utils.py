@@ -14,30 +14,23 @@ from rdagent.oai.llm_utils import APIBackend
 
 evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
+
 def expected_shape_evaluate(
-    prediction: np.ndarray,    
+    prediction: np.ndarray,
     spec_message: str,
     model_execution_feedback: str,
 ) -> str:
     if prediction is None:
         return "No output generated from the model. Skip value evaluation"
     elif spec_message is None:
-        return (
-            "No spec provided. Shape evaluation not impractical",
-        )
+        return ("No spec provided. Shape evaluation not impractical",)
     else:
         pre_shape = prediction.shape
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(evaluate_prompts["evaluator_shape_feedback"]["system"])
-            .render(
-                spec=(
-                    spec_message
-                    if spec_message is not None
-                    else "No spec description provided."
-                )
-            )
+            .render(spec=(spec_message if spec_message is not None else "No spec description provided."))
         )
 
         execution_feedback_to_render = model_execution_feedback
@@ -63,7 +56,7 @@ def expected_shape_evaluate(
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
                 break
-        
+
         critic_response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
@@ -145,7 +138,6 @@ class ModelFinalEvaluator(Evaluator):
     ):
         assert isinstance(target_task, ModelTask)
         assert isinstance(implementation, ModelFBWorkspace)
-
 
         system_prompt = (
             Environment(undefined=StrictUndefined)

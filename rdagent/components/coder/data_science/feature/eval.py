@@ -1,24 +1,24 @@
-from rdagent.core.evolving_framework import QueriedKnowledge
-
 import json
 from dataclasses import dataclass
 from os import system
+from pathlib import Path
+
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
     CoSTEERSingleFeedbackDeprecated,
 )
-
-from rdagent.utils.env import DSDockerConf, DockerEnv
+from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task, Workspace
-from pathlib import Path
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 FeatureEvalFeedback = CoSTEERSingleFeedback
+
 
 class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
@@ -32,8 +32,10 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
     ) -> CoSTEERSingleFeedbackDeprecated:
 
         target_task_information = target_task.get_task_information()
-        if (queried_knowledge is not None and
-                target_task_information in queried_knowledge.success_task_to_knowledge_dict):
+        if (
+            queried_knowledge is not None
+            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
+        ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return CoSTEERSingleFeedbackDeprecated(

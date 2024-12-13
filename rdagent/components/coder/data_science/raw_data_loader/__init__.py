@@ -62,11 +62,19 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
-        data_loader_spec = json.loads(spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True))["spec"]
-        feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))["spec"]
+        data_loader_spec = json.loads(
+            spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True)
+        )["spec"]
+        feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))[
+            "spec"
+        ]
         model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt, json_mode=True))["spec"]
-        ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))["spec"]
-        workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))["spec"]
+        ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))[
+            "spec"
+        ]
+        workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))[
+            "spec"
+        ]
 
         # 2. code
         system_prompt = T(".prompts:data_loader_coder.system").r()
@@ -75,7 +83,9 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         data_loader_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True)
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+            )
         )["code"]
 
         return {

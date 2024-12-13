@@ -56,13 +56,13 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
         # assert isinstance(target_task, ModelTask)
-        
+
         batch_size = 8
         assert isinstance(implementation, ModelFBWorkspace)
-        model_execution_feedback, pred_list= implementation.execute(
+        model_execution_feedback, pred_list = implementation.execute(
             batch_size=batch_size,
         )
-        shape_feedback = ""  
+        shape_feedback = ""
         if pred_list is None:
             shape_feedback += "No output generated from the model. No shape evaluation conducted."
         else:
@@ -80,9 +80,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 model_execution_feedback=model_execution_feedback,
             )
 
-            shape_feedback += f"Validation Output: {val_shape_feedback}\n" 
+            shape_feedback += f"Validation Output: {val_shape_feedback}\n"
             shape_feedback += f"Test Output: {test_shape_feedback}\n"
-        value_feedback = "The value feedback is ignored, and the value decision is automatically set as true." 
+        value_feedback = "The value feedback is ignored, and the value decision is automatically set as true."
         code_feedback, _ = ModelCodeEvaluator(scen=self.scen).evaluate(
             target_task=target_task,
             implementation=implementation,

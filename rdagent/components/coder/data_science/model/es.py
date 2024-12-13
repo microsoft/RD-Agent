@@ -2,23 +2,21 @@ import json
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
+
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
-
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.model.exp import (
-    ModelTask,
-    ModelFBWorkspace,
-)
+from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -101,7 +99,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         def Model():
             pass
         """
-    
+
     def assign_code_list_to_evo(self, code_list, evo):
         """
         Assign the code list to the evolving item.

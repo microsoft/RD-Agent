@@ -1,19 +1,23 @@
+import json
 from argparse import ONE_OR_MORE
 from typing import Literal
-import json
 
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
-from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-
-from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExperiment, FeatureExperiment, ModelExperiment, EnsembleExperiment, WorkflowExperiment
-
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import ExpGen, Trace, Hypothesis
+from rdagent.core.proposal import ExpGen, Hypothesis, Trace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.experiment.experiment import (
+    DataLoaderExperiment,
+    EnsembleExperiment,
+    FeatureExperiment,
+    ModelExperiment,
+    WorkflowExperiment,
+)
 from rdagent.utils.agent.tpl import T
 
 COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]
@@ -46,6 +50,7 @@ Concise Justification: {self.concise_justification}
 Concise Knowledge: {self.concise_knowledge}
 """
 
+
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
@@ -54,7 +59,7 @@ class DSExpGen(ExpGen):
         for h, _, hf in trace.hist:
             if hf.decision:
                 successful_components.add(h.component)
-        
+
         def is_complete():
             """is all components complete"""
             return set(ORDER) == successful_components
@@ -64,12 +69,12 @@ class DSExpGen(ExpGen):
                 if hf.decision and h.component == com:
                     return exp
             raise RuntimeError(f"No successful {com} component generated yet.")
-        
+
         if is_complete():
             # base info
             scenario = trace.scen.get_scenario_all_desc()
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
-            
+
             # 1. hypothesis gen
             # TODO: how to generate sota solution
             sota_solution = ""
@@ -78,13 +83,15 @@ class DSExpGen(ExpGen):
                 scenario=scenario,
                 hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                 hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                )
+            )
             user_prompt = T(".prompts:hypothesis_gen.user").r(
                 targets="data science project",
                 hypothesis_and_feedback=hypothesis_and_feedback,
-                )
+            )
 
-            resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True))
+            resp_dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+            )
             hypothesis = DSHypothesis(
                 hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
                 reason=resp_dict.get("reason", "Reason not provided"),
@@ -94,7 +101,7 @@ class DSExpGen(ExpGen):
                 concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
                 component=resp_dict.get("component", "Component not provided"),
             )
-            
+
             # 2. gen experiment
             if hypothesis.component == "DataLoadSpec":
                 data_loader_task_output_format = T(".prompts:output_format.data_loader").r()
@@ -103,19 +110,25 @@ class DSExpGen(ExpGen):
                     scenario=scenario,
                     hypothesis=hypothesis,
                     task_output_format=data_loader_task_output_format,
-                    )
+                )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Data loader and specification generation",
                     hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                
-                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                )
                 dt = DataLoaderTask(
                     name="Data loader and specification generation",
-                    description=resp_dict.get("description", "Data loader and specification generation description not provided"),
+                    description=resp_dict.get(
+                        "description", "Data loader and specification generation description not provided"
+                    ),
                 )
-                
+
                 return DataLoaderExperiment(sub_tasks=[dt], hypothesis=hypothesis)
             elif hypothesis.component == "FeatureEng":
                 # TODO: RAG
@@ -125,14 +138,20 @@ class DSExpGen(ExpGen):
                     scenario=scenario,
                     hypothesis=hypothesis,
                     task_output_format=feature_task_output_format,
-                    )
+                )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Feature Engineering",
                     hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                
-                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                )
+                dependency_exp = last_successful_component("DataLoadSpec")
+                spec = dependency_exp.experiment_workspace.code_dict["spec/feature.md"]
                 tasks = []
                 for fn in resp_dict:
                     ft = FeatureTask(
@@ -140,88 +159,106 @@ class DSExpGen(ExpGen):
                         description=resp_dict[fn].get("description", "Factor description not provided"),
                         formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
                         variables=resp_dict[fn].get("variables", "Variables not provided"),
-                        )
-                
+                        spec=spec,
+                    )
+
                 exp = FeatureExperiment(sub_tasks=tasks, hypothesis=hypothesis)
-                dependency_exp = last_successful_component("DataLoadSpec")
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Model":
                 model_task_output_format = T(".prompts:output_format.model").r()
-                
+
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Models",
                     scenario=scenario,
                     hypothesis=hypothesis,
                     task_output_format=model_task_output_format,
-                    )
+                )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Models",
                     hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                
-                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                )
+                dependency_exp = last_successful_component("FeatureEng")
+                spec = dependency_exp.experiment_workspace.code_dict["spec/model.md"]
                 mt = ModelTask(
                     name=resp_dict.get("model_name", "Model name not provided"),
                     description=resp_dict.get("description", "Model description not provided"),
                     architecture=resp_dict.get("architecture", "Model architecture not provided"),
                     hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
+                    spec=spec,
                     base_code="",
                 )
-                
+
                 exp = ModelExperiment(sub_tasks=[mt], hypothesis=hypothesis)
-                dependency_exp = last_successful_component("FeatureEng")
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Ensemble":
                 ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
-                
+
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Ensemble",
                     scenario=scenario,
                     hypothesis=hypothesis,
                     task_output_format=ensemble_task_output_format,
-                    )
+                )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Ensemble",
                     hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                
-                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                )
+                dependency_exp = last_successful_component("Model")
+                spec = dependency_exp.experiment_workspace.code_dict["spec/ensemble.md"]
                 et = EnsembleTask(
                     name="Ensemble",
                     description=resp_dict.get("description", "Ensemble description not provided"),
+                    spec=spec,
                 )
 
                 exp = EnsembleExperiment(sub_tasks=[et], hypothesis=hypothesis)
-                dependency_exp = last_successful_component("Model")
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Workflow":
                 workflow_task_output_format = T(".prompts:output_format.workflow").r()
-                
+
                 system_prompt = T(".prompts:task_gen.system").r(
                     targets="Workflow",
                     scenario=scenario,
                     hypothesis=hypothesis,
                     task_output_format=workflow_task_output_format,
-                    )
+                )
                 user_prompt = T(".prompts:task_gen.user").r(
                     targets="Workflow",
                     hypothesis=hypothesis,
                     hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                
-                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                )
+                dependency_exp = last_successful_component("Ensemble")
+                spec = dependency_exp.experiment_workspace.code_dict["spec/workflow.md"]
                 wt = WorkflowTask(
                     name="Workflow",
                     description=resp_dict.get("description", "Workflow description not provided"),
+                    spec=spec,
                 )
 
                 exp = WorkflowExperiment(sub_tasks=[wt], hypothesis=hypothesis)
-                dependency_exp = last_successful_component("Ensemble")
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
         else:
@@ -241,13 +278,19 @@ class DSExpGen(ExpGen):
                         targets="Data loader and specification generation",
                         hypothesis=None,
                     )
-                    
-                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
                     dt = DataLoaderTask(
                         name="Data loader and specification generation",
-                        description=resp_dict.get("description", "Data loader and specification generation description not provided"),
+                        description=resp_dict.get(
+                            "description", "Data loader and specification generation description not provided"
+                        ),
                     )
-                
+
                     exp = DataLoaderExperiment(sub_tasks=[dt])
                     return exp
                 elif o == "FeatureEng":
@@ -262,8 +305,14 @@ class DSExpGen(ExpGen):
                         targets="Feature Engineering",
                         hypothesis=None,
                     )
-                    
-                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
+                    dependency_exp = last_successful_component("DataLoadSpec")
+                    spec = dependency_exp.experiment_workspace.code_dict["spec/feature.md"]
                     tasks = []
                     for fn in resp_dict:
                         ft = FeatureTask(
@@ -271,10 +320,10 @@ class DSExpGen(ExpGen):
                             description=resp_dict[fn].get("description", "Factor description not provided"),
                             formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
                             variables=resp_dict[fn].get("variables", "Variables not provided"),
-                            )
+                            spec=spec,
+                        )
                         tasks.append(ft)
                     exp = FeatureExperiment(sub_tasks=tasks)
-                    dependency_exp = last_successful_component("DataLoadSpec")
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Model":
@@ -289,17 +338,23 @@ class DSExpGen(ExpGen):
                         targets="Models",
                         hypothesis=None,
                     )
-                    
-                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
+                    dependency_exp = last_successful_component("FeatureEng")
+                    spec = dependency_exp.experiment_workspace.code_dict["spec/model.md"]
                     mt = ModelTask(
                         name=resp_dict.get("model_name", "Model name not provided"),
                         description=resp_dict.get("description", "Model description not provided"),
                         architecture=resp_dict.get("architecture", "Model architecture not provided"),
                         hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
+                        spec=spec,
                         base_code="",
                     )
                     exp = ModelExperiment(sub_tasks=[mt])
-                    dependency_exp = last_successful_component("FeatureEng")
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Ensemble":
@@ -314,14 +369,20 @@ class DSExpGen(ExpGen):
                         targets="Ensemble",
                         hypothesis=None,
                     )
-                    
-                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
+                    dependency_exp = last_successful_component("Model")
+                    spec = dependency_exp.experiment_workspace.code_dict["spec/ensemble.md"]
                     et = EnsembleTask(
                         name="Ensemble",
                         description=resp_dict.get("description", "Ensemble description not provided"),
+                        spec=spec,
                     )
                     exp = EnsembleExperiment(sub_tasks=[et])
-                    dependency_exp = last_successful_component("Model")
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Workflow":
@@ -336,15 +397,21 @@ class DSExpGen(ExpGen):
                         targets="Workflow",
                         hypothesis=None,
                     )
-                    
-                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
+                    dependency_exp = last_successful_component("Ensemble")
+                    spec = dependency_exp.experiment_workspace.code_dict["spec/workflow.md"]
                     wt = WorkflowTask(
                         name="Workflow",
                         description=resp_dict.get("description", "Workflow description not provided"),
+                        spec=spec,
                     )
                     exp = WorkflowExperiment(sub_tasks=[wt])
-                    dependency_exp = last_successful_component("Ensemble")
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
-            
+
         return super().gen(trace)

@@ -29,13 +29,14 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
-from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+
 
 class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -49,12 +50,12 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:feature.system").r()
-        user_prompt = T(".prompts:feature.user").r(
-            competition_info=competition_info, feature_spec=target_task.spec
-        )
+        user_prompt = T(".prompts:feature.user").r(competition_info=competition_info, feature_spec=target_task.spec)
 
         feature_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True)
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+            )
         )["code"]
 
         return {
@@ -76,6 +77,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 evo.sub_workspace_list[index] = evo.experiment_workspace
             evo.sub_workspace_list[index].inject_code(**code_list[index])
         return evo
+
 
 class FeatureCoSTEER(CoSTEER):
     def __init__(

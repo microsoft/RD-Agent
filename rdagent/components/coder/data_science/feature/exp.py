@@ -22,7 +22,7 @@ class FeatureTask(CoSTEERTask):
         self.spec: str = spec
         self.implementation: bool = implementation
         super().__init__(name=name, description=description, **kwargs)
-    
+
     def get_task_information(self):
         return f"""name: {self.name}
 description: {self.description}

@@ -3,6 +3,9 @@
 import json
 from dataclasses import dataclass
 from os import system
+from pathlib import Path
+
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
@@ -14,9 +17,8 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task, Workspace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.env import DSDockerConf, DockerEnv
-from pathlib import Path
-from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.utils.env import DockerEnv, DSDockerConf
+
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 DataLoaderEvalFeedback = CoSTEERSingleFeedback
@@ -34,8 +36,10 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
     ) -> CoSTEERSingleFeedbackDeprecated:
 
         target_task_information = target_task.get_task_information()
-        if (queried_knowledge is not None and
-                target_task_information in queried_knowledge.success_task_to_knowledge_dict):
+        if (
+            queried_knowledge is not None
+            and target_task_information in queried_knowledge.success_task_to_knowledge_dict
+        ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return CoSTEERSingleFeedbackDeprecated(
@@ -48,9 +52,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             )
 
         ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.competition}": "/kaggle/input"
-        }
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated tempory content?

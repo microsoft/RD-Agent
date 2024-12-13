@@ -11,7 +11,6 @@ from rdagent.core.scenario import Task
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 
-
 # TODO:
 # 1. It seems logically sound, but we currently lack a scenario to apply it.
 # 2. If it proves to be useful, relocate it to a more general location.
@@ -54,6 +53,7 @@ class CoSTEERSingleFeedback(Feedback):
 This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
 
+
 class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
     """This class is a base class for all code generator feedback to single implementation"""
 
@@ -79,19 +79,19 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         # TODO:
         # Not general enough. So we should not put them in the general costeer feedback
         # Instead, we should create subclass for it.
-        self.shape_feedback = shape_feedback  # Not general enough. So 
+        self.shape_feedback = shape_feedback  # Not general enough. So
 
     # TODO: @property
     @property
     def execution(self):
         return self.execution_feedback
-    
+
     @property
     def return_checking(self):
         if self.value_generated_flag:
             return f"value feedback: {self.value_feedback}\n\nshape feedback: {self.shape_feedback}"
         return None
-    
+
     @property
     def code(self):
         return self.code_feedback
