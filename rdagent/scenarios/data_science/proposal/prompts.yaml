@@ -116,5 +116,14 @@ output_format:
     }
     Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
   ensemble: |-
-    
+    According to the hypothesis, please help user design one ensemble task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "A detailed description of the ensemble",
+    }
   workflow: |-
+    According to the hypothesis, please help user design one workflow task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "A detailed description of the workflow",
+    }

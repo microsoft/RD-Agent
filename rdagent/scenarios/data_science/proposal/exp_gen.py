@@ -91,11 +91,28 @@ class DSExpGen(ExpGen):
             
             # 2. gen experiment
             if hypothesis.component == "DataLoadSpec":
-                pass
+                data_loader_task_output_format = T(".prompts:output_format.data_loader").r()
+                system_prompt = T(".prompts:hypothesis2task.system").r(
+                    targets="Data loader and specification generation",
+                    scenario=scenario,
+                    task_output_format=data_loader_task_output_format,
+                    )
+                usre_prompt = T(".prompts:hypothesis2task.user").r(
+                    targets="Data loader and specification generation",
+                    target_hypothesis=str(hypothesis),
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    )
+                
+                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                dt = DataLoaderTask(
+                    name="Data loader and specification generation",
+                    description=resp_dict.get("description", "Data loader and specification generation description not provided"),
+                )
+                
+                return DataLoaderExperiment(sub_tasks=[dt], hypothesis=hypothesis)
             elif hypothesis.component == "FeatureEng":
                 # TODO: RAG
                 feature_task_output_format = T(".prompts:output_format.feature").r()
-                
                 system_prompt = T(".prompts:hypothesis2task.system").r(
                     targets="Feature Engineering",
                     scenario=scenario,
@@ -133,7 +150,6 @@ class DSExpGen(ExpGen):
                     )
                 
                 resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
-                tasks = []
                 mt = ModelTask(
                     name=resp_dict.get("model_name", "Model name not provided"),
                     description=resp_dict.get("description", "Model description not provided"),
@@ -142,11 +158,49 @@ class DSExpGen(ExpGen):
                     base_code="",
                 )
                 
-                return ModelExperiment(sub_tasks=tasks, hypothesis=hypothesis)
+                return ModelExperiment(sub_tasks=[mt], hypothesis=hypothesis)
             elif hypothesis.component == "Ensemble":
-                pass
+                ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
+                
+                system_prompt = T(".prompts:hypothesis2task.system").r(
+                    targets="Ensemble",
+                    scenario=scenario,
+                    task_output_format=ensemble_task_output_format,
+                    )
+                user_prompt = T(".prompts:hypothesis2task.user").r(
+                    targets="Ensemble",
+                    target_hypothesis=str(hypothesis),
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    )
+                
+                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                et = EnsembleTask(
+                    name="Ensemble",
+                    description=resp_dict.get("description", "Ensemble description not provided"),
+                )
+
+                return EnsembleExperiment(sub_tasks=[et], hypothesis=hypothesis)                
             elif hypothesis.component == "Workflow":
-                pass
+                workflow_task_output_format = T(".prompts:output_format.workflow").r()
+                
+                system_prompt = T(".prompts:hypothesis2task.system").r(
+                    targets="Workflow",
+                    scenario=scenario,
+                    task_output_format=workflow_task_output_format,
+                    )
+                user_prompt = T(".prompts:hypothesis2task.user").r(
+                    targets="Workflow",
+                    target_hypothesis=str(hypothesis),
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    )
+                
+                resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                wt = WorkflowTask(
+                    name="Workflow",
+                    description=resp_dict.get("description", "Workflow description not provided"),
+                )
+
+                return WorkflowExperiment(sub_tasks=[wt], hypothesis=hypothesis)
         else:
             for o in ORDER:
                 if o in successful_components:
