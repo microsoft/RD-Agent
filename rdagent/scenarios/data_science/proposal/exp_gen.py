@@ -70,9 +70,9 @@ class DSExpGen(ExpGen):
                     return exp
             raise RuntimeError(f"No successful {com} component generated yet.")
 
+        scenario = trace.scen.get_scenario_all_desc()
         if is_complete():
             # base info
-            scenario = trace.scen.get_scenario_all_desc()
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
 
             # 1. hypothesis gen

@@ -155,7 +155,7 @@ def main(path=None, step_n=None, competition=None):
         DS_RD_SETTING.competition = competition
 
     if DS_RD_SETTING.competition:
-        download_data(competition=DS_RD_SETTING.competition, local_path=DS_RD_SETTING.local_data_path)
+        download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
     else:
         logger.error("Please specify competition name.")
     if path is None:
