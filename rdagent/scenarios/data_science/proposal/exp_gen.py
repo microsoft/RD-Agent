@@ -59,6 +59,12 @@ class DSExpGen(ExpGen):
             """is all components complete"""
             return set(ORDER) == successful_components
 
+        def last_successful_component(com: COMPONENT) -> Experiment:
+            for h, exp, hf in reversed(trace.hist):
+                if hf.decision and h.component == com:
+                    return exp
+            raise RuntimeError(f"No successful {com} component generated yet.")
+        
         if is_complete():
             # base info
             scenario = trace.scen.get_scenario_all_desc()
@@ -136,7 +142,10 @@ class DSExpGen(ExpGen):
                         variables=resp_dict[fn].get("variables", "Variables not provided"),
                         )
                 
-                return FeatureExperiment(sub_tasks=tasks, hypothesis=hypothesis)
+                exp = FeatureExperiment(sub_tasks=tasks, hypothesis=hypothesis)
+                dependency_exp = last_successful_component("DataLoadSpec")
+                exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
+                return exp
             elif hypothesis.component == "Model":
                 model_task_output_format = T(".prompts:output_format.model").r()
                 
@@ -161,7 +170,10 @@ class DSExpGen(ExpGen):
                     base_code="",
                 )
                 
-                return ModelExperiment(sub_tasks=[mt], hypothesis=hypothesis)
+                exp = ModelExperiment(sub_tasks=[mt], hypothesis=hypothesis)
+                dependency_exp = last_successful_component("FeatureEng")
+                exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
+                return exp
             elif hypothesis.component == "Ensemble":
                 ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
                 
@@ -183,7 +195,10 @@ class DSExpGen(ExpGen):
                     description=resp_dict.get("description", "Ensemble description not provided"),
                 )
 
-                return EnsembleExperiment(sub_tasks=[et], hypothesis=hypothesis)                
+                exp = EnsembleExperiment(sub_tasks=[et], hypothesis=hypothesis)
+                dependency_exp = last_successful_component("Model")
+                exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
+                return exp
             elif hypothesis.component == "Workflow":
                 workflow_task_output_format = T(".prompts:output_format.workflow").r()
                 
@@ -205,7 +220,10 @@ class DSExpGen(ExpGen):
                     description=resp_dict.get("description", "Workflow description not provided"),
                 )
 
-                return WorkflowExperiment(sub_tasks=[wt], hypothesis=hypothesis)
+                exp = WorkflowExperiment(sub_tasks=[wt], hypothesis=hypothesis)
+                dependency_exp = last_successful_component("Ensemble")
+                exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
+                return exp
         else:
             for o in ORDER:
                 if o in successful_components:
@@ -256,6 +274,8 @@ class DSExpGen(ExpGen):
                             )
                         tasks.append(ft)
                     exp = FeatureExperiment(sub_tasks=tasks)
+                    dependency_exp = last_successful_component("DataLoadSpec")
+                    exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Model":
                     model_task_output_format = T(".prompts:output_format.model").r()
@@ -279,6 +299,8 @@ class DSExpGen(ExpGen):
                         base_code="",
                     )
                     exp = ModelExperiment(sub_tasks=[mt])
+                    dependency_exp = last_successful_component("FeatureEng")
+                    exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Ensemble":
                     ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
@@ -299,6 +321,8 @@ class DSExpGen(ExpGen):
                         description=resp_dict.get("description", "Ensemble description not provided"),
                     )
                     exp = EnsembleExperiment(sub_tasks=[et])
+                    dependency_exp = last_successful_component("Model")
+                    exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Workflow":
                     workflow_task_output_format = T(".prompts:output_format.workflow").r()
@@ -319,6 +343,8 @@ class DSExpGen(ExpGen):
                         description=resp_dict.get("description", "Workflow description not provided"),
                     )
                     exp = WorkflowExperiment(sub_tasks=[wt])
+                    dependency_exp = last_successful_component("Ensemble")
+                    exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
             
         return super().gen(trace)
