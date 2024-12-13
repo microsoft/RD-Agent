@@ -15,6 +15,10 @@ from rdagent.components.coder.data_science.model.eval import (
 from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
 from rdagent.scenarios.data_science.experiment.experiment import ModelExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
+from rdagent.components.coder.data_science.model.es import ModelMultiProcessEvolvingStrategy
+from rdagent.core.experiment import FBWorkspace
+
 
 
 # Take tasks, spec.md and feat as input, generate a feedback as output
@@ -36,7 +40,7 @@ def develop_one_competition(competition: str):
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
     injected_file_names = ["spec/model.md", "load_data.py", "feat01.py", "model01.py"]
 
-    modelexp = ModelFBWorkspace()
+    modelexp = FBWorkspace()
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
         modelexp.inject_code(**{file_name: file_path.read_text()})

@@ -10,7 +10,9 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.data_science.model.exp import ModelTask
+
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
@@ -111,7 +113,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if code_list[index] is None:
                 continue
             if evo.sub_workspace_list[index] is None:
-                evo.sub_workspace_list[index] = ModelFBWorkspace(target_task=evo.sub_tasks[index])
+                evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
             # TODO: avoid hardcode of file name
             evo.sub_workspace_list[index].inject_code(**{"model01.py": code_list[index]})
         return evo
