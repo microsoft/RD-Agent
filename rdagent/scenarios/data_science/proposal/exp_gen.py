@@ -230,33 +230,95 @@ class DSExpGen(ExpGen):
                         description=resp_dict.get("description", "Data loader and specification generation description not provided"),
                     )
                 
-                    return DataLoaderExperiment(sub_tasks=[dt], hypothesis=hypothesis)
+                    exp = DataLoaderExperiment(sub_tasks=[dt])
+                    return exp
                 elif o == "FeatureEng":
-                    ft = FeatureTask(name="FeatureTask", description="")
-                    exp = FeatureExperiment(
-                        sub_tasks=[ft],
+                    feature_task_output_format = T(".prompts:output_format.feature").r()
+                    system_prompt = T(".prompts:task_gen.system").r(
+                        targets="Feature Engineering",
+                        scenario=scenario,
+                        hypothesis=None,
+                        task_output_format=feature_task_output_format,
                     )
-                    self.complete_component.add(o)
+                    user_prompt = T(".prompts:task_gen.user").r(
+                        targets="Feature Engineering",
+                        hypothesis=None,
+                    )
+                    
+                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                    tasks = []
+                    for fn in resp_dict:
+                        ft = FeatureTask(
+                            name=fn,
+                            description=resp_dict[fn].get("description", "Factor description not provided"),
+                            formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
+                            variables=resp_dict[fn].get("variables", "Variables not provided"),
+                            )
+                        tasks.append(ft)
+                    exp = FeatureExperiment(sub_tasks=tasks)
                     return exp
                 elif o == "Model":
-                    mt = ModelTask(name="ModelTask", description="")
-                    exp = ModelExperiment(
-                        sub_tasks=[mt],
+                    model_task_output_format = T(".prompts:output_format.model").r()
+                    system_prompt = T(".prompts:task_gen.system").r(
+                        targets="Models",
+                        scenario=scenario,
+                        hypothesis=None,
+                        task_output_format=model_task_output_format,
                     )
-                    self.complete_component.add(o)
+                    user_prompt = T(".prompts:task_gen.user").r(
+                        targets="Models",
+                        hypothesis=None,
+                    )
+                    
+                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                    mt = ModelTask(
+                        name=resp_dict.get("model_name", "Model name not provided"),
+                        description=resp_dict.get("description", "Model description not provided"),
+                        architecture=resp_dict.get("architecture", "Model architecture not provided"),
+                        hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
+                        base_code="",
+                    )
+                    exp = ModelExperiment(sub_tasks=[mt])
                     return exp
                 elif o == "Ensemble":
-                    et = EnsembleTask(name="EnsembleTask", description="")
-                    exp = EnsembleExperiment(
-                        sub_tasks=[et],
+                    ensemble_task_output_format = T(".prompts:output_format.ensemble").r()
+                    system_prompt = T(".prompts:task_gen.system").r(
+                        targets="Ensemble",
+                        scenario=scenario,
+                        hypothesis=None,
+                        task_output_format=ensemble_task_output_format,
                     )
-                    self.complete_component.add(o)
+                    user_prompt = T(".prompts:task_gen.user").r(
+                        targets="Ensemble",
+                        hypothesis=None,
+                    )
+                    
+                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                    et = EnsembleTask(
+                        name="Ensemble",
+                        description=resp_dict.get("description", "Ensemble description not provided"),
+                    )
+                    exp = EnsembleExperiment(sub_tasks=[et])
                     return exp
                 elif o == "Workflow":
-                    wt = WorkflowTask(name="WorkflowTask", description="")
-                    exp = WorkflowExperiment(
-                        sub_tasks=[wt],
+                    workflow_task_output_format = T(".prompts:output_format.workflow").r()
+                    system_prompt = T(".prompts:task_gen.system").r(
+                        targets="Workflow",
+                        scenario=scenario,
+                        hypothesis=None,
+                        task_output_format=workflow_task_output_format,
                     )
-                    self.complete_component.add(o)
+                    user_prompt = T(".prompts:task_gen.user").r(
+                        targets="Workflow",
+                        hypothesis=None,
+                    )
+                    
+                    resp_dict = json.loads(APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True))
+                    wt = WorkflowTask(
+                        name="Workflow",
+                        description=resp_dict.get("description", "Workflow description not provided"),
+                    )
+                    exp = WorkflowExperiment(sub_tasks=[wt])
                     return exp
+            
         return super().gen(trace)
