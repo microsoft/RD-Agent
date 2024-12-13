@@ -20,6 +20,7 @@ from rdagent.utils.env import DSDockerConf, DockerEnv
 from rdagent.oai.llm_utils import APIBackend
 from pathlib import Path
 from rdagent.utils.agent.tpl import T
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -69,7 +70,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         """model_execution_feedback, pred_list= implementation.execute(
             batch_size=batch_size,
         )"""
-        de = DockerEnv(conf=DSDockerConf())
+        ds_docker_conf = DSDockerConf()        
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}        
+        de = DockerEnv(conf=ds_docker_conf)
         fname = "model_execute.py"
         with (DIRNAME / "eval_tests" / "model_execute.py").open("r") as f:
             test_code = f.read()
