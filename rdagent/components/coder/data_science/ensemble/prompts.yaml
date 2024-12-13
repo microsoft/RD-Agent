@@ -43,12 +43,12 @@ ensemble_eval:
     You are testing the ensemble with the following code:    ```python
     {{test_code}}    ```
     You'll be given the stdout of your testing scripts.
-    Please respond with your feedback in the following JSON format:    ```json
+    Please respond with your feedback in the following JSON format: 
     {
         "execution": "Describe how well the ensemble executed, including any errors or issues encountered.",
         "checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
         "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
-    }    ```
-  user: |-    ```
-    {{stdout}}    ```
+    }    
+  user: |-    
+    {{stdout}}   

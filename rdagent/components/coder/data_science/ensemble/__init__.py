@@ -41,8 +41,8 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         competition_info = self.scen.competition_descriptions
         ensemble_spec = target_task.spec
         # Generate code
-        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info)
-        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=ensemble_spec)
+        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info, ensemble_spec=ensemble_spec)
+        user_prompt = T(".prompts:ensemble_coder.user").r()
 
         ensemble_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -55,6 +55,22 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return {
             "ensemble.py": ensemble_code,
         }
+    
+    def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
+        """
+        Assign the code list to the evolving item.
+
+        The code list is aligned with the evolving item's sub-tasks.
+        If a task is not implemented, put a None in the list.
+        """
+        for index in range(len(evo.sub_tasks)):
+            if code_list[index] is None:
+                continue
+            if evo.sub_workspace_list[index] is None:
+                # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
+                evo.sub_workspace_list[index] = evo.experiment_workspace
+            evo.sub_workspace_list[index].inject_code(**code_list[index])
+        return evo
 
 
 class EnsembleCoSTEER(CoSTEER):
