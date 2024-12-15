@@ -11,6 +11,7 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.scenarios.data_science.experiment.experiment import FeatureExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
+
 def develop_one_competition(competition: str):  # -> experiment
     scen = DataScienceScen(competition=competition)
     feature_coder = FeatureCoSTEER(scen)

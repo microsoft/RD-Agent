@@ -13,12 +13,9 @@ from rdagent.components.coder.data_science.model.eval import (
     ModelGeneralCaseSpecEvaluator,
 )
 from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import ModelExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.data_science.model.es import ModelMultiProcessEvolvingStrategy
-from rdagent.core.experiment import FBWorkspace
-
 
 
 # Take tasks, spec.md and feat as input, generate a feedback as output

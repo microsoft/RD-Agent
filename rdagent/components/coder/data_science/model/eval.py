@@ -2,7 +2,11 @@
 Beyond previous tests
 - 
 """
+
 import json
+from pathlib import Path
+
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
@@ -15,12 +19,10 @@ from rdagent.components.coder.data_science.model.eva_utils import (
     expected_shape_evaluate,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import Task, Workspace, FBWorkspace
-from rdagent.utils.env import DSDockerConf, DockerEnv
+from rdagent.core.experiment import FBWorkspace, Task, Workspace
 from rdagent.oai.llm_utils import APIBackend
-from pathlib import Path
 from rdagent.utils.agent.tpl import T
-from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -70,8 +72,8 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         """model_execution_feedback, pred_list= implementation.execute(
             batch_size=batch_size,
         )"""
-        ds_docker_conf = DSDockerConf()        
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}        
+        ds_docker_conf = DSDockerConf()
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
         fname = "model_execute.py"
         with (DIRNAME / "eval_tests" / "model_execute.py").open("r") as f:

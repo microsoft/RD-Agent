@@ -12,6 +12,7 @@ import yaml
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.core.utils import SingletonBaseClass
+from rdagent.log import rdagent_logger as logger
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 PROJ_PATH = DIRNAME.parent.parent
@@ -37,6 +38,7 @@ class RDAT:
 
             the loaded content will be saved in `self.template`
         """
+        self.uri = uri
         # Inspect the calling stack to get the caller's directory
         stack = inspect.stack()
         caller_frame = stack[1]
@@ -49,6 +51,7 @@ class RDAT:
 
         if path_part.startswith("."):
             yaml_file_path = caller_dir / f"{path_part[1:].replace('.', '/')}.yaml"
+            self.uri = f"{str(caller_dir.relative_to(PROJ_PATH)).replace('/', '.')}{uri}"
         else:
             yaml_file_path = (PROJ_PATH / path_part.replace(".", "/")).with_suffix(".yaml")
 
@@ -66,7 +69,17 @@ class RDAT:
         """
         Render the template with the given context.
         """
-        return Environment(undefined=StrictUndefined).from_string(self.template).render(**context)
+        rendered = Environment(undefined=StrictUndefined).from_string(self.template).render(**context)
+        logger.log_object(
+            obj={
+                "uri": self.uri,
+                "template": self.template,
+                "context": context,
+                "rendered": rendered,
+            },
+            tag="debug_tpl",
+        )
+        return rendered
 
 
 T = RDAT  # shortcuts

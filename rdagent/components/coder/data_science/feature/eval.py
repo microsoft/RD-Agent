@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from os import system
 from pathlib import Path
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
@@ -14,7 +15,6 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.app.data_science.conf import DS_RD_SETTING
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 

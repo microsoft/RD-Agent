@@ -10,9 +10,8 @@ Please make sure the stdout is rich enough to support informative feedback
 import logging
 import pickle
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 from feat01 import feat_eng
 
 # Setup logging

@@ -9,8 +9,8 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.feature.eval import FeatureCoSTEEREvaluator
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T

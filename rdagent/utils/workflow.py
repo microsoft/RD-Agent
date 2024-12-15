@@ -106,19 +106,20 @@ class LoopBase:
                 start = datetime.datetime.now(datetime.timezone.utc)
 
                 name = self.steps[si]
-                func = getattr(self, name)
-                try:
-                    self.loop_prev_out[name] = func(self.loop_prev_out)
-                    # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
-                except self.skip_loop_error as e:
-                    logger.warning(f"Skip loop {li} due to {e}")
-                    self.loop_idx += 1
-                    self.step_idx = 0
-                    continue
-                except CoderError as e:
-                    logger.warning(f"Traceback loop {li} due to {e}")
-                    self.step_idx = 0
-                    continue
+                with logger.tag(name):
+                    func = getattr(self, name)
+                    try:
+                        self.loop_prev_out[name] = func(self.loop_prev_out)
+                        # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
+                    except self.skip_loop_error as e:
+                        logger.warning(f"Skip loop {li} due to {e}")
+                        self.loop_idx += 1
+                        self.step_idx = 0
+                        continue
+                    except CoderError as e:
+                        logger.warning(f"Traceback loop {li} due to {e}")
+                        self.step_idx = 0
+                        continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)
 
