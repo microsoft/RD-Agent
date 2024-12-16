@@ -21,18 +21,17 @@ class DataScienceScen(Scenario):
 
     def __init__(self, competition: str) -> None:
         self.competition = competition
-        self.competition_descriptions = crawl_descriptions(competition, DS_RD_SETTING.local_data_path)
+        self.competition_raw_description = crawl_descriptions(competition, DS_RD_SETTING.local_data_path)
 
         leaderboard = leaderboard_scores(competition)
-        self.evaluation_metric_direction = float(leaderboard[0]) > float(leaderboard[-1])
+        self.competition_metric_direction = float(leaderboard[0]) > float(leaderboard[-1])
 
         self._analysis_competition_description()
 
     def _analysis_competition_description(self):
-        sys_prompt = T(".prompts:description_template.system").r()
-        user_prompt = T(".prompts:description_template.user").r(
-            competition_descriptions=self.competition_descriptions,
-            evaluation_metric_direction=self.evaluation_metric_direction,
+        sys_prompt = T(".prompts:competition_description_template.system").r()
+        user_prompt = T(".prompts:competition_description_template.user").r(
+            competition_raw_description=self.competition_raw_description,
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
@@ -42,41 +41,34 @@ class DataScienceScen(Scenario):
         )
 
         response_json_analysis = json.loads(response_analysis)
-        self.competition_type = response_json_analysis.get("Competition Type", "No type provided")
-        self.competition_description = response_json_analysis.get("Competition Description", "No description provided")
-        self.target_description = response_json_analysis.get("Target Description", "No target provided")
-        self.competition_features = response_json_analysis.get("Competition Features", "No features provided")
+        self.competition_task_type = response_json_analysis.get("Competition Task Type", "No type provided")
+        self.competition_data_type = response_json_analysis.get("Competition Data Type", "No data type provided")
+        self.competition_brief_description = response_json_analysis.get("Competition Brief Description", "No brief description provided")
+        self.competition_target_description = response_json_analysis.get("Competition Target Description", "No target description provided")
         self.submission_specifications = response_json_analysis.get(
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
-        self.evaluation_desc = response_json_analysis.get(
-            "Evaluation Description", "No evaluation specification provided."
-        )
 
     def get_competition_full_desc(self) -> str:
-        evaluation_direction = "higher the better" if self.evaluation_metric_direction else "lower the better"
-        return f"""Competition Type: {self.competition_type}
-    Competition Description: {self.competition_description}
-    Target Description: {self.target_description}
-    Competition Features: {self.competition_features}
+        return f"""Competition Task Type: {self.competition_task_type}
+    Competition Data Type: {self.competition_data_type}
+    Competition Brief Description: {self.competition_brief_description}
+    Competition Target Description: {self.competition_target_description}
     Submission Specifications: {self.submission_specifications}
     Model Output Channel: {self.model_output_channel}
-    Evaluation Descriptions: {self.evaluation_desc}
-    Is the evaluation metric the higher the better: {evaluation_direction}
     """
 
     @property
     def background(self) -> str:
         background_template = T(".prompts:competition_background")
         background_prompt = background_template.r(
-            competition_type=self.competition_type,
-            competition_description=self.competition_description,
-            target_description=self.target_description,
-            competition_features=self.competition_features,
+            competition_task_type=self.competition_task_type,
+            competition_data_type=self.competition_data_type,
+            competition_brief_description=self.competition_brief_description,
+            target_description=self.competition_target_description,
             submission_specifications=self.submission_specifications,
-            evaluation_desc=self.evaluation_desc,
-            evaluate_bool=self.evaluation_metric_direction,
+            evaluate_bool=self.competition_metric_direction,
         )
         return background_prompt
 
