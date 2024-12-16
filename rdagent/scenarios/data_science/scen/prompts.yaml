@@ -1,11 +1,11 @@
-scen_desc: -|
+scen_desc: |-
   ------Background of the scenario------
   {{scen.background}}
 
   ------The expected output & submission format specifications------
   {{scen.submission_specifications}}
 
-description_template: -|
+description_template:
   system: |-
     You are an assistant that extracts structured information from unstructured text.
     The user will provide you a Kaggle competition description, and you need to extract specific details from it.
