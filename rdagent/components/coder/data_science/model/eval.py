@@ -13,13 +13,8 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
     CoSTEERSingleFeedbackDeprecated,
 )
-from rdagent.components.coder.data_science.model.eva_utils import (
-    ModelCodeEvaluator,
-    ModelFinalEvaluator,
-    expected_shape_evaluate,
-)
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import FBWorkspace, Task, Workspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf

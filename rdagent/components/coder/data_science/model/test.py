@@ -12,7 +12,7 @@ from rdagent.components.coder.data_science.model.es import (
 from rdagent.components.coder.data_science.model.eval import (
     ModelGeneralCaseSpecEvaluator,
 )
-from rdagent.components.coder.data_science.model.exp import ModelFBWorkspace, ModelTask
+from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import ModelExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
