@@ -19,7 +19,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 # Load data
 from load_data import load_from_raw_data
-from sklearn.model_selection import train_test_split
 
 X, y, X_test, test_ids = load_from_raw_data()
 
@@ -43,6 +42,3 @@ else:
     raise TypeError("Unsupported data type for X and y")
 
 logging.info("Data loader test passed successfully. Length of test images matches length of test IDs.")
-
-with open("data.pkl", "wb") as f:
-    pickle.dump((X, y, X_test, test_ids), f)
