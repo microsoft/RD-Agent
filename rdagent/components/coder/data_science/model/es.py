@@ -11,7 +11,6 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.data_science.model.exp import ModelTask
-from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
@@ -24,7 +23,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-    ) -> str:
+    ) -> dict[str, str]:
         model_information_str = target_task.get_task_information()
 
         queried_similar_successful_knowledge = (
@@ -86,7 +85,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             elif len(queried_similar_successful_knowledge_to_render) > 1:
                 queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[1:]
 
-        code = json.loads(
+        model_code = json.loads(
             # APIBackend(use_chat_cache=CoSTEER_SETTINGS.coder_use_cache).build_messages_and_create_chat_completion(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
@@ -94,14 +93,16 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 json_mode=True,
             ),
         )["code"]
-        return code
+        return{
+            "model01.py":model_code,
+        }
         """
         import pandas as pd
         def Model():
             pass
         """
 
-    def assign_code_list_to_evo(self, code_list, evo):
+    def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """
         Assign the code list to the evolving item.
 
@@ -112,7 +113,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if code_list[index] is None:
                 continue
             if evo.sub_workspace_list[index] is None:
-                evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
-            # TODO: avoid hardcode of file name
-            evo.sub_workspace_list[index].inject_code(**{"model01.py": code_list[index]})
+                # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
+                evo.sub_workspace_list[index] = evo.experiment_workspace
+            evo.sub_workspace_list[index].inject_code(**code_list[index])
         return evo
