@@ -68,7 +68,7 @@ class DSExpGen(ExpGen):
             for h, exp, hf in reversed(trace.hist):
                 if hf.decision and h.component == com:
                     return exp
-            raise RuntimeError(f"No successful {com} component generated yet.")
+            return None
 
         scenario = trace.scen.get_scenario_all_desc()
         if is_complete():
@@ -346,13 +346,18 @@ class DSExpGen(ExpGen):
                     )
                     dependency_exp = last_successful_component("FeatureEng")
                     spec = dependency_exp.experiment_workspace.code_dict["spec/model.md"]
+                    if last_model_exp:=last_successful_component("Model"):
+                        # TODO: model only have one (named "model.py")?
+                        base_code = last_model_exp.experiment_workspace.code_dict["model.py"]
+                    else:
+                        base_code = ""
                     mt = ModelTask(
                         name=resp_dict.get("model_name", "Model name not provided"),
                         description=resp_dict.get("description", "Model description not provided"),
                         architecture=resp_dict.get("architecture", "Model architecture not provided"),
                         hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
                         spec=spec,
-                        base_code="",
+                        base_code=base_code,
                     )
                     exp = ModelExperiment(sub_tasks=[mt])
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
