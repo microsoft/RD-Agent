@@ -17,7 +17,7 @@ def develop_one_competition(competition: str):  # -> experiment
     feature_coder = FeatureCoSTEER(scen)
 
     with open(
-        "/home/v-yuanteli/RD-Agent/rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/spec/feature.md", "r"
+        "./rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/spec/feature.md", "r"
     ) as file:
         feat_spec = file.read()
 
@@ -28,7 +28,7 @@ def develop_one_competition(competition: str):  # -> experiment
     )
 
     with open(
-        "/home/v-yuanteli/RD-Agent/rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/load_data.py", "r"
+        "./rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/load_data.py", "r"
     ) as file:
         load_data_code = file.read()
     exp.experiment_workspace.inject_code(**{"load_data.py": load_data_code})
