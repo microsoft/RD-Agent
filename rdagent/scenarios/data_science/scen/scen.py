@@ -68,7 +68,7 @@ class DataScienceScen(Scenario):
 
     @property
     def background(self) -> str:
-        background_template = T("scenarios.kaggle.experiment.prompts:kg_background")
+        background_template = T(".prompts:competition_background")
         background_prompt = background_template.r(
             competition_type=self.competition_type,
             competition_description=self.competition_description,
