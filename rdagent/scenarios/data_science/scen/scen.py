@@ -29,10 +29,9 @@ class DataScienceScen(Scenario):
         self._analysis_competition_description()
 
     def _analysis_competition_description(self):
-        sys_prompt = T("scenarios.kaggle.experiment.prompts:kg_description_template.system").r()
-        user_prompt = T("scenarios.kaggle.experiment.prompts:kg_description_template.user").r(
+        sys_prompt = T(".prompts:description_template.system").r()
+        user_prompt = T(".prompts:description_template.user").r(
             competition_descriptions=self.competition_descriptions,
-            raw_data_information=self.source_data,
             evaluation_metric_direction=self.evaluation_metric_direction,
         )
 
