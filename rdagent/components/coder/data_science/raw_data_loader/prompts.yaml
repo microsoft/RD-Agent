@@ -1,12 +1,3 @@
-data_loader_execute_code: |-
-  # execute and cache the preprocessed data
-  import pickle
-  from load_data import load_data
-  data = load_data()
-  with open('data.pkl', 'wb') as f:
-      pickle.dump(data, f)
-  
-
 spec:
   system: |-
     You are a Python data scientist working on a new kaggle competition project. This project will be used to analyze data and build models to predict future outcomes, and this project codes will be written by GPT.
