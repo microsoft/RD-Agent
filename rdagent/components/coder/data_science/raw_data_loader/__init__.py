@@ -1,6 +1,6 @@
 """
 
-Loop should not large change excclude
+Loop should not large change exclude
 - Action Choice[current data loader & spec]
 - other should share
     - Propose[choice] => Task[Choice] => CoSTEER => 
@@ -50,7 +50,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
-        competition_info = self.scen.competition_descriptions
+        competition_info = self.scen.get_scenario_all_desc()
 
         # 1. specifications
         system_prompt = T(".prompts:spec.system").r(competition_info=competition_info)
