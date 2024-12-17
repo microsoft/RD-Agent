@@ -2,6 +2,9 @@ import json
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.coder.CoSTEER.knowledge_management import CoSTEERQueriedKnowledge
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.components.coder.CoSTEER.evolving_strategy import (
+    MultiProcessEvolvingStrategy,
+)
 
 class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
