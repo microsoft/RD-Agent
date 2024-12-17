@@ -13,13 +13,11 @@ class FeatureTask(CoSTEERTask):
         self,
         name: str,
         description: str,
-        spec: str,
         variables: dict = {},
         implementation: bool = False,
         **kwargs,
     ) -> None:
         self.variables: dict = variables
-        self.spec: str = spec
         self.implementation: bool = implementation
         super().__init__(name=name, description=description, **kwargs)
 

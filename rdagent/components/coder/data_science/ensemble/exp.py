@@ -13,7 +13,6 @@ class EnsembleTask(CoSTEERTask):
         self,
         name: str,
         description: str,
-        spec: str,
         **kwargs,
     ) -> None:
         pass

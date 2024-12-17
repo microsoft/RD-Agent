@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.experiment import FBWorkspace
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -23,6 +24,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         model_information_str = target_task.get_task_information()
 
@@ -52,7 +54,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 # scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                 # TODO: fit new scenario information
                 scenario=("No scenario description."),
-                spec=target_task.spec,
+                spec=workspace.code_dict["spec/model.md"],
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 current_code=target_task.base_code,
             )

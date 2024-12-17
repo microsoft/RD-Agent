@@ -101,13 +101,9 @@ Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{s
 To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
-    @property
-    def to_dict(self):
-        return {
-            "background": self.background,
-            "submission_specifications": self.submission_specifications,
-            "metric_direction": self.metric_direction,
-        }
-
     def get_scenario_all_desc(self) -> str:
-        return T(".prompts:scenario_description").r(scen=self.to_dict)
+        return T(".prompts:scenario_description").r(
+            background=self.background,
+            submission_specifications=self.submission_specifications,
+            metric_direction=self.metric_direction,
+        )

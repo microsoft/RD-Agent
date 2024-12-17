@@ -15,20 +15,22 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
+from rdagent.core.experiment import FBWorkspace
 
 class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
         self,
         target_task: FeatureTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
-        competition_info = self.scen.competition_descriptions
+        competition_info = self.scen.get_scenario_all_desc()
 
         # 2. code
         system_prompt = T(".prompts:feature.system").r()
-        user_prompt = T(".prompts:feature.user").r(competition_info=competition_info, feature_spec=target_task.spec)
+        user_prompt = T(".prompts:feature.user").r(competition_info=competition_info, feature_spec=workspace.code_dict["spec/feature.md"])
 
         feature_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(

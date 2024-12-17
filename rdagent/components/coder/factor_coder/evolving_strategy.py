@@ -17,6 +17,7 @@ from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, Fact
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.experiment import FBWorkspace
 
 implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -72,6 +73,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: CoSTEERQueriedKnowledge,
+        workspace: FBWorkspace | None = None,
     ) -> str:
         target_factor_task_information = target_task.get_task_information()
 

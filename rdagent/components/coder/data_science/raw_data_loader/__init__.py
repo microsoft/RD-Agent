@@ -40,6 +40,7 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.core.experiment import FBWorkspace
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -47,6 +48,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: DataLoaderTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
