@@ -13,7 +13,6 @@ from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Scenario
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace
-
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Task
 from rdagent.core.utils import multiprocessing_wrapper
@@ -97,7 +96,10 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_task, (evo.sub_tasks[target_index], queried_knowledge, evo.sub_workspace_list[target_index]))
+                (
+                    self.implement_one_task,
+                    (evo.sub_tasks[target_index], queried_knowledge, evo.sub_workspace_list[target_index]),
+                )
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,

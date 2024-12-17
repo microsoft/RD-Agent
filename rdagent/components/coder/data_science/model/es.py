@@ -11,10 +11,10 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.experiment import FBWorkspace
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -95,8 +95,8 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 json_mode=True,
             ),
         )["code"]
-        return{
-            "model01.py":model_code,
+        return {
+            "model01.py": model_code,
         }
         """
         import pandas as pd

@@ -23,7 +23,9 @@ test_X = np.random.rand(8, 64, 64, 3)"""
 
 
 # Call model_workflow
-val_pred, test_pred, hypers = model_workflow(X=train_X, y=train_y, val_X=val_X, val_y=val_y, test_X=test_X, hyper_params={})
+val_pred, test_pred, hypers = model_workflow(
+    X=train_X, y=train_y, val_X=val_X, val_y=val_y, test_X=test_X, hyper_params={}
+)
 # val_pred = np.random.rand(8, 1)
 test_pred = np.random.rand(8, 1)
 

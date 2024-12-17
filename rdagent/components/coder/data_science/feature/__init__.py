@@ -11,11 +11,11 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.data_science.feature.eval import FeatureCoSTEEREvaluator
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
-from rdagent.core.experiment import FBWorkspace
 
 class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -30,7 +30,9 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:feature.system").r()
-        user_prompt = T(".prompts:feature.user").r(competition_info=competition_info, feature_spec=workspace.code_dict["spec/feature.md"])
+        user_prompt = T(".prompts:feature.user").r(
+            competition_info=competition_info, feature_spec=workspace.code_dict["spec/feature.md"]
+        )
 
         feature_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(

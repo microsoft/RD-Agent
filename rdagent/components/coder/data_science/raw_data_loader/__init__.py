@@ -37,10 +37,10 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from rdagent.core.experiment import FBWorkspace
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):

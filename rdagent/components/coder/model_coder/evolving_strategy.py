@@ -16,10 +16,10 @@ from rdagent.components.coder.model_coder.model import (
     ModelFBWorkspace,
     ModelTask,
 )
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.experiment import FBWorkspace
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 

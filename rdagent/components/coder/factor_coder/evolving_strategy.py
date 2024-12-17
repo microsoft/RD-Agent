@@ -14,10 +14,10 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.core.experiment import FBWorkspace
 
 implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
