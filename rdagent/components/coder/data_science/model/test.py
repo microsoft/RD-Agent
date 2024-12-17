@@ -31,7 +31,7 @@ def develop_one_competition(competition: str):
         variables="variables: {'\\hat{y}_u': 'The predicted output for node u', 'X_u': 'The input features for node u'}",
         hyperparameters="...",
         base_code="",
-        spec="<read from spec>",
+        spec="",
     )
 
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
