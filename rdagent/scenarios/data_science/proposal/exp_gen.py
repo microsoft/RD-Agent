@@ -1,5 +1,4 @@
 import json
-from argparse import ONE_OR_MORE
 from typing import Literal
 
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -8,8 +7,8 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.experiment import Experiment
-from rdagent.core.proposal import ExpGen, Hypothesis, Trace
-from rdagent.core.scenario import Scenario
+from rdagent.core.proposal import ExpGen, Hypothesis, Trace, HypothesisFeedback
+from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import (
     DataLoaderExperiment,
@@ -18,11 +17,11 @@ from rdagent.scenarios.data_science.experiment.experiment import (
     ModelExperiment,
     WorkflowExperiment,
 )
+from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 
 COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]
 ORDER = COMPONENT.__args__
-
 
 class DSHypothesis(Hypothesis):
     def __init__(
@@ -49,6 +48,22 @@ Concise Observation: {self.concise_observation}
 Concise Justification: {self.concise_justification}
 Concise Knowledge: {self.concise_knowledge}
 """
+
+
+class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
+    def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
+        self.scen: DataScienceScen = scen
+        self.hist: list[tuple[DSHypothesis, Experiment, HypothesisFeedback]] = []
+        self.knowledge_base = knowledge_base
+
+    def get_sota_hypothesis_and_experiment(self, component: COMPONENT | None = None) -> tuple[DSHypothesis | None, Experiment | None]:
+        """Access the last experiment result, sub-task, and the corresponding hypothesis."""
+        for h, exp, hf in self.hist[::-1]:
+            if hf.decision:
+                if component and h.component != component:
+                    continue
+                return h, exp
+        return None, None
 
 
 class DSExpGen(ExpGen):
@@ -80,7 +95,7 @@ class DSExpGen(ExpGen):
         
         return resp_dict
 
-    def gen(self, trace: Trace) -> Experiment:
+    def gen(self, trace: DSTrace) -> Experiment:
         successful_components = set()
         for h, _, hf in trace.hist:
             if hf.decision:
@@ -89,12 +104,6 @@ class DSExpGen(ExpGen):
         def is_complete():
             """is all components complete"""
             return set(ORDER) == successful_components
-
-        def last_successful_component(com: COMPONENT) -> Experiment:
-            for h, exp, hf in reversed(trace.hist):
-                if hf.decision and h.component == com:
-                    return exp
-            return None
 
         scenario_desc = trace.scen.get_scenario_all_desc()
         if is_complete():
@@ -156,7 +165,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = last_successful_component("DataLoadSpec")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
                 spec = dependency_exp.experiment_workspace.code_dict["spec/feature.md"]
                 tasks = []
                 for fn in resp_dict:
@@ -180,7 +189,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = last_successful_component("FeatureEng")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")
                 spec = dependency_exp.experiment_workspace.code_dict["spec/model.md"]
                 mt = ModelTask(
                     name=resp_dict.get("model_name", "Model name not provided"),
@@ -203,7 +212,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = last_successful_component("Model")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")
                 spec = dependency_exp.experiment_workspace.code_dict["spec/ensemble.md"]
                 et = EnsembleTask(
                     name="Ensemble",
@@ -223,7 +232,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = last_successful_component("Ensemble")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")
                 spec = dependency_exp.experiment_workspace.code_dict["spec/workflow.md"]
                 wt = WorkflowTask(
                     name="Workflow",
@@ -260,7 +269,7 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.feature").r(),
                     )
-                    dependency_exp = last_successful_component("DataLoadSpec")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
                     spec = dependency_exp.experiment_workspace.code_dict["spec/feature.md"]
                     tasks = []
                     for fn in resp_dict:
@@ -281,9 +290,9 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.model").r(),
                     )
-                    dependency_exp = last_successful_component("FeatureEng")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")
                     spec = dependency_exp.experiment_workspace.code_dict["spec/model.md"]
-                    if last_model_exp:=last_successful_component("Model"):
+                    if last_model_exp:=trace.get_sota_hypothesis_and_experiment("Model"):
                         # TODO: model only have one (named "model.py")?
                         base_code = last_model_exp.experiment_workspace.code_dict["model.py"]
                     else:
@@ -305,7 +314,7 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.ensemble").r(),
                     )
-                    dependency_exp = last_successful_component("Model")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")
                     spec = dependency_exp.experiment_workspace.code_dict["spec/ensemble.md"]
                     et = EnsembleTask(
                         name="Ensemble",
@@ -321,7 +330,7 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.workflow").r(),
                     )
-                    dependency_exp = last_successful_component("Ensemble")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")
                     spec = dependency_exp.experiment_workspace.code_dict["spec/workflow.md"]
                     wt = WorkflowTask(
                         name="Workflow",
