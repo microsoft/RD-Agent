@@ -13,10 +13,10 @@ class EnsembleTask(CoSTEERTask):
         self,
         name: str,
         description: str,
+        *args,
         **kwargs,
     ) -> None:
         super().__init__(name=name, description=description, *args, **kwargs)
-        self.spec = spec
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}

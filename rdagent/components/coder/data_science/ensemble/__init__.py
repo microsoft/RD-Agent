@@ -30,18 +30,20 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
+from rdagent.core.experiment import FBWorkspace
+
 
 class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
         self,
         target_task: EnsembleTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         # return a workspace with "ensemble.py" inside
         competition_info = self.scen.competition_descriptions
-        ensemble_spec = target_task.spec
         # Generate code
-        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info, ensemble_spec=ensemble_spec)
+        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info, ensemble_spec=workspace.code_dict["spec/ensemble.md"])
         user_prompt = T(".prompts:ensemble_coder.user").r()
 
         ensemble_code = json.loads(
