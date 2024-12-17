@@ -25,7 +25,7 @@ def model_workflow(
     val_y: np.ndarray = None,
     test_X: np.ndarray = None,
     **hyper_params,
-) -> tuple[np.ndarray | None, np.ndarray | None]:
+) -> tuple[np.ndarray | None, np.ndarray | None, dict]:
     """
     Manages the workflow of a machine learning model, including training, validation, and testing.
 
@@ -150,4 +150,4 @@ def model_workflow(
     else:
         test_pred = None
 
-    return val_pred, test_pred
+    return val_pred, test_pred, hyper_params

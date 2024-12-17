@@ -19,6 +19,7 @@ from rdagent.components.coder.model_coder.model import (
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.experiment import FBWorkspace
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
@@ -28,6 +29,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge = None,
+        workspace: FBWorkspace | None = None,
     ) -> str:
         model_information_str = target_task.get_task_information()
 

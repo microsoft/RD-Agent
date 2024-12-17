@@ -13,6 +13,7 @@ class Feedback:
         It will be more like a **dataclass**.
         The building process of feedback will should be in evaluator
     """
+
     pass
 
 
@@ -25,6 +26,7 @@ class Evaluator(ABC):
             1. raw information including stdout & workspace  (feeedback itself will handle this)
             2. advanced/summaried feedback information. (evaluate will handle this)
     """
+
     def __init__(
         self,
         scen: Scenario,

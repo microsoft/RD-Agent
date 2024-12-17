@@ -12,7 +12,8 @@ from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Scenario
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from rdagent.core.experiment import Workspace
+from rdagent.core.experiment import FBWorkspace
+
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Task
 from rdagent.core.utils import multiprocessing_wrapper
@@ -30,6 +31,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         self,
         target_task: Task,
         queried_knowledge: QueriedKnowledge = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:  # FIXME: fix interface of previous implement
         """
         This method will input the task & current workspace,
@@ -95,7 +97,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         result = multiprocessing_wrapper(
             [
-                (self.implement_one_task, (evo.sub_tasks[target_index], queried_knowledge))
+                (self.implement_one_task, (evo.sub_tasks[target_index], queried_knowledge, evo.experiment_workspace))
                 for target_index in to_be_finished_task_index
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,

@@ -21,8 +21,7 @@ class ModelTask(CoSTEERTask):
         hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
-        model_type: Optional[str] = None,   
-        spec: str,
+        model_type: Optional[str] = None,
         **kwargs,
     ) -> None:
         self.formulation: str = formulation
@@ -33,7 +32,6 @@ class ModelTask(CoSTEERTask):
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
             # TODO: More Models Supported
         )
-        self.spec: str = spec
         super().__init__(name=name, description=description, *args, **kwargs)
 
     def get_task_information(self):
@@ -53,41 +51,3 @@ description: {self.description}
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
-
-
-class ModelFBWorkspace(FBWorkspace):
-    def execute(
-        self,
-        batch_size: int = 8,    
-    ):
-        super().execute()
-        try:
-            de = DockerEnv(DSDockerConf())
-            de.prepare()
-
-            # self.code_dict["spec.md"]
-            # TODO: generate dataset automatically
-
-            dump_code = (Path(__file__).parent / "model_execute_template.txt").read_text()
-
-            log, results = de.dump_python_code_run_and_get_results(
-                code=dump_code,
-                dump_file_names=["execution_feedback_str.pkl", "pred_list.pkl"],  
-                local_path=str(self.workspace_path),
-                env={},
-                code_dump_file_py_name="model_test",
-            )
-            if results is None:
-                raise RuntimeError(f"Error in running the model code: {log}")
-            [execution_feedback_str, pred_list] = results
-
-        except Exception as e:
-            execution_feedback_str = f"Execution error: {e}\nTraceback: {traceback.format_exc()}"
-            pred_list  = None  
-
-        if len(execution_feedback_str) > 2000:
-            execution_feedback_str = (
-                execution_feedback_str[:1000] + "....hidden long error message...." + execution_feedback_str[-1000:]
-            )
-        return execution_feedback_str, pred_list 
-    

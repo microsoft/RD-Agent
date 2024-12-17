@@ -1,5 +1,3 @@
-# tess successfully running.
-# (GPT) if it aligns with the spec & rationality of the spec.
 import json
 from dataclasses import dataclass
 from os import system
@@ -12,19 +10,18 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
     CoSTEERSingleFeedbackDeprecated,
 )
-from rdagent.core.evaluation import Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import FBWorkspace, Task, Workspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-DataLoaderEvalFeedback = CoSTEERSingleFeedback
+FeatureEvalFeedback = CoSTEERSingleFeedback
 
 
-class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
+class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
@@ -56,14 +53,14 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated tempory content?
-        fname = "data_loader_test.py"
-        with (DIRNAME / "eval_tests" / "data_loader_test.py").open("r") as f:
+        fname = "feature_test.py"
+        with (DIRNAME / "eval_tests" / "feature_test.py").open("r") as f:
             test_code = f.read()
             implementation.inject_code(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        system_prompt = T(".prompts:data_loader_eval.system").r(test_code=test_code)
-        user_prompt = T(".prompts:data_loader_eval.user").r(stdout=stdout)
+        system_prompt = T(".prompts:feature_eval.system").r(test_code=test_code)
+        user_prompt = T(".prompts:feature_eval.user").r(stdout=stdout)
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
-        return DataLoaderEvalFeedback(**json.loads(resp))
+        return FeatureEvalFeedback(**json.loads(resp))

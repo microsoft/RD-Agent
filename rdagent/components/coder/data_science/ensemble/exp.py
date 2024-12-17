@@ -13,8 +13,6 @@ class EnsembleTask(CoSTEERTask):
         self,
         name: str,
         description: str,
-        spec: str,
-        *args, 
         **kwargs,
     ) -> None:
         super().__init__(name=name, description=description, *args, **kwargs)

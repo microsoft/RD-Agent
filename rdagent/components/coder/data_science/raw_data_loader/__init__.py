@@ -1,6 +1,6 @@
 """
 
-Loop should not large change excclude
+Loop should not large change exclude
 - Action Choice[current data loader & spec]
 - other should share
     - Propose[choice] => Task[Choice] => CoSTEER => 
@@ -40,6 +40,7 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.core.experiment import FBWorkspace
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -47,10 +48,11 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: DataLoaderTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
-        competition_info = self.scen.competition_descriptions
+        competition_info = self.scen.get_scenario_all_desc()
 
         # 1. specifications
         system_prompt = T(".prompts:spec.system").r(competition_info=competition_info)
@@ -62,11 +64,19 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
-        data_loader_spec = json.loads(spec_session.build_chat_completion(user_prompt=data_loader_prompt))["spec"]
-        feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt))["spec"]
-        model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt))["spec"]
-        ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt))["spec"]
-        workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt))["spec"]
+        data_loader_spec = json.loads(
+            spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True)
+        )["spec"]
+        feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))[
+            "spec"
+        ]
+        model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt, json_mode=True))["spec"]
+        ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))[
+            "spec"
+        ]
+        workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))[
+            "spec"
+        ]
 
         # 2. code
         system_prompt = T(".prompts:data_loader_coder.system").r()
@@ -75,7 +85,9 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         data_loader_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True)
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+            )
         )["code"]
 
         return {

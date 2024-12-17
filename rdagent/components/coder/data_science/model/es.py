@@ -2,30 +2,30 @@ import json
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
+
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
-
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.model.exp import (
-    ModelTask,
-    ModelFBWorkspace,
-)
+from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.core.experiment import FBWorkspace
 
 coder_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
-    ) -> str:
+        workspace: FBWorkspace | None = None,
+    ) -> dict[str, str]:
         model_information_str = target_task.get_task_information()
 
         queried_similar_successful_knowledge = (
@@ -54,7 +54,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 # scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                 # TODO: fit new scenario information
                 scenario=("No scenario description."),
-                spec=target_task.spec,
+                spec=workspace.code_dict["spec/model.md"],
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
                 current_code=target_task.base_code,
             )
@@ -87,7 +87,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             elif len(queried_similar_successful_knowledge_to_render) > 1:
                 queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[1:]
 
-        code = json.loads(
+        model_code = json.loads(
             # APIBackend(use_chat_cache=CoSTEER_SETTINGS.coder_use_cache).build_messages_and_create_chat_completion(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
@@ -95,14 +95,16 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 json_mode=True,
             ),
         )["code"]
-        return code
+        return{
+            "model01.py":model_code,
+        }
         """
         import pandas as pd
         def Model():
             pass
         """
-    
-    def assign_code_list_to_evo(self, code_list, evo):
+
+    def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """
         Assign the code list to the evolving item.
 
@@ -113,7 +115,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if code_list[index] is None:
                 continue
             if evo.sub_workspace_list[index] is None:
-                evo.sub_workspace_list[index] = ModelFBWorkspace(target_task=evo.sub_tasks[index])
-            # TODO: avoid hardcode of file name
-            evo.sub_workspace_list[index].inject_code(**{"model01.py": code_list[index]})
+                # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
+                evo.sub_workspace_list[index] = evo.experiment_workspace
+            evo.sub_workspace_list[index].inject_code(**code_list[index])
         return evo

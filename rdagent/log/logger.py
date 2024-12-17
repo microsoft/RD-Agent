@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -112,6 +113,20 @@ class RDAgentLog(SingletonBaseClass):
         # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
+
+        if "debug_" in tag:
+            debug_log_path = self.log_trace_path / "debug_llm.json"
+            debug_data = {"tag": tag, "obj": obj}
+            if debug_log_path.exists():
+                with debug_log_path.open("r+", encoding="utf-8") as f:
+                    existing_data = json.load(f)
+                    existing_data.append(debug_data)
+                    f.seek(0)
+                    json.dump(existing_data, f, ensure_ascii=False, indent=4)
+            else:
+                with debug_log_path.open("w", encoding="utf-8") as f:
+                    json.dump([debug_data], f, ensure_ascii=False, indent=4)
+            return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")
 
