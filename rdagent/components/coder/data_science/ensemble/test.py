@@ -33,13 +33,15 @@ def develop_ensemble():
         description=
         """
         Implement ensemble and decision making for model predictions.
-        """,
-        spec=ensemble_spec
+        """
     )
 
     exp = EnsembleExperiment(
         sub_tasks=[task]
     )
+
+    # Injecting the corresponding specification
+    exp.experiment_workspace.inject_code(**{"spec/ensemble.md": ensemble_spec})
 
     # Develop the experiment
     exp = ensemble_coder.develop(exp)

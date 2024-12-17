@@ -35,10 +35,8 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return EnsembleEvalFeedback(
                 execution="This task has failed too many times, skip implementation.",
-                shape_feedback="This task has failed too many times, skip implementation.",
-                value_feedback="This task has failed too many times, skip implementation.",
-                code_feedback="This task has failed too many times, skip implementation.",
-                final_feedback="This task has failed too many times, skip implementation.",
+                code="This task has failed too many times, skip implementation.",
+                return_checking="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
 

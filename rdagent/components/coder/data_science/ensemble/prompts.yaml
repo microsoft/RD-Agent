@@ -6,36 +6,14 @@ ensemble_coder:
     -----------Competition Information-----------
     {{ competition_info }}
 
-    -----------Ensemble Specification-----------
-    {{ ensemble_spec }}
-
     Please respond with the code in the following json format:
     {
         "code": "The Python code as a string."
     }
   user: |-
     Please implement an ensemble function with the following specification:
-    ```python
-    def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray], val_label: np.ndarray) -> np.ndarray:
-        """
-        Handle the following:
-        1) Ensemble predictions using a simple average.
-        2) Make final decision after ensemble (convert the predictions to final binary form).
-
-        Parameters
-        ----------
-        test_pred_l : list[np.ndarray]
-            List of predictions on the test data.
-        val_pred_l : list[np.ndarray]
-            List of predictions on the validation data.
-        val_label : np.ndarray
-            True labels of the validation data.
-
-        Returns
-        -------
-        np.ndarray
-            Binary predictions on the test data.
-        """    ```
+    -----------Ensemble Specification-----------
+    {{ ensemble_spec }}
 
 ensemble_eval:
   system: |-
@@ -46,7 +24,7 @@ ensemble_eval:
     Please respond with your feedback in the following JSON format: 
     {
         "execution": "Describe how well the ensemble executed, including any errors or issues encountered.",
-        "checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
+        "return_checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
         "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
     }    

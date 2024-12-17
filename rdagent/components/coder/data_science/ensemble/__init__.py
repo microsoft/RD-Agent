@@ -41,10 +41,10 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
         # return a workspace with "ensemble.py" inside
-        competition_info = self.scen.competition_descriptions
+        competition_info = self.scen.get_scenario_all_desc()
         # Generate code
-        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info, ensemble_spec=workspace.code_dict["spec/ensemble.md"])
-        user_prompt = T(".prompts:ensemble_coder.user").r()
+        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info)
+        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=workspace.code_dict["spec/ensemble.md"])
 
         ensemble_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
