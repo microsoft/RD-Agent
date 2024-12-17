@@ -11,7 +11,9 @@ def model_workflow(X: np.ndarray, y: np.ndarray, val_X: np.ndarray = None, val_y
     - If test/valid exist, output inference on them
     - Follow the hyperparameter if exists.
         - the returned hyperparameter should align with the input(except the newly generated early stop)
+    - Return hyperparameters for retrain if not exists.
     - If valid exist, add <early stop> to update the hyperparameter
+
 
     Parameters
     ----------

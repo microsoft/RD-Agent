@@ -78,7 +78,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:model_eval.system").r(
             test_code=test_code,
             scenario="No scenario information yet.",
-            spec=target_task.spec,
+            spec=implementation.code_dict["spec/model.md"]
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,

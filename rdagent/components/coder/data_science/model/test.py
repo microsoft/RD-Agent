@@ -31,7 +31,6 @@ def develop_one_competition(competition: str):
         variables="variables: {'\\hat{y}_u': 'The predicted output for node u', 'X_u': 'The input features for node u'}",
         hyperparameters="...",
         base_code="",
-        spec="<read from spec>",
     )
 
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
@@ -42,7 +41,6 @@ def develop_one_competition(competition: str):
         file_path = tpl_ex_path / file_name
         modelexp.inject_code(**{file_name: file_path.read_text()})
 
-    mt.spec += modelexp.code_dict["spec/model.md"]
     mt.base_code += modelexp.code_dict["model01.py"]
     exp = ModelExperiment(
         sub_tasks=[mt],
@@ -55,7 +53,7 @@ def develop_one_competition(competition: str):
 
     # Test the evolving strategy:
     """es = ModelMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
-    new_code = es.implement_one_task(target_task=mt, queried_knowledge=None)
+    new_code = es.implement_one_task(target_task=mt, queried_knowledge=None, workspace=modelexp)
     print(new_code)"""
 
     # Run the experiment
