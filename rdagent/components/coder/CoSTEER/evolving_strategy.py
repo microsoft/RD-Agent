@@ -98,7 +98,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             [
                 (
                     self.implement_one_task,
-                    (evo.sub_tasks[target_index], queried_knowledge, evo.sub_workspace_list[target_index]),
+                    (evo.sub_tasks[target_index], queried_knowledge, evo.experiment_workspace),
                 )
                 for target_index in to_be_finished_task_index
             ],

@@ -48,15 +48,13 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
-                coder_prompts["evolving_strategy_model_coder"]["system"],
+                coder_prompts["model_coder"]["system"],
             )
             .render(
                 # scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                 # TODO: fit new scenario information
-                scenario=("No scenario description."),
                 spec=workspace.code_dict["spec/model.md"],
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                current_code=target_task.base_code,
             )
         )
 
@@ -65,12 +63,13 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             user_prompt = (
                 Environment(undefined=StrictUndefined)
                 .from_string(
-                    coder_prompts["evolving_strategy_model_coder"]["user"],
+                    coder_prompts["model_coder"]["user"],
                 )
                 .render(
                     model_information_str=model_information_str,
                     queried_similar_successful_knowledge=queried_similar_successful_knowledge_to_render,
                     queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
+                    current_code=target_task.base_code,
                 )
                 .strip("\n")
             )
