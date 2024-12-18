@@ -14,7 +14,7 @@ from rdagent.components.coder.data_science.model.eval import (
 )
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.experiment import FBWorkspace
-from rdagent.scenarios.data_science.experiment.experiment import ModelExperiment
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
 
@@ -42,7 +42,7 @@ def develop_one_competition(competition: str):
         modelexp.inject_code(**{file_name: file_path.read_text()})
 
     mt.base_code += modelexp.code_dict["model01.py"]
-    exp = ModelExperiment(
+    exp = DSExperiment(
         sub_tasks=[mt],
     )
 

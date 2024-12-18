@@ -14,7 +14,7 @@ from rdagent.components.coder.data_science.workflow.eval import (
 )
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.experiment import FBWorkspace
-from rdagent.scenarios.data_science.experiment.experiment import WorkflowExperiment
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
 def develop_one_competition(competition: str):
@@ -40,7 +40,7 @@ def develop_one_competition(competition: str):
 
     wt.spec += workflowexp.code_dict["spec/model.md"]
     wt.base_code += workflowexp.code_dict["model01.py"]
-    exp = WorkflowExperiment(
+    exp = DSExperiment(
         sub_tasks=[wt],
     )
 

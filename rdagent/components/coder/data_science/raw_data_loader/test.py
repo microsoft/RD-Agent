@@ -8,7 +8,7 @@ It is NOT:
 
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
-from rdagent.scenarios.data_science.experiment.experiment import DataLoaderExperiment
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
 
@@ -18,7 +18,7 @@ def develop_one_competition(competition: str):  # -> experiment
 
     # Create the experiment
     dlt = DataLoaderTask(name="DataLoaderTask", description="")
-    exp = DataLoaderExperiment(
+    exp = DSExperiment(
         sub_tasks=[dlt],
     )
 

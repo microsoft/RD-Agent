@@ -10,13 +10,7 @@ from rdagent.core.experiment import Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import ExpGen, Hypothesis, HypothesisFeedback, Trace
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.data_science.experiment.experiment import (
-    DataLoaderExperiment,
-    EnsembleExperiment,
-    FeatureExperiment,
-    ModelExperiment,
-    WorkflowExperiment,
-)
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 
@@ -100,7 +94,7 @@ class DSExpGen(ExpGen):
 
         return resp_dict
 
-    def gen(self, trace: DSTrace) -> Experiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         successful_components = set()
         for h, _, hf in trace.hist:
             if hf.decision:
@@ -159,7 +153,7 @@ class DSExpGen(ExpGen):
                     ),
                 )
 
-                return DataLoaderExperiment(sub_tasks=[dt], hypothesis=hypothesis)
+                return DSExperiment(sub_tasks=[dt], hypothesis=hypothesis)
             elif hypothesis.component == "FeatureEng":
                 # TODO: RAG
                 resp_dict = self.llm_task_gen(
@@ -180,7 +174,7 @@ class DSExpGen(ExpGen):
                         variables=resp_dict[fn].get("variables", "Variables not provided"),
                     )
 
-                exp = FeatureExperiment(sub_tasks=tasks, hypothesis=hypothesis)
+                exp = DSExperiment(sub_tasks=tasks, hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Model":
@@ -201,7 +195,7 @@ class DSExpGen(ExpGen):
                     base_code="",
                 )
 
-                exp = ModelExperiment(sub_tasks=[mt], hypothesis=hypothesis)
+                exp = DSExperiment(sub_tasks=[mt], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Ensemble":
@@ -219,7 +213,7 @@ class DSExpGen(ExpGen):
                     description=resp_dict.get("description", "Ensemble description not provided"),
                 )
 
-                exp = EnsembleExperiment(sub_tasks=[et], hypothesis=hypothesis)
+                exp = DSExperiment(sub_tasks=[et], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Workflow":
@@ -237,7 +231,7 @@ class DSExpGen(ExpGen):
                     description=resp_dict.get("description", "Workflow description not provided"),
                 )
 
-                exp = WorkflowExperiment(sub_tasks=[wt], hypothesis=hypothesis)
+                exp = DSExperiment(sub_tasks=[wt], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
         else:
@@ -258,7 +252,7 @@ class DSExpGen(ExpGen):
                         ),
                     )
 
-                    exp = DataLoaderExperiment(sub_tasks=[dt])
+                    exp = DSExperiment(sub_tasks=[dt])
                     return exp
                 elif o == "FeatureEng":
                     resp_dict = self.llm_task_gen(
@@ -276,7 +270,7 @@ class DSExpGen(ExpGen):
                             variables=resp_dict[fn].get("variables", "Variables not provided"),
                         )
                         tasks.append(ft)
-                    exp = FeatureExperiment(sub_tasks=tasks)
+                    exp = DSExperiment(sub_tasks=tasks)
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Model":
@@ -298,7 +292,7 @@ class DSExpGen(ExpGen):
                         hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
                         base_code=base_code,
                     )
-                    exp = ModelExperiment(sub_tasks=[mt])
+                    exp = DSExperiment(sub_tasks=[mt])
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Ensemble":
@@ -312,7 +306,7 @@ class DSExpGen(ExpGen):
                         name="Ensemble",
                         description=resp_dict.get("description", "Ensemble description not provided"),
                     )
-                    exp = EnsembleExperiment(sub_tasks=[et])
+                    exp = DSExperiment(sub_tasks=[et])
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Workflow":
@@ -326,7 +320,7 @@ class DSExpGen(ExpGen):
                         name="Workflow",
                         description=resp_dict.get("description", "Workflow description not provided"),
                     )
-                    exp = WorkflowExperiment(sub_tasks=[wt])
+                    exp = DSExperiment(sub_tasks=[wt])
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
 

@@ -9,9 +9,7 @@ from pathlib import Path
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
-    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
-    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
@@ -23,7 +21,6 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 ModelSingleFeedback = CoSTEERSingleFeedback
-ModelMultiFeedback = CoSTEERMultiFeedback
 
 
 # Below are unit tests for testing the specification of the implemented model ------------------
@@ -44,7 +41,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERSingleFeedbackDeprecated:
+    ) -> ModelSingleFeedback:
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -53,11 +50,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return ModelSingleFeedback(
-                execution_feedback="This task has failed too many times, skip implementation.",
-                shape_feedback="This task has failed too many times, skip implementation.",
-                value_feedback="This task has failed too many times, skip implementation.",
-                code_feedback="This task has failed too many times, skip implementation.",
-                final_feedback="This task has failed too many times, skip implementation.",
+                execution="This task has failed too many times, skip implementation.",
+                return_checking="This task has failed too many times, skip implementation.",
+                code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
         # assert isinstance(target_task, ModelTask)

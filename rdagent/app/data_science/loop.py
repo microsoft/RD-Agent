@@ -2,9 +2,14 @@ import subprocess
 from typing import Any, Literal
 
 import fire
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
+from rdagent.components.coder.data_science.feature import FeatureCoSTEER
+from rdagent.components.coder.data_science.model import ModelCoSTEER
+from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
+from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import NextLoopException, RDLoop
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
@@ -18,15 +23,16 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.time import measure_time
-from rdagent.scenarios.kaggle.experiment.utils import python_files_to_notebook
-from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-
+from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace, DSExpGen
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
+from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)
 
-    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
         logger.log_object(scen, tag="scenario")
@@ -43,22 +49,13 @@ class DataScienceRDLoop(RDLoop):
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
 
         # 2) task generation from a complete solution
-        self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        self.data_loader_coder: DataLoaderCoSTEER = import_class(PROP_SETTING.data_loader_coder)(scen)
-        # self.hypothesis_gen: HypothesisGen = import_class(PROP_SETTING.hypothesis_gen)(scen)
-        # logger.log_object(self.hypothesis_gen, tag="hypothesis generator")
-        # self.hypothesis2experiment: Hypothesis2Experiment = import_class(PROP_SETTING.hypothesis2experiment)()
-        # logger.log_object(self.hypothesis2experiment, tag="hypothesis2experiment")
-
-        # TODO: we need more coder
-        # self.feature_coder: Developer = import_class(PROP_SETTING.feature_coder)(scen)
-        # logger.log_object(self.feature_coder, tag="feature coder")
-        # self.model_feature_selection_coder: Developer = import_class(PROP_SETTING.model_feature_selection_coder)(
-        #     scen
-        # )
-        # logger.log_object(self.model_feature_selection_coder, tag="model feature selection coder")
-        # self.model_coder: Developer = import_class(PROP_SETTING.model_coder)(scen)
-        # logger.log_object(self.model_coder, tag="model coder")
+        # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
+        self.exp_gen = DSExpGen(scen)
+        self.data_loader_coder = DataLoaderCoSTEER(scen)
+        self.feature_coder = FeatureCoSTEER(scen)
+        self.model_coder = ModelCoSTEER(scen)
+        self.ensemble_coder = EnsembleCoSTEER(scen)
+        self.workflow_coder = WorkflowCoSTEER(scen)
 
         # TODO: now we only need on runner
         # self.feature_runner: Developer = import_class(PROP_SETTING.feature_runner)(scen)
@@ -70,31 +67,31 @@ class DataScienceRDLoop(RDLoop):
         # logger.log_object(self.summarizer, tag="summarizer")
 
         # self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
-        self.trace = Trace(scen=scen)
+        self.trace = DSTrace(scen=scen)
         super(RDLoop, self).__init__()
 
-    @measure_time
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = self.exp_gen.gen(self.trace)
-        hypo = exp.hypothesis
-        return {"propose": hypo, "exp_gen": exp}
-
-    @measure_time
-    def coding(self, prev_out: dict[str, Any]):
-        exp = self.data_loader_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-        # if prev_out["direct_exp_gen"]["propose"].action in [
-        #     KG_ACTION_FEATURE_ENGINEERING,
-        #     KG_ACTION_FEATURE_PROCESSING,
-        # ]:
-        #     exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-        # elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
-        #     exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-        # else:
-        #     exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
-        # logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
-    @measure_time
+    def coding(self, prev_out: dict[str, Any]):
+        exp: DSExperiment = prev_out["direct_exp_gen"]
+        exp_task = exp.sub_tasks[0]
+        if isinstance(exp_task, DataLoaderTask):
+            exp = self.data_loader_coder.develop(exp)
+        elif isinstance(exp_task, FeatureTask):
+            exp = self.feature_coder.develop(exp)
+        elif isinstance(exp_task, ModelTask):
+            exp = self.model_coder.develop(exp)
+        elif isinstance(exp_task, EnsembleTask):
+            exp = self.ensemble_coder.develop(exp)
+        elif isinstance(exp_task, WorkflowTask):
+            exp = self.workflow_coder.develop(exp)
+        else:
+            raise NotImplementedError(f"Unsupported task type in DataScienceRDLoop: {exp_task}")
+
+        return exp
+
     def running(self, prev_out: dict[str, Any]):
         if not self.exp_gen.is_complete():
             raise NextLoopException()
@@ -163,3 +160,8 @@ def main(path=None, step_n=None, competition=None):
 
 if __name__ == "__main__":
     fire.Fire(main)
+
+
+
+
+

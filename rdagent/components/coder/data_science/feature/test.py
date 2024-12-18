@@ -8,7 +8,7 @@ It is NOT:
 
 from rdagent.components.coder.data_science.feature import FeatureCoSTEER
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
-from rdagent.scenarios.data_science.experiment.experiment import FeatureExperiment
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
 
@@ -21,7 +21,7 @@ def develop_one_competition(competition: str):  # -> experiment
 
     # Create the experiment
     ft = FeatureTask(name="FeatureTask", description=scen.competition_descriptions, spec=feat_spec)
-    exp = FeatureExperiment(
+    exp = DSExperiment(
         sub_tasks=[ft],
     )
 

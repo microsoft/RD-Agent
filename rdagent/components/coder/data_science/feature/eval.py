@@ -1,14 +1,10 @@
 import json
-from dataclasses import dataclass
-from os import system
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
-    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
-    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
@@ -30,7 +26,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERSingleFeedbackDeprecated:
+    ) -> FeatureEvalFeedback:
 
         target_task_information = target_task.get_task_information()
         if (
@@ -39,12 +35,10 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
-            return CoSTEERSingleFeedbackDeprecated(
-                execution_feedback="This task has failed too many times, skip implementation.",
-                shape_feedback="This task has failed too many times, skip implementation.",
-                value_feedback="This task has failed too many times, skip implementation.",
-                code_feedback="This task has failed too many times, skip implementation.",
-                final_feedback="This task has failed too many times, skip implementation.",
+            return FeatureEvalFeedback(
+                execution="This task has failed too many times, skip implementation.",
+                return_checking="This task has failed too many times, skip implementation.",
+                code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
 
