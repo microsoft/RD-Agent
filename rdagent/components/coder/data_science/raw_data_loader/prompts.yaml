@@ -91,7 +91,7 @@ spec:
                 - `val_X`: Validation features of shape `(num_val_samples, height, width, channels)`.
                 - `val_y`: Validation labels of shape `(num_val_samples, 1)`.
                 - `test_X`: Test features of shape `(num_test_samples, height, width, channels)`.
-              - `**hyper_params`: A dictionary of important hyperparameters for model configuration.
+              - `hyper_params`: A dictionary of important hyperparameters for model configuration.
             - Output:
               - A tuple consisting of:
                 - `pred_val`: Predictions on validation data (`np.ndarray` of shape `(num_val_samples, 1)` or `None`).
@@ -102,10 +102,10 @@ spec:
 
       2. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have the correct shapes and consistent dimensions.
-        - Use default values for hyperparameters if none are provided in `**hyper_params`.
+        - Use default values for hyperparameters if none are provided in `hyper_params`.
+        - Return hyperparameters for retrain if not exists.
         - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
         - If `test_X` is provided, generate predictions for it.
-        - Return a dictionary containing important metrics like validation loss, accuracy, or other evaluation results.
 
       Please respond in the following JSON format:
       {
