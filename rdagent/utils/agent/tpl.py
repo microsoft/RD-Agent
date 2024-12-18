@@ -1,7 +1,7 @@
 """
-Here are some infrastruture to build a agent
+Here are some infrastructure to build a agent
 
-The motivation of tempalte and AgentOutput Design
+The motivation of template and AgentOutput Design
 """
 
 import inspect

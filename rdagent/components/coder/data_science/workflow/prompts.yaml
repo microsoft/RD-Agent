@@ -31,4 +31,4 @@ workflow_coder:
     {{ model_code }}
 
     ---------ensemble code---------
-    {{ ensembloe_code }}
+    {{ ensemble_code }}

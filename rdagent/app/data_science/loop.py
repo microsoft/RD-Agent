@@ -97,7 +97,7 @@ class DataScienceRDLoop(RDLoop):
     @measure_time
     def running(self, prev_out: dict[str, Any]):
         if not self.exp_gen.is_complete():
-            raise NextLoopExcpetion()
+            raise NextLoopException()
 
         if prev_out["direct_exp_gen"]["propose"].action in [
             KG_ACTION_FEATURE_ENGINEERING,

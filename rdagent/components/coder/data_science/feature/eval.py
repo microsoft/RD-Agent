@@ -52,7 +52,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
 
-        # TODO: do we need to clean the generated tempory content?
+        # TODO: do we need to clean the generated temporary content?
         fname = "feature_test.py"
         with (DIRNAME / "eval_tests" / "feature_test.py").open("r") as f:
             test_code = f.read()
