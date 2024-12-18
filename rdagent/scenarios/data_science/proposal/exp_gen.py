@@ -61,7 +61,23 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     continue
                 return h, exp
         return None, None
-
+    
+    @property
+    def successful_components(self) -> set[COMPONENT]:
+        """
+        Get successful components.
+        """
+        successful_components = set()
+        for h, _, hf in self.hist:
+            if hf.decision:
+                successful_components.add(h.component)
+        return successful_components
+    
+    def all_components_completed(self) -> bool:
+        """
+        Check if 5 successful components are completed.
+        """
+        return set(ORDER) == self.successful_components
 
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
@@ -95,17 +111,8 @@ class DSExpGen(ExpGen):
         return resp_dict
 
     def gen(self, trace: DSTrace) -> DSExperiment:
-        successful_components = set()
-        for h, _, hf in trace.hist:
-            if hf.decision:
-                successful_components.add(h.component)
-
-        def is_complete():
-            """is all components complete"""
-            return set(ORDER) == successful_components
-
         scenario_desc = trace.scen.get_scenario_all_desc()
-        if is_complete():
+        if trace.all_components_completed():
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
 
@@ -236,7 +243,7 @@ class DSExpGen(ExpGen):
                 return exp
         else:
             for o in ORDER:
-                if o in successful_components:
+                if o in trace.successful_components:
                     # we already have the component, then skip
                     continue
                 elif o == "DataLoadSpec":

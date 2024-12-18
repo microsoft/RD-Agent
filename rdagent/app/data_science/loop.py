@@ -24,12 +24,14 @@ from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace, DSExpGen
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-
+from rdagent.scenarios.data_science.dev.runner import DSRunner
+from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)
 
@@ -57,18 +59,14 @@ class DataScienceRDLoop(RDLoop):
         self.ensemble_coder = EnsembleCoSTEER(scen)
         self.workflow_coder = WorkflowCoSTEER(scen)
 
-        # TODO: now we only need on runner
-        # self.feature_runner: Developer = import_class(PROP_SETTING.feature_runner)(scen)
-        # logger.log_object(self.feature_runner, tag="feature runner")
-        # self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
-        # logger.log_object(self.model_runner, tag="model runner")
-
+        self.runner = DSRunner(scen)
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
         # self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
         self.trace = DSTrace(scen=scen)
-        super(RDLoop, self).__init__()
+        self.summarizer = DSExperiment2Feedback(scen)
+        # super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = self.exp_gen.gen(self.trace)
@@ -93,48 +91,20 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        if not self.exp_gen.is_complete():
-            raise NextLoopException()
-
-        if prev_out["direct_exp_gen"]["propose"].action in [
-            KG_ACTION_FEATURE_ENGINEERING,
-            KG_ACTION_FEATURE_PROCESSING,
-        ]:
-            exp = self.feature_runner.develop(prev_out["coding"])
-        else:
-            exp = self.model_runner.develop(prev_out["coding"])
-        logger.log_object(exp, tag="runner result")
-        if DS_RD_SETTING.competition in [
-            "optiver-realized-volatility-prediction",
-            "covid19-global-forecasting-week-1",
-        ]:
-            try:
-                python_files_to_notebook(DS_RD_SETTING.competition, exp.experiment_workspace.workspace_path)
-            except Exception as e:
-                logger.error(f"Merge python files to one file failed: {e}")
-        if DS_RD_SETTING.auto_submit:
-            csv_path = exp.experiment_workspace.workspace_path / "submission.csv"
-            try:
-                subprocess.run(
-                    [
-                        "kaggle",
-                        "competitions",
-                        "submit",
-                        "-f",
-                        str(csv_path.absolute()),
-                        "-m",
-                        str(csv_path.parent.absolute()),
-                        DS_RD_SETTING.competition,
-                    ],
-                    check=True,
-                )
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Auto submission failed: \n{e}")
-            except Exception as e:
-                logger.error(f"Other exception when use kaggle api:\n{e}")
-
+        if not self.trace.all_components_completed():
+            raise NextLoopException("Not all 5 components are completed, skip running of DataScienceRDLoop.")
+        exp = self.runner.develop(prev_out["coding"])
         return exp
 
+    def feedback(self, prev_out: dict[str, Any]):
+        if not self.trace.all_components_completed():
+            raise NextLoopException("Not all 5 components are completed, skip feedback of DataScienceRDLoop.")
+
+        feedback = self.summarizer.generate_feedback(
+            prev_out["running"], prev_out["direct_exp_gen"].hypothesis, self.trace
+        )
+        self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
+        
 
 def main(path=None, step_n=None, competition=None):
     """
