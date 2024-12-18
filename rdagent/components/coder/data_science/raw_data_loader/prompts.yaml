@@ -28,7 +28,7 @@ spec:
           - Mentions the source of the data (e.g., data location or structure).
           - Explains the expected output format.
       2. Precautions for Data Loading and Preprocessing:
-        - Handle potential issues such as:
+        - Handle potential issues such as (You should depend on the competition information to make a concise specification):
           - File encoding (e.g., UTF-8) and data delimiters (e.g., CSV comma-separated).
           - Missing values in datasets: describe how they should be handled (e.g., fill with a specific value, drop rows, etc.).
           - Data types: ensure proper type conversion (e.g., numeric columns, date parsing).
@@ -54,6 +54,7 @@ spec:
         - Must include proper and specific annotations for both input and output based on the Competition Information:
           - Input: Specify the expected input data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
           - Output: Specify the transformed output data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
+          - You should depend on the competition information to make a concise specification.
         - A comprehensive docstring must be provided that:
           - Describes the purpose of the function.
           - Clarifies the input parameters and their types.
@@ -74,31 +75,66 @@ spec:
       }
 
     model: |-
-      Model building specification text should include two parts:
-      1. function interface:
-        - function name must be "model_workflow".
-        - have annotations for the input and output.
-        - have a docstring that describes the function.
-      2. Precautions:
-        some precautions for model building.
+      Model building specification text should adhere to the following requirements:
+      1. Function Interface:
+        - The function name must be `model_workflow`.
+        - The function should include:
+          - Type annotations for all inputs and outputs.
+          - Input and output shapes:
+            - Input:
+              - `X`: A 4D NumPy array of shape `(num_samples, height, width, channels)`, where:
+                - `num_samples`: Number of training samples.
+                - `height` and `width`: Dimensions of the image (e.g., `224 x 224`).
+                - `channels`: Number of color channels (e.g., `3` for RGB).
+              - `y`: A 2D NumPy array of shape `(num_samples, 1)`, where `1` represents binary classification labels.
+              - Optional:
+                - `val_X`: Validation features of shape `(num_val_samples, height, width, channels)`.
+                - `val_y`: Validation labels of shape `(num_val_samples, 1)`.
+                - `test_X`: Test features of shape `(num_test_samples, height, width, channels)`.
+              - `**hyper_params`: A dictionary of important hyperparameters for model configuration.
+            - Output:
+              - A tuple consisting of:
+                - `pred_val`: Predictions on validation data (`np.ndarray` of shape `(num_val_samples, 1)` or `None`).
+                - `pred_test`: Predictions on test data (`np.ndarray` of shape `(num_test_samples, 1)` or `None`).
+                - `metrics`: A dictionary containing evaluation metrics, such as accuracy or loss.
 
-      Please response the specification in the following json format. Here is an example structure for the JSON output:
+        - Include a clear and concise docstring to explain the function’s purpose, its input parameters, and its expected return values.
+
+      2. Precautions:
+        - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have the correct shapes and consistent dimensions.
+        - Use default values for hyperparameters if none are provided in `**hyper_params`.
+        - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
+        - If `test_X` is provided, generate predictions for it.
+        - Return a dictionary containing important metrics like validation loss, accuracy, or other evaluation results.
+
+      Please respond in the following JSON format:
       {
-          "spec": "The specification as a string."
+          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
       }
+
 
     ensemble: |-
       Ensemble specification text should include two parts:
-      1. function interface:
-        - function name must be "ensemble".
-        - have annotations for the input and output.
-        - have a docstring that describes the function.
-      2. Precautions:
-        some precautions for ensemble.
+      1. Function Interface:
+        - The function name must be `ens_and_decision`.
+        - The function should include:
+          - Type annotations for both inputs and outputs.
+          - Input (for example):
+            - `test_pred_l`: A list of NumPy arrays (as an example, if you think predictions should be represented as Pandas DataFrames, use `pd.DataFrame`) containing predictions for the test data.
+            - `val_pred_l`: A list of NumPy arrays containing predictions for the validation data.
+            - `val_label`: A 1D NumPy array of true labels for the validation data.
+          - Output:
+            - A 1D NumPy array containing the final binary predictions for the test data.
+        - Include a docstring that describes the purpose of the function, the parameters, and the expected return value.
 
-      Please response the specification in the following json format. Here is an example structure for the JSON output:
+      2. Precautions:
+        - Ensure all predictions in `test_pred_l` and `val_pred_l` have the same shape and dimensions.
+        - Validate that `val_label` is provided and has the same length as `val_pred_l` predictions.
+        - Perform checks to handle empty or invalid inputs gracefully.
+
+      Please respond in the following JSON format:
       {
-          "spec": "The specification as a string."
+          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
       }
 
     workflow: |-
