@@ -96,7 +96,7 @@ spec:
               - A tuple consisting of:
                 - `pred_val`: Predictions on validation data (`np.ndarray` of shape `(num_val_samples, 1)` or `None`).
                 - `pred_test`: Predictions on test data (`np.ndarray` of shape `(num_test_samples, 1)` or `None`).
-                - `metrics`: A dictionary containing evaluation metrics, such as accuracy or loss.
+                - `hyper_params`: A dictionary of important hyperparameters for model configuration.
 
         - Include a clear and concise docstring to explain the function’s purpose, its input parameters, and its expected return values.
 
