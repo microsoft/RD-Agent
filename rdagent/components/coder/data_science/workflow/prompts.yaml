@@ -7,7 +7,10 @@ workflow_coder:
     Your task is to Integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow.
     This workflow code is also a Python file, and it functions similarly to a main process that calls the sub-files for each step and ultimately outputs a prediction file.
 
-    The user will also provide some specifications about how to organize the whole code and give instructions. The code you implement should align the framework given in specifications.
+    The user will also provide some specifications about how to organize the whole code and give instructions. 
+    These specifications are as below: 
+    {{ workflow_spec }}
+    The code you implement should align the framework given in specifications.
 
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
@@ -15,12 +18,6 @@ workflow_coder:
     }
 
   user: |-
-    ---------Competition Information---------
-    {{ competition_info }}
-
-    ---------Workflow Specification---------
-    {{ workflow_spec }}
-
     ---------load data code---------
     {{ load_data_code }}
 

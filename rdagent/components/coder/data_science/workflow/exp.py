@@ -13,9 +13,10 @@ class WorkflowTask(CoSTEERTask):
         self,
         name: str,
         description: str,
+        *args,
         **kwargs,
     ) -> None:
-        pass
+        super().__init__(name=name, description=description, *args, **kwargs)
 
     @staticmethod
     def from_dict(dict):

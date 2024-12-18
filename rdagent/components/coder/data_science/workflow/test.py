@@ -24,10 +24,7 @@ def develop_one_competition(competition: str):
     wt = WorkflowTask(
         name="WorkflowTask",
         description="Integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow.",
-        spec="",
-        base_code={
-            
-        }
+        base_code="",
     )
 
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
@@ -38,14 +35,13 @@ def develop_one_competition(competition: str):
         file_path = tpl_ex_path / file_name
         workflowexp.inject_code(**{file_name: file_path.read_text()})
 
-    wt.spec += workflowexp.code_dict["spec/model.md"]
-    wt.base_code += workflowexp.code_dict["model01.py"]
+    wt.base_code += workflowexp.code_dict["main.py"]
     exp = DSExperiment(
         sub_tasks=[wt],
     )
 
     es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
-    new_code = es.implement_one_task(target_task=wt, queried_knowledge=None)
+    new_code = es.implement_one_task(target_task=wt, queried_knowledge=None, workspace = workflowexp)
     print(new_code)
 
 
