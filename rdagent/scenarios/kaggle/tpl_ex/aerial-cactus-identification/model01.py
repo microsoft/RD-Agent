@@ -112,8 +112,11 @@ def model_workflow(
         metrics=["accuracy"],
     )
 
+    # Extract early_stop_round from hyper_params, default is 25
+    early_stop_round = hyper_params.get("early_stop_round", 25)
+
     callbacks = [
-        EarlyStopping(monitor="val_loss", patience=hyper_params.get("patience", 25)),
+        EarlyStopping(monitor="val_loss", patience=early_stop_round),
         ModelCheckpoint(filepath="best_model.keras", monitor="val_loss", save_best_only=True),
     ]
 
@@ -130,6 +133,15 @@ def model_workflow(
             shuffle=True,
             callbacks=callbacks,
         )
+        # Dynamic adjustment of early_stop_round
+        if "early_stop_round" not in hyper_params:
+            val_loss = history.history["val_loss"]
+            best_epoch = np.argmin(val_loss)
+            dynamic_early_stop = max(5, int((len(val_loss) - best_epoch) * 0.5))  # 50% of remaining epochs
+
+            print(f"Dynamic early_stop_round: {dynamic_early_stop}")
+            hyper_params["early_stop_round"] = dynamic_early_stop
+        
         # Predict on validation data
         val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
     else:
