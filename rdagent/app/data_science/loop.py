@@ -37,7 +37,6 @@ class DataScienceRDLoop(RDLoop):
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
-        logger.log_object(scen, tag="scenario")
 
         ### shared components in the workflow  # TODO: check if
         knowledge_base = (
@@ -45,7 +44,6 @@ class DataScienceRDLoop(RDLoop):
             if PROP_SETTING.knowledge_base != ""
             else None
         )
-        logger.log_object(knowledge_base, tag="knowledge_base")
 
         # 1) task generation from scratch
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
@@ -66,7 +64,7 @@ class DataScienceRDLoop(RDLoop):
         # self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
         self.trace = DSTrace(scen=scen)
         self.summarizer = DSExperiment2Feedback(scen)
-        # super(RDLoop, self).__init__()
+        super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = self.exp_gen.gen(self.trace)

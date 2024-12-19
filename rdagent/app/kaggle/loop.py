@@ -16,7 +16,6 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
@@ -28,7 +27,6 @@ from rdagent.scenarios.kaggle.proposal.proposal import KGTrace
 
 
 class KaggleRDLoop(RDLoop):
-    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -60,7 +58,6 @@ class KaggleRDLoop(RDLoop):
             self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
 
-    @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
             if prev_out["direct_exp_gen"]["propose"].action in [
@@ -75,7 +72,6 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
-    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
             if prev_out["direct_exp_gen"]["propose"].action in [
