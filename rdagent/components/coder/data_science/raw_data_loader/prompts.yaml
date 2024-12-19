@@ -1,5 +1,5 @@
 spec:
-  system:
+  system: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
 
@@ -15,6 +15,26 @@ spec:
 
     -----------Competition Information-----------
     {{ competition_info }}
+
+    -----------Here is the relevant information for this task-----------
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    --------------Successful Implementations for Similar Models:--------------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.code }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    --------------Previous Failed Attempts:--------------
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.code }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
 
   user:
     data_loader: |-
@@ -41,6 +61,12 @@ spec:
         - `y`: The target vector for the training data.
         - `X_test`: The feature matrix for the test data.
         - `test_ids`: The identifiers for the test data.
+      
+      {% if latest_spec %}
+      4. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
 
       Please respond with a JSON structure as follows:
       {
@@ -59,7 +85,7 @@ spec:
           - Describes the purpose of the function.
           - Clarifies the input parameters and their types.
           - Defines the structure and format of the output.
-      2. Precautions for Feature Engineering:
+      2. Precautions for Feature Engineering (You should depend on the competition information to make a concise specification):
         - If feature engineering is strictly part of the model pipeline and should not be done here, explicitly state that feature engineering will be handled at the model stage.
         - If the competition requirements or modeling strategy dictate that feature engineering must be integrated into the model pipeline, this function will remain as a placeholder and return the input data unchanged.
         - When feature engineering is applied, consider the following precautions:
@@ -68,6 +94,12 @@ spec:
           - Feature types: Ensure consistency between feature data types and transformations.
           - Custom features: Provide logic for domain-specific features, if applicable.
           - Avoid data leakage: Only use features derived from training data, excluding information from test or validation sets.
+      
+      {% if latest_spec %}
+      3. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
 
       Please respond with a JSON structure as follows:
       {
@@ -107,6 +139,12 @@ spec:
         - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
         - If `test_X` is provided, generate predictions for it.
 
+      {% if latest_spec %}
+      3. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
+
       Please respond in the following JSON format:
       {
           "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
@@ -132,6 +170,12 @@ spec:
         - Validate that `val_label` is provided and has the same length as `val_pred_l` predictions.
         - Perform checks to handle empty or invalid inputs gracefully.
 
+      {% if latest_spec %}
+      3. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
+
       Please respond in the following JSON format:
       {
           "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
@@ -141,6 +185,12 @@ spec:
       Workflow specification text should include one parts:
       1. Precautions:
         some precautions for workflow.
+
+      {% if latest_spec %}
+      2. Former Specification:
+        {{ latest_spec }}
+        You should follow the provided specifications to improve this task.
+      {% endif %}
 
       Please response the specification in the following json format. Here is an example structure for the JSON output:
       {
@@ -157,12 +207,39 @@ data_loader_coder:
     {
         "code": "The Python code as a string."
     }
+
+    -----------Here is the relevant information for this task-----------
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    --------------Successful Implementations for Similar Models:--------------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.code }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    --------------Previous Failed Attempts:--------------
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.code }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+
   user: |-
     ---------Competition Information---------
     {{ competition_info }}
 
     ---------Data Loader Specification---------
     {{ data_loader_spec }}
+
+    {% if latest_code %}
+    ---------Former Specification---------
+      Former Code: {{ latest_code }}
+      You should follow the former code to improve it.
+    {% endif %}
 
 
 data_loader_eval:

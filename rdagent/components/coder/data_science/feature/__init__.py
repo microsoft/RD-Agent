@@ -26,12 +26,26 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
-        competition_info = self.scen.get_scenario_all_desc()
+        feature_information_str = target_task.get_task_information()
+
+        # 1. query
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[feature_information_str]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[feature_information_str]
+            if queried_knowledge is not None
+            else []
+        )
 
         # 2. code
-        system_prompt = T(".prompts:feature.system").r()
+        system_prompt = T(".prompts:feature.system").r(queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
         user_prompt = T(".prompts:feature.user").r(
-            competition_info=competition_info, feature_spec=workspace.code_dict["spec/feature.md"]
+            feature_spec=workspace.code_dict["spec/feature.md"],
+            latest_code=workspace.code_dict.get("feat01.py"),
         )
 
         feature_code = json.loads(

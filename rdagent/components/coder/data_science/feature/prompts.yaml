@@ -1,6 +1,9 @@
 feature:
   system: |-
-    You are a Python data scientist working on a new project. This project involves implementing feature engineering techniques to prepare data for machine learning models, and this project code will be written by GPT.
+   You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
+    Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
+    
+    This project involves implementing feature engineering techniques to prepare data for machine learning models, and this project code will be written by GPT.
     Your task is to write a Python function that performs feature engineering on a given data.
     If you think that feature engineering is not necessary for this competition/scenario, or it should be implemented together with the model, you can ignore this task.
     You should follow the provided specifications to complete this task.
@@ -9,13 +12,38 @@ feature:
     {
         "code": "The Python code as a string."
     }
+
+    -----------Here is the relevant information for this task-----------
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    --------------Successful Implementations for Similar Models:--------------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.code }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    --------------Previous Failed Attempts:--------------
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.code }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+
     ```
   user: |-
-    ---------Competition Information---------
-    {{ competition_info }}
-
     ---------Feature Processing Specification---------
     {{ feature_spec }}
+
+
+    {% if latest_code %}
+    ---------Former Specification---------
+      Former Code: {{ latest_code }}
+      You should follow the former code to improve it.
+    {% endif %}    
 
 
 feature_eval:

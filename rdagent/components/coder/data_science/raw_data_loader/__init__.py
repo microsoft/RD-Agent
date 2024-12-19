@@ -32,6 +32,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
+    CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
@@ -53,14 +54,29 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
         competition_info = self.scen.get_scenario_all_desc()
+        data_loader_task_info = target_task.get_task_information()
 
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[data_loader_task_info]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[data_loader_task_info]
+            if queried_knowledge is not None
+            else []
+        )
+    
         # 1. specifications
-        system_prompt = T(".prompts:spec.system").r(competition_info=competition_info)
-        data_loader_prompt = T(".prompts:spec.user.data_loader").r()
-        feature_prompt = T(".prompts:spec.user.feature").r()
-        model_prompt = T(".prompts:spec.user.model").r()
-        ensemble_prompt = T(".prompts:spec.user.ensemble").r()
-        workflow_prompt = T(".prompts:spec.user.workflow").r()
+        # TODO: Why is queried_former_failed_knowledge[0] used here?
+        system_prompt = T(".prompts:spec.system").r(competition_info=competition_info,
+                                                    queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
+        data_loader_prompt = T(".prompts:spec.user.data_loader").r(latest_spec=workspace.code_dict.get("spec/data_loader.md"))
+        feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.code_dict.get("spec/feature.md"))
+        model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.code_dict.get("spec/model.md"))
+        ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.code_dict.get("spec/ensemble.md"))
+        workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.code_dict.get("spec/workflow.md"))
 
         spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
@@ -79,9 +95,12 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         ]
 
         # 2. code
-        system_prompt = T(".prompts:data_loader_coder.system").r()
+        system_prompt = T(".prompts:data_loader_coder.system").r(
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
         user_prompt = T(".prompts:data_loader_coder.user").r(
-            competition_info=competition_info, data_loader_spec=data_loader_spec
+            competition_info=competition_info, data_loader_spec=data_loader_spec,
+            latest_code=workspace.code_dict.get("load_data.py")
         )
 
         data_loader_code = json.loads(
