@@ -103,23 +103,23 @@ class KGExperiment2Feedback(Experiment2Feedback):
         current_hypothesis_reason = hypothesis.reason
         current_target_action = hypothesis.action
         current_sub_exps_to_code = {}
-        if hypothesis.action == "Model tuning":
-            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].code
-        elif hypothesis.action == "Model feature selection":
-            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.code_dict[
-                KG_SELECT_MAPPING[exp.sub_tasks[0].model_type]
-            ]
-        else:
-            current_sub_exps_to_code = {
-                sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
-            }
+        # if hypothesis.action == "Model tuning":
+        #     current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].code
+        # elif hypothesis.action == "Model feature selection":
+        #     current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.code_dict[
+        #         KG_SELECT_MAPPING[exp.sub_tasks[0].model_type]
+        #     ]
+        # else:
+        #     current_sub_exps_to_code = {
+        #         sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
+        #     }
         current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
         current_result = exp.result
         current_sub_results = exp.sub_results
 
-        last_hypothesis_and_feedback = None
-        if trace.hist and len(trace.hist) > 0:
-            last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
+        # last_hypothesis_and_feedback = None
+        # if trace.hist and len(trace.hist) > 0:
+        #     last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
 
         # Prepare render dictionary
         render_dict = {
@@ -157,44 +157,44 @@ class KGExperiment2Feedback(Experiment2Feedback):
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
-        leaderboard = self.scen.leaderboard
-        current_score = current_result.iloc[0]
-        sorted_scores = sorted(leaderboard, reverse=True)
-        import bisect
+        # leaderboard = self.scen.leaderboard
+        # current_score = current_result.iloc[0]
+        # sorted_scores = sorted(leaderboard, reverse=True)
+        # import bisect
 
-        if self.scen.evaluation_metric_direction:
-            insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
-        else:
-            insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
-        percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
+        # if self.scen.evaluation_metric_direction:
+        #     insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
+        # else:
+        #     insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
+        # percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
 
-        experiment_feedback = {
-            "hypothesis_text": current_hypothesis,
-            "tasks_factors": current_sub_exps_to_code,
-            "current_result": current_result,
-        }
+        # experiment_feedback = {
+        #     "hypothesis_text": current_hypothesis,
+        #     "tasks_factors": current_sub_exps_to_code,
+        #     "current_result": current_result,
+        # }
 
-        if self.scen.if_using_vector_rag:
-            raise NotImplementedError("Vector RAG is not implemented yet since there are plenty bugs!")
-            self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
-            self.scen.vector_base.dump()
-        elif self.scen.if_using_graph_rag:
-            competition_node = UndirectedNode(content=self.scen.get_competition_full_desc(), label="competition")
-            hypothesis_node = UndirectedNode(content=hypothesis.hypothesis, label=hypothesis.action)
-            exp_code_nodes = []
-            for exp, code in current_sub_exps_to_code.items():
-                exp_code_nodes.append(UndirectedNode(content=exp, label="experiments"))
-                if code != "":
-                    exp_code_nodes.append(UndirectedNode(content=code, label="code"))
-            conclusion_node = UndirectedNode(content=response, label="conclusion")
-            all_nodes = [competition_node, hypothesis_node, *exp_code_nodes, conclusion_node]
-            all_nodes = trace.knowledge_base.batch_embedding(all_nodes)
-            for node in all_nodes:
-                if node is not competition_node:
-                    trace.knowledge_base.add_node(node, competition_node)
+        # if self.scen.if_using_vector_rag:
+        #     raise NotImplementedError("Vector RAG is not implemented yet since there are plenty bugs!")
+        #     self.scen.vector_base.add_experience_to_vector_base(experiment_feedback)
+        #     self.scen.vector_base.dump()
+        # elif self.scen.if_using_graph_rag:
+        #     competition_node = UndirectedNode(content=self.scen.get_competition_full_desc(), label="competition")
+        #     hypothesis_node = UndirectedNode(content=hypothesis.hypothesis, label=hypothesis.action)
+        #     exp_code_nodes = []
+        #     for exp, code in current_sub_exps_to_code.items():
+        #         exp_code_nodes.append(UndirectedNode(content=exp, label="experiments"))
+        #         if code != "":
+        #             exp_code_nodes.append(UndirectedNode(content=code, label="code"))
+        #     conclusion_node = UndirectedNode(content=response, label="conclusion")
+        #     all_nodes = [competition_node, hypothesis_node, *exp_code_nodes, conclusion_node]
+        #     all_nodes = trace.knowledge_base.batch_embedding(all_nodes)
+        #     for node in all_nodes:
+        #         if node is not competition_node:
+        #             trace.knowledge_base.add_node(node, competition_node)
 
-        if self.scen.if_action_choosing_based_on_UCB:
-            self.scen.action_counts[hypothesis.action] += 1
+        # if self.scen.if_action_choosing_based_on_UCB:
+        #     self.scen.action_counts[hypothesis.action] += 1
 
         return HypothesisFeedback(
             observations=observations,

@@ -48,7 +48,7 @@ Concise Knowledge: {self.concise_knowledge}
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
         self.scen: DataScienceScen = scen
-        self.hist: list[tuple[DSHypothesis, Experiment, HypothesisFeedback]] = []
+        self.hist: list[tuple[DSHypothesis, DSExperiment, HypothesisFeedback]] = []
         self.knowledge_base = knowledge_base
 
     def get_sota_hypothesis_and_experiment(
