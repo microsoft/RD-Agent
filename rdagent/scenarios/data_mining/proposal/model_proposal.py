@@ -95,7 +95,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "RAG": None,
         }, True
 
-    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
         response_dict = json.loads(response)
         tasks = []
         for model_name in response_dict:
@@ -116,6 +116,6 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
                     model_type=model_type,
                 )
             )
-        exp = DMModelExperiment(tasks)
+        exp = DMModelExperiment(tasks, hypothesis=hypothesis)
         exp.based_experiments = [t[1] for t in trace.hist if t[2]]
         return exp

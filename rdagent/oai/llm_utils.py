@@ -215,6 +215,7 @@ class ChatSession:
                 chat_completion=True,
                 **kwargs,
             )
+            logger.log_object({"user": user_prompt, "resp": response}, tag="debug_llm")
 
         messages.append(
             {
@@ -493,12 +494,15 @@ class APIBackend:
             former_messages,
             shrink_multiple_break=shrink_multiple_break,
         )
-        return self._try_create_chat_completion_or_embedding(
+
+        resp = self._try_create_chat_completion_or_embedding(
             messages=messages,
             chat_completion=True,
             chat_cache_prefix=chat_cache_prefix,
             **kwargs,
         )
+        logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
+        return resp
 
     def create_embedding(self, input_content: str | list[str], **kwargs: Any) -> list[Any] | Any:
         input_content_list = [input_content] if isinstance(input_content, str) else input_content

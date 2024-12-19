@@ -170,3 +170,4 @@ mlruns/
 # shell script
 *.out
 *.sh
+.aider*
