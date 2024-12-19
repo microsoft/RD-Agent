@@ -121,10 +121,12 @@ for d in session_state.data:
                     rdict = json.loads(resp)
                     if "code" in rdict:
                         code = rdict["code"]
+                        st.markdown(":red[**Code in response dict:**]")
                         st.code(code, language="python", wrap_lines=True)
                         rdict.pop("code")
                     elif "spec" in rdict:
                         spec = rdict["spec"]
+                        st.markdown(":red[**Spec in response dict:**]")
                         st.markdown(spec)
                         rdict.pop("spec")
                     st.write(":red[**Other parts (except for the code or spec) in response dict:**]")

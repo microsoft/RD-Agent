@@ -245,10 +245,17 @@ data_loader_coder:
 data_loader_eval:
   system: |-
     You are data scientist.
+
+    The data loader code is:
+    ```python
+    {{code}}
+    ```
+
     You are testing the data_loader with the following code
     ```python
     {{test_code}}
     ```
+
     You'll be given the stdout of your testing scripts.
     Please respond with your feedback in the following JSON format and order
     ```json

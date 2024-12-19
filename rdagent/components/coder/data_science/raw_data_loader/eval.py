@@ -56,7 +56,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_code(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        system_prompt = T(".prompts:data_loader_eval.system").r(test_code=test_code)
+        system_prompt = T(".prompts:data_loader_eval.system").r(test_code=test_code, code=implementation.code_dict["load_data.py"])
         user_prompt = T(".prompts:data_loader_eval.user").r(stdout=stdout)
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
