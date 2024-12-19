@@ -40,9 +40,13 @@ def develop_one_competition(competition: str):
         sub_tasks=[wt],
     )
 
-    es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+    """es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
     new_code = es.implement_one_task(target_task=wt, queried_knowledge=None, workspace = workflowexp)
-    print(new_code)
+    print(new_code)"""
+
+    eva = WorkflowGeneralCaseSpecEvaluator(scen=scen)
+    exp.feedback = eva.evaluate(target_task=wt, queried_knowledge=None, implementation=workflowexp, gt_implementation=None)
+    print(exp.feedback)
 
 
 if __name__ == "__main__":

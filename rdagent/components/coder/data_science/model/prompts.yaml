@@ -61,7 +61,7 @@ model_coder:
 
 model_eval:
     system: |-
-        You are data scientist.
+        You are a data scientist.
         User is trying to implement some models in the following scenario:
         {{ scenario }}
         User will provide you the information of the model.
