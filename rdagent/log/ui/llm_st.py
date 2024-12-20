@@ -1,3 +1,4 @@
+import re
 import argparse
 import json
 from pathlib import Path
@@ -24,8 +25,7 @@ if "data" not in session_state:
 if "log_path" not in session_state:
     session_state.log_path = None
 
-eset = set()
-
+tlist = []
 
 def load_data():
     try:
@@ -74,20 +74,36 @@ def highlight_prompts_uri(uri):
     parts = uri.split(":")
     return f"**{parts[0]}:**:green[**{parts[1]}**]"
 
+def extract_loopid_func_name(tag):
+    match = re.search(r'Loop_(\d+)\.(\w+)\.', tag)
+    if match:
+        return match.group(1), match.group(2)
+    return None, None
+
+def extract_evoid(tag):
+    match = re.search(r'\.evo_loop_(\d+)\.', tag)
+    if match:
+        return match.group(1)
+    return None
 
 # Display the data
 for d in session_state.data:
     tag = d["tag"]
     obj = d["obj"]
-    if "evo_loop_" in tag:
-        tags = tag.split(".")
-        for t in tags:
-            if "evo_loop_" in t:
-                etag = t
-                break
-        if etag not in eset:
-            eset.add(etag)
-            st.subheader(f"**{etag}**", anchor=etag, divider="rainbow")
+    
+    loop_id, func_name = extract_loopid_func_name(tag)
+    evo_id = extract_evoid(tag)
+    if loop_id:
+        if loop_id not in tlist:
+            tlist.append(loop_id)
+            st.subheader(f"**Loop_{loop_id}**", anchor=f"Loop_{loop_id}", divider="blue")
+        if f"loop_{loop_id}.{func_name}" not in tlist:
+            tlist.append(f"loop_{loop_id}.{func_name}")
+            st.subheader(f"**{func_name}**", anchor=f"loop_{loop_id}.{func_name}", divider="green")
+        if f"loop_{loop_id}.{evo_id}" not in tlist:
+            tlist.append(f"loop_{loop_id}.evo_step_{evo_id}")
+            st.subheader(f"**evo_step_{evo_id}**", anchor=f"loop_{loop_id}.evo_step_{evo_id}", divider="orange")
+
     if "debug_tpl" in tag:
         uri = obj["uri"]
         tpl = obj["template"]
@@ -95,13 +111,13 @@ for d in session_state.data:
         rd = obj["rendered"]
 
         with st.expander(highlight_prompts_uri(uri), expanded=expand_all, icon="⚙️"):
-            t1, t2, t3 = st.tabs([":blue[**Template**]", ":orange[**Context**]", ":green[**Rendered**]"])
+            t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
             with t1:
-                show_text(tpl, lang="django")
-            with t2:
-                st.json(cxt)
-            with t3:
                 show_text(rd)
+            with t2:
+                show_text(tpl, lang="django")
+            with t3:
+                st.json(cxt)
     elif "debug_llm" in tag:
         system = obj.get("system", None)
         user = obj["user"]
@@ -135,5 +151,12 @@ for d in session_state.data:
                     st.json(resp)
 
 with st.sidebar:
-    et_toc = "\n".join(f"- [**{etag}**](#{etag})" for etag in sorted(eset))
+    et_toc = ""
+    for t in tlist:
+        if t.startswith("L"):
+            et_toc += f"- [{t}](#{t})\n"
+        elif 'evo_step_' in t:
+            et_toc += f"    - [{t}](#{t})\n"
+        else:
+            et_toc += f"  - [{t}](#{t})\n"
     st.markdown(et_toc, unsafe_allow_html=True)

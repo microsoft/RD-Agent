@@ -96,6 +96,14 @@ class RAGEvoAgent(EvoAgent):
 
                 # 6. update trace
                 self.evolving_trace.append(es)
+                
+                # 7. check if all tasks are completed
+                if self.with_feedback:
+                    all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback
+                    if all_completed:
+                        logger.info("All tasks in evolving subject have been completed.")
+                        break
+
         if self.with_feedback and filter_final_evo:
             evo = self.filter_evolvable_subjects_by_feedback(evo, self.evolving_trace[-1].feedback)
         return evo
