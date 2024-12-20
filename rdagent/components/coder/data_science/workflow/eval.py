@@ -42,11 +42,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
             return WorkflowSingleFeedback(
-                execution_feedback="This task has failed too many times, skip implementation.",
-                shape_feedback="This task has failed too many times, skip implementation.",
-                value_feedback="This task has failed too many times, skip implementation.",
-                code_feedback="This task has failed too many times, skip implementation.",
-                final_feedback="This task has failed too many times, skip implementation.",
+                execution="This task has failed too many times, skip implementation.",
+                return_checking="This task has failed too many times, skip implementation.",
+                code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
         ds_docker_conf = DSDockerConf()

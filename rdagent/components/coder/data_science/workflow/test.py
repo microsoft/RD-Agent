@@ -44,9 +44,16 @@ def develop_one_competition(competition: str):
     new_code = es.implement_one_task(target_task=wt, queried_knowledge=None, workspace = workflowexp)
     print(new_code)"""
 
-    eva = WorkflowGeneralCaseSpecEvaluator(scen=scen)
+    """eva = WorkflowGeneralCaseSpecEvaluator(scen=scen)
     exp.feedback = eva.evaluate(target_task=wt, queried_knowledge=None, implementation=workflowexp, gt_implementation=None)
-    print(exp.feedback)
+    print(exp.feedback)"""
+
+    # Run the experiment
+    for file_name in injected_file_names:
+        file_path = tpl_ex_path / file_name
+        exp.experiment_workspace.inject_code(**{file_name: file_path.read_text()})
+
+    exp = workflow_coder.develop(exp)
 
 
 if __name__ == "__main__":
