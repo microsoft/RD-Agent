@@ -25,7 +25,7 @@ def model_workflow(
     val_y: np.ndarray = None,
     test_X: np.ndarray = None,
     **hyper_params,
-) -> tuple[np.ndarray | None, np.ndarray | None]:
+) -> tuple[np.ndarray | None, np.ndarray | None, dict]:
     """
     Manages the workflow of a machine learning model, including training, validation, and testing.
 
@@ -61,9 +61,6 @@ def model_workflow(
 
     train_datagen = ImageDataGenerator(rescale=1.0 / 255, horizontal_flip=True, vertical_flip=True)
     train_generator = train_datagen.flow(train_images, train_labels, batch_size=batch_size, shuffle=True)
-
-    validation_datagen = ImageDataGenerator(rescale=1.0 / 255)
-    validation_generator = validation_datagen.flow(validation_images, validation_labels, batch_size=batch_size)
 
     # Get input shape from the training data
     input_shape = X.shape[1:]
@@ -115,27 +112,54 @@ def model_workflow(
         metrics=["accuracy"],
     )
 
+    # Extract early_stop_round from hyper_params, default is 25
+    early_stop_round = hyper_params.get("early_stop_round", 25)
+
     callbacks = [
-        EarlyStopping(monitor="val_loss", patience=hyper_params.get("patience", 25)),
+        EarlyStopping(monitor="val_loss", patience=early_stop_round),
         ModelCheckpoint(filepath="best_model.keras", monitor="val_loss", save_best_only=True),
     ]
 
     # Training
     epochs = hyper_params.get("epochs", 100)
-    history = model.fit(
-        train_generator,
-        validation_data=validation_generator,
-        epochs=epochs,
-        verbose=1,
-        shuffle=True,
-        callbacks=callbacks,
-    )
-    # Predict on validation data
-    val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
+    if val_X is not None and val_y is not None:
+        validation_datagen = ImageDataGenerator(rescale=1.0 / 255)
+        validation_generator = validation_datagen.flow(validation_images, validation_labels, batch_size=batch_size)
+        history = model.fit(
+            train_generator,
+            validation_data=validation_generator,
+            epochs=epochs,
+            verbose=1,
+            shuffle=True,
+            callbacks=callbacks,
+        )
+        # Dynamic adjustment of early_stop_round
+        if "early_stop_round" not in hyper_params:
+            val_loss = history.history["val_loss"]
+            best_epoch = np.argmin(val_loss)
+            dynamic_early_stop = max(5, int((len(val_loss) - best_epoch) * 0.5))  # 50% of remaining epochs
 
-    # Load the test data and evaluate the model
-    test_datagen = ImageDataGenerator(rescale=1.0 / 255)
-    test_generator = test_datagen.flow(test_images, batch_size=1, shuffle=False)
+            print(f"Dynamic early_stop_round: {dynamic_early_stop}")
+            hyper_params["early_stop_round"] = dynamic_early_stop
 
-    test_pred = model.predict(test_generator, verbose=1)
-    return val_pred, test_pred
+        # Predict on validation data
+        val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
+    else:
+        history = model.fit(
+            train_generator,
+            epochs=epochs,
+            verbose=1,
+            shuffle=True,
+            callbacks=callbacks,
+        )
+        val_pred = None
+
+    # Predict on test data
+    if test_X is not None:
+        test_datagen = ImageDataGenerator(rescale=1.0 / 255)
+        test_generator = test_datagen.flow(test_images, batch_size=1, shuffle=False)
+        test_pred = model.predict(test_generator, verbose=1)
+    else:
+        test_pred = None
+
+    return val_pred, test_pred, hyper_params

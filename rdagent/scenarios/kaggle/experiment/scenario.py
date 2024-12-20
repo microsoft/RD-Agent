@@ -39,7 +39,7 @@ class KGScenario(Scenario):
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
-        self.competition_descriptions = crawl_descriptions(competition)
+        self.competition_descriptions = crawl_descriptions(competition, KAGGLE_IMPLEMENT_SETTING.local_data_path)
         self.input_shape = None
 
         self.competition_type = None

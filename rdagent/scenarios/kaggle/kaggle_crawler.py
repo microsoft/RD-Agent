@@ -16,6 +16,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
@@ -31,8 +32,10 @@ options.add_argument("--headless")
 service = Service("/usr/local/bin/chromedriver")
 
 
-def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
-    if (fp := Path(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json")).exists() and not force:
+def crawl_descriptions(
+    competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
+) -> dict[str, str]:
+    if (fp := Path(f"{local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
@@ -94,13 +97,14 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
-    with open(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json", "w") as f:
+    with open(f"{local_data_path}/{competition}.json", "w") as f:
         json.dump(descriptions, f)
     return descriptions
 
 
-def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
+def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING) -> None:
+    local_path = settings.local_data_path
+    if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
         if (

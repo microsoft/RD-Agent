@@ -54,7 +54,7 @@ class LoopMeta(type):
         """
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
-            if not name.startswith("__") and isinstance(attr, Callable):
+            if not name.startswith("_") and isinstance(attr, Callable):
                 if name not in steps:
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
@@ -106,19 +106,20 @@ class LoopBase:
                 start = datetime.datetime.now(datetime.timezone.utc)
 
                 name = self.steps[si]
-                func = getattr(self, name)
-                try:
-                    self.loop_prev_out[name] = func(self.loop_prev_out)
-                    # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
-                except self.skip_loop_error as e:
-                    logger.warning(f"Skip loop {li} due to {e}")
-                    self.loop_idx += 1
-                    self.step_idx = 0
-                    continue
-                except CoderError as e:
-                    logger.warning(f"Traceback loop {li} due to {e}")
-                    self.step_idx = 0
-                    continue
+                with logger.tag(f"Loop_{li}.{name}"):
+                    func = getattr(self, name)
+                    try:
+                        self.loop_prev_out[name] = func(self.loop_prev_out)
+                        # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
+                    except self.skip_loop_error as e:
+                        logger.warning(f"Skip loop {li} due to {e}")
+                        self.loop_idx += 1
+                        self.step_idx = 0
+                        continue
+                    except CoderError as e:
+                        logger.warning(f"Traceback loop {li} due to {e}")
+                        self.step_idx = 0
+                        continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)
 
