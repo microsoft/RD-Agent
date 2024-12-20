@@ -13,28 +13,14 @@ class FeatureTask(CoSTEERTask):
         self,
         name: str,
         description: str,
-        variables: dict = {},
-        implementation: bool = False,
         **kwargs,
     ) -> None:
-        self.variables: dict = variables
-        self.implementation: bool = implementation
         super().__init__(name=name, description=description, **kwargs)
 
     def get_task_information(self):
         return f"""name: {self.name}
 description: {self.description}
-variables: {str(self.variables)}
-spec: {self.spec}"""
-
-    def get_task_information_and_implementation_result(self):
-        return {
-            "name": self.factor_name,
-            "description": self.factor_description,
-            "variables": str(self.variables),
-            "spec": self.spec,
-            "implementation": str(self.implementation),
-        }
+"""
 
     @staticmethod
     def from_dict(dict):

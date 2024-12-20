@@ -173,16 +173,12 @@ class DSExpGen(ExpGen):
                 )
 
                 dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
-                tasks = []
-                for fn in resp_dict:
-                    ft = FeatureTask(
-                        name=fn,
-                        description=resp_dict[fn].get("description", "Factor description not provided"),
-                        formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
-                        variables=resp_dict[fn].get("variables", "Variables not provided"),
-                    )
+                ft = FeatureTask(
+                    name="Feature Engineering",
+                    description=resp_dict.get("description", "Factor description not provided"),
+                )
 
-                exp = DSExperiment(sub_tasks=tasks, hypothesis=hypothesis)
+                exp = DSExperiment(sub_tasks=[ft], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                 return exp
             elif hypothesis.component == "Model":

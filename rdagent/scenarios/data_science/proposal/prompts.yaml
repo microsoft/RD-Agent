@@ -94,22 +94,7 @@ output_format:
     According to the hypothesis, please help user design one or more feature engineering tasks.
     The output should follow JSON format. The schema is as follows:
     {
-        "feature name 1": {
-            "description": "description of feature name 1",
-            "formulation": "latex formulation of feature or group name 1",
-            "variables": {
-                "variable or function name 1": "description of variable or function 1",
-                "variable or function name 2": "description of variable or function 2"
-            }
-        },
-        "feature name 2": {
-            "description": "description of feature name 2",
-            "formulation": "latex formulation of feature or group name 2",
-            "variables": {
-                "variable or function name 1": "description of variable or function 1",
-                "variable or function name 2": "description of variable or function 2"
-            }
-        }
+        "description": "description of feature engineering task",
         # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
     }
   model: |-

@@ -20,14 +20,14 @@ def develop_one_competition(competition: str):  # -> experiment
         feat_spec = file.read()
 
     # Create the experiment
-    ft = FeatureTask(name="FeatureTask", description=scen.competition_descriptions, spec=feat_spec)
+    ft = FeatureTask(name="FeatureTask", description=scen.competition_descriptions)
     exp = DSExperiment(
         sub_tasks=[ft],
     )
 
     with open("./rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/load_data.py", "r") as file:
         load_data_code = file.read()
-    exp.experiment_workspace.inject_code(**{"load_data.py": load_data_code})
+    exp.experiment_workspace.inject_code(**{"load_data.py": load_data_code, "spec/feature.md": feat_spec})
 
     # Develop the experiment
     exp = feature_coder.develop(exp)
