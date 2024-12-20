@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0](https://github.com/microsoft/RD-Agent/compare/v0.3.0...v0.4.0) (2024-12-20)
+
+
+### Features
+
+* (Kaggle) add base template for competition: tabular-playground-series-may-2022 ([#481](https://github.com/microsoft/RD-Agent/issues/481)) ([f3405ca](https://github.com/microsoft/RD-Agent/commit/f3405ca732eb0ddca8e18ea72f69cbd86055c4ab))
+* a unified CoSTEER to fit more scenarios ([#491](https://github.com/microsoft/RD-Agent/issues/491)) ([cddbd02](https://github.com/microsoft/RD-Agent/commit/cddbd02e3ad3ccf6ad01443777319dc5c7eb08a7))
+* add a new competition ([#474](https://github.com/microsoft/RD-Agent/issues/474)) ([2fc0d77](https://github.com/microsoft/RD-Agent/commit/2fc0d77c485a31f647e21f4578e2e326f7032964))
+* align mlebench data and evaluation & several fix on kaggle workflow ([#477](https://github.com/microsoft/RD-Agent/issues/477)) ([f6c522b](https://github.com/microsoft/RD-Agent/commit/f6c522b651db3c1f6af6815347589917f46e433a))
+* end-to-end optimization ([#473](https://github.com/microsoft/RD-Agent/issues/473)) ([d41343a](https://github.com/microsoft/RD-Agent/commit/d41343a63d87bf3479f5ec30745ea788580495bf))
+* independent use_azure_token_provider on chat and embedding ([#452](https://github.com/microsoft/RD-Agent/issues/452)) ([d223004](https://github.com/microsoft/RD-Agent/commit/d223004917692e231b251330cbc8676081d5a10d))
+* kaggle refactor ([#489](https://github.com/microsoft/RD-Agent/issues/489)) ([1b057d0](https://github.com/microsoft/RD-Agent/commit/1b057d0d63a861fba4b3cb59c6c5fc1a0e3da383))
+* **kaggle:** several update in kaggle scenarios ([#476](https://github.com/microsoft/RD-Agent/issues/476)) ([245d211](https://github.com/microsoft/RD-Agent/commit/245d211dcbfb18ebcc554247a0e3a8dbecf6f3bd))
+* new-york-city-taxi-fare-prediction_template ([#488](https://github.com/microsoft/RD-Agent/issues/488)) ([a9caab7](https://github.com/microsoft/RD-Agent/commit/a9caab7bc5dc86f395a008e523355922137aef17))
+* refine logic for qlib_factor_from_report ([#463](https://github.com/microsoft/RD-Agent/issues/463)) ([21348d8](https://github.com/microsoft/RD-Agent/commit/21348d89e0e0eec1b4fab4e7a497f1eb34b8fe72))
+* run benchmark on gpt-4o & llama 3.1 ([#497](https://github.com/microsoft/RD-Agent/issues/497)) ([64af0b5](https://github.com/microsoft/RD-Agent/commit/64af0b5529b687cce8b5b7a1893946e15edca626))
+* template changes for some kaggle competitions ([#484](https://github.com/microsoft/RD-Agent/issues/484)) ([2e38000](https://github.com/microsoft/RD-Agent/commit/2e38000091030811fc081d72016c7bbadf7efd50))
+
+
+### Bug Fixes
+
+* a default conf in scen qlib ([#503](https://github.com/microsoft/RD-Agent/issues/503)) ([d64a228](https://github.com/microsoft/RD-Agent/commit/d64a228525cbedd7687c1e06132eacd0d0647697))
+* avoid warning for missing llama installation when not in use ([#509](https://github.com/microsoft/RD-Agent/issues/509)) ([5ec3422](https://github.com/microsoft/RD-Agent/commit/5ec342224c2c8c4cf591f1eae673e25b14218726))
+* fix a bug in kaggle conf ([#459](https://github.com/microsoft/RD-Agent/issues/459)) ([b4ed32b](https://github.com/microsoft/RD-Agent/commit/b4ed32b17ef07d8557450063765585a48d5fcd32))
+* patching weird azure deployment ([#494](https://github.com/microsoft/RD-Agent/issues/494)) ([89c50ae](https://github.com/microsoft/RD-Agent/commit/89c50aee2ec8bfd1cb23767ddf7dcdd023daac8b))
+* templates bug ([#456](https://github.com/microsoft/RD-Agent/issues/456)) ([434a868](https://github.com/microsoft/RD-Agent/commit/434a8687eeda77e27b4938fb19694c15858ee446))
+* unzip kaggle data ([#464](https://github.com/microsoft/RD-Agent/issues/464)) ([3a9fc8e](https://github.com/microsoft/RD-Agent/commit/3a9fc8e73337d3757267b6f4482499499a1b6792))
+
 ## [0.3.0](https://github.com/microsoft/RD-Agent/compare/v0.2.1...v0.3.0) (2024-10-21)
 
 
