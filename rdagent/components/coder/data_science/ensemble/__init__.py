@@ -40,11 +40,31 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
     ) -> dict[str, str]:
-        # return a workspace with "ensemble.py" inside
+        # Get task information for knowledge querying
+        ensemble_information_str = target_task.get_task_information()
+        
+        # Query knowledge
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[ensemble_information_str]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[ensemble_information_str]
+            if queried_knowledge is not None
+            else []
+        )
+
+        # Generate code with knowledge integration
         competition_info = self.scen.get_scenario_all_desc()
-        # Generate code
-        system_prompt = T(".prompts:ensemble_coder.system").r(competition_info=competition_info)
-        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=workspace.code_dict["spec/ensemble.md"])
+        system_prompt = T(".prompts:ensemble_coder.system").r(
+            competition_info=competition_info,
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
+        )
+        user_prompt = T(".prompts:ensemble_coder.user").r(
+            ensemble_spec=workspace.code_dict["spec/ensemble.md"]
+        )
 
         ensemble_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
