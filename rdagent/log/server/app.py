@@ -24,7 +24,7 @@ app = Flask(__name__)
 CORS(app)
 
 #%%
-base_path = Path('/home/bowen/workspace/RD-Agent/demo_traces')
+base_path = Path('./demo_traces')
 dir2id = {dir_name.name: idx for idx, dir_name in enumerate(base_path.iterdir())}
 #%%
 msgs_for_frontend = defaultdict(list)
@@ -163,9 +163,10 @@ pointers = {
 
 @app.route('/trace', methods=['POST'])
 def update_trace():
-    trace_id = int(request.form.get("id"))
-    return_all = request.form.get("all").lower() == 'true'
-    reset = request.form.get("reset").lower() == 'true'
+    data = request.get_json()
+    trace_id = data.get("id")
+    return_all = data.get("all")
+    reset = data.get("reset")
     msg_num = random.randint(1, 10)
     
     if reset:
@@ -175,11 +176,11 @@ def update_trace():
     if end_pointer > len(msgs_for_frontend[trace_id]) or return_all:
         end_pointer = len(msgs_for_frontend[trace_id])
 
+    print(f"trace_id: {trace_id}, start_pointer: {pointers[trace_id]}, end_pointer: {end_pointer}")
     returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id]:end_pointer]
     
     pointers[trace_id] = end_pointer
-    
-    return jsonify(returned_msgs) if len(returned_msgs) > 0 else jsonify([{ "tag": "END", "content": {} }])
+    return jsonify(returned_msgs) if len(returned_msgs) > 0 else jsonify([{ "tag": "END", "content": {} }]), 200
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
