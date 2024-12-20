@@ -93,11 +93,6 @@ class RAGEvoAgent(EvoAgent):
                         else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
                     )
                     logger.log_object(es.feedback, tag="evolving feedback")
-                    
-                    all_completed = all(f.final_decision for f in es.feedback)
-                    if all_completed:
-                        logger.info("All tasks in evolving subject have been completed.")
-                        break
 
                 # 6. update trace
                 self.evolving_trace.append(es)
