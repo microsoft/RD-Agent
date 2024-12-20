@@ -106,7 +106,7 @@ class LoopBase:
                 start = datetime.datetime.now(datetime.timezone.utc)
 
                 name = self.steps[si]
-                with logger.tag(name):
+                with logger.tag(f"Loop_{li}.{name}"):
                     func = getattr(self, name)
                     try:
                         self.loop_prev_out[name] = func(self.loop_prev_out)
