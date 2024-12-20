@@ -231,7 +231,9 @@ class Experiment(
         self.based_experiments: Sequence[ASpecificWSForExperiment] = based_experiments
 
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
-        self.sub_results: dict[str, float] = {} # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
+        self.sub_results: dict[str, float] = (
+            {}
+        )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
         self.experiment_workspace: ASpecificWSForExperiment | None = None
 
 

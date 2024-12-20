@@ -66,13 +66,17 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-    
+
         # 1. specifications
         # TODO: Why is queried_former_failed_knowledge[0] used here?
-        system_prompt = T(".prompts:spec.system").r(competition_info=competition_info,
-                                                    queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
-        data_loader_prompt = T(".prompts:spec.user.data_loader").r(latest_spec=workspace.code_dict.get("spec/data_loader.md"))
+        system_prompt = T(".prompts:spec.system").r(
+            competition_info=competition_info,
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+        )
+        data_loader_prompt = T(".prompts:spec.user.data_loader").r(
+            latest_spec=workspace.code_dict.get("spec/data_loader.md")
+        )
         feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.code_dict.get("spec/feature.md"))
         model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.code_dict.get("spec/model.md"))
         ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.code_dict.get("spec/ensemble.md"))
@@ -97,10 +101,12 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 2. code
         system_prompt = T(".prompts:data_loader_coder.system").r(
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+        )
         user_prompt = T(".prompts:data_loader_coder.user").r(
-            competition_info=competition_info, data_loader_spec=data_loader_spec,
-            latest_code=workspace.code_dict.get("load_data.py")
+            competition_info=competition_info,
+            data_loader_spec=data_loader_spec,
+            latest_code=workspace.code_dict.get("load_data.py"),
         )
 
         data_loader_code = json.loads(

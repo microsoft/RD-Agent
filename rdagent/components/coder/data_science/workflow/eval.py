@@ -1,22 +1,24 @@
 import json
-from rdagent.core.experiment import FBWorkspace, Task
 from pathlib import Path
-from rdagent.core.evolving_framework import QueriedKnowledge
+
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
     CoSTEERSingleFeedbackDeprecated,
 )
+from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.oai.llm_utils import APIBackend
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 WorkflowSingleFeedback = CoSTEERSingleFeedback
 WorkflowMultiFeedback = CoSTEERMultiFeedback
+
 
 class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     """
@@ -26,6 +28,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     Test workflow:
     - Build train, valid, and test data to run it, and test the output (e.g., shape, etc.)
     """
+
     def evaluate(
         self,
         target_task: Task,
@@ -53,8 +56,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario="No scenario information yet.",
-            spec=implementation.code_dict["spec/workflow.md"]
+            scenario="No scenario information yet.", spec=implementation.code_dict["spec/workflow.md"]
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout,
@@ -62,4 +64,3 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return WorkflowSingleFeedback(**json.loads(resp))
-        

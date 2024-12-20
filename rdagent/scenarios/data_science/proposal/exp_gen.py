@@ -61,7 +61,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     continue
                 return h, exp
         return None, None
-    
+
     @property
     def successful_components(self) -> set[COMPONENT]:
         """
@@ -72,12 +72,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if hf.decision:
                 successful_components.add(h.component)
         return successful_components
-    
+
     def all_components_completed(self) -> bool:
         """
         Check if 5 successful components are completed.
         """
         return set(ORDER) == self.successful_components
+
 
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""

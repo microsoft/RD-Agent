@@ -1,13 +1,13 @@
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
-from rdagent.core.scenario import Scenario
 from rdagent.components.coder.data_science.workflow.es import (
     WorkflowMultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )
+from rdagent.core.scenario import Scenario
 
 
 class WorkflowCoSTEER(CoSTEER):

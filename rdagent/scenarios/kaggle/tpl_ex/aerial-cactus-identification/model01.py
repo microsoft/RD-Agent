@@ -141,7 +141,7 @@ def model_workflow(
 
             print(f"Dynamic early_stop_round: {dynamic_early_stop}")
             hyper_params["early_stop_round"] = dynamic_early_stop
-        
+
         # Predict on validation data
         val_pred = model.predict(validation_datagen.flow(validation_images, batch_size=1, shuffle=False), verbose=1)
     else:

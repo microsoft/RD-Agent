@@ -8,7 +8,9 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.CoSTEER.knowledge_management import CoSTEERQueriedKnowledgeV2
+from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERQueriedKnowledgeV2,
+)
 from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import FBWorkspace, Task, Workspace
 from rdagent.oai.llm_utils import APIBackend
@@ -56,7 +58,9 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_code(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        system_prompt = T(".prompts:data_loader_eval.system").r(test_code=test_code, code=implementation.code_dict["load_data.py"])
+        system_prompt = T(".prompts:data_loader_eval.system").r(
+            test_code=test_code, code=implementation.code_dict["load_data.py"]
+        )
         user_prompt = T(".prompts:data_loader_eval.user").r(stdout=stdout)
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)

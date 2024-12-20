@@ -17,6 +17,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
+
 def develop_one_competition(competition: str):
     scen = DataScienceScen(competition=competition)
     workflow_coder = WorkflowCoSTEER(scen)

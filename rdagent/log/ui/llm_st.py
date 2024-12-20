@@ -1,6 +1,6 @@
-import re
 import argparse
 import json
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -26,6 +26,7 @@ if "log_path" not in session_state:
     session_state.log_path = None
 
 tlist = []
+
 
 def load_data():
     try:
@@ -74,23 +75,26 @@ def highlight_prompts_uri(uri):
     parts = uri.split(":")
     return f"**{parts[0]}:**:green[**{parts[1]}**]"
 
+
 def extract_loopid_func_name(tag):
-    match = re.search(r'Loop_(\d+)\.(\w+)\.', tag)
+    match = re.search(r"Loop_(\d+)\.(\w+)\.", tag)
     if match:
         return match.group(1), match.group(2)
     return None, None
 
+
 def extract_evoid(tag):
-    match = re.search(r'\.evo_loop_(\d+)\.', tag)
+    match = re.search(r"\.evo_loop_(\d+)\.", tag)
     if match:
         return match.group(1)
     return None
+
 
 # Display the data
 for d in session_state.data:
     tag = d["tag"]
     obj = d["obj"]
-    
+
     loop_id, func_name = extract_loopid_func_name(tag)
     evo_id = extract_evoid(tag)
     if loop_id:
@@ -155,7 +159,7 @@ with st.sidebar:
     for t in tlist:
         if t.startswith("L"):
             et_toc += f"- [{t}](#{t})\n"
-        elif 'evo_step_' in t:
+        elif "evo_step_" in t:
             et_toc += f"    - [{t}](#{t})\n"
         else:
             et_toc += f"  - [{t}](#{t})\n"

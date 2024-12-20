@@ -96,7 +96,7 @@ class RAGEvoAgent(EvoAgent):
 
                 # 6. update trace
                 self.evolving_trace.append(es)
-                
+
                 # 7. check if all tasks are completed
                 if self.with_feedback:
                     all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback

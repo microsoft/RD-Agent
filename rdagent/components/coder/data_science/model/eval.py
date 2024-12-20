@@ -71,9 +71,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             implementation.inject_code(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         system_prompt = T(".prompts:model_eval.system").r(
-            test_code=test_code,
-            scenario="No scenario information yet.",
-            spec=implementation.code_dict["spec/model.md"]
+            test_code=test_code, scenario="No scenario information yet.", spec=implementation.code_dict["spec/model.md"]
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,

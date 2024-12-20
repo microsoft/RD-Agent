@@ -22,15 +22,12 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.ensemble.eval import (
-    EnsembleCoSTEEREvaluator,
-)
+from rdagent.components.coder.data_science.ensemble.eval import EnsembleCoSTEEREvaluator
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-
-from rdagent.core.experiment import FBWorkspace
 
 
 class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -42,7 +39,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         # Get task information for knowledge querying
         ensemble_information_str = target_task.get_task_information()
-        
+
         # Query knowledge
         queried_similar_successful_knowledge = (
             queried_knowledge.task_to_similar_task_successful_knowledge[ensemble_information_str]
@@ -60,24 +57,22 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         system_prompt = T(".prompts:ensemble_coder.system").r(
             competition_info=competition_info,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-            queried_former_failed_knowledge=queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
+            queried_former_failed_knowledge=(
+                queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
+            ),
         )
-        user_prompt = T(".prompts:ensemble_coder.user").r(
-            ensemble_spec=workspace.code_dict["spec/ensemble.md"]
-        )
+        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=workspace.code_dict["spec/ensemble.md"])
 
         ensemble_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
             )
         )["code"]
 
         return {
             "ensemble.py": ensemble_code,
         }
-    
+
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """
         Assign the code list to the evolving item.
@@ -102,19 +97,7 @@ class EnsembleCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
-        eva = CoSTEERMultiEvaluator(
-            EnsembleCoSTEEREvaluator(scen=scen), scen=scen
-        )
+        eva = CoSTEERMultiEvaluator(EnsembleCoSTEEREvaluator(scen=scen), scen=scen)
         es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 
-        super().__init__(
-            *args,
-            settings=CoSTEER_SETTINGS,
-            eva=eva,
-            es=es,
-            evolving_version=2,
-            scen=scen,
-            **kwargs
-        )
-
-
+        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)

@@ -4,17 +4,14 @@ from pathlib import Path
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import (
-    Experiment2Feedback,
-    HypothesisFeedback,
-)
+from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 
 class DSExperiment2Feedback(Experiment2Feedback):
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> HypothesisFeedback:
@@ -31,7 +28,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         elif hypothesis.component == "Workflow":
             modified_file_name = "main.py"
         modified_code = exp.experiment_workspace.code_dict[modified_file_name]
-        
+
         sota_hypothesis, sota_exp = trace.get_sota_hypothesis_and_experiment()
 
         if sota_exp:
@@ -46,15 +43,12 @@ class DSExperiment2Feedback(Experiment2Feedback):
         else:
             sota_codes = None
             sota_results = None
-        
-        
+
         last_hypothesis_and_feedback = None
         if trace.hist and len(trace.hist) > 0:
             last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
-        
-        system_prompt = T(".prompts:exp_feedback.system").r(
-            scenario=self.scen.get_scenario_all_desc()
-        )
+
+        system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
             sota_codes=sota_codes,
             sota_results=sota_results,
@@ -63,15 +57,15 @@ class DSExperiment2Feedback(Experiment2Feedback):
             current_results=current_results,
             last_hypothesis_and_feedback=last_hypothesis_and_feedback,
         )
-        
+
         resp_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt,
-                    system_prompt=system_prompt,
-                    json_mode=True,
-                )
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=True,
             )
-        
+        )
+
         return HypothesisFeedback(
             observations=resp_dict.get("Observations", "No observations provided"),
             hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),

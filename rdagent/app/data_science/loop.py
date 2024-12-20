@@ -2,14 +2,18 @@ import subprocess
 from typing import Any, Literal
 
 import fire
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
-from rdagent.components.coder.data_science.feature import FeatureCoSTEER
-from rdagent.components.coder.data_science.model import ModelCoSTEER
 from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.components.coder.data_science.feature import FeatureCoSTEER
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
+from rdagent.components.coder.data_science.model import ModelCoSTEER
+from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
+from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import NextLoopException, RDLoop
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
@@ -23,15 +27,13 @@ from rdagent.core.proposal import (
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace, DSExpGen
-from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
-from rdagent.components.coder.data_science.feature.exp import FeatureTask
-from rdagent.components.coder.data_science.model.exp import ModelTask
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
-from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.scenarios.data_science.dev.runner import DSRunner
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
+from rdagent.scenarios.data_science.dev.runner import DSRunner
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.kaggle.kaggle_crawler import download_data
+
+
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)
 
@@ -103,7 +105,7 @@ class DataScienceRDLoop(RDLoop):
             prev_out["running"], prev_out["direct_exp_gen"].hypothesis, self.trace
         )
         self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
-        
+
 
 def main(path=None, step_n=None, competition=None):
     """
@@ -129,8 +131,3 @@ def main(path=None, step_n=None, competition=None):
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-
-
-
-

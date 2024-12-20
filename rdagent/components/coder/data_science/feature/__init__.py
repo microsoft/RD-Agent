@@ -41,8 +41,10 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # 2. code
-        system_prompt = T(".prompts:feature.system").r(queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-                    queried_former_failed_knowledge=queried_former_failed_knowledge[0])
+        system_prompt = T(".prompts:feature.system").r(
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+        )
         user_prompt = T(".prompts:feature.user").r(
             feature_spec=workspace.code_dict["spec/feature.md"],
             latest_code=workspace.code_dict.get("feat01.py"),
