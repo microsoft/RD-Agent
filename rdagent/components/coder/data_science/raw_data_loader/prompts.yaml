@@ -130,7 +130,7 @@ spec:
                 - `pred_test`: Predictions on test data (`np.ndarray` of shape `(num_test_samples, 1)` or `None`).
                 - `hyper_params`: A dictionary of important hyperparameters for model configuration.
 
-        - Include a clear and concise docstring to explain the function’s purpose, its input parameters, and its expected return values.
+        - Include a clear and concise docstring to explain the function's purpose, its input parameters, and its expected return values.
 
       2. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have the correct shapes and consistent dimensions.
@@ -152,7 +152,7 @@ spec:
 
 
     ensemble: |-
-      Ensemble specification text should include two parts:
+      Ensemble specification text adhere to the following requirements:
       1. Function Interface:
         - The function name must be `ens_and_decision`.
         - The function should include:
@@ -182,20 +182,39 @@ spec:
       }
 
     workflow: |-
-      Workflow specification text should include one parts:
-      1. Precautions:
-        some precautions for workflow.
+      Your task is to implement the main workflow script (`main.py`) for a Kaggle-style machine learning competition project. 
+      Follow the provided project structure and specifications to ensure consistency and maintainability:
+        1. Workflow Integration:
+          - Integrate the following components into the workflow:
+            - Data loading (`load_data.py`).
+            - Feature engineering (`feat*.py`).
+            - Model workflow for training and testing (`model*.py`).
+            - Ensemble and decision-making (`ens.py`).
+          - Treat each component as a modular and callable Python function.
 
-      {% if latest_spec %}
-      2. Former Specification:
-        {{ latest_spec }}
-        You should follow the provided specifications to improve this task.
-      {% endif %}
+        2. Dataset Splitting
+          - The dataset returned by `load_data` is not split into training and testing sets.
+          - By default, split the dataset into 80% for training and 20% for testing. 
+          - You can also use cross-validation or other splitting methods as you deem more useful and appropriate based on the Competition Information.
 
-      Please response the specification in the following json format. Here is an example structure for the JSON output:
-      {
-          "spec": "The specification as a string."
-      }
+        3. Submission File:
+          - Save the final predictions as `submission.csv` in the format required by the competition.
+          - Present the required submission format explicitly and ensure the output adheres to it.
+
+        4. Code Standards:
+          - Use consistent naming conventions and type annotations.
+          - Document the workflow with clear comments and docstrings.
+
+        {% if latest_spec %}
+        5. Former Specification:
+          {{ latest_spec }}
+          You should follow the provided specifications to improve this task.
+        {% endif %}
+
+        Please response the specification in the following json format. Here is an example structure for the JSON output:
+        {
+            "spec": "The corresponding specification string as described above. You should create the rules based on the competition information instead of copying the requirements."
+        }
 
 data_loader_coder:
   system: |-
