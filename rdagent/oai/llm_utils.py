@@ -44,10 +44,10 @@ except ImportError:
     logger.warning("openai is not installed.")
 
 try:
-    if LLM_SETTINGS.use_llama2:
-        from llama import Llama
+    from llama import Llama
 except ImportError:
-    logger.warning("llama is not installed.")
+    if LLM_SETTINGS.use_llama2:
+        logger.warning("llama is not installed.")
 
 
 class ConvManager:
