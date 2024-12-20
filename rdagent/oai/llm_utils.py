@@ -44,7 +44,8 @@ except ImportError:
     logger.warning("openai is not installed.")
 
 try:
-    from llama import Llama
+    if LLM_SETTINGS.use_llama2:
+        from llama import Llama
 except ImportError:
     logger.warning("llama is not installed.")
 
