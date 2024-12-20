@@ -16,6 +16,9 @@ class Feedback:
 
     pass
 
+    def __bool__(self) -> bool:
+        super().__bool__()
+
 
 class Evaluator(ABC):
     """

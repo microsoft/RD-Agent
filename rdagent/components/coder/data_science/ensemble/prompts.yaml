@@ -10,6 +10,27 @@ ensemble_coder:
     {
         "code": "The Python code as a string."
     }
+
+    -----------Here is the relevant information for this task-----------
+    {% if queried_similar_successful_knowledge|length != 0 %}
+    --------------Successful Implementations for Similar Models:--------------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    {{ similar_successful_knowledge.target_task.get_task_information() }}
+    =====Code:=====
+    {{ similar_successful_knowledge.implementation.code }}
+    {% endfor %} 
+    {% endif %}
+
+    {% if queried_former_failed_knowledge|length != 0 %}
+    --------------Previous Failed Attempts:--------------
+    {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+    =====Code:=====
+    {{ former_failed_knowledge.implementation.code }}
+    =====Feedback:=====
+    {{ former_failed_knowledge.feedback }}
+    {% endfor %}
+    {% endif %}
+
   user: |-
     Please implement an ensemble function with the following specification:
     -----------Ensemble Specification-----------

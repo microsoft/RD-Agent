@@ -52,6 +52,9 @@ class CoSTEERSingleFeedback(Feedback):
 This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
 
+    def __bool__(self):
+        return self.final_decision
+
 
 class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
     """This class is a base class for all code generator feedback to single implementation"""
