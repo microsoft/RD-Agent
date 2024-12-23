@@ -6,9 +6,6 @@ from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.data_science.model import ModelCoSTEER
-from rdagent.components.coder.data_science.model.es import (
-    ModelMultiProcessEvolvingStrategy,
-)
 from rdagent.components.coder.data_science.model.eval import (
     ModelGeneralCaseSpecEvaluator,
 )
