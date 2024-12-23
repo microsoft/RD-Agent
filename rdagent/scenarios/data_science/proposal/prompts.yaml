@@ -103,6 +103,7 @@ output_format:
     {
         "model_name": "model_name",
         "description": "A detailed description of the model",
+        "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
         "hyperparameters": {
             "hyperparameter_name_1": "value of hyperparameter 1",

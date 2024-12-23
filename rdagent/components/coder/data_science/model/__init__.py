@@ -21,9 +21,6 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
-# from rdagent.utils.agent.tpl import T
-# T(".prompts:model_generator.user").r()
-
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(

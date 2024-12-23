@@ -175,7 +175,7 @@ class DSExpGen(ExpGen):
                 dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
                 ft = FeatureTask(
                     name="Feature Engineering",
-                    description=resp_dict.get("description", "Factor description not provided"),
+                    description=resp_dict.get("description", "Feature description not provided"),
                 )
 
                 exp = DSExperiment(sub_tasks=[ft], hypothesis=hypothesis)
@@ -194,6 +194,7 @@ class DSExpGen(ExpGen):
                 mt = ModelTask(
                     name=resp_dict.get("model_name", "Model name not provided"),
                     description=resp_dict.get("description", "Model description not provided"),
+                    model_type=resp_dict.get("model_type", "Model type not provided"),
                     architecture=resp_dict.get("architecture", "Model architecture not provided"),
                     hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
                     base_code="",
@@ -270,8 +271,6 @@ class DSExpGen(ExpGen):
                         ft = FeatureTask(
                             name=fn,
                             description=resp_dict[fn].get("description", "Factor description not provided"),
-                            formulation=resp_dict[fn].get("formulation", "Feature formulation not provided"),
-                            variables=resp_dict[fn].get("variables", "Variables not provided"),
                         )
                         tasks.append(ft)
                     exp = DSExperiment(sub_tasks=tasks)
@@ -292,6 +291,7 @@ class DSExpGen(ExpGen):
                     mt = ModelTask(
                         name=resp_dict.get("model_name", "Model name not provided"),
                         description=resp_dict.get("description", "Model description not provided"),
+                        model_type=resp_dict.get("model_type", "Model type not provided"),
                         architecture=resp_dict.get("architecture", "Model architecture not provided"),
                         hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
                         base_code=base_code,

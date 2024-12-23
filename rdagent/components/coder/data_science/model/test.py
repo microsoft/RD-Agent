@@ -24,8 +24,9 @@ def develop_one_competition(competition: str):
     mt = ModelTask(
         name="ModelTask",
         description="A CNN Model",
+        model_type="CNN",
         architecture="\hat{y}_u = CNN(X_u)",
-        variables="variables: {'\\hat{y}_u': 'The predicted output for node u', 'X_u': 'The input features for node u'}",
+        # variables="variables: {'\\hat{y}_u': 'The predicted output for node u', 'X_u': 'The input features for node u'}",
         hyperparameters="...",
         base_code="",
     )
