@@ -12,25 +12,4 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
 
-class DataLoaderTask(CoSTEERTask):
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(name=name, description=description, *args, **kwargs)
-
-    def get_task_information(self):
-        task_desc = f"""name: {self.name}
-description: {self.description}
-"""
-        return task_desc
-
-    @staticmethod
-    def from_dict(dict):
-        return DataLoaderTask(**dict)
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.name}>"
+DataLoaderTask = CoSTEERTask

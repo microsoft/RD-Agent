@@ -131,7 +131,7 @@ class DSExpGen(ExpGen):
                 hypothesis_and_feedback=hypothesis_and_feedback,
             )
 
-            resp_dict = json.loads(
+            resp_dict: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
             )
             hypothesis = DSHypothesis(

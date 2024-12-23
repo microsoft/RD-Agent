@@ -44,10 +44,3 @@ description: {self.description}
         task_desc += f"hyperparameters: {self.hyperparameters}\n"
         task_desc += f"model_type: {self.model_type}\n"
         return task_desc
-
-    @staticmethod
-    def from_dict(dict):
-        return ModelTask(**dict)
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.name}>"

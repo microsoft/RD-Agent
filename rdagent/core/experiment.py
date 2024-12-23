@@ -45,8 +45,10 @@ class Task(AbsTask):
         self.description = description
 
     def get_task_information(self) -> str:
-        return f"{self.name}_{self.version}: {self.description}"
+        return f"Task Name: {self.name}\nDescription: {self.description}"
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} {self.name}>"
 
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
 
