@@ -1,10 +1,9 @@
 import unittest
 
-
 class CoSTEERTest(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.test_competition = "aerial-cactus-identification"
 
     def tearDown(self):
         pass
@@ -13,31 +12,36 @@ class CoSTEERTest(unittest.TestCase):
         return "".join(str(obj).split())
 
     def test_data_loader(self):
-        # 1) Build the data loader task/experiment
-        # 2) build an according CoSTEER
-        # 3) test the results
-        # - check spec.md
-        # - check data_loader.py
         from rdagent.components.coder.data_science.raw_data_loader.test import (
             develop_one_competition,
         )
 
-        exp = develop_one_competition("aerial-cactus-identification")
+        # if all tasks in exp are failed, will raise CoderError
+        exp = develop_one_competition(self.test_competition)
 
-        pass
+    def test_feature(self):
+        from rdagent.components.coder.data_science.feature.test import (
+            develop_one_competition,
+        )
+        exp = develop_one_competition(self.test_competition)
 
     def test_model(self):
-        # 1) Build the model experiment/task/workspace from tpl_ex
-        # 2) build an according CoSTEER
-        # 3) test the results
         from rdagent.components.coder.data_science.model.test import (
             develop_one_competition,
         )
+        exp = develop_one_competition(self.test_competition)
 
-        exp = develop_one_competition("aerial-cactus-identification")
-
-        pass
-
+    def test_ensemble(self):
+        from rdagent.components.coder.data_science.ensemble.test import (
+            develop_one_competition,
+        )
+        exp = develop_one_competition(self.test_competition)
+    
+    def test_workflow(self):
+        from rdagent.components.coder.data_science.workflow.test import (
+            develop_one_competition,
+        )
+        exp = develop_one_competition(self.test_competition)
 
 if __name__ == "__main__":
     unittest.main()

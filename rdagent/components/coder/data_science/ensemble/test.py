@@ -29,9 +29,9 @@ def load_ensemble_spec():
         return f.read()
 
 
-def develop_ensemble():
+def develop_one_competition(competition: str):
     # Initialize scenario and coder
-    scen = DataScienceScen(competition="aerial-cactus-identification")
+    scen = DataScienceScen(competition=competition)
     ensemble_coder = EnsembleCoSTEER(scen)
     # Load ensemble specification
     ensemble_spec = load_ensemble_spec()
@@ -55,4 +55,4 @@ def develop_ensemble():
 
 
 if __name__ == "__main__":
-    develop_ensemble()
+    develop_one_competition("aerial-cactus-identification")
