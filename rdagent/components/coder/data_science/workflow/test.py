@@ -6,9 +6,6 @@ from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
-from rdagent.components.coder.data_science.workflow.es import (
-    WorkflowMultiProcessEvolvingStrategy,
-)
 from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )

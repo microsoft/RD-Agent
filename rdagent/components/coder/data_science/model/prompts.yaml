@@ -3,9 +3,6 @@ model_coder:
         You are tasked with implementing PyTorch models based on specific requirements provided by the user. The user’s ultimate goal is to obtain accurate predictions from the model on input data. Follow the instructions below to ensure your response is correct and aligned with the user’s expectations.
 
         Instructions for Code Generation:
-            Specification Compliance:
-                The user has provided a detailed framework or set of specifications under {{ spec }}. Your code must strictly adhere to this specification, including any required classes, methods, and organizational structure. Do not implement or add anything outside the scope of the provided specification.
-
             Leveraging User Inputs:
                 The user may provide various forms of additional information to guide you:
 
@@ -26,39 +23,38 @@ model_coder:
             {
                 "code": "Your corrected or newly implemented Python code as a single string"
             }
-    user: |-
-        Here is all the relevant information for this task:
-
-        Target Model Details:
-        {{ model_information_str }}
-
+        
+        -----------Here is the relevant information for this task-----------
         {% if queried_similar_successful_knowledge|length != 0 %}
         --------------Successful Implementations for Similar Models:--------------
-        {% for similar_successful_knowledge in queried_similar_successful_knowledge %} 
-        ===== Model {{loop.index}}: =====
+        ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
         {{ similar_successful_knowledge.target_task.get_task_information() }}
-        ===== Code: =====
+        =====Code:=====
         {{ similar_successful_knowledge.implementation.code }}
         {% endfor %} 
         {% endif %}
 
         {% if queried_former_failed_knowledge|length != 0 %}
         --------------Previous Failed Attempts:--------------
-        {% for former_failed_knowledge in queried_former_failed_knowledge %} 
-        Attempt {{ loop.index }}:
-        ===== Code: =====
+        {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
+        =====Code:=====
         {{ former_failed_knowledge.implementation.code }}
-        ===== Feedback: =====
+        =====Feedback:=====
         {{ former_failed_knowledge.feedback }}
         {% endfor %}
-        {% endif %}
+        {% endif %}    
 
-        {% if current_code is not none %}
-        --------------Latest Code:--------------
-        {{ current_code }}
-        {% else %} 
-        No prior code has been implemented. 
-        {% endif %}
+    user: |-
+        ---------Model Specification---------
+        {{ model_spec }}
+
+
+        {% if latest_code %}
+        ---------Former Specification---------
+        Former Code: {{ latest_code }}
+        You should follow the former code to improve it.
+        {% endif %}    
+
 
 model_eval:
     system: |-

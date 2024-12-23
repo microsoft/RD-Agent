@@ -21,6 +21,7 @@ from rdagent.core.proposal import (
     Experiment2Feedback,
     ExpGen,
     Hypothesis2Experiment,
+    HypothesisFeedback,
     HypothesisGen,
     Trace,
 )
@@ -32,7 +33,7 @@ from rdagent.scenarios.data_science.dev.runner import DSRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-from rdagent.core.proposal import HypothesisFeedback
+
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (NextLoopException,)
@@ -98,13 +99,19 @@ class DataScienceRDLoop(RDLoop):
 
     def feedback(self, prev_out: dict[str, Any]):
         if not self.trace.all_components_completed():
-            self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["coding"], HypothesisFeedback(
-                observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
-                hypothesis_evaluation="",
-                new_hypothesis="",
-                reason="",
-                decision=True
-            )))
+            self.trace.hist.append(
+                (
+                    prev_out["direct_exp_gen"].hypothesis,
+                    prev_out["coding"],
+                    HypothesisFeedback(
+                        observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
+                        hypothesis_evaluation="",
+                        new_hypothesis="",
+                        reason="",
+                        decision=True,
+                    ),
+                )
+            )
             raise NextLoopException("Not all 5 components are completed, skip feedback of DataScienceRDLoop.")
 
         feedback = self.summarizer.generate_feedback(

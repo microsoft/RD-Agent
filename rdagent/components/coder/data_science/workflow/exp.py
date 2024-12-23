@@ -24,3 +24,8 @@ class WorkflowTask(CoSTEERTask):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.name}>"
+
+    def get_task_information(self):
+        return f"""name: {self.name}
+description: {self.description}
+"""

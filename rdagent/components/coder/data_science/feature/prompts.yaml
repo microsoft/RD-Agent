@@ -1,6 +1,6 @@
 feature:
   system: |-
-   You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
+    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
     
     This project involves implementing feature engineering techniques to prepare data for machine learning models, and this project code will be written by GPT.
@@ -33,7 +33,6 @@ feature:
     {% endfor %}
     {% endif %}
 
-    ```
   user: |-
     ---------Feature Processing Specification---------
     {{ feature_spec }}
