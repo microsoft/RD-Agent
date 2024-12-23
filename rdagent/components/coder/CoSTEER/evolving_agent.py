@@ -2,7 +2,7 @@ from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedbackDep
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.evolving_framework import EvolvableSubjects
-
+from rdagent.core.exception import CoderError
 
 class FilterFailedRAGEvoAgent(RAGEvoAgent):
     def filter_evolvable_subjects_by_feedback(
@@ -15,4 +15,5 @@ class FilterFailedRAGEvoAgent(RAGEvoAgent):
         for index in range(len(evo.sub_workspace_list)):
             if evo.sub_workspace_list[index] is not None and feedback[index] and not feedback[index].final_decision:
                 evo.sub_workspace_list[index].clear()
+                raise CoderError("Having a failed sub task")
         return evo

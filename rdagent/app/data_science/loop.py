@@ -92,31 +92,26 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        if not self.trace.all_components_completed():
-            raise NextLoopException("Not all 5 components are completed, skip running of DataScienceRDLoop.")
-        exp = self.runner.develop(prev_out["coding"])
+        if self.trace.all_components_completed():
+            exp = self.runner.develop(prev_out["coding"])
+        else:
+            exp = prev_out["coding"]
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
-        if not self.trace.all_components_completed():
-            self.trace.hist.append(
-                (
-                    prev_out["direct_exp_gen"].hypothesis,
-                    prev_out["coding"],
-                    HypothesisFeedback(
+        if self.trace.all_components_completed():
+            feedback = self.summarizer.generate_feedback(
+                prev_out["running"], prev_out["direct_exp_gen"].hypothesis, self.trace
+            )
+        else:
+            feedback = HypothesisFeedback(
                         observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
                         hypothesis_evaluation="",
                         new_hypothesis="",
                         reason="",
                         decision=True,
-                    ),
-                )
-            )
-            raise NextLoopException("Not all 5 components are completed, skip feedback of DataScienceRDLoop.")
+                    )
 
-        feedback = self.summarizer.generate_feedback(
-            prev_out["running"], prev_out["direct_exp_gen"].hypothesis, self.trace
-        )
         self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
 
 
