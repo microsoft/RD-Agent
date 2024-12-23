@@ -50,7 +50,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         fname = "feature_test.py"
         with (DIRNAME / "eval_tests" / "feature_test.py").open("r") as f:
             test_code = f.read()
-            implementation.inject_code(**{fname: test_code})
+            implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         system_prompt = T(".prompts:feature_eval.system").r(test_code=test_code)

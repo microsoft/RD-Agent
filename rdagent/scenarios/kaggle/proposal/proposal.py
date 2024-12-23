@@ -404,7 +404,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         ]
         model_type = response_dict.get("model_type", "Model type not provided")
         if model_type in KG_MODEL_MAPPING:
-            base_code = based_experiments[-1].experiment_workspace.code_dict.get(KG_MODEL_MAPPING[model_type], None)
+            base_code = based_experiments[-1].experiment_workspace.file_dict.get(KG_MODEL_MAPPING[model_type], None)
         else:
             base_code = None
 

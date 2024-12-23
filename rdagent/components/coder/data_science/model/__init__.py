@@ -52,8 +52,8 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         user_prompt = T(".prompts:model_coder.user").r(
-            model_spec=workspace.code_dict["spec/model.md"],
-            latest_code=workspace.code_dict.get("model01.py"),
+            model_spec=workspace.file_dict["spec/model.md"],
+            latest_code=workspace.file_dict.get("model01.py"),
         )
 
         model_code = json.loads(
@@ -79,7 +79,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_code(**code_list[index])
+            evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
 

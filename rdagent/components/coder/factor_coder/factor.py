@@ -92,8 +92,8 @@ class FactorFBWorkspace(FBWorkspace):
 
     def hash_func(self, data_type: str = "Debug") -> str:
         return (
-            md5_hash(data_type + self.code_dict["factor.py"])
-            if ("factor.py" in self.code_dict and not self.raise_exception)
+            md5_hash(data_type + self.file_dict["factor.py"])
+            if ("factor.py" in self.file_dict and not self.raise_exception)
             else None
         )
 
@@ -118,7 +118,7 @@ class FactorFBWorkspace(FBWorkspace):
 
         """
         super().execute()
-        if self.code_dict is None or "factor.py" not in self.code_dict:
+        if self.file_dict is None or "factor.py" not in self.file_dict:
             if self.raise_exception:
                 raise CodeFormatError(self.FB_CODE_NOT_SET)
             else:

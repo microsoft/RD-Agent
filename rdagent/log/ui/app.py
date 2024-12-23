@@ -441,7 +441,7 @@ def summary_window():
                 for j, w in enumerate(ws):
                     with wtabs[j]:
                         # Evolving Code
-                        for k, v in w.code_dict.items():
+                        for k, v in w.file_dict.items():
                             with st.expander(f":green[`{k}`]", expanded=False):
                                 st.code(v, language="python")
 
@@ -636,7 +636,7 @@ def evolving_window():
             with wtabs[j]:
                 # Evolving Code
                 st.markdown(f"**Workspace Path**: {w.workspace_path}")
-                for k, v in w.code_dict.items():
+                for k, v in w.file_dict.items():
                     with st.expander(f":green[`{k}`]", expanded=True):
                         st.code(v, language="python")
 

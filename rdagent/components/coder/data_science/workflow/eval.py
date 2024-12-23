@@ -56,11 +56,11 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario="No scenario information yet.", spec=implementation.code_dict["spec/workflow.md"]
+            scenario="No scenario information yet.", spec=implementation.file_dict["spec/workflow.md"]
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout,
-            code=implementation.code_dict["main.py"],
+            code=implementation.file_dict["main.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return WorkflowSingleFeedback(**json.loads(resp))

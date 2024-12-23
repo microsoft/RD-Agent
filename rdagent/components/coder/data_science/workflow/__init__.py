@@ -47,12 +47,12 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         user_prompt = T(".prompts:workflow_coder.user").r(
-            load_data_code=workspace.code_dict["load_data.py"],
-            feature_code=workspace.code_dict["feat01.py"],
-            model_code=workspace.code_dict["model01.py"],
-            ensemble_code=workspace.code_dict["ens.py"],
-            latest_code=workspace.code_dict.get("main.py"),
-            workflow_spec=workspace.code_dict["spec/workflow.md"],
+            load_data_code=workspace.file_dict["load_data.py"],
+            feature_code=workspace.file_dict["feat01.py"],
+            model_code=workspace.file_dict["model01.py"],
+            ensemble_code=workspace.file_dict["ens.py"],
+            latest_code=workspace.file_dict.get("main.py"),
+            workflow_spec=workspace.file_dict["spec/workflow.md"],
         )
         data_loader_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -75,7 +75,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_code(**code_list[index])
+            evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
 

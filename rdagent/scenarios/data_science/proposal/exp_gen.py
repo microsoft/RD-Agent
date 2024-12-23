@@ -286,7 +286,7 @@ class DSExpGen(ExpGen):
                     dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")
                     if last_model_exp := trace.get_sota_hypothesis_and_experiment("Model"):
                         # TODO: model only have one (named "model.py")?
-                        base_code = last_model_exp.experiment_workspace.code_dict["model.py"]
+                        base_code = last_model_exp.experiment_workspace.file_dict["model.py"]
                     else:
                         base_code = ""
                     mt = ModelTask(

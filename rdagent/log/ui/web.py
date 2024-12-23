@@ -285,7 +285,7 @@ class WorkspaceWindow(StWindow):
                 ModelTaskWindow(self.container.container()).consume_msg(task_msg)
 
         # task codes
-        for k, v in ws.code_dict.items():
+        for k, v in ws.file_dict.items():
             self.container.markdown(f"`{k}`")
             self.container.code(v, language="python")
 

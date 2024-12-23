@@ -99,15 +99,14 @@ class FBWorkspace(Workspace):
 
         def run_pipeline(self, **files: str):
             self.prepare()
-            self.inject_code(**files)
+            self.inject_files(**files)
             self.execute()
 
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        # TODO: rename it to file_dict;   inject_code -> inject_files
-        self.code_dict: dict[str, Any] = (
+        self.file_dict: dict[str, Any] = (
             {}
         )  # The code injected into the folder, store them in the variable to reproduce the former result
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
@@ -115,7 +114,7 @@ class FBWorkspace(Workspace):
     @property
     def code(self) -> str:
         code_string = ""
-        for file_name, code in self.code_dict.items():
+        for file_name, code in self.file_dict.items():
             code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
@@ -142,7 +141,7 @@ class FBWorkspace(Workspace):
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)
 
-    def inject_code(self, **files: str) -> None:
+    def inject_files(self, **files: str) -> None:
         """
         Inject the code into the folder.
         {
@@ -151,7 +150,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         for k, v in files.items():
-            self.code_dict[k] = v
+            self.file_dict[k] = v
             target_file_path = self.workspace_path / k
             target_file_path.parent.mkdir(parents=True, exist_ok=True)
             target_file_path.write_text(v)
@@ -172,7 +171,7 @@ class FBWorkspace(Workspace):
         for file_path in folder_path.rglob("*"):
             if file_path.suffix in (".py", ".yaml", ".md"):
                 relative_path = file_path.relative_to(folder_path)
-                self.inject_code(**{str(relative_path): file_path.read_text()})
+                self.inject_files(**{str(relative_path): file_path.read_text()})
 
     def copy(self) -> FBWorkspace:
         """
@@ -185,14 +184,14 @@ class FBWorkspace(Workspace):
         Clear the workspace
         """
         shutil.rmtree(self.workspace_path, ignore_errors=True)
-        self.code_dict = {}
+        self.file_dict = {}
 
     def execute(self, env: Env | None = None, entry: str | None = None) -> object | None:
         """
         Before each execution, make sure to prepare and inject code
         """
         self.prepare()
-        self.inject_code(**self.code_dict)
+        self.inject_files(**self.file_dict)
         # TODO: env should be not None in new design (no code can run without environment)
         if env is not None and entry is not None:
             return env.run(entry, self.workspace_path)

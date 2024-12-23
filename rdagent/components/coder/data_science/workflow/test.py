@@ -31,9 +31,9 @@ def develop_one_competition(competition: str):
     workflowexp = FBWorkspace()
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
-        workflowexp.inject_code(**{file_name: file_path.read_text()})
+        workflowexp.inject_files(**{file_name: file_path.read_text()})
 
-    wt.base_code += workflowexp.code_dict["main.py"]
+    wt.base_code += workflowexp.file_dict["main.py"]
     exp = DSExperiment(
         sub_tasks=[wt],
     )
@@ -49,7 +49,7 @@ def develop_one_competition(competition: str):
     # Run the experiment
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
-        exp.experiment_workspace.inject_code(**{file_name: file_path.read_text()})
+        exp.experiment_workspace.inject_files(**{file_name: file_path.read_text()})
 
     exp = workflow_coder.develop(exp)
 

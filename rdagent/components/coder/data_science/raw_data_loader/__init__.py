@@ -75,12 +75,12 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         data_loader_prompt = T(".prompts:spec.user.data_loader").r(
-            latest_spec=workspace.code_dict.get("spec/data_loader.md")
+            latest_spec=workspace.file_dict.get("spec/data_loader.md")
         )
-        feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.code_dict.get("spec/feature.md"))
-        model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.code_dict.get("spec/model.md"))
-        ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.code_dict.get("spec/ensemble.md"))
-        workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.code_dict.get("spec/workflow.md"))
+        feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
+        model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
+        ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.file_dict.get("spec/ensemble.md"))
+        workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.file_dict.get("spec/workflow.md"))
 
         spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
@@ -106,7 +106,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:data_loader_coder.user").r(
             competition_info=competition_info,
             data_loader_spec=data_loader_spec,
-            latest_code=workspace.code_dict.get("load_data.py"),
+            latest_code=workspace.file_dict.get("load_data.py"),
         )
 
         data_loader_code = json.loads(
@@ -137,7 +137,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_code(**code_list[index])
+            evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
 

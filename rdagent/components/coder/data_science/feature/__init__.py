@@ -46,8 +46,8 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         user_prompt = T(".prompts:feature.user").r(
-            feature_spec=workspace.code_dict["spec/feature.md"],
-            latest_code=workspace.code_dict.get("feat01.py"),
+            feature_spec=workspace.file_dict["spec/feature.md"],
+            latest_code=workspace.file_dict.get("feat01.py"),
         )
 
         feature_code = json.loads(
@@ -73,7 +73,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_code(**code_list[index])
+            evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
 

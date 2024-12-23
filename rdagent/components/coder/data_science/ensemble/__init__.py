@@ -61,7 +61,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
             ),
         )
-        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=workspace.code_dict["spec/ensemble.md"])
+        user_prompt = T(".prompts:ensemble_coder.user").r(ensemble_spec=workspace.file_dict["spec/ensemble.md"])
 
         ensemble_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -86,7 +86,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if evo.sub_workspace_list[index] is None:
                 # evo.sub_workspace_list[index] = FBWorkspace(target_task=evo.sub_tasks[index])
                 evo.sub_workspace_list[index] = evo.experiment_workspace
-            evo.sub_workspace_list[index].inject_code(**code_list[index])
+            evo.sub_workspace_list[index].inject_files(**code_list[index])
         return evo
 
 

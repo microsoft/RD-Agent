@@ -68,14 +68,14 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         fname = "model_execute.py"
         with (DIRNAME / "eval_tests" / "model_execute.py").open("r") as f:
             test_code = f.read()
-            implementation.inject_code(**{fname: test_code})
+            implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         system_prompt = T(".prompts:model_eval.system").r(
-            test_code=test_code, scenario="No scenario information yet.", spec=implementation.code_dict["spec/model.md"]
+            test_code=test_code, scenario="No scenario information yet.", spec=implementation.file_dict["spec/model.md"]
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,
-            code=implementation.code_dict["model01.py"],
+            code=implementation.file_dict["model01.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return ModelSingleFeedback(**json.loads(resp))

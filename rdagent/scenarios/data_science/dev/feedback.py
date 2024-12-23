@@ -27,7 +27,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             modified_file_name = "ensemble.py"
         elif hypothesis.component == "Workflow":
             modified_file_name = "main.py"
-        modified_code = exp.experiment_workspace.code_dict[modified_file_name]
+        modified_code = exp.experiment_workspace.file_dict[modified_file_name]
 
         sota_hypothesis, sota_exp = trace.get_sota_hypothesis_and_experiment()
 

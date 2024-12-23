@@ -36,9 +36,9 @@ def develop_one_competition(competition: str):
     modelexp = FBWorkspace()
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
-        modelexp.inject_code(**{file_name: file_path.read_text()})
+        modelexp.inject_files(**{file_name: file_path.read_text()})
 
-    mt.base_code += modelexp.code_dict["model01.py"]
+    mt.base_code += modelexp.file_dict["model01.py"]
     exp = DSExperiment(
         sub_tasks=[mt],
     )
@@ -56,7 +56,7 @@ def develop_one_competition(competition: str):
     # Run the experiment
     for file_name in injected_file_names:
         file_path = tpl_ex_path / file_name
-        exp.experiment_workspace.inject_code(**{file_name: file_path.read_text()})
+        exp.experiment_workspace.inject_files(**{file_name: file_path.read_text()})
 
     exp = model_coder.develop(exp)
 
