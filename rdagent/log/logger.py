@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import pickle
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
@@ -115,17 +116,17 @@ class RDAgentLog(SingletonBaseClass):
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
         if "debug_" in tag:
-            debug_log_path = self.log_trace_path / "debug_llm.json"
+            debug_log_path = self.log_trace_path / "debug_llm.pkl"
             debug_data = {"tag": tag, "obj": obj}
             if debug_log_path.exists():
-                with debug_log_path.open("r+", encoding="utf-8") as f:
-                    existing_data = json.load(f)
+                with debug_log_path.open("rb+") as f:
+                    existing_data = pickle.load(f)
                     existing_data.append(debug_data)
                     f.seek(0)
-                    json.dump(existing_data, f, ensure_ascii=False, indent=4)
+                    pickle.dump(existing_data, f)
             else:
-                with debug_log_path.open("w", encoding="utf-8") as f:
-                    json.dump([debug_data], f, ensure_ascii=False, indent=4)
+                with debug_log_path.open("wb") as f:
+                    pickle.dump([debug_data], f)
             return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")

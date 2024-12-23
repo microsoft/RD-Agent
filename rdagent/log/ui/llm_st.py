@@ -1,5 +1,6 @@
 import argparse
 import json
+import pickle
 import re
 from pathlib import Path
 
@@ -30,8 +31,8 @@ tlist = []
 
 def load_data():
     try:
-        with open(f"{main_log_path}/{session_state.log_path}/debug_llm.json", "r") as f:
-            session_state.data = json.load(f)
+        with open(f"{main_log_path}/{session_state.log_path}/debug_llm.pkl", "r") as f:
+            session_state.data = pickle.load(f)
     except Exception as e:
         session_state.data = [{"error": str(e)}]
 
