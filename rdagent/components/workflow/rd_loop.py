@@ -20,12 +20,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.workflow import LoopBase, LoopMeta
 
 
-class NextLoopException(Exception):
-    """TODO: should we place in in rdagent/core/exception.py?"""
-
-    pass
-
-
 class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def __init__(self, PROP_SETTING: BasePropSetting):
