@@ -15,7 +15,7 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.components.workflow.rd_loop import NextLoopException, RDLoop
+from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Experiment2Feedback,
@@ -36,7 +36,6 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
 class DataScienceRDLoop(RDLoop):
-    skip_loop_error = (NextLoopException,)
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -105,13 +104,12 @@ class DataScienceRDLoop(RDLoop):
             )
         else:
             feedback = HypothesisFeedback(
-                        observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
-                        hypothesis_evaluation="",
-                        new_hypothesis="",
-                        reason="",
-                        decision=True,
-                    )
-
+                observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
+                hypothesis_evaluation="",
+                new_hypothesis="",
+                reason="",
+                decision=True,
+            )
         self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
 
 
