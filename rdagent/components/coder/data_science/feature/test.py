@@ -20,7 +20,7 @@ def develop_one_competition(competition: str):  # -> experiment
         feat_spec = file.read()
 
     # Create the experiment
-    ft = FeatureTask(name="FeatureTask", description=scen.competition_descriptions)
+    ft = FeatureTask(name="FeatureTask", description=scen.get_competition_full_desc())
     exp = DSExperiment(
         sub_tasks=[ft],
     )
