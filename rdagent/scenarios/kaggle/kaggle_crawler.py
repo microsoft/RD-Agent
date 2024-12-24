@@ -177,8 +177,7 @@ def leaderboard_scores(competition: str) -> list[float]:
         ll = api.competition_leaderboard_view(competition)
     except Exception as e:
         logger.error(f"Error: {e}")
-        import random
-        return [random.random() for _ in range(100)]
+        return [i / 100 for i in range(100)]
     return [float(x.score) for x in ll]
 
 
