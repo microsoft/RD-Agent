@@ -31,7 +31,7 @@ tlist = []
 
 def load_data():
     try:
-        with open(f"{main_log_path}/{session_state.log_path}/debug_llm.pkl", "r") as f:
+        with open(f"{main_log_path}/{session_state.log_path}/debug_llm.pkl", "rb") as f:
             session_state.data = pickle.load(f)
     except Exception as e:
         session_state.data = [{"error": str(e)}]

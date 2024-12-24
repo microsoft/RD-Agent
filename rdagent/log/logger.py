@@ -119,10 +119,10 @@ class RDAgentLog(SingletonBaseClass):
             debug_log_path = self.log_trace_path / "debug_llm.pkl"
             debug_data = {"tag": tag, "obj": obj}
             if debug_log_path.exists():
-                with debug_log_path.open("rb+") as f:
+                with debug_log_path.open("rb") as f:
                     existing_data = pickle.load(f)
-                    existing_data.append(debug_data)
-                    f.seek(0)
+                existing_data.append(debug_data)
+                with debug_log_path.open("wb") as f:
                     pickle.dump(existing_data, f)
             else:
                 with debug_log_path.open("wb") as f:
