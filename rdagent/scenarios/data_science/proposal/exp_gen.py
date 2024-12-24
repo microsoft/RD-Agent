@@ -21,13 +21,13 @@ ORDER = COMPONENT.__args__
 class DSHypothesis(Hypothesis):
     def __init__(
         self,
-        hypothesis: str,
-        reason: str,
-        concise_reason: str,
-        concise_observation: str,
-        concise_justification: str,
-        concise_knowledge: str,
         component: COMPONENT,
+        hypothesis: str = "",
+        reason: str = "",
+        concise_reason: str = "",
+        concise_observation: str = "",
+        concise_justification: str = "",
+        concise_knowledge: str = "",
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
@@ -35,6 +35,8 @@ class DSHypothesis(Hypothesis):
         self.component = component
 
     def __str__(self) -> str:
+        if self.hypothesis == "":
+            return f"Chosen Component: {self.component}"
         return f"""Chosen Component: {self.component}
 Hypothesis: {self.hypothesis}
 Reason: {self.reason}
@@ -135,13 +137,13 @@ class DSExpGen(ExpGen):
                 APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
             )
             hypothesis = DSHypothesis(
+                component=resp_dict.get("component", "Component not provided"),
                 hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
                 reason=resp_dict.get("reason", "Reason not provided"),
                 concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
                 concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
                 concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
                 concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
-                component=resp_dict.get("component", "Component not provided"),
             )
 
             # 2. gen experiment
@@ -172,7 +174,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")[1]
                 ft = FeatureTask(
                     name="Feature Engineering",
                     description=resp_dict.get("description", "Feature description not provided"),
@@ -190,7 +192,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")[1]
                 mt = ModelTask(
                     name=resp_dict.get("model_name", "Model name not provided"),
                     description=resp_dict.get("description", "Model description not provided"),
@@ -212,7 +214,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")[1]
                 et = EnsembleTask(
                     name="Ensemble",
                     description=resp_dict.get("description", "Ensemble description not provided"),
@@ -230,7 +232,7 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")
+                dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")[1]
                 wt = WorkflowTask(
                     name="Workflow",
                     description=resp_dict.get("description", "Workflow description not provided"),
@@ -257,7 +259,7 @@ class DSExpGen(ExpGen):
                         ),
                     )
 
-                    exp = DSExperiment(sub_tasks=[dt])
+                    exp = DSExperiment(sub_tasks=[dt], hypothesis=DSHypothesis("DataLoadSpec"))
                     return exp
                 elif o == "FeatureEng":
                     resp_dict = self.llm_task_gen(
@@ -265,15 +267,12 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.feature").r(),
                     )
-                    dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")
-                    tasks = []
-                    for fn in resp_dict:
-                        ft = FeatureTask(
-                            name=fn,
-                            description=resp_dict[fn].get("description", "Factor description not provided"),
-                        )
-                        tasks.append(ft)
-                    exp = DSExperiment(sub_tasks=tasks)
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("DataLoadSpec")[1]
+                    ft = FeatureTask(
+                        name="Feature Engineering",
+                        description=resp_dict.get("description", "Factor description not provided"),
+                    )
+                    exp = DSExperiment(sub_tasks=[ft], hypothesis=DSHypothesis("FeatureEng"))
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Model":
@@ -282,8 +281,8 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.model").r(),
                     )
-                    dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")
-                    if last_model_exp := trace.get_sota_hypothesis_and_experiment("Model"):
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("FeatureEng")[1]
+                    if last_model_exp := trace.get_sota_hypothesis_and_experiment("Model")[1]:
                         # TODO: model only have one (named "model.py")?
                         base_code = last_model_exp.experiment_workspace.file_dict["model.py"]
                     else:
@@ -296,7 +295,7 @@ class DSExpGen(ExpGen):
                         hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
                         base_code=base_code,
                     )
-                    exp = DSExperiment(sub_tasks=[mt])
+                    exp = DSExperiment(sub_tasks=[mt], hypothesis=DSHypothesis("Model"))
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Ensemble":
@@ -305,12 +304,12 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.ensemble").r(),
                     )
-                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Model")[1]
                     et = EnsembleTask(
                         name="Ensemble",
                         description=resp_dict.get("description", "Ensemble description not provided"),
                     )
-                    exp = DSExperiment(sub_tasks=[et])
+                    exp = DSExperiment(sub_tasks=[et], hypothesis=DSHypothesis("Ensemble"))
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
                 elif o == "Workflow":
@@ -319,12 +318,12 @@ class DSExpGen(ExpGen):
                         scenario_desc=scenario_desc,
                         task_output_format=T(".prompts:output_format.workflow").r(),
                     )
-                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")
+                    dependency_exp = trace.get_sota_hypothesis_and_experiment("Ensemble")[1]
                     wt = WorkflowTask(
                         name="Workflow",
                         description=resp_dict.get("description", "Workflow description not provided"),
                     )
-                    exp = DSExperiment(sub_tasks=[wt])
+                    exp = DSExperiment(sub_tasks=[wt], hypothesis=DSHypothesis("Workflow"))
                     exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
                     return exp
 

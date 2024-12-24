@@ -1,30 +1,16 @@
-import subprocess
-from typing import Any, Literal
+from typing import Any
 
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
-from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature import FeatureCoSTEER
-from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model import ModelCoSTEER
-from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
-from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
-from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
-from rdagent.core.exception import FactorEmptyError, ModelEmptyError
-from rdagent.core.proposal import (
-    Experiment2Feedback,
-    ExpGen,
-    Hypothesis2Experiment,
-    HypothesisFeedback,
-    HypothesisGen,
-    Trace,
-)
+from rdagent.core.proposal import HypothesisFeedback
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -74,19 +60,18 @@ class DataScienceRDLoop(RDLoop):
 
     def coding(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["direct_exp_gen"]
-        exp_task = exp.sub_tasks[0]
-        if isinstance(exp_task, DataLoaderTask):
+        if exp.hypothesis.component == "DataLoadSpec":
             exp = self.data_loader_coder.develop(exp)
-        elif isinstance(exp_task, FeatureTask):
+        elif exp.hypothesis.component == "FeatureEng":
             exp = self.feature_coder.develop(exp)
-        elif isinstance(exp_task, ModelTask):
+        elif exp.hypothesis.component == "Model":
             exp = self.model_coder.develop(exp)
-        elif isinstance(exp_task, EnsembleTask):
+        elif exp.hypothesis.component == "Ensemble":
             exp = self.ensemble_coder.develop(exp)
-        elif isinstance(exp_task, WorkflowTask):
+        elif exp.hypothesis.component == "Workflow":
             exp = self.workflow_coder.develop(exp)
         else:
-            raise NotImplementedError(f"Unsupported task type in DataScienceRDLoop: {exp_task}")
+            raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
 
         return exp
 
