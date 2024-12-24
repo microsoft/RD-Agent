@@ -99,15 +99,15 @@ for d in session_state.data:
     loop_id, func_name = extract_loopid_func_name(tag)
     evo_id = extract_evoid(tag)
     if loop_id:
-        if loop_id not in tlist:
-            tlist.append(loop_id)
-            st.subheader(f"**Loop_{loop_id}**", anchor=f"Loop_{loop_id}", divider="blue")
+        if f"Loop_{loop_id}" not in tlist:
+            tlist.append(f"Loop_{loop_id}")
+            st.header(f"Loop_{loop_id}", anchor=f"Loop_{loop_id}", divider="blue")
         if f"loop_{loop_id}.{func_name}" not in tlist:
             tlist.append(f"loop_{loop_id}.{func_name}")
-            st.subheader(f"**{func_name}**", anchor=f"loop_{loop_id}.{func_name}", divider="green")
-        if f"loop_{loop_id}.{evo_id}" not in tlist:
+            st.header(f"in *{func_name}*", anchor=f"loop_{loop_id}.{func_name}", divider="green")
+        if evo_id and f"loop_{loop_id}.evo_step_{evo_id}" not in tlist:
             tlist.append(f"loop_{loop_id}.evo_step_{evo_id}")
-            st.subheader(f"**evo_step_{evo_id}**", anchor=f"loop_{loop_id}.evo_step_{evo_id}", divider="orange")
+            st.subheader(f"evo_step_{evo_id}", anchor=f"loop_{loop_id}.evo_step_{evo_id}", divider="orange")
 
     if "debug_tpl" in tag:
         uri = obj["uri"]
@@ -161,7 +161,7 @@ with st.sidebar:
         if t.startswith("L"):
             et_toc += f"- [{t}](#{t})\n"
         elif "evo_step_" in t:
-            et_toc += f"    - [{t}](#{t})\n"
+            et_toc += f"    - [{t.split('.')[1]}](#{t})\n"
         else:
-            et_toc += f"  - [{t}](#{t})\n"
+            et_toc += f"  - [{t.split('.')[1]}](#{t})\n"
     st.markdown(et_toc, unsafe_allow_html=True)
