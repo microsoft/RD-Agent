@@ -53,7 +53,9 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        system_prompt = T(".prompts:feature_eval.system").r(test_code=test_code)
+        system_prompt = T(".prompts:feature_eval.system").r(
+            test_code=test_code, code=implementation.file_dict["feat01.py"]
+        )
         user_prompt = T(".prompts:feature_eval.user").r(stdout=stdout)
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)

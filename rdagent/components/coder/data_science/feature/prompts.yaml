@@ -48,10 +48,17 @@ feature:
 feature_eval:
   system: |-
     You are data scientist.
-    You are testing the feature processing with the following code
+
+    The feature code is:
+    ```python
+    {{code}}
+    ```
+
+    You are testing the feature processing code with the following code
     ```python
     {{test_code}}
     ```
+
     You'll be given the stdout of your testing scripts.
     Please respond with your feedback in the following JSON format and order
     ```json
