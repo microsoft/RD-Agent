@@ -78,6 +78,8 @@ class RandDataReducer(DataReducer):
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         frac = max(self.min_frac, self.min_num / len(df))
+        if frac >= 1:
+            return df
         return df.sample(frac=frac, random_state=1)
 
 
