@@ -35,3 +35,28 @@ competition_background: |-
   Briefly, the competition involves: {{ brief_description }}.
   The dataset used in this competition is: {{ data_description }}.
   Your goal in this competition is to: {{target_description }}.
+
+rich_style_description: |-
+  ### {{ name }} Agent: Automated Feature Engineering & Model Tuning Evolution
+
+  #### [Overview](#_summary)
+
+  In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
+
+  #### {{ name }} Competition info
+
+  Current Competition: {{ competition }}
+
+  #### [Automated R&D](#_rdloops)
+
+  - **[R (Research)](#_research)**
+  - Iteration of ideas and hypotheses.
+  - Continuous learning and knowledge construction.
+
+  - **[D (Development)](#_development)**
+  - Evolving code generation, model refinement, and features generation.
+  - Automated implementation and testing of models/features.
+
+  #### [Objective](#_summary)
+
+  To automatically optimize performance metrics within the validation set, ultimately discovering the most efficient features and models through autonomous research and development.

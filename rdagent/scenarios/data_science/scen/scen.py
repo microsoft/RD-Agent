@@ -24,7 +24,7 @@ class DataScienceScen(Scenario):
             with fp.open("r") as f:
                 return json.load(f)
         else:
-            logger.error(f"Cannot find {self.competition}.json, please check the file.")
+            logger.error(f"Cannot find {self.competition}.json in {DS_RD_SETTING.local_data_path}, please check the file.")
 
     def _get_direction(self):
         return self.raw_description.get("metric_direction", "minimize")
@@ -76,31 +76,10 @@ class DataScienceScen(Scenario):
 
     @property
     def rich_style_description(self) -> str:
-        return f"""
-### Data Science Agent: Automated Feature Engineering & Model Tuning Evolution
-
-#### [Overview](#_summary)
-
-In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
-
-#### Data Science Competition info
-
-Current Competition: [{self.competition}]
-
-#### [Automated R&D](#_rdloops)
-
-- **[R (Research)](#_research)**
-- Iteration of ideas and hypotheses.
-- Continuous learning and knowledge construction.
-
-- **[D (Development)](#_development)**
-- Evolving code generation, model refinement, and features generation.
-- Automated implementation and testing of models/features.
-
-#### [Objective](#_summary)
-
-To automatically optimize performance metrics within the validation set, ultimately discovering the most efficient features and models through autonomous research and development.
-"""
+        return T(".prompts:rich_style_description").r(
+            name="Data Science",
+            competition=self.competition,
+        )
 
     def get_scenario_all_desc(self) -> str:
         return T(".prompts:scenario_description").r(
