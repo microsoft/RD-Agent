@@ -22,6 +22,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
 class DataScienceRDLoop(RDLoop):
+    skip_loop_error = ()
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
