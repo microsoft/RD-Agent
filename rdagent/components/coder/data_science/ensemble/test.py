@@ -8,7 +8,7 @@ from pathlib import Path
 from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.data_science.scen import KaggleScen
 
 # Add the competition folder to path
 COMPETITION_PATH = (
@@ -31,7 +31,7 @@ def load_ensemble_spec():
 
 def develop_one_competition(competition: str):
     # Initialize scenario and coder
-    scen = DataScienceScen(competition=competition)
+    scen = KaggleScen(competition=competition)
     ensemble_coder = EnsembleCoSTEER(scen)
     # Load ensemble specification
     ensemble_spec = load_ensemble_spec()

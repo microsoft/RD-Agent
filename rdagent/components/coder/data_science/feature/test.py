@@ -9,11 +9,11 @@ It is NOT:
 from rdagent.components.coder.data_science.feature import FeatureCoSTEER
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.data_science.scen import KaggleScen
 
 
 def develop_one_competition(competition: str):  # -> experiment
-    scen = DataScienceScen(competition=competition)
+    scen = KaggleScen(competition=competition)
     feature_coder = FeatureCoSTEER(scen)
 
     with open("./rdagent/scenarios/kaggle/tpl_ex/aerial-cactus-identification/spec/feature.md", "r") as file:
