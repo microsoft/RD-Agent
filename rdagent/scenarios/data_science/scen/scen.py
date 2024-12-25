@@ -1,9 +1,11 @@
 import json
+from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.log import rdagent_logger as logger
 
 
 class DataScienceScen(Scenario):
@@ -18,11 +20,11 @@ class DataScienceScen(Scenario):
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
-            logger.info(f"Found {competition}.json, loading from local file.")
+            logger.info(f"Found {self.competition}.json, loading from local file.")
             with fp.open("r") as f:
                 return json.load(f)
         else:
-            logger.error(f"Cannot find {competition}.json, please check the file.")
+            logger.error(f"Cannot find {self.competition}.json, please check the file.")
 
     def _get_direction(self):
         return self.raw_description.get("metric_direction", "minimize")
