@@ -3,30 +3,29 @@ import json
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.kaggle.kaggle_crawler import (
-    crawl_descriptions,
-    leaderboard_scores,
-)
 from rdagent.utils.agent.tpl import T
 
 
 class DataScienceScen(Scenario):
     """Data Science Scenario
-    It is based on kaggle now.
-        - But it is not use the same interface with previous kaggle version.
-        - Ideally, we should reuse previous kaggle scenario.
-          But we found that too much scenario unrelated code in kaggle scenario and hard to reuse.
-          So we start from a simple one....
     """
 
     def __init__(self, competition: str) -> None:
         self.competition = competition
-        self.raw_description = crawl_descriptions(competition, DS_RD_SETTING.local_data_path)
-
-        leaderboard = leaderboard_scores(competition)
-        self.metric_direction = "maximize" if float(leaderboard[0]) > float(leaderboard[-1]) else "minimize"
-
+        self.raw_description = self._get_description()
+        self.metric_direction = self._get_direction()
         self._analysis_competition_description()
+
+    def _get_description(self):
+        if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
+            logger.info(f"Found {competition}.json, loading from local file.")
+            with fp.open("r") as f:
+                return json.load(f)
+        else:
+            logger.error(f"Cannot find {competition}.json, please check the file.")
+
+    def _get_direction(self):
+        return self.raw_description.get("metric_direction", "minimize")
 
     def _analysis_competition_description(self):
         sys_prompt = T(".prompts:competition_description_template.system").r()
@@ -76,15 +75,15 @@ class DataScienceScen(Scenario):
     @property
     def rich_style_description(self) -> str:
         return f"""
-### Kaggle Agent: Automated Feature Engineering & Model Tuning Evolution
+### Data Science Agent: Automated Feature Engineering & Model Tuning Evolution
 
 #### [Overview](#_summary)
 
 In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
 
-#### Kaggle Competition info
+#### Data Science Competition info
 
-Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{self.competition})
+Current Competition: [{self.competition}]
 
 #### [Automated R&D](#_rdloops)
 
@@ -98,7 +97,7 @@ Current Competition: [{self.competition}](https://www.kaggle.com/competitions/{s
 
 #### [Objective](#_summary)
 
-To automatically optimize performance metrics within the validation set or Kaggle Leaderboard, ultimately discovering the most efficient features and models through autonomous research and development.
+To automatically optimize performance metrics within the validation set, ultimately discovering the most efficient features and models through autonomous research and development.
 """
 
     def get_scenario_all_desc(self) -> str:

@@ -12,12 +12,12 @@ from rdagent.components.coder.data_science.model.eval import (
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.data_science.scen import KaggleScen
 
 
 # Take tasks, spec.md and feat as input, generate a feedback as output
 def develop_one_competition(competition: str):
-    scen = DataScienceScen(competition=competition)
+    scen = KaggleScen(competition=competition)
     model_coder = ModelCoSTEER(scen)
 
     # Create the task

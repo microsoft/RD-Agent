@@ -1,6 +1,7 @@
 import subprocess
 from typing import Any, Literal
 
+from pathlib import Path
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -125,7 +126,12 @@ def main(path=None, step_n=None, competition=None):
         DS_RD_SETTING.competition = competition
 
     if DS_RD_SETTING.competition:
-        download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
+        if DS_RD_SETTING.scen.endswith("KaggleScen"):
+            download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
+        else:
+            if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+                logger.error(f"Please prepare data for competition {competition} first.")
+                return
     else:
         logger.error("Please specify competition name.")
     if path is None:

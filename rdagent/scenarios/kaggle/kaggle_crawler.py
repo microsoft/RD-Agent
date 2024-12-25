@@ -143,7 +143,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                     raise FileNotFoundError(f"{labels_path} does not exist")
     else:
         zipfile_path = f"{local_path}/zip_files"
-        if not Path(f"{zipfile_path}/{competition}.zip").exists() and not Path(f"{local_path}/{competition}").exists():
+        if not Path(f"{zipfile_path}/{competition}.zip").exists():
             try:
                 subprocess.run(
                     ["kaggle", "competitions", "download", "-c", competition, "-p", zipfile_path],
@@ -173,11 +173,7 @@ def leaderboard_scores(competition: str) -> list[float]:
 
     api = KaggleApi()
     api.authenticate()
-    try:
-        ll = api.competition_leaderboard_view(competition)
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        return [i / 100 for i in range(100)]
+    ll = api.competition_leaderboard_view(competition)
     return [float(x.score) for x in ll]
 
 

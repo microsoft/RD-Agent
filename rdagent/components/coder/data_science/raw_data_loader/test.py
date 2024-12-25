@@ -9,11 +9,11 @@ It is NOT:
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.data_science.scen import KaggleScen
 
 
 def develop_one_competition(competition: str):  # -> experiment
-    scen = DataScienceScen(competition=competition)
+    scen = KaggleScen(competition=competition)
     data_loader_coder = DataLoaderCoSTEER(scen)
 
     # Create the experiment

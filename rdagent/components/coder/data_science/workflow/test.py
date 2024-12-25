@@ -12,11 +12,11 @@ from rdagent.components.coder.data_science.workflow.eval import (
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.scen import DataScienceScen
+from rdagent.scenarios.data_science.scen import KaggleScen
 
 
 def develop_one_competition(competition: str):
-    scen = DataScienceScen(competition=competition)
+    scen = KaggleScen(competition=competition)
     workflow_coder = WorkflowCoSTEER(scen)
 
     wt = WorkflowTask(
