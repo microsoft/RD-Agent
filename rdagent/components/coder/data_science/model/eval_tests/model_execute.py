@@ -7,11 +7,11 @@ import pickle
 import traceback
 
 import numpy as np
-from load_data import load_from_raw_data
+from load_data import load_data
 from model01 import model_workflow
 from sklearn.model_selection import train_test_split
 
-X, y, test_X, test_ids = load_from_raw_data()
+X, y, test_X, test_ids = load_data()
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
 
 

@@ -1,8 +1,8 @@
-from load_data import load_from_raw_data
+from load_data import load_data
 from sklearn.model_selection import train_test_split
 
 # Load data
-train_images, train_labels, test_images, test_ids = load_from_raw_data()
+train_images, train_labels, test_images, test_ids = load_data()
 
 
 # feature engineering

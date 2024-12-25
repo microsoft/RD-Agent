@@ -18,9 +18,9 @@ from feat01 import feat_eng
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Load data
-from load_data import load_from_raw_data
+from load_data import load_data
 
-X, y, X_test, test_ids = load_from_raw_data()
+X, y, X_test, test_ids = load_data()
 
 X, y, X_param = feat_eng(X, y)
 X_test, _, _ = feat_eng(X_test, param=X_param)
