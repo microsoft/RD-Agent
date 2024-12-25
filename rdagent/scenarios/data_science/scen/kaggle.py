@@ -19,6 +19,7 @@ class KaggleScen(DataScienceScen):
           But we found that too much scenario unrelated code in kaggle scenario and hard to reuse.
           So we start from a simple one....
     """
+
     def _get_description(self):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)
 
@@ -32,4 +33,3 @@ class KaggleScen(DataScienceScen):
             name="Kaggle",
             competition=f"[{self.competition}](https://www.kaggle.com/competitions/{self.competition})",
         )
-        

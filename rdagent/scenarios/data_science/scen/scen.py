@@ -3,14 +3,13 @@ from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from rdagent.log import rdagent_logger as logger
 
 
 class DataScienceScen(Scenario):
-    """Data Science Scenario
-    """
+    """Data Science Scenario"""
 
     def __init__(self, competition: str) -> None:
         self.competition = competition
@@ -24,7 +23,9 @@ class DataScienceScen(Scenario):
             with fp.open("r") as f:
                 return json.load(f)
         else:
-            logger.error(f"Cannot find {self.competition}.json in {DS_RD_SETTING.local_data_path}, please check the file.")
+            logger.error(
+                f"Cannot find {self.competition}.json in {DS_RD_SETTING.local_data_path}, please check the file."
+            )
 
     def _get_direction(self):
         return self.raw_description.get("metric_direction", "minimize")

@@ -70,6 +70,8 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             test_code = f.read()
             implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
+        if stdout is None:
+            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
         system_prompt = T(".prompts:model_eval.system").r(
             test_code=test_code, scenario="No scenario information yet.", spec=implementation.file_dict["spec/model.md"]
         )

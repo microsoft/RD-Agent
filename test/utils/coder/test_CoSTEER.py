@@ -1,5 +1,6 @@
 import unittest
 
+
 class CoSTEERTest(unittest.TestCase):
 
     def setUp(self):
@@ -23,25 +24,30 @@ class CoSTEERTest(unittest.TestCase):
         from rdagent.components.coder.data_science.feature.test import (
             develop_one_competition,
         )
+
         exp = develop_one_competition(self.test_competition)
 
     def test_model(self):
         from rdagent.components.coder.data_science.model.test import (
             develop_one_competition,
         )
+
         exp = develop_one_competition(self.test_competition)
 
     def test_ensemble(self):
         from rdagent.components.coder.data_science.ensemble.test import (
             develop_one_competition,
         )
+
         exp = develop_one_competition(self.test_competition)
-    
+
     def test_workflow(self):
         from rdagent.components.coder.data_science.workflow.test import (
             develop_one_competition,
         )
+
         exp = develop_one_competition(self.test_competition)
+
 
 if __name__ == "__main__":
     unittest.main()
