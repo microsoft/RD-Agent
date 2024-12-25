@@ -8,7 +8,7 @@ train_images, train_labels, test_images, test_ids = load_data()
 # feature engineering
 from feat01 import feat_eng
 
-train_images, train_lables, train_param = feat_eng(train_images, train_labels)
+train_images, train_lables, train_param = feat_eng(train_images, train_labels, train_images, train_labels)
 test_images, _, _ = feat_eng(test_images, param=train_param)
 
 

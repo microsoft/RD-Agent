@@ -76,7 +76,17 @@ spec:
     feature: |-
       Feature engineering specification text should adhere to the following requirements:
       1. Function Interface:
+        - Give a python function interface code with docstring.
         - The function must be named `feat_eng`.
+        - Parameters:
+          - `X`: Train data to be transformed.
+          - `y`: Train label data.
+          - `X_test`: Test data.
+        - Output:
+          - `X_transformed`: Transformed train data.
+          - `y_transformed`: Transformed train label data.
+          - `X_test_transformed`: Transformed test data.
+
         - Must include proper and specific annotations for both input and output based on the Competition Information:
           - Input: Specify the expected input data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
           - Output: Specify the transformed output data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).

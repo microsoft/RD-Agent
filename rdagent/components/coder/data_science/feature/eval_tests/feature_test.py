@@ -7,23 +7,15 @@ A qualified data loader should support following features
 Please make sure the stdout is rich enough to support informative feedback
 """
 
-import logging
 import pickle
 
 import numpy as np
 import pandas as pd
+from load_data import load_data
 from feat01 import feat_eng
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# Load data
-from load_data import load_data
-
 X, y, X_test, test_ids = load_data()
-
-X, y, X_param = feat_eng(X, y)
-X_test, _, _ = feat_eng(X_test, param=X_param)
+X, y, X_test = feat_eng(X, y, X_test)
 
 
 # Validate the conditions mentioned in the docstring
@@ -41,4 +33,4 @@ elif isinstance(X, np.ndarray):
 else:
     raise TypeError("Unsupported data type for X and y")
 
-logging.info("Data loader test passed successfully. Length of test images matches length of test IDs.")
+print("Data loader test passed successfully. Length of test images matches length of test IDs.")
