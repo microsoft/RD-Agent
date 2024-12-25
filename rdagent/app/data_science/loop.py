@@ -1,6 +1,6 @@
+from pathlib import Path
 from typing import Any
 
-from pathlib import Path
 import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -100,7 +100,7 @@ class DataScienceRDLoop(RDLoop):
         self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
 
 
-def main(path=None, step_n=None, competition=None):
+def main(path=None, step_n=None, competition="bms-molecular-translation"):
     """
     Auto R&D Evolving loop for models in a kaggle{} scenario.
     You can continue running session by

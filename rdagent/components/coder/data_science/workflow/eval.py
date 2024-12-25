@@ -55,6 +55,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=ds_docker_conf)
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
+        if stdout is None:
+            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario="No scenario information yet.", spec=implementation.file_dict["spec/workflow.md"]
         )

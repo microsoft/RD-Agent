@@ -52,7 +52,8 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             test_code = f.read()
             implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-
+        if stdout is None:
+            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
         system_prompt = T(".prompts:feature_eval.system").r(
             test_code=test_code, code=implementation.file_dict["feat01.py"]
         )
