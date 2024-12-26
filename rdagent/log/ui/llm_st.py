@@ -67,7 +67,7 @@ def show_text(text, lang=None):
     if lang is not None:
         st.code(text, language=lang, wrap_lines=True)
     elif "```py" in text:
-        st.code(text, language="python", wrap_lines=True)
+        st.code(text, language="python", wrap_lines=True, line_numbers=True)
     else:
         st.code(text, language="html", wrap_lines=True)
 
@@ -143,7 +143,7 @@ for d in session_state.data:
                     if "code" in rdict:
                         code = rdict["code"]
                         st.markdown(":red[**Code in response dict:**]")
-                        st.code(code, language="python", wrap_lines=True)
+                        st.code(code, language="python", wrap_lines=True, line_numbers=True)
                         rdict.pop("code")
                     elif "spec" in rdict:
                         spec = rdict["spec"]
