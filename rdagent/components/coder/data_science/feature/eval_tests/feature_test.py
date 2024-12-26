@@ -33,4 +33,4 @@ elif isinstance(X, np.ndarray):
 else:
     raise TypeError("Unsupported data type for X and y")
 
-print("Data loader test passed successfully. Length of test images matches length of test IDs.")
+print("Feature Engineering test passed successfully. Length of test images matches length of test IDs.")
