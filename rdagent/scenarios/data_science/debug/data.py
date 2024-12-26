@@ -121,6 +121,7 @@ def create_debug_data(
         dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path
     
     if sample_path is None:
+        # Create a sample folder under the dataset folder, which should be available in docker container
         sample_path = Path(dataset_path) / "sample"
 
     data_folder = Path(dataset_path) / competition
@@ -159,8 +160,11 @@ def create_debug_data(
         df_sampled = data_reducer.reduce(df)
 
         # Dump the sampled data
-        data_handler.dump(df_sampled, sampled_file_path)
-
+        try:
+            data_handler.dump(df_sampled, sampled_file_path)
+        except Exception as e:
+            print(f"Error processing {file_path}: {e}")
+            continue
 
 if __name__ == "__main__":
     fire.Fire(create_debug_data)
