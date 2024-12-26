@@ -148,6 +148,7 @@ spec:
         - Return hyperparameters for retrain if not exists.
         - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
         - If `test_X` is provided, generate predictions for it.
+        - If there is a training progress bar, do not output it to stdout
 
       {% if latest_spec %}
       3. Former Specification:
@@ -214,6 +215,7 @@ spec:
         4. Code Standards:
           - Use consistent naming conventions and type annotations.
           - Document the workflow with clear comments and docstrings.
+          - If there is a training progress bar, do not output it to stdout
 
         {% if latest_spec %}
         5. Former Specification:
