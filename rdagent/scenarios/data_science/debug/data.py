@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 import platform
 import pandas as pd
-import fire
 import shutil
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
@@ -166,5 +165,3 @@ def create_debug_data(
             print(f"Error processing {file_path}: {e}")
             continue
 
-if __name__ == "__main__":
-    fire.Fire(create_debug_data)
