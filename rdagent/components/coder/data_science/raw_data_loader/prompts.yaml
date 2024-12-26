@@ -40,6 +40,7 @@ spec:
     data_loader: |-
       Data loader specification text should follow these detailed requirements:
       1. Function Interface:
+        - Give a python function interface code with docstring.
         - The function must be named `load_data`.
         - All raw data files are located in the /kaggle/input/ directory; therefore, the function should not take any input arguments.
         - The function must include proper and specific annotations for the output, specifying the expected data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
@@ -47,20 +48,23 @@ spec:
           - Describes the purpose of the function.
           - Mentions the source of the data (e.g., data location or structure).
           - Explains the expected output format.
+        - Input: None
+        - Output:
+          - The function should return four objects: `X`, `y`, `X_test`, and `test_ids`.
+          - `X`: The feature matrix for the training data.
+          - `y`: The target vector for the training data.
+          - `X_test`: The feature matrix for the test data.
+          - `test_ids`: The identifiers for the test data.
       2. Precautions for Data Loading and Preprocessing:
         - Handle potential issues such as (You should depend on the competition information to make a concise specification):
-          - File encoding (e.g., UTF-8) and data delimiters (e.g., CSV comma-separated).
-          - Missing values in datasets: describe how they should be handled (e.g., fill with a specific value, drop rows, etc.).
-          - Data types: ensure proper type conversion (e.g., numeric columns, date parsing).
-          - Memory efficiency for large datasets: consider techniques such as downcasting types or reading data in chunks.
-          - Multiple files: if the dataset includes multiple files, specify how they should be combined or processed.
-        - Add any domain-specific handling (e.g., date formatting, specific transformations) relevant to the competition dataset.
-      3. Output:
-        - The function should return four objects: `X`, `y`, `X_test`, and `test_ids`.
-        - `X`: The feature matrix for the training data.
-        - `y`: The target vector for the training data.
-        - `X_test`: The feature matrix for the test data.
-        - `test_ids`: The identifiers for the test data.
+              - File encoding (e.g., UTF-8) and data delimiters (e.g., CSV comma-separated).
+              - Missing values in datasets: describe how they should be handled (e.g., fill with a specific value, drop rows, etc.).
+              - Data types: ensure proper type conversion (e.g., numeric columns, date parsing).
+              - Memory efficiency for large datasets: consider techniques such as downcasting types or reading data in chunks.
+              - Multiple files: if the dataset includes multiple files, specify how they should be combined or processed.
+            - Add any domain-specific handling (e.g., date formatting, specific transformations) relevant to the competition dataset.
+            - Do not use progress bars (e.g., tqdm) in the code.
+
       
       {% if latest_spec %}
       4. Former Specification:
@@ -148,7 +152,7 @@ spec:
         - Return hyperparameters for retrain if not exists.
         - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
         - If `test_X` is provided, generate predictions for it.
-        - If there is a training progress bar, do not output it to stdout
+        - Do not use progress bars (e.g., tqdm) in the code.
 
       {% if latest_spec %}
       3. Former Specification:
@@ -215,7 +219,7 @@ spec:
         4. Code Standards:
           - Use consistent naming conventions and type annotations.
           - Document the workflow with clear comments and docstrings.
-          - If there is a training progress bar, do not output it to stdout
+          - Do not use progress bars (e.g., tqdm) in the code.
 
         {% if latest_spec %}
         5. Former Specification:
