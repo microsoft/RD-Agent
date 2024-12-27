@@ -186,7 +186,7 @@ spec:
           - `val_pred_l` (List[DT]): A list of predictions for the validation data.
           - `val_label` (DT): A 1D array or series of true labels for the validation data.
         - Output:
-          - `final_predictions` (DT): A 1D array or series containing the final binary predictions for the test data.
+          - `final_predictions` (DT): A 1D array or series containing the final predictions for the test data.
         - Docstring Requirements:
           - Describe the purpose of the function.
           - Clarify the input parameters and their data types.

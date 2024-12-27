@@ -7,7 +7,7 @@ def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray]
     """
     Handle the following:
     1) Ensemble predictions using a simple average.
-    2) Make final decision after ensemble (convert the predictions to final binary form).
+    2) Make final decision after ensemble (convert the predictions to final form).
 
     Parameters
     ----------
@@ -21,8 +21,8 @@ def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray]
     Returns
     -------
     np.ndarray
-        Binary predictions on the test data.
+        Predictions on the test data.
     """
 ```
 
-- The function should combine predictions and convert them to a binary format.
+- The function should combine predictions and convert them to a proper format.

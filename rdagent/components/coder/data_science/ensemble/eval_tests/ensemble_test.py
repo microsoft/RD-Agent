@@ -1,7 +1,7 @@
 """
 A qualified ensemble implementation should:
 - Successfully run
-- Return binary predictions
+- Return predictions
 - Have correct shapes for inputs and outputs
 - Use validation data appropriately
 """
@@ -29,9 +29,6 @@ try:
 
     # Check shape
     assert final_predictions.shape == (n_samples, 1), "Wrong output shape"
-
-    # Check binary values
-    assert np.all(np.isin(final_predictions, [0, 1])), "Predictions must be binary (0 or 1)"
 
     logging.info("Ensemble test passed successfully.")
     logging.info(f"Output shape: {final_predictions.shape}")
