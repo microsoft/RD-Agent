@@ -80,7 +80,7 @@ spec:
 
       Please respond with a JSON structure as follows:
       {
-          "spec": "The corresponding specification string as described above. You should create the rules based on the competition information instead of copying the requirements."
+          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
       }
 
     feature: |-
@@ -127,7 +127,7 @@ spec:
 
       Please respond with a JSON structure as follows:
       {
-          "spec": "The corresponding specification string as described above. You should create the rules based on the competition information instead of copying the requirements."
+          "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
       }
 
     model: |-
@@ -151,27 +151,10 @@ spec:
           - Clarify the input parameters and their data types.
           - Define the structure and format of the output.
 
-      2. Function Details:
-        - Input Shapes:
-          - `X`: A 4D array with shape `(num_samples, height, width, channels)`.
-            - `num_samples`: Number of training samples.
-            - `height` and `width`: Dimensions of the feature (e.g., `224 x 224` for images).
-            - `channels`: Number of channels (e.g., `3` for RGB).
-          - `y`: A 2D array with shape `(num_samples, 1)`.
-            - Binary classification labels, where `1` represents the target variable.
-          - Optional inputs:
-            - `val_X`: Validation features with shape `(num_val_samples, height, width, channels)`.
-            - `val_y`: Validation labels with shape `(num_val_samples, 1)`.
-            - `test_X`: Test features with shape `(num_test_samples, height, width, channels)`.
-        - Output Details:
-          - `pred_val`: Predictions for validation data as a 2D array `(num_val_samples, 1)` or `None` if no validation data is provided.
-          - `pred_test`: Predictions for test data as a 2D array `(num_test_samples, 1)` or `None` if no test data is provided.
-          - `hyper_params`: Updated dictionary of hyperparameters.
-
-      3. Code Standards:
+      2. Code Standards:
         - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
 
-      4. Precautions:
+      3. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have consistent dimensions and shapes.
         - Use default values for hyperparameters if `hyper_params` is not provided.
         - Train the model on `X` and `y`.
@@ -179,11 +162,11 @@ spec:
         - If `test_X` is provided, generate predictions for it.
         - Do not use progress bars (e.g., `tqdm`) in the implementation.
 
-      5. Notes:
+      4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
 
       {% if latest_spec %}
-      6. Former Specification:
+      5. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
