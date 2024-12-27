@@ -118,7 +118,8 @@ class FBWorkspace(Workspace):
     def code(self) -> str:
         code_string = ""
         for file_name, code in self.file_dict.items():
-            code_string += f"File: {file_name}\n{code}\n"
+            if file_name.endswith(".py") and 'test' not in file_name:
+                code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
     def prepare(self) -> None:

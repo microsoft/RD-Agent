@@ -65,8 +65,8 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         ds_docker_conf = DSDockerConf()
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
-        fname = "model_execute.py"
-        with (DIRNAME / "eval_tests" / "model_execute.py").open("r") as f:
+        fname = "model_test.py"
+        with (DIRNAME / "eval_tests" / fname).open("r") as f:
             test_code = f.read()
             implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
