@@ -42,7 +42,7 @@ model_coder:
         =====Feedback:=====
         {{ former_failed_knowledge.feedback }}
         {% endfor %}
-        {% endif %}    
+        {% endif %}
 
     user: |-
         ---------Model Specification---------

@@ -52,7 +52,7 @@ else:
 print(execution_feedback_str)
 
 print("The second execution begins.\n")
-val_pred, test_pred, finalhypers = model_workflow(X=train_X, y=train_y, val_X=None, val_y=None, test_X=test_X, **hypers)
+val_pred, test_pred, finalhypers = model_workflow(X=train_X, y=train_y, val_X=None, val_y=None, test_X=test_X, hyper_params=hypers)
 execution_feedback_str = "The second Execution successful.\n"
 if val_pred is not None:
     execution_feedback_str += f"Validation predictions shape: {val_pred.shape}\n"

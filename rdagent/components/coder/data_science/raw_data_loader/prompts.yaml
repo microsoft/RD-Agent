@@ -13,6 +13,8 @@ spec:
     - Ensemble
     - The overall workflow
 
+    The specifications for each step should refer to the specifications in the previous sections and be tailored to the competition information provided.
+
     -----------Competition Information-----------
     {{ competition_info }}
 
@@ -123,31 +125,28 @@ spec:
     model: |-
       Model building specification text should adhere to the following requirements:
       1. Function Interface:
+        - Give a python function interface code with docstring.
         - The function name must be `model_workflow`.
-        - The function should include:
-          - Type annotations for all inputs and outputs.
-          - Input and output shapes:
-            - Input:
-              - `X`: A 4D NumPy array of shape `(num_samples, height, width, channels)`, where:
-                - `num_samples`: Number of training samples.
-                - `height` and `width`: Dimensions of the image (e.g., `224 x 224`).
-                - `channels`: Number of color channels (e.g., `3` for RGB).
-              - `y`: A 2D NumPy array of shape `(num_samples, 1)`, where `1` represents binary classification labels.
-              - Optional:
-                - `val_X`: Validation features of shape `(num_val_samples, height, width, channels)`.
-                - `val_y`: Validation labels of shape `(num_val_samples, 1)`.
-                - `test_X`: Test features of shape `(num_test_samples, height, width, channels)`.
-              - `hyper_params`: A dictionary of important hyperparameters for model configuration.
-            - Output:
-              - A tuple consisting of:
-                - `pred_val`: Predictions on validation data (`np.ndarray` of shape `(num_val_samples, 1)` or `None`).
-                - `pred_test`: Predictions on test data (`np.ndarray` of shape `(num_test_samples, 1)` or `None`).
-                - `hyper_params`: A dictionary of important hyperparameters for model configuration.
+        - Provide annotations for all inputs and outputs.
+        - Input:
+          - `X`: training features.
+          - `y`: training labels.
+          - Optional:
+            - `val_X`: Validation features.
+            - `val_y`: Validation labels.
+            - `test_X`: Test features.
+          - `hyper_params`: A dictionary of important hyperparameters for model configuration.
+        - Output:
+          - A tuple consisting of:
+            - `pred_val`: Predictions on validation data.
+            - `pred_test`: Predictions on test data.
+            - `hyper_params`: A dictionary of important hyperparameters for model configuration.
 
         - Include a clear and concise docstring to explain the function's purpose, its input parameters, and its expected return values.
 
       2. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have the correct shapes and consistent dimensions.
+        - You should check and handle outliers in your input data.
         - Use default values for hyperparameters if none are provided in `hyper_params`.
         - Return hyperparameters for retrain if not exists.
         - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
@@ -275,6 +274,8 @@ data_loader_coder:
       Former Code: {{ latest_code }}
       You should follow the former code to improve it.
     {% endif %}
+
+    You should strictly follow the function interface specifications provided by the specification to implement the function.
 
 
 data_loader_eval:
