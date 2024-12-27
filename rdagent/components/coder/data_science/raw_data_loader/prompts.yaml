@@ -42,34 +42,38 @@ spec:
     data_loader: |-
       Data loader specification text should follow these detailed requirements:
       1. Function Interface:
-        - Give a python function interface code with docstring.
-        - The function must be named `load_data`.
-        - All raw data files are located in the /kaggle/input/ directory; therefore, the function should not take any input arguments.
-        - The function must include proper and specific annotations for the output, specifying the expected data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
-        - A clear docstring should be provided that:
-          - Describes the purpose of the function.
-          - Mentions the source of the data (e.g., data location or structure).
-          - Explains the expected output format.
-        - Input: None
+        - Function Name: `load_data`
+        - Input: No input arguments.
         - Output:
-          - The function should return four objects: `X`, `y`, `X_test`, and `test_ids`.
-          - `X`: The feature matrix for the training data.
-          - `y`: The target vector for the training data.
-          - `X_test`: The feature matrix for the test data.
-          - `test_ids`: The identifiers for the test data.
-      2. Precautions for Data Loading and Preprocessing:
-        - Handle potential issues such as (You should depend on the competition information to make a concise specification):
-              - File encoding (e.g., UTF-8) and data delimiters (e.g., CSV comma-separated).
-              - Missing values in datasets: describe how they should be handled (e.g., fill with a specific value, drop rows, etc.).
-              - Data types: ensure proper type conversion (e.g., numeric columns, date parsing).
-              - Memory efficiency for large datasets: consider techniques such as downcasting types or reading data in chunks.
-              - Multiple files: if the dataset includes multiple files, specify how they should be combined or processed.
-            - Add any domain-specific handling (e.g., date formatting, specific transformations) relevant to the competition dataset.
-            - Do not use progress bars (e.g., tqdm) in the code.
+          - `X` (DT, define based on competition information): Feature matrix for training data.
+          - `y` (DT): Target vector for training data.
+          - `X_test` (DT): Feature matrix for test data.
+          - `test_ids` (DT): Identifiers for the test data.
+        - Docstring Requirements:
+          - Describe the purpose of the function.
+          - Specify the data source location (`/kaggle/input/`).
+          - Clearly define the structure and type of the output.
 
+      2. Precautions for Data Loading and Preprocessing:
+        - File Handling:
+          - Ensure proper file encoding (e.g., UTF-8) and delimiters (e.g., CSV comma-separated).
+          - Combine or process multiple files if necessary.
+        - Data Preprocessing:
+          - Convert data types correctly (e.g., numeric, categorical, date parsing).
+          - Handle missing values appropriately (e.g., impute, drop rows/columns).
+          - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
+        - Domain-Specific Handling: 
+          - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
+
+      3. Code Standards:
+        - Avoid using progress bars (e.g., `tqdm`) in the implementation.
+
+      4. Notes:
+        - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
+        - Extend domain-specific handling steps based on the competition information.
       
       {% if latest_spec %}
-      4. Former Specification:
+      5. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
@@ -82,37 +86,41 @@ spec:
     feature: |-
       Feature engineering specification text should adhere to the following requirements:
       1. Function Interface:
-        - Give a python function interface code with docstring.
-        - The function must be named `feat_eng`.
+        - Function Name: `feat_eng`
         - Parameters:
-          - `X`: Train data to be transformed.
-          - `y`: Train label data.
-          - `X_test`: Test data.
+          - `X` (DT): Train data to be transformed.
+          - `y` (DT): Train label data.
+          - `X_test` (DT): Test data.
         - Output:
-          - `X_transformed`: Transformed train data.
-          - `y_transformed`: Transformed train label data.
-          - `X_test_transformed`: Transformed test data.
+          - `X_transformed` (DT): Transformed train data.
+          - `y_transformed` (DT): Transformed train label data.
+          - `X_test_transformed` (DT): Transformed test data.
+        - Docstring Requirements:
+          - Describe the purpose of the function.
+          - Clarify the input parameters and their data types.
+          - Define the structure and format of the output.
 
-        - Must include proper and specific annotations for both input and output based on the Competition Information:
-          - Input: Specify the expected input data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
-          - Output: Specify the transformed output data type (e.g., `pd.DataFrame`, `dict`, `np.array`, etc.).
-          - You should depend on the competition information to make a concise specification.
-        - A comprehensive docstring must be provided that:
-          - Describes the purpose of the function.
-          - Clarifies the input parameters and their types.
-          - Defines the structure and format of the output.
-      2. Precautions for Feature Engineering (You should depend on the competition information to make a concise specification):
-        - If feature engineering is strictly part of the model pipeline and should not be done here, explicitly state that feature engineering will be handled at the model stage.
-        - If the competition requirements or modeling strategy dictate that feature engineering must be integrated into the model pipeline, this function will remain as a placeholder and return the input data unchanged.
-        - When feature engineering is applied, consider the following precautions:
+      2. Precautions for Feature Engineering:
+        - Integration with Model Pipeline
+          - If feature engineering is strictly part of the model pipeline, state explicitly that it will be handled at the model stage.
+          - If integrated here, ensure this function applies all required transformations while avoiding data leakage.
+        - General Considerations:
           - Ensure scalability for large datasets.
-          - Handle missing values and outliers appropriately during feature transformation.
-          - Feature types: Ensure consistency between feature data types and transformations.
-          - Custom features: Provide logic for domain-specific features, if applicable.
+          - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
+          - Ensure consistency between feature data types and transformations.
           - Avoid data leakage: Only use features derived from training data, excluding information from test or validation sets.
+        - Domain-Specific Features:
+          - Apply logic for competition-specific features (e.g., text vectorization, image augmentations, categorical encoding).
+
+      3. Code Standards:
+        - Avoid using progress bars (e.g., `tqdm`) in the implementation.          
+
+      4. Notes:
+        - Align `DT` (data type) definitions with those in the Data Loader specification.
+        - Extend or adjust domain-specific transformations based on competition requirements.
       
       {% if latest_spec %}
-      3. Former Specification:
+      5. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
@@ -124,37 +132,58 @@ spec:
 
     model: |-
       Model building specification text should adhere to the following requirements:
+
       1. Function Interface:
-        - Give a python function interface code with docstring.
-        - The function name must be `model_workflow`.
-        - Provide annotations for all inputs and outputs.
-        - Input:
-          - `X`: training features.
-          - `y`: training labels.
-          - Optional:
-            - `val_X`: Validation features.
-            - `val_y`: Validation labels.
-            - `test_X`: Test features.
-          - `hyper_params`: A dictionary of important hyperparameters for model configuration.
+        - Function Name: `model_workflow`
+        - Parameters:
+          - `X` (DT): Training feature data.
+          - `y` (DT): Training label data.
+          - `val_X` (Optional[DT]): Validation feature data.
+          - `val_y` (Optional[DT]): Validation label data.
+          - `test_X` (Optional[DT]): Test feature data.
+          - `hyper_params` (dict): Dictionary of hyperparameters for model configuration.
         - Output:
-          - A tuple consisting of:
-            - `pred_val`: Predictions on validation data.
-            - `pred_test`: Predictions on test data.
-            - `hyper_params`: A dictionary of important hyperparameters for model configuration.
+          - `pred_val` (Optional[DT]): Predictions on validation data.
+          - `pred_test` (Optional[DT]): Predictions on test data.
+          - `hyper_params` (dict): Updated dictionary of hyperparameters after training.
+        - Docstring Requirements:
+          - Describe the purpose of the function.
+          - Clarify the input parameters and their data types.
+          - Define the structure and format of the output.
 
-        - Include a clear and concise docstring to explain the function's purpose, its input parameters, and its expected return values.
+      2. Function Details:
+        - Input Shapes:
+          - `X`: A 4D array with shape `(num_samples, height, width, channels)`.
+            - `num_samples`: Number of training samples.
+            - `height` and `width`: Dimensions of the feature (e.g., `224 x 224` for images).
+            - `channels`: Number of channels (e.g., `3` for RGB).
+          - `y`: A 2D array with shape `(num_samples, 1)`.
+            - Binary classification labels, where `1` represents the target variable.
+          - Optional inputs:
+            - `val_X`: Validation features with shape `(num_val_samples, height, width, channels)`.
+            - `val_y`: Validation labels with shape `(num_val_samples, 1)`.
+            - `test_X`: Test features with shape `(num_test_samples, height, width, channels)`.
+        - Output Details:
+          - `pred_val`: Predictions for validation data as a 2D array `(num_val_samples, 1)` or `None` if no validation data is provided.
+          - `pred_test`: Predictions for test data as a 2D array `(num_test_samples, 1)` or `None` if no test data is provided.
+          - `hyper_params`: Updated dictionary of hyperparameters.
 
-      2. Precautions:
-        - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have the correct shapes and consistent dimensions.
-        - You should check and handle outliers in your input data.
-        - Use default values for hyperparameters if none are provided in `hyper_params`.
-        - Return hyperparameters for retrain if not exists.
-        - Perform model training on `X` and `y`, and evaluate using `val_X` and `val_y`.
+      3. Code Standards:
+        - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
+
+      4. Precautions:
+        - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have consistent dimensions and shapes.
+        - Use default values for hyperparameters if `hyper_params` is not provided.
+        - Train the model on `X` and `y`.
+        - Evaluate the model using `val_X` and `val_y` if validation data is available.
         - If `test_X` is provided, generate predictions for it.
-        - Do not use progress bars (e.g., tqdm) in the code.
+        - Do not use progress bars (e.g., `tqdm`) in the implementation.
+
+      5. Notes:
+        - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
 
       {% if latest_spec %}
-      3. Former Specification:
+      6. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
@@ -168,24 +197,36 @@ spec:
     ensemble: |-
       Ensemble specification text adhere to the following requirements:
       1. Function Interface:
-        - The function name must be `ens_and_decision`.
-        - The function should include:
-          - Type annotations for both inputs and outputs.
-          - Input (for example):
-            - `test_pred_l`: A list of NumPy arrays (as an example, if you think predictions should be represented as Pandas DataFrames, use `pd.DataFrame`) containing predictions for the test data.
-            - `val_pred_l`: A list of NumPy arrays containing predictions for the validation data.
-            - `val_label`: A 1D NumPy array of true labels for the validation data.
-          - Output:
-            - A 1D NumPy array containing the final binary predictions for the test data.
-        - Include a docstring that describes the purpose of the function, the parameters, and the expected return value.
+        - Function Name: `ens_and_decision`
+        - Parameters:
+          - `test_pred_l` (List[DT]): A list of predictions for the test data.
+          - `val_pred_l` (List[DT]): A list of predictions for the validation data.
+          - `val_label` (DT): A 1D array or series of true labels for the validation data.
+        - Output:
+          - `final_predictions` (DT): A 1D array or series containing the final binary predictions for the test data.
+        - Docstring Requirements:
+          - Describe the purpose of the function.
+          - Clarify the input parameters and their data types.
+          - Define the structure and format of the output.
 
       2. Precautions:
-        - Ensure all predictions in `test_pred_l` and `val_pred_l` have the same shape and dimensions.
-        - Validate that `val_label` is provided and has the same length as `val_pred_l` predictions.
-        - Perform checks to handle empty or invalid inputs gracefully.
+        - Validation of Inputs:
+          - Ensure all predictions in `test_pred_l` and `val_pred_l` have consistent shapes and dimensions.
+          - Verify that `val_label` is provided and matches the length of `val_pred_l` predictions.
+          - Handle empty or invalid inputs gracefully with appropriate error messages.
+        - Consensus Strategy:
+          - Clearly define how the ensemble predictions are aggregated (e.g., majority voting, weighted average).
+          - Avoid introducing biases or overfitting during decision-making.
+      
+      3. Code Standards:
+        - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
+
+      4. Notes:
+        - Align `DT` (data type) definitions with those used in model specifications.
+        - Ensure flexibility to handle multiple ensemble strategies based on competition requirements.
 
       {% if latest_spec %}
-      3. Former Specification:
+      5. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
