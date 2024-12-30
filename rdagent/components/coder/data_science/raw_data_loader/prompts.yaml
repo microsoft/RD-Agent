@@ -176,7 +176,6 @@ spec:
           "spec": "The function definition in code format, tailored to the Competition Information, with detailed explanations provided in the docstring."
       }
 
-
     ensemble: |-
       Ensemble specification text adhere to the following requirements:
       1. Function Interface:
@@ -197,12 +196,28 @@ spec:
           - Ensure all predictions in `test_pred_l` and `val_pred_l` have consistent shapes and dimensions.
           - Verify that `val_label` is provided and matches the length of `val_pred_l` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
+        - You should calculate the metric for each model and ensemble strategy, and save the results in a CSV file, e.g.:
+          ```python
+          scores = []
+          for id, val_pred in enumerate(val_pred_l):
+              scores.append(calculate_metric(val_label, val_pred))
+          
+          ... some code about ensemble strategy ...
+          
+          scores_df = pd.DataFrame(
+              {
+                  "Model": list(range(len(val_pred_l))) + ["<ensemble strategy name>"],
+                  "<metric name>": scores + [<ensemble strategy prediction score>],
+              }
+          )
+          scores_df.to_csv("scores.csv", index=False)
+          ```
         - Consensus Strategy:
           - Clearly define how the ensemble predictions are aggregated (e.g., majority voting, weighted average).
           - Avoid introducing biases or overfitting during decision-making.
       
       3. Code Standards:
-        - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
+        - Avoid using progress bars (e.g., `tqdm`) in the implementation. 
 
       4. Notes:
         - Align `DT` (data type) definitions with those used in model specifications.
