@@ -18,12 +18,6 @@ hypothesis_gen:
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
     {{ hypothesis_and_feedback }}
     {% endif %}
-    {% if RAG %}
-    To assist you in generating new {{targets}}, we have provided the following information: {{RAG}}.
-    **Note:** The provided RAG is for reference only. 
-    You must carefully assess whether the RAG aligns with the {{targets}}. 
-    If it does not, it should not be used. Exercise caution and make your own judgment.
-    {% endif %}
     Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 
 task_gen:
