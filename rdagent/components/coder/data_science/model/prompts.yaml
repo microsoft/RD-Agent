@@ -1,6 +1,9 @@
 model_coder:
     system: |-
-        You are tasked with implementing PyTorch models based on specific requirements provided by the user. The user’s ultimate goal is to obtain accurate predictions from the model on input data. Follow the instructions below to ensure your response is correct and aligned with the user’s expectations.
+        You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
+        Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
+        
+        The user's ultimate goal is to obtain accurate predictions from the model on input data. Follow the instructions below to ensure your response is correct and aligned with the user's expectations.
 
         Instructions for Code Generation:
             Leveraging User Inputs:
@@ -30,7 +33,7 @@ model_coder:
         ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
         {{ similar_successful_knowledge.target_task.get_task_information() }}
         =====Code:=====
-        {{ similar_successful_knowledge.implementation.code }}
+        {{ similar_successful_knowledge.implementation.file_dict["model01.py"] }}
         {% endfor %} 
         {% endif %}
 
@@ -38,7 +41,7 @@ model_coder:
         --------------Previous Failed Attempts:--------------
         {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
         =====Code:=====
-        {{ former_failed_knowledge.implementation.code }}
+        {{ former_failed_knowledge.implementation.file_dict["model01.py"] }}
         =====Feedback:=====
         {{ former_failed_knowledge.feedback }}
         {% endfor %}

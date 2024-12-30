@@ -24,7 +24,7 @@ spec:
     ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
-    {{ similar_successful_knowledge.implementation.code }}
+    {{ similar_successful_knowledge.implementation.file_dict["load_data.py"] }}
     {% endfor %} 
     {% endif %}
 
@@ -32,7 +32,7 @@ spec:
     --------------Previous Failed Attempts:--------------
     {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
     =====Code:=====
-    {{ former_failed_knowledge.implementation.code }}
+    {{ former_failed_knowledge.implementation.file_dict["load_data.py"] }}
     =====Feedback:=====
     {{ former_failed_knowledge.feedback }}
     {% endfor %}
