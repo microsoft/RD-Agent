@@ -88,7 +88,7 @@ class DataScienceRDLoop(RDLoop):
     def feedback(self, prev_out: dict[str, Any]):
         if self.trace.all_components_completed():
             feedback = self.summarizer.generate_feedback(
-                prev_out["running"], prev_out["direct_exp_gen"].hypothesis, self.trace
+                prev_out["running"], self.trace
             )
         else:
             feedback = HypothesisFeedback(
