@@ -227,7 +227,7 @@ spec:
             - Data loading (`load_data.py`).
             - Feature engineering (`feat*.py`).
             - Model workflow for training and testing (`model*.py`).
-            - Ensemble and decision-making (`ens.py`).
+            - Ensemble and decision-making (`ensemble.py`).
           - Treat each component as a modular and callable Python function.
 
         2. Dataset Splitting

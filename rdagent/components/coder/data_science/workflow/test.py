@@ -26,7 +26,7 @@ def develop_one_competition(competition: str):
     )
 
     tpl_ex_path = Path(__file__).resolve() / Path("rdagent/scenarios/kaggle/tpl_ex").resolve() / competition
-    injected_file_names = ["spec/workflow.md", "load_data.py", "feat01.py", "model01.py", "ens.py", "main.py"]
+    injected_file_names = ["spec/workflow.md", "load_data.py", "feat01.py", "model01.py", "ensemble.py", "main.py"]
 
     workflowexp = FBWorkspace()
     for file_name in injected_file_names:

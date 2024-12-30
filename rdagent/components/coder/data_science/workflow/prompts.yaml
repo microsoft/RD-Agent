@@ -57,7 +57,7 @@ workflow_coder:
     {{ model_code }}
 
     ---------ensemble code---------
-    file: ens.py
+    file: ensemble.py
     {{ ensemble_code }}
 
     {% if latest_code %}
