@@ -48,7 +48,7 @@ workflow_coder:
     {{ load_data_code }}
 
     ---------feature engineering code---------
-    file: feat01.py
+    file: feature.py
     {{ feature_code }}
 
     ---------model training code---------

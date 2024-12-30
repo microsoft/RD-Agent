@@ -22,7 +22,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         elif hypothesis.component == "FeatureEng":
             modified_file_name = "feature.py"
         elif hypothesis.component == "Model":
-            modified_file_name = "model.py"
+            modified_file_name = "model01.py"
         elif hypothesis.component == "Ensemble":
             modified_file_name = "ensemble.py"
         elif hypothesis.component == "Workflow":

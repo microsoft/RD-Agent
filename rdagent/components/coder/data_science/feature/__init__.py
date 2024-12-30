@@ -47,7 +47,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         user_prompt = T(".prompts:feature.user").r(
             feature_spec=workspace.file_dict["spec/feature.md"],
-            latest_code=workspace.file_dict.get("feat01.py"),
+            latest_code=workspace.file_dict.get("feature.py"),
         )
 
         feature_code = json.loads(
@@ -57,7 +57,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )["code"]
 
         return {
-            "feat01.py": feature_code,
+            "feature.py": feature_code,
         }
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):

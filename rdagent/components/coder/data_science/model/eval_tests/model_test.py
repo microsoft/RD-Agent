@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from load_data import load_data
 from model01 import model_workflow
-from feat01 import feat_eng
+from feature import feat_eng
 
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)

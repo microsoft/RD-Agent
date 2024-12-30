@@ -55,7 +55,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         if stdout is None:
             stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
         system_prompt = T(".prompts:feature_eval.system").r(
-            test_code=test_code, code=implementation.file_dict["feat01.py"]
+            test_code=test_code, code=implementation.file_dict["feature.py"]
         )
         user_prompt = T(".prompts:feature_eval.user").r(stdout=stdout)
 

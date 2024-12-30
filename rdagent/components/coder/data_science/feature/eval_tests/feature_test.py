@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from load_data import load_data
-from feat01 import feat_eng
+from feature import feat_eng
 
 X, y, X_test, test_ids = load_data()
 X, y, X_test = feat_eng(X, y, X_test)

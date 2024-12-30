@@ -48,7 +48,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         user_prompt = T(".prompts:workflow_coder.user").r(
             load_data_code=workspace.file_dict["load_data.py"],
-            feature_code=workspace.file_dict["feat01.py"],
+            feature_code=workspace.file_dict["feature.py"],
             model_code=workspace.file_dict["model01.py"],
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
