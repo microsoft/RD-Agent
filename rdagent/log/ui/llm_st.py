@@ -109,7 +109,10 @@ for d in session_state.data:
             tlist.append(f"loop_{loop_id}.evo_step_{evo_id}")
             st.subheader(f"evo_step_{evo_id}", anchor=f"loop_{loop_id}.evo_step_{evo_id}", divider="orange")
 
-    if "debug_tpl" in tag:
+    if "debug_exp_gen" in tag:
+        with st.expander(f"Exp in:violet[**{obj.experiment_workspace.workspace_path}**]", expanded=expand_all, icon="🧩"):
+            st.write(obj)
+    elif "debug_tpl" in tag:
         uri = obj["uri"]
         tpl = obj["template"]
         cxt = obj["context"]
