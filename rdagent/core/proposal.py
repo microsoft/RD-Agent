@@ -56,8 +56,22 @@ class Hypothesis:
 
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
+class ExperimentFeedback(Feedback):
+    def __init__(
+        self,
+        decision: bool,
+        reason: bool,
+    ) -> None:
+        self.decision = decision
+        self.reason = reason
 
-class HypothesisFeedback(Feedback):
+    def __bool__(self) -> bool:
+        return self.decision
+
+    def __str__(self) -> str:
+        return f"Decision: {self.decision}\nReason: {self.reason}"
+
+class HypothesisFeedback(ExperimentFeedback):
     def __init__(
         self,
         observations: str,
@@ -66,14 +80,10 @@ class HypothesisFeedback(Feedback):
         reason: str,
         decision: bool,
     ) -> None:
+        super().__init__(decision, reason)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
-        self.reason = reason
-        self.decision = decision
-
-    def __bool__(self) -> bool:
-        return self.decision
 
     def __str__(self) -> str:
         return f"""Observations: {self.observations}
@@ -90,7 +100,8 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 class Trace(Generic[ASpecificScen, ASpecificKB]):
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
-        self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
+        self.hist: list[tuple[Experiment, ExperimentFeedback]] = []
+        # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
@@ -170,12 +181,11 @@ class Experiment2Feedback(ABC):
         self.scen = scen
 
     @abstractmethod
-    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> ExperimentFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-        # TODO: return a hypothesis feedback seems wierd now. Maybe we should return an ExerimentFeedback?
         error_message = "generate_feedback method is not implemented."
         raise NotImplementedError(error_message)

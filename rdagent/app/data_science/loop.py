@@ -79,17 +79,16 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
-        if self.trace.all_components_completed():
-            exp = self.runner.develop(prev_out["coding"])
+        exp: DSExperiment = prev_out["coding"]
+        if exp.next_component_required() is None:
+            return self.runner.run(exp)
         else:
-            exp = prev_out["coding"]
-        return exp
+            return exp
 
     def feedback(self, prev_out: dict[str, Any]):
-        if self.trace.all_components_completed():
-            feedback = self.summarizer.generate_feedback(
-                prev_out["running"], self.trace
-            )
+        exp: DSExperiment = prev_out["running"]
+        if exp.next_component_required() is None:
+            feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
             feedback = HypothesisFeedback(
                 observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
