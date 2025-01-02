@@ -307,7 +307,11 @@ class APIBackend:
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.encoder = None
         else:
-            self.use_azure = LLM_SETTINGS.use_azure
+            if LLM_SETTINGS.use_azure:
+                self.chat_use_azure = self.embedding_use_azure = LLM_SETTINGS.use_azure
+            else:
+                self.chat_use_azure = LLM_SETTINGS.chat_use_azure
+                self.embedding_use_azure = LLM_SETTINGS.embedding_use_azure
             self.chat_use_azure_token_provider = LLM_SETTINGS.chat_use_azure_token_provider
             self.embedding_use_azure_token_provider = LLM_SETTINGS.embedding_use_azure_token_provider
             self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
@@ -330,6 +334,8 @@ class APIBackend:
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.encoder = self._get_encoder()
+            self.chat_openai_base_url = LLM_SETTINGS.chat_openai_base_url
+            self.embedding_openai_base_url = LLM_SETTINGS.embedding_openai_base_url
             self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
             self.chat_api_version = (
                 LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version
@@ -345,16 +351,18 @@ class APIBackend:
                 LLM_SETTINGS.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
             )
 
-            if self.use_azure:
-                if self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider:
-                    dac_kwargs = {}
-                    if self.managed_identity_client_id is not None:
-                        dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
-                    credential = DefaultAzureCredential(**dac_kwargs)
-                    token_provider = get_bearer_token_provider(
-                        credential,
-                        "https://cognitiveservices.azure.com/.default",
-                    )
+            if (self.chat_use_azure or self.embedding_use_azure) and (
+                self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider
+            ):
+                dac_kwargs = {}
+                if self.managed_identity_client_id is not None:
+                    dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
+                credential = DefaultAzureCredential(**dac_kwargs)
+                token_provider = get_bearer_token_provider(
+                    credential,
+                    "https://cognitiveservices.azure.com/.default",
+                )
+            if self.chat_use_azure:
                 if self.chat_use_azure_token_provider:
                     self.chat_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
@@ -367,7 +375,10 @@ class APIBackend:
                         api_version=self.chat_api_version,
                         azure_endpoint=self.chat_api_base,
                     )
+            else:
+                self.chat_client = openai.OpenAI(api_key=self.chat_api_key, base_url=self.chat_openai_base_url)
 
+            if self.embedding_use_azure:
                 if self.embedding_use_azure_token_provider:
                     self.embedding_client = openai.AzureOpenAI(
                         azure_ad_token_provider=token_provider,
@@ -381,8 +392,9 @@ class APIBackend:
                         azure_endpoint=self.embedding_api_base,
                     )
             else:
-                self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
-                self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
+                self.embedding_client = openai.OpenAI(
+                    api_key=self.embedding_api_key, base_url=self.embedding_openai_base_url
+                )
 
         self.dump_chat_cache = LLM_SETTINGS.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
         self.use_chat_cache = LLM_SETTINGS.use_chat_cache if use_chat_cache is None else use_chat_cache
@@ -587,7 +599,7 @@ class APIBackend:
                 filtered_input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
                 for i in range(0, len(filtered_input_content_list), LLM_SETTINGS.embedding_max_str_num)
             ]:
-                if self.use_azure:
+                if self.embedding_use_azure:
                     response = self.embedding_client.embeddings.create(
                         model=self.embedding_model,
                         input=sliced_filtered_input_content_list,

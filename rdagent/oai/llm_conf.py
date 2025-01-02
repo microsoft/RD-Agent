@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import Field
+
 from rdagent.core.conf import ExtendedBaseSettings
 
 
 class LLMSettings(ExtendedBaseSettings):
     log_llm_chat_content: bool = True
 
-    use_azure: bool = False
+    use_azure: bool = Field(default=False, deprecated=True)
+    chat_use_azure: bool = False
+    embedding_use_azure: bool = False
+
     chat_use_azure_token_provider: bool = False
     embedding_use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
@@ -34,6 +39,7 @@ class LLMSettings(ExtendedBaseSettings):
     # Chat configs
     openai_api_key: str = ""  # TODO: simplify the key design.
     chat_openai_api_key: str = ""
+    chat_openai_base_url: str = ""
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
     chat_model: str = "gpt-4-turbo"
@@ -50,6 +56,7 @@ class LLMSettings(ExtendedBaseSettings):
 
     # Embedding configs
     embedding_openai_api_key: str = ""
+    embedding_openai_base_url: str = ""
     embedding_azure_api_base: str = ""
     embedding_azure_api_version: str = ""
     embedding_model: str = ""
