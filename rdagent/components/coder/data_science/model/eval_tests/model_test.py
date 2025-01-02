@@ -7,10 +7,10 @@ import pickle
 import traceback
 
 import numpy as np
-from sklearn.model_selection import train_test_split
+from feature import feat_eng
 from load_data import load_data
 from model01 import model_workflow
-from feature import feat_eng
+from sklearn.model_selection import train_test_split
 
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
@@ -52,7 +52,9 @@ else:
 print(execution_feedback_str)
 
 print("The second execution begins.\n")
-val_pred, test_pred, finalhypers = model_workflow(X=train_X, y=train_y, val_X=None, val_y=None, test_X=test_X, hyper_params=hypers)
+val_pred, test_pred, finalhypers = model_workflow(
+    X=train_X, y=train_y, val_X=None, val_y=None, test_X=test_X, hyper_params=hypers
+)
 execution_feedback_str = "The second Execution successful.\n"
 if val_pred is not None:
     execution_feedback_str += f"Validation predictions shape: {val_pred.shape}\n"

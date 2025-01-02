@@ -10,11 +10,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 )
 from rdagent.core.evaluation import Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.core.exception import CoderError
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -52,7 +52,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             test_code = f.read()
             implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-        
+
         # Check if the metrics file is generated
         score_fp = implementation.experiment_workspace.workspace_path / "scores.csv"
         if not score_fp.exists():

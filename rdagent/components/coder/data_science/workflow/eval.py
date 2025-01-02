@@ -9,11 +9,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.core.exception import CoderError
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -56,10 +56,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=ds_docker_conf)
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-        
+
         # Check if the submission file and score file are generated
-        submission_fp = implementation.experiment_workspace.workspace_path / "submission.csv"
-        score_fp = implementation.experiment_workspace.workspace_path / "scores.csv"
+        submission_fp = implementation.workspace_path / "submission.csv"
+        score_fp = implementation.workspace_path / "scores.csv"
         if not submission_fp.exists():
             raise CoderError("Submission file (submission.csv) is not generated.")
         if not score_fp.exists():
