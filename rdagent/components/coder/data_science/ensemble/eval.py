@@ -54,7 +54,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         # Check if the metrics file is generated
-        score_fp = implementation.experiment_workspace.workspace_path / "scores.csv"
+        score_fp = implementation.workspace_path / "scores.csv"
         if not score_fp.exists():
             raise CoderError("Metrics file (scores.csv) is not generated.")
 

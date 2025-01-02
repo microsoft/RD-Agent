@@ -53,8 +53,8 @@ task_gen:
     {% endif %}
 
 hypothesis_and_feedback: |-
-  {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
-  Hypothesis {{ loop.index }}: {{ hypothesis }}
+  {% for experiment, feedback in trace.hist[-10:] %}
+  Hypothesis {{ loop.index }}: {{ experiment.hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
