@@ -14,6 +14,7 @@ from pathlib import Path
 n_models = 3
 n_samples = 100
 
+# TODO: use real data.
 # Create synthetic predictions
 test_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
 val_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
