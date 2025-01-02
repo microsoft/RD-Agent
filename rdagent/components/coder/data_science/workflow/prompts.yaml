@@ -13,7 +13,7 @@ workflow_coder:
 
     The code you implement should align with the framework given in the specifications.
     After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
-   
+
     Please respond with the code in the following JSON format. Here is an example structure for the JSON output:
     {
         "code": "The Python code as a string."
@@ -53,8 +53,7 @@ workflow_coder:
 
     ---------model training code---------
     Attention: The input and output of the model function is flexible. Training dataset is necessary, but validation and test dateset might be optional. The hyperparameters can either be passed as arguments or be set as default values in the function. You need to use the function correctly.
-    file: model01.py
-    {{ model_code }}
+    {{ model_codes }}
 
     ---------ensemble code---------
     file: ensemble.py

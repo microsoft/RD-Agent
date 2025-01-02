@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import platform
 import shutil
 import typing
@@ -119,6 +120,13 @@ class FBWorkspace(Workspace):
         code_string = ""
         for file_name, code in self.file_dict.items():
             if file_name.endswith(".py") and "test" not in file_name:
+                code_string += f"File: {file_name}\n{code}\n"
+        return code_string
+
+    def get_codes(self, pattern: str) -> str:
+        code_string = ""
+        for file_name, code in self.file_dict.items():
+            if re.search(pattern, file_name) and file_name.endswith(".py") and "test" not in file_name:
                 code_string += f"File: {file_name}\n{code}\n"
         return code_string
 
