@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Literal
 
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -63,20 +64,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if ef.decision:
                 return exp
         return None
-    
-    def get_models_information(self) -> tuple[str, int]:
-        for exp, hf in self.hist[::-1]:
-            if hf.decision:
-                wp = exp.experiment_workspace.workspace_path
-                score_df = pd.read_csv(f"{wp}/score.csv")
-                filtered_df = score_df.iloc[:-1]
-                models = filtered_df.to_dict(orient="records")
-                # TODO: fix name
-                model_code = exp.sub_workspace_list[0].file_dict.get('spec/model.py', '')
-                # TODO: 组合模型名，模型代码，模型表现
-                models_info = ""
-                return models_info, len(models)
-        return "", 0
 
 
 class DSExpGen(ExpGen):
@@ -241,15 +228,23 @@ class DSExpGen(ExpGen):
                     concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
                 )
             else:
-                # 
-                model_info, model_num = trace.get_models_information()
+                model_infos = []
+                score_df = pd.read_csv(sota_exp.experiment_workspace.workspace_path / "score.csv", index_col=0)
+                metric_name = score_df.columns[0]
+                for fname in sota_exp.experiment_workspace.file_dict:
+                    if re.match(r"^model_.+\.py", fname):
+                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{sota_exp.experiment_workspace.file_dict[fname]}\n```\n"
+                        model_infos.append(model_str)
+                
+                model_num = len(model_infos)
+                models_info_str = ("-"*20).join(model_infos)
                 if model_num >= 3:
                     hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
                         targets="data science project",
                         scenario=scenario_desc,
                         hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                         hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=model_info,
+                        model_info=models_info_str,
                         model_enough=True,
                     )
                 else:
@@ -258,7 +253,7 @@ class DSExpGen(ExpGen):
                         scenario=scenario_desc,
                         hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                         hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=model_info,
+                        model_info=models_info_str,
                         model_enough=False,
                     )
                 hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
