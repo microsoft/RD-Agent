@@ -18,13 +18,9 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
-
-
 ModelSingleFeedback = CoSTEERSingleFeedback
 
-
 # Below are unit tests for testing the specification of the implemented model ------------------
-#
 class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
     """
     Motivation case:
@@ -55,22 +51,19 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
-        # assert isinstance(target_task, ModelTask)
 
-        batch_size = 8
-        assert isinstance(implementation, FBWorkspace)
-        """model_execution_feedback, pred_list= implementation.execute(
-            batch_size=batch_size,
-        )"""
         ds_docker_conf = DSDockerConf()
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
-        fname = "model_test.py"
-        test_code = (DIRNAME / "eval_tests" / fname).read_text()
+
+        fname = "test_model.py"
+        test_code = (DIRNAME / "eval_tests" / fname).read_text().replace("model01", target_task.name) # only check the model changed this time
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
+
         if stdout is None:
             stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
+
         system_prompt = T(".prompts:model_eval.system").r(
             test_code=test_code, scenario=self.scen.get_scenario_all_desc(), spec=implementation.file_dict["spec/model.md"]
         )
@@ -80,8 +73,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return ModelSingleFeedback(**json.loads(resp))
-
-    """feedback"""
 
 
 class XXX2SpecEval:

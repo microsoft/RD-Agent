@@ -238,7 +238,7 @@ spec:
           - Integrate the following components into the workflow:
             - Data loading (`load_data.py`).
             - Feature engineering (`feature.py`).
-            - Model workflow for training and testing (`model*.py`).
+            - Model workflow for training and testing (`model_*.py`).
             - Ensemble and decision-making (`ensemble.py`).
           - Treat each component as a modular and callable Python function.
 

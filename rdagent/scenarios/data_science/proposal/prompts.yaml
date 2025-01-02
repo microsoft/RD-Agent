@@ -160,7 +160,7 @@ output_format:
     According to the hypothesis, please help user design one model task.
     The output should follow JSON format. The schema is as follows: 
     {
-        "model_name": "model_name",
+        "model_name": "model name, must start with 'model_' and only contain letters, numbers, and underscores",
         "description": "A detailed description of the model",
         "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
