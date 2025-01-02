@@ -19,6 +19,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
+import pandas as pd
 
 
 class DSHypothesis(Hypothesis):
@@ -62,6 +63,20 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if hf.decision:
                 return exp.hypothesis, exp
         return None, None
+    
+    def get_models_information(self) -> tuple[str, int]:
+        for exp, hf in self.hist[::-1]:
+            if hf.decision:
+                wp = exp.experiment_workspace.workspace_path
+                score_df = pd.read_csv(f"{wp}/score.csv")
+                filtered_df = score_df.iloc[:-1]
+                models = filtered_df.to_dict(orient="records")
+                # TODO: fix name
+                model_code = exp.sub_workspace_list[0].file_dict.get('spec/model.py', '')
+                # TODO: 组合模型名，模型代码，模型表现
+                models_info = ""
+                return models_info, len(models)
+        return "", 0
 
 
 class DSExpGen(ExpGen):
@@ -180,32 +195,89 @@ class DSExpGen(ExpGen):
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
 
-            # 1. hypothesis gen
+            # Step 1: Generate component
             # TODO: how to generate sota solution
             sota_solution = ""
-            system_prompt = T(".prompts:hypothesis_gen.system").r(
+            component_sys_prompt = T(".prompts:component_gen").r(
                 targets="data science project",
                 scenario=scenario_desc,
-                hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                hypothesis_output_format=T(".prompts:output_format.component").r(),
                 hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
             )
-            user_prompt = T(".prompts:hypothesis_gen.user").r(
+
+            component_user_prompt = T(".prompts:hypothesis_gen.user").r(
                 targets="data science project",
                 hypothesis_and_feedback=hypothesis_and_feedback,
             )
 
-            resp_dict: dict = json.loads(
-                APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+            resp_dict_component: dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(component_user_prompt, component_sys_prompt, json_mode=True)
             )
-            hypothesis = DSHypothesis(
-                component=resp_dict.get("component", "Component not provided"),
-                hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
-                reason=resp_dict.get("reason", "Reason not provided"),
-                concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
-                concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
-                concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
-                concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
-            )
+
+            component = resp_dict_component.get("component", "Component not provided")
+            if component != "Model":
+                # Step 2: Generate the rest of the hypothesis
+                hypothesis_sys_prompt = T(".prompts:hypothesis_gen.system").r(
+                    targets="data science project",
+                    scenario=scenario_desc,
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                    hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+                    component=component,
+                )
+                hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
+                    targets="data science project",
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+
+                resp_dict: dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True)
+                )
+                hypothesis = DSHypothesis(
+                    component=resp_dict.get("component", "Component not provided"),
+                    hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
+                    reason=resp_dict.get("reason", "Reason not provided"),
+                    concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
+                    concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
+                    concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
+                    concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
+                )
+            else:
+                # 
+                model_info, model_num = trace.get_models_information()
+                if model_num >= 3:
+                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
+                        targets="data science project",
+                        scenario=scenario_desc,
+                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+                        model_info=model_info,
+                        model_enough=True,
+                    )
+                else:
+                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
+                        targets="data science project",
+                        scenario=scenario_desc,
+                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+                        model_info=model_info,
+                        model_enough=False,
+                    )
+                hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
+                    targets="data science project",
+                    hypothesis_and_feedback=hypothesis_and_feedback,
+                )
+                resp_dict: dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True)
+                )
+                hypothesis = DSHypothesis(
+                    component=resp_dict.get("component", "Component not provided"),
+                    hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
+                    reason=resp_dict.get("reason", "Reason not provided"),
+                    concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
+                    concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
+                    concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
+                    concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
+                )
 
             # 2. gen experiment
             if hypothesis.component == "DataLoadSpec":
@@ -246,7 +318,6 @@ class DSExpGen(ExpGen):
                 return exp
             elif hypothesis.component == "Model":
                 resp_dict = self.llm_task_gen(
-                    targets="Models",
                     scenario_desc=scenario_desc,
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.model").r(),

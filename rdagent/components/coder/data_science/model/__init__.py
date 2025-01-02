@@ -50,7 +50,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         user_prompt = T(".prompts:model_coder.user").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            latest_code=workspace.file_dict.get("model01.py"),
+            latest_code=workspace.file_dict.get(f"{target_task.name}.py", ""),
         )
 
         model_code = json.loads(
@@ -60,7 +60,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )["code"]
 
         return {
-            "model01.py": model_code,
+            f"{target_task.name}.py": model_code,
         }
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
