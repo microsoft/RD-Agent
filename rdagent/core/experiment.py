@@ -115,7 +115,7 @@ class FBWorkspace(Workspace):
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
 
     @property
-    def code(self) -> str:
+    def all_codes(self) -> str:
         code_string = ""
         for file_name, code in self.file_dict.items():
             if file_name.endswith(".py") and "test" not in file_name:

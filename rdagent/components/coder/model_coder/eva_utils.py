@@ -68,7 +68,7 @@ class ModelCodeEvaluator(Evaluator):
             assert isinstance(gt_implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
-        code = implementation.code
+        code = implementation.all_codes
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
@@ -94,7 +94,7 @@ class ModelCodeEvaluator(Evaluator):
                     code=code,
                     model_execution_feedback=execution_feedback_to_render,
                     model_value_feedback=model_value_feedback,
-                    gt_code=gt_implementation.code if gt_implementation else None,
+                    gt_code=gt_implementation.all_codes if gt_implementation else None,
                 )
             )
             if (

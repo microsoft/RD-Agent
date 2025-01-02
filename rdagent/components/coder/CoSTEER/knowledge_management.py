@@ -48,7 +48,7 @@ class CoSTEERKnowledge(Knowledge):
 
     def get_implementation_and_feedback_str(self) -> str:
         return f"""------------------implementation code:------------------
-{self.implementation.code}
+{self.implementation.all_codes}
 ------------------implementation feedback:------------------
 {self.feedback!s}
 """

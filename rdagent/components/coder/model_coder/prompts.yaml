@@ -65,7 +65,7 @@ evolving_strategy_model_coder:
         {% if queried_former_failed_knowledge|length != 0 %}
         --------------Your former latest attempt:---------------
         =====Code to the former implementation=====
-        {{ queried_former_failed_knowledge[-1].implementation.code }}
+        {{ queried_former_failed_knowledge[-1].implementation.all_codes }}
         =====Feedback to the former implementation=====
         {{ queried_former_failed_knowledge[-1].feedback }}
         {% endif %}
@@ -85,7 +85,7 @@ evolving_strategy_model_coder:
         =====Model {{loop.index}}:=====
         {{ similar_successful_knowledge.target_task.get_task_information() }}
         =====Code:=====
-        {{ similar_successful_knowledge.implementation.code }}
+        {{ similar_successful_knowledge.implementation.all_codes }}
         {% endfor %}
         {% endif %}
 
@@ -93,7 +93,7 @@ evolving_strategy_model_coder:
         --------------Former failed code:---------------
         {% for former_failed_knowledge in queried_former_failed_knowledge %}
         =====Code to implementation {{ loop.index }}=====
-        {{ former_failed_knowledge.implementation.code }}
+        {{ former_failed_knowledge.implementation.all_codes }}
         =====Feedback to implementation {{ loop.index }}=====
         {{ former_failed_knowledge.feedback }}
         {% endfor %}
