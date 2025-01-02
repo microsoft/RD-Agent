@@ -61,16 +61,25 @@ class ExperimentFeedback(Feedback):
     def __init__(
         self,
         decision: bool,
-        reason: bool,
+        reason: str,
+        exception: Exception | None = None,
     ) -> None:
         self.decision = decision
         self.reason = reason
+        self.exception: Exception | None = exception  # if the experiment raises exception, it will be integrated into part of the feedback.
 
     def __bool__(self) -> bool:
         return self.decision
 
     def __str__(self) -> str:
         return f"Decision: {self.decision}\nReason: {self.reason}"
+
+    @classmethod
+    def from_exception(cls, e: Exception) -> ExperimentFeedback:
+        """
+        A convenient method to create Feedback from an exception.
+        """
+        return cls(False, f"The experiment fails due to {str(e)}", e)
 
 
 class HypothesisFeedback(ExperimentFeedback):

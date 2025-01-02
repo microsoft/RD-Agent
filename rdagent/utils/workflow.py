@@ -67,16 +67,23 @@ class LoopMeta(type):
 class LoopTrace:
     start: datetime.datetime  # the start time of the trace
     end: datetime.datetime  # the end time of the trace
+    step_idx: int
     # TODO: more information about the trace
 
 
 class LoopBase:
+    """
+    Assumption:
+    - The last step is responsible for recording information!!!!
+    """
     steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[Exception] = field(
         default_factory=tuple
     )  # you can define a list of error that will skip current loop
+
+    EXCEPTION_KEY = "_EXCEPTION"
 
     def __init__(self):
         self.loop_idx = 0  # current loop index
@@ -112,22 +119,21 @@ class LoopBase:
                         self.loop_prev_out[name] = func(self.loop_prev_out)
                         # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
                     except self.skip_loop_error as e:
+                        # FIXME: This does not support previous instance
                         logger.warning(f"Skip loop {li} due to {e}")
-                        self.loop_idx += 1
-                        self.step_idx = 0
-                        continue
-                    except CoderError as e:
-                        logger.warning(f"Traceback loop {li} due to {e}")
-                        self.step_idx = 0
+                        # NOTE: strong assumption!  The last step is responsible for recording information
+                        self.step_idx = len(self.steps) - 1  # directly jump to the last step.
+                        self.loop_prev_out[self.EXCEPTION_KEY] = e
                         continue
 
                 end = datetime.datetime.now(datetime.timezone.utc)
 
-                self.loop_trace[li].append(LoopTrace(start, end))
+                self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
-                # Update tqdm progress bar
+                # Update tqdm progress bar directly to step_idx
+                pbar.n = len(self.steps) - self.step_idx  # FIXME: check it's correctness
                 pbar.set_postfix(loop_index=li, step_index=si, step_name=name)
-                pbar.update(1)
+                pbar.update(0)  # Refresh the display
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)

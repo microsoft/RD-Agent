@@ -11,7 +11,8 @@ from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoST
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
-from rdagent.core.proposal import HypothesisFeedback
+from rdagent.core.exception import CoderError, RunnerError
+from rdagent.core.proposal import ExperimentFeedback, HypothesisFeedback
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -23,7 +24,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
 class DataScienceRDLoop(RDLoop):
-    skip_loop_error = ()
+    skip_loop_error = (CoderError, RunnerError)
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -97,7 +98,16 @@ class DataScienceRDLoop(RDLoop):
                 reason="",
                 decision=True,
             )
-        self.trace.hist.append((prev_out["running"], feedback))
+        return feedback
+
+    def record(self, prev_out: dict[str, Any]):
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        if e is None:
+            self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
+        else:
+            # TODO: Please judge the type of the exception.
+            # Record the `experiment` when raising the exception.
+            self.trace.hist.append((prev_out.get("direct_exp_gen", None) or prev_out.get("running", None), ExperimentFeedback.from_exception(e)))
 
 
 def main(path=None, step_n=None, competition="bms-molecular-translation"):
