@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import pandas as pd
+import re
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -57,11 +59,18 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        # Check if the submission file and score file are generated
+        # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
-        submission_fp = implementation.workspace_path / "submission.csv"
         if not score_fp.exists():
             stdout += "Metrics file (scores.csv) is not generated."
+        score_df = pd.read_csv(score_fp, index_col=0)
+        model_set_in_scores = set(score_df.index)
+        model_set_in_folder = set(f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f))
+        if model_set_in_scores != model_set_in_folder:
+            stdout += "The models used by ensemble are not consistent with the models in the workspace."
+
+        # Check submission file
+        submission_fp = implementation.workspace_path / "submission.csv"
         if not submission_fp.exists():
             stdout += "Submission file (submission.csv) is not generated."
 
