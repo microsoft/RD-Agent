@@ -6,6 +6,7 @@ class CoderError(Exception):
 
     The more detailed evaluation in dataframe values are managed by the evaluator.
     """
+
     # NOTE: it corresponds to the error of **component**
 
 
@@ -31,6 +32,7 @@ class RunnerError(Exception):
     """
     Exceptions raised when running the code output.
     """
+
     # NOTE: it corresponds to the error of whole **project**
 
 
