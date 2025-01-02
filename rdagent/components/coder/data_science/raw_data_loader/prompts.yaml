@@ -181,8 +181,8 @@ spec:
       1. Function Interface:
         - Function Name: `ens_and_decision`
         - Parameters:
-          - `test_pred_l` (List[DT]): A list of predictions for the test data.
-          - `val_pred_l` (List[DT]): A list of predictions for the validation data.
+          - `test_preds_dict` (Dict[str, DT]): A dictionary of test predictions from different models.
+          - `val_preds_dict` (Dict[str, DT]): A dictionary of validation predictions from different models.
           - `val_label` (DT): A 1D array or series of true labels for the validation data.
         - Output:
           - `final_predictions` (DT): A 1D array or series containing the final predictions for the test data.
@@ -193,23 +193,20 @@ spec:
 
       2. Precautions:
         - Validation of Inputs:
-          - Ensure all predictions in `test_pred_l` and `val_pred_l` have consistent shapes and dimensions.
-          - Verify that `val_label` is provided and matches the length of `val_pred_l` predictions.
+          - Ensure all predictions in `test_preds_dict` and `val_preds_dict` have consistent shapes and dimensions.
+          - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
         - You should calculate the metric for each model and ensemble strategy, and save the results in a CSV file, e.g.:
           ```python
-          scores = []
-          for id, val_pred in enumerate(val_pred_l):
-              scores.append(calculate_metric(val_label, val_pred))
+          scores = {}
+          for model_name, val_pred in val_preds_dict.items():
+              scores[model_name] = calculate_metric(val_label, val_pred)
           
           ... some code about ensemble strategy ...
+          ensemble_score = calculate_metric(val_label, ensemble_pred)
+          scores[<ensemble_strategy_name>] = ensemble_score
           
-          scores_df = pd.DataFrame(
-              {
-                  "Model": list(range(len(val_pred_l))) + ["<ensemble strategy name>"],
-                  "<metric name>": scores + [<ensemble strategy prediction score>],
-              }
-          )
+          scores_df = pd.DataFrame(scores.items(), columns=['Model', <metric_name>])
           scores_df.to_csv("scores.csv", index=False)
           ```
         - Consensus Strategy:

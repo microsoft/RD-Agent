@@ -54,13 +54,13 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
         )
-        data_loader_code = json.loads(
+        workflow_code = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
             )
         )["code"]
 
-        return {"main.py": data_loader_code}
+        return {"main.py": workflow_code}
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """

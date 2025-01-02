@@ -15,13 +15,13 @@ n_models = 3
 n_samples = 100
 
 # Create synthetic predictions
-test_pred_l = [np.random.rand(n_samples, 1) for _ in range(n_models)]
-val_pred_l = [np.random.rand(n_samples, 1) for _ in range(n_models)]
+test_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
+val_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
 val_label = np.random.randint(0, 2, (n_samples, 1))
 
 # Run ensemble
 try:
-    final_predictions = ens_and_decision(test_pred_l, val_pred_l, val_label)
+    final_predictions = ens_and_decision(test_preds_dict, val_preds_dict, val_label)
 
     # Check shape
     assert final_predictions.shape == (n_samples, 1), "Wrong output shape"
