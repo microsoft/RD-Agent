@@ -6,13 +6,9 @@ A qualified ensemble implementation should:
 - Use validation data appropriately
 """
 
-import logging
-
 import numpy as np
 from ensemble import ens_and_decision
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+from pathlib import Path
 
 # Create test data
 n_models = 3
@@ -30,10 +26,13 @@ try:
     # Check shape
     assert final_predictions.shape == (n_samples, 1), "Wrong output shape"
 
-    logging.info("Ensemble test passed successfully.")
-    logging.info(f"Output shape: {final_predictions.shape}")
-    logging.info(f"Unique values in predictions: {np.unique(final_predictions)}")
+    # check if scores.csv is generated
+    if not Path("scores.csv").exists():
+        raise Exception("scores.csv is not generated")
+    
+    print("Ensemble test passed successfully.")
+    print(f"Output shape: {final_predictions.shape}")
+    print(f"Unique values in predictions: {np.unique(final_predictions)}")
 
 except Exception as e:
-    logging.error(f"Test failed: {str(e)}")
-    raise
+    print(f"Test failed: {str(e)}")

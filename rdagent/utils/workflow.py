@@ -17,7 +17,6 @@ from typing import Callable
 
 from tqdm.auto import tqdm
 
-from rdagent.core.exception import CoderError
 from rdagent.log import rdagent_logger as logger
 
 

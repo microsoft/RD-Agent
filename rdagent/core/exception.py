@@ -32,9 +32,6 @@ class RunnerError(Exception):
     Exceptions raised when running the code output.
     """
     # NOTE: it corresponds to the error of whole **project**
-    def __init__(self, message, ws: ):
-        super().__init__(message)
-        self.message = message
 
 
 class FactorEmptyError(Exception):

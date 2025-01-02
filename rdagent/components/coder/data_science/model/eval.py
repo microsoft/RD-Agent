@@ -66,14 +66,13 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
         fname = "model_test.py"
-        with (DIRNAME / "eval_tests" / fname).open("r") as f:
-            test_code = f.read()
-            implementation.inject_files(**{fname: test_code})
+        test_code = (DIRNAME / "eval_tests" / fname).read_text()
+        implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         if stdout is None:
             stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
         system_prompt = T(".prompts:model_eval.system").r(
-            test_code=test_code, scenario="No scenario information yet.", spec=implementation.file_dict["spec/model.md"]
+            test_code=test_code, scenario=self.scen.get_scenario_all_desc(), spec=implementation.file_dict["spec/model.md"]
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,

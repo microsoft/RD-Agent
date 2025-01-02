@@ -86,16 +86,13 @@ class DataScienceRDLoop(RDLoop):
         else:
             return exp
 
-    def feedback(self, prev_out: dict[str, Any]):
+    def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
         exp: DSExperiment = prev_out["running"]
         if exp.next_component_required() is None:
             feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
-            feedback = HypothesisFeedback(
-                observations="Not all 5 components are completed, skip feedback of DataScienceRDLoop.",
-                hypothesis_evaluation="",
-                new_hypothesis="",
-                reason="",
+            feedback = ExperimentFeedback(
+                reason=f"{exp.hypothesis.component} is completed.",
                 decision=True,
             )
         return feedback
@@ -105,9 +102,12 @@ class DataScienceRDLoop(RDLoop):
         if e is None:
             self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
         else:
-            # TODO: Please judge the type of the exception.
-            # Record the `experiment` when raising the exception.
-            self.trace.hist.append((prev_out.get("direct_exp_gen", None) or prev_out.get("running", None), ExperimentFeedback.from_exception(e)))
+            self.trace.hist.append(
+                (
+                    prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"],
+                    ExperimentFeedback.from_exception(e)
+                )
+            )
 
 
 def main(path=None, step_n=None, competition="bms-molecular-translation"):

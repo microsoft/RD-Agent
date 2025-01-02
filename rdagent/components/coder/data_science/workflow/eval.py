@@ -58,17 +58,19 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         # Check if the submission file and score file are generated
-        submission_fp = implementation.workspace_path / "submission.csv"
         score_fp = implementation.workspace_path / "scores.csv"
-        if not submission_fp.exists():
-            raise CoderError("Submission file (submission.csv) is not generated.")
+        submission_fp = implementation.workspace_path / "submission.csv"
         if not score_fp.exists():
-            raise CoderError("Metrics file (scores.csv) is not generated.")
+            stdout += "Metrics file (scores.csv) is not generated."
+        if not submission_fp.exists():
+            stdout += "Submission file (submission.csv) is not generated."
 
         if stdout is None:
-            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
+            stdout = "The execution exceeded the time limit."
+
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario="No scenario information yet.", spec=implementation.file_dict["spec/workflow.md"]
+            scenario=self.scen.get_scenario_all_desc(),
+            spec=implementation.file_dict["spec/workflow.md"]
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout,

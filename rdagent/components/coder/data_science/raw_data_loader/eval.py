@@ -53,9 +53,8 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
 
         # TODO: do we need to clean the generated tempory content?
         fname = "data_loader_test.py"
-        with (DIRNAME / "eval_tests" / "data_loader_test.py").open("r") as f:
-            test_code = f.read()
-            implementation.inject_files(**{fname: test_code})
+        test_code = (DIRNAME / "eval_tests" / "data_loader_test.py").read_text()
+        implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         if stdout is None:
             stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."

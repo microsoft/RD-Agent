@@ -2,15 +2,11 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.core.evaluation import Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
@@ -48,15 +44,9 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=DSDockerConf())
 
         fname = "ensemble_test.py"
-        with (DIRNAME / "eval_tests" / "ensemble_test.py").open("r") as f:
-            test_code = f.read()
-            implementation.inject_files(**{fname: test_code})
+        test_code = (DIRNAME / "eval_tests" / "ensemble_test.py").read_text()
+        implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-
-        # Check if the metrics file is generated
-        score_fp = implementation.workspace_path / "scores.csv"
-        if not score_fp.exists():
-            raise CoderError("Metrics file (scores.csv) is not generated.")
 
         system_prompt = T(".prompts:ensemble_eval.system").r(
             test_code=test_code, code=implementation.file_dict["ensemble.py"]
