@@ -97,7 +97,7 @@ class DataScienceRDLoop(RDLoop):
                 reason="",
                 decision=True,
             )
-        self.trace.hist.append((prev_out["direct_exp_gen"].hypothesis, prev_out["running"], feedback))
+        self.trace.hist.append((prev_out["running"], feedback))
 
 
 def main(path=None, step_n=None, competition="bms-molecular-translation"):

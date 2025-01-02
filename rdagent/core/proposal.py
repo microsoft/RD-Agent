@@ -86,11 +86,10 @@ class HypothesisFeedback(ExperimentFeedback):
         self.new_hypothesis = new_hypothesis
 
     def __str__(self) -> str:
-        return f"""Observations: {self.observations}
+        return f"""{super().__str__()}
+Observations: {self.observations}
 Hypothesis Evaluation: {self.hypothesis_evaluation}
-New Hypothesis: {self.new_hypothesis}
-Decision: {self.decision}
-Reason: {self.reason}"""
+New Hypothesis: {self.new_hypothesis}"""
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
