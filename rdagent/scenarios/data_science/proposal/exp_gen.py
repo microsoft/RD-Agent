@@ -58,9 +58,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[DSHypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
-        for h, exp, hf in self.hist[::-1]:
+        for exp, hf in self.hist[::-1]:
             if hf.decision:
-                return h, exp
+                return exp.hypothesis, exp
         return None, None
 
 
