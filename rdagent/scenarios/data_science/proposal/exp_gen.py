@@ -99,7 +99,7 @@ class DSExpGen(ExpGen):
         if len(trace.hist) == 0:
             next_component = "DataLoadSpec"
         else:
-            next_component = trace.hist[-1][0].next_component_required()
+            next_component = trace.hist[-1][1].next_component_required()
 
         scenario_desc = trace.scen.get_scenario_all_desc()
         if next_component == "DataLoadSpec":

@@ -58,8 +58,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         # Check if the submission file and score file are generated
-        submission_fp = implementation.experiment_workspace.workspace_path / "submission.csv"
-        score_fp = implementation.experiment_workspace.workspace_path / "scores.csv"
+        submission_fp = implementation.workspace_path / "submission.csv"
+        score_fp = implementation.workspace_path / "scores.csv"
         if not submission_fp.exists():
             raise CoderError("Submission file (submission.csv) is not generated.")
         if not score_fp.exists():
