@@ -1,8 +1,9 @@
 import os
-from pathlib import Path
 import platform
-import pandas as pd
 import shutil
+from pathlib import Path
+
+import pandas as pd
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 
@@ -19,7 +20,7 @@ class DataHandler:
 
 class GenericDataHandler(DataHandler):
     """
-    A generic data handler that automatically detects file type based on suffix 
+    A generic data handler that automatically detects file type based on suffix
     and uses the correct pandas method for load/dump.
     """
 
@@ -37,7 +38,7 @@ class GenericDataHandler(DataHandler):
             # Note: for HDF, you need a 'key' in read_hdf. If you expect a single key,
             # you might do: pd.read_hdf(path, key='df') or something similar.
             # Adjust as needed based on your HDF structure.
-            return pd.read_hdf(path, key='data')
+            return pd.read_hdf(path, key="data")
         else:
             raise ValueError(f"Unsupported file type: {suffix}")
 
@@ -67,7 +68,7 @@ class DataReducer:
 
 class RandDataReducer(DataReducer):
     """
-    Example random sampler: ensures at least `min_num` rows 
+    Example random sampler: ensures at least `min_num` rows
     or at least `min_frac` fraction of the data (whichever is larger).
     """
 
@@ -109,7 +110,7 @@ def create_debug_data(
     sample_path=None,
 ):
     """
-    Reads the original data file, creates a reduced sample, 
+    Reads the original data file, creates a reduced sample,
     and renames/moves files for easier debugging.
     Automatically detects file type (csv, pkl, parquet, hdf, etc.).
     """
@@ -118,7 +119,7 @@ def create_debug_data(
 
     if dataset_path is None:
         dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path
-    
+
     if sample_path is None:
         # Create a sample folder under the dataset folder, which should be available in docker container
         sample_path = Path(dataset_path) / "sample"
@@ -127,11 +128,8 @@ def create_debug_data(
     sample_folder = Path(sample_path) / competition
 
     # Traverse the folder and exclude specific file types
-    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5"} 
-    files_to_process = [
-        file for file in data_folder.rglob("*") 
-        if file.is_file() 
-    ]
+    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5"}
+    files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
 
     for file_path in files_to_process:
         sampled_file_path = sample_folder / file_path.relative_to(data_folder)
@@ -145,7 +143,7 @@ def create_debug_data(
             if platform.system() == "Windows":
                 os.link(file_path, sampled_file_path)
             continue
-            
+
         # Initialize the generic data handler
         data_handler = GenericDataHandler()
 
@@ -164,4 +162,3 @@ def create_debug_data(
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
             continue
-

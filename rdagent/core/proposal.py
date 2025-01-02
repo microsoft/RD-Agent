@@ -56,6 +56,7 @@ class Hypothesis:
 
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
+
 class ExperimentFeedback(Feedback):
     def __init__(
         self,
@@ -70,6 +71,7 @@ class ExperimentFeedback(Feedback):
 
     def __str__(self) -> str:
         return f"Decision: {self.decision}\nReason: {self.reason}"
+
 
 class HypothesisFeedback(ExperimentFeedback):
     def __init__(

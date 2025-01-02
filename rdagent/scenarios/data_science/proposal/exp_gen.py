@@ -8,14 +8,17 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.experiment import Experiment
 from rdagent.core.knowledge_base import KnowledgeBase
-from rdagent.core.proposal import ExpGen, Hypothesis, HypothesisFeedback, Trace, ExperimentFeedback
+from rdagent.core.proposal import (
+    ExperimentFeedback,
+    ExpGen,
+    Hypothesis,
+    HypothesisFeedback,
+    Trace,
+)
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
-
-COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]
-ORDER = COMPONENT.__args__
 
 
 class DSHypothesis(Hypothesis):
@@ -173,7 +176,7 @@ class DSExpGen(ExpGen):
             exp = DSExperiment(sub_tasks=[wt], hypothesis=DSHypothesis("Workflow"))
             exp.experiment_workspace.inject_code_from_folder(dependency_exp.experiment_workspace.workspace_path)
             return exp
-        else: # propose new component by LLM
+        else:  # propose new component by LLM
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
 

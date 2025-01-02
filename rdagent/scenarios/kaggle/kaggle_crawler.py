@@ -21,8 +21,8 @@ from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.env import MLEBDockerEnv
 from rdagent.scenarios.data_science.debug.data import create_debug_data
+from rdagent.utils.env import MLEBDockerEnv
 
 # %%
 options = webdriver.ChromeOptions()
@@ -162,7 +162,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                 unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
                 for sub_zip_file in Path(unzip_path).rglob("*.zip"):
                     unzip_data(sub_zip_file, unzip_target_path=unzip_path)
-            
+
             # sample data
             create_debug_data(competition, dataset_path=local_path)
 
