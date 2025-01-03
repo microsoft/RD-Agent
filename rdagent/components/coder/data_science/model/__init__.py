@@ -50,7 +50,8 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         user_prompt = T(".prompts:model_coder.user").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            latest_code=workspace.file_dict.get(f"{target_task.name}.py", ""),
+            feature_code=workspace.file_dict["feature.py"],
+            latest_code=workspace.file_dict.get(f"{target_task.name}.py", None),
         )
 
         model_code = json.loads(

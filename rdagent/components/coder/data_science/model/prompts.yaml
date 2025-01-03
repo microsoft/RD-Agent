@@ -51,9 +51,11 @@ model_coder:
         ---------Model Specification---------
         {{ model_spec }}
 
+        ---------Feature Engineering Code---------
+        {{ feature_code }}
 
         {% if latest_code %}
-        ---------Former Specification---------
+        ---------Former Code---------
         Former Code: {{ latest_code }}
         You should follow the former code to improve it.
         {% endif %}    
