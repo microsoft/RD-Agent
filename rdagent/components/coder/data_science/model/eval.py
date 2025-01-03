@@ -53,7 +53,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             )
 
         ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
 
         fname = "test_model.py"
