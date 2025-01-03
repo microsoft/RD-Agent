@@ -111,7 +111,7 @@ for d in session_state.data:
 
     if "debug_exp_gen" in tag:
         with st.expander(
-            f"Exp in:violet[**{obj.experiment_workspace.workspace_path}**]", expanded=expand_all, icon="🧩"
+            f"Exp in :violet[**{obj.experiment_workspace.workspace_path}**]", expanded=expand_all, icon="🧩"
         ):
             st.write(obj)
     elif "debug_tpl" in tag:
