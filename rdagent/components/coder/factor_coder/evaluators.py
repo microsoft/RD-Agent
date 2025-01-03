@@ -3,7 +3,7 @@ import re
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
-    CoSTEERSingleFeedback,
+    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.components.coder.factor_coder.eva_utils import (
     FactorCodeEvaluator,
@@ -14,7 +14,7 @@ from rdagent.components.coder.factor_coder.factor import FactorTask
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Workspace
 
-FactorSingleFeedback = CoSTEERSingleFeedback
+FactorSingleFeedback = CoSTEERSingleFeedbackDeprecated
 FactorMultiFeedback = CoSTEERMultiFeedback
 
 

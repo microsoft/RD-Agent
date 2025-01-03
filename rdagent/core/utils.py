@@ -49,7 +49,7 @@ class SingletonBaseClass:
         NOTE:
         When loading an object from a pickle, the __new__ method does not receive the `kwargs`
         it was initialized with. This makes it difficult to retrieve the correct singleton object.
-        Therefore, we have made it unpickable.
+        Therefore, we have made it unpicklable.
         """
         msg = f"Instances of {self.__class__.__name__} cannot be pickled"
         raise pickle.PicklingError(msg)
@@ -69,7 +69,7 @@ def similarity(text1: str, text2: str) -> int:
     text2 = text2 if isinstance(text2, str) else ""
 
     # Maybe we can use other similarity algorithm such as tfidf
-    return cast(int, fuzz.ratio(text1, text2))  # mypy does not reguard it as int
+    return cast(int, fuzz.ratio(text1, text2))  # mypy does not regard it as int
 
 
 def import_class(class_path: str) -> Any:
@@ -127,7 +127,7 @@ def multiprocessing_wrapper(func_calls: list[tuple[Callable, tuple]], n: int) ->
     It will not call multiprocessing if `n=1`
 
     NOTE:
-    We coooperate with chat_cache_seed feature
+    We cooperate with chat_cache_seed feature
     We ensure get the same seed trace even we have multiple number of seed
 
     Parameters

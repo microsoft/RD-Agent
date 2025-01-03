@@ -48,7 +48,7 @@ class CoSTEERKnowledge(Knowledge):
 
     def get_implementation_and_feedback_str(self) -> str:
         return f"""------------------implementation code:------------------
-{self.implementation.code}
+{self.implementation.all_codes}
 ------------------implementation feedback:------------------
 {self.feedback!s}
 """
@@ -269,15 +269,15 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                         else:
                             # generate error node and store into knowledge base
                             error_analysis_result = []
-                            if not single_feedback.value_generated_flag:
+                            if single_feedback.return_checking:
                                 error_analysis_result = self.analyze_error(
-                                    single_feedback.execution_feedback,
-                                    feedback_type="execution",
+                                    single_feedback.return_checking,
+                                    feedback_type="value",
                                 )
                             else:
                                 error_analysis_result = self.analyze_error(
-                                    single_feedback.value_feedback,
-                                    feedback_type="value",
+                                    single_feedback.execution,
+                                    feedback_type="execution",
                                 )
                             self.knowledgebase.working_trace_error_analysis.setdefault(
                                 target_task_information,
@@ -425,8 +425,8 @@ class CoSTEERRAGStrategyV2(RAGStrategy):
                 current_index = 1
                 while current_index < len(former_trace_knowledge):
                     if (
-                        not former_trace_knowledge[current_index].feedback.value_generated_flag
-                        and former_trace_knowledge[current_index - 1].feedback.value_generated_flag
+                        not former_trace_knowledge[current_index].feedback.return_checking
+                        and former_trace_knowledge[current_index - 1].feedback.return_checking
                     ):
                         former_trace_knowledge.pop(current_index)
                     else:
@@ -718,7 +718,7 @@ class CoSTEERKnowledgeBaseV2(EvolvingKnowledgeBase):
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
         self.graph: UndirectedGraph = UndirectedGraph(Path.cwd() / "graph.pkl")
-        logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
+        logger.info(f"CoSTEER Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
             for component in init_component_list:

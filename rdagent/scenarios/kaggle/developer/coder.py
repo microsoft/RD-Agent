@@ -68,5 +68,5 @@ class KGModelFeatureSelectionCoder(Developer[KGModelExperiment]):
                 .from_string(DEFAULT_SELECTION_CODE)
                 .render(feature_index_list=chosen_index_to_list_index)
             )
-        exp.experiment_workspace.inject_code(**{KG_SELECT_MAPPING[target_model_type]: code})
+        exp.experiment_workspace.inject_files(**{KG_SELECT_MAPPING[target_model_type]: code})
         return exp

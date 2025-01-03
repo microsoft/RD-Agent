@@ -43,7 +43,7 @@ class KGModelExperiment(ModelExperiment[ModelTask, KGFBWorkspace, ModelFBWorkspa
             / KAGGLE_IMPLEMENT_SETTING.competition
         )
         if len(self.based_experiments) > 0:
-            self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
+            self.experiment_workspace.inject_files(**self.based_experiments[-1].experiment_workspace.file_dict)
             self.experiment_workspace.data_description = deepcopy(
                 self.based_experiments[-1].experiment_workspace.data_description
             )
@@ -69,7 +69,7 @@ class KGFactorExperiment(FeatureExperiment[FactorTask, KGFBWorkspace, FactorFBWo
             / KAGGLE_IMPLEMENT_SETTING.competition
         )
         if len(self.based_experiments) > 0:
-            self.experiment_workspace.inject_code(**self.based_experiments[-1].experiment_workspace.code_dict)
+            self.experiment_workspace.inject_files(**self.based_experiments[-1].experiment_workspace.file_dict)
             self.experiment_workspace.data_description = deepcopy(
                 self.based_experiments[-1].experiment_workspace.data_description
             )

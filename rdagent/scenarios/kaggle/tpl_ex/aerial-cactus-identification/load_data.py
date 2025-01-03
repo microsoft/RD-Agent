@@ -32,7 +32,7 @@ def load_images_and_labels(csv_file, image_folder):
     return np.array(images), np.array(labels)
 
 
-def load_from_raw_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
+def load_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
     """
     load raw data from disk to get data in uniform data
 

@@ -7,8 +7,8 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     Hypothesis,
-    HypothesisExperiment2Feedback,
     HypothesisFeedback,
     Trace,
 )
@@ -56,8 +56,8 @@ def process_results(current_result, sota_result):
     return filtered_combined_df.to_string()
 
 
-class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+class QlibFactorExperiment2Feedback(Experiment2Feedback):
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         Generate feedback for the given experiment and hypothesis.
 
@@ -69,6 +69,7 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
+        hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
         hypothesis_text = hypothesis.hypothesis
         current_result = exp.result
@@ -122,15 +123,15 @@ class QlibFactorHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         )
 
 
-class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class QlibModelExperiment2Feedback(Experiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
-
+        hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
         # Define the system prompt for hypothesis feedback
         system_prompt = feedback_prompts["model_feedback_generation"]["system"]
@@ -146,7 +147,7 @@ class QlibModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 context=context,
                 last_hypothesis=SOTA_hypothesis,
                 last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                last_code=SOTA_experiment.sub_workspace_list[0].code_dict.get("model.py") if SOTA_hypothesis else None,
+                last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
                 last_result=SOTA_experiment.result if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,

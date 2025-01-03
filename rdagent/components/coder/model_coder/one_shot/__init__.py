@@ -35,7 +35,7 @@ class ModelCodeWriter(Developer[ModelExperiment]):
             # Extract the code part from the response
             match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
             code = match.group(1)
-            mti.inject_code(**{"model.py": code})
+            mti.inject_files(**{"model.py": code})
             mti_l.append(mti)
         exp.sub_workspace_list = mti_l
         return exp

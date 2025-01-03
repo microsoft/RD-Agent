@@ -23,7 +23,7 @@ class MedBasePropSetting(BasePropSetting):
     runner: str = "rdagent.scenarios.data_mining.developer.model_runner.DMModelRunner"
     """Runner class"""
 
-    summarizer: str = "rdagent.scenarios.data_mining.developer.feedback.DMModelHypothesisExperiment2Feedback"
+    summarizer: str = "rdagent.scenarios.data_mining.developer.feedback.DMModelExperiment2Feedback"
     """Summarizer class"""
 
     evolving_n: int = 10

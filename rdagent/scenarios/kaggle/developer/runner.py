@@ -73,11 +73,11 @@ class KGModelRunner(KGCachedRunner[KGModelExperiment]):
             # TODO: There's a possibility of generating a hybrid model (lightgbm + xgboost), which results in having two items in the model_type list.
             model_type = sub_ws.target_task.model_type
 
-            if sub_ws.code_dict == {}:
+            if sub_ws.file_dict == {}:
                 raise ModelEmptyError("No model is implemented.")
             else:
                 model_file_name = f"model/model_{model_type.lower()}.py"
-                exp.experiment_workspace.inject_code(**{model_file_name: sub_ws.code_dict["model.py"]})
+                exp.experiment_workspace.inject_files(**{model_file_name: sub_ws.file_dict["model.py"]})
         else:
             raise ModelEmptyError("No model is implemented.")
         env_to_use = {"PYTHONPATH": "./"}
@@ -102,14 +102,14 @@ class KGFactorRunner(KGCachedRunner[KGFactorExperiment]):
         current_feature_file_count = len(list(exp.experiment_workspace.workspace_path.glob("feature/feature*.py")))
         implemented_factor_count = 0
         for sub_ws in exp.sub_workspace_list:
-            if sub_ws.code_dict == {}:
+            if sub_ws.file_dict == {}:
                 continue
             execued_df = sub_ws.execute()[1]
             if execued_df is None:
                 continue
             implemented_factor_count += 1
             target_feature_file_name = f"feature/feature_{current_feature_file_count:05d}.py"
-            exp.experiment_workspace.inject_code(**{target_feature_file_name: sub_ws.code_dict["factor.py"]})
+            exp.experiment_workspace.inject_files(**{target_feature_file_name: sub_ws.file_dict["factor.py"]})
             feature_shape = execued_df.shape[-1]
             exp.experiment_workspace.data_description.append((sub_ws.target_task.get_task_information(), feature_shape))
             current_feature_file_count += 1

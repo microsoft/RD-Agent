@@ -15,6 +15,7 @@ from rdagent.oai.llm_utils import APIBackend
 evaluate_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
 
 
+# This shape evaluator is also used in data_science
 def shape_evaluator(prediction: np.ndarray, target_shape: Tuple = None) -> Tuple[str, bool]:
     if target_shape is None or prediction is None:
         return (
@@ -67,7 +68,7 @@ class ModelCodeEvaluator(Evaluator):
             assert isinstance(gt_implementation, ModelFBWorkspace)
 
         model_task_information = target_task.get_task_information()
-        code = implementation.code
+        code = implementation.all_codes
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
@@ -93,7 +94,7 @@ class ModelCodeEvaluator(Evaluator):
                     code=code,
                     model_execution_feedback=execution_feedback_to_render,
                     model_value_feedback=model_value_feedback,
-                    gt_code=gt_implementation.code if gt_implementation else None,
+                    gt_code=gt_implementation.all_codes if gt_implementation else None,
                 )
             )
             if (

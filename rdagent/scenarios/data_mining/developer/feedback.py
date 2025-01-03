@@ -9,8 +9,8 @@ from jinja2 import Environment, StrictUndefined
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     Hypothesis,
-    HypothesisExperiment2Feedback,
     HypothesisFeedback,
     Trace,
 )
@@ -22,14 +22,15 @@ feedback_prompts = Prompts(file_path=Path(__file__).parent.parent.parent / "qlib
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class DMModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class DMModelExperiment2Feedback(Experiment2Feedback):
     """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
         """
+        hypothesis = exp.hypothesis
 
         logger.info("Generating feedback...")
         # Define the system prompt for hypothesis feedback
@@ -46,7 +47,7 @@ class DMModelHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
                 context=context,
                 last_hypothesis=SOTA_hypothesis,
                 last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                last_code=SOTA_experiment.sub_workspace_list[0].code_dict.get("model.py") if SOTA_hypothesis else None,
+                last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
                 last_result=SOTA_experiment.result if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,

@@ -90,5 +90,5 @@ class ModelWsLoader(WsLoader[ModelTask, ModelFBWorkspace]):
         mti.prepare()
         with open(self.path / f"{task.name}.py", "r") as f:
             code = f.read()
-        mti.inject_code(**{"model.py": code})
+        mti.inject_files(**{"model.py": code})
         return mti

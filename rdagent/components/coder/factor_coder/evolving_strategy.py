@@ -14,6 +14,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
@@ -72,6 +73,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: FactorTask,
         queried_knowledge: CoSTEERQueriedKnowledge,
+        workspace: FBWorkspace | None = None,
     ) -> str:
         target_factor_task_information = target_task.get_task_information()
 
@@ -179,5 +181,5 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = FactorFBWorkspace(target_task=evo.sub_tasks[index])
-            evo.sub_workspace_list[index].inject_code(**{"factor.py": code_list[index]})
+            evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
         return evo
