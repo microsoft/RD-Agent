@@ -69,7 +69,10 @@ class RDAT:
         """
         Render the template with the given context.
         """
-        rendered = Environment(undefined=StrictUndefined).from_string(self.template).render(**context)
+        rendered = Environment(undefined=StrictUndefined).from_string(self.template).render(**context).strip("\n")
+        while "\n\n\n" in rendered:
+            rendered = rendered.replace("\n\n\n", "\n\n")
+        rendered = "\n".join(line for line in rendered.splitlines() if line.strip())
         logger.log_object(
             obj={
                 "uri": self.uri,

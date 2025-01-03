@@ -54,6 +54,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
         competition_info = self.scen.get_scenario_all_desc()
+        data_folder_info = self.scen.get_data_folder_description()
         data_loader_task_info = target_task.get_task_information()
 
         queried_similar_successful_knowledge = (
@@ -106,6 +107,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:data_loader_coder.user").r(
             competition_info=competition_info,
             data_loader_spec=data_loader_spec,
+            folder_spec=data_folder_info,
             latest_code=workspace.file_dict.get("load_data.py"),
         )
 

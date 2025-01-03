@@ -108,21 +108,20 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
-        if (
-            not zip_competition_path.exists()
-            or not (Path(local_path) / competition).exists()
-            or list((Path(local_path) / competition).iterdir()) == []
-        ):
-            mleb_env = MLEBDockerEnv()
-            mleb_env.prepare()
-            (Path(local_path) / "zip_files").mkdir(parents=True, exist_ok=True)
-            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
+        mleb_env = MLEBDockerEnv()
+        mleb_env.prepare()
+        if not zip_competition_path.exists():
+            (Path(zipfile_path)).mkdir(parents=True, exist_ok=True)
             mleb_env.run(
                 f"mlebench prepare -c {competition} --data-dir ./zip_files",
                 local_path=local_path,
                 running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
             )
+
+        if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
+            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
+
             mleb_env.run(
                 f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
             )
