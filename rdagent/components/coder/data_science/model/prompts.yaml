@@ -21,11 +21,15 @@ model_coder:
                 If previous failed attempts and their feedback are available, learn from them. Understand what went wrong and avoid repeating similar mistakes in your new implementation.
                 The failure knowledge may include the code unrelated to the model, such as data loading, preprocessing, or feature engineering. Focus only on the model implementation part.
 
+        {% if out_spec %}
+        {{out_spec}}
+        {% else %}
         Formatting Your Response:
             Return only the code in a JSON format as shown below. Do not include any explanations or extra text. Example:
             {
                 "code": "Your corrected or newly implemented Python code as a single string"
             }
+        {% endif %}
         
         -----------Here is the relevant information for this task-----------
         {% if queried_similar_successful_knowledge|length != 0 %}
@@ -59,6 +63,13 @@ model_coder:
         Former Code: {{ latest_code }}
         You should follow the former code to improve it.
         {% endif %}    
+
+    user_general: |-
+        --------- Workspace code---------
+        {{worksapce_code}}
+        ---------Model Specification---------
+        When you are implementing the code, you should follow the spec
+        {{ model_spec }}
 
 
 model_eval:

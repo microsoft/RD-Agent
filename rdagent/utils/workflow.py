@@ -118,7 +118,7 @@ class LoopBase:
                         self.loop_prev_out[name] = func(self.loop_prev_out)
                         # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
                     except self.skip_loop_error as e:
-                        # FIXME: This does not support previous instance
+                        # FIXME: This does not support previous demo (due to their last step is not for recording)
                         logger.warning(f"Skip loop {li} due to {e}")
                         # NOTE: strong assumption!  The last step is responsible for recording information
                         self.step_idx = len(self.steps) - 1  # directly jump to the last step.

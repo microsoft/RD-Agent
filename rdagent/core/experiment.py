@@ -74,6 +74,14 @@ class Workspace(ABC, Generic[ASpecificTask]):
         error_message = "copy method is not implemented."
         raise NotImplementedError(error_message)
 
+    @property
+    @abstractmethod
+    def all_codes(self) -> str:
+        """
+        Get all the code files in the workspace as a single string.
+        """
+        pass
+
 
 ASpecificWS = TypeVar("ASpecificWS", bound=Workspace)
 
@@ -115,21 +123,30 @@ class FBWorkspace(Workspace):
         )  # The code injected into the folder, store them in the variable to reproduce the former result
         self.workspace_path: Path = RD_AGENT_SETTINGS.workspace_path / uuid.uuid4().hex
 
+    @staticmethod
+    def _format_code_dict(code_dict: dict[str, str]) -> str:
+        """
+        Helper function to format the code dictionary into a string.
+        """
+        code_string = ""
+        for file_name, code in code_dict.items():
+            code_string += f"File Path: {file_name}\n```\n{code}\n```"
+        return code_string
+
     @property
     def all_codes(self) -> str:
-        code_string = ""
-        for file_name, code in self.file_dict.items():
-            if file_name.endswith(".py") and "test" not in file_name:
-                code_string += f"File: {file_name}\n{code}\n"
-        return code_string
+        """
+        Get all the code files in the workspace as a single string, excluding test files.
+        """
+        filtered_dict = {k: v for k, v in self.file_dict.items() if k.endswith(".py") and "test" not in k}
+        return self._format_code_dict(filtered_dict)
 
     def get_codes(self, pattern: str) -> str:
-        code_string = ""
-        for file_name, code in self.file_dict.items():
-            if re.search(pattern, file_name) and file_name.endswith(".py") and "test" not in file_name:
-                code_string += f"File: {file_name}\n{code}\n"
-        return code_string
-
+        """
+        Get code files matching a specific pattern as a single string, excluding test files.
+        """
+        filtered_dict = {k: v for k, v in self.file_dict.items() if re.search(pattern, k) and k.endswith(".py") and "test" not in k}
+        return self._format_code_dict(filtered_dict)
     def prepare(self) -> None:
         """
         Prepare the workspace except the injected code
@@ -153,19 +170,26 @@ class FBWorkspace(Workspace):
             if platform.system() == "Windows":
                 os.link(data_file_path, workspace_data_file_path)
 
+    DEL_KEY = "__DEL__"
     def inject_files(self, **files: str) -> None:
         """
         Inject the code into the folder.
         {
-            <file name>: <code>
+            <file name1>: <code>,  // indicate writing <code> into <file name> (create new file or replace existing file)
+            <file name2>: "__DEL__"  // indicate removing file name2. When we want to replace a file to a new one, we usually use this
         }
         """
         self.prepare()
         for k, v in files.items():
-            self.file_dict[k] = v
-            target_file_path = self.workspace_path / k
-            target_file_path.parent.mkdir(parents=True, exist_ok=True)
-            target_file_path.write_text(v)
+            target_file_path = self.workspace_path / k  # Define target_file_path before using it
+            if v == self.DEL_KEY:  # Use self.DEL_KEY to access the class variable
+                if target_file_path.exists():
+                    target_file_path.unlink()  # Unlink the file if it exists
+                self.file_dict.pop(k, None)  # Safely remove the key from file_dict
+            else:
+                self.file_dict[k] = v
+                target_file_path.parent.mkdir(parents=True, exist_ok=True)
+                target_file_path.write_text(v)
 
     def get_files(self) -> list[Path]:
         """

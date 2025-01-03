@@ -118,7 +118,7 @@ def create_debug_data(
         dr_cls_kwargs = {}
 
     if dataset_path is None:
-        dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path
+        dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path  # FIXME: don't hardcode this KAGGLE_IMPLEMENT_SETTING
 
     if sample_path is None:
         # Create a sample folder under the dataset folder, which should be available in docker container

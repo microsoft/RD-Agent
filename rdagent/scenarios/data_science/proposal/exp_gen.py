@@ -7,7 +7,7 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.experiment import Experiment
+from rdagent.core.experiment import Experiment, Workspace
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import (
     ExperimentFeedback,
@@ -74,6 +74,7 @@ class DSExpGen(ExpGen):
         targets: str,
         scenario_desc: str,
         task_output_format: str,
+        workspace_code: str | None = None,
         hypothesis: Hypothesis | None = None,
         hypothesis_and_feedback: str | None = None,
     ) -> dict:
@@ -86,6 +87,7 @@ class DSExpGen(ExpGen):
         user_prompt = T(".prompts:task_gen.user").r(
             targets=targets,
             hypothesis=hypothesis,
+            workspace_code=workspace_code,
             hypothesis_and_feedback=hypothesis_and_feedback,
         )
 
@@ -180,6 +182,8 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
             return exp
         else:  # propose new component by LLM
+            assert sota_exp is not None, "SOTA experiment is not provided."
+
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
             # Step 1: Generate component
@@ -201,8 +205,8 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
+            # Step 2: Generate the rest of the hypothesis
             if component != "Model":
-                # Step 2: Generate the rest of the hypothesis
                 hypothesis_sys_prompt = T(".prompts:hypothesis_gen.system").r(
                     targets="data science project",
                     scenario=scenario_desc,
@@ -235,27 +239,19 @@ class DSExpGen(ExpGen):
                     if re.match(r"^model_.+\.py", fname):
                         model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{sota_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
-                
+
                 model_num = len(model_infos)
                 models_info_str = ("-"*20).join(model_infos)
-                if model_num >= 3:
-                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
-                        targets="data science project",
-                        scenario=scenario_desc,
-                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=models_info_str,
-                        model_enough=True,
-                    )
-                else:
-                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
-                        targets="data science project",
-                        scenario=scenario_desc,
-                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=models_info_str,
-                        model_enough=False,
-                    )
+
+                hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
+                    targets="data science project",
+                    scenario=scenario_desc,
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                    hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+                    model_info=models_info_str,
+                    model_enough=model_num >= 3,  # NOTE: Assumption: limited model number is usually enough for good results.
+                )
+
                 hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
                     targets="data science project",
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -303,7 +299,6 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                
                 ft = FeatureTask(
                     name="Feature Engineering",
                     description=resp_dict.get("description", "Feature description not provided"),
@@ -316,6 +311,7 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     scenario_desc=scenario_desc,
                     hypothesis=hypothesis,
+                    workspace_code=sota_exp.experiment_workspace.all_codes,
                     task_output_format=T(".prompts:output_format.model").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )

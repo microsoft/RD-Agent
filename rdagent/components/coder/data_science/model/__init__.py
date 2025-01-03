@@ -19,6 +19,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import BatchEditOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -47,22 +48,26 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         system_prompt = T(".prompts:model_coder.system").r(
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=BatchEditOut.get_spec(),
         )
-        user_prompt = T(".prompts:model_coder.user").r(
+        # user_prompt = T(".prompts:model_coder.user").r(
+        #     model_spec=workspace.file_dict["spec/model.md"],
+        #     feature_code=workspace.file_dict["feature.py"],
+        #     latest_code=workspace.file_dict.get(f"{target_task.name}.py", None),
+        # )
+        # We want to use a simpler way to
+        user_prompt = T(".prompts:model_coder.user_general").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            feature_code=workspace.file_dict["feature.py"],
-            latest_code=workspace.file_dict.get(f"{target_task.name}.py", None),
+            worksapce_code=workspace.all_codes,  # TODO: If we have high failure rate here, we should clean this step with less information.
         )
 
-        model_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["code"]
+        batch_edit = BatchEditOut.extract_output(APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            json_mode=BatchEditOut.json_mode,
+        ))
 
-        return {
-            f"{target_task.name}.py": model_code,
-        }
+        return batch_edit
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """

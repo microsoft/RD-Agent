@@ -66,10 +66,16 @@ task_gen:
     3. Former proposed {{targets}} on similar hypothesis.
     4. Some additional information to help you generate new {{targets}}.
     {% endif %}
+
     Please generate the output following the format below:
     {{ task_output_format }}
     
   user: |-
+    {% if workspace_code %}
+    Here is a list of all the filenames and their corresponding content in the workspace:
+    {{workspace_code}}
+    {% endif %}
+
     {% if hypothesis is not none %}
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The target hypothesis you are targeting to generate {{targets}} for is as follows:
@@ -169,6 +175,7 @@ output_format:
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
+      "edit_strategy": <specify the editing strategy to implement the hypothesis: we have the following strategies 1) remove an existing model (you MUST specify which model will be removed) and add a new model with the "model_name" 2) add a new model in addition to the existing models; the following coding agent will use your edit strategy to make the necessary changes>
     }
     Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
   ensemble: |-
