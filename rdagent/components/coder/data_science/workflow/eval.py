@@ -63,11 +63,12 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         score_fp = implementation.workspace_path / "scores.csv"
         if not score_fp.exists():
             stdout += "Metrics file (scores.csv) is not generated."
-        score_df = pd.read_csv(score_fp, index_col=0)
-        model_set_in_scores = set(score_df.index)
-        model_set_in_folder = set(f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f))
-        if model_set_in_scores != model_set_in_folder:
-            stdout += "The models used by ensemble are not consistent with the models in the workspace."
+        else:
+            score_df = pd.read_csv(score_fp, index_col=0)
+            model_set_in_scores = set(score_df.index)
+            model_set_in_folder = set(f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f))
+            if model_set_in_scores != model_set_in_folder:
+                stdout += "The models used by ensemble are not consistent with the models in the workspace."
 
         # Check submission file
         submission_fp = implementation.workspace_path / "submission.csv"

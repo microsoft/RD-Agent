@@ -20,9 +20,13 @@ model_coder:
             Error Learning:
                 If previous failed attempts and their feedback are available, learn from them. Understand what went wrong and avoid repeating similar mistakes in your new implementation.
                 The failure knowledge may include the code unrelated to the model, such as data loading, preprocessing, or feature engineering. Focus only on the model implementation part.
+        
+        ---------Model Task Description---------
+        {{ task_info }}
 
         {% if out_spec %}
         {{out_spec}}
+        The file name should be the model name described in the model task
         {% else %}
         Formatting Your Response:
             Return only the code in a JSON format as shown below. Do not include any explanations or extra text. Example:
@@ -30,7 +34,6 @@ model_coder:
                 "code": "Your corrected or newly implemented Python code as a single string"
             }
         {% endif %}
-        
         -----------Here is the relevant information for this task-----------
         {% if queried_similar_successful_knowledge|length != 0 %}
         --------------Successful Implementations for Similar Models:--------------
@@ -62,11 +65,11 @@ model_coder:
         ---------Former Code---------
         Former Code: {{ latest_code }}
         You should follow the former code to improve it.
-        {% endif %}    
+        {% endif %}
 
     user_general: |-
         --------- Workspace code---------
-        {{worksapce_code}}
+        {{ worksapce_code }}
         ---------Model Specification---------
         When you are implementing the code, you should follow the spec
         {{ model_spec }}
