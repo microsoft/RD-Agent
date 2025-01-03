@@ -138,10 +138,7 @@ def create_debug_data(
 
         sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
         if file_path.suffix not in included_extensions:
-            if platform.system() == "Linux":
-                os.symlink(file_path, sampled_file_path)
-            if platform.system() == "Windows":
-                os.link(file_path, sampled_file_path)
+            shutil.copy(file_path, sampled_file_path)
             continue
 
         # Initialize the generic data handler

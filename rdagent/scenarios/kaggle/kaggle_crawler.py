@@ -163,8 +163,9 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                 for sub_zip_file in Path(unzip_path).rglob("*.zip"):
                     unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
-            # sample data
-            create_debug_data(competition, dataset_path=local_path)
+    # sample data
+    if not Path(f"{local_path}/sample/{competition}").exists():
+        create_debug_data(competition, dataset_path=local_path)
 
 
 def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
