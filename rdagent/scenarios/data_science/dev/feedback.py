@@ -4,7 +4,7 @@ from pathlib import Path
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback
+from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, ExperimentFeedback
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -14,7 +14,14 @@ from rdagent.utils.agent.tpl import T
 
 
 class DSExperiment2Feedback(Experiment2Feedback):
-    def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
+        # 用哪些信息来生成feedback
+        # 1. sub_tasks[0] 任务的描述
+        # 2. hypothesis 任务的假设
+        # 3. 相对sota_exp的改动
+        # 4. result 任务的结果
+        # 5. sota_exp.result 之前最好的结果
+        sota_exp = trace.sota_experiment()
         hypothesis = exp.hypothesis
         current_results = exp.result
         if hypothesis.component == "DataLoadSpec":
@@ -29,7 +36,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             modified_file_name = "main.py"
         modified_code = exp.experiment_workspace.file_dict[modified_file_name]
 
-        sota_hypothesis, sota_exp = trace.get_sota_hypothesis_and_experiment()
+        sota_exp = trace.sota_experiment()
 
         if sota_exp:
             sota_codes = {
