@@ -18,7 +18,9 @@ spec:
     -----------Competition Information-----------
     {{ competition_info }}
 
+    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     -----------Here is the relevant information for this task-----------
+    {% endif %}
     {% if queried_similar_successful_knowledge|length != 0 %}
     --------------Successful Implementations for Similar Models:--------------
     ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
@@ -278,7 +280,9 @@ data_loader_coder:
         "code": "The Python code as a string."
     }
 
+    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     -----------Here is the relevant information for this task-----------
+    {% endif %}
     {% if queried_similar_successful_knowledge|length != 0 %}
     --------------Successful Implementations for Similar Models:--------------
     ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
@@ -304,6 +308,9 @@ data_loader_coder:
 
     ---------Data Loader Specification---------
     {{ data_loader_spec }}
+
+    ---------Data Folder Description---------(All path are relative to the data folder)
+    {{ folder_spec }}
 
     You should strictly follow the function interface specifications provided by the specification to implement the function.
 

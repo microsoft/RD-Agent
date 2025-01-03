@@ -1,11 +1,74 @@
 import json
+import os
 from pathlib import Path
+
+import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+
+
+def read_csv_head(file_path, indent, lines=5):
+    try:
+        df = pd.read_csv(file_path, nrows=lines)
+        df_string_lines = df.to_string(index=False).split("\n")
+        for i in range(len(df_string_lines)):
+            df_string_lines[i] = " " * (indent) + df_string_lines[i]
+        return "\n".join(df_string_lines)
+    except Exception as e:
+        return f"Error reading CSV: {e}"
+
+
+def describe_data_folder(folder_path, indent=0):
+    result = []
+    files_count = {}
+    files_details = {}
+
+    for root, dirs, files in os.walk(folder_path):
+        # Process files
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_type = os.path.splitext(file)[1][1:]
+            file_size = os.path.getsize(file_path)
+            if file_type not in files_count:
+                files_count[file_type] = 0
+                files_details[file_type] = []
+            files_count[file_type] += 1
+            if len(files_details[file_type]) < 3:
+                files_details[file_type].append((file, file_size, file_path))
+
+        # Process directories
+        for d in dirs:
+            result.append(" " * indent + f"- Folder: {d}")
+            result.append(describe_data_folder(os.path.join(root, d), indent + 2))
+
+        # Ensure we only process the current directory and not subdirectories in this loop
+        break
+
+    # Print the folder and its contents
+    for file_type, count in files_count.items():
+        if count > 3:
+            result.append(" " * indent + f"{count} {file_type}s:")
+            for file, size, path in files_details[file_type]:
+                result.append(" " * (indent + 2) + f"- {file} ({size} bytes)")
+            result.append(" " * (indent + 2) + "...")
+        else:
+            for file, size, path in files_details[file_type]:
+                if file_type == "zip":
+                    continue
+                result.append(" " * indent + f"- {file} ({size} bytes)")
+                if file_type == "csv":
+                    result.append(f" " * (indent + 2) + f"- Head of {file}:")
+                    result.append(read_csv_head(path, indent + 2))
+                if file_type == "md":
+                    result.append(f" " * (indent + 2) + f"- Content of {file}:")
+                    with open(path, "r") as f:
+                        result.append(f.read())
+
+    return "\n".join(result)
 
 
 class DataScienceScen(Scenario):
@@ -88,3 +151,6 @@ class DataScienceScen(Scenario):
             submission_specifications=self.submission_specifications,
             metric_direction=self.metric_direction,
         )
+
+    def get_data_folder_description(self) -> str:
+        return describe_data_folder(Path(DS_RD_SETTING.local_data_path) / self.competition)
