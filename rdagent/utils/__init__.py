@@ -7,10 +7,14 @@ it is not binding to the scenarios or framework (So it is not placed in rdagent.
 # TODO: split the utils in this module into different modules in the future.
 
 import importlib
+import json
 import re
 import sys
 from types import ModuleType
 from typing import Union
+
+from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.tpl import T
 
 
 def get_module_by_module_path(module_path: Union[str, ModuleType]):
@@ -53,3 +57,69 @@ def convert2bool(value: Union[str, bool]) -> bool:
         return value
     else:
         raise ValueError(f"Unknown value type {value} to bool")
+
+def remove_ansi_codes(s: str) -> str:
+    """
+    It is for removing ansi ctrl characters in the string(e.g. colored text)
+    """
+    ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", s)
+
+
+def filter_progress_bar(stdout: str) -> str:
+    """
+    Filter out progress bars from stdout using regex.
+    """
+    # Initial progress bar regex pattern
+    progress_bar_re = (
+        r"(\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+|"
+        r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step|"
+        r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*|"
+        r"\d+/\d+\s+[━]+.*?\u0008+|"
+        r"\d+/\d+\s+[━]+.*|[ ]*\u0008+)"
+    )
+
+    filtered_stdout = remove_ansi_codes(stdout)
+    filtered_stdout = re.sub(progress_bar_re, "", filtered_stdout)
+    filtered_stdout = re.sub(r'\s*\n\s*', '\n', filtered_stdout)
+
+    # Check if progress bars are already filtered
+    system_prompt = T(".prompts:if_filtered.system").r()
+    user_prompt = T(".prompts:if_filtered.user").r(
+        filtered_stdout=filtered_stdout,
+    )
+    if_filtered_stdout = json.loads(
+        APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+    ).get("progress bar filtered", False)
+
+    if convert2bool(if_filtered_stdout):
+        return filtered_stdout
+
+    # Attempt further filtering up to 5 times
+    for _ in range(5):
+        system_prompt = T(".prompts:filter_progress_bar.system").r()
+        user_prompt = T(".prompts:filter_progress_bar.user").r(
+            stdout=filtered_stdout,
+        )
+
+        new_pattern = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+            )
+        )["regex pattern"]
+
+        filtered_stdout = re.sub(new_pattern, "", filtered_stdout)
+        filtered_stdout = re.sub(r'\s*\n\s*', '\n', filtered_stdout)
+
+        system_prompt = T(".prompts:if_filtered.system").r()
+        user_prompt = T(".prompts:if_filtered.user").r(
+            filtered_stdout=filtered_stdout,
+        )
+        if_filtered_stdout = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+        ).get("progress bar filtered", False)
+
+        if convert2bool(if_filtered_stdout):
+            break
+
+    return filtered_stdout

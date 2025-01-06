@@ -51,7 +51,7 @@ class RDAT:
 
         if path_part.startswith("."):
             yaml_file_path = caller_dir / f"{path_part[1:].replace('.', '/')}.yaml"
-            self.uri = f"{str(caller_dir.relative_to(PROJ_PATH)).replace('/', '.')}{uri}"
+            self.uri = f"{str(caller_dir.resolve().relative_to(PROJ_PATH)).replace('/', '.')}{uri}"
         else:
             yaml_file_path = (PROJ_PATH / path_part.replace(".", "/")).with_suffix(".yaml")
 

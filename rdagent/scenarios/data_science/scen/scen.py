@@ -90,7 +90,7 @@ def describe_data_folder(folder_path, indent=0, max_files=3, partial_expand_subf
                             folder_path=subfolder_path,
                             indent=indent + 2,
                             max_files=max_files,
-                            partial_expand_subfolders=partial_expand_subfolders
+                            partial_expand_subfolders=partial_expand_subfolders,
                         )
                     )
                 else:
@@ -106,7 +106,7 @@ def describe_data_folder(folder_path, indent=0, max_files=3, partial_expand_subf
                         folder_path=subfolder_path,
                         indent=indent + 2,
                         max_files=max_files,
-                        partial_expand_subfolders=partial_expand_subfolders
+                        partial_expand_subfolders=partial_expand_subfolders,
                     )
                 )
 
