@@ -2,6 +2,8 @@ import json
 import re
 from typing import Literal
 
+import pandas as pd
+
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
@@ -20,7 +22,6 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
-import pandas as pd
 
 
 class DSHypothesis(Hypothesis):
@@ -74,12 +75,14 @@ class DSExpGen(ExpGen):
         targets: str,
         scenario_desc: str,
         task_output_format: str,
+        spec: str = None,
         hypothesis: Hypothesis | None = None,
         hypothesis_and_feedback: str | None = None,
     ) -> dict:
         system_prompt = T(".prompts:task_gen.system").r(
             targets=targets,
             scenario=scenario_desc,
+            task_specification=spec,
             hypothesis=hypothesis,
             task_output_format=task_output_format,
         )
@@ -124,6 +127,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Feature Engineering",
                 scenario_desc=scenario_desc,
+                spec=sota_exp.experiment_workspace.file_dict["spec/feature.md"],
                 task_output_format=T(".prompts:output_format.feature").r(),
             )
 
@@ -138,6 +142,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Models",
                 scenario_desc=scenario_desc,
+                spec=sota_exp.experiment_workspace.file_dict["spec/model.md"],
                 task_output_format=T(".prompts:output_format.model").r(),
             )
 
@@ -155,6 +160,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Ensemble",
                 scenario_desc=scenario_desc,
+                spec=sota_exp.experiment_workspace.file_dict["spec/ensemble.md"],
                 task_output_format=T(".prompts:output_format.ensemble").r(),
             )
 
@@ -169,6 +175,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Workflow",
                 scenario_desc=scenario_desc,
+                spec=sota_exp.experiment_workspace.file_dict["spec/workflow.md"],
                 task_output_format=T(".prompts:output_format.workflow").r(),
             )
 
@@ -197,7 +204,9 @@ class DSExpGen(ExpGen):
             )
 
             resp_dict_component: dict = json.loads(
-                APIBackend().build_messages_and_create_chat_completion(component_user_prompt, component_sys_prompt, json_mode=True)
+                APIBackend().build_messages_and_create_chat_completion(
+                    component_user_prompt, component_sys_prompt, json_mode=True
+                )
             )
 
             component = resp_dict_component.get("component", "Component not provided")
@@ -216,7 +225,9 @@ class DSExpGen(ExpGen):
                 )
 
                 resp_dict: dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True)
+                    APIBackend().build_messages_and_create_chat_completion(
+                        hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True
+                    )
                 )
                 hypothesis = DSHypothesis(
                     component=resp_dict.get("component", "Component not provided"),
@@ -235,9 +246,9 @@ class DSExpGen(ExpGen):
                     if re.match(r"^model_.+\.py", fname):
                         model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{sota_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
-                
+
                 model_num = len(model_infos)
-                models_info_str = ("-"*20).join(model_infos)
+                models_info_str = ("-" * 20).join(model_infos)
                 if model_num >= 3:
                     hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
                         targets="data science project",
@@ -261,7 +272,9 @@ class DSExpGen(ExpGen):
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
                 resp_dict: dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True)
+                    APIBackend().build_messages_and_create_chat_completion(
+                        hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True
+                    )
                 )
                 hypothesis = DSHypothesis(
                     component=resp_dict.get("component", "Component not provided"),
@@ -278,6 +291,7 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     targets="Data loader and specification generation",
                     scenario_desc=scenario_desc,
+                    spec=sota_exp.experiment_workspace.file_dict["spec/data_loader.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.data_loader").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -298,12 +312,12 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     targets="Feature Engineering",
                     scenario_desc=scenario_desc,
+                    spec=sota_exp.experiment_workspace.file_dict["spec/feature.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.feature").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
 
-                
                 ft = FeatureTask(
                     name="Feature Engineering",
                     description=resp_dict.get("description", "Feature description not provided"),
@@ -315,6 +329,7 @@ class DSExpGen(ExpGen):
             elif hypothesis.component == "Model":
                 resp_dict = self.llm_task_gen(
                     scenario_desc=scenario_desc,
+                    spec=sota_exp.experiment_workspace.file_dict["spec/model.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.model").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -336,6 +351,7 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     targets="Ensemble",
                     scenario_desc=scenario_desc,
+                    spec=sota_exp.experiment_workspace.file_dict["spec/ensemble.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.ensemble").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -353,6 +369,7 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     targets="Workflow",
                     scenario_desc=scenario_desc,
+                    spec=sota_exp.experiment_workspace.file_dict["spec/workflow.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.workflow").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
