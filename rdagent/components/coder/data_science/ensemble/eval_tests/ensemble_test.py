@@ -32,18 +32,18 @@ test_preds_dict["{{mn}}"], val_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
 
 # Run ensemble
 try:
-    final_predictions = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
+    final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
 
     # Check shape
-    assert final_predictions.shape == val_y.shape, "Wrong output shape"
+    assert final_pred.shape == val_y.shape, "Wrong output shape"
 
     # check if scores.csv is generated
     if not Path("scores.csv").exists():
         raise Exception("scores.csv is not generated")
     
     print("Ensemble test passed successfully.")
-    print(f"Output shape: {final_predictions.shape}")
-    print(f"Unique values in predictions: {np.unique(final_predictions)}")
+    print(f"Output shape: {final_pred.shape}")
+    print(f"Unique values in predictions: {np.unique(final_pred)}")
 
 except Exception as e:
     print(f"Test failed: {str(e)}")

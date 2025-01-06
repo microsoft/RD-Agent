@@ -185,9 +185,9 @@ spec:
         - Parameters:
           - `test_preds_dict` (Dict[str, DT]): A dictionary of test predictions from different models.
           - `val_preds_dict` (Dict[str, DT]): A dictionary of validation predictions from different models.
-          - `val_label` (DT): A 1D array or series of true labels for the validation data.
+          - `val_label` (DT): Validation label.
         - Output:
-          - `final_predictions` (DT): A 1D array or series containing the final predictions for the test data.
+          - `final_pred` (DT): Ensemble prediction for the test data.
         - Docstring Requirements:
           - Describe the purpose of the function.
           - Clarify the input parameters and their data types.
