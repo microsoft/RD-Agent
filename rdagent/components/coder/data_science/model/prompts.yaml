@@ -3,7 +3,16 @@ model_coder:
         You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
         Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
         
+        Your task is as follows:
+        {{task_desc}}
+
         The user's ultimate goal is to obtain accurate predictions from the model on input data. Follow the instructions below to ensure your response is correct and aligned with the user's expectations.
+
+        Your function's input is from the output of a feature engineering function whose input is the output of a data loading function. The raw data loader function and feature engineer function code is as follows:
+        --------- Raw Data Loader Code: ---------
+        {{data_loader_code}}
+        --------- Feature Engineering Code: ---------
+        {{feature_code}}
 
         Instructions for Code Generation:
             Leveraging User Inputs:
@@ -34,13 +43,16 @@ model_coder:
                 "code": "Your corrected or newly implemented Python code as a single string"
             }
         {% endif %}
+        
+        {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
         -----------Here is the relevant information for this task-----------
+        {% endif %}
         {% if queried_similar_successful_knowledge|length != 0 %}
         --------------Successful Implementations for Similar Models:--------------
         ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
         {{ similar_successful_knowledge.target_task.get_task_information() }}
         =====Code:=====
-        {{ similar_successful_knowledge.implementation.file_dict["model01.py"] }}
+        {{ similar_successful_knowledge.implementation.file_dict[similar_successful_knowledge.target_task.name ~ '.py'] }}
         {% endfor %} 
         {% endif %}
 
@@ -48,7 +60,7 @@ model_coder:
         --------------Previous Failed Attempts:--------------
         {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
         =====Code:=====
-        {{ former_failed_knowledge.implementation.file_dict["model01.py"] }}
+        {{ former_failed_knowledge.implementation.file_dict[former_failed_knowledge.target_task.name ~ '.py'] }}
         =====Feedback:=====
         {{ former_failed_knowledge.feedback }}
         {% endfor %}
@@ -57,9 +69,6 @@ model_coder:
     user: |-
         ---------Model Specification---------
         {{ model_spec }}
-
-        ---------Feature Engineering Code---------
-        {{ feature_code }}
 
         {% if latest_code %}
         ---------Former Code---------

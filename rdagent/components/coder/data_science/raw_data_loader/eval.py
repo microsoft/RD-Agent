@@ -51,7 +51,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
 
-        # TODO: do we need to clean the generated tempory content?
+        # TODO: do we need to clean the generated temporary content?
         fname = "data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.py").read_text()
         implementation.inject_files(**{fname: test_code})

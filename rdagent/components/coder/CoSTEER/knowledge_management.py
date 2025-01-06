@@ -718,7 +718,7 @@ class CoSTEERKnowledgeBaseV2(EvolvingKnowledgeBase):
         Load knowledge, offer brief information of knowledge and common handle interfaces
         """
         self.graph: UndirectedGraph = UndirectedGraph(Path.cwd() / "graph.pkl")
-        logger.info(f"Knowledge Graph loaded, size={self.graph.size()}")
+        logger.info(f"CoSTEER Knowledge Graph loaded, size={self.graph.size()}")
 
         if init_component_list:
             for component in init_component_list:

@@ -1,31 +1,28 @@
-"""
-adapt for cv models
-"""
-
-import os
-import pickle
-import traceback
-
-import numpy as np
-from feature import feat_eng
-from load_data import load_data
-from model01 import model_workflow
+import time
 from sklearn.model_selection import train_test_split
+from load_data import load_data
+from feature import feat_eng
+from model01 import model_workflow
 
+
+def log_execution_results(start_time, val_pred, test_pred, hypers, execution_label):
+    """Log the results of a single model execution."""
+    feedback_str = f"{execution_label} successful.\n"
+    feedback_str += f"Validation predictions shape: {val_pred.shape if val_pred is not None else 'None'}\n"
+    feedback_str += f"Test predictions shape: {test_pred.shape if test_pred is not None else 'None'}\n"
+    feedback_str += f"Hyperparameters: {hypers if hypers is not None else 'None'}\n"
+    feedback_str += f"Execution time: {time.time() - start_time:.2f} seconds.\n"
+    print(feedback_str)
+
+
+# Load and preprocess data
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
-
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
 
-
-"""train_X = np.random.rand(8, 64, 64, 3)
-train_y = np.random.rand(8, 1)
-val_X = np.random.rand(8, 64, 64, 3)
-val_y = np.random.rand(8, 1)
-test_X = np.random.rand(8, 64, 64, 3)"""
-
+# First execution
 print("The first execution begins.\n")
-# Call model_workflow
+start_time = time.time()
 val_pred, test_pred, hypers = model_workflow(
     X=train_X,
     y=train_y,
@@ -33,41 +30,19 @@ val_pred, test_pred, hypers = model_workflow(
     val_y=val_y,
     test_X=None,
 )
-# val_pred = np.random.rand(8, 1)
-# test_pred = np.random.rand(8, 1)
+log_execution_results(start_time, val_pred, test_pred, hypers, "The first execution")
 
-execution_feedback_str = "The first Execution successful.\n"
-if val_pred is not None:
-    execution_feedback_str += f"Validation predictions shape: {val_pred.shape}\n"
-else:
-    execution_feedback_str += "Validation predictions are None.\n"
-if test_pred is not None:
-    execution_feedback_str += f"Test predictions shape: {test_pred.shape}\n"
-else:
-    execution_feedback_str += "Test predictions are None.\n"
-if hypers is not None:
-    execution_feedback_str += f"Hyperparameters:{hypers}\n"
-else:
-    execution_feedback_str += "Hyperparameters are None.\n"
-print(execution_feedback_str)
-
+# Second execution
 print("The second execution begins.\n")
-val_pred, test_pred, finalhypers = model_workflow(
-    X=train_X, y=train_y, val_X=None, val_y=None, test_X=test_X, hyper_params=hypers
+start_time = time.time()
+val_pred, test_pred, final_hypers = model_workflow(
+    X=train_X,
+    y=train_y,
+    val_X=None,
+    val_y=None,
+    test_X=test_X,
+    hyper_params=hypers,
 )
-execution_feedback_str = "The second Execution successful.\n"
-if val_pred is not None:
-    execution_feedback_str += f"Validation predictions shape: {val_pred.shape}\n"
-else:
-    execution_feedback_str += "Validation predictions are None.\n"
-if test_pred is not None:
-    execution_feedback_str += f"Test predictions shape: {test_pred.shape}\n"
-else:
-    execution_feedback_str += "Test predictions are None.\n"
-if hypers is not None:
-    execution_feedback_str += f"Hyperparameters:{finalhypers}\n"
-else:
-    execution_feedback_str += "Hyperparameters are None.\n"
-print(execution_feedback_str)
+log_execution_results(start_time, val_pred, test_pred, final_hypers, "The second execution")
 
 print("Model code test passed successfully.")

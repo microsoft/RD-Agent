@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
-import re
 import platform
+import re
 import shutil
 import typing
 import uuid
@@ -13,6 +14,8 @@ from pathlib import Path
 from typing import Any, Generic, Optional, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.utils import cache_with_pickle
+from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.env import Env
 
 if typing.TYPE_CHECKING:
@@ -222,6 +225,10 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.file_dict = {}
 
+    def hash_func(self, env: Env | None = None, entry: str | None = None) -> str:
+        return md5_hash(json.dumps(tuple(sorted(self.file_dict.items()))) + entry)
+
+    @cache_with_pickle(hash_func)
     def execute(self, env: Env | None = None, entry: str | None = None) -> object | None:
         """
         Before each execution, make sure to prepare and inject code
