@@ -69,7 +69,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,
-            code=implementation.file_dict["model01.py"],
+            code=implementation.file_dict[f"{target_task.name}.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return ModelSingleFeedback(**json.loads(resp))
