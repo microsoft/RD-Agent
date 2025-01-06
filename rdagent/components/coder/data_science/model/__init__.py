@@ -45,12 +45,14 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:model_coder.system").r(
+            task_desc=model_information_str,
+            data_loader_code=workspace.file_dict.get("load_data.py"),
+            feature_code=workspace.file_dict["feature.py"],
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         user_prompt = T(".prompts:model_coder.user").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            feature_code=workspace.file_dict["feature.py"],
             latest_code=workspace.file_dict.get(f"{target_task.name}.py", None),
         )
 

@@ -10,6 +10,7 @@ Tries to create uniform environment for the agent to run;
 import json
 import os
 import pickle
+import re
 import subprocess
 import uuid
 from abc import abstractmethod
@@ -302,12 +303,20 @@ class DockerEnv(Env[DockerConf]):
             return {}
         return gpu_kwargs
 
+    def replace_time_info(self, input_string):
+        """To remove any time related information from the logs since it will destroy the cache mechanism"""
+        """We currently set this function as default, but it can be changed in the future"""
+        datetime_pattern = r"\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\b"
+        output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
+        return output_string
+
     def __run(
         self,
         entry: str | None = None,
         local_path: str | None = None,
         env: dict | None = None,
         running_extra_volume: dict | None = None,
+        remove_timestamp: bool = True,
     ) -> str:
         if env is None:
             env = {}
@@ -355,6 +364,7 @@ class DockerEnv(Env[DockerConf]):
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
+                decoded_log = self.replace_time_info(decoded_log) if remove_timestamp else decoded_log
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))

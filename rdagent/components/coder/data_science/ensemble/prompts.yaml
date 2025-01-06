@@ -11,7 +11,9 @@ ensemble_coder:
         "code": "The Python code as a string."
     }
 
+    {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     -----------Here is the relevant information for this task-----------
+    {% endif %}
     {% if queried_similar_successful_knowledge|length != 0 %}
     --------------Successful Implementations for Similar Models:--------------
     ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
