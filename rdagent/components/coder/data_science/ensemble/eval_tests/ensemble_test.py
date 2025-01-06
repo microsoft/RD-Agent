@@ -21,7 +21,7 @@ test_preds_dict = {}
 val_preds_dict = {}
 {% for mn in model_names %}
 from {{mn}} import model_workflow as {{mn}}_workflow
-test_preds_dict["{{mn}}"], val_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
+val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
     X=train_X,
     y=train_y,
     val_X=val_X,
