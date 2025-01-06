@@ -7,25 +7,35 @@ A qualified ensemble implementation should:
 """
 
 import numpy as np
-from ensemble import ens_and_decision
 from pathlib import Path
+from sklearn.model_selection import train_test_split
+from load_data import load_data
+from feature import feat_eng
+from ensemble import ens_and_decision
 
-# Create test data
-n_models = 3
-n_samples = 100
+X, y, test_X, test_ids = load_data()
+X, y, test_X = feat_eng(X, y, test_X)
+train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# TODO: use real data.
-# Create synthetic predictions
-test_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
-val_preds_dict = {f"model_{i}": np.random.rand(n_samples, 1) for i in range(n_models)}
-val_label = np.random.randint(0, 2, (n_samples, 1))
+test_preds_dict = {}
+val_preds_dict = {}
+{% for mn in model_names %}
+from {{mn}} import model_workflow as {{mn}}_workflow
+test_preds_dict["{{mn}}"], val_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
+    X=train_X,
+    y=train_y,
+    val_X=val_X,
+    val_y=val_y,
+    test_X=test_X
+)
+{% endfor %}
 
 # Run ensemble
 try:
-    final_predictions = ens_and_decision(test_preds_dict, val_preds_dict, val_label)
+    final_predictions = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
 
     # Check shape
-    assert final_predictions.shape == (n_samples, 1), "Wrong output shape"
+    assert final_predictions.shape == val_y.shape, "Wrong output shape"
 
     # check if scores.csv is generated
     if not Path("scores.csv").exists():

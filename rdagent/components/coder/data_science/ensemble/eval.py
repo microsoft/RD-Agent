@@ -1,6 +1,8 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from jinja2 import Environment, StrictUndefined
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -41,10 +43,16 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        de = DockerEnv(conf=DSDockerConf())
+        ds_docker_conf = DSDockerConf()
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        de = DockerEnv(conf=ds_docker_conf)
 
         fname = "ensemble_test.py"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.py").read_text()
+        test_code = Environment(undefined=StrictUndefined).from_string(test_code).render(
+            model_names=[fn[:-3] for fn in implementation.file_dict.keys() if fn.startswith("model_")]
+        )
+        
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
