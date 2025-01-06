@@ -42,6 +42,8 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:feature.system").r(
+            task_desc=feature_information_str,
+            data_loader_code=workspace.file_dict.get("load_data.py"),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )

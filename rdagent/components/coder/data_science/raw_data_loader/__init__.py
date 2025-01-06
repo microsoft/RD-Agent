@@ -69,38 +69,51 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # 1. specifications
-        # TODO: Why is queried_former_failed_knowledge[0] used here?
-        system_prompt = T(".prompts:spec.system").r(
-            competition_info=competition_info,
-            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
-            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-        )
-        data_loader_prompt = T(".prompts:spec.user.data_loader").r(
-            latest_spec=workspace.file_dict.get("spec/data_loader.md")
-        )
-        feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
-        model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
-        ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.file_dict.get("spec/ensemble.md"))
-        workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.file_dict.get("spec/workflow.md"))
+        # TODO: We may move spec into a separated COSTEER task
+        if "spec/data_loader.md" not in workspace.file_dict:  # Only generate the spec once
+            system_prompt = T(".prompts:spec.system").r(
+                task_desc=data_loader_task_info,
+                competition_info=competition_info,
+            )
+            data_loader_prompt = T(".prompts:spec.user.data_loader").r(
+                latest_spec=workspace.file_dict.get("spec/data_loader.md")
+            )
+            feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
+            model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
+            ensemble_prompt = T(".prompts:spec.user.ensemble").r(
+                latest_spec=workspace.file_dict.get("spec/ensemble.md")
+            )
+            workflow_prompt = T(".prompts:spec.user.workflow").r(
+                latest_spec=workspace.file_dict.get("spec/workflow.md")
+            )
 
-        spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
+            spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
-        data_loader_spec = json.loads(
-            spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True)
-        )["spec"]
-        feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))[
-            "spec"
-        ]
-        model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt, json_mode=True))["spec"]
-        ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))[
-            "spec"
-        ]
-        workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))[
-            "spec"
-        ]
+            data_loader_spec = json.loads(
+                spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True)
+            )["spec"]
+            feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))[
+                "spec"
+            ]
+            model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt, json_mode=True))[
+                "spec"
+            ]
+            ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))[
+                "spec"
+            ]
+            workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))[
+                "spec"
+            ]
+        else:
+            data_loader_spec = workspace.file_dict["spec/data_loader.md"]
+            feature_spec = workspace.file_dict["spec/feature.md"]
+            model_spec = workspace.file_dict["spec/model.md"]
+            ensemble_spec = workspace.file_dict["spec/ensemble.md"]
+            workflow_spec = workspace.file_dict["spec/workflow.md"]
 
         # 2. code
         system_prompt = T(".prompts:data_loader_coder.system").r(
+            task_desc=data_loader_task_info,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
