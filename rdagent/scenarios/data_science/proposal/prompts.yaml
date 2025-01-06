@@ -59,6 +59,12 @@ task_gen:
     The {{targets}} are used in certain scenario, the scenario is as follows:
     {{ scenario }}
 
+    {% if task_specification is not none %}
+    The user has wrote some specification for the {{targets}}. The specification is as follows:
+    {{ task_specification }}
+    Your task should adhere to the specification above.
+    {% endif %}
+
     {% if hypothesis is not none %}
     The user will use the {{targets}} generated to do some experiments. The user will provide this information to you:
     1. The target hypothesis you are targeting to generate {{targets}} for.

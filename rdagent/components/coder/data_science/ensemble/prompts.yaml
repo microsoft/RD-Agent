@@ -1,6 +1,10 @@
 ensemble_coder:
   system: |-
     You are a Python data scientist working on model ensemble implementation. Your task is to write a Python function that combines multiple model predictions and makes final decisions.
+
+    Your specific task as follows:
+    {{task_desc}}
+
     You should follow the provided specifications to complete this task.
 
     -----------Competition Information-----------

@@ -41,6 +41,7 @@ spec:
           - Describe the purpose of the function.
           - Specify the data source location (`/kaggle/input/`).
           - Clearly define the structure and type of the output.
+          - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Precautions for Data Loading and Preprocessing:
         - File Handling:
@@ -87,8 +88,13 @@ spec:
           - Describe the purpose of the function.
           - Clarify the input parameters and their data types.
           - Define the structure and format of the output.
+          - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Precautions for Feature Engineering:
+        - Well handle the shape of the data
+          - The sample size of the train data and the test data should be the same in all scenarios.
+          - To most of the scenario, the input shape and the output shape should be exactly the same.
+          - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
         - Integration with Model Pipeline
           - If feature engineering is strictly part of the model pipeline, state explicitly that it will be handled at the model stage.
           - If integrated here, ensure this function applies all required transformations while avoiding data leakage.
@@ -138,6 +144,7 @@ spec:
           - Describe the purpose of the function.
           - Clarify the input parameters and their data types.
           - Define the structure and format of the output.
+          - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Code Standards:
         - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
@@ -178,6 +185,7 @@ spec:
           - Describe the purpose of the function.
           - Clarify the input parameters and their data types.
           - Define the structure and format of the output.
+          - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Precautions:
         - Validation of Inputs:
@@ -241,7 +249,7 @@ spec:
 
         4. Code Standards:
           - Use consistent naming conventions and type annotations.
-          - Document the workflow with clear comments and docstrings.
+          - Document the workflow with clear comments and docstring.
           - Do not use progress bars (e.g., tqdm) in the code.
 
         {% if latest_spec %}
