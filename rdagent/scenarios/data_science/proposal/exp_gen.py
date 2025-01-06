@@ -205,6 +205,10 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
+
+            # Why we should split component selection and hpothesis generation
+            # - after we know the selected component, we can use RAG.
+
             # Step 2: Generate the rest of the hypothesis
             if component != "Model":
                 hypothesis_sys_prompt = T(".prompts:hypothesis_gen.system").r(

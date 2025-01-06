@@ -119,10 +119,38 @@ task_gen_model:
     Please generate the new {{targets}} task.
     {% endif %}
 
-hypothesis_and_feedback: |-
+component_gen:
+  system: |-
+    You are a Kaggle Grander Master. You are going to provide a solution for a kaggle competition.
+
+    Here is the description of the competion scenario
+    ```
+    {{scenario}}
+    ```
+    
+    Here is the latest version of implementation.
+    ```
+    {{}}
+
+    ```
+
+    You will be proivded the feedback for the latest implementation.
+
+    Please select the component you are going to improve the latest implementation.
+
+  user: |-
+    {{feedback}}
+
+
+
+exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
-  Hypothesis {{ loop.index }}: {{ experiment.hypothesis }}
+  ## Experiment {{ loop.index }}
+  Experiment are focusing on task: {{experiment.sub_tasks[0]}}
+  {% if experiment.hypothesis %}
+  The experiment is design driven by hypothesis : {{ experiment.hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
+  {% endif %}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
