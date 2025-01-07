@@ -130,9 +130,8 @@ class LoopBase:
                 self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
                 # Update tqdm progress bar directly to step_idx
-                pbar.n = len(self.steps) - self.step_idx  # FIXME: check it's correctness
+                pbar.n = si + 1
                 pbar.set_postfix(loop_index=li, step_index=si, step_name=name)
-                pbar.update(0)  # Refresh the display
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)
