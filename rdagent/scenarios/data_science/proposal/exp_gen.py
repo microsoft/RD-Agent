@@ -66,7 +66,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Parameters
         ----------
         last_n : int
-            The index from the last experiment result to access. 
+            The index from the last experiment result to access.
             Use -1 for the most recent experiment, -2 for the second most recent, and so on.
 
         Returns
@@ -81,6 +81,15 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 last_n += 1
                 if last_n == 0:
                     return exp
+        return None
+
+    def last_successful_exp(self) -> Experiment | None:
+        """
+        Access the last successful experiment even part of the components are not completed.
+        """
+        for exp, ef in self.hist[::-1]:
+            if ef.decision:
+                return exp
         return None
 
 
@@ -121,12 +130,12 @@ class DSExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
-        sota_exp = trace.sota_experiment()
+        last_successful_exp = trace.last_successful_exp()
 
-        if len(trace.hist) == 0:
+        if len(trace.hist) == 0 or last_successful_exp is None:
             next_component = "DataLoadSpec"
         else:
-            next_component = sota_exp.next_component_required()
+            next_component = last_successful_exp.next_component_required()
 
         if next_component == "DataLoadSpec":
             resp_dict = self.llm_task_gen(
@@ -147,7 +156,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Feature Engineering",
                 scenario_desc=scenario_desc,
-                spec=sota_exp.experiment_workspace.file_dict["spec/feature.md"],
+                spec=last_successful_exp.experiment_workspace.file_dict["spec/feature.md"],
                 task_output_format=T(".prompts:output_format.feature").r(),
             )
 
@@ -156,13 +165,13 @@ class DSExpGen(ExpGen):
                 description=resp_dict.get("description", "Factor description not provided"),
             )
             exp = DSExperiment(sub_tasks=[ft], hypothesis=DSHypothesis("FeatureEng"))
-            exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         elif next_component == "Model":
             resp_dict = self.llm_task_gen(
                 targets="Models",
                 scenario_desc=scenario_desc,
-                spec=sota_exp.experiment_workspace.file_dict["spec/model.md"],
+                spec=last_successful_exp.experiment_workspace.file_dict["spec/model.md"],
                 task_output_format=T(".prompts:output_format.model").r(),
             )
 
@@ -174,13 +183,13 @@ class DSExpGen(ExpGen):
                 hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
             )
             exp = DSExperiment(sub_tasks=[mt], hypothesis=DSHypothesis("Model"))
-            exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         elif next_component == "Ensemble":
             resp_dict = self.llm_task_gen(
                 targets="Ensemble",
                 scenario_desc=scenario_desc,
-                spec=sota_exp.experiment_workspace.file_dict["spec/ensemble.md"],
+                spec=last_successful_exp.experiment_workspace.file_dict["spec/ensemble.md"],
                 task_output_format=T(".prompts:output_format.ensemble").r(),
             )
 
@@ -195,7 +204,7 @@ class DSExpGen(ExpGen):
             resp_dict = self.llm_task_gen(
                 targets="Workflow",
                 scenario_desc=scenario_desc,
-                spec=sota_exp.experiment_workspace.file_dict["spec/workflow.md"],
+                spec=last_successful_exp.experiment_workspace.file_dict["spec/workflow.md"],
                 task_output_format=T(".prompts:output_format.workflow").r(),
             )
 
@@ -204,10 +213,10 @@ class DSExpGen(ExpGen):
                 description=resp_dict.get("description", "Workflow description not provided"),
             )
             exp = DSExperiment(sub_tasks=[wt], hypothesis=DSHypothesis("Workflow"))
-            exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         else:  # propose new component by LLM
-            assert sota_exp is not None, "SOTA experiment is not provided."
+            assert last_successful_exp is not None, "SOTA experiment is not provided."
 
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
@@ -266,11 +275,13 @@ class DSExpGen(ExpGen):
                 )
             else:
                 model_infos = []
-                score_df = pd.read_csv(sota_exp.experiment_workspace.workspace_path / "score.csv", index_col=0)
+                score_df = pd.read_csv(
+                    last_successful_exp.experiment_workspace.workspace_path / "score.csv", index_col=0
+                )
                 metric_name = score_df.columns[0]
-                for fname in sota_exp.experiment_workspace.file_dict:
+                for fname in last_successful_exp.experiment_workspace.file_dict:
                     if re.match(r"^model_.+\.py", fname):
-                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{sota_exp.experiment_workspace.file_dict[fname]}\n```\n"
+                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
 
                 model_num = len(model_infos)
@@ -317,7 +328,7 @@ class DSExpGen(ExpGen):
                 resp_dict = self.llm_task_gen(
                     targets="Data loader and specification generation",
                     scenario_desc=scenario_desc,
-                    spec=sota_exp.experiment_workspace.file_dict["spec/data_loader.md"],
+                    spec=last_successful_exp.experiment_workspace.file_dict["spec/data_loader.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.data_loader").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -331,14 +342,16 @@ class DSExpGen(ExpGen):
                 )
 
                 exp = DSExperiment(sub_tasks=[dt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(
+                    last_successful_exp.experiment_workspace.workspace_path
+                )
                 return exp
             elif hypothesis.component == "FeatureEng":
                 # TODO: RAG
                 resp_dict = self.llm_task_gen(
                     targets="Feature Engineering",
                     scenario_desc=scenario_desc,
-                    spec=sota_exp.experiment_workspace.file_dict["spec/feature.md"],
+                    spec=last_successful_exp.experiment_workspace.file_dict["spec/feature.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.feature").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -350,14 +363,16 @@ class DSExpGen(ExpGen):
                 )
 
                 exp = DSExperiment(sub_tasks=[ft], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(
+                    sota_last_successful_expexp.experiment_workspace.workspace_path
+                )
                 return exp
             elif hypothesis.component == "Model":
                 resp_dict = self.llm_task_gen(
                     scenario_desc=scenario_desc,
-                    spec=sota_exp.experiment_workspace.file_dict["spec/model.md"],
+                    spec=last_successful_exp.experiment_workspace.file_dict["spec/model.md"],
                     hypothesis=hypothesis,
-                    workspace_code=sota_exp.experiment_workspace.all_codes,
+                    workspace_code=last_successful_exp.experiment_workspace.all_codes,
                     task_output_format=T(".prompts:output_format.model").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
                 )
@@ -372,13 +387,15 @@ class DSExpGen(ExpGen):
                 )
 
                 exp = DSExperiment(sub_tasks=[mt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(
+                    last_successful_exp.experiment_workspace.workspace_path
+                )
                 return exp
             elif hypothesis.component == "Ensemble":
                 resp_dict = self.llm_task_gen(
                     targets="Ensemble",
                     scenario_desc=scenario_desc,
-                    spec=sota_exp.experiment_workspace.file_dict["spec/ensemble.md"],
+                    spec=last_successful_exp.experiment_workspace.file_dict["spec/ensemble.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.ensemble").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -390,13 +407,15 @@ class DSExpGen(ExpGen):
                 )
 
                 exp = DSExperiment(sub_tasks=[et], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(
+                    last_successful_exp.experiment_workspace.workspace_path
+                )
                 return exp
             elif hypothesis.component == "Workflow":
                 resp_dict = self.llm_task_gen(
                     targets="Workflow",
                     scenario_desc=scenario_desc,
-                    spec=sota_exp.experiment_workspace.file_dict["spec/workflow.md"],
+                    spec=last_successful_exp.experiment_workspace.file_dict["spec/workflow.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.workflow").r(),
                     hypothesis_and_feedback=hypothesis_and_feedback,
@@ -408,7 +427,9 @@ class DSExpGen(ExpGen):
                 )
 
                 exp = DSExperiment(sub_tasks=[wt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(
+                    last_successful_exp.experiment_workspace.workspace_path
+                )
                 return exp
 
         return super().gen(trace)
