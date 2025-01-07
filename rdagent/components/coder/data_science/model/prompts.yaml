@@ -78,7 +78,7 @@ model_coder:
 
     user_general: |-
         --------- Workspace code---------
-        {{ worksapce_code }}
+        {{ workspace_code }}
         ---------Model Specification---------
         When you are implementing the code, you should follow the spec
         {{ model_spec }}
