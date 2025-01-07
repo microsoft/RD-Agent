@@ -1,7 +1,8 @@
 import json
-from pathlib import Path
-import pandas as pd
 import re
+from pathlib import Path
+
+import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -54,7 +55,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
         ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        ds_docker_conf.extra_volumes = {
+            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
+        }
         de = DockerEnv(conf=ds_docker_conf)
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
@@ -62,25 +65,26 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
         if not score_fp.exists():
-            stdout += "Metrics file (scores.csv) is not generated."
+            stdout += "\nMetrics file (scores.csv) is not generated."
         else:
             score_df = pd.read_csv(score_fp, index_col=0)
             model_set_in_scores = set(score_df.index)
-            model_set_in_folder = set(f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f))
+            model_set_in_folder = set(
+                f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f) and "test" not in f
+            )
             if model_set_in_scores != model_set_in_folder:
-                stdout += "The models used by ensemble are not consistent with the models in the workspace."
+                stdout += f"\nThe models used by ensemble are not consistent with the models in the workspace.\nThe model names in the score.csv are {model_set_in_scores}, while the model names in the workspace are {model_set_in_folder}."
 
         # Check submission file
         submission_fp = implementation.workspace_path / "submission.csv"
         if not submission_fp.exists():
-            stdout += "Submission file (submission.csv) is not generated."
+            stdout += "\nSubmission file (submission.csv) is not generated."
 
         if stdout is None:
-            stdout = "The execution exceeded the time limit."
+            stdout = "\nThe execution exceeded the time limit."
 
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
-            spec=implementation.file_dict["spec/workflow.md"]
+            scenario=self.scen.get_scenario_all_desc(), spec=implementation.file_dict["spec/workflow.md"]
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout,
