@@ -11,7 +11,7 @@ BatchEditOut: |-
   Files that do not need to be modified do not need to be included in the returned dict.
   For example:
 
-  Inject the code into the folder.
+  Inject the code into the folder. Your file name should always contain the suffix.
   {
       <file name1>: "<code>",  // indicate writing <code> into <file name> (create new file or replace existing file)
       <file name2>: "__DEL__"  // indicate removing file name2. When we want to replace a file to a new one, we usually use this

@@ -62,14 +62,18 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # We want to use a simpler way to
         user_prompt = T(".prompts:model_coder.user_general").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            worksapce_code=workspace.all_codes,  # TODO: If we have high failure rate here, we should clean this step with less information.
+            workspace_code=workspace.get_code_with_key(
+                "model"
+            ),  # TODO: If we have high failure rate here, we should clean this step with less information.
         )
 
-        batch_edit = BatchEditOut.extract_output(APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=system_prompt,
-            json_mode=BatchEditOut.json_mode,
-        ))
+        batch_edit = BatchEditOut.extract_output(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=BatchEditOut.json_mode,
+            )
+        )
 
         return batch_edit
 

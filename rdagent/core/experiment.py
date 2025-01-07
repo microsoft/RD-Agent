@@ -144,12 +144,22 @@ class FBWorkspace(Workspace):
         filtered_dict = {k: v for k, v in self.file_dict.items() if k.endswith(".py") and "test" not in k}
         return self._format_code_dict(filtered_dict)
 
+    def get_code_with_key(self, key: str) -> str:
+        """
+        Get the code if the file name contains the key.
+        """
+        filtered_dict = {k: v for k, v in self.file_dict.items() if k.endswith(".py") and "test" not in k and key in k}
+        return self._format_code_dict(filtered_dict)
+
     def get_codes(self, pattern: str) -> str:
         """
         Get code files matching a specific pattern as a single string, excluding test files.
         """
-        filtered_dict = {k: v for k, v in self.file_dict.items() if re.search(pattern, k) and k.endswith(".py") and "test" not in k}
+        filtered_dict = {
+            k: v for k, v in self.file_dict.items() if re.search(pattern, k) and k.endswith(".py") and "test" not in k
+        }
         return self._format_code_dict(filtered_dict)
+
     def prepare(self) -> None:
         """
         Prepare the workspace except the injected code
@@ -174,6 +184,7 @@ class FBWorkspace(Workspace):
                 os.link(data_file_path, workspace_data_file_path)
 
     DEL_KEY = "__DEL__"
+
     def inject_files(self, **files: str) -> None:
         """
         Inject the code into the folder.
