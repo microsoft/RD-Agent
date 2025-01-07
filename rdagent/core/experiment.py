@@ -150,6 +150,7 @@ class FBWorkspace(Workspace):
         """
         filtered_dict = {k: v for k, v in self.file_dict.items() if re.search(pattern, k) and k.endswith(".py") and "test" not in k}
         return self._format_code_dict(filtered_dict)
+
     def prepare(self) -> None:
         """
         Prepare the workspace except the injected code
