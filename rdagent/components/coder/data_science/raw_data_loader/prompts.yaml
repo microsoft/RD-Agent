@@ -21,6 +21,7 @@ spec:
     Your specification should consists two parts:
     1. The function definition in code format with detailed annotation to each parameter and return value.
     2. A detailed docstring to the function that explains the purpose of the function, the input parameters, and the output.
+    3. Additional information or notes that the coder should consider while implementing the function.
     Your specifications should not include any code implementation, only the function definition and docstring.
 
     -----------Competition Information-----------
@@ -112,6 +113,8 @@ spec:
       4. Notes:
         - Align `DT` (data type) definitions with those in the Data Loader specification.
         - Extend or adjust domain-specific transformations based on competition requirements.
+        - The device has GPU support, so you can use it for feature engineering if necessary to accelerate the process.
+        - Multi processing or parallel processing can be used to speed up the feature engineering process.
       
       {% if latest_spec %}
       5. Former Specification:
@@ -159,6 +162,7 @@ spec:
 
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
+        - The device has GPU support, so you can use it for training if necessary to accelerate the process.
 
       {% if latest_spec %}
       5. Former Specification:

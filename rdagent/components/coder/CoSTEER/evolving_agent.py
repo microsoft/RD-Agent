@@ -14,7 +14,7 @@ class FilterFailedRAGEvoAgent(RAGEvoAgent):
         assert len(evo.sub_workspace_list) == len(feedback)
 
         for index in range(len(evo.sub_workspace_list)):
-            if evo.sub_workspace_list[index] is not None and feedback[index] and not feedback[index].final_decision:
+            if evo.sub_workspace_list[index] is not None and feedback[index] is not None and not feedback[index]:
                 evo.sub_workspace_list[index].clear()
 
         if all(not f.final_decision for f in feedback if f):
