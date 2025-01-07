@@ -198,7 +198,7 @@ class DSExpGen(ExpGen):
                 description=resp_dict.get("description", "Ensemble description not provided"),
             )
             exp = DSExperiment(sub_tasks=[et], hypothesis=DSHypothesis("Ensemble"))
-            exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         elif next_component == "Workflow":
             resp_dict = self.llm_task_gen(
