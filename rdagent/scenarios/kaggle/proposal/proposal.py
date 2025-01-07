@@ -204,7 +204,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
     .. code-block:: python
 
         class KGHypothesisGen(ModelHypothesisGen):
-            prompts: Prompts = a_specifc_prompt_dict
+            prompts: Prompts = a_specific_prompt_dict
     """
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:

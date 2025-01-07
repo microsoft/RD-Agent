@@ -219,7 +219,7 @@ class DSExpGen(ExpGen):
             assert last_successful_exp is not None, "SOTA experiment is not provided."
 
             # base info
-            hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(trace=trace)
+            hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(hist=[i for i in trace.hist[-10:] if isinstance(i[1], HypothesisFeedback)])
             # Step 1: Generate component
             sota_solution = ""
             component_sys_prompt = T(".prompts:component_gen").r(
@@ -230,8 +230,7 @@ class DSExpGen(ExpGen):
             )
 
             component_user_prompt = T(".prompts:hypothesis_gen.user").r(
-                targets="data science project",
-                hypothesis_and_feedback=hypothesis_and_feedback,
+                feedback=hypothesis_and_feedback,
             )
 
             resp_dict_component: dict = json.loads(
@@ -242,7 +241,7 @@ class DSExpGen(ExpGen):
 
             component = resp_dict_component.get("component", "Component not provided")
 
-            # Why we should split component selection and hpothesis generation
+            # Why we should split component selection and hypothesis generation
             # - after we know the selected component, we can use RAG.
 
             # Step 2: Generate the rest of the hypothesis
