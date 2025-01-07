@@ -75,6 +75,12 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
         )
 
+        # 3. post process to align file name to the task name
+        for key, value in batch_edit.items():
+            if value != "__DEL__" and key != f"{target_task.name}.py":
+                batch_edit[f"{target_task.name}.py"] = value
+                del batch_edit[key]
+
         return batch_edit
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):

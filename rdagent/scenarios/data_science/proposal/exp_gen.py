@@ -103,13 +103,14 @@ class DSExpGen(ExpGen):
         return resp_dict
 
     def gen(self, trace: DSTrace) -> DSExperiment:
+        scenario_desc = trace.scen.get_scenario_all_desc()
+        sota_exp = trace.sota_experiment()
+
         if len(trace.hist) == 0:
             next_component = "DataLoadSpec"
         else:
-            next_component = trace.hist[-1][0].next_component_required()
+            next_component = sota_exp.next_component_required()
 
-        scenario_desc = trace.scen.get_scenario_all_desc()
-        sota_exp = trace.sota_experiment()
         if next_component == "DataLoadSpec":
             resp_dict = self.llm_task_gen(
                 targets="Data loader and specification generation",

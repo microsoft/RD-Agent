@@ -43,13 +43,15 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
+            task_desc=workflow_information_str,
+            competition_info=self.scen.get_competition_full_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
         user_prompt = T(".prompts:workflow_coder.user").r(
             load_data_code=workspace.file_dict["load_data.py"],
             feature_code=workspace.file_dict["feature.py"],
-            model_codes=workspace.get_codes(r'^model_(?!test)\w+\.py$'),
+            model_codes=workspace.get_codes(r"^model_(?!test)\w+\.py$"),
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
