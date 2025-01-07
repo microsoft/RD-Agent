@@ -9,6 +9,7 @@ exp_feedback:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
     3. Suggest improvements or new directions. Stay innovative and adapative.
+    4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete results (i.e., results that are runnable and can generate evaluation outcomes), please replace it as the best result.
 
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
@@ -23,32 +24,56 @@ exp_feedback:
   user: |-
     We are in a process of finding and validating hypotheses to build powerful codes. Each round aims to confirm or reject hypotheses based on results.
 
+    ## SOTA of previous exploration of the scenario
     {% if sota_codes %}
-    {% for name, code in sota_codes.items() %}
-    The SOTA code for {{ name }} is:
-    ```python
-    {{ code }}
-    ```
-    {% endfor %}
+    ### Code
+    The improvement of sota results is
+    {{sota_codes}}
+
+    ### According results
+    {% if sota_results %}
     The SOTA results is:
     {{ sota_results }}
+    {% else %}
+    There are no previous results
+    {% endif %}
+    {% else %}
+    We have no previous complete complete results.
     {% endif %}
 
+    ## Current solution
     Current solution to be evaluated:
-    Hypothesis: {{ hypothesis }}
-    Modified code according to hypothesis:
-    ```python
-    {{ modified_code }}
-    ```
-    Final results of the current solution: {{ current_results }}
 
-    {% if last_hypothesis_and_feedback %}
-    The user has made some hypothesis and conducted experiments to validate them, and the results are as follows:
-    hypothesis: {{ last_hypothesis_and_feedback[0].hypothesis }}
-    feedback decision: {{ last_hypothesis_and_feedback[1].decision }} 
-    reason: {{ last_hypothesis_and_feedback[1].reason }}
+    ### Task of Current solution
+    {{cur_exp.sub_tasks[0].get_task_information()}}
+
+    {% if cur_exp.hypothesis %}
+    the experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
+    Modified code according to hypothesis:
+    {% else %}
+    Modified code:
     {% endif %}
-    Please refer to these hypothesis and feedback to help you recommend new hypothesis
+
+    {% for de in diff_edition %}
+    {{ de }}
+    {% endfor %}
+
+    Final results of the current solution: {{ current_results }}
+    ### Code of current solution
+    {{cur_exp.experiment_workspace.all_codes}}
+
+    {% if last_exp_and_feedback and last_exp_and_feedback|length > 1 %}
+    ## Previous trial
+    Before current trial, previous recent trial is listed below.
+    {% if last_exp_and_feedback[0].hypothesis %}
+    the experiment is designed based on hypothesis: {{ last_exp_and_feedback[0].hypothesis }}
+    {% endif %}
+    ### Task of previous trial
+    {{ last_exp_and_feedback[0].sub_tasks[0].get_task_information() }}
+    feedback decision: {{ last_exp_and_feedback[1].decision }}
+    reason: {{ last_exp_and_feedback[1].reason }}
+    {% endif %}
+    Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
     Consider Changing Direction for Significant Gaps with the Best Result and the last round:
       - If the new results significantly differ from SOTA, consider a new direction.

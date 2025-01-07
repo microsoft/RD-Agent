@@ -133,7 +133,7 @@ class FBWorkspace(Workspace):
         """
         code_string = ""
         for file_name, code in code_dict.items():
-            code_string += f"File Path: {file_name}\n```\n{code}\n```"
+            code_string += f"\nFile Path: {file_name}\n```\n{code}\n```"
         return code_string
 
     @property

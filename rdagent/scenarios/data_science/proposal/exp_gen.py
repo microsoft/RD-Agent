@@ -59,11 +59,28 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
         self.knowledge_base = knowledge_base
 
-    def sota_experiment(self) -> Experiment | None:
-        """Access the last experiment result."""
+    def sota_experiment(self, last_n: int = -1) -> Experiment | None:
+        """
+        Access the last experiment result.
+
+        Parameters
+        ----------
+        last_n : int
+            The index from the last experiment result to access. 
+            Use -1 for the most recent experiment, -2 for the second most recent, and so on.
+
+        Returns
+        -------
+        Experiment or None
+            The experiment result if found, otherwise None.
+        """
+        assert last_n < 0
         for exp, ef in self.hist[::-1]:
-            if ef.decision:
-                return exp
+            # the sota exp should be accepted decision and all required components are completed.
+            if ef.decision and exp.next_component_required() is None:
+                last_n += 1
+                if last_n == 0:
+                    return exp
         return None
 
 
