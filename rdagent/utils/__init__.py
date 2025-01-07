@@ -13,6 +13,7 @@ import sys
 from types import ModuleType
 from typing import Union
 
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
@@ -76,50 +77,72 @@ def filter_progress_bar(stdout: str) -> str:
         r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step|"
         r"\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*|"
         r"\d+/\d+\s+[━]+.*?\u0008+|"
-        r"\d+/\d+\s+[━]+.*|[ ]*\u0008+)"
+        r"\d+/\d+\s+[━]+.*|[ ]*\u0008+|"
+        r"\d+%\|[█▏▎▍▌▋▊▉]+\s+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s+\d+\.\d+it/s\]|"
+        r"\d+%\|[█]+\|\s+\d+/\d+\s+\[\d{2}:\d{2}<\d{2}:\d{2},\s*\d+\.\d+it/s\])"
     )
 
     filtered_stdout = remove_ansi_codes(stdout)
     filtered_stdout = re.sub(progress_bar_re, "", filtered_stdout)
-    filtered_stdout = re.sub(r'\s*\n\s*', '\n', filtered_stdout)
+    filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
     # Check if progress bars are already filtered
     system_prompt = T(".prompts:if_filtered.system").r()
     user_prompt = T(".prompts:if_filtered.user").r(
         filtered_stdout=filtered_stdout,
     )
-    if_filtered_stdout = json.loads(
-        APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
-    ).get("progress bar filtered", False)
-
-    if convert2bool(if_filtered_stdout):
+    stdout_token_size = APIBackend().build_messages_and_calculate_token(
+        user_prompt=user_prompt,
+        system_prompt=system_prompt,
+    )
+    if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
         return filtered_stdout
-
-    # Attempt further filtering up to 5 times
-    for _ in range(5):
-        system_prompt = T(".prompts:filter_progress_bar.system").r()
-        user_prompt = T(".prompts:filter_progress_bar.user").r(
-            stdout=filtered_stdout,
-        )
-
-        new_pattern = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["regex pattern"]
-
-        filtered_stdout = re.sub(new_pattern, "", filtered_stdout)
-        filtered_stdout = re.sub(r'\s*\n\s*', '\n', filtered_stdout)
-
-        system_prompt = T(".prompts:if_filtered.system").r()
-        user_prompt = T(".prompts:if_filtered.user").r(
-            filtered_stdout=filtered_stdout,
-        )
+    elif stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.8:
         if_filtered_stdout = json.loads(
             APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         ).get("progress bar filtered", False)
 
         if convert2bool(if_filtered_stdout):
-            break
+            return filtered_stdout
 
+    filtered_stdout_shortened = filtered_stdout
+    needs_sub = True
+    # Attempt further filtering up to 5 times
+    for _ in range(5):
+        system_prompt = T(".prompts:filter_progress_bar.system").r()
+        user_prompt = T(".prompts:filter_progress_bar.user").r(
+            stdout=filtered_stdout_shortened,
+        )
+
+        stdout_token_size = APIBackend().build_messages_and_calculate_token(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+        )
+        if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
+            return filtered_stdout_shortened
+        elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.8:
+            filtered_stdout_shortened = filtered_stdout[len(filtered_stdout) // 4 : len(filtered_stdout) * 3 // 4]
+
+        response = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+            )
+        )
+        needs_sub = response.get("needs_sub", True)
+        regex_patterns = response.get("regex patterns", [])
+        if isinstance(regex_patterns, list):
+            for pattern in regex_patterns:
+                filtered_stdout = re.sub(pattern, "", filtered_stdout)
+        else:
+            filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+
+        if not needs_sub:
+            break
+        filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+        filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
+
+        filtered_stdout_shortened = filtered_stdout
+
+    if needs_sub:
+        return None
     return filtered_stdout

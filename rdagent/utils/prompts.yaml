@@ -1,19 +1,21 @@
 filter_progress_bar:
   system: |
-    You are an assistant helping to filter progress bars from a given text. Generate a regex pattern that matches typical progress bar formats, including those with percentages, loading bars (e.g., `====>`), or dynamic text such as elapsed time or remaining time. Be flexible to handle variations.
+    You are an assistant helping to analyze and filter progress bars from a given text. Evaluate the text to determine if progress bar patterns are present and, if so, generate a list of regex patterns to remove them. 
+    Additionally, indicate whether substitution is needed. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
+    Note: You can keep metrics or logs, such as `val_accuracy`, `val_loss`, and similar entries, are retained and not filtered.
+
+    Respond in the following JSON format and order:
+    ```json
+    {
+        "needs_sub": <true/false>, 
+        "regex patterns": ["regex pattern 1", "regex pattern 2", ...]
+    }
   user: |
-    The following text contains stdout with progress bars:
+    The following text contains stdout:
 
     {{ stdout }}
 
-    Generate a regex pattern to filter out progress bars from this stdout text. Focus on identifying and removing lines or segments that represent progress bars while preserving the rest of the content.
-
-    Please respond with the regex pattern in the following JSON format and order:
-    ```json
-    {
-        "regex pattern": "The regex pattern to filter out progress bars."
-    }
-    ```
+    Check if the text contains progress bar patterns. If patterns are found, provide a list of regex patterns to filter them. Otherwise, indicate that substitution is not needed.
 
 if_filtered:
   system: |

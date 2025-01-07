@@ -18,6 +18,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.core.exception import CoderError
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 ModelSingleFeedback = CoSTEERSingleFeedback
@@ -73,6 +74,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         # Filter out progress bars from stdout using regex
         filtered_stdout = filter_progress_bar(stdout)
+
+        if filtered_stdout is None:
+            raise CoderError("The execution output contains too many progress bars and results in the LLM's token size exceeding the limit.")
 
         system_prompt = T(".prompts:model_eval.system").r(
             test_code=test_code,
