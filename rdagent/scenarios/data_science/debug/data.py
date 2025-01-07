@@ -128,7 +128,7 @@ def create_debug_data(
         dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path  # FIXME: don't hardcode this KAGGLE_IMPLEMENT_SETTING
 
     if sample_path is None:
-        sample_path = Path(dataset_path) / "sample1"
+        sample_path = Path(dataset_path) / "sample"
 
     data_folder = Path(dataset_path) / competition
     sample_folder = Path(sample_path) / competition
@@ -186,7 +186,6 @@ def create_debug_data(
         subfolder_dict.setdefault(rel_dir, []).append(file_path)
 
     # For each subfolder, decide which files to copy
-    cnt =0
     for rel_dir, file_list in subfolder_dict.items():
         used_files = []
         not_used_files = []
@@ -195,8 +194,6 @@ def create_debug_data(
         for fp in file_list:
             if str(fp.name) in sample_used_file_names or str(fp.stem) in sample_used_file_names:
                 used_files.append(fp)
-                print(f"{cnt} Copying {fp} to used_files")
-                cnt += 1
             else:
                 not_used_files.append(fp)
 
