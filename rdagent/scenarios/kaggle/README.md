@@ -18,3 +18,13 @@ sudo chmod +x /usr/local/bin/chromedriver
 
 chromedriver --version
 ```
+
+## config
+
+1. authentication: `~/.kaggle/kaggle.json`
+2. Accept Rules in competition website. (Join Competition)
+
+## notebook crawler
+
+1. `download_notebooks()`
+2. `convert_notebooks_to_text()`

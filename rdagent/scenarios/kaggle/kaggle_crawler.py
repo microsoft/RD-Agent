@@ -23,7 +23,7 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
 from rdagent.utils.env import MLEBDockerEnv
-
+from rdagent.utils.agent.tpl import T
 # %%
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
@@ -227,19 +227,8 @@ def download_notebooks(
 
 
 def notebook_to_knowledge(notebook_text: str) -> str:
-    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["user"])
-        .render(notebook=notebook_text)
-    )
+    sys_prompt = T(".prompts:gen_knowledge_from_code_mini_case.system").r()
+    user_prompt = T(".prompts:gen_knowledge_from_code_mini_case.user").r(notebook=notebook_text)
 
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
