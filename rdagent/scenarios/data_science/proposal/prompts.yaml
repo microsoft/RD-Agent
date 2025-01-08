@@ -14,10 +14,10 @@ hypothesis_gen:
     {{ hypothesis_output_format }}
 
   user: |-
-    {% if hypothesis_and_feedback|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
+    {% if exp_and_feedback_desc|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
     {% else %}It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
-    {{ hypothesis_and_feedback }}
+    {{ exp_and_feedback_desc }}
     {% endif %}
     Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 
@@ -94,7 +94,7 @@ task_gen:
     The target hypothesis you are targeting to generate {{targets}} for is as follows:
     {{ hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
-    {{ hypothesis_and_feedback }}
+    {{ exp_and_feedback_desc }}
     Please generate the new {{targets}} based on the information above.
     {% else %}
     Please generate the new {{targets}} task.
@@ -126,7 +126,7 @@ task_gen_model:
     The target hypothesis you are targeting to generate {{targets}} for is as follows:
     {{ hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
-    {{ hypothesis_and_feedback }}
+    {{ exp_and_feedback_desc }}
     Please generate the new {{targets}} based on the information above.
     {% else %}
     Please generate the new {{targets}} task.
@@ -148,9 +148,6 @@ component_gen:
     {{current_exp_desc}}
 
     You will be provided the feedback for the latest implementation.
-
-    # The expected output format
-    {{component_output_format}}
 
     Please select the component you are going to improve the latest implementation or sota implementation.
 
