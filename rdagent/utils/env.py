@@ -12,6 +12,7 @@ import os
 import pickle
 import re
 import subprocess
+import time
 import uuid
 from abc import abstractmethod
 from pathlib import Path
@@ -389,8 +390,16 @@ class DockerEnv(Env[DockerConf]):
         if entry is None:
             entry = self.conf.default_entry
         entry_add_timeout = f"timeout {self.conf.running_timeout_period} {entry}"
-        return self.__run(entry_add_timeout, local_path, env, running_extra_volume)
+        
+        start = time.time()
+        out = self.__run(entry_add_timeout, local_path, env, running_extra_volume)
+        end = time.time()
 
+        if end - start >= self.conf.running_timeout_period:
+            out += f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
+
+        return out
+        
     def dump_python_code_run_and_get_results(
         self,
         code: str,
