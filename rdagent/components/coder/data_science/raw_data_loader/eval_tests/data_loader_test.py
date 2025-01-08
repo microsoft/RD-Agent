@@ -16,8 +16,8 @@ from load_data import load_data
 X, y, X_test, test_ids = load_data()
 
 # Validate the conditions mentioned in the docstring
-assert len(X_test) == len(test_ids), "Mismatch in length of test images and test IDs"
-assert len(X) == len(y), "Mismatch in length of training images and labels"
+assert X_test.shape[0] == test_ids.shape[0], "Mismatch in length of test images and test IDs"
+assert X.shape[0] == y.shape[0], "Mismatch in length of training images and labels"
 
 print("Data loader test passed successfully. Length of test images matches length of test IDs.")
 
