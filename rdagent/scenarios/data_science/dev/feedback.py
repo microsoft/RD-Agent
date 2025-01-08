@@ -85,6 +85,12 @@ class DSExperiment2Feedback(Experiment2Feedback):
         sota_exp = trace.sota_experiment()
         sota_desc = T("scenarios.data_science.share:describe.exp").r(exp=sota_exp, heading="SOTA of previous exploration of the scenario")
 
+        # Get feedback description using shared template
+        feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
+            exp_and_feedback=(trace.hist[-1] if trace.hist else None),
+            heading="Previous Trial Feedback"
+        )
+
         # TODO:
         # -  Should we choose between the diff from last experiment or last sota ?
 
@@ -102,17 +108,12 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # The feedback should focus on experiment **improving**.
         # Assume that all the the sota exp is based on the previous sota experiment
 
-
-        last_exp_and_feedback = None
-        if trace.hist and len(trace.hist) > 0:
-            last_exp_and_feedback = (trace.hist[-1][0], trace.hist[-1][1])
-
         system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,
             diff_edition=diff_edition,
-            last_exp_and_feedback=last_exp_and_feedback,
+            feedback_desc=feedback_desc,
         )
 
         resp_dict = json.loads(

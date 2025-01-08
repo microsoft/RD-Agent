@@ -9,7 +9,7 @@ exp_feedback:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
     3. Suggest improvements or new directions. Stay innovative and adapative.
-    4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete results (i.e., results that are runnable and can generate evaluation outcomes), please replace it as the best result.
+    4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete experiment available (i.e., results that are runnable and can generate evaluation outcomes), **please replace it as the best result/SOTA**.
 
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
@@ -47,17 +47,8 @@ exp_feedback:
     ### Complete Code of current solution
     {{cur_exp.experiment_workspace.all_codes}}
 
-    {% if last_exp_and_feedback and last_exp_and_feedback|length > 1 %}
-    ## Previous trial
-    Before current trial, previous recent trial is listed below.
-    {% if last_exp_and_feedback[0].hypothesis %}
-    the experiment is designed based on hypothesis: {{ last_exp_and_feedback[0].hypothesis }}
-    {% endif %}
-    ### Task of previous trial
-    {{ last_exp_and_feedback[0].sub_tasks[0].get_task_information() }}
-    feedback decision: {{ last_exp_and_feedback[1].decision }}
-    reason: {{ last_exp_and_feedback[1].reason }}
-    {% endif %}
+    {{feedback_desc}}
+
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
     Consider Changing Direction for Significant Gaps with the Best Result and the last round:
