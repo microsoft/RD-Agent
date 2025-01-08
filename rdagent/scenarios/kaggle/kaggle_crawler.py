@@ -22,8 +22,9 @@ from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
-from rdagent.utils.env import MLEBDockerEnv
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.env import MLEBDockerEnv
+
 # %%
 options = webdriver.ChromeOptions()
 options.add_argument("--no-sandbox")
@@ -36,6 +37,10 @@ service = Service("/usr/local/bin/chromedriver")
 def crawl_descriptions(
     competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
 ) -> dict[str, str]:
+    if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
+        logger.info(f"Found {competition}/description.md, loading from it.")
+        return fp.read_text()
+
     if (fp := Path(f"{local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
