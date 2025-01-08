@@ -104,7 +104,7 @@ class DSExpGen(ExpGen):
         workspace_code: str | None = None,
         spec: str = None,
         hypothesis: Hypothesis | None = None,
-        hypothesis_and_feedback: str | None = None,
+        exp_and_feedback_desc: str | None = None,
     ) -> dict:
         system_prompt = T(".prompts:task_gen.system").r(
             targets=targets,
@@ -117,7 +117,7 @@ class DSExpGen(ExpGen):
             targets=targets,
             hypothesis=hypothesis,
             workspace_code=workspace_code,
-            hypothesis_and_feedback=hypothesis_and_feedback,
+            exp_and_feedback_desc=exp_and_feedback_desc,
         )
 
         resp_dict = json.loads(
@@ -269,7 +269,7 @@ class DSExpGen(ExpGen):
                 )
                 hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
                     targets="data science project",
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 resp_dict: dict = json.loads(
@@ -294,7 +294,7 @@ class DSExpGen(ExpGen):
                 metric_name = score_df.columns[0]
                 for fname in last_successful_exp.experiment_workspace.file_dict:
                     if re.match(r"^model_.+\.py", fname):
-                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
+                        model_str = f"{fname}:\n{metric_name} on valid: {score_df[metric_name].max()}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
 
                 model_num = len(model_infos)
@@ -319,7 +319,7 @@ class DSExpGen(ExpGen):
                     )
                 hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
                     targets="data science project",
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
                 resp_dict: dict = json.loads(
                     APIBackend().build_messages_and_create_chat_completion(
@@ -344,7 +344,7 @@ class DSExpGen(ExpGen):
                     spec=last_successful_exp.experiment_workspace.file_dict["spec/data_loader.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.data_loader").r(),
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 dt = DataLoaderTask(
@@ -367,7 +367,7 @@ class DSExpGen(ExpGen):
                     spec=last_successful_exp.experiment_workspace.file_dict["spec/feature.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.feature").r(),
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 ft = FeatureTask(
@@ -382,12 +382,13 @@ class DSExpGen(ExpGen):
                 return exp
             elif hypothesis.component == "Model":
                 resp_dict = self.llm_task_gen(
+                    targets="Models",
                     scenario_desc=scenario_desc,
                     spec=last_successful_exp.experiment_workspace.file_dict["spec/model.md"],
                     hypothesis=hypothesis,
                     workspace_code=last_successful_exp.experiment_workspace.all_codes,
                     task_output_format=T(".prompts:output_format.model").r(),
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 mt = ModelTask(
@@ -411,7 +412,7 @@ class DSExpGen(ExpGen):
                     spec=last_successful_exp.experiment_workspace.file_dict["spec/ensemble.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.ensemble").r(),
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 et = EnsembleTask(
@@ -431,7 +432,7 @@ class DSExpGen(ExpGen):
                     spec=last_successful_exp.experiment_workspace.file_dict["spec/workflow.md"],
                     hypothesis=hypothesis,
                     task_output_format=T(".prompts:output_format.workflow").r(),
-                    hypothesis_and_feedback=hypothesis_and_feedback,
+                    exp_and_feedback_desc=exp_and_feedback_desc,
                 )
 
                 wt = WorkflowTask(
