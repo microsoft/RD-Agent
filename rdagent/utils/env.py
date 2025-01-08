@@ -396,7 +396,7 @@ class DockerEnv(Env[DockerConf]):
         end = time.time()
 
         if end - start >= self.conf.running_timeout_period:
-            out += f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
+            out += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
 
         return out
         
