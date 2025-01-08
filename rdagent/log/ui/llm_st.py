@@ -155,6 +155,16 @@ for d in session_state.data:
                         st.markdown(":red[**Spec in response dict:**]")
                         st.markdown(spec)
                         rdict.pop("spec")
+                    else:
+                        # show model codes
+                        showed_keys = []
+                        for k,v in rdict.items():
+                            if k.startswith("model_") and k.endswith(".py"):
+                                st.markdown(f":red[**{k}**]")
+                                st.code(v, language="python", wrap_lines=True, line_numbers=True)
+                                showed_keys.append(k)
+                        for k in showed_keys:
+                            rdict.pop(k)
                     st.write(":red[**Other parts (except for the code or spec) in response dict:**]")
                     st.json(rdict)
                 except:
