@@ -216,21 +216,36 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         else:  # propose new component by LLM
+            # Guidelines:
+            # System prompts: Shared condition you are facing
+            # - scenario description: `scenario_desc`
+            # - expected output format
+            # User prompts: Task Specific information
+            # - Previous Feedback
+            # - Current sota implementation (encourage change based on it)
+            # - Extra RAG
             assert last_successful_exp is not None, "SOTA experiment is not provided."
+            exp_and_feedback = trace.hist[-1]
+            last_exp = exp_and_feedback[0]
 
-            # base info
-            hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(hist=[i for i in trace.hist[-10:] if isinstance(i[1], HypothesisFeedback)])
             # Step 1: Generate component
+            # Describe current best solution using shared template
             sota_solution = trace.sota_experiment()
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(exp=last_successful_exp, heading="Best of previous exploration of the scenario")
+            current_exp_desc = T("scenarios.data_science.share:describe.exp").r(exp=last_exp, heading="Current exploration of the scenario")
+            exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=exp_and_feedback)
+
+            # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
-                    scenario=scenario_desc,
-                    implementation=last_successful_exp.experiment_workspace.all_codes,
-                    component_output_format=T(".prompts:output_format.component").r(),
-                )
+                scenario=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                current_exp_desc=current_exp_desc,
+                component_output_format=T(".prompts:output_format.component").r(),
+            )
 
             component_user_prompt = T(".prompts:component_gen.user").r(
-                    feedback=hypothesis_and_feedback,
-                )
+                exp_and_feedback_desc=exp_and_feedback_desc,
+            )
 
             resp_dict_component: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
@@ -239,6 +254,7 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
+
             # Why we should split component selection and hypothesis generation
             # - after we know the selected component, we can use RAG.
 
@@ -273,7 +289,7 @@ class DSExpGen(ExpGen):
             else:
                 model_infos = []
                 score_df = pd.read_csv(
-                    last_successful_exp.experiment_workspace.workspace_path / "score.csv", index_col=0
+                    last_successful_exp.experiment_workspace.workspace_path / "scores.csv", index_col=0
                 )
                 metric_name = score_df.columns[0]
                 for fname in last_successful_exp.experiment_workspace.file_dict:

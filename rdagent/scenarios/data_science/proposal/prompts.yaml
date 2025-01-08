@@ -140,23 +140,25 @@ component_gen:
     ```
     {{scenario}}
     ```
-    
-    Here is the latest version of implementation.
-    ```
-    {{implementation}}
 
-    ```
+    # Here is the current best version of implementation.
+    {{sota_exp_desc}}
+
+    # Here is the latest version of implementation
+    {{current_exp_desc}}
 
     You will be provided the feedback for the latest implementation.
 
-    Please select the component you are going to improve the latest implementation.
+    # The expected output format
+    {{component_output_format}}
+
+    Please select the component you are going to improve the latest implementation or sota implementation.
 
     Please generate the output following the format below:
     {{ component_output_format }}
 
   user: |-
-    {{feedback}}
-
+    {{exp_and_feedback_desc}}
 
 
 exp_and_feedback: |-
