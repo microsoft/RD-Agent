@@ -216,6 +216,14 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             return exp
         else:  # propose new component by LLM
+            # Guidelines:
+            # System prompts: Shared condition you are facing
+            # - scenario description: `scenario_desc`
+            # - expected output format
+            # User prompts: Task Specific information
+            # - Previous Feedback
+            # - Current sota implementation (encourage change based on it)
+            # - Extra RAG
             assert last_successful_exp is not None, "SOTA experiment is not provided."
 
             # base info

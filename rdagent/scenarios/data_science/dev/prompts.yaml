@@ -24,22 +24,7 @@ exp_feedback:
   user: |-
     We are in a process of finding and validating hypotheses to build powerful codes. Each round aims to confirm or reject hypotheses based on results.
 
-    ## SOTA of previous exploration of the scenario
-    {% if sota_codes %}
-    ### Code
-    The improvement of sota results is
-    {{sota_codes}}
-
-    ### According results
-    {% if sota_results %}
-    The SOTA results is:
-    {{ sota_results }}
-    {% else %}
-    There are no previous results
-    {% endif %}
-    {% else %}
-    We have no previous complete complete results.
-    {% endif %}
+    {{ sota_desc }}
 
     ## Current solution
     Current solution to be evaluated:
@@ -58,8 +43,8 @@ exp_feedback:
     {{ de }}
     {% endfor %}
 
-    Final results of the current solution: {{ current_results }}
-    ### Code of current solution
+    Final results of the current solution: {{ cur_exp.result }}
+    ### Complete Code of current solution
     {{cur_exp.experiment_workspace.all_codes}}
 
     {% if last_exp_and_feedback and last_exp_and_feedback|length > 1 %}

@@ -144,7 +144,6 @@ component_gen:
     Here is the latest version of implementation.
     ```
     {{implementation}}
-
     ```
 
     You will be provided the feedback for the latest implementation.
@@ -156,7 +155,6 @@ component_gen:
 
   user: |-
     {{feedback}}
-
 
 
 exp_and_feedback: |-
