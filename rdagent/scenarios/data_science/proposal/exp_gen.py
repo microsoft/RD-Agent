@@ -59,7 +59,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
         self.knowledge_base = knowledge_base
 
-    def sota_experiment(self, last_n: int = -1) -> Experiment | None:
+    def sota_experiment(self, last_n: int = -1) -> DSExperiment | None:
         """
         Access the last experiment result.
 
@@ -83,7 +83,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     return exp
         return None
 
-    def last_successful_exp(self) -> Experiment | None:
+    def last_successful_exp(self) -> DSExperiment | None:
         """
         Access the last successful experiment even part of the components are not completed.
         """
