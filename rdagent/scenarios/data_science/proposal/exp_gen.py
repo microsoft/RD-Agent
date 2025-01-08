@@ -221,17 +221,16 @@ class DSExpGen(ExpGen):
             # base info
             hypothesis_and_feedback = T(".prompts:hypothesis_and_feedback").r(hist=[i for i in trace.hist[-10:] if isinstance(i[1], HypothesisFeedback)])
             # Step 1: Generate component
-            sota_solution = ""
-            component_sys_prompt = T(".prompts:component_gen").r(
-                targets="data science project",
-                scenario=scenario_desc,
-                hypothesis_output_format=T(".prompts:output_format.component").r(),
-                hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-            )
+            sota_solution = trace.sota_experiment()
+            component_sys_prompt = T(".prompts:component_gen.system").r(
+                    scenario=scenario_desc,
+                    implementation=last_successful_exp.experiment_workspace.all_codes,
+                    component_output_format=T(".prompts:output_format.component").r(),
+                )
 
-            component_user_prompt = T(".prompts:hypothesis_gen.user").r(
-                feedback=hypothesis_and_feedback,
-            )
+            component_user_prompt = T(".prompts:component_gen.user").r(
+                    feedback=hypothesis_and_feedback,
+                )
 
             resp_dict_component: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
@@ -240,7 +239,6 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
-
             # Why we should split component selection and hypothesis generation
             # - after we know the selected component, we can use RAG.
 

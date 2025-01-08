@@ -143,13 +143,16 @@ component_gen:
     
     Here is the latest version of implementation.
     ```
-    {{}}
+    {{implementation}}
 
     ```
 
     You will be provided the feedback for the latest implementation.
 
     Please select the component you are going to improve the latest implementation.
+
+    Please generate the output following the format below:
+    {{ component_output_format }}
 
   user: |-
     {{feedback}}
