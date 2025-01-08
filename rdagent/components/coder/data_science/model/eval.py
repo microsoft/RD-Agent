@@ -69,9 +69,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        if stdout is None:
-            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
-
         # Filter out progress bars from stdout using regex
         filtered_stdout = filter_progress_bar(stdout)
 

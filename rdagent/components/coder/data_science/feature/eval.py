@@ -43,6 +43,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             )
 
         ds_docker_conf = DSDockerConf()
+        # TODO: we should /= 20 for the timeout period on debug component
         ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
         de = DockerEnv(conf=ds_docker_conf)
 
@@ -52,8 +53,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{fname: test_code})
 
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-        if stdout is None:
-            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
+
         system_prompt = T(".prompts:feature_eval.system").r(
             test_code=test_code, code=implementation.file_dict["feature.py"]
         )

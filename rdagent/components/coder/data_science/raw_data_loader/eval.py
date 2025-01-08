@@ -56,8 +56,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.py").read_text()
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
-        if stdout is None:
-            stdout = "The execution exceeded the time limit, and no stdout information has been generated yet."
+
         system_prompt = T(".prompts:data_loader_eval.system").r(
             test_code=test_code, code=implementation.file_dict["load_data.py"]
         )

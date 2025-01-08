@@ -80,9 +80,6 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not submission_fp.exists():
             stdout += "\nSubmission file (submission.csv) is not generated."
 
-        if stdout is None:
-            stdout = "\nThe execution exceeded the time limit."
-
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(), spec=implementation.file_dict["spec/workflow.md"]
         )
