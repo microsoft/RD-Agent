@@ -4,6 +4,10 @@ import shutil
 from pathlib import Path
 
 import pandas as pd
+try:
+    import bson  # pip install pymongo
+except:
+    pass
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 
@@ -39,6 +43,10 @@ class GenericDataHandler(DataHandler):
             # you might do: pd.read_hdf(path, key='df') or something similar.
             # Adjust as needed based on your HDF structure.
             return pd.read_hdf(path, key="data")
+        elif suffix == ".bson":
+            data = bson.decode_file_iter(open(path, 'rb'))
+            df = pd.DataFrame(data)
+            return df
         else:
             raise ValueError(f"Unsupported file type: {suffix}")
 
@@ -55,6 +63,12 @@ class GenericDataHandler(DataHandler):
         elif suffix in [".h5", ".hdf", ".hdf5"]:
             # Similarly, you need a key for HDF.
             df.to_hdf(path, key="data", mode="w")
+        elif suffix == ".bson":
+            data = df.to_dict(orient="records")
+            with open(path, "wb") as file:
+                # Write each record in the list to the BSON file
+                for record in data:
+                    file.write(bson.BSON.encode(record))
         else:
             raise ValueError(f"Unsupported file type: {suffix}")
 
@@ -72,7 +86,7 @@ class RandDataReducer(DataReducer):
     or at least `min_frac` fraction of the data (whichever is larger).
     """
 
-    def __init__(self, min_frac=0.05, min_num=100):
+    def __init__(self, min_frac=0.05, min_num=5):
         self.min_frac = min_frac
         self.min_num = min_num
 
@@ -98,7 +112,7 @@ class RowReducer(DataReducer):
     """
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
-        ten_percent = int(max(len(df) * 0.1, 100))
+        ten_percent = int(max(len(df) * 0.1, 5))
         return df.iloc[:ten_percent]
 
 
@@ -136,7 +150,7 @@ def create_debug_data(
     print(f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders).")
 
     # Traverse the folder and exclude specific file types
-    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5"}
+    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".bson"}
     files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
 
     # This set will store filenames or paths that appear in the sampled data
@@ -181,8 +195,7 @@ def create_debug_data(
     for file_path in files_to_process:
         if file_path.suffix.lower() in included_extensions:
             continue  # Already handled above
-
-        rel_dir = file_path.relative_to(data_folder).parent
+        rel_dir = file_path.relative_to(data_folder).parts[0]
         subfolder_dict.setdefault(rel_dir, []).append(file_path)
 
     # For each subfolder, decide which files to copy
@@ -207,12 +220,12 @@ def create_debug_data(
 
         # If no files are used, randomly sample files to keep the folder from being empty
         if len(used_files) == 0:
-            if len(file_list) <= 100:
+            if len(file_list) <= 5:
                 num_to_keep = len(file_list)
             else:
                 num_to_keep = int(len(file_list) * 0.05)
-                if num_to_keep <= 100:
-                    num_to_keep = 100  # Keep at least one file if fraction is too small
+                if num_to_keep <= 5:
+                    num_to_keep = 5  # Keep at least one file if fraction is too small
 
             sampled_not_used = pd.Series(not_used_files).sample(n=num_to_keep, random_state=1)
             for nf in sampled_not_used:
