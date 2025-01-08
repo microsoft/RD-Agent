@@ -363,7 +363,7 @@ class DSExpGen(ExpGen):
 
                 exp = DSExperiment(sub_tasks=[ft], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(
-                    sota_last_successful_expexp.experiment_workspace.workspace_path
+                    last_successful_exp.experiment_workspace.workspace_path
                 )
                 return exp
             elif hypothesis.component == "Model":
