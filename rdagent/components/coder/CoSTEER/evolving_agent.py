@@ -6,10 +6,11 @@ from rdagent.core.exception import CoderError
 
 
 class FilterFailedRAGEvoAgent(RAGEvoAgent):
-    def filter_evolvable_subjects_by_feedback(
-        self, evo: EvolvableSubjects, feedback: CoSTEERSingleFeedbackDeprecated
-    ) -> EvolvableSubjects:
+
+    def filter_evolvable_subjects_by_feedback(self, evo: EvolvableSubjects,
+                                              feedback: CoSTEERSingleFeedbackDeprecated) -> EvolvableSubjects:
         assert isinstance(evo, EvolvingItem)
+        # FIXME: the list does not align with the annotation; It should be MultipleFeedback instead of a list of feedbacks
         assert isinstance(feedback, list)
         assert len(evo.sub_workspace_list) == len(feedback)
 
@@ -18,8 +19,9 @@ class FilterFailedRAGEvoAgent(RAGEvoAgent):
                 evo.sub_workspace_list[index].clear()
 
         failed_feedbacks = [
-            f"- trial{index + 1}:\n  - feedback:\n    - execution: {f.execution}\n    - return_checking: {f.return_checking}\n    - code: {f.code}"
-            for index, f in enumerate(feedback) if f is not None and not f.final_decision
+            f"- feedback{index + 1:02d}:\n  - execution: {f.execution}\n  - return_checking: {f.return_checking}\n  - code: {f.code}"
+            for index, f in enumerate(feedback)
+            if f is not None and not f.final_decision
         ]
 
         if len(failed_feedbacks) == len(feedback):

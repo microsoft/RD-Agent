@@ -16,7 +16,7 @@ class ModelTask(CoSTEERTask):
         self,
         name: str,
         description: str,
-        architecture: str,
+        architecture: str = "",
         *args,
         hyperparameters: Dict[str, str] = {},
         model_type: Optional[str] = None,

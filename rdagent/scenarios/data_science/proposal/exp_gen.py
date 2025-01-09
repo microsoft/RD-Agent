@@ -136,6 +136,7 @@ class DSExpGen(ExpGen):
         trace: Trace,
         last_successful_exp: DSExperiment | None,
         spec_file: str | None = None,
+        component_promopt_key: str | None = None,
     ) -> DSExperiment:
         """Handle any component using a unified approach.
 
@@ -150,7 +151,7 @@ class DSExpGen(ExpGen):
             targets=component,
             scenario_desc=scenario_desc,
             spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
-            task_output_format=T(f".prompts:output_format.{component.lower()}").r(),
+            task_output_format=T(f".prompts:output_format.{component_promopt_key or component.lower()}").r(),
         )
 
         # Create task instance
@@ -159,6 +160,7 @@ class DSExpGen(ExpGen):
             desc = f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
         else:
             desc = resp_dict.get("description", f"{component} description not provided")
+
         task = task_cls(
             name=component,
             description=desc,
@@ -181,23 +183,28 @@ class DSExpGen(ExpGen):
         component_config = {
             "DataLoadSpec": {
                 "task_cls": DataLoaderTask,
-                "spec_file": None
+                "spec_file": None,
+                "component_promopt_key": "data_loader"
             },
             "FeatureEng": {
                 "task_cls": FeatureTask,
-                "spec_file": "spec/feature.md"
+                "spec_file": "spec/feature.md",
+                "component_promopt_key": "feature"
             },
             "Model": {
                 "task_cls": ModelTask,
                 "spec_file": "spec/model.md",
+                "component_promopt_key": "model"
             },
             "Ensemble": {
                 "task_cls": EnsembleTask,
-                "spec_file": "spec/ensemble.md"
+                "spec_file": "spec/ensemble.md",
+                "component_promopt_key": "ensemble"
             },
             "Workflow": {
                 "task_cls": WorkflowTask,
-                "spec_file": "spec/workflow.md"
+                "spec_file": "spec/workflow.md",
+                "component_promopt_key": "workflow"
             }
         }
 
@@ -210,6 +217,7 @@ class DSExpGen(ExpGen):
                 last_successful_exp=last_successful_exp,
                 spec_file=config.get("spec_file"),
                 trace=trace,
+                component_promopt_key=config.get("component_promopt_key"),
             )
         else:  # propose new component by LLM
             # Guidelines:
