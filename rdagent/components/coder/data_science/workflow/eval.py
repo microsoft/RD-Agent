@@ -17,6 +17,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils import filter_progress_bar
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -60,7 +61,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
         fname = "main.py"
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
