@@ -93,7 +93,7 @@ class RandDataReducer(DataReducer):
     or at least `min_frac` fraction of the data (whichever is larger).
     """
 
-    def __init__(self, min_frac=0.05, min_num=5):
+    def __init__(self, min_frac=0.02, min_num=5):
         self.min_frac = min_frac
         self.min_num = min_num
 
@@ -133,14 +133,15 @@ def create_debug_data(
 
     data_folder = Path(dataset_path) / competition
     sample_folder = Path(sample_path) / competition
-    total_files_count = count_files_in_folder(data_folder)
-    print(
-        f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders)."
-    )
 
     # Traverse the folder and exclude specific file types
     included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
     files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
+
+    total_files_count = len(files_to_process)
+    print(
+        f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders)."
+    )
 
     # This set will store filenames or paths that appear in the sampled data
     sample_used_file_names = set()
