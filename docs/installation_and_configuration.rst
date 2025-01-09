@@ -38,17 +38,18 @@ Azure OpenAI
 The following environment variables are standard configuration options for the user using the OpenAI API.
 
    .. code-block:: Properties
-      
+
       USE_AZURE=True
 
-      OPENAI_API_KEY=<replace_with_your_openai_api_key>
-      
+      EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+      EMBEDDING_AZURE_API_BASE=  # The endpoint for the Azure OpenAI API.
+      EMBEDDING_AZURE_API_VERSION=  # The version of the Azure OpenAI API.
       EMBEDDING_MODEL=text-embedding-3-small
-      EMBEDDING_AZURE_API_BASE= # The base URL for the Azure OpenAI API.
-      EMBEDDING_AZURE_API_VERSION = # The version of the Azure OpenAI API.
 
-      CHAT_MODEL=gpt-4-turbo
-      CHAT_AZURE_API_VERSION = # The version of the Azure OpenAI API.
+      CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+      CHAT_AZURE_API_BASE=  # The endpoint for the Azure OpenAI API.
+      CHAT_AZURE_API_VERSION=  # The version of the Azure OpenAI API.
+      CHAT_MODEL=  # The model name of the Azure OpenAI API.
 
 Use Azure Token Provider
 ------------------------

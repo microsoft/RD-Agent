@@ -83,15 +83,44 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   pip install rdagent
   ```
 
+### 💊 Health check
+- rdagent provides a health check that currently checks two things.
+  - whether the docker installation was successful.
+  - whether the default port used by the [rdagent ui](https://github.com/microsoft/RD-Agent?tab=readme-ov-file#%EF%B8%8F-monitor-the-application-results) is occupied.
+  ```sh
+  rdagent health_check
+  ```
+
+
 ### ⚙️ Configuration
-- You have to config your GPT model in the `.env`
+- The demos requires following ability:
+  - ChatCompletion
+  - json_mode
+  - embedding query
+
+- For example: If you are using the `OpenAI API`, you have to configure your GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
-  OPENAI_API_KEY=<your_api_key>
+  OPENAI_API_KEY=<replace_with_your_openai_api_key>
   # EMBEDDING_MODEL=text-embedding-3-small
   CHAT_MODEL=gpt-4-turbo
   EOF
   ```
+- However, not every API services support these features by devault. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
+  ```bash
+  cat << EOF  > .env
+  USE_AZURE=True
+  EMBEDDING_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+  EMBEDDING_AZURE_API_BASE=<replace_with_your_azure_endpoint>
+  EMBEDDING_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
+  EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_OPENAI_API_KEY=<replace_with_your_azure_openai_api_key>
+  CHAT_AZURE_API_BASE=<replace_with_your_azure_endpoint>
+  CHAT_AZURE_API_VERSION=<replace_with_the_version_of_your_azure_openai_api>
+  CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
+  EOF
+  ```
+- For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
 
@@ -170,9 +199,18 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   > - The **Competition List Available** can be found [here](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html#competition-list-available). <br />
 
 ### 🖥️ Monitor the Application Results
-- You can serve our demo app to monitor the RD loop by running the following command:
+- You can run the following command for our demo program to see the run logs.
+
   ```sh
-  rdagent ui --port 80 --log_dir <your log folder like "log/">
+  rdagent ui --port 19899 --log_dir <your log folder like "log/">
+  ```
+
+  **Note:** Although port 19899 is not commonly used, but before you run this demo, you need to check if port 19899 is occupied. If it is, please change it to another port that is not occupied.
+
+  You can check if a port is occupied by running the following command.
+
+  ```sh
+  rdagent health_check
   ```
 
 # 🏭 Scenarios
@@ -208,11 +246,7 @@ The supported scenarios are listed below:
 
 Different scenarios vary in entrance and configuration. Please check the detailed setup tutorial in the scenarios documents.
 
-Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using the command below:
-
-```bash
-rdagent ui --port 80 --log_dir ./demo_traces
-```
+Here is a gallery of [successful explorations](https://github.com/SunsetWolf/rdagent_resource/releases/download/demo_traces/demo_traces.zip) (5 traces showed in **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)**). You can download and view the execution trace using [this command](https://github.com/microsoft/RD-Agent?tab=readme-ov-file#%EF%B8%8F-monitor-the-application-results) from the documentation.
 
 Please refer to **[📖readthedocs_scen](https://rdagent.readthedocs.io/en/latest/scens/catalog.html)** for more details of the scenarios.
 

@@ -135,7 +135,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         for exp in exp_or_list:
             # Iterate over sub-implementations and execute them to get each factor data
             message_and_df_list = multiprocessing_wrapper(
-                [(implementation.execute, ("All",)) for implementation in exp.sub_workspace_list],
+                [(implementation.execute, ("All",)) for implementation in exp.sub_workspace_list if implementation],
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
             for message, df in message_and_df_list:
