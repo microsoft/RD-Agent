@@ -98,7 +98,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             else:
                 user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
         else:
-            raise CoderError("Failed to generate a new data loader code.")
+            raise CoderError("Failed to generate a new model code.")
 
         return batch_edit
 
