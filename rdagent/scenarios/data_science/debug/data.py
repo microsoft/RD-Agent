@@ -1,9 +1,12 @@
+from collections import Counter
 import os
 import platform
 import shutil
 from pathlib import Path
 
 import pandas as pd
+
+from tqdm import tqdm
 
 try:
     import bson  # pip install pymongo
@@ -99,7 +102,7 @@ class RandDataReducer(DataReducer):
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         frac = max(self.min_frac, self.min_num / len(df))
-        print(f"Sampling {frac * 100:.2f}% of the data ({len(df)} rows)")
+        # print(f"Sampling {frac * 100:.2f}% of the data ({len(df)} rows)")
         if frac >= 1:
             return df
         return df.sample(frac=frac, random_state=1)
@@ -137,11 +140,14 @@ def create_debug_data(
     # Traverse the folder and exclude specific file types
     included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
     files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
-
     total_files_count = len(files_to_process)
     print(
         f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders)."
     )
+    file_types_count = Counter(file.suffix.lower() for file in files_to_process)
+    print("File type counts:")
+    for file_type, count in file_types_count.items():
+        print(f"{file_type}: {count}")
 
     # This set will store filenames or paths that appear in the sampled data
     sample_used_file_names = set()
@@ -150,13 +156,19 @@ def create_debug_data(
     data_handler = GenericDataHandler()
     data_reducer = dr_cls(min_frac=min_frac, min_num=min_num)
 
-    for file_path in files_to_process:
+    skip_subfolder_data = any(f.is_file() and f.suffix in included_extensions for f in data_folder.iterdir() if f.name.startswith(("train", "test")))
+    processed_files = []
+
+    for file_path in tqdm(files_to_process, desc="Processing data", unit="file"):
         sampled_file_path = sample_folder / file_path.relative_to(data_folder)
         if sampled_file_path.exists():
             continue
 
         if file_path.suffix.lower() not in included_extensions:
             continue
+
+        if skip_subfolder_data and file_path.parent != data_folder:
+            continue  # bypass files in subfolders
 
         sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -165,11 +177,13 @@ def create_debug_data(
 
         # Create a sampled subset
         df_sampled = data_reducer.reduce(df)
-
+        processed_files.append(file_path)
         # Dump the sampled data
         try:
             data_handler.dump(df_sampled, sampled_file_path)
             # Extract possible file references from the sampled data
+            if "submission" in file_path.stem:
+                continue  # Skip submission files
             for col in df_sampled.columns:
                 unique_vals = df_sampled[col].astype(str).unique()
                 for val in unique_vals:
@@ -183,13 +197,13 @@ def create_debug_data(
     # Process non-data files
     subfolder_dict = {}
     for file_path in files_to_process:
-        if file_path.suffix.lower() in included_extensions:
+        if file_path in processed_files:
             continue  # Already handled above
         rel_dir = file_path.relative_to(data_folder).parts[0]
         subfolder_dict.setdefault(rel_dir, []).append(file_path)
 
     # For each subfolder, decide which files to copy
-    for rel_dir, file_list in subfolder_dict.items():
+    for rel_dir, file_list in tqdm(subfolder_dict.items(), desc="Processing files", unit="file"):
         used_files = []
         not_used_files = []
 
@@ -222,6 +236,7 @@ def create_debug_data(
                     continue
                 sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(nf, sampled_file_path)
+
 
     final_files_count = count_files_in_folder(sample_folder)
     print(f"[INFO] After sampling, the sample folder `{sample_folder}` contains {final_files_count} files in total.")
