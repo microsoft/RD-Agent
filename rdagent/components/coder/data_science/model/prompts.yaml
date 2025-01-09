@@ -119,7 +119,7 @@ model_eval:
         {
             "execution": "Describe whether the model executed successfully, including any errors or issues encountered.",
             "return_checking": "Check the generated value, including whether the value is generated and comparing the shape of the model output with the requirement in spec.md. You also need to check whether the hyperparameters used for retraining are correctly returned during the test execution of the model.",
-            "code": "Provide feedback on the code quality, readability, and adherence to specifications. Check whether the hyperparameters from the previous run are used in the model code, compare the parameter names in stdout and if they are used in the retraining part of the code. It is acceptable when hyperparameters is None.",
+            "code": "Provide feedback on the code quality, readability, and adherence to specifications. Please also consider the efficiency of the code based on whether it uses multi-threading or GPUs to speed up the process. Check whether the hyperparameters from the previous run are used in the model code, compare the parameter names in stdout and if they are used in the retraining part of the code. It is acceptable when hyperparameters is None.",
             "final_decision": <true/false>
         }
         ```
