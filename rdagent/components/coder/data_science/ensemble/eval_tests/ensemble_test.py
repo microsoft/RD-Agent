@@ -34,7 +34,10 @@ val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
 final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
 
 # Check shape
-assert final_pred.shape[0] == test_X.shape[0], "Wrong output sample size"
+if isinstance(final_pred, list):
+    assert len(final_pred) == len(test_X), "Wrong output sample size"
+else:
+    assert final_pred.shape[0] == test_X.shape[0], "Wrong output sample size"
 
 # check if scores.csv is generated
 assert Path("scores.csv").exists(), "scores.csv is not generated"

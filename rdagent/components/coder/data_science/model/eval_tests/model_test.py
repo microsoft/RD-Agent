@@ -18,7 +18,7 @@ def log_execution_results(start_time, val_pred, test_pred, hypers, execution_lab
 # Load and preprocess data
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
-train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
+train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
 
 # First execution
 print("The first execution begins.\n")
