@@ -8,9 +8,6 @@ from rdagent.core.conf import ExtendedBaseSettings
 
 
 class LLMSettings(ExtendedBaseSettings):
-    # backend
-    backend: str = "rdagent.oai.backend.DeprecBackend"
-
     log_llm_chat_content: bool = True
 
     use_azure: bool = Field(default=False, deprecated=True)
