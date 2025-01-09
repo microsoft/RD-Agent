@@ -43,6 +43,9 @@ class GenericDataHandler(DataHandler):
             # you might do: pd.read_hdf(path, key='df') or something similar.
             # Adjust as needed based on your HDF structure.
             return pd.read_hdf(path, key="data")
+        elif suffix == ".jsonl":
+            # Read JSON Lines file
+            return pd.read_json(path, lines=True)
         elif suffix == ".bson":
             data = bson.decode_file_iter(open(path, 'rb'))
             df = pd.DataFrame(data)
@@ -63,6 +66,9 @@ class GenericDataHandler(DataHandler):
         elif suffix in [".h5", ".hdf", ".hdf5"]:
             # Similarly, you need a key for HDF.
             df.to_hdf(path, key="data", mode="w")
+        elif suffix == ".jsonl":
+            # Save DataFrame to JSON Lines file
+            df.to_json(path, orient="records", lines=True)
         elif suffix == ".bson":
             data = df.to_dict(orient="records")
             with open(path, "wb") as file:
@@ -92,28 +98,10 @@ class RandDataReducer(DataReducer):
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         frac = max(self.min_frac, self.min_num / len(df))
+        print(f"Sampling {frac * 100:.2f}% of the data ({len(df)} rows)")
         if frac >= 1:
             return df
         return df.sample(frac=frac, random_state=1)
-
-
-class ColumnReducer(DataReducer):
-    """
-    Example column reducer: keep only the first 5 columns.
-    """
-
-    def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
-        return df.iloc[:, :5]
-
-
-class RowReducer(DataReducer):
-    """
-    Example row reducer: keep only the first 10% rows.
-    """
-
-    def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
-        ten_percent = int(max(len(df) * 0.1, 5))
-        return df.iloc[:ten_percent]
 
 
 def count_files_in_folder(folder: Path) -> int:
@@ -126,7 +114,8 @@ def count_files_in_folder(folder: Path) -> int:
 def create_debug_data(
     competition: str,
     dr_cls: type[DataReducer] = RandDataReducer,
-    dr_cls_kwargs=None,
+    min_frac=0.002, 
+    min_num=5,
     dataset_path=None,
     sample_path=None,
 ):
@@ -135,9 +124,6 @@ def create_debug_data(
     and renames/moves files for easier debugging.
     Automatically detects file type (csv, pkl, parquet, hdf, etc.).
     """
-    if dr_cls_kwargs is None:
-        dr_cls_kwargs = {}
-
     if dataset_path is None:
         dataset_path = KAGGLE_IMPLEMENT_SETTING.local_data_path  # FIXME: don't hardcode this KAGGLE_IMPLEMENT_SETTING
 
@@ -150,7 +136,7 @@ def create_debug_data(
     print(f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders).")
 
     # Traverse the folder and exclude specific file types
-    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".bson"}
+    included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
     files_to_process = [file for file in data_folder.rglob("*") if file.is_file()]
 
     # This set will store filenames or paths that appear in the sampled data
@@ -158,7 +144,7 @@ def create_debug_data(
 
     # Prepare data handler and reducer
     data_handler = GenericDataHandler()
-    data_reducer = dr_cls(**dr_cls_kwargs)
+    data_reducer = dr_cls(min_frac=min_frac, min_num=min_num)
 
     for file_path in files_to_process:
         sampled_file_path = sample_folder / file_path.relative_to(data_folder)
@@ -220,13 +206,11 @@ def create_debug_data(
 
         # If no files are used, randomly sample files to keep the folder from being empty
         if len(used_files) == 0:
-            if len(file_list) <= 5:
+            if len(file_list) <= min_num:
                 num_to_keep = len(file_list)
             else:
-                num_to_keep = int(len(file_list) * 0.05)
-                if num_to_keep <= 5:
-                    num_to_keep = 5  # Keep at least one file if fraction is too small
-
+                num_to_keep = max(int(len(file_list) * min_frac), min_num)
+            print(F"Sampling {num_to_keep} files without label from {len(file_list)} files in {rel_dir}")
             sampled_not_used = pd.Series(not_used_files).sample(n=num_to_keep, random_state=1)
             for nf in sampled_not_used:
                 sampled_file_path = sample_folder / nf.relative_to(data_folder)
