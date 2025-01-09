@@ -18,13 +18,13 @@ class ModelTask(CoSTEERTask):
         description: str,
         architecture: str,
         *args,
-        hyperparameters: Dict[str, str],
+        hyperparameters: Dict[str, str] = {},
         model_type: Optional[str] = None,
         **kwargs,
     ) -> None:
         self.architecture: str = architecture
         self.hyperparameters: str = hyperparameters
-        self.model_type: str = (
+        self.model_type: str | None = (
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
             # TODO: More Models Supported
         )
@@ -34,7 +34,10 @@ class ModelTask(CoSTEERTask):
         task_desc = f"""name: {self.name}
 description: {self.description}
 """
-        task_desc += f"architecture: {self.architecture}\n"
-        task_desc += f"hyperparameters: {self.hyperparameters}\n"
-        task_desc += f"model_type: {self.model_type}\n"
+        if self.architecture:
+            task_desc += f"architecture: {self.architecture}\n"
+        if self.hyperparameters:
+            task_desc += f"hyperparameters: {self.hyperparameters}\n"
+        if self.model_type:
+            task_desc += f"model_type: {self.model_type}\n"
         return task_desc

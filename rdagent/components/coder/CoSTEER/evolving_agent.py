@@ -19,10 +19,10 @@ class FilterFailedRAGEvoAgent(RAGEvoAgent):
 
         failed_feedbacks = [
             f"- trial{index + 1}:\n  - feedback:\n    - execution: {f.execution}\n    - return_checking: {f.return_checking}\n    - code: {f.code}"
-            for index, f in enumerate(feedback) if f and not f.final_decision
+            for index, f in enumerate(feedback) if f is not None and not f.final_decision
         ]
 
-        if failed_feedbacks:
+        if len(failed_feedbacks) == len(feedback):
             feedback_summary = "\n".join(failed_feedbacks)
             raise CoderError(f"All tasks are failed:\n{feedback_summary}")
 

@@ -128,93 +128,89 @@ class DSExpGen(ExpGen):
 
         return resp_dict
 
+    def _handle_missing_component(
+        self,
+        component: str,
+        task_cls: type,
+        scenario_desc: str,
+        trace: Trace,
+        last_successful_exp: DSExperiment | None,
+        spec_file: str | None = None,
+    ) -> DSExperiment:
+        """Handle any component using a unified approach.
+
+        Args:
+            component: Name of the component (e.g. "DataLoadSpec")
+            task_cls: The task class to instantiate (e.g. DataLoaderTask)
+            scenario_desc: Description of the current scenario
+            last_successful_exp: Last successful experiment or None
+            spec_file: Path to specification file if needed
+        """
+        resp_dict = self.llm_task_gen(
+            targets=component,
+            scenario_desc=scenario_desc,
+            spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
+            task_output_format=T(f".prompts:output_format.{component.lower()}").r(),
+        )
+
+        # Create task instance
+        exp_and_feedback = trace.hist[-1] if len(trace.hist) > 0 else None
+        if exp_and_feedback and exp_and_feedback[1].exception is not None and exp_and_feedback[0].sub_tasks[0].name == component:  # Assumption: when completing missing component, using component name as task name
+            desc = f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+        else:
+            desc = resp_dict.get("description", f"{component} description not provided")
+        task = task_cls(
+            name=component,
+            description=desc,
+        )
+
+        exp = DSExperiment(sub_tasks=[task], hypothesis=DSHypothesis(component))
+        if last_successful_exp:
+            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
+        return exp
+
     def gen(self, trace: DSTrace) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
         if len(trace.hist) == 0 or last_successful_exp is None:
-            next_component = "DataLoadSpec"
+            next_missing_component = "DataLoadSpec"
         else:
-            next_component = last_successful_exp.next_component_required()
+            next_missing_component = last_successful_exp.next_component_required()
 
-        if next_component == "DataLoadSpec":
-            resp_dict = self.llm_task_gen(
-                targets="Data loader and specification generation",
+        component_config = {
+            "DataLoadSpec": {
+                "task_cls": DataLoaderTask,
+                "spec_file": None
+            },
+            "FeatureEng": {
+                "task_cls": FeatureTask,
+                "spec_file": "spec/feature.md"
+            },
+            "Model": {
+                "task_cls": ModelTask,
+                "spec_file": "spec/model.md",
+            },
+            "Ensemble": {
+                "task_cls": EnsembleTask,
+                "spec_file": "spec/ensemble.md"
+            },
+            "Workflow": {
+                "task_cls": WorkflowTask,
+                "spec_file": "spec/workflow.md"
+            }
+        }
+
+        if next_missing_component in component_config:
+            config = component_config[next_missing_component]
+            return self._handle_missing_component(
+                component=next_missing_component,
+                task_cls=config["task_cls"],
                 scenario_desc=scenario_desc,
-                task_output_format=T(".prompts:output_format.data_loader").r(),
+                last_successful_exp=last_successful_exp,
+                spec_file=config.get("spec_file"),
+                trace=trace,
             )
-            dt = DataLoaderTask(
-                name="Data loader and specification generation",
-                description=resp_dict.get(
-                    "description", "Data loader and specification generation description not provided"
-                ),
-            )
-
-            exp = DSExperiment(sub_tasks=[dt], hypothesis=DSHypothesis("DataLoadSpec"))
-            return exp
-        elif next_component == "FeatureEng":
-            resp_dict = self.llm_task_gen(
-                targets="Feature Engineering",
-                scenario_desc=scenario_desc,
-                spec=last_successful_exp.experiment_workspace.file_dict["spec/feature.md"],
-                task_output_format=T(".prompts:output_format.feature").r(),
-            )
-
-            ft = FeatureTask(
-                name="Feature Engineering",
-                description=resp_dict.get("description", "Factor description not provided"),
-            )
-            exp = DSExperiment(sub_tasks=[ft], hypothesis=DSHypothesis("FeatureEng"))
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
-            return exp
-        elif next_component == "Model":
-            resp_dict = self.llm_task_gen(
-                targets="Models",
-                scenario_desc=scenario_desc,
-                spec=last_successful_exp.experiment_workspace.file_dict["spec/model.md"],
-                task_output_format=T(".prompts:output_format.model").r(),
-            )
-
-            mt = ModelTask(
-                name=resp_dict.get("model_name", "Model name not provided"),
-                description=resp_dict.get("description", "Model description not provided"),
-                model_type=resp_dict.get("model_type", "Model type not provided"),
-                architecture=resp_dict.get("architecture", "Model architecture not provided"),
-                hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
-            )
-            exp = DSExperiment(sub_tasks=[mt], hypothesis=DSHypothesis("Model"))
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
-            return exp
-        elif next_component == "Ensemble":
-            resp_dict = self.llm_task_gen(
-                targets="Ensemble",
-                scenario_desc=scenario_desc,
-                spec=last_successful_exp.experiment_workspace.file_dict["spec/ensemble.md"],
-                task_output_format=T(".prompts:output_format.ensemble").r(),
-            )
-
-            et = EnsembleTask(
-                name="Ensemble",
-                description=resp_dict.get("description", "Ensemble description not provided"),
-            )
-            exp = DSExperiment(sub_tasks=[et], hypothesis=DSHypothesis("Ensemble"))
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
-            return exp
-        elif next_component == "Workflow":
-            resp_dict = self.llm_task_gen(
-                targets="Workflow",
-                scenario_desc=scenario_desc,
-                spec=last_successful_exp.experiment_workspace.file_dict["spec/workflow.md"],
-                task_output_format=T(".prompts:output_format.workflow").r(),
-            )
-
-            wt = WorkflowTask(
-                name="Workflow",
-                description=resp_dict.get("description", "Workflow description not provided"),
-            )
-            exp = DSExperiment(sub_tasks=[wt], hypothesis=DSHypothesis("Workflow"))
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
-            return exp
         else:  # propose new component by LLM
             # Guidelines:
             # System prompts: Shared condition you are facing
