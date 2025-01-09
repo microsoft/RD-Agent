@@ -16,6 +16,7 @@ from rdagent.components.coder.data_science.model.eval import (
     ModelGeneralCaseSpecEvaluator,
 )
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -74,6 +75,25 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 json_mode=BatchEditOut.json_mode,
             )
         )
+
+        # TODO this is a temporary fix for the issue that CoSTEER always generates the same code or delete code which will cause cache fail
+        try_count = 0
+        while f"{target_task.name}.py" in batch_edit and (
+            batch_edit[f"{target_task.name}.py"] == "__DEL__"
+            or batch_edit[f"{target_task.name}.py"] == workspace.file_dict.get(f"{target_task.name}.py")
+        ):
+            batch_edit = BatchEditOut.extract_output(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt + "\n Please generate different code from the current workspace",
+                    system_prompt=system_prompt,
+                    json_mode=BatchEditOut.json_mode,
+                )
+            )
+            try_count += 1
+            if try_count > 10:
+                raise CoderError(
+                    "Failed to generate code after 10 tries. Costeer always generates same code or delete code."
+                )
 
         # 3. post process to align file name to the task name
         batch_edit = {

@@ -68,9 +68,16 @@ workflow_coder:
     {{ ensemble_code }}
 
     {% if latest_code %}
-    ---------Former Specification---------
-      Former Code: {{ latest_code }}
+    ---------Former code---------
+      {{ latest_code }}
       You should follow the former code to improve it.
+    {% endif %}  
+    
+    {% if former_failed_knowledge %}
+    You have tried to correct the former code but failed. Please avoid making the same mistakes.
+    Here's the failed code you have written:
+    ---------Former failed attempt---------
+    {{ former_failed_knowledge.implementation.file_dict["main.py"] }}
     {% endif %}    
 
 workflow_eval:

@@ -310,6 +310,12 @@ data_loader_coder:
 
     ---------Data Folder Description---------(All path are relative to the data folder)
     {{ folder_spec }}
+    
+    {% if latest_code %}
+    ---------Former code---------
+      {{ latest_code }}
+      You should follow the former code to improve it.
+    {% endif %}   
 
     You should strictly follow the function interface specifications provided by the specification to implement the function.
 

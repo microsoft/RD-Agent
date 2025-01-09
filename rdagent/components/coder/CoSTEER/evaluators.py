@@ -36,7 +36,7 @@ class CoSTEERSingleFeedback(Feedback):
     """
     execution: str
     # execution_feedback
-    return_checking: str | None  # inlucding every check in the testing (constraints about the generated value)
+    return_checking: str | None  # including every check in the testing (constraints about the generated value)
     # value_feedback, shape_feedback, value_generated_flag
     code: str
     final_decision: bool

@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import pandas as pd
+
 try:
     import bson  # pip install pymongo
 except:
@@ -47,7 +48,7 @@ class GenericDataHandler(DataHandler):
             # Read JSON Lines file
             return pd.read_json(path, lines=True)
         elif suffix == ".bson":
-            data = bson.decode_file_iter(open(path, 'rb'))
+            data = bson.decode_file_iter(open(path, "rb"))
             df = pd.DataFrame(data)
             return df
         else:
@@ -114,7 +115,7 @@ def count_files_in_folder(folder: Path) -> int:
 def create_debug_data(
     competition: str,
     dr_cls: type[DataReducer] = RandDataReducer,
-    min_frac=0.002, 
+    min_frac=0.002,
     min_num=5,
     dataset_path=None,
     sample_path=None,
@@ -133,7 +134,9 @@ def create_debug_data(
     data_folder = Path(dataset_path) / competition
     sample_folder = Path(sample_path) / competition
     total_files_count = count_files_in_folder(data_folder)
-    print(f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders).")
+    print(
+        f"[INFO] Original dataset folder `{data_folder}` has {total_files_count} files in total (including subfolders)."
+    )
 
     # Traverse the folder and exclude specific file types
     included_extensions = {".csv", ".pkl", ".parquet", ".h5", ".hdf", ".hdf5", ".jsonl", ".bson"}
@@ -155,7 +158,7 @@ def create_debug_data(
             continue
 
         sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
-       
+
         # Load the original data
         df = data_handler.load(file_path)
 
@@ -210,7 +213,7 @@ def create_debug_data(
                 num_to_keep = len(file_list)
             else:
                 num_to_keep = max(int(len(file_list) * min_frac), min_num)
-            print(F"Sampling {num_to_keep} files without label from {len(file_list)} files in {rel_dir}")
+            print(f"Sampling {num_to_keep} files without label from {len(file_list)} files in {rel_dir}")
             sampled_not_used = pd.Series(not_used_files).sample(n=num_to_keep, random_state=1)
             for nf in sampled_not_used:
                 sampled_file_path = sample_folder / nf.relative_to(data_folder)
@@ -218,6 +221,6 @@ def create_debug_data(
                     continue
                 sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(nf, sampled_file_path)
-    
+
     final_files_count = count_files_in_folder(sample_folder)
     print(f"[INFO] After sampling, the sample folder `{sample_folder}` contains {final_files_count} files in total.")

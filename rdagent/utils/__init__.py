@@ -59,6 +59,7 @@ def convert2bool(value: Union[str, bool]) -> bool:
     else:
         raise ValueError(f"Unknown value type {value} to bool")
 
+
 def remove_ansi_codes(s: str) -> str:
     """
     It is for removing ansi ctrl characters in the string(e.g. colored text)
@@ -86,42 +87,28 @@ def filter_progress_bar(stdout: str) -> str:
     filtered_stdout = re.sub(progress_bar_re, "", filtered_stdout)
     filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
-    # Check if progress bars are already filtered
-    system_prompt = T(".prompts:if_filtered.system").r()
-    user_prompt = T(".prompts:if_filtered.user").r(
-        filtered_stdout=filtered_stdout,
-    )
-    stdout_token_size = APIBackend().build_messages_and_calculate_token(
-        user_prompt=user_prompt,
-        system_prompt=system_prompt,
-    )
-    if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
-        return filtered_stdout
-    elif stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.8:
-        if_filtered_stdout = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
-        ).get("progress bar filtered", False)
-
-        if convert2bool(if_filtered_stdout):
-            return filtered_stdout
-
-    filtered_stdout_shortened = filtered_stdout
     needs_sub = True
     # Attempt further filtering up to 5 times
     for _ in range(5):
+        filtered_stdout_shortened = filtered_stdout
         system_prompt = T(".prompts:filter_progress_bar.system").r()
-        user_prompt = T(".prompts:filter_progress_bar.user").r(
-            stdout=filtered_stdout_shortened,
-        )
 
-        stdout_token_size = APIBackend().build_messages_and_calculate_token(
-            user_prompt=user_prompt,
-            system_prompt=system_prompt,
-        )
-        if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
-            return filtered_stdout_shortened
-        elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.8:
-            filtered_stdout_shortened = filtered_stdout[len(filtered_stdout) // 4 : len(filtered_stdout) * 3 // 4]
+        for __ in range(10):
+            user_prompt = T(".prompts:filter_progress_bar.user").r(
+                stdout=filtered_stdout_shortened,
+            )
+            stdout_token_size = APIBackend().build_messages_and_calculate_token(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+            )
+            if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
+                return filtered_stdout_shortened
+            elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
+                filtered_stdout_shortened = filtered_stdout_shortened[
+                    len(filtered_stdout_shortened) // 4 : len(filtered_stdout_shortened) * 3 // 4
+                ]
+            else:
+                break
 
         response = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
@@ -129,7 +116,7 @@ def filter_progress_bar(stdout: str) -> str:
             )
         )
         needs_sub = response.get("needs_sub", True)
-        regex_patterns = response.get("regex patterns", [])
+        regex_patterns = response.get("regex_patterns", [])
         if isinstance(regex_patterns, list):
             for pattern in regex_patterns:
                 filtered_stdout = re.sub(pattern, "", filtered_stdout)
@@ -138,10 +125,7 @@ def filter_progress_bar(stdout: str) -> str:
 
         if not needs_sub:
             break
-        filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
         filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
-
-        filtered_stdout_shortened = filtered_stdout
 
     if needs_sub:
         return None

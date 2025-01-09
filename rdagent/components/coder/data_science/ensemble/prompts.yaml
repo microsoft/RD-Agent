@@ -42,6 +42,11 @@ ensemble_coder:
     -----------Ensemble Specification-----------
     {{ ensemble_spec }}
 
+    {% if latest_code %}
+    ---------Former code---------
+      {{ latest_code }}
+      You should follow the former code to improve it.
+    {% endif %}
 ensemble_eval:
   system: |-
     You are a data scientist evaluating an ensemble implementation.
