@@ -17,7 +17,13 @@ class FilterFailedRAGEvoAgent(RAGEvoAgent):
             if evo.sub_workspace_list[index] is not None and feedback[index] is not None and not feedback[index]:
                 evo.sub_workspace_list[index].clear()
 
-        if all(not f.final_decision for f in feedback if f):
-            raise CoderError("All tasks are failed")
+        failed_feedbacks = [
+            f"- trial{index + 1}:\n  - feedback:\n    - execution: {f.execution}\n    - return_checking: {f.return_checking}\n    - code: {f.code}"
+            for index, f in enumerate(feedback) if f and not f.final_decision
+        ]
+
+        if failed_feedbacks:
+            feedback_summary = "\n".join(failed_feedbacks)
+            raise CoderError(f"All tasks are failed:\n{feedback_summary}")
 
         return evo
