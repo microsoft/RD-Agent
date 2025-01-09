@@ -51,7 +51,7 @@ feature:
     {% if latest_code %}
     ---------Former code---------
       {{ latest_code }}
-      You should follow the former code to improve it.
+    The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
     {% endif %}    
 
 

@@ -73,8 +73,11 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             model_set_in_folder = set(
                 f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f) and "test" not in f
             )
-            if model_set_in_scores != model_set_in_folder:
-                stdout += f"\nThe models used by ensemble are not consistent with the models in the workspace.\nThe model names in the score.csv are {model_set_in_scores}, while the model names in the workspace are {model_set_in_folder}."
+            for model in model_set_in_folder:
+                if model not in model_set_in_scores:
+                    stdout += (
+                        f"\nModel {model} is not evaluated in the scores.csv. The score.csv has {model_set_in_scores}."
+                    )
 
         # Check submission file
         submission_fp = implementation.workspace_path / "submission.csv"

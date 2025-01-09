@@ -180,8 +180,8 @@ spec:
       1. Function Interface:
         - Function Name: `ens_and_decision`
         - Parameters:
-          - `test_preds_dict` (Dict[str, DT]): A dictionary of test predictions from different models.
-          - `val_preds_dict` (Dict[str, DT]): A dictionary of validation predictions from different models.
+          - `test_preds_dict` (Dict[str, DT]): A dictionary of test predictions from different models. The key is the model file name.
+          - `val_preds_dict` (Dict[str, DT]): A dictionary of validation predictions from different models. The key is the model file name.
           - `val_label` (DT): Validation label.
         - Output:
           - `final_pred` (DT): Ensemble prediction for the test data.
@@ -256,6 +256,23 @@ spec:
           - Document the workflow with clear comments and docstring.
           - Do not use progress bars (e.g., tqdm) in the code.
 
+        5. Ensemble Strategy:
+          Put all the model's return into a dict, using the model file name as key, and the return as value.
+          Sample code:
+          {% raw %}
+          {% for mn in model_names %}
+          from {{mn}} import model_workflow as {{mn}}_workflow
+          val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
+              X=train_X,
+              y=train_y,
+              val_X=val_X,
+              val_y=val_y,
+              test_X=test_X
+          )
+          {% endfor %}
+          final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
+          {% endraw %}
+
         {% if latest_spec %}
         5. Former Specification:
           {{ latest_spec }}
@@ -314,7 +331,7 @@ data_loader_coder:
     {% if latest_code %}
     ---------Former code---------
       {{ latest_code }}
-      You should follow the former code to improve it.
+    The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
     {% endif %}   
 
     You should strictly follow the function interface specifications provided by the specification to implement the function.

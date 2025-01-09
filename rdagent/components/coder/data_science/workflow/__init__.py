@@ -13,6 +13,7 @@ from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -56,11 +57,19 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
         )
-        workflow_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["code"]
+
+        for _ in range(5):
+            workflow_code = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                )
+            )["code"]
+            if workflow_code != workspace.file_dict.get("main.py"):
+                break
+            else:
+                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+        else:
+            raise CoderError("Failed to generate a new data loader code.")
 
         return {"main.py": workflow_code}
 

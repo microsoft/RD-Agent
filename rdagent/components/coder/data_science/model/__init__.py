@@ -76,30 +76,29 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
         )
 
-        # TODO this is a temporary fix for the issue that CoSTEER always generates the same code or delete code which will cause cache fail
-        try_count = 0
-        while f"{target_task.name}.py" in batch_edit and (
-            batch_edit[f"{target_task.name}.py"] == "__DEL__"
-            or batch_edit[f"{target_task.name}.py"] == workspace.file_dict.get(f"{target_task.name}.py")
-        ):
+        for _ in range(5):
             batch_edit = BatchEditOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt + "\n Please generate different code from the current workspace",
+                    user_prompt=user_prompt,
                     system_prompt=system_prompt,
                     json_mode=BatchEditOut.json_mode,
                 )
             )
-            try_count += 1
-            if try_count > 10:
-                raise CoderError(
-                    "Failed to generate code after 10 tries. Costeer always generates same code or delete code."
-                )
 
-        # 3. post process to align file name to the task name
-        batch_edit = {
-            (f"{target_task.name}.py" if value != "__DEL__" and key != f"{target_task.name}.py" else key): value
-            for key, value in batch_edit.items()
-        }
+            # 3. post process to align file name to the task name
+            batch_edit = {
+                (f"{target_task.name}.py" if value != "__DEL__" and key != f"{target_task.name}.py" else key): value
+                for key, value in batch_edit.items()
+            }
+
+            if batch_edit[f"{target_task.name}.py"] != "__DEL__" and batch_edit[
+                f"{target_task.name}.py"
+            ] != workspace.file_dict.get(f"{target_task.name}.py"):
+                break
+            else:
+                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+        else:
+            raise CoderError("Failed to generate a new data loader code.")
 
         return batch_edit
 

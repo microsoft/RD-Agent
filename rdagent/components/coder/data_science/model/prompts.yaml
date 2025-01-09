@@ -72,8 +72,8 @@ model_coder:
 
         {% if latest_code %}
         ---------Former Code---------
-        Former Code: {{ latest_code }}
-        You should follow the former code to improve it.
+            Former Code: {{ latest_code }}
+        The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
         {% endif %}
 
     user_general: |-

@@ -38,6 +38,7 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -124,11 +125,18 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("load_data.py"),
         )
 
-        data_loader_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["code"]
+        for _ in range(5):
+            data_loader_code = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                )
+            )["code"]
+            if data_loader_code != workspace.file_dict.get("load_data.py"):
+                break
+            else:
+                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+        else:
+            raise CoderError("Failed to generate a new data loader code.")
 
         return {
             "spec/data_loader.md": data_loader_spec,

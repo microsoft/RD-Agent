@@ -24,6 +24,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.data_science.ensemble.eval import EnsembleCoSTEEREvaluator
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
@@ -67,11 +68,18 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("ensemble.py"),
         )
 
-        ensemble_code = json.loads(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-            )
-        )["code"]
+        for _ in range(5):
+            ensemble_code = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                )
+            )["code"]
+            if ensemble_code != workspace.file_dict.get("ensemble.py"):
+                break
+            else:
+                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+        else:
+            raise CoderError("Failed to generate a new data loader code.")
 
         return {
             "ensemble.py": ensemble_code,

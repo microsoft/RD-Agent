@@ -61,24 +61,19 @@ workflow_coder:
 
     ---------model training code---------
     Attention: The input and output of the model function is flexible. Training dataset is necessary, but validation and test dateset might be optional. The hyperparameters can either be passed as arguments or be set as default values in the function. You need to use the function correctly.
+    All model files share the same function name. Please import the model files with their name like: from {file_name} import {function_name}
     {{ model_codes }}
 
     ---------ensemble code---------
+    Note, we will check the index of the score.csv, so please use the model name as the index to feed into ensemble function.
     file: ensemble.py
     {{ ensemble_code }}
 
     {% if latest_code %}
     ---------Former code---------
       {{ latest_code }}
-      You should follow the former code to improve it.
+    The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
     {% endif %}  
-    
-    {% if former_failed_knowledge %}
-    You have tried to correct the former code but failed. Please avoid making the same mistakes.
-    Here's the failed code you have written:
-    ---------Former failed attempt---------
-    {{ former_failed_knowledge.implementation.file_dict["main.py"] }}
-    {% endif %}    
 
 workflow_eval:
   system: |-
