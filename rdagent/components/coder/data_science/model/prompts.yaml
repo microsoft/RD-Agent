@@ -82,6 +82,10 @@ model_coder:
         So far the workspace is empty. No model code has been implemented yet.
         {% else %}
         {{ workspace_code }}
+        {% if latest_code_feedback is not none %}
+        ---------Feedback to former code---------
+        {{ latest_code_feedback }}
+        {% endif %}
         {% endif %}
         ---------Model Specification---------
         When you are implementing the code, you should follow the spec

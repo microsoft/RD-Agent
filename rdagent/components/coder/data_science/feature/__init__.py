@@ -40,6 +40,21 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
+        latest_code_feedback = [
+            knowledge.feedback
+            for knowledge in queried_former_failed_knowledge[0]
+            if knowledge.implementation.file_dict.get("feature.py") is not None
+            and knowledge.implementation.file_dict.get("feature.py") == workspace.file_dict.get("feature.py")
+        ]
+        if len(latest_code_feedback) > 0:
+            queried_former_failed_knowledge = (
+                [
+                    knowledge
+                    for knowledge in queried_former_failed_knowledge[0]
+                    if knowledge.implementation.file_dict.get("feature.py") != workspace.file_dict.get("feature.py")
+                ],
+                queried_former_failed_knowledge[1],
+            )
 
         # 2. code
         system_prompt = T(".prompts:feature.system").r(
@@ -51,6 +66,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:feature.user").r(
             feature_spec=workspace.file_dict["spec/feature.md"],
             latest_code=workspace.file_dict.get("feature.py"),
+            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
         )
 
         for _ in range(5):
