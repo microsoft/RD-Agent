@@ -136,7 +136,7 @@ class DSExpGen(ExpGen):
         trace: Trace,
         last_successful_exp: DSExperiment | None,
         spec_file: str | None = None,
-        component_promopt_key: str | None = None,
+        component_prompt_key: str | None = None,
     ) -> DSExperiment:
         """Handle any component using a unified approach.
 
@@ -151,13 +151,23 @@ class DSExpGen(ExpGen):
             targets=component,
             scenario_desc=scenario_desc,
             spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
-            task_output_format=T(f".prompts:output_format.{component_promopt_key or component.lower()}").r(),
+            task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
         )
 
         # Create task instance
         exp_and_feedback = trace.hist[-1] if len(trace.hist) > 0 else None
-        if exp_and_feedback and exp_and_feedback[1].exception is not None and (exp_and_feedback[0].sub_tasks[0].name == component or exp_and_feedback[0].sub_tasks[0].name.startswith("model_") and component == "Model"):  # Assumption: when completing missing component, using component name as task name
-            resp_dict["description"] = f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+        if (
+            exp_and_feedback
+            and exp_and_feedback[1].exception is not None
+            and (
+                exp_and_feedback[0].sub_tasks[0].name == component
+                or exp_and_feedback[0].sub_tasks[0].name.startswith("model_")
+                and component == "Model"
+            )
+        ):  # Assumption: when completing missing component, using component name as task name
+            resp_dict["description"] = (
+                f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+            )
 
         if component == "Model":
             task = task_cls(
@@ -185,31 +195,11 @@ class DSExpGen(ExpGen):
             next_missing_component = last_successful_exp.next_component_required()
 
         component_config = {
-            "DataLoadSpec": {
-                "task_cls": DataLoaderTask,
-                "spec_file": None,
-                "component_promopt_key": "data_loader"
-            },
-            "FeatureEng": {
-                "task_cls": FeatureTask,
-                "spec_file": "spec/feature.md",
-                "component_promopt_key": "feature"
-            },
-            "Model": {
-                "task_cls": ModelTask,
-                "spec_file": "spec/model.md",
-                "component_promopt_key": "model"
-            },
-            "Ensemble": {
-                "task_cls": EnsembleTask,
-                "spec_file": "spec/ensemble.md",
-                "component_promopt_key": "ensemble"
-            },
-            "Workflow": {
-                "task_cls": WorkflowTask,
-                "spec_file": "spec/workflow.md",
-                "component_promopt_key": "workflow"
-            }
+            "DataLoadSpec": {"task_cls": DataLoaderTask, "spec_file": None, "component_prompt_key": "data_loader"},
+            "FeatureEng": {"task_cls": FeatureTask, "spec_file": "spec/feature.md", "component_prompt_key": "feature"},
+            "Model": {"task_cls": ModelTask, "spec_file": "spec/model.md", "component_prompt_key": "model"},
+            "Ensemble": {"task_cls": EnsembleTask, "spec_file": "spec/ensemble.md", "component_prompt_key": "ensemble"},
+            "Workflow": {"task_cls": WorkflowTask, "spec_file": "spec/workflow.md", "component_prompt_key": "workflow"},
         }
 
         if next_missing_component in component_config:
@@ -221,7 +211,7 @@ class DSExpGen(ExpGen):
                 last_successful_exp=last_successful_exp,
                 spec_file=config.get("spec_file"),
                 trace=trace,
-                component_promopt_key=config.get("component_promopt_key"),
+                component_prompt_key=config.get("component_prompt_key"),
             )
         else:  # propose new component by LLM
             # Guidelines:
@@ -239,9 +229,15 @@ class DSExpGen(ExpGen):
             # Step 1: Generate component
             # Describe current best solution using shared template
             sota_solution = trace.sota_experiment()
-            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(exp=last_successful_exp, heading="Best of previous exploration of the scenario")
-            current_exp_desc = T("scenarios.data_science.share:describe.exp").r(exp=last_exp, heading="Current exploration of the scenario")
-            exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=exp_and_feedback)
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=last_successful_exp, heading="Best of previous exploration of the scenario"
+            )
+            current_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=last_exp, heading="Current exploration of the scenario"
+            )
+            exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
+                exp_and_feedback=exp_and_feedback
+            )
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
