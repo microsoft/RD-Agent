@@ -1,8 +1,9 @@
 import time
-from sklearn.model_selection import train_test_split
-from load_data import load_data
+
 from feature import feat_eng
+from load_data import load_data
 from model01 import model_workflow
+from sklearn.model_selection import train_test_split
 
 
 def log_execution_results(start_time, val_pred, test_pred, hypers, execution_label):
@@ -19,6 +20,10 @@ def log_execution_results(start_time, val_pred, test_pred, hypers, execution_lab
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
+print(f"train_X.shape: {train_X.shape}")
+print(f"train_y.shape: {train_y.shape}")
+print(f"val_X.shape: {val_X.shape}")
+print(f"val_y.shape: {val_y.shape}")
 
 # First execution
 print("The first execution begins.\n")

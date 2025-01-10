@@ -12,9 +12,9 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.utils import filter_progress_bar
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -51,8 +51,8 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        fname = "ensemble_test.py"
-        test_code = (DIRNAME / "eval_tests" / "ensemble_test.py").read_text()
+        fname = "ensemble_test.txt"
+        test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()
         test_code = (
             Environment(undefined=StrictUndefined)
             .from_string(test_code)
