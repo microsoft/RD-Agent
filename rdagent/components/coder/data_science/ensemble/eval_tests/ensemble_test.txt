@@ -30,6 +30,10 @@ val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
 )
 {% endfor %}
 
+for key in val_preds_dict.keys():
+    print(f"Model {key} validation predictions (val_preds_dict[key]) shape: {val_preds_dict[key].shape if val_preds_dict[key] is not None else 'None'}")
+    print(f"Model {key} test predictions (test_preds_dict[key]) shape: {test_preds_dict[key].shape if test_preds_dict[key] is not None else 'None'}")
+
 # Run ensemble
 final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
 
