@@ -86,14 +86,6 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
         )
 
-        batch_edit = BatchEditOut.extract_output(
-            APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=BatchEditOut.json_mode,
-            )
-        )
-
         for _ in range(5):
             batch_edit = BatchEditOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
