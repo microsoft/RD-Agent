@@ -226,6 +226,7 @@ class DataScienceScen(Scenario):
         return T(".prompts:scenario_description").r(
             background=self.background,
             submission_specifications=self.submission_specifications,
+            evaluation=self.raw_description.get("Evaluation"),
             metric_direction=self.metric_direction,
         )
 

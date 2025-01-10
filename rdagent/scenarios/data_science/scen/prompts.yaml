@@ -4,6 +4,12 @@ scenario_description: |-
 
   ------The expected output & submission format specifications------
   {{submission_specifications}}
+
+  {% if evaluation is not none %}
+  ------Evaluation------
+  {{evaluation}}
+  {% endif %}
+
   The evaluation metric used is directed as: {{metric_direction}}.
 
 competition_description_template:
