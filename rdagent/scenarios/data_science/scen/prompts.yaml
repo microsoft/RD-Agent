@@ -4,6 +4,12 @@ scenario_description: |-
 
   ------The expected output & submission format specifications------
   {{submission_specifications}}
+
+  {% if evaluation is not none %}
+  ------Evaluation------
+  {{evaluation}}
+  {% endif %}
+
   The evaluation metric used is directed as: {{metric_direction}}.
 
 competition_description_template:
@@ -17,9 +23,10 @@ competition_description_template:
       "Data Type": "The type of competition data, e.g., 'Tabular', 'Time Series', 'Text (Natural Language Processing)', 'Image (Computer Vision)', 'Audio', 'Video'", 
       "Brief Description": "A brief description of the competition",
       "Data Description": "A detailed description of the dataset used in the competition, including its source, structure, and any relevant characteristics",
-      "Target Description": "A description of the target variable to be predicted",
-      "Submission Specifications": "The submission specification & sample submission csv descriptions for the model to output."
+      "Evaluation Description": "A description of the evaluation used in the competition.",
+      "Submission Specifications": "The submission specification & sample submission file descriptions for the model to output."
       "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Metric direction": True or False as True means bigger metric number is better, False means smaller is better.
     }
   user: |-
     Competition Description: 

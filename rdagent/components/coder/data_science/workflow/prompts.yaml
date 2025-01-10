@@ -72,6 +72,10 @@ workflow_coder:
     {% if latest_code %}
     ---------Former code---------
       {{ latest_code }}
+    {% if latest_code_feedback is not none %}
+    ---------Feedback to former code---------
+      {{ latest_code_feedback }}
+    {% endif %}
     The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
     {% endif %}  
 
