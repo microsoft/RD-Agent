@@ -218,7 +218,6 @@ output_format:
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-      "edit_strategy": <specify the editing strategy to implement the hypothesis: we have the following strategies 1) remove an existing model (you MUST specify which model will be removed) and add a new model with the "model_name" 2) add a new model in addition to the existing models; the following coding agent will use your edit strategy to make the necessary changes>
     }
     Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
   ensemble: |-

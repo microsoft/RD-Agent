@@ -130,7 +130,7 @@ class DSExpGen(ExpGen):
 
     def _handle_missing_component(
         self,
-        component: str,
+        component: COMPONENT,
         task_cls: type,
         scenario_desc: str,
         trace: Trace,
@@ -156,15 +156,19 @@ class DSExpGen(ExpGen):
 
         # Create task instance
         exp_and_feedback = trace.hist[-1] if len(trace.hist) > 0 else None
-        if exp_and_feedback and exp_and_feedback[1].exception is not None and exp_and_feedback[0].sub_tasks[0].name == component:  # Assumption: when completing missing component, using component name as task name
-            desc = f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
-        else:
-            desc = resp_dict.get("description", f"{component} description not provided")
+        if exp_and_feedback and exp_and_feedback[1].exception is not None and (exp_and_feedback[0].sub_tasks[0].name == component or exp_and_feedback[0].sub_tasks[0].name.startswith("model_") and component == "Model"):  # Assumption: when completing missing component, using component name as task name
+            resp_dict["description"] = f"You have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
 
-        task = task_cls(
-            name=component,
-            description=desc,
-        )
+        if component == "Model":
+            task = task_cls(
+                name=resp_dict.pop("model_name"),
+                **resp_dict,
+            )
+        else:
+            task = task_cls(
+                name=component,
+                **resp_dict,
+            )
 
         exp = DSExperiment(sub_tasks=[task], hypothesis=DSHypothesis(component))
         if last_successful_exp:
