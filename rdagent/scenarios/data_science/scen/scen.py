@@ -154,8 +154,8 @@ class DataScienceScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
         self.raw_description = self._get_description()
-        self.metric_direction = self._get_direction()
         self._analysis_competition_description()
+        self.metric_direction = self._get_direction()
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
@@ -168,7 +168,7 @@ class DataScienceScen(Scenario):
             )
 
     def _get_direction(self):
-        return self.raw_description.get("metric_direction", "minimize")
+        return self.metric_direction_guess if hasattr(self, "metric_direction_guess") else True
 
     def _analysis_competition_description(self):
         sys_prompt = T(".prompts:competition_description_template.system").r()
@@ -187,11 +187,12 @@ class DataScienceScen(Scenario):
         self.data_type = response_json_analysis.get("Data Type", "No data type provided")
         self.brief_description = response_json_analysis.get("Brief Description", "No brief description provided")
         self.data_description = response_json_analysis.get("Data Description", "No data description provided")
-        self.target_description = response_json_analysis.get("Target Description", "No target description provided")
+        self.target_description = response_json_analysis.get("Evaluation Description", "No target description provided")
         self.submission_specifications = response_json_analysis.get(
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
+        self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
     def get_competition_full_desc(self) -> str:
         return f"""Task Type: {self.task_type}
@@ -226,7 +227,7 @@ class DataScienceScen(Scenario):
         return T(".prompts:scenario_description").r(
             background=self.background,
             submission_specifications=self.submission_specifications,
-            evaluation=self.raw_description.get("Evaluation"),
+            evaluation=self.target_description,
             metric_direction=self.metric_direction,
         )
 

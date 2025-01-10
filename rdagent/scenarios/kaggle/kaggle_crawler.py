@@ -36,7 +36,7 @@ service = Service("/usr/local/bin/chromedriver")
 
 def crawl_descriptions(
     competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
-) -> dict[str, str]:
+) -> dict[str, str] | str:
     if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
         logger.info(f"Found {competition}/description.md, loading from it.")
         return fp.read_text()
