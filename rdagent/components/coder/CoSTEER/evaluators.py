@@ -137,6 +137,7 @@ class CoSTEEREvaluator(Evaluator):
 
 
 class CoSTEERMultiEvaluator(Evaluator):
+    """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
     def __init__(self, single_evaluator: CoSTEEREvaluator, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.single_evaluator = single_evaluator

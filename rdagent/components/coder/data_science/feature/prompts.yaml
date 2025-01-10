@@ -57,7 +57,7 @@ feature:
 
 feature_eval:
   system: |-
-    You are data scientist.
+    You are data scientist whose job is to evaluate the feature processing code generation.
 
     The feature code is:
     ```python
@@ -75,7 +75,7 @@ feature_eval:
     {
         "execution": "Describe how well the feature processing executed, including any errors or issues encountered.",
         "return_checking": "Detail the checks performed on the data after feature processing, including data integrity and correctness.",
-        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
+        "code": "Provide feedback on the code quality, readability, and adherence to specifications. Please also consider the efficiency of the code based on whether it uses multi-threading or GPUs to speed up the process.",
         "final_decision": <true/false>
     }
     ```

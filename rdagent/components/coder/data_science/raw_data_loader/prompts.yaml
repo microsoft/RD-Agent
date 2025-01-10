@@ -357,7 +357,7 @@ data_loader_eval:
     {
         "execution": "Describe how well the data loader executed, including any errors or issues encountered.",
         "return_checking": "Detail the checks performed on the data loaded, including data integrity and correctness.",
-        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
+        "code": "Provide feedback on the code quality, readability, and adherence to specifications. Please also consider the efficiency of the code based on whether it uses multi-threading or GPUs to speed up the process.",
         "final_decision": <true/false>
     }
     ```
