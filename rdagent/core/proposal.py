@@ -66,7 +66,9 @@ class ExperimentFeedback(Feedback):
     ) -> None:
         self.decision = decision
         self.reason = reason
-        self.exception: Exception | None = exception  # if the experiment raises exception, it will be integrated into part of the feedback.
+        self.exception: Exception | None = (
+            exception  # if the experiment raises exception, it will be integrated into part of the feedback.
+        )
 
     def __bool__(self) -> bool:
         return self.decision

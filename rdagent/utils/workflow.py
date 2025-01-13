@@ -75,6 +75,7 @@ class LoopBase:
     Assumption:
     - The last step is responsible for recording information!!!!
     """
+
     steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
 
@@ -109,7 +110,6 @@ class LoopBase:
 
                 li, si = self.loop_idx, self.step_idx
 
-
                 name = self.steps[si]
                 with logger.tag(f"Loop_{li}.{name}"):
                     start = datetime.datetime.now(datetime.timezone.utc)
@@ -131,7 +131,9 @@ class LoopBase:
 
                         # Update tqdm progress bar directly to step_idx
                         pbar.n = si + 1
-                        pbar.set_postfix(loop_index=li, step_index=si + 1, step_name=name)  # step_name indicate  last finished step_name
+                        pbar.set_postfix(
+                            loop_index=li, step_index=si + 1, step_name=name
+                        )  # step_name indicate  last finished step_name
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)

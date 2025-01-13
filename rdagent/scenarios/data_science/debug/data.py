@@ -124,16 +124,13 @@ class UniqueIDDataReducer(DataReducer):
         unique_labels = df.iloc[:, -1].unique()
         unique_labels = unique_labels[~pd.isna(unique_labels)]
         unique_count = unique_labels.shape[0]
-        print("Unique labels:", unique_count/ df.shape[0])
+        print("Unique labels:", unique_count / df.shape[0])
 
         labels = df.iloc[:, -1]
         unique_labels = labels.dropna().unique()
         unique_count = len(unique_labels)
 
-        sampled_rows = (
-            df.groupby(labels, group_keys=False)
-            .apply(lambda x: x.sample(n=1, random_state=1))
-        )
+        sampled_rows = df.groupby(labels, group_keys=False).apply(lambda x: x.sample(n=1, random_state=1))
 
         frac = max(self.min_frac, self.min_num / len(df))
 

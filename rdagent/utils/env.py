@@ -416,10 +416,10 @@ class DockerEnv(Env[DockerConf]):
         target_folder.mkdir(parents=True, exist_ok=True)
         key = md5_hash(
             json.dumps(
-                {
-                    str(path.relative_to(Path(local_path))): path.read_text()
+                [
+                    [str(path.relative_to(Path(local_path))), path.read_text()]
                     for path in sorted(Path(local_path).rglob("*.py"))
-                }
+                ]
             )
             + json.dumps({"entry": entry, "running_extra_volume": running_extra_volume})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})

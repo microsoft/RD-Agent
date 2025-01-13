@@ -158,7 +158,7 @@ for d in session_state.data:
                     else:
                         # show model codes
                         showed_keys = []
-                        for k,v in rdict.items():
+                        for k, v in rdict.items():
                             if k.startswith("model_") and k.endswith(".py"):
                                 st.markdown(f":red[**{k}**]")
                                 st.code(v, language="python", wrap_lines=True, line_numbers=True)

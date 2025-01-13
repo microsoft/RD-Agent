@@ -105,7 +105,7 @@ class DataScienceRDLoop(RDLoop):
             self.trace.hist.append(
                 (
                     prev_out["direct_exp_gen"] if isinstance(e, CoderError) else prev_out["coding"],
-                    ExperimentFeedback.from_exception(e)
+                    ExperimentFeedback.from_exception(e),
                 )
             )
 
@@ -115,12 +115,12 @@ def main(path=None, step_n=None, competition="bms-molecular-translation"):
 
     Parameters
     ----------
-    path : 
+    path :
         path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop1
-    step_n : 
+    step_n :
         How many steps to run; if None, it will run forever until error or KeyboardInterrupt
-    competition : 
-        
+    competition :
+
 
     Auto R&D Evolving loop for models in a kaggle{} scenario.
     You can continue running session by

@@ -29,6 +29,5 @@ class DSRunner(Developer[DSExperiment]):
             logger.error("Submission file (submission.csv) is not generated.")
             raise RunnerError(f"Submission file (submission.csv) is not generated, log is:\n{stdout}")
 
-
         exp.result = pd.read_csv(score_fp, index_col=0)
         return exp
