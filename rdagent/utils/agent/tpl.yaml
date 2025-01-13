@@ -4,7 +4,6 @@ PythonAgentOut: |-
   <You code>
   ```
   
-
 BatchEditOut: |-
   You should return a edition that applies to multiple files in a workspace in JSON.
   Except for the model file, other files should not be renamed.
