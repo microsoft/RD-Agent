@@ -567,7 +567,7 @@ class APIBackend:
             except openai.BadRequestError as e:  # noqa: PERF203
                 logger.warning(e)
                 logger.warning(f"Retrying {i+1}th time...")
-                if "'messages' must contain the word 'json' in some form" in e.message:
+                if "'messages' must contain the word 'json' in some form" in e.message or "\\\'messages\\\' must contain the word \\\'json\\\' in some form" in e.message:
                     kwargs["add_json_in_prompt"] = True
                 elif embedding and "maximum context length" in e.message:
                     kwargs["input_content_list"] = [
