@@ -67,7 +67,9 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
 
         system_prompt = T(".prompts:ensemble_eval.system").r(
-            test_code=test_code, code=implementation.file_dict["ensemble.py"]
+            task_desc=target_task_information,
+            test_code=test_code,
+            code=implementation.file_dict["ensemble.py"],
         )
         user_prompt = T(".prompts:ensemble_eval.user").r(stdout=stdout)
 

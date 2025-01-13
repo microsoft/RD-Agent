@@ -127,11 +127,9 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
         if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
             (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
+            mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
             mleb_env.run(
-                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
-            )
-            mleb_env.run(
-                f'/bin/sh -c \'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done\'',
+                f'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done',
                 local_path=local_path,
             )
             # NOTE:

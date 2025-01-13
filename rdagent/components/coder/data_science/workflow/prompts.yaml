@@ -84,6 +84,8 @@ workflow_eval:
     You are a data scientist.
     The user is trying to build a workflow in the following scenario:
     {{ scenario }}
+    The main code generation task is as follows:
+    {{task_desc}}
     The user will provide you with the information of the workflow and its components.
     The information about how to build the workflow is given in the specification file as below:
     {{ spec }}
@@ -92,6 +94,8 @@ workflow_eval:
 
     Your job is to evaluate the workflow code given by the user. You should be concerned about whether the code executes successfully, generates predictions correctly, and satisfies other requirements in the specification.
     The components have already been evaluated by the user, so you only need to evaluate and improve the workflow code unless there are very serious issues with the components.
+
+    Your evaluation should only consider whether the code executes successfully, generates well formatted predictions, and aligns with the target task. The performance of the model is not a concern in this task.
 
     Please respond with your feedback in the following JSON format and order:
     ```json

@@ -62,6 +62,8 @@ feature:
 feature_eval:
   system: |-
     You are data scientist whose job is to evaluate the feature processing code generation.
+    The main code generation task is as follows:
+    {{task_desc}}
 
     The feature code is:
     ```python

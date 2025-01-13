@@ -13,12 +13,12 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.core.exception import CoderError
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 ModelSingleFeedback = CoSTEERSingleFeedback
@@ -73,9 +73,12 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         filtered_stdout = filter_progress_bar(stdout)
 
         if filtered_stdout is None:
-            raise CoderError("The execution output contains too many progress bars and results in the LLM's token size exceeding the limit.")
+            raise CoderError(
+                "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
+            )
 
         system_prompt = T(".prompts:model_eval.system").r(
+            task_desc=target_task.get_task_information(),
             test_code=test_code,
             scenario=self.scen.get_scenario_all_desc(),
             spec=implementation.file_dict["spec/model.md"],

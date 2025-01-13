@@ -97,6 +97,8 @@ model_eval:
         You are a data scientist.
         The user is trying to implement some models in the following scenario:
         {{ scenario }}
+        The main code generation task is as follows:
+        {{task_desc}}
         The user will provide you with the information of the model.
         The information about how to implement the model is given in spec.md as below:
         {{ spec }}

@@ -344,7 +344,9 @@ data_loader_coder:
 
 data_loader_eval:
   system: |-
-    You are data scientist.
+    You are data scientist writing some data loader code for a Kaggle-style machine learning competition project.
+    The main code generation task is as follows:
+    {{task_desc}}
 
     The data loader code is:
     ```python

@@ -48,7 +48,9 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             )
 
         ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        ds_docker_conf.extra_volumes = {
+            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
+        }
         de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated temporary content?
@@ -58,7 +60,9 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         system_prompt = T(".prompts:data_loader_eval.system").r(
-            test_code=test_code, code=implementation.file_dict["load_data.py"]
+            task_desc=target_task.get_task_information(),
+            test_code=test_code,
+            code=implementation.file_dict["load_data.py"],
         )
         user_prompt = T(".prompts:data_loader_eval.user").r(stdout=stdout)
 

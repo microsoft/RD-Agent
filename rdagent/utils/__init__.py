@@ -10,6 +10,7 @@ import importlib
 import json
 import re
 import sys
+from pathlib import Path
 from types import ModuleType
 from typing import Union
 
@@ -130,3 +131,12 @@ def filter_progress_bar(stdout: str) -> str:
     if needs_sub:
         return None
     return filtered_stdout
+
+
+def remove_path_info_from_str(base_path: Path, target_string: str) -> str:
+    """
+    Remove the absolute path from the target string
+    """
+    target_string = re.sub(str(base_path), "...", target_string)
+    target_string = re.sub(str(base_path.absolute()), "...", target_string)
+    return target_string

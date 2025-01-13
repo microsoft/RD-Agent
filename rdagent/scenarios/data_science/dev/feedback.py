@@ -1,21 +1,23 @@
+import difflib
 import json
 from pathlib import Path
+from typing import List
 
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
-from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, ExperimentFeedback
+from rdagent.core.proposal import (
+    Experiment2Feedback,
+    ExperimentFeedback,
+    HypothesisFeedback,
+)
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
-from rdagent.utils import convert2bool
+from rdagent.utils import convert2bool, remove_path_info_from_str
 from rdagent.utils.agent.tpl import T
 
-
-from typing import List
-import difflib
-from pathlib import Path
 
 # TODO:  find a better place.
 def generate_diff(dir1: str, dir2: str) -> List[str]:
@@ -33,8 +35,8 @@ def generate_diff(dir1: str, dir2: str) -> List[str]:
 
     diff_files = []
 
-    dir1_files = {f.relative_to(dir1) for f in Path(dir1).rglob('*.py') if f.is_file()}
-    dir2_files = {f.relative_to(dir2) for f in Path(dir2).rglob('*.py') if f.is_file()}
+    dir1_files = {f.relative_to(dir1) for f in Path(dir1).rglob("*.py") if f.is_file()}
+    dir2_files = {f.relative_to(dir2) for f in Path(dir2).rglob("*.py") if f.is_file()}
 
     all_files = dir1_files.union(dir2_files)
 
@@ -44,35 +46,31 @@ def generate_diff(dir1: str, dir2: str) -> List[str]:
 
         if file1.exists() and file2.exists():
             with file1.open() as f1, file2.open() as f2:
-                diff = list(difflib.unified_diff(
-                    f1.readlines(),
-                    f2.readlines(),
-                    fromfile=str(file1),
-                    tofile=str(file2)
-                ))
+                diff = list(
+                    difflib.unified_diff(f1.readlines(), f2.readlines(), fromfile=str(file1), tofile=str(file2))
+                )
                 if diff:
                     diff_files.extend(diff)
         else:
             if file1.exists():
                 with file1.open() as f1:
-                    diff = list(difflib.unified_diff(
-                        f1.readlines(),
-                        [],
-                        fromfile=str(file1),
-                        tofile=str(file2) + " (empty file)"
-                    ))
+                    diff = list(
+                        difflib.unified_diff(
+                            f1.readlines(), [], fromfile=str(file1), tofile=str(file2) + " (empty file)"
+                        )
+                    )
                     diff_files.extend(diff)
             elif file2.exists():
                 with file2.open() as f2:
-                    diff = list(difflib.unified_diff(
-                        [],
-                        f2.readlines(),
-                        fromfile=str(file1) + " (empty file)",
-                        tofile=str(file2)
-                    ))
+                    diff = list(
+                        difflib.unified_diff(
+                            [], f2.readlines(), fromfile=str(file1) + " (empty file)", tofile=str(file2)
+                        )
+                    )
                     diff_files.extend(diff)
 
     return diff_files
+
 
 class DSExperiment2Feedback(Experiment2Feedback):
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
@@ -83,12 +81,13 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # 4. result 任务的结果
         # 5. sota_exp.result 之前最好的结果
         sota_exp = trace.sota_experiment()
-        sota_desc = T("scenarios.data_science.share:describe.exp").r(exp=sota_exp, heading="SOTA of previous exploration of the scenario")
+        sota_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="SOTA of previous exploration of the scenario"
+        )
 
         # Get feedback description using shared template
         feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=(trace.hist[-1] if trace.hist else None),
-            heading="Previous Trial Feedback"
+            exp_and_feedback=(trace.hist[-1] if trace.hist else None), heading="Previous Trial Feedback"
         )
 
         # TODO:
@@ -103,6 +102,14 @@ class DSExperiment2Feedback(Experiment2Feedback):
             diff_edition = generate_diff(last_workspace_path, current_workspace_path)
         else:
             diff_edition = []
+
+        diff_edition = [
+            remove_path_info_from_str(
+                exp.experiment_workspace.workspace_path,
+                remove_path_info_from_str(last_exp.experiment_workspace.workspace_path, line),
+            )
+            for line in diff_edition
+        ]
 
         # assumption:
         # The feedback should focus on experiment **improving**.

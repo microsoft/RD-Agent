@@ -54,6 +54,8 @@ ensemble_coder:
 ensemble_eval:
   system: |-
     You are a data scientist evaluating an ensemble implementation.
+    The main code generation task is as follows:
+    {{task_desc}}
     
     The ensemble code is:
     ```python

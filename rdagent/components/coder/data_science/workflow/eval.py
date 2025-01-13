@@ -15,9 +15,9 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
-from rdagent.utils import filter_progress_bar
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -85,7 +85,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout += "\nSubmission file (submission.csv) is not generated."
 
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(), spec=implementation.file_dict["spec/workflow.md"]
+            scenario=self.scen.get_scenario_all_desc(),
+            task_desc=target_task.get_task_information(),
+            spec=implementation.file_dict["spec/workflow.md"],
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout,
