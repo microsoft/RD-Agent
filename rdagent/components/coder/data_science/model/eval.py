@@ -64,7 +64,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         fname = "model_test.py"
         test_code = (
-            (DIRNAME / "eval_tests" / fname).read_text().replace("model01", target_task.name)
+            (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
         )  # only check the model changed this time
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")

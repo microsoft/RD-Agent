@@ -55,7 +55,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
 
         # TODO: do we need to clean the generated temporary content?
         fname = "data_loader_test.py"
-        test_code = (DIRNAME / "eval_tests" / "data_loader_test.py").read_text()
+        test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 

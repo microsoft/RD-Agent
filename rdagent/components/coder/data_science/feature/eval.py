@@ -51,7 +51,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
         # TODO: do we need to clean the generated temporary content?
         fname = "feature_test.py"
-        test_code = (DIRNAME / "eval_tests" / "feature_test.py").read_text()
+        test_code = (DIRNAME / "eval_tests" / "feature_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
 
         stdout = implementation.execute(env=de, entry=f"python {fname}")
