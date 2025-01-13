@@ -115,6 +115,7 @@ class RDAgentLog(SingletonBaseClass):
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
 
+        # FIXME: it looks like a hacking... We should redesign it...
         if "debug_" in tag:
             debug_log_path = self.log_trace_path / "debug_llm.pkl"
             debug_data = {"tag": tag, "obj": obj}
