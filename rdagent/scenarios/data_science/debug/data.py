@@ -116,27 +116,36 @@ class UniqueIDDataReducer(DataReducer):
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         if (
             not isinstance(df, pd.DataFrame)
+            or not isinstance(df.iloc[0, -1], (int, float, str, tuple, frozenset, bytes, complex, type(None)))
             or df.iloc[:, -1].unique().shape[0] == 0
-            or df.iloc[:, -1].unique().shape[0] == df.shape[0]
+            or df.iloc[:, -1].unique().shape[0] >= df.shape[0] * 0.5
         ):
             return self.random_reducer.reduce(df)
         unique_labels = df.iloc[:, -1].unique()
+        unique_labels = unique_labels[~pd.isna(unique_labels)]
         unique_count = unique_labels.shape[0]
-        sampled_rows = []
+        print("Unique labels:", unique_count/ df.shape[0])
 
-        # 从每个唯一标签中抽样一个
-        for label in unique_labels:
-            sampled_row = df[df.iloc[:, -1] == label].sample(n=1, random_state=1)  # random_state可选
-            sampled_rows.append(sampled_row)
-        sampled_df = pd.concat(sampled_rows, ignore_index=True)
+        labels = df.iloc[:, -1]
+        unique_labels = labels.dropna().unique()
+        unique_count = len(unique_labels)
+
+        sampled_rows = (
+            df.groupby(labels, group_keys=False)
+            .apply(lambda x: x.sample(n=1, random_state=1))
+        )
+
         frac = max(self.min_frac, self.min_num / len(df))
+
         if int(len(df) * frac) < unique_count:
-            return sampled_df
-        else:
-            remain_df = df.drop(index=sampled_df.index)
-            return pd.concat(
-                [sampled_df, self.random_reducer.reduce(remain_df, frac - unique_count / len(df))]
-            ).sort_index()
+            return sampled_rows.reset_index(drop=True)
+
+        remain_df = df.drop(index=sampled_rows.index)
+        remaining_frac = frac - unique_count / len(df)
+
+        remaining_sampled = self.random_reducer.reduce(remain_df, remaining_frac)
+        result_df = pd.concat([sampled_rows, remaining_sampled]).sort_index()
+        return result_df
 
 
 def count_files_in_folder(folder: Path) -> int:
@@ -149,7 +158,7 @@ def count_files_in_folder(folder: Path) -> int:
 def create_debug_data(
     competition: str,
     dr_cls: type[DataReducer] = UniqueIDDataReducer,
-    min_frac=0.002,
+    min_frac=0.01,
     min_num=5,
     dataset_path=None,
     sample_path=None,
