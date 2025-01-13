@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from PIL import Image, TiffTags
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.scenario import Scenario
@@ -54,7 +55,6 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
 
     for root, dirs, files in os.walk(folder_path):
         dirs.sort()
-
         if not dirs:
             for file in files:
                 file_path = os.path.join(root, file)
@@ -139,11 +139,21 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
                 result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "csv":
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
-                    result.append(read_csv_head(path, indent + 2))
+                    csv_head = read_csv_head(path, indent + 2)
+                    if len(csv_head) > 100:
+                        csv_head = " ".join(csv_head.strip().split())
+                        csv_head = csv_head[:100] + "\n... (truncated)"
+                    result.append(csv_head)
                 if file_type == "md":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     with open(path, "r", encoding="utf-8") as f:
                         result.append(f.read())
+                if file_type == "tif":
+                    result.append(" " * (indent + 2) + f"- Metadata of {file}:")
+                    with Image.open(path) as img:
+                        for tag, value in img.tag_v2.items():
+                            tag_name = TiffTags.TAGS_V2.get(tag, f"Unknown Tag {tag}")
+                            result.append(" " * (indent + 4) + f"{tag_name}: {value}")
 
     return "\n".join(result) + "\n"
 
