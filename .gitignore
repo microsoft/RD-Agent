@@ -171,3 +171,4 @@ mlruns/
 *.out
 *.sh
 .aider*
+example.json

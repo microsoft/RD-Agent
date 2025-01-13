@@ -230,7 +230,7 @@ class FBWorkspace(Workspace):
         self.file_dict = {}
 
     def hash_func(self, env: Env | None = None, entry: str | None = None) -> str:
-        return md5_hash(json.dumps(tuple(sorted(self.file_dict.items()))) + entry)
+        return md5_hash(json.dumps(tuple(sorted(self.file_dict.items()))) + entry if entry is not None else "")
 
     @cache_with_pickle(hash_func)
     def execute(self, env: Env | None = None, entry: str | None = None) -> object | None:
