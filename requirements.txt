@@ -47,6 +47,3 @@ nbformat
 # tool
 seaborn
 setuptools-scm
-
-#git related
-zipfile
