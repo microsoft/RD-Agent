@@ -61,6 +61,10 @@ explicit_package_bases = true
 warn_return_any = true
 warn_unused_ignores = true
 
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = "llama"
+
 [tool.pytest.ini_options]
 addopts = "-l -s --durations=0"
 log_cli = true

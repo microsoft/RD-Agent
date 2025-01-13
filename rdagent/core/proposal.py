@@ -81,7 +81,7 @@ class ExperimentFeedback(Feedback):
         """
         A convenient method to create Feedback from an exception.
         """
-        return cls(False, f"The experiment fails due to {str(e)}", e)
+        return cls(decision=False, reason=f"The experiment fails due to {e!s}", exception=e)
 
 
 class HypothesisFeedback(ExperimentFeedback):
@@ -119,9 +119,9 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
-        for hypothesis, experiment, feedback in self.hist[::-1]:
+        for experiment, feedback in self.hist[::-1]:
             if feedback.decision:
-                return hypothesis, experiment
+                return experiment.hypothesis, experiment
 
         return None, None
 

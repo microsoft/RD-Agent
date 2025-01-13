@@ -31,7 +31,7 @@ class EvoAgent(ABC):
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
-        feedback: Feedback | None,
+        feedback: Feedback | list[Feedback] | None,
     ) -> EvolvableSubjects: ...
 
 

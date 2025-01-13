@@ -19,7 +19,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
 
-def get_module_by_module_path(module_path: Union[str, ModuleType]):
+def get_module_by_module_path(module_path: Union[str, ModuleType]) -> ModuleType:
     """Load module from path like a/b/c/d.py or a.b.c.d
 
     :param module_path:
@@ -35,9 +35,14 @@ def get_module_by_module_path(module_path: Union[str, ModuleType]):
         if module_path.endswith(".py"):
             module_name = re.sub("^[^a-zA-Z_]+", "", re.sub("[^0-9a-zA-Z_]", "", module_path[:-3].replace("/", "_")))
             module_spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if module_spec is None:
+                raise ModuleNotFoundError(f"Cannot find module at {module_path}")
             module = importlib.util.module_from_spec(module_spec)
             sys.modules[module_name] = module
-            module_spec.loader.exec_module(module)
+            if module_spec.loader is not None:
+                module_spec.loader.exec_module(module)
+            else:
+                raise ModuleNotFoundError(f"Cannot load module at {module_path}")
         else:
             module = importlib.import_module(module_path)
     return module
@@ -128,8 +133,6 @@ def filter_progress_bar(stdout: str) -> str:
             break
         filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
 
-    if needs_sub:
-        return None
     return filtered_stdout
 
 

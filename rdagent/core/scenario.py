@@ -31,7 +31,8 @@ class Scenario(ABC):
         return self.get_source_data_desc()
 
     # NOTE: we should keep the interface simpler. So some previous interfaces are deleted.
-    # If we need some specific function only used in the subclass(no exeternal usage). We should not set them in the base class
+    # If we need some specific function only used in the subclass(no external usage).
+    # We should not set them in the base class
 
     @property
     @abstractmethod

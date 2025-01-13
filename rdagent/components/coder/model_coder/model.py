@@ -123,7 +123,7 @@ PARAM_INIT_VALUE = {param_init_value}
                 env={},
                 code_dump_file_py_name="model_test",
             )
-            if results is None:
+            if len(results) == 0:
                 raise RuntimeError(f"Error in running the model code: {log}")
             [execution_feedback_str, execution_model_output] = results
 

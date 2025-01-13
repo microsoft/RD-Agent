@@ -52,7 +52,7 @@ class EvoStep:
 
     evolvable_subjects: EvolvableSubjects
     queried_knowledge: QueriedKnowledge | None = None
-    feedback: Feedback | None = None
+    feedback: Feedback | list[Feedback] | None = None
 
 
 class EvolvingStrategy(ABC):

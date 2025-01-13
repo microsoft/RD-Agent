@@ -19,9 +19,10 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Generic, Optional, TypeVar
 
-import docker
-import docker.models
-import docker.models.containers
+import docker  # type: ignore[import-untyped]
+import docker.models  # type: ignore[import-untyped]
+import docker.models.containers  # type: ignore[import-untyped]
+import docker.types  # type: ignore[import-untyped]
 from pydantic import BaseModel
 from rich import print
 from rich.console import Console
@@ -50,13 +51,13 @@ class Env(Generic[ASpecificBaseModel]):
         self.conf = conf
 
     @abstractmethod
-    def prepare(self):
+    def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Prepare for the environment based on it's configure
         """
 
     @abstractmethod
-    def run(self, entry: str | None, local_path: str | None = None, env: dict | None = None) -> str:
+    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None) -> str:
         """
         Run the folder under the environment.
 
@@ -92,7 +93,7 @@ class LocalEnv(Env[LocalConf]):
     Sometimes local environment may be more convinient for testing
     """
 
-    def prepare(self):
+    def prepare(self) -> None:
         if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
             self.run(
                 entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
@@ -132,7 +133,7 @@ class DockerConf(ExtendedBaseSettings):
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
 
-    extra_volumes: dict | None = {}
+    extra_volumes: dict = {}
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
@@ -229,12 +230,16 @@ class MLEBDockerConf(DockerConf):
 class DockerEnv(Env[DockerConf]):
     # TODO: Save the output into a specific file
 
-    def prepare(self):
+    def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
         Download image if it doesn't exist
         """
         client = docker.from_env()
-        if self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path.exists():
+        if (
+            self.conf.build_from_dockerfile
+            and self.conf.dockerfile_folder_path is not None
+            and self.conf.dockerfile_folder_path.exists()
+        ):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             resp_stream = client.api.build(
                 path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
@@ -291,7 +296,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while pulling the image: {e}")
 
-    def _gpu_kwargs(self, client):
+    def _gpu_kwargs(self, client: docker.DockerClient) -> dict:  # type: ignore[no-any-unimported]
         """get gpu kwargs based on its availability"""
         if not self.conf.enable_gpu:
             return {}
@@ -307,7 +312,7 @@ class DockerEnv(Env[DockerConf]):
             return {}
         return gpu_kwargs
 
-    def replace_time_info(self, input_string):
+    def replace_time_info(self, input_string: str) -> str:
         """To remove any time related information from the logs since it will destroy the cache mechanism"""
         """We currently set this function as default, but it can be changed in the future"""
         datetime_pattern = r"\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\b"
@@ -317,7 +322,7 @@ class DockerEnv(Env[DockerConf]):
     def __run(
         self,
         entry: str | None = None,
-        local_path: str | None = None,
+        local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         remove_timestamp: bool = True,
@@ -341,7 +346,7 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
-            container: docker.models.containers.Container = client.containers.run(
+            container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
                 image=self.conf.image,
                 command=entry,
                 volumes=volumns,
@@ -383,7 +388,7 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
 
-    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str):
+    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
         """
         Zip a folder into a file, use zipfile instead of subprocess
         """
@@ -392,7 +397,7 @@ class DockerEnv(Env[DockerConf]):
                 for file in files:
                     z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
 
-    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str):
+    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
         """
         Unzip a file into a folder, use zipfile instead of subprocess
         """
@@ -402,11 +407,11 @@ class DockerEnv(Env[DockerConf]):
     def cached_run(
         self,
         entry: str | None = None,
-        local_path: str | None = None,
+        local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         remove_timestamp: bool = True,
-    ):
+    ) -> str:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -426,22 +431,22 @@ class DockerEnv(Env[DockerConf]):
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret = pickle.load(f)
-            self.unzip_a_file_into_a_folder(target_folder / f"{key}.zip", local_path)
+                ret: str = pickle.load(f)
+            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
             ret = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
-            self.zip_a_folder_into_a_file(local_path, target_folder / f"{key}.zip")
+            self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
         return ret
 
     def run(
         self,
         entry: str | None = None,
-        local_path: str | None = None,
+        local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: dict | None = None,
-    ):
+    ) -> str:
         if entry is None:
             entry = self.conf.default_entry
         entry_add_timeout = (
@@ -461,11 +466,11 @@ class DockerEnv(Env[DockerConf]):
         self,
         code: str,
         dump_file_names: list[str],
-        local_path: str | None = None,
+        local_path: str,
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         code_dump_file_py_name: Optional[str] = None,
-    ):
+    ) -> tuple[str, list]:
         """
         Dump the code into the local path and run the code.
         """
@@ -481,7 +486,7 @@ class DockerEnv(Env[DockerConf]):
                 results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
                 os.remove(os.path.join(local_path, f"{name}"))
             else:
-                return log_output, None
+                return log_output, []
         return log_output, results
 
 
@@ -491,7 +496,7 @@ class QTDockerEnv(DockerEnv):
     def __init__(self, conf: DockerConf = QlibDockerConf()):
         super().__init__(conf)
 
-    def prepare(self):
+    def prepare(self, *args, **kwargs) -> None:  # type: ignore[explicit-override, no-untyped-def]
         """
         Download image & data if it doesn't exist
         """
@@ -511,7 +516,7 @@ class DMDockerEnv(DockerEnv):
     def __init__(self, conf: DockerConf = DMDockerConf()):
         super().__init__(conf)
 
-    def prepare(self, username: str, password: str):
+    def prepare(self, username: str, password: str) -> None:
         """
         Download image & data if it doesn't exist
         """
@@ -530,7 +535,7 @@ class DMDockerEnv(DockerEnv):
 class KGDockerEnv(DockerEnv):
     """Kaggle Competition Docker"""
 
-    def __init__(self, competition: str = None, conf: DockerConf = KGDockerConf()):
+    def __init__(self, competition: str | None = None, conf: DockerConf = KGDockerConf()):
         super().__init__(conf)
 
 

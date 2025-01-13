@@ -14,10 +14,8 @@ class Feedback:
         The building process of feedback will should be in evaluator
     """
 
-    pass
-
     def __bool__(self) -> bool:
-        super().__bool__()
+        return True
 
 
 class Evaluator(ABC):

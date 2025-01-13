@@ -43,7 +43,10 @@ class RDAT:
         stack = inspect.stack()
         caller_frame = stack[1]
         caller_module = inspect.getmodule(caller_frame[0])
-        caller_dir = Path(caller_module.__file__).parent
+        if caller_module and caller_module.__file__:
+            caller_dir = Path(caller_module.__file__).parent
+        else:
+            caller_dir = DIRNAME
 
         # Parse the URI
         path_part, yaml_path = uri.split(":")
@@ -65,7 +68,7 @@ class RDAT:
 
         self.template = yaml_content
 
-    def r(self, **context: Any):
+    def r(self, **context: Any) -> str:
         """
         Render the template with the given context.
         """

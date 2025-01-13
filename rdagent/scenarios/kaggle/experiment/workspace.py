@@ -62,7 +62,7 @@ class KGFBWorkspace(FBWorkspace):
                 else None
             ),
         )
-        if results is None:
+        if len(results) == 0:
             logger.error("Feature preprocess failed.")
             raise Exception("Feature preprocess failed.")
         else:
