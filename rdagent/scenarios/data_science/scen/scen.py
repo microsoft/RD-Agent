@@ -41,7 +41,7 @@ def get_dir_snapshot(folder_path):
     return frozenset(exts)
 
 
-def describe_data_folder(folder_path, indent=0, max_files=3, partial_expand_subfolders=3):
+def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subfolders=3):
     """
     folder_path              : Current directory path
     indent                   : Current indentation

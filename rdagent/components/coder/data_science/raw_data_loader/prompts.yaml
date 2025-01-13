@@ -290,6 +290,7 @@ data_loader_coder:
     Your task is described below:
     {{ task_desc }}
     You should follow the provided specifications to complete this task.
+    But you need to write the corresponding data loading code based on the information provided in the user's Data Folder Description, rather than relying on any suggestions that might exist in the spec.
 
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
