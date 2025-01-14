@@ -19,8 +19,8 @@ def shrink_text(text: str, context_lines: int = 200) -> str:
 
     # Calculate how many lines to show from start and end
     half_lines = context_lines // 2
-    start = '\n'.join(lines[:half_lines])
-    end = '\n'.join(lines[-half_lines:])
+    start = "\n".join(lines[:half_lines])
+    end = "\n".join(lines[-half_lines:])
 
     # Count the number of lines we're hiding
     hidden_lines = total_lines - half_lines * 2
