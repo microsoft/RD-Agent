@@ -46,12 +46,13 @@ def get_dir_snapshot(folder_path):
     return frozenset(exts)
 
 
-def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subfolders=3):
+def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subfolders=2, is_top_level=True):
     """
     folder_path              : Current directory path
     indent                   : Current indentation
     max_files                : Maximum number of files of the same type to display
     partial_expand_subfolders: When all subfolders have the same internal file types, only expand this many subfolders, the rest are omitted
+    is_top_level             : Indicates if the current folder is the top-level folder
     """
     result = []
     files_count = {}
@@ -69,7 +70,12 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
                     files_count[file_type] = 0
                     files_details[file_type] = []
                 files_count[file_type] += 1
-                if len(files_details[file_type]) < max_files:
+
+                # At top level, collect all CSV and Markdown files without restrictions
+                # In deeper levels, follow the max_files restriction
+                if is_top_level and file_type in ["csv", "md"]:
+                    files_details[file_type].append((file, file_size, file_path))
+                elif not is_top_level and len(files_details[file_type]) < max_files:
                     files_details[file_type].append((file, file_size, file_path))
             break
 
@@ -95,6 +101,7 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
                             indent=indent + 2,
                             max_files=max_files,
                             partial_expand_subfolders=partial_expand_subfolders,
+                            is_top_level=False,
                         )
                     )
                 else:
@@ -111,6 +118,7 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
                         indent=indent + 2,
                         max_files=max_files,
                         partial_expand_subfolders=partial_expand_subfolders,
+                        is_top_level=False,
                     )
                 )
 
@@ -124,22 +132,24 @@ def describe_data_folder(folder_path, indent=0, max_files=1, partial_expand_subf
                 files_details[file_type] = []
             files_count[file_type] += 1
 
-            if len(files_details[file_type]) < max_files:
+            # At top level, collect all CSV and Markdown files without restrictions
+            # In deeper levels, follow the max_files restriction
+            if is_top_level and file_type in ["csv", "md"]:
+                files_details[file_type].append((file, file_size, file_path))
+            elif not is_top_level and len(files_details[file_type]) < max_files:
                 files_details[file_type].append((file, file_size, file_path))
 
         break
 
     # Print the folder and its contents
     for file_type, count in files_count.items():
-        if count > max_files:
+        if count > max_files and file_type not in ["csv", "md"]:
             result.append(" " * indent + f"{count} {file_type}s:")
             for file, size, path in files_details[file_type]:
                 result.append(" " * (indent + 2) + f"- {file} ({size} bytes)")
             result.append(" " * (indent + 2) + "... (file limit reached)")
         else:
             for file, size, path in files_details[file_type]:
-                if file_type == "zip":
-                    continue
                 result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "csv":
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
@@ -273,3 +283,7 @@ class KaggleScen(DataScienceScen):
             name="Kaggle",
             competition=f"[{self.competition}](https://www.kaggle.com/competitions/{self.competition})",
         )
+
+
+if __name__ == "__main__":
+    print(describe_data_folder(Path("/data/userdata/share/mle_kaggle") / "aerial-cactus-identification"))
