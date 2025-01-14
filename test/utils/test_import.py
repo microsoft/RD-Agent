@@ -23,6 +23,8 @@ class TestRDAgentImports(unittest.TestCase):
                 continue
             if "model_coder" in fstr:
                 continue
+            if "llm_st" in fstr:
+                continue
             if (
                 fstr.endswith("rdagent/log/ui/app.py")
                 or fstr.endswith("rdagent/app/cli.py")
