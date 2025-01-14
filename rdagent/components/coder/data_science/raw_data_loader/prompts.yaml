@@ -294,7 +294,9 @@ data_loader_coder:
     Your task is described below:
     {{ task_desc }}
     You should follow the provided specifications to complete this task.
-    But you need to write the corresponding data loading code based on the information provided in the user's Data Folder Description, rather than relying on any suggestions that might exist in the spec.
+    You need to write the corresponding data loading code based on the information provided in the user's Data Folder Description, rather than relying on any suggestions that might exist in the spec.
+
+    Notice, the data files are stored in the data folder located at `/kaggle/input/`, and the data folder is structured as described in the Data Folder Description. Please don't load the data from the current directory.
 
     Please response the code in the following json format. Here is an example structure for the JSON output:
     {
