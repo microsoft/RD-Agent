@@ -241,22 +241,26 @@ spec:
             - Model workflow for training and testing (`model_*.py`).
             - Ensemble and decision-making (`ensemble.py`).
           - Treat each component as a modular and callable Python function.
+        2. Feature Engineering
+          - The feature engineering should be called only once. For example:
+            `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, test_X)`
+          - It should be called before dataset splitting.
 
-        2. Dataset Splitting
-          - The dataset returned by `load_data` is not split into training and testing sets.
+        3. Dataset Splitting
+          - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
           - By default, split the dataset into 80% for training and 20% for testing. 
           - You can also use cross-validation or other splitting methods as you deem more useful and appropriate based on the Competition Information.
 
-        3. Submission File:
+        4. Submission File:
           - Save the final predictions as `submission.csv` in the format required by the competition.
           - Present the required submission format explicitly and ensure the output adheres to it.
 
-        4. Code Standards:
+        5. Code Standards:
           - Use consistent naming conventions and type annotations.
           - Document the workflow with clear comments and docstring.
           - Do not use progress bars (e.g., tqdm) in the code.
 
-        5. Ensemble Strategy:
+        6. Ensemble Strategy:
           Put all the model's return into a dict, using the model file name as key, and the return as value.
           Sample code:
           {% raw %}

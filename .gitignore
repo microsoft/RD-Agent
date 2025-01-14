@@ -4,7 +4,7 @@
 Pipfile
 public
 release-notes.md
-typescript
+typescript*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

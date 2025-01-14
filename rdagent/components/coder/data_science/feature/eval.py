@@ -11,6 +11,7 @@ from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -61,7 +62,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             test_code=test_code,
             code=implementation.file_dict["feature.py"],
         )
-        user_prompt = T(".prompts:feature_eval.user").r(stdout=stdout)
+        user_prompt = T(".prompts:feature_eval.user").r(stdout=shrink_text(stdout))
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return FeatureEvalFeedback(**json.loads(resp))
