@@ -70,7 +70,6 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=BatchEditOut.get_spec(),
-            task_info=model_information_str,
         )
         # user_prompt = T(".prompts:model_coder.user").r(
         #     model_spec=workspace.file_dict["spec/model.md"],

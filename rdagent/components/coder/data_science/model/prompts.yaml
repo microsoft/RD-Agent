@@ -29,9 +29,6 @@ model_coder:
             Error Learning:
                 If previous failed attempts and their feedback are available, learn from them. Understand what went wrong and avoid repeating similar mistakes in your new implementation.
                 The failure knowledge may include the code unrelated to the model, such as data loading, preprocessing, or feature engineering. Focus only on the model implementation part.
-        
-        ---------Model Task Description---------
-        {{ task_info }}
 
         {% if out_spec %}
         {{out_spec}}
