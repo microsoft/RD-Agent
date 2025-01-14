@@ -48,5 +48,5 @@ for qa in llm_qa:
         system_prompt=system_prompt,
         user_prompt=user_prompt
     )
-    print(f"Analysis Result:\n{analysis_result}\n")
+    print(f"█" * 60)
     yes = input("Do you want to continue? (y/n)")

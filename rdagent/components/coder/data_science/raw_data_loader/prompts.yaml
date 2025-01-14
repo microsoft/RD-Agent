@@ -243,7 +243,7 @@ spec:
           - Treat each component as a modular and callable Python function.
         2. Feature Engineering
           - The feature engineering should be called only once. For example:
-            `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, test_X)`
+            `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
           - It should be called before dataset splitting.
 
         3. Dataset Splitting
@@ -352,7 +352,7 @@ data_loader_eval:
     The main code generation task is as follows:
     {{task_desc}}
 
-    The data loader code is:
+    The data loader code is in a file named "load_data.py":
     ```python
     {{code}}
     ```
