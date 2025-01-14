@@ -76,7 +76,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             for model in model_set_in_folder:
                 if model not in model_set_in_scores:
                     stdout += (
-                        f"\nModel {model} is not evaluated in the scores.csv. The score.csv has {model_set_in_scores}."
+                        f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
                     )
 
         # Check submission file
