@@ -130,7 +130,7 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                     continue
                 self.valid_pdf_file_count += 1
                 exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
-                    t[1] for t in self.trace.hist if t[2]
+                    t[0] for t in self.trace.hist if t[1]
                 ]
                 exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]

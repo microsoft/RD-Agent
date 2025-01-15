@@ -119,7 +119,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
 
         last_hypothesis_and_feedback = None
         if trace.hist and len(trace.hist) > 0:
-            last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
+            last_hypothesis_and_feedback = (trace.hist[-1][0].hypothesis, trace.hist[-1][1])
 
         # Prepare render dictionary
         render_dict = {
