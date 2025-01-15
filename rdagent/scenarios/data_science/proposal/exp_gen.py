@@ -292,6 +292,8 @@ class DSExpGen(ExpGen):
                 metric_name = score_df.columns[0]
                 for fname in last_successful_exp.experiment_workspace.file_dict:
                     if re.match(r"^model_.+\.py", fname):
+                        if 'test' in fname:
+                            continue
                         model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
 
@@ -444,4 +446,4 @@ class DSExpGen(ExpGen):
                 )
                 return exp
 
-        return super().gen(trace)
+        return super().gen(trace)       
