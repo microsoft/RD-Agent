@@ -4,6 +4,7 @@ Beyond previous tests
 """
 
 import json
+import re
 from pathlib import Path
 import pandas as pd
 
@@ -74,7 +75,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             )
         fname = "main.py"
         if "Model code test passed successfully." in stdout and implementation.file_dict.get(fname):
-            stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
+            stdout = implementation.execute(env=de, entry=f"python {fname}")
 
             # Check score file
             score_fp = implementation.workspace_path / "scores.csv"
@@ -84,7 +85,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
                 model_set_in_folder = set(
-                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f) and "test" not in f
+                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
                 for model in model_set_in_folder:
                     if model not in model_set_in_scores:
