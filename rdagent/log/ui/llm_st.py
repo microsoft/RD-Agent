@@ -158,14 +158,11 @@ if total_pages:
     # 获取当前 Loop
     current_loop = st.session_state["current_loop"]
 
-    # 显示当前 Loop
-    st.write(f"正在显示Loop {current_loop}/{total_loops} 个 Loop")
-
     # 渲染当前 Loop 数据
     loop_id = sorted_loop_ids[current_loop - 1]
     progress_text = st.empty()
     progress_text.text(f"正在处理 Loop {loop_id}...")
-    progress_bar.progress(current_loop / total_loops)
+    progress_bar.progress(current_loop / total_loops, text=f"Loop :green[**{current_loop}**] / {total_loops}")
 
     # 渲染 Loop Header
     loop_anchor = f"Loop_{loop_id}"
