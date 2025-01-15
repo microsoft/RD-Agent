@@ -2,8 +2,8 @@ import argparse
 import json
 import pickle
 import re
-from pathlib import Path
 import time
+from pathlib import Path
 
 import streamlit as st
 from streamlit import session_state
