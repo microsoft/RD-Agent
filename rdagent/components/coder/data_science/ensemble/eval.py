@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
@@ -12,7 +11,6 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
@@ -64,7 +62,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
+        stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         system_prompt = T(".prompts:ensemble_eval.system").r(
             task_desc=target_task_information,

@@ -4,8 +4,8 @@ Beyond previous tests
 """
 
 import json
-import re
 from pathlib import Path
+import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -16,7 +16,6 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
@@ -69,13 +68,29 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        # Filter out progress bars from stdout using regex
-        filtered_stdout = filter_progress_bar(stdout)
-
-        if filtered_stdout is None:
+        if stdout is None:
             raise CoderError(
                 "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
             )
+        fname = "main.py"
+        if "Model code test passed successfully." in stdout and implementation.file_dict.get(fname):
+            stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
+
+            # Check score file
+            score_fp = implementation.workspace_path / "scores.csv"
+            if not score_fp.exists():
+                stdout += "\nMetrics file (scores.csv) is not generated."
+            else:
+                score_df = pd.read_csv(score_fp, index_col=0)
+                model_set_in_scores = set(score_df.index)
+                model_set_in_folder = set(
+                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_.+\.py$", f) and "test" not in f
+                )
+                for model in model_set_in_folder:
+                    if model not in model_set_in_scores:
+                        stdout += (
+                            f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
+                        )
 
         system_prompt = T(".prompts:model_eval.system").r(
             task_desc=target_task.get_task_information(),
@@ -84,7 +99,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             spec=implementation.file_dict["spec/model.md"],
         )
         user_prompt = T(".prompts:model_eval.user").r(
-            stdout=filtered_stdout,
+            stdout=stdout,
             code=implementation.file_dict[f"{target_task.name}.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)

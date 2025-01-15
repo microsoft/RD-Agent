@@ -12,10 +12,8 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
@@ -61,7 +59,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
         fname = "main.py"
-        stdout = filter_progress_bar(implementation.execute(env=de, entry=f"python {fname}"))
+        stdout = implementation.execute(env=de, entry=f"python {fname}")
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"

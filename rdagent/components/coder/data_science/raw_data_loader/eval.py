@@ -11,8 +11,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.core.evaluation import Feedback
-from rdagent.core.experiment import FBWorkspace, Task, Workspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf

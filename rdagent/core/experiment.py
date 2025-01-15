@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.utils import filter_progress_bar
 
 if typing.TYPE_CHECKING:
     from rdagent.core.proposal import Hypothesis
@@ -235,7 +236,7 @@ class FBWorkspace(Workspace):
         self.inject_files(**self.file_dict)
         # TODO: env should be not None in new design (no code can run without environment)
         if env is not None and entry is not None:
-            return env.run(entry, str(self.workspace_path))
+            return filter_progress_bar(env.run(entry, str(self.workspace_path)))
         return None
 
     def __str__(self) -> str:
