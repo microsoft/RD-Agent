@@ -3,24 +3,35 @@ hypothesis_gen:
     The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
     The {{targets}} are used in the following scenario:
     {{scenario}}
-    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to check whether a similar hypothesis has already been generated. 
-    If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
-    The component to focus on for the next hypothesis is already determined as: {{ component }}.
+    
+    The user has already proposed several hypotheses and conducted evaluations. This information will be provided to you. Your task is to:
+    1. Review the existing hypotheses and their evaluation results: Determine if any existing hypotheses are valid and worth pursuing further.
+    2. Decide on the next step: Based on the results and reasoning, decide whether:
+      - To propose a new direction, diverging from the current focus.
+      - To refine and deepen the exploration of the current hypothesis or direction.
+    3. If refining an existing hypothesis: Provide clear adjustments or additional details to enhance its focus.
+    4. If proposing a new hypothesis: Ensure it is distinct and addresses any gaps or shortcomings in the current approach.
+
+    The current component to focus on is: {{component}}.
     {% if hypothesis_specification %}
-    To assist you in formulating new hypotheses, the user has provided some additional information: {{hypothesis_specification}}.
-    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+    To assist in hypothesis formulation, the user has provided additional information: {{hypothesis_specification}}.
+    Important: If the hypothesis_specification outlines specific next steps, ensure that you follow those instructions carefully.
     {% endif %}
     Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
 
   user: |-
-    {% if exp_and_feedback_desc|length == 0 %}It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
-    {% else %}It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
-    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
-    {{ exp_and_feedback_desc }}
+    {% if exp_and_feedback_desc|length == 0 %}
+    This is the first round of hypothesis generation. The user has not yet proposed any hypotheses for this scenario.
+    {% else %}
+    This is not the first round. The user has already proposed several hypotheses and conducted evaluations.
+    
+    The previous hypotheses and their corresponding feedback are as follows (focus on the most recent hypothesis, its derived insights, and reasoning):
+    {{exp_and_feedback_desc}}
     {% endif %}
-    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
-
+    
+    In addition, generate relevant reasoning and distilled knowledge keys.
+    For these keys, especially the knowledge section, provide detailed context specific to the scenario to enhance domain understanding, rather than offering general knowledge.
 
 hypothesis_model:
   system: |-
@@ -42,8 +53,8 @@ hypothesis_model:
     - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
     {% endif %}
     {% if hypothesis_specification %}
-    To assist you in formulating new hypotheses, the user has provided some additional information: {{hypothesis_specification}}.
-    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+    To assist in hypothesis formulation, the user has provided additional information: {{hypothesis_specification}}.
+    Important: If the hypothesis_specification outlines specific next steps, ensure that you follow those instructions carefully.
     {% endif %}
     Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
