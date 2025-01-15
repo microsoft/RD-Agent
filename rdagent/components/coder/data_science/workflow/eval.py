@@ -83,6 +83,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         submission_fp = implementation.workspace_path / "submission.csv"
         if not submission_fp.exists():
             stdout += "\nSubmission file (submission.csv) is not generated."
+        else:
+            check_code = (DIRNAME / "eval_tests" / "submission_check.txt").read_text()
+            implementation.inject_files(**{"submission_check.py": check_code})
+            stdout += implementation.execute(env=de, entry="python submission_check.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -90,7 +94,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             spec=implementation.file_dict["spec/workflow.md"],
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
-            stdout=stdout,
+            stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
