@@ -74,9 +74,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(
-            prev_out["running"], prev_out["direct_exp_gen"]["propose"], self.trace
-        )
+        feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
         with logger.tag("ef"):  # evaluate and feedback
             logger.log_object(feedback, tag="feedback")
         self.trace.hist.append((prev_out["direct_exp_gen"]["propose"], prev_out["running"], feedback))

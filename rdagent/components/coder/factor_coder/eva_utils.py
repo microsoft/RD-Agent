@@ -79,7 +79,7 @@ class FactorCodeEvaluator(FactorEvaluator):
         **kwargs,
     ):
         factor_information = target_task.get_task_information()
-        code = implementation.code
+        code = implementation.all_codes
 
         system_prompt = (
             Environment(undefined=StrictUndefined)
