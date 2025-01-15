@@ -292,7 +292,7 @@ class DSExpGen(ExpGen):
                 metric_name = score_df.columns[0]
                 for fname in last_successful_exp.experiment_workspace.file_dict:
                     if re.match(r"^model_.+\.py", fname):
-                        model_str = f"{fname}:\n{metric_name} on valid: {score_df[metric_name].max()}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
+                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
                         model_infos.append(model_str)
 
                 model_num = len(model_infos)
