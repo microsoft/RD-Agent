@@ -143,6 +143,12 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
     def exp_gen(self, prev_out: dict[str, Any]):
         return self.current_loop_exp
 
+    def coding(self, prev_out: dict[str, Any]):
+        with logger.tag("d"):  # develop
+            exp = self.coder.develop(prev_out["exp_gen"])
+            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        return exp
+
 
 def main(report_folder=None, path=None, step_n=None):
     """
