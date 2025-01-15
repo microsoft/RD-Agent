@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser(description="RD-Agent Streamlit App")
 parser.add_argument("--log_dir", type=str, help="Path to the log directory")
 args = parser.parse_args()
 
+
 @st.cache_data
 def get_folders_sorted(log_path):
     """缓存并返回排序后的文件夹列表，并加入进度打印"""
@@ -26,6 +27,7 @@ def get_folders_sorted(log_path):
         )
         st.write(f"找到 {len(folders)} 个文件夹")
     return [folder.name for folder in folders]
+
 
 # 设置主日志路径
 main_log_path = Path(args.log_dir) if args.log_dir else Path("./log")
@@ -39,6 +41,7 @@ if "log_path" not in session_state:
     session_state.log_path = None
 
 tlist = []
+
 
 def load_data():
     """加载数据到 session_state 并显示进度"""
@@ -54,6 +57,7 @@ def load_data():
         session_state.data = [{"error": str(e)}]
         st.error(f"加载数据失败: {e}")
 
+
 # UI - Sidebar
 with st.sidebar:
     st.markdown(":blue[**Log Path**]")
@@ -63,12 +67,13 @@ with st.sidebar:
     else:
         folders = get_folders_sorted(main_log_path)
         st.selectbox(f"**Select from {main_log_path.absolute()}**", folders, key="log_path")
-    
+
     if st.button("Refresh Data"):
         load_data()
         st.rerun()
-    
+
     expand_all = st.toggle("Expand All", key="expand_all")
+
 
 # Helper functions
 def show_text(text, lang=None):
@@ -80,20 +85,24 @@ def show_text(text, lang=None):
     else:
         st.code(text, language="html", wrap_lines=True)
 
+
 def highlight_prompts_uri(uri):
     """高亮 URI 的格式"""
     parts = uri.split(":")
     return f"**{parts[0]}:**:green[**{parts[1]}**]"
+
 
 def extract_loopid_func_name(tag):
     """提取 Loop ID 和函数名称"""
     match = re.search(r"Loop_(\d+)\.(\w+)\.", tag)
     return match.groups() if match else (None, None)
 
+
 def extract_evoid(tag):
     """提取 EVO ID"""
     match = re.search(r"\.evo_loop_(\d+)\.", tag)
     return match.group(1) if match else None
+
 
 # Display Data
 progress_text = st.empty()
@@ -118,7 +127,6 @@ total_loops = len(sorted_loop_ids)
 total_pages = total_loops  # 每页展示一个 Loop
 
 if total_pages:
-
     # 初始化 current_loop
     if "current_loop" not in st.session_state:
         st.session_state["current_loop"] = 1
@@ -138,7 +146,7 @@ if total_pages:
             "选择 Loop",
             options=list(range(1, total_loops + 1)),
             index=st.session_state["current_loop"] - 1,  # 默认选中当前 Loop
-            label_visibility="collapsed"  # 隐藏标签
+            label_visibility="collapsed",  # 隐藏标签
         )
     with col4:
         if st.button("\>") and st.session_state["current_loop"] < total_loops:  # 下一页
@@ -184,7 +192,9 @@ if total_pages:
 
         # 根据 tag 渲染内容
         if "debug_exp_gen" in tag:
-            with st.expander(f"Exp in :violet[**{obj.experiment_workspace.workspace_path}**]", expanded=False, icon="🧩"):
+            with st.expander(
+                f"Exp in :violet[**{obj.experiment_workspace.workspace_path}**]", expanded=False, icon="🧩"
+            ):
                 st.write(obj)
         elif "debug_tpl" in tag:
             uri = obj["uri"]
@@ -193,16 +203,19 @@ if total_pages:
             rd = obj["rendered"]
             with st.expander(highlight_prompts_uri(uri), expanded=False, icon="⚙️"):
                 t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
-                with t1: show_text(rd)
-                with t2: show_text(tpl, lang="django")
-                with t3: st.json(cxt)
+                with t1:
+                    show_text(rd)
+                with t2:
+                    show_text(tpl, lang="django")
+                with t3:
+                    st.json(cxt)
         elif "debug_llm" in tag:
             system = obj.get("system", None)
             user = obj["user"]
             resp = obj["resp"]
             with st.expander(f"**LLM**", expanded=False, icon="🤖"):
                 t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
-                with t1: 
+                with t1:
                     try:
                         rdict = json.loads(resp)
                         if "code" in rdict:
@@ -229,8 +242,10 @@ if total_pages:
                         st.json(rdict)
                     except:
                         st.json(resp)
-                with t2: show_text(user)
-                with t3: show_text(system or "No system prompt available")
+                with t2:
+                    show_text(user)
+                with t3:
+                    show_text(system or "No system prompt available")
 
     progress_text.text("当前 Loop 数据处理完成！")
 
