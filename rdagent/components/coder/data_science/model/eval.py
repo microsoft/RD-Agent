@@ -90,9 +90,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 )
                 for model in model_set_in_folder:
                     if model not in model_set_in_scores:
-                        stdout += (
-                            f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
-                        )
+                        stdout += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
 
         system_prompt = T(".prompts:model_eval.system").r(
             task_desc=target_task.get_task_information(),
