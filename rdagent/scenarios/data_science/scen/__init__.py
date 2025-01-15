@@ -16,18 +16,16 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
 from rdagent.utils.agent.tpl import T
 
 
-import pandas as pd
-
 def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
     """
     Reads the first few rows of a CSV file and formats them with indentation and optional truncation.
-    
+
     Parameters:
         file_path (str): Path to the CSV file.
         indent (int): Number of spaces to prepend to each line for indentation.
         lines (int): Number of rows to read from the CSV file.
         max_col_width (int): Maximum width of each column's content.
-        
+
     Returns:
         str: A formatted string of the first few rows of the CSV file.
     """
@@ -41,8 +39,10 @@ def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
         # Truncate column contents to a maximum width
         truncated_df = df.copy()
         for col in truncated_df.columns:
-            truncated_df[col] = truncated_df[col].astype(str).apply(
-                lambda x: (x[:max_col_width] + "...") if len(x) > max_col_width else x
+            truncated_df[col] = (
+                truncated_df[col]
+                .astype(str)
+                .apply(lambda x: (x[:max_col_width] + "...") if len(x) > max_col_width else x)
             )
 
         # Convert DataFrame to a string representation
@@ -296,6 +296,7 @@ class DataScienceScen(Scenario):
     def _get_data_folder_description(self) -> str:
         return describe_data_folder(Path(DS_RD_SETTING.local_data_path) / self.competition)
 
+
 class KaggleScen(DataScienceScen):
     """Kaggle Scenario
     It is based on kaggle now.
@@ -313,7 +314,6 @@ class KaggleScen(DataScienceScen):
             return super()._get_direction()
         leaderboard = leaderboard_scores(self.competition)
         return "maximize" if float(leaderboard[0]) > float(leaderboard[-1]) else "minimize"
-
 
     @property
     def rich_style_description(self) -> str:
