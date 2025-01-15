@@ -5,7 +5,6 @@ from rdagent.core.developer import Developer
 from rdagent.core.exception import RunnerError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.utils import filter_progress_bar
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
 
@@ -18,7 +17,7 @@ class DSRunner(Developer[DSExperiment]):
         de = DockerEnv(conf=ds_docker_conf)
 
         # execute workflow
-        stdout = filter_progress_bar(exp.experiment_workspace.execute(env=de, entry="python main.py"))
+        stdout = exp.experiment_workspace.execute(env=de, entry="python main.py")
 
         score_fp = exp.experiment_workspace.workspace_path / "scores.csv"
         if not score_fp.exists():

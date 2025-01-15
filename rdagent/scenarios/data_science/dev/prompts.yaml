@@ -43,7 +43,8 @@ exp_feedback:
     {{ de }}
     {% endfor %}
 
-    Final results of the current solution: {{ cur_exp.result }}
+    Final results of the current solution: 
+    {{ cur_exp.result }}
     ### Complete Code of current solution
     {{cur_exp.experiment_workspace.all_codes}}
 

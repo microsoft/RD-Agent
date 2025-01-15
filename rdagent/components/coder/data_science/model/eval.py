@@ -4,7 +4,6 @@ Beyond previous tests
 """
 
 import json
-import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -16,7 +15,6 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils import filter_progress_bar
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
@@ -69,10 +67,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
-        # Filter out progress bars from stdout using regex
-        filtered_stdout = filter_progress_bar(stdout)
-
-        if filtered_stdout is None:
+        if stdout is None:
             raise CoderError(
                 "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
             )
@@ -84,7 +79,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             spec=implementation.file_dict["spec/model.md"],
         )
         user_prompt = T(".prompts:model_eval.user").r(
-            stdout=filtered_stdout,
+            stdout=stdout,
             code=implementation.file_dict[f"{target_task.name}.py"],
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
