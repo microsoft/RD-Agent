@@ -16,13 +16,46 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
 from rdagent.utils.agent.tpl import T
 
 
-def read_csv_head(file_path, indent, lines=5):
+def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
+    """
+    Reads the first few rows of a CSV file and formats them with indentation and optional truncation.
+
+    Parameters:
+        file_path (str): Path to the CSV file.
+        indent (int): Number of spaces to prepend to each line for indentation.
+        lines (int): Number of rows to read from the CSV file.
+        max_col_width (int): Maximum width of each column's content.
+
+    Returns:
+        str: A formatted string of the first few rows of the CSV file.
+    """
     try:
+        # Read the CSV file with specified rows
         df = pd.read_csv(file_path, nrows=lines)
-        df_string_lines = df.to_string(index=False).split("\n")
-        for i in range(len(df_string_lines)):
-            df_string_lines[i] = " " * (indent) + df_string_lines[i]
-        return "\n".join(df_string_lines)
+
+        if df.empty:
+            return " " * indent + "(No data in the file)"
+
+        # Truncate column contents to a maximum width
+        truncated_df = df.copy()
+        for col in truncated_df.columns:
+            truncated_df[col] = (
+                truncated_df[col]
+                .astype(str)
+                .apply(lambda x: (x[:max_col_width] + "...") if len(x) > max_col_width else x)
+            )
+
+        # Convert DataFrame to a string representation
+        df_string_lines = truncated_df.to_string(index=False).split("\n")
+
+        # Add indentation to each line
+        indented_lines = [" " * indent + line for line in df_string_lines]
+
+        return "\n".join(indented_lines)
+    except FileNotFoundError:
+        return f"Error: File not found at path '{file_path}'."
+    except pd.errors.EmptyDataError:
+        return f"Error: The file at '{file_path}' is empty."
     except Exception as e:
         return f"Error reading CSV: {e}"
 
@@ -153,15 +186,18 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                 result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "csv":
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
-                    csv_head = read_csv_head(path, indent + 2)
-                    if len(csv_head) > 100:
-                        csv_head = " ".join(csv_head.strip().split())
-                        csv_head = csv_head[:100] + "\n... (truncated)"
+                    csv_head = read_csv_head(path, indent + 4)
+                    # if len(csv_head) > 300:
+                    #     csv_head = " ".join(csv_head.strip().split())
+                    #     csv_head = csv_head[:300] + "\n" + " " * (indent + 4) + "... (truncated)"
                     result.append(csv_head)
                 if file_type == "md":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
+                    if file == "description.md":
+                        result.append(" " * (indent + 4) + f"Please refer to the background of the scenario context.")
+                        continue
                     with open(path, "r", encoding="utf-8") as f:
-                        result.append(f.read())
+                        result.append(" " * (indent + 4) + f.read())
                 if file_type == "tif":
                     result.append(" " * (indent + 2) + f"- Metadata of {file}:")
                     with Image.open(path) as img:
@@ -178,6 +214,7 @@ class DataScienceScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
         self.raw_description = self._get_description()
+        self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
         self.metric_direction = self._get_direction()
 
@@ -198,6 +235,7 @@ class DataScienceScen(Scenario):
         sys_prompt = T(".prompts:competition_description_template.system").r()
         user_prompt = T(".prompts:competition_description_template.user").r(
             competition_raw_description=self.raw_description,
+            competition_processed_data_folder_description=self.processed_data_folder_description,
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
@@ -210,7 +248,7 @@ class DataScienceScen(Scenario):
         self.task_type = response_json_analysis.get("Task Type", "No type provided")
         self.data_type = response_json_analysis.get("Data Type", "No data type provided")
         self.brief_description = response_json_analysis.get("Brief Description", "No brief description provided")
-        self.data_description = response_json_analysis.get("Data Description", "No data description provided")
+        self.dataset_description = response_json_analysis.get("Dataset Description", "No dataset description provided")
         self.target_description = response_json_analysis.get("Evaluation Description", "No target description provided")
         self.submission_specifications = response_json_analysis.get(
             "Submission Specifications", "No submission requirements provided"
@@ -222,7 +260,7 @@ class DataScienceScen(Scenario):
         return f"""Task Type: {self.task_type}
     Data Type: {self.data_type}
     Brief Description: {self.brief_description}
-    Data Description: {self.data_description}
+    Dataset Description: {self.dataset_description}
     Target Description: {self.target_description}
     Submission Specifications: {self.submission_specifications}
     Model Output Channel: {self.model_output_channel}
@@ -235,7 +273,7 @@ class DataScienceScen(Scenario):
             task_type=self.task_type,
             data_type=self.data_type,
             brief_description=self.brief_description,
-            data_description=self.data_description,
+            dataset_description=self.dataset_description,
             target_description=self.target_description,
         )
         return background_prompt
@@ -255,7 +293,7 @@ class DataScienceScen(Scenario):
             metric_direction=self.metric_direction,
         )
 
-    def get_data_folder_description(self) -> str:
+    def _get_data_folder_description(self) -> str:
         return describe_data_folder(Path(DS_RD_SETTING.local_data_path) / self.competition)
 
 
