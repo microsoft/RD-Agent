@@ -196,7 +196,7 @@ spec:
           - Ensure all predictions in `test_preds_dict` and `val_preds_dict` have consistent shapes and dimensions.
           - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
-        - You should calculate the metric for each model and ensemble strategy, and save the results in a CSV file, e.g.:
+        - You should calculate the metric for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
           ```python
           scores = {}
           for model_name, val_pred in val_preds_dict.items():
