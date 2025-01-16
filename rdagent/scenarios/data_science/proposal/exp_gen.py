@@ -43,7 +43,7 @@ class DSHypothesis(Hypothesis):
 
     def __str__(self) -> str:
         if self.hypothesis == "":
-            return f"Chosen Component: {self.component}"
+            return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
         return f"""Chosen Component: {self.component}
 Hypothesis: {self.hypothesis}
 Reason: {self.reason}
@@ -176,7 +176,7 @@ class DSExpGen(ExpGen):
 
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
-            **resp_dict,
+            **resp_dict.get("extra_params", {}),
         )
 
         exp = DSExperiment(sub_tasks=[task], hypothesis=DSHypothesis(component))
@@ -233,7 +233,11 @@ class DSExpGen(ExpGen):
             sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
                 exp=sota_exp, heading="Best of previous exploration of the scenario"
             )
-            last_exp_diff = "\n".join(generate_diff(sota_exp.experiment_workspace.workspace_path, last_exp.experiment_workspace.workspace_path))
+            last_exp_diff = "\n".join(
+                generate_diff(
+                    sota_exp.experiment_workspace.workspace_path, last_exp.experiment_workspace.workspace_path
+                )
+            )
             exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
                 exp_and_feedback=exp_and_feedback
             )
@@ -299,7 +303,7 @@ class DSExpGen(ExpGen):
                     "spec_file": "spec/workflow.md",
                     "task_output_format": T(".prompts:output_format.workflow").r(),
                     "task_class": WorkflowTask,
-                }
+                },
             }
 
             component_info = component_task_mapping.get(component)
@@ -309,7 +313,7 @@ class DSExpGen(ExpGen):
                     targets=component_info["target_name"],
                     component=component,
                     scenario=scenario_desc,
-                    hypothesis_output_format=T(".prompts:output_format.hypothesis"),
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                     task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
                     task_output_format=component_info["task_output_format"],
                     extra_requirement=component_info.get("extra_requirement"),
@@ -322,10 +326,8 @@ class DSExpGen(ExpGen):
                         if eaf[1].decision:
                             # we only add failed direction incase of trying same invalid direction
                             break
-                        recent_trace_desc.insert(0,
-                            T("scenarios.data_science.share:describe.feedback").r(
-                                exp_and_feedback=eaf
-                            )
+                        recent_trace_desc.insert(
+                            0, T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=eaf)
                         )
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
                     exp_and_feedback_desc=exp_and_feedback_desc,
@@ -350,19 +352,17 @@ class DSExpGen(ExpGen):
                     concise_reason=resp_dict.get("concise_reason", ""),
                     concise_observation=resp_dict.get("concise_observation", ""),
                     concise_justification=resp_dict.get("concise_justification", ""),
-                    concise_knowledge=resp_dict.get("concise_knowledge", "")
+                    concise_knowledge=resp_dict.get("concise_knowledge", ""),
                 )
 
                 task = task_class(
                     name=task_name,
                     description=description,
-                    **{k: resp_dict.get(k, v) for k, v in component_info.get("extra_params", {}).items()}
+                    **{k: resp_dict.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
                 )
 
                 exp = DSExperiment(sub_tasks=[task], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    sota_exp.experiment_workspace.workspace_path
-                )
+                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
                 return exp
             else:
                 raise ValueError(f"Unknown component: {component}")

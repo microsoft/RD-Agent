@@ -174,6 +174,12 @@ direct_exp_gen:
     [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
     {{ task_output_format }}
 
+    Your response should contain two parts: the hypothesis proposal and the task design. Please follow the format and specifications provided below:
+    {
+      "hypothesis_proposal": [Partial Response Format 1],
+      "task_design": [Partial Response Format 2]
+    }
+
     {% if extra_requirement %}
     {{extra_requirement}}
     {% endif %}
@@ -293,12 +299,15 @@ output_format:
     {
         "model_name": "model name, must start with 'model_' and only contain letters, numbers, and underscores",
         "description": "A detailed description of the model",
-        "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
-        "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-        "hyperparameters": {
+        "extra_params":
+        {
+          "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
+          "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+          "hyperparameters": {
             "hyperparameter_name_1": "value of hyperparameter 1",
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
+          },
         },
     }
     Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.

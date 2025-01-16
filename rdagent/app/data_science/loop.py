@@ -108,6 +108,7 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
+        logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
 def main(path=None, step_n=None, competition="bms-molecular-translation"):
