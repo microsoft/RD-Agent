@@ -176,6 +176,7 @@ class DSExpGen(ExpGen):
 
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
+            description=resp_dict.get("description", f"{component} description not provided"),
             **resp_dict.get("extra_params", {}),
         )
 
