@@ -1,0 +1,177 @@
+notebook_to_knowledge:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+   
+    Each idea should satisfy:
+    1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
+    2. **Balance between Specificity and Generality**: Avoid dataset-specific details (e.g., column names) to ensure transferability, while providing enough specificity (e.g., describing particular techniques) to avoid vagueness.
+    3. **High Impact**: Prioritize ideas that have a substantial impact on improving performance.
+   
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
+      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list mulitple requirements about the scenarios. Here are some examples, the senario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
+      }
+    }
+
+    "hypothesis.reason" is a very important field. It will be used to tell if a method works on the scenario and has the following requirements.
+    - The focus should be on the characteristics of the scenario itself, rather than describing the method.
+      - Good examples:
+        - The data is time-series and the patterns in the recent time-steps are more important than long term
+        - There are a lot of redunant columns in the pattern
+      - Here are some comparisons of good examples to bad examples:
+        - Example01:
+          - Bad Example: The clustering approach helps in capturing latent groupings within the data that may correlate with the target variable, thereby improving model performance.
+          - Good Example: The samples can be grouped into several categories that can be distinguished by the features. The group id is very important for the prediction task in the scenario
+        - Example02:
+          - Bad Example: Ensemble methods improve robustness and generalization by combining the strengths of different models, leading to better overall performance.
+          - Good Example: The data in the scenario is very noisy, and using only one model tends to overfit to these noisy patterns.
+
+    Your output should be a list of at most six ideas, ranked by impact. Each idea must strictly follow the JSON format above, with no additional text or explanations.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
+
+idea_merg:
+  system: |-
+    You are a proficient data scientist specializing in comparing and refining data science ideas. Your expertise lies in analyzing two similar ideas and synthesizing them into a refined, improved version if they are actually the same approach.
+  user:  |-
+    You will be provided with two similar data science ideas, each adhering to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea.",
+      "method": "A specific method used in this idea.",
+      "context": "An example of how the notebook incorportate this idea in their solution.",
+      "hypothesis": {
+        "problem": "The nature of the problem.",
+        "data": "The nature of the data.",
+        "method": "The characteristics of the method.",
+        "reason": "A comprehensive analysis of why this method works well in this scenario."
+      }
+    }
+    You task is to focus on the specific methods used in both ideas and compare them to identy whether they are actually the same or not in your professional opinion. 
+    For example, although both approaches address imbalanced datasets, SMOTE and random oversampling are distinct methods and should not be considered the same or merged.
+    For another example, if the old idea involves ensembling model A and model B to enhance performance, and the new idea suggests ensembling model C and model D for improved performance, they should be regarded as the same and therefore can be consolidated into a single idea.
+    
+    If they are the same, please merge both ideas into a single refined idea and follow the requirements:
+    1. Ensure the refined idea is actionable, high-impact, and applicable to similar future scenarios. 
+    2. Ensure the best aspects of both ideas are covered in your refined idea without missing important information in all the keys in both ideas such as "context" or "hypothesis", while keep the refined idea concise if there are redundancy after merging.
+    
+    If they are not the same, please just return the old idea as the refined idea without performing merging operation.
+ 
+    Your refined idea should be adhering to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea.",
+      "method": "A specific method used in this idea.",
+      "context": "An example of how the notebook incorportate this idea in their solution.",
+      "hypothesis": {
+        "problem": "The nature of the problem.",
+        "data": "The nature of the data.",
+        "method": "The characteristics of the method.",
+        "reason": "A comprehensive analysis of why this method works well in this scenario."
+      }
+      "merged": "Yes or No (Yes means this is a merged idea while No means this is the old idea that you return without merging because you think the two ideas are not the same)",
+    }
+
+    # Old Idea:
+    {{ old_idea }}
+ 
+    # New Idea:
+    {{ new_idea }}
+ 
+    # Refined Idea:
+
+retrieve_same_ideas:
+  system: |-
+    You are a proficient data scientist.
+  user:  |-
+    You will be provided with a new idea and a list of old ideas. Each idea strictly adheres to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea.",
+      "method": "A specific method used in this idea.",
+    }
+    Your task is to compare the new idea with the old ideas and identify the old ideas that are the same as the new one.
+    Two ideas are considered the same if they describe **exactly the same method**, even if they use different wording or examples.
+
+    For example: 
+    {
+      "idea": "Handling Imbalanced Data",
+      "method": "Apply Synthetic Minority Oversampling Technique (SMOTE) to balance class distribution."
+    }
+    {
+      "idea": "Balancing Imbalanced Datasets",
+      "method": "Use SMOTE to oversample the minority class and address class imbalance."
+    }
+    These are different ideas because they describe different methods (SMOTE vs. Random Oversampling) for balancing imbalanced datasets.
+
+    You should identify the old ideas that are the same as the new idea and output them in the following JSON format:
+    {
+      "index": "An integer represents the index of the old ideas.",
+      "reason": "A brief explanation for your answer.",
+    }
+    Your output should be a list of JSON objects in above format, without any additional text or explanations.
+
+    --------------------
+    {{ new_idea }}
+    --------------------
+ 
+    --------------------
+    {{ old_ideas }}
+    --------------------
+
+retrieve_and_refine_same_ideas:
+  system: |-
+    You are a proficient data scientist in comparing, refining and improving ideas. Your task is to compare a new idea with a list of old ideas, identify if they are the same, and refine the old ideas based on the new idea when applicable.
+  user:  |-
+    You will be provided with a new idea and a list of old ideas. Each idea strictly adheres to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea.",
+      "method": "A specific method used in this idea.",
+      "context": "An example of how the notebook incorportate this idea in their solution.",
+      "hypothesis": {
+        "problem": "The nature of the problem.",
+        "data": "The nature of the data.",
+        "method": "The characteristics of the method.",
+        "reason": "A comprehensive analysis of why this method works well in this scenario."
+      }
+    }
+    Your task is to:
+    1. Compare the new idea with each old idea.
+    2. Determine if the new idea and an old idea are the same. Two ideas are the same if they describe **exactly the same method**, even if the wording or examples differ. 
+       For example, the method "apply Synthetic Minority Oversampling Technique (SMOTE) to balance class distribution" and the method ""use SMOTE to oversample the minority class and address class imbalance" are considered as different ideas.
+    3. If the new idea and an old idea are the same, refine the old idea by combining the best aspects of both in the following JSON format:
+    {
+      "index": "An integer represents the index of the old idea.",
+      "explain": "A brief explanation for why this old idea is the same as the new idea.",
+      "idea": "A refined label summarizing the core concepts of both ideas.",
+      "method": "A refined method.",
+      "context": "A combined example from both ideas.",
+      "hypothesis": {
+        "problem": "The nature of the problem.",
+        "data": "The nature of the data.",
+        "method": "The characteristics of the method.",
+        "reason": "A comprehensive analysis of why this method works well in this scenario."
+      }
+    }
+
+    Your output should be a list of refined old ideas in above format without including any additional text or explanations.
+    If all old ideas are not the same as the new idea, return an empty list.
+
+    {{ new_idea }}
+ 
+    {{ old_ideas }}
+
+    # Refined Ideas

@@ -1,0 +1,330 @@
+knowledge_tag_gen: 
+  system: |-
+    You are a proficient data scientist that extracts structured information from detailed descriptions of a data science competition and a notebook containing a high-performing solution for the competition. 
+  user: |-
+    You will be provided with a detailed explanation of a competition and a solution notebook, and you need to first extract specific scenario tags about the competition from the different perspectives. 
+    Here are some example scenario tags from different perspectives. You are not limited to these options; feel free to choose one or multiple tags from any perspective if they apply to the competition. For instance, a competition may involve multiple feature types or include both regression and time series forecasting tasks.
+    - Domain Type: "Finance", "Transportation", "Healthcare", "Education", "Retail", "Energy", "Agriculture", "Telecommunications", "Manufacturing", "Sports", "Entertainment", "Government", "E-commerce", "Environmental", "Technology", "Biotech", "Insurance", "Cybersecurity"
+    - Task Type: "Classification", "Regression", "Clustering", "Anomaly Detection", "Recommendation", "Time-Series Forecasting", "Object Detection", "Image Segmentation", "Text Generation", "Natural Language Inference", "Sentiment Analysis", "Named Entity Recognition", "Speech Recognition", "Question Answering", "Data Imputation", "Dimensionality Reduction", "Feature Engineering", "Reinforcement Learning", "Generative Modeling", "Style Transfer", "Fuzzy Matching", "Optimization", "Multi-Agent Simulation"
+    - Data Type: "Tabular", "Image (Computer Vision)", "Text (Natural Language Processing)", "Audio", "Video", "Time Series", "Geospatial", "Graph", "3D Models", "Sequence", "Structured Data", "Unstructured Data", "Text-Image Hybrid", "Sensor Data", "User Activity Data", "Transaction Data", "Network Traffic Data"
+    - Feature Type: "Numerical", "Categorical", "Text", "Time Series", "Pixel Values", "Ordinal", "Boolean", "Dates", "Geographical Coordinates", "Images", "Raw Sensor Data", "Embeddings", "Graph Edges/Nodes", "Continuous", "Mixed"
+    - Target Type: "Binary", "Multiclass", "Multilabel", "Continuous", "Categorical", "Sparse", "Ranking", "Regression/Classification Hybrid", "Sequential", "Multivariable", "Time Series Forecasting", "Density Estimation"
+    - Optimization Objective: "Minimize SMAPE", "Minimize MSE", "Maximize Accuracy", "Maximize F1-Score", "Maximize Precision", "Maximize Recall", "Minimize Cross-Entropy Loss", "Maximize AUC", "Maximize Precision at k", "Minimize MAE", "Minimize Log-Loss", "Maximize R-Squared", "Minimize Hinge Loss", "Minimize KL Divergence", "Maximize MAP", "Minimize Adversarial Loss", "Maximize IOU (Intersection over Union)", "Maximize BLEU Score", "Maximize NDCG (Normalized Discounted Cumulative Gain)"
+    
+    After extracting scenario tags for the competition, your next task is to identify and extract ideas from the solution notebook provided by the user. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your role is to identify these ideas and transform them into a clear hypothesis and reasoning.
+    Each idea may involve an approach, technique, or step at any stage of the data science pipeline. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or model evaluation.
+    Each idea should also include a **Relevance** statement explaining why the idea is important for the scenario and how closely it relates to the competition's characteristics and the solution presented in the notebook.
+
+    Here are some examples:
+    - Example 1:
+      Hypothesis: Using an LSTM model is effective for time-series forecasting tasks.
+      Reasoning: LSTM networks are well-suited for time-series data because they are designed to capture long-term dependencies and trends, which is crucial for accurate forecasting in sequential data.
+      Relevance: This idea is closely related to the competition as the task involves time-series forecasting, and the use of LSTM aligns with the data type and task type described in the scenario.
+
+    - Example 2:
+      Hypothesis: Feature scaling improves the performance of machine learning models.
+      Reasoning: Many algorithms are sensitive to the scale of features. Standardizing the features ensures that all input variables are treated equally, preventing certain features from dominating the model due to larger numerical values.
+      Relevance: Feature scaling directly addresses the numerical feature types present in the dataset and can significantly impact models like SVM and k-NN, making it a relevant idea for this competition.
+
+    - Example 3:
+      Hypothesis: Using cross-validation during model evaluation helps to prevent overfitting.
+      Reasoning: Cross-validation provides a more reliable estimate of model performance by evaluating it on multiple subsets of the data. This helps ensure the model generalizes well to unseen data, reducing the risk of overfitting to a particular training set.
+      Relevance: The competition emphasizes generalization and model robustness, making cross-validation a key part of the solution for reliable evaluation.
+
+    Lastly, please answer in JSON format with the following schema. Here is an example for your final deliverable:
+    {
+      "Scenario": {
+        "Domain Type": ["Healthcare"],
+        "Task Type": ["Classification", "Anomaly Detection"],
+        "Data Type": ["Tabular", "Time Series"],
+        "Feature Type": ["Numerical", "Categorical", "Time Series"],
+        "Target Type": ["Binary", "Categorical"],
+        "Optimization Objective": ["Minimize MSE", "Maximize Accuracy"]
+      },
+      "Ideas": [
+        {
+          "Hypothesis": "Using an LSTM model is effective for time-series forecasting tasks.",
+          "Reasoning": "LSTM networks are well-suited for time-series data because they are designed to capture long-term dependencies and trends, which is crucial for accurate forecasting in sequential data.",
+          "Relevance": "This idea is closely related to the competition as the task involves time-series forecasting, and the use of LSTM aligns with the data type and task type described in the scenario."
+        },
+        {
+          "Hypothesis": "Normalizing data before feeding it into the model helps improve performance.",
+          "Reasoning": "Normalization ensures that all features contribute equally to the model, preventing features with larger values from dominating the learning process.",
+          "Relevance": "Feature scaling directly addresses the numerical feature types present in the dataset and can significantly impact models like SVM and k-NN, making it a relevant idea for this competition."
+        },
+        {
+          "Hypothesis": "Using a hyperparameter tuning approach like Grid Search improves model accuracy.",
+          "Reasoning": "Grid search helps find the optimal combination of hyperparameters, leading to better model performance by exploring a wide range of parameter values.",
+          "Relevance": "Since the competition involves multiple numerical and categorical features, hyperparameter tuning is critical to improving model performance."
+        }
+      ]
+    }
+
+    --------------------
+    {{ competition }}
+    --------------------
+
+    --------------------
+    {{ notebook }}
+    --------------------
+
+knowledge_tag_gen_v1: 
+  system: |-
+    You are a proficient data scientist that extracts structured information from detailed descriptions of a data science competition and a notebook containing a high-performing solution for the competition. 
+  user: |-
+    You will be provided with a detailed explanation of a competition and a solution notebook, and you need to first extract specific scenario tags about the competition from the different perspectives. 
+    Here are some example scenario tags from different perspectives. You are not limited to these options; feel free to choose one or multiple tags from any perspective if they apply to the competition. For instance, a competition may involve multiple feature types or include both regression and time series forecasting tasks.
+    - Domain Type: "Finance", "Transportation", "Healthcare", "Education", "Retail", "Energy", "Agriculture", "Telecommunications", "Manufacturing", "Sports", "Entertainment", "Government", "E-commerce", "Environmental", "Technology", "Biotech", "Insurance", "Cybersecurity"
+    - Task Type: "Classification", "Regression", "Clustering", "Anomaly Detection", "Recommendation", "Time-Series Forecasting", "Object Detection", "Image Segmentation", "Text Generation", "Natural Language Inference", "Sentiment Analysis", "Named Entity Recognition", "Speech Recognition", "Question Answering", "Data Imputation", "Dimensionality Reduction", "Feature Engineering", "Reinforcement Learning", "Generative Modeling", "Style Transfer", "Fuzzy Matching", "Optimization", "Multi-Agent Simulation"
+    - Data Type: "Tabular", "Image (Computer Vision)", "Text (Natural Language Processing)", "Audio", "Video", "Time Series", "Geospatial", "Graph", "3D Models", "Sequence", "Structured Data", "Unstructured Data", "Text-Image Hybrid", "Sensor Data", "User Activity Data", "Transaction Data", "Network Traffic Data"
+    - Feature Type: "Numerical", "Categorical", "Text", "Time Series", "Pixel Values", "Ordinal", "Boolean", "Dates", "Geographical Coordinates", "Images", "Raw Sensor Data", "Embeddings", "Graph Edges/Nodes", "Continuous", "Mixed"
+    - Target Type: "Binary", "Multiclass", "Multilabel", "Continuous", "Categorical", "Sparse", "Ranking", "Regression/Classification Hybrid", "Sequential", "Multivariable", "Time Series Forecasting", "Density Estimation"
+    - Optimization Objective: "Minimize SMAPE", "Minimize MSE", "Maximize Accuracy", "Maximize F1-Score", "Maximize Precision", "Maximize Recall", "Minimize Cross-Entropy Loss", "Maximize AUC", "Maximize Precision at k", "Minimize MAE", "Minimize Log-Loss", "Maximize R-Squared", "Minimize Hinge Loss", "Minimize KL Divergence", "Maximize MAP", "Minimize Adversarial Loss", "Maximize IOU (Intersection over Union)", "Maximize BLEU Score", "Maximize NDCG (Normalized Discounted Cumulative Gain)"
+    
+    After extracting scenario tags for the competition, your next task is to identify and extract ideas from the solution notebook provided by the user. The notebook will typically contain multiple ideas that contribute to the high-performing results. 
+    Your role is to identify these ideas and transform them into a clear hypothesis and reasoning.
+    Each idea may involve an approach, technique, or step at any stage of the data science pipeline that you think will contribute for a better results. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or model evaluation.
+    Each idea should also include a **Relevance** statement explaining why the idea fits the scenario and how closely it relates to the competition's characteristics and the solution presented in the notebook.
+    Each idea should also include a **Tag** statement that summarizes the core concept of the idea into a single label (norm). This allows grouping of similar ideas under the same tag.
+    Each idea should also include a **Code** statement that encapsulates the core code of the idea. Pseudocode is also acceptable if the actual code is too complex or length). Your generated code should enable other data scientists to easily apply the idea to their solutions using your code.
+    You need to break down the solution into small, detailed ideas. Avoid overly broad ideas, as they weaken relevance to specific scenarios. Each idea should be highly relevant to the scenario tags, closely tied to the solution notebook, and capable of performing well in similar scenarios (with matching tags) from other competitions.
+
+    Lastly, please strictly answer in JSON format with the following schema. Here is a template for your final deliverable:
+    {
+      "Scenario": {
+        "Domain Type": ["XXX"],
+        "Task Type": ["XXX", "XXX"],
+        "Data Type": ["XXX", "XXX"],
+        "Feature Type": ["XXX", "XXX", "XXX"],
+        "Target Type": ["XXX"],
+        "Optimization Objective": ["XXX"]
+      },
+      "Ideas": [
+        {
+          "Tag": "XXX",
+          "Hypothesis": "XXX",
+          "Reasoning": "XXX",
+          "Relevance": "XXX",
+          "Code": "XXX"
+        },
+        {
+          "Tag": "XXX",
+          "Hypothesis": "XXX",
+          "Reasoning": "XXX",
+          "Relevance": "XXX",
+          "Code": "XXX"
+        },
+        {
+          "Tag": "XXX",
+          "Hypothesis": "XXX",
+          "Reasoning": "XXX",
+          "Relevance": "XXX",
+          "Code": "XXX"
+        }
+      ]
+    }
+
+    --------------------
+    {{ competition }}
+    --------------------
+
+    --------------------
+    {{ notebook }}
+    --------------------
+
+
+knowledge_tag_gen_v2:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract **EVERY** idea from the solution notebook that has the potential to achieve high performance when applied to similar future scenarios.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes high performance. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or model evaluation.
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).",
+      "code": "A simplified pseudocode or code snippet to represent coding steps needed to implement the method. Your generated code should inspire other data scientists to easily apply the idea.",
+      "scenario": {
+        "task tag": "The type of task being addressed (e.g., classification, regression, time-series forecasting). Include this only if the applicability of the method is relevant to the task type.",
+        "data tag": "The type of data used in the competition (e.g., tabular, image, text). Include this only if the applicability of the method is relevant to the data type.",
+        "feature tag": "The type of features used in the dataset (e.g., numerical, categorical, text). Include this only if the applicability of the method is relevant to the feature type.",
+        "target tag": "The type of target variable (e.g., binary, continuous, multiclass). Include this only if the applicability of the method is relevant to the target type.",
+        "optimization objective": "The metric or objective being optimized (e.g., minimize MAE, maximize F1-score). Include this only if the method is directly tied to optimizing this objective."
+      },
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this case."
+      }
+    }
+    Please output each idea strictly in the above JSON format without anything else. If there are multiple ideas, output them as a list of JSON objects.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
+
+
+knowledge_tag_gen_v3:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+   
+    Each idea should satisfy:
+    1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
+    2. **Balance between Specificity and Generality**: Avoid dataset-specific details (e.g., column names) to ensure transferability, while providing enough specificity (e.g., describing particular techniques) to avoid vagueness.
+    3. **High Impact**: Prioritize ideas that have a substantial impact on improving performance.
+   
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).",
+      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. For example, the applicability, suitability, performance, or underlying assumptions of this method may be relevant to type of task (e.g., classification, regression, time-series forecasting), or type of dataset (e.g., tabular, image, text), type of features (e.g., numerical, categorical, text), type of target variable (e.g., binary, continuous, multiclass), or metric or objective being optimized (e.g., minimize MAE, maximize F1-score)"
+      }
+    }
+    Your output should be a list of at most six ideas, ranked by impact. Each idea must strictly follow the JSON format above, with no additional text or explanations.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
+
+knowledge_tag_gen_v4:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+   
+    Each idea should satisfy:
+    1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
+    2. **Balance between Specificity and Generality**: Avoid dataset-specific details (e.g., column names) to ensure transferability, while providing enough specificity (e.g., describing particular techniques) to avoid vagueness.
+    3. **High Impact**: Prioritize ideas that have a substantial impact on improving performance.
+   
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
+      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list mulitple requirements about the scenarios. Here are some examples, the senario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
+      }
+    }
+    Your output should be a list of at most six ideas, ranked by impact. Each idea must strictly follow the JSON format above, with no additional text or explanations.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
+
+knowledge_tag_gen_v5:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+   
+    Each idea should satisfy:
+    1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
+    2. **Balance between Specificity and Generality**: Avoid dataset-specific details (e.g., column names) to ensure transferability, while providing enough specificity (e.g., describing particular techniques) to avoid vagueness.
+    3. **High Impact**: Prioritize ideas that have a substantial impact on improving performance.
+   
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
+      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list mulitple requirements about the scenarios. Here are some examples, the senario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
+      }
+    }
+
+    "hypothesis.reason" is a very important field. It will be used to tell if a method works on the scenario and has the following requirements.
+    - The focus should be on the characteristics of the scenario itself, rather than describing the method.
+      - Good examples:
+        - The data is time-series and the patterns in the recent time-steps are more important than long term
+        - There are a lot of redunant columns in the pattern
+      - Here are some comparisons of good examples to bad examples:
+        - Bad Example: The clustering approach helps in capturing latent groupings within the data that may correlate with the target variable, thereby improving model performance.
+        - Good Example: The samples can be grouped into several categories that can be distinguished by the features. The group id is very important for the prediction task in the scenario
+
+    Your output should be a list of at most six ideas, ranked by impact. Each idea must strictly follow the JSON format above, with no additional text or explanations.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
+
+knowledge_tag_gen_v6:
+  system: |-
+    You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
+  user:  |-
+    You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+   
+    Each idea should satisfy:
+    1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
+    2. **Balance between Specificity and Generality**: Avoid dataset-specific details (e.g., column names) to ensure transferability, while providing enough specificity (e.g., describing particular techniques) to avoid vagueness.
+    3. **High Impact**: Prioritize ideas that have a substantial impact on improving performance.
+   
+    For each idea, adhere to the following schema:
+    {
+      "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+      "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
+      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "hypothesis": {
+        "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+        "data": "The nature of the data (e.g., size, quality, distribution).",
+        "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list mulitple requirements about the scenarios. Here are some examples, the senario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
+      }
+    }
+
+    "hypothesis.reason" is a very important field. It will be used to tell if a method works on the scenario and has the following requirements.
+    - The focus should be on the characteristics of the scenario itself, rather than describing the method.
+      - Good examples:
+        - The data is time-series and the patterns in the recent time-steps are more important than long term
+        - There are a lot of redunant columns in the pattern
+      - Here are some comparisons of good examples to bad examples:
+        - Example01:
+          - Bad Example: The clustering approach helps in capturing latent groupings within the data that may correlate with the target variable, thereby improving model performance.
+          - Good Example: The samples can be grouped into several categories that can be distinguished by the features. The group id is very important for the prediction task in the scenario
+        - Example02:
+          - Bad Example: Ensemble methods improve robustness and generalization by combining the strengths of different models, leading to better overall performance.
+          - Good Example: The data in the scenario is very noisy, and using only one model tends to overfit to these noisy patterns.
+
+    Your output should be a list of at most six ideas, ranked by impact. Each idea must strictly follow the JSON format above, with no additional text or explanations.
+ 
+    --------------------
+    {{ competition }}
+    --------------------
+ 
+    --------------------
+    {{ notebook }}
+    --------------------
