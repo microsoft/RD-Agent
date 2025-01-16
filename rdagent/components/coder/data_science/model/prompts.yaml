@@ -13,11 +13,6 @@ model_coder:
         {{data_loader_code}}
         --------- Feature Engineering Code: ---------
         {{feature_code}}
-
-        {% if workflow_code %}
-        --------- Workflow Code (main.py): ---------
-        {{workflow_code}}
-        {% endif %}
         
         Instructions for Code Generation:
             Leveraging User Inputs:
@@ -38,10 +33,6 @@ model_coder:
         {% if out_spec %}
         {{out_spec}}
         The file name should be the model name described in the model task in the format "{task_name}.py". You should always follow this name format.
-        {% if workflow_code %}
-        If the workflow code is provided, you should also consider modify the workflow code in "main.py" if the model implementation is changed.
-        Please make sure all model files are used in the workflow code in "main.py".
-        {% endif %}
         {% else %}
         Formatting Your Response:
             Return only the code in a JSON format as shown below. Do not include any explanations or extra text. Example:

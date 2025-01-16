@@ -67,7 +67,6 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_desc=model_information_str,
             data_loader_code=workspace.file_dict.get("load_data.py"),
             feature_code=workspace.file_dict["feature.py"],
-            workflow_code=workspace.file_dict.get("main.py"),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=BatchEditOut.get_spec(),
@@ -99,7 +98,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             batch_edit = {
                 (
                     f"{target_task.name}.py"
-                    if value != "__DEL__" and key != f"{target_task.name}.py" and key.startswith("model")
+                    if value != "__DEL__" and key != f"{target_task.name}.py" 
                     else key
                 ): value
                 for key, value in batch_edit.items()
