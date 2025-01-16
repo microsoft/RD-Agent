@@ -20,7 +20,7 @@ from rdagent.utils.repo.diff import generate_diff
 class DSExperiment2Feedback(Experiment2Feedback):
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
         # 用哪些信息来生成feedback
-        # 1. sub_tasks[0] 任务的描述
+        # 1. pending_tasks_list[0][0] 任务的描述
         # 2. hypothesis 任务的假设
         # 3. 相对sota_exp的改动
         # 4. result 任务的结果

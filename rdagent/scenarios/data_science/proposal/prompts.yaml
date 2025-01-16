@@ -174,18 +174,22 @@ direct_exp_gen:
     [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
     {{ task_output_format }}
 
+    {% if workflow_check %}
+    # Workflow update
+    Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    [Partial Response Format 3] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
     Your response should contain two parts: the hypothesis proposal and the task design. Please follow the format and specifications provided below:
     {
       "hypothesis_proposal": [Partial Response Format 1],
-      "task_design": [Partial Response Format 2]
+      "task_design": [Partial Response Format 2],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 3], {% endif %}
     }
 
     {% if extra_requirement %}
     {{extra_requirement}}
     {% endif %}
-
-    # Response Requirement
-    Your generated output should combine the key-value pairs based on [Partial Response Format 1] and [Partial Response Format 2]. Please output the key-values specified in [Partial Response Format 1] first.
 
   user: |-
     # The detailed description of current best experiments
@@ -251,7 +255,7 @@ component_gen:
 exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
   ## Experiment {{ loop.index }}
-  Experiment are focusing on task: {{experiment.sub_tasks[0]}}
+  Experiment are focusing on task: {{experiment.pending_tasks_list[0][0]}}
   {% if experiment.hypothesis %}
   The experiment is design driven by hypothesis : {{ experiment.hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}

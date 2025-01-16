@@ -63,19 +63,22 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
-        exp: DSExperiment = prev_out["direct_exp_gen"]
-        if exp.hypothesis.component == "DataLoadSpec":
-            exp = self.data_loader_coder.develop(exp)
-        elif exp.hypothesis.component == "FeatureEng":
-            exp = self.feature_coder.develop(exp)
-        elif exp.hypothesis.component == "Model":
-            exp = self.model_coder.develop(exp)
-        elif exp.hypothesis.component == "Ensemble":
-            exp = self.ensemble_coder.develop(exp)
-        elif exp.hypothesis.component == "Workflow":
-            exp = self.workflow_coder.develop(exp)
-        else:
-            raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
+        exp = prev_out["direct_exp_gen"]
+        for tasks in exp.pending_tasks_list:
+            exp.sub_tasks = tasks
+            if exp.hypothesis.component == "DataLoadSpec":
+                exp = self.data_loader_coder.develop(exp)
+            elif exp.hypothesis.component == "FeatureEng":
+                exp = self.feature_coder.develop(exp)
+            elif exp.hypothesis.component == "Model":
+                exp = self.model_coder.develop(exp)
+            elif exp.hypothesis.component == "Ensemble":
+                exp = self.ensemble_coder.develop(exp)
+            elif exp.hypothesis.component == "Workflow":
+                exp = self.workflow_coder.develop(exp)
+            else:
+                raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
+            exp.sub_tasks = []
 
         return exp
 

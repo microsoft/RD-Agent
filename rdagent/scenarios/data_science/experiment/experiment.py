@@ -9,9 +9,10 @@ COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow
 
 
 class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, pending_tasks_list: list, *args, **kwargs) -> None:
+        super().__init__(sub_tasks=[], *args, **kwargs)
         self.experiment_workspace = FBWorkspace()
+        self.pending_tasks_list = pending_tasks_list
 
     def next_component_required(self) -> COMPONENT | None:
         files = list(self.experiment_workspace.file_dict.keys())

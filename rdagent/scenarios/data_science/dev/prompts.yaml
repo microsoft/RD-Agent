@@ -30,7 +30,7 @@ exp_feedback:
     Current solution to be evaluated:
 
     ### Task of Current solution
-    {{cur_exp.sub_tasks[0].get_task_information()}}
+    {{cur_exp.pending_tasks_list[0][0].get_task_information()}}
 
     {% if cur_exp.hypothesis %}
     the experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
