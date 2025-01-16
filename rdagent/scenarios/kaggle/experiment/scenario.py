@@ -125,7 +125,10 @@ class KGScenario(Scenario):
         background_template = prompt_dict["kg_background"]
 
         train_script = (
-            Path(__file__).parent / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template" / "train.py"
+            Path(__file__).resolve()
+            / Path(KAGGLE_IMPLEMENT_SETTING.template_path).resolve()
+            / KAGGLE_IMPLEMENT_SETTING.competition
+            / ("train.py" if KAGGLE_IMPLEMENT_SETTING.template_path != "rdagent/scenarios/kaggle/tpl_ex" else "main.py")
         ).read_text()
 
         background_prompt = (
@@ -147,6 +150,21 @@ class KGScenario(Scenario):
     @property
     def source_data(self) -> str:
         data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
+
+        if KAGGLE_IMPLEMENT_SETTING.template_path == "rdagent/scenarios/kaggle/tpl_ex":
+            if not (data_folder / "X.pkl").exists():
+                preprocess_experiment = KGFactorExperiment([])
+                X, y, X_test, others = preprocess_experiment.experiment_workspace.generate_preprocess_data()
+
+                data_folder.mkdir(exist_ok=True, parents=True)
+                pickle.dump(X, open(data_folder / "X.pkl", "wb"))
+                pickle.dump(y, open(data_folder / "y.pkl", "wb"))
+                pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
+                pickle.dump(others, open(data_folder / "others.pkl", "wb"))
+
+            X = pd.read_pickle(data_folder / "X.pkl")
+            self.input_shape = X.shape
+            return str(self.input_shape)
 
         if not (data_folder / "X_valid.pkl").exists():
             preprocess_experiment = KGFactorExperiment([])
