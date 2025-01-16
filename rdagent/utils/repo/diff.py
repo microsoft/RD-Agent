@@ -53,4 +53,3 @@ def generate_diff(dir1: str, dir2: str) -> List[str]:
                     diff_files.extend(diff)
 
     return diff_files
-

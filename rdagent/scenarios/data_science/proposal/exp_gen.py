@@ -52,8 +52,9 @@ Concise Observation: {self.concise_observation}
 Concise Justification: {self.concise_justification}
 Concise Knowledge: {self.concise_knowledge}
 """
+
+
 COMPONENT_TASK_MAPPING = {
-    # TODO:  merge the tow names, DataLoadSpec, data_loader, make all the code easier
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
         "spec_file": "spec/data_loader.md",
@@ -89,8 +90,9 @@ COMPONENT_TASK_MAPPING = {
         "spec_file": "spec/workflow.md",
         "task_output_format": T(".prompts:output_format.workflow").r(),
         "task_class": WorkflowTask,
-    }
+    },
 }
+
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
@@ -305,48 +307,7 @@ class DSExpGen(ExpGen):
             # - after we know the selected component, we can use RAG.
 
             # Step 2: Generate the rest of the hypothesis & task
-            # TODO: Currently, all components are rendered each time. This can be optimized later.
-            component_task_mapping = {
-                # TODO:  merge the tow names, DataLoadSpec, data_loader, make all the code easier
-                "DataLoadSpec": {
-                    "target_name": "Data loader and specification generation",
-                    "spec_file": "spec/data_loader.md",
-                    "task_output_format": T(".prompts:output_format.data_loader").r(),
-                    "task_class": DataLoaderTask,
-                },
-                "FeatureEng": {
-                    "target_name": "Feature engineering",
-                    "spec_file": "spec/feature.md",
-                    "task_output_format": T(".prompts:output_format.feature").r(),
-                    "task_class": FeatureTask,
-                },
-                "Model": {
-                    "target_name": "Building model",
-                    "spec_file": "spec/model.md",
-                    "task_output_format": T(".prompts:output_format.model").r(),
-                    "task_class": ModelTask,
-                    "extra_params": {
-                        "model_type": "Model type not provided",
-                        "architecture": "Model architecture not provided",
-                        "hyperparameters": "Model hyperparameters not provided",
-                    },
-                    "extra_requirement": T(".prompts:extra_requirement.model").r(),
-                },
-                "Ensemble": {
-                    "target_name": "Ensemble",
-                    "spec_file": "spec/ensemble.md",
-                    "task_output_format": T(".prompts:output_format.ensemble").r(),
-                    "task_class": EnsembleTask,
-                },
-                "Workflow": {
-                    "target_name": "Workflow",
-                    "spec_file": "spec/workflow.md",
-                    "task_output_format": T(".prompts:output_format.workflow").r(),
-                    "task_class": WorkflowTask,
-                },
-            }
-
-            component_info = component_task_mapping.get(component)
+            component_info = COMPONENT_TASK_MAPPING.get(component)
 
             if component_info:
                 system_prompt = T(".prompts:direct_exp_gen.system").r(
