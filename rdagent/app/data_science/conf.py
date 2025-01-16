@@ -12,6 +12,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ## proposal
     exp_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen"
+    # exp_gen_init_kwargs: dict = {"max_trace_hist": 3}   # TODO: to be configurable
 
     # the two below should be used in ExpGen
     # hypothesis_gen: str = "rdagent.scenarios.kaggle.proposal.proposal.KGHypothesisGen"

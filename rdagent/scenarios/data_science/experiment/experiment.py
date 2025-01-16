@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 from typing import Literal
 
 from rdagent.core.experiment import Experiment, FBWorkspace, Task

@@ -16,7 +16,7 @@ describe: # some template to describe some object
     {% if exp.result is none %}
     There are no according evaluation results
     {% else %}
-    Evaluated results is:
+    Evaluated results on validation is:
     {{ exp.result }}
     {% endif %}
 
@@ -27,7 +27,7 @@ describe: # some template to describe some object
   feedback: |-
     {% if exp_and_feedback and exp_and_feedback|length > 1 %}
     ## {{heading | default('Previous trial and feedback')}}
-    Before current trial, previous recent trial is listed below.
+    Before current trial, a previous recent trial is listed below.
     {% if exp_and_feedback[0].hypothesis %}
     the experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     {% endif %}

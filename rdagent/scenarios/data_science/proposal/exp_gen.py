@@ -22,6 +22,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.repo.diff import generate_diff
 
 
 class DSHypothesis(Hypothesis):
@@ -96,7 +97,11 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
-    def llm_task_gen(
+    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3) -> None:
+        self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
+        super().__init__(scen)
+
+    def _init_task_gen(
         self,
         targets: str,
         scenario_desc: str,
@@ -147,7 +152,7 @@ class DSExpGen(ExpGen):
             last_successful_exp: Last successful experiment or None
             spec_file: Path to specification file if needed
         """
-        resp_dict = self.llm_task_gen(
+        resp_dict = self._init_task_gen(
             targets=component,
             scenario_desc=scenario_desc,
             spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
@@ -188,7 +193,7 @@ class DSExpGen(ExpGen):
         else:
             next_missing_component = last_successful_exp.next_component_required()
 
-        component_config = {
+        init_component_config = {
             "DataLoadSpec": {"task_cls": DataLoaderTask, "spec_file": None, "component_prompt_key": "data_loader"},
             "FeatureEng": {"task_cls": FeatureTask, "spec_file": "spec/feature.md", "component_prompt_key": "feature"},
             "Model": {"task_cls": ModelTask, "spec_file": "spec/model.md", "component_prompt_key": "model"},
@@ -196,8 +201,10 @@ class DSExpGen(ExpGen):
             "Workflow": {"task_cls": WorkflowTask, "spec_file": "spec/workflow.md", "component_prompt_key": "workflow"},
         }
 
-        if next_missing_component in component_config:
-            config = component_config[next_missing_component]
+        if next_missing_component in init_component_config:
+            # TODO: we may merge the if else logic in the future.
+            # the current
+            config = init_component_config[next_missing_component]
             return self._handle_missing_component(
                 component=next_missing_component,
                 task_cls=config["task_cls"],
@@ -216,19 +223,17 @@ class DSExpGen(ExpGen):
             # - Previous Feedback
             # - Current sota implementation (encourage change based on it)
             # - Extra RAG
-            assert last_successful_exp is not None, "SOTA experiment is not provided."
+            sota_exp = trace.sota_experiment()
+            assert sota_exp is not None, "SOTA experiment is not provided."
             exp_and_feedback = trace.hist[-1]
             last_exp = exp_and_feedback[0]
 
             # Step 1: Generate component
             # Describe current best solution using shared template
-            sota_solution = trace.sota_experiment()
             sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
-                exp=last_successful_exp, heading="Best of previous exploration of the scenario"
+                exp=sota_exp, heading="Best of previous exploration of the scenario"
             )
-            current_exp_desc = T("scenarios.data_science.share:describe.exp").r(
-                exp=last_exp, heading="Current exploration of the scenario"
-            )
+            last_exp_diff = "\n".join(generate_diff(sota_exp.experiment_workspace.workspace_path, last_exp.experiment_workspace.workspace_path))
             exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
                 exp_and_feedback=exp_and_feedback
             )
@@ -237,7 +242,7 @@ class DSExpGen(ExpGen):
             component_sys_prompt = T(".prompts:component_gen.system").r(
                 scenario=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
-                current_exp_desc=current_exp_desc,
+                last_exp_diff=last_exp_diff,
                 component_output_format=T(".prompts:output_format.component").r(),
             )
 
@@ -253,195 +258,111 @@ class DSExpGen(ExpGen):
 
             component = resp_dict_component.get("component", "Component not provided")
 
-            # Why we should split component selection and hypothesis generation
+            # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
 
-            # Step 2: Generate the rest of the hypothesis
-            if component != "Model":
-                hypothesis_sys_prompt = T(".prompts:hypothesis_gen.system").r(
-                    targets="data science project",
-                    scenario=scenario_desc,
-                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                    hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
+            # Step 2: Generate the rest of the hypothesis & task
+            component_task_mapping = {
+                # TODO:  merge the tow names, DataLoadSpec, data_loader, make all the code easier
+                "DataLoadSpec": {
+                    "target_name": "Data loader and specification generation",
+                    "spec_file": "spec/data_loader.md",
+                    "task_output_format": T(".prompts:output_format.data_loader").r(),
+                    "task_class": DataLoaderTask,
+                },
+                "FeatureEng": {
+                    "target_name": "Feature engineering",
+                    "spec_file": "spec/feature.md",
+                    "task_output_format": T(".prompts:output_format.feature").r(),
+                    "task_class": FeatureTask,
+                },
+                "Model": {
+                    "target_name": "Building model",
+                    "spec_file": "spec/model.md",
+                    "task_output_format": T(".prompts:output_format.model").r(),
+                    "task_class": ModelTask,
+                    "extra_params": {
+                        "model_type": "Model type not provided",
+                        "architecture": "Model architecture not provided",
+                        "hyperparameters": "Model hyperparameters not provided",
+                    },
+                    "extra_requirement": T(".prompts:extra_requirement.model").r(),
+                },
+                "Ensemble": {
+                    "target_name": "Ensemble",
+                    "spec_file": "spec/ensemble.md",
+                    "task_output_format": T(".prompts:output_format.ensemble").r(),
+                    "task_class": EnsembleTask,
+                },
+                "Workflow": {
+                    "target_name": "Workflow",
+                    "spec_file": "spec/workflow.md",
+                    "task_output_format": T(".prompts:output_format.workflow").r(),
+                    "task_class": WorkflowTask,
+                }
+            }
+
+            component_info = component_task_mapping.get(component)
+
+            if component_info:
+                system_prompt = T(".prompts:direct_exp_gen.system").r(
+                    targets=component_info["target_name"],
                     component=component,
-                )
-                hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
-                    targets="data science project",
-                    exp_and_feedback_desc=exp_and_feedback_desc,
+                    scenario=scenario_desc,
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis"),
+                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                    task_output_format=component_info["task_output_format"],
+                    extra_requirement=component_info.get("extra_requirement"),
                 )
 
-                resp_dict: dict = json.loads(
+                recent_trace_desc = []
+                for i in range(self.max_trace_hist):
+                    if i < len(trace.hist):
+                        eaf = trace.hist[-i - 1]
+                        if eaf[1].decision:
+                            # we only add failed direction incase of trying same invalid direction
+                            break
+                        recent_trace_desc.insert(0,
+                            T("scenarios.data_science.share:describe.feedback").r(
+                                exp_and_feedback=eaf
+                            )
+                        )
+                user_prompt = T(".prompts:direct_exp_gen.user").r(
+                    exp_and_feedback_desc=exp_and_feedback_desc,
+                    sota_exp_desc=sota_exp_desc,
+                    last_exp_diff=last_exp_diff,
+                    recent_trace_desc="\n".join(recent_trace_desc),
+                )
+
+                resp_dict = json.loads(
                     APIBackend().build_messages_and_create_chat_completion(
-                        hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True
+                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
                 )
+
+                task_class = component_info["task_class"]
+                task_name = resp_dict["model_name"] if component == "Model" else component
+                description = resp_dict.get("description", f"{component_info['target_name']} description not provided")
                 hypothesis = DSHypothesis(
-                    component=resp_dict.get("component", "Component not provided"),
-                    hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
-                    reason=resp_dict.get("reason", "Reason not provided"),
-                    concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
-                    concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
-                    concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
-                    concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
+                    component=component,
+                    hypothesis=resp_dict.get("hypothesis", ""),
+                    reason=resp_dict.get("reason", ""),
+                    concise_reason=resp_dict.get("concise_reason", ""),
+                    concise_observation=resp_dict.get("concise_observation", ""),
+                    concise_justification=resp_dict.get("concise_justification", ""),
+                    concise_knowledge=resp_dict.get("concise_knowledge", "")
                 )
+
+                task = task_class(
+                    name=task_name,
+                    description=description,
+                    **{k: resp_dict.get(k, v) for k, v in component_info.get("extra_params", {}).items()}
+                )
+
+                exp = DSExperiment(sub_tasks=[task], hypothesis=hypothesis)
+                exp.experiment_workspace.inject_code_from_folder(
+                    sota_exp.experiment_workspace.workspace_path
+                )
+                return exp
             else:
-                model_infos = []
-                score_df = pd.read_csv(
-                    last_successful_exp.experiment_workspace.workspace_path / "scores.csv", index_col=0
-                )
-                metric_name = score_df.columns[0]
-                for fname in last_successful_exp.experiment_workspace.file_dict:
-                    if re.match(r"^model_(?!test)\w+\.py$", fname):
-                        model_str = f"{fname}:\n{metric_name} on valid: {score_df.loc[fname[:-3]]}\n```python\n{last_successful_exp.experiment_workspace.file_dict[fname]}\n```\n"
-                        model_infos.append(model_str)
-
-                model_num = len(model_infos)
-                models_info_str = ("-" * 20).join(model_infos)
-                if model_num >= 3:
-                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
-                        targets="data science project",
-                        scenario=scenario_desc,
-                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=models_info_str,
-                        model_enough=True,
-                    )
-                else:
-                    hypothesis_sys_prompt = T(".prompts:hypothesis_model.system").r(
-                        targets="data science project",
-                        scenario=scenario_desc,
-                        hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                        hypothesis_specification=T(".prompts:hypothesis_specification").r(sota_solution=sota_solution),
-                        model_info=models_info_str,
-                        model_enough=False,
-                    )
-                hypothesis_user_prompt = T(".prompts:hypothesis_gen.user").r(
-                    targets="data science project",
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-                resp_dict: dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(
-                        hypothesis_user_prompt, hypothesis_sys_prompt, json_mode=True
-                    )
-                )
-                hypothesis = DSHypothesis(
-                    component=resp_dict.get("component", "Component not provided"),
-                    hypothesis=resp_dict.get("hypothesis", "Hypothesis not provided"),
-                    reason=resp_dict.get("reason", "Reason not provided"),
-                    concise_reason=resp_dict.get("concise_reason", "Concise reason not provided"),
-                    concise_observation=resp_dict.get("concise_observation", "Concise observation not provided"),
-                    concise_justification=resp_dict.get("concise_justification", "Concise justification not provided"),
-                    concise_knowledge=resp_dict.get("concise_knowledge", "Concise knowledge not provided"),
-                )
-
-            # 2. gen experiment
-            if hypothesis.component == "DataLoadSpec":
-                resp_dict = self.llm_task_gen(
-                    targets="Data loader and specification generation",
-                    scenario_desc=scenario_desc,
-                    spec=last_successful_exp.experiment_workspace.file_dict["spec/data_loader.md"],
-                    hypothesis=hypothesis,
-                    task_output_format=T(".prompts:output_format.data_loader").r(),
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-
-                dt = DataLoaderTask(
-                    name="Data loader and specification generation",
-                    description=resp_dict.get(
-                        "description", "Data loader and specification generation description not provided"
-                    ),
-                )
-
-                exp = DSExperiment(sub_tasks=[dt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    last_successful_exp.experiment_workspace.workspace_path
-                )
-                return exp
-            elif hypothesis.component == "FeatureEng":
-                # TODO: RAG
-                resp_dict = self.llm_task_gen(
-                    targets="Feature Engineering",
-                    scenario_desc=scenario_desc,
-                    spec=last_successful_exp.experiment_workspace.file_dict["spec/feature.md"],
-                    hypothesis=hypothesis,
-                    task_output_format=T(".prompts:output_format.feature").r(),
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-
-                ft = FeatureTask(
-                    name="Feature Engineering",
-                    description=resp_dict.get("description", "Feature description not provided"),
-                )
-
-                exp = DSExperiment(sub_tasks=[ft], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    last_successful_exp.experiment_workspace.workspace_path
-                )
-                return exp
-            elif hypothesis.component == "Model":
-                resp_dict = self.llm_task_gen(
-                    targets="Models",
-                    scenario_desc=scenario_desc,
-                    spec=last_successful_exp.experiment_workspace.file_dict["spec/model.md"],
-                    hypothesis=hypothesis,
-                    workspace_code=last_successful_exp.experiment_workspace.all_codes,
-                    task_output_format=T(".prompts:output_format.model").r(),
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-
-                mt = ModelTask(
-                    name=resp_dict.get("model_name", "Model name not provided"),
-                    description=resp_dict.get("description", "Model description not provided"),
-                    model_type=resp_dict.get("model_type", "Model type not provided"),
-                    architecture=resp_dict.get("architecture", "Model architecture not provided"),
-                    hyperparameters=resp_dict.get("hyperparameters", "Model hyperparameters not provided"),
-                    base_code="",
-                )
-
-                exp = DSExperiment(sub_tasks=[mt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    last_successful_exp.experiment_workspace.workspace_path
-                )
-                return exp
-            elif hypothesis.component == "Ensemble":
-                resp_dict = self.llm_task_gen(
-                    targets="Ensemble",
-                    scenario_desc=scenario_desc,
-                    spec=last_successful_exp.experiment_workspace.file_dict["spec/ensemble.md"],
-                    hypothesis=hypothesis,
-                    task_output_format=T(".prompts:output_format.ensemble").r(),
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-
-                et = EnsembleTask(
-                    name="Ensemble",
-                    description=resp_dict.get("description", "Ensemble description not provided"),
-                )
-
-                exp = DSExperiment(sub_tasks=[et], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    last_successful_exp.experiment_workspace.workspace_path
-                )
-                return exp
-            elif hypothesis.component == "Workflow":
-                resp_dict = self.llm_task_gen(
-                    targets="Workflow",
-                    scenario_desc=scenario_desc,
-                    spec=last_successful_exp.experiment_workspace.file_dict["spec/workflow.md"],
-                    hypothesis=hypothesis,
-                    task_output_format=T(".prompts:output_format.workflow").r(),
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                )
-
-                wt = WorkflowTask(
-                    name="Workflow",
-                    description=resp_dict.get("description", "Workflow description not provided"),
-                )
-
-                exp = DSExperiment(sub_tasks=[wt], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(
-                    last_successful_exp.experiment_workspace.workspace_path
-                )
-                return exp
-
-        return super().gen(trace)
+                raise ValueError(f"Unknown component: {component}")

@@ -1,4 +1,4 @@
-hypothesis_gen:
+hypothesis_gen: # It is deprecated now, please refer to direct_exp_gen
   system: |-
     The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
     The {{targets}} are used in the following scenario:
@@ -33,7 +33,7 @@ hypothesis_gen:
     In addition, generate relevant reasoning and distilled knowledge keys.
     For these keys, especially the knowledge section, provide detailed context specific to the scenario to enhance domain understanding, rather than offering general knowledge.
 
-hypothesis_model:
+hypothesis_model: # It is deprecated now, please refer to direct_exp_gen
   system: |-
     The user is working on generating new hypotheses for the {{targets}} in a data-driven research and development process. 
     The {{targets}} are used in the following scenario:
@@ -59,15 +59,7 @@ hypothesis_model:
     Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
 
-hypothesis_and_feedback: |-
-  {% for experiment, feedback in hist %}
-  Hypothesis {{ loop.index }}
-  Observation on the result with the hypothesis: {{ feedback.observations }}
-  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
-  Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
-  {% endfor %}
-
-task_gen:
+task_gen: # It is deprecated now, please refer to direct_exp_gen
   system: |-
     {% if hypothesis is not none %}
     The user is trying to generate new {{targets}} based on the hypothesis generated in the previous step. 
@@ -111,7 +103,7 @@ task_gen:
     Please generate the new {{targets}} task.
     {% endif %}
 
-task_gen_model:
+task_gen_model: # It is deprecated now, please refer to direct_exp_gen
   system: |-
     {% if hypothesis is not none %}
     The user is trying to generate new {{targets}} based on the hypothesis generated in the previous step. 
@@ -143,6 +135,85 @@ task_gen_model:
     Please generate the new {{targets}} task.
     {% endif %}
 
+direct_exp_gen:
+  system: |-
+    You are a data scientist and a top Kaggle competitor. The user is working on creating a solution for a Kaggle competition. Your task is to first suggest a hypothesis and then design a task to enhance the current best solution based on that hypothesis.
+
+    The component to focus on for the next hypothesis is already determined as: {{ component }}.
+    It will be used in the following scenario:
+    {{scenario}}
+
+    # Hypothesis Proposal
+
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later. Your task is to check if a similar hypothesis has already been generated. If one exists and you agree with it, you can use it. If you disagree, please create an improved version.
+
+    To assist you in formulating new hypotheses, the user has provided some additional information: 
+    Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the performance' is specific and actionable.
+    Your hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution(current best experiments) to test whether your hypothesis is right on this specific competition.
+    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+
+    [Partial Response Format 1]Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ hypothesis_output_format }}
+    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+
+    # Task Design
+
+    The user is trying to generate new {{targets}} based on the hypothesis generated in the previous step.
+
+    The scope of the {{targets}} can be described by a interface specification as follows
+    ```Python
+    {{task_specification}}
+    ```
+
+    The user will use the {{targets}} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{targets}} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3.  Former proposed {{targets}} on similar hypothesis.
+    4. Some additional information to help you generate new {{targets}}.
+
+    [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ task_output_format }}
+
+    {% if extra_requirement %}
+    {{extra_requirement}}
+    {% endif %}
+
+    # Response Requirement
+    Your generated output should combine the key-value pairs based on [Partial Response Format 1] and [Partial Response Format 2]. Please output the key-values specified in [Partial Response Format 1] first.
+
+  user: |-
+    # The detailed description of current best experiments
+    {{sota_exp_desc}}
+
+    ## The according feedbacks for the best experiments
+    {{ exp_and_feedback_desc }}
+
+    {% if recent_trace_desc %}
+    # Several trials after the best experiments
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{recent_trace_desc}}
+
+    # The difference from the best experiments to the last one
+    {{last_exp_diff}}
+    {% endif %}
+
+
+extra_requirement:
+  model: |-
+    If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
+
+    If the number of available models is insufficient . Your task is to first decide whether to:
+    - Tune an existing model: Select one of the current models for further tuning and improvement.
+    - Add a new model: Introduce a new model to expand the hypothesis space.
+
+    The information of the model is described by the code of workspace.
+
+    Make a decision and proceed accordingly:
+    - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
+    - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
+
+
 component_gen:
   system: |-
     You are a Kaggle Grander Master. You are going to provide a solution for a kaggle competition.
@@ -155,8 +226,8 @@ component_gen:
     # Here is the current best version of implementation.
     {{sota_exp_desc}}
 
-    # Here is the latest version of implementation
-    {{current_exp_desc}}
+    # Here is the latest version of implementation different from the sota_exp_desc
+    {{last_exp_diff}}
 
     You will be provided the feedback for the latest implementation.
 
