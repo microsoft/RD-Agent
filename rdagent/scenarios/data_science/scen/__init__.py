@@ -95,6 +95,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
         dirs.sort()
         if not dirs:
             for file in files:
+                print(file)
                 file_path = os.path.join(root, file)
                 file_type = os.path.splitext(file)[1][1:]
                 file_size = os.path.getsize(file_path)
@@ -108,7 +109,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                 # In deeper levels, follow the max_files restriction
                 if is_top_level and file_type in ["csv", "md"]:
                     files_details[file_type].append((file, file_size, file_path))
-                elif not is_top_level and len(files_details[file_type]) < max_files:
+                elif len(files_details[file_type]) < max_files:
                     files_details[file_type].append((file, file_size, file_path))
             break
 
@@ -169,7 +170,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
             # In deeper levels, follow the max_files restriction
             if is_top_level and file_type in ["csv", "md"]:
                 files_details[file_type].append((file, file_size, file_path))
-            elif not is_top_level and len(files_details[file_type]) < max_files:
+            elif not is_top_level and len(files_details[file_type]) <= max_files:
                 files_details[file_type].append((file, file_size, file_path))
 
         break
@@ -204,6 +205,16 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                         for tag, value in img.tag_v2.items():
                             tag_name = TiffTags.TAGS_V2.get(tag, f"Unknown Tag {tag}")
                             result.append(" " * (indent + 4) + f"{tag_name}: {value}")
+                if file_type == "json":
+                    result.append(" " * (indent + 2) + f"- Content of {file}:")
+                    with open(path, "r", encoding="utf-8") as f:
+                        for i, line in enumerate(f):
+                            if i < 2:
+                                result.append(
+                                    " " * (indent + 4) + line.strip()[:100] + ("..." if len(line.strip()) > 100 else "")
+                                )
+                            else:
+                                break
 
     return "\n".join(result) + "\n"
 
@@ -324,4 +335,4 @@ class KaggleScen(DataScienceScen):
 
 
 if __name__ == "__main__":
-    print(describe_data_folder(Path("/data/userdata/share/mle_kaggle") / "aerial-cactus-identification"))
+    print(describe_data_folder(Path("/data/userdata/share/mle_kaggle") / "stanford-covid-vaccine"))
