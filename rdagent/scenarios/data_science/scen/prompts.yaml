@@ -11,9 +11,9 @@ scenario_description: |-
   {% endif %}
 
   The evaluation metrics used is directed as:
-  { % if metric_direction %}The metric is better when it is bigger. 
-  { % else %}The metric is better when it is smaller.
-  { % endif %}
+  {% if metric_direction %}The metric is better when it is bigger. 
+  {% else %}The metric is better when it is smaller.
+  {% endif %}
 
 competition_description_template:
   system: |-
