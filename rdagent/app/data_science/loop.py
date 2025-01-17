@@ -134,7 +134,7 @@ def main(path=None, step_n=None, competition="bms-molecular-translation"):
     competition :
 
 
-    Auto R&D Evolving loop for models in a kaggle{} scenario.
+    Auto R&D Evolving loop for models in a Kaggle scenario.
     You can continue running session by
     .. code-block:: bash
         dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
