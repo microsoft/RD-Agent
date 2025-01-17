@@ -357,7 +357,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     hover_texts = [
         hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
         for i in df.index
-        if i != "alpha158"
+        if i != "alpha158" and i != "Baseline"
     ]
     if state.alpha158_metrics is not None:
         hover_texts = ["Baseline: alpha158"] + hover_texts
