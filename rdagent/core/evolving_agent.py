@@ -58,7 +58,7 @@ class RAGEvoAgent(EvoAgent):
         eva: Evaluator | Feedback,
         filter_final_evo: bool = False,
     ) -> EvolvableSubjects:
-        for evo_loop_id in tqdm(range(self.max_loop), "Implementing"):
+        for _ in tqdm(range(self.max_loop), "Implementing"):
             # with logger.tag(f"evo_loop_{evo_loop_id}"):
             # 1. knowledge self-evolving
             if self.knowledge_self_gen and self.rag is not None:

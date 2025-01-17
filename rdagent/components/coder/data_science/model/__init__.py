@@ -96,11 +96,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
             # 3. post process to align file name to the task name
             batch_edit = {
-                (
-                    f"{target_task.name}.py"
-                    if value != "__DEL__" and key != f"{target_task.name}.py" 
-                    else key
-                ): value
+                (f"{target_task.name}.py" if value != "__DEL__" and key != f"{target_task.name}.py" else key): value
                 for key, value in batch_edit.items()
             }
 
