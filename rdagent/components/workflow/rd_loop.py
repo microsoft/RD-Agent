@@ -84,8 +84,9 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 reason="",
                 decision=False,
             )
+            self.trace.hist.append((prev_out["direct_exp_gen"], feedback))
         else:
             feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
             with logger.tag("ef"):  # evaluate and feedback
                 logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["running"], feedback))
+            self.trace.hist.append((prev_out["running"], feedback))
