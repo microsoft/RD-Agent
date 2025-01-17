@@ -153,7 +153,7 @@ class QlibDockerConf(DockerConf):
     image: str = "local_qlib:latest"
     mount_path: str = "/workspace/qlib_workspace/"
     default_entry: str = "qrun conf.yaml"
-    extra_volumes: dict = {Path("~/.qlib/").expanduser().resolve(): "/root/.qlib/"}
+    extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
     shm_size: str | None = "16g"
     enable_gpu: bool = True
 
@@ -167,9 +167,12 @@ class DMDockerConf(DockerConf):
     mount_path: str = "/workspace/dm_workspace/"
     default_entry: str = "python train.py"
     extra_volumes: dict = {
-        Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-        .expanduser()
-        .resolve(): "/root/.data/"
+        str(
+            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
+            .expanduser()
+            .resolve()
+            .absolute()
+        ): "/root/.data/"
     }
     shm_size: str | None = "16g"
 

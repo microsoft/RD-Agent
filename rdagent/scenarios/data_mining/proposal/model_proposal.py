@@ -80,7 +80,7 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
+        experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
 
         model_list = []
         for experiment in experiment_list:
@@ -117,5 +117,5 @@ class DMModelHypothesis2Experiment(ModelHypothesis2Experiment):
                 )
             )
         exp = DMModelExperiment(tasks, hypothesis=hypothesis)
-        exp.based_experiments = [t[1] for t in trace.hist if t[2]]
+        exp.based_experiments = [t[0] for t in trace.hist if t[1]]
         return exp

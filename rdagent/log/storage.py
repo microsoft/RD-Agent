@@ -100,6 +100,8 @@ class FileStorage(Storage):
                 msg_l.append(m)
 
         for file in self.path.glob("**/*.pkl"):
+            if file.name == "debug_llm.pkl":
+                continue
             tag = ".".join(file.relative_to(self.path).as_posix().replace("/", ".").split(".")[:-3])
             pid = file.parent.name
 

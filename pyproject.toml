@@ -81,7 +81,6 @@ src = ["rdagent"]
 [tool.ruff.lint]
 ignore = [
   # https://docs.astral.sh/ruff/rules/#pydocstyle-d
-  "ANN101",
   "ANN401",
   "D",
   "ERA001",
@@ -92,7 +91,7 @@ ignore = [
   "S101",
   "S301",
   "T20",
-  "TCH003",
+  "TC003",
   "TD",
 ]
 select = ["ALL"]

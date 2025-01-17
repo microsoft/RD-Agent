@@ -59,6 +59,15 @@ hypothesis_model: # It is deprecated now, please refer to direct_exp_gen
     Please generate the output using the following format and specifications:
     {{ hypothesis_output_format }}
 
+hypothesis_and_feedback: |-
+  {% for experiment, feedback in hist %}
+  Hypothesis {{ loop.index }}
+  The experiment is design driven by hypothesis : {{ experiment.hypothesis }}
+  Observation on the result with the hypothesis: {{ feedback.observations }}
+  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
+  Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
+  {% endfor %}
+
 task_gen: # It is deprecated now, please refer to direct_exp_gen
   system: |-
     {% if hypothesis is not none %}

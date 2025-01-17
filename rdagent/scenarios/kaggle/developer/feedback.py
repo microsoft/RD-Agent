@@ -111,7 +111,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
             ]
         else:
             current_sub_exps_to_code = {
-                sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
+                sub_ws.target_task.get_task_information(): sub_ws.all_codes for sub_ws in exp.sub_workspace_list
             }
         current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
         current_result = exp.result
@@ -119,7 +119,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
 
         last_hypothesis_and_feedback = None
         if trace.hist and len(trace.hist) > 0:
-            last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
+            last_hypothesis_and_feedback = (trace.hist[-1][0].hypothesis, trace.hist[-1][1])
 
         # Prepare render dictionary
         render_dict = {

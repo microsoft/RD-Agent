@@ -97,6 +97,7 @@ def extract_hypothesis_and_exp_from_reports(report_file_path: str) -> Tuple[Qlib
 
     report_content = "\n".join(docs_dict.values())
     hypothesis = generate_hypothesis(factor_result, report_content)
+    exp.hypothesis = hypothesis
     return exp, hypothesis
 
 
@@ -128,7 +129,9 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
                 if exp is None:
                     continue
                 self.valid_pdf_file_count += 1
-                exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in self.trace.hist if t[2]]
+                exp.based_experiments = [QlibFactorExperiment(sub_tasks=[], hypothesis=hypothesis)] + [
+                    t[0] for t in self.trace.hist if t[1]
+                ]
                 exp.sub_workspace_list = exp.sub_workspace_list[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 exp.sub_tasks = exp.sub_tasks[: FACTOR_FROM_REPORT_PROP_SETTING.max_factors_per_exp]
                 logger.log_object(hypothesis, tag="hypothesis generation")
@@ -142,6 +145,12 @@ class FactorReportLoop(FactorRDLoop, metaclass=LoopMeta):
 
     def exp_gen(self, prev_out: dict[str, Any]):
         return self.current_loop_exp
+
+    def coding(self, prev_out: dict[str, Any]):
+        with logger.tag("d"):  # develop
+            exp = self.coder.develop(prev_out["exp_gen"])
+            logger.log_object(exp.sub_workspace_list, tag="coder result")
+        return exp
 
 
 def main(report_folder=None, path=None, step_n=None):

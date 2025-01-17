@@ -11,6 +11,7 @@ from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis,
     Hypothesis2Experiment,
+    HypothesisFeedback,
     HypothesisGen,
     Trace,
 )
@@ -74,9 +75,18 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     def feedback(self, prev_out: dict[str, Any]):
-        feedback = self.summarizer.generate_feedback(
-            prev_out["running"], prev_out["direct_exp_gen"]["propose"], self.trace
-        )
-        with logger.tag("ef"):  # evaluate and feedback
-            logger.log_object(feedback, tag="feedback")
-        self.trace.hist.append((prev_out["direct_exp_gen"]["propose"], prev_out["running"], feedback))
+        e = prev_out.get(self.EXCEPTION_KEY, None)
+        if e is not None:
+            feedback = HypothesisFeedback(
+                observations="Error occurred in loop, skip this loop",
+                hypothesis_evaluation="",
+                new_hypothesis="",
+                reason="",
+                decision=False,
+            )
+            self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
+        else:
+            feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
+            with logger.tag("ef"):  # evaluate and feedback
+                logger.log_object(feedback, tag="feedback")
+            self.trace.hist.append((prev_out["running"], feedback))
