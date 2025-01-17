@@ -76,7 +76,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def feedback(self, prev_out: dict[str, Any]):
         e = prev_out.get(self.EXCEPTION_KEY, None)
-        if e is None:
+        if e is not None:
             feedback = HypothesisFeedback(
                 observations="Error occurred in loop, skip this loop",
                 hypothesis_evaluation="",
