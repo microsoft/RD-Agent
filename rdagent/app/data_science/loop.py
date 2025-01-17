@@ -27,6 +27,7 @@ class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
 
     def __init__(self, PROP_SETTING: BasePropSetting):
+        logger.log_object(PROP_SETTING.competition, tag="competition")
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
 
         ### shared components in the workflow  # TODO: check if
