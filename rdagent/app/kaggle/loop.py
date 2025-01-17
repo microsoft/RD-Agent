@@ -7,7 +7,7 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
-from rdagent.core.exception import FactorEmptyError, ModelEmptyError
+from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
     Experiment2Feedback,
     Hypothesis2Experiment,
@@ -115,7 +115,7 @@ class KaggleRDLoop(RDLoop):
 
         return exp
 
-    skip_loop_error = (ModelEmptyError, FactorEmptyError)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError, CoderError)
 
 
 def main(path=None, step_n=None, competition=None):

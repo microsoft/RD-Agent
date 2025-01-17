@@ -111,7 +111,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
             ]
         else:
             current_sub_exps_to_code = {
-                sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
+                sub_ws.target_task.get_task_information(): sub_ws.all_codes for sub_ws in exp.sub_workspace_list
             }
         current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
         current_result = exp.result
