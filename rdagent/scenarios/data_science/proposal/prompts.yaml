@@ -1,0 +1,340 @@
+hypothesis_gen: # It is deprecated now, please refer to direct_exp_gen
+  system: |-
+    The user is working on generating new hypotheses for the {{ targets }} in a data-driven research and development process. 
+    The {{ targets }} are used in the following scenario:
+    {{ scenario }}
+    
+    The user has already proposed several hypotheses and conducted evaluations. This information will be provided to you. Your task is to:
+    1. Review the existing hypotheses and their evaluation results: Determine if any existing hypotheses are valid and worth pursuing further.
+    2. Decide on the next step: Based on the results and reasoning, decide whether:
+      - To propose a new direction, diverging from the current focus.
+      - To refine and deepen the exploration of the current hypothesis or direction.
+    3. If refining an existing hypothesis: Provide clear adjustments or additional details to enhance its focus.
+    4. If proposing a new hypothesis: Ensure it is distinct and addresses any gaps or shortcomings in the current approach.
+
+    The current component to focus on is: {{ component }}.
+    {% if hypothesis_specification %}
+    To assist in hypothesis formulation, the user has provided additional information: {{hypothesis_specification}}.
+    Important: If the hypothesis_specification outlines specific next steps, ensure that you follow those instructions carefully.
+    {% endif %}
+    Please generate the output using the following format and specifications:
+    {{ hypothesis_output_format }}
+
+  user: |-
+    {% if exp_and_feedback_desc|length == 0 %}
+    This is the first round of hypothesis generation. The user has not yet proposed any hypotheses for this scenario.
+    {% else %}
+    This is not the first round. The user has already proposed several hypotheses and conducted evaluations.
+    
+    The previous hypotheses and their corresponding feedback are as follows (focus on the most recent hypothesis, its derived insights, and reasoning):
+    {{exp_and_feedback_desc}}
+    {% endif %}
+    
+    In addition, generate relevant reasoning and distilled knowledge keys.
+    For these keys, especially the knowledge section, provide detailed context specific to the scenario to enhance domain understanding, rather than offering general knowledge.
+
+hypothesis_model: # It is deprecated now, please refer to direct_exp_gen
+  system: |-
+    The user is working on generating new hypotheses for the {{ targets }} in a data-driven research and development process. 
+    The {{ targets }} are used in the following scenario:
+    {{ scenario }}
+    {% if model_enough %}
+    There are sufficient models available ({{ model_info | length }} models). Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
+    {{ model_info }}
+    Ensure the hypothesis is specific, actionable, and well-justified.
+    {% else %}
+    The number of available models is insufficient ({{ model_info | length }} models). Your task is to first decide whether to:
+    - Tune an existing model: Select one of the current models for further tuning and improvement.
+    - Add a new model: Introduce a new model to expand the hypothesis space.
+    Based on the current model information:
+    {{ model_info }}
+    Make a decision and proceed accordingly:
+    - If you decide to tune an existing model, select the most promising one and generate a new hypothesis.
+    - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
+    {% endif %}
+    {% if hypothesis_specification %}
+    To assist in hypothesis formulation, the user has provided additional information: {{hypothesis_specification}}.
+    Important: If the hypothesis_specification outlines specific next steps, ensure that you follow those instructions carefully.
+    {% endif %}
+    Please generate the output using the following format and specifications:
+    {{ hypothesis_output_format }}
+
+hypothesis_and_feedback: |-
+  {% for experiment, feedback in hist %}
+  Hypothesis {{ loop.index }}
+  The experiment is design driven by hypothesis : {{ experiment.hypothesis }}
+  Observation on the result with the hypothesis: {{ feedback.observations }}
+  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
+  Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
+  {% endfor %}
+
+task_gen: # It is deprecated now, please refer to direct_exp_gen
+  system: |-
+    {% if hypothesis is not none %}
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step. 
+    {% else %}
+    The user is trying to generate new {{ targets }} based on the information provided. 
+    {% endif %}
+    The {{ targets }} are used in certain scenario, the scenario is as follows:
+    {{ scenario }}
+
+    {% if task_specification is not none %}
+    The user has wrote some specification for the {{ targets }}. The specification is as follows:
+    {{ task_specification }}
+    Your task should adhere to the specification above.
+    {% endif %}
+
+    {% if hypothesis is not none %}
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+    {% endif %}
+
+    Please generate the output following the format below:
+    {{ task_output_format }}
+    
+  user: |-
+    {% if workspace_code %}
+    Here is a list of all the filenames and their corresponding content in the workspace:
+    {{workspace_code}}
+    {% endif %}
+
+    {% if hypothesis is not none %}
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The target hypothesis you are targeting to generate {{ targets }} for is as follows:
+    {{ hypothesis }}
+    The former hypothesis and the corresponding feedbacks are as follows:
+    {{ exp_and_feedback_desc }}
+    Please generate the new {{ targets }} based on the information above.
+    {% else %}
+    Please generate the new {{ targets }} task.
+    {% endif %}
+
+task_gen_model: # It is deprecated now, please refer to direct_exp_gen
+  system: |-
+    {% if hypothesis is not none %}
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step. 
+    {% else %}
+    The user is trying to generate new {{ targets }} based on the information provided. 
+    {% endif %}
+    The {{ targets }} are used in certain scenario, the scenario is as follows:
+    {{ scenario }}
+
+    {% if hypothesis is not none %}
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+    {% endif %}
+    Please generate the output following the format below:
+    {{ task_output_format }}
+    
+  user: |-
+    {% if hypothesis is not none %}
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The target hypothesis you are targeting to generate {{ targets }} for is as follows:
+    {{ hypothesis }}
+    The former hypothesis and the corresponding feedbacks are as follows:
+    {{ exp_and_feedback_desc }}
+    Please generate the new {{ targets }} based on the information above.
+    {% else %}
+    Please generate the new {{ targets }} task.
+    {% endif %}
+
+direct_exp_gen:
+  system: |-
+    You are a data scientist and a top Kaggle competitor. The user is working on creating a solution for a Kaggle competition. Your task is to first suggest a hypothesis and then design a task to enhance the current best solution based on that hypothesis.
+
+    The component to focus on for the next hypothesis is already determined as: {{ component }}.
+    It will be used in the following scenario:
+    {{ scenario }}
+
+    # Hypothesis Proposal
+
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later. Your task is to check if a similar hypothesis has already been generated. If one exists and you agree with it, you can use it. If you disagree, please create an improved version.
+
+    To assist you in formulating new hypotheses, the user has provided some additional information: 
+    Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the performance' is specific and actionable.
+    Your hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution(current best experiments) to test whether your hypothesis is right on this specific competition.
+    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+
+    [Partial Response Format 1]Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ hypothesis_output_format }}
+    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+
+    # Task Design
+
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step.
+
+    The scope of the {{ targets }} can be described by a interface specification as follows
+    ```Python
+    {{task_specification}}
+    ```
+
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3.  Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+
+    [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Workflow update
+    Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    [Partial Response Format 3] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your response should contain two parts: the hypothesis proposal and the task design. Please follow the format and specifications provided below:
+    {
+      "hypothesis_proposal": [Partial Response Format 1],
+      "task_design": [Partial Response Format 2],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 3], {% endif %}
+    }
+
+    {% if extra_requirement %}
+    {{extra_requirement}}
+    {% endif %}
+
+  user: |-
+    # The detailed description of current best experiments
+    {{sota_exp_desc}}
+
+    ## The according feedbacks for the best experiments
+    {{ exp_and_feedback_desc }}
+
+    {% if recent_trace_desc %}
+    # Several trials after the best experiments
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{recent_trace_desc}}
+
+    # The difference from the best experiments to the last one
+    {{last_exp_diff}}
+    {% endif %}
+
+
+extra_requirement:
+  model: |-
+    If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
+
+    If the number of available models is insufficient . Your task is to first decide whether to:
+    - Tune an existing model: Select one of the current models for further tuning and improvement.
+    - Add a new model: Introduce a new model to expand the hypothesis space.
+
+    The information of the model is described by the code of workspace.
+
+    Make a decision and proceed accordingly:
+    - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
+    - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
+
+
+component_gen:
+  system: |-
+    You are a Kaggle Grander Master. You are going to provide a solution for a kaggle competition.
+
+    Here is the description of the competition scenario
+    ```
+    {{ scenario }}
+    ```
+
+    # Here is the current best version of implementation.
+    {{sota_exp_desc}}
+
+    {% if last_exp_diff %}
+    # Here is the latest version of implementation different from the sota_exp_desc
+    {{ last_exp_diff }}
+    {% endif %}
+
+    You will be provided the feedback for the latest implementation.
+
+    Please select the component you are going to improve the latest implementation or sota implementation.
+
+    Please generate the output following the format below:
+    {{ component_output_format }}
+
+  user: |-
+    {{ exp_and_feedback_desc }}
+
+
+exp_and_feedback: |-
+  {% for experiment, feedback in trace.hist[-10:] %}
+  ## Experiment {{ loop.index }}
+  Experiment are focusing on task: {{experiment.pending_tasks_list[0][0]}}
+  {% if experiment.hypothesis %}
+  The experiment is design driven by hypothesis : {{ experiment.hypothesis }}
+  Observation on the result with the hypothesis: {{ feedback.observations }}
+  {% endif %}
+  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
+  Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
+  {% endfor %}
+
+hypothesis_specification: |-
+  Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the performance' is specific and actionable.
+  Your hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether your hypothesis is right on this specific competition.
+  {{ sota_solution}}
+
+output_format:
+  component: |-
+    {
+      "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
+    }
+  hypothesis: |-
+    The output should follow JSON format. The schema is as follows:
+    {
+      "component": "If "hypothesis_specification" provides the component you need to take, please follow "hypothesis_specification" to choose the component. Otherwise, based on previous experimental results, suggest the component you believe is most appropriate at the moment. It should be one of ["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]",
+      "hypothesis": "The new hypothesis generated based on the information provided.",
+      "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
+      "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
+      "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & success).",
+      "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
+      "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
+    }
+  data_loader: |-
+    According to the hypothesis, please help user design one data loader task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "description of the overall data loader for the data science workflow",
+        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+    }
+  feature: |-
+    According to the hypothesis, please help user design one or more feature engineering tasks.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "description of feature engineering task",
+        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
+    }
+  model: |-
+    According to the hypothesis, please help user design one model task.
+    The output should follow JSON format. The schema is as follows: 
+    {
+        "model_name": "model name, must start with 'model_' and only contain letters, numbers, and underscores",
+        "description": "A detailed description of the model",
+        "extra_params":
+        {
+          "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
+          "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
+          "hyperparameters": {
+            "hyperparameter_name_1": "value of hyperparameter 1",
+            "hyperparameter_name_2": "value of hyperparameter 2",
+            "hyperparameter_name_3": "value of hyperparameter 3"
+          },
+        },
+    }
+    Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
+  ensemble: |-
+    According to the hypothesis, please help user design one ensemble task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "A detailed description of the ensemble",
+    }
+  workflow: |-
+    According to the hypothesis, please help user design one workflow task.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "description": "A detailed description of the workflow",
+    }

@@ -1,0 +1,78 @@
+scenario_description: |-
+  ------Background of the scenario------
+  {{background}}
+
+  ------The expected output & submission format specifications------
+  {{submission_specifications}}
+
+  {% if evaluation is not none %}
+  ------Evaluation------
+  {{evaluation}}
+  {% endif %}
+
+  The evaluation metrics used is directed as:
+  {% if metric_direction %}The metric is better when it is bigger. 
+  {% else %}The metric is better when it is smaller.
+  {% endif %}
+
+competition_description_template:
+  system: |-
+    You are a data science assistant that extracts structured information from unstructured text.
+    The user will provide you a Kaggle competition description, and you need to extract specific details from it.
+    For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
+    Please answer in Json format with the following schema:
+    {
+      "Task Type": "The type of competition task, e.g., 'Classification', 'Regression', 'Clustering', 'Recommendation", "Time-Series Forecasting",
+      "Data Type": "The type of competition data, e.g., 'Tabular', 'Time Series', 'Text (Natural Language Processing)', 'Image (Computer Vision)', 'Audio', 'Video'", 
+      "Brief Description": "A brief description of the competition",
+      "Dataset Description": "The dataset utilized in the competition is described based on two sources: the Competition Description, which provides contextual details about the original files, and the Processed Data folder description, which outlines the structure of the dataset after processing. While there may be differences—for instance, original files mentioned in the Competition Description (e.g., .zip files) may have been extracted or restructured—your task is to interpret the new file structure accurately (do not contain any file or folder that is not in Processed Data folder description) and reconcile it with the contextual information from the Competition Description to provide a clear and updated explanation.",
+      "Evaluation Description": "A description of the evaluation used in the competition.",
+      "Submission Specifications": "The submission specification & sample submission file descriptions for the model to output."
+      "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Metric direction": True or False as True means bigger metric number is better, False means smaller is better.
+    }
+  user: |-
+    Competition Description: 
+    {{ competition_raw_description }}
+
+    Processed Data folder description:
+    {{ competition_processed_data_folder_description }}
+    
+    [Note] There may be some discrepancies between the competition description and the processed data folder description. Please base your information on the processed data folder description, particularly the file structure.
+
+
+competition_background: |-
+  You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
+  Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
+  You are dedicated to producing accurate, efficient, and innovative solutions.
+
+  The task type for this competition is {{ task_type }}.
+  The data type used in this competition is {{ data_type }}.
+  Briefly, the competition involves: {{ brief_description }}.
+  The dataset used in this competition is: {{ dataset_description }}.
+  Your goal in this competition is to: {{target_description }}.
+
+rich_style_description: |-
+  ### {{ name }} Agent: Automated Feature Engineering & Model Tuning Evolution
+
+  #### [Overview](#_summary)
+
+  In this scenario, our automated system proposes hypothesis, choose action, implements code, conducts validation, and utilizes feedback in a continuous, iterative process.
+
+  #### {{ name }} Competition info
+
+  Current Competition: {{ competition }}
+
+  #### [Automated R&D](#_rdloops)
+
+  - **[R (Research)](#_research)**
+  - Iteration of ideas and hypotheses.
+  - Continuous learning and knowledge construction.
+
+  - **[D (Development)](#_development)**
+  - Evolving code generation, model refinement, and features generation.
+  - Automated implementation and testing of models/features.
+
+  #### [Objective](#_summary)
+
+  To automatically optimize performance metrics within the validation set, ultimately discovering the most efficient features and models through autonomous research and development.

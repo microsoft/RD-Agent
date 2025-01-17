@@ -16,6 +16,7 @@ from rdagent.components.coder.model_coder.model import (
     ModelFBWorkspace,
     ModelTask,
 )
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
@@ -28,6 +29,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         self,
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge = None,
+        workspace: FBWorkspace | None = None,
     ) -> str:
         model_information_str = target_task.get_task_information()
 
@@ -102,5 +104,5 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = ModelFBWorkspace(target_task=evo.sub_tasks[index])
-            evo.sub_workspace_list[index].inject_code(**{"model.py": code_list[index]})
+            evo.sub_workspace_list[index].inject_files(**{"model.py": code_list[index]})
         return evo

@@ -34,7 +34,7 @@ class KGFBWorkspace(FBWorkspace):
     @property
     def model_description(self) -> dict[str, str]:
         model_description = {}
-        for k, v in self.code_dict.items():
+        for k, v in self.file_dict.items():
             if k.startswith("model/"):
                 model_description[k] = v
         return model_description
@@ -62,7 +62,7 @@ class KGFBWorkspace(FBWorkspace):
                 else None
             ),
         )
-        if results is None:
+        if len(results) == 0:
             logger.error("Feature preprocess failed.")
             raise Exception("Feature preprocess failed.")
         else:

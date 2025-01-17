@@ -82,7 +82,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]: ...
 
     @abstractmethod
-    def convert_response(self, response: str, trace: Trace) -> Experiment: ...
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> Experiment: ...
 
     def convert(self, hypothesis: Hypothesis, trace: Trace) -> Experiment:
         context, json_flag = self.prepare_context(hypothesis, trace)
@@ -109,7 +109,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=json_flag)
 
-        return self.convert_response(resp, trace)
+        return self.convert_response(resp, hypothesis, trace)
 
 
 class FactorHypothesis2Experiment(LLMHypothesis2Experiment):

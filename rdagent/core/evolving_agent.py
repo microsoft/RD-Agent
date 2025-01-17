@@ -31,7 +31,7 @@ class EvoAgent(ABC):
     def filter_evolvable_subjects_by_feedback(
         self,
         evo: EvolvableSubjects,
-        feedback: Feedback | None,
+        feedback: Feedback | list[Feedback] | None,
     ) -> EvolvableSubjects: ...
 
 
@@ -59,6 +59,7 @@ class RAGEvoAgent(EvoAgent):
         filter_final_evo: bool = False,
     ) -> EvolvableSubjects:
         for _ in tqdm(range(self.max_loop), "Implementing"):
+            # with logger.tag(f"evo_loop_{evo_loop_id}"):
             # 1. knowledge self-evolving
             if self.knowledge_self_gen and self.rag is not None:
                 self.rag.generate_knowledge(self.evolving_trace)
@@ -95,6 +96,14 @@ class RAGEvoAgent(EvoAgent):
 
             # 6. update trace
             self.evolving_trace.append(es)
+
+            # 7. check if all tasks are completed
+            if self.with_feedback:
+                all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback
+                if all_completed:
+                    logger.info("All tasks in evolving subject have been completed.")
+                    break
+
         if self.with_feedback and filter_final_evo:
             evo = self.filter_evolvable_subjects_by_feedback(evo, self.evolving_trace[-1].feedback)
         return evo

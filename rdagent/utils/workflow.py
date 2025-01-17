@@ -17,7 +17,6 @@ from typing import Callable
 
 from tqdm.auto import tqdm
 
-from rdagent.core.exception import CoderError
 from rdagent.log import rdagent_logger as logger
 
 
@@ -54,7 +53,7 @@ class LoopMeta(type):
         """
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
-            if not name.startswith("__") and isinstance(attr, Callable):
+            if not name.startswith("_") and isinstance(attr, Callable):
                 if name not in steps:
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
@@ -67,16 +66,24 @@ class LoopMeta(type):
 class LoopTrace:
     start: datetime.datetime  # the start time of the trace
     end: datetime.datetime  # the end time of the trace
+    step_idx: int
     # TODO: more information about the trace
 
 
 class LoopBase:
+    """
+    Assumption:
+    - The last step is responsible for recording information!!!!
+    """
+
     steps: list[Callable]  # a list of steps to work on
     loop_trace: dict[int, list[LoopTrace]]
 
     skip_loop_error: tuple[Exception] = field(
         default_factory=tuple
     )  # you can define a list of error that will skip current loop
+
+    EXCEPTION_KEY = "_EXCEPTION"
 
     def __init__(self):
         self.loop_idx = 0  # current loop index
@@ -103,30 +110,30 @@ class LoopBase:
 
                 li, si = self.loop_idx, self.step_idx
 
-                start = datetime.datetime.now(datetime.timezone.utc)
-
                 name = self.steps[si]
+                # with logger.tag(f"Loop_{li}.{name}"):
+                start = datetime.datetime.now(datetime.timezone.utc)
                 func = getattr(self, name)
                 try:
                     self.loop_prev_out[name] = func(self.loop_prev_out)
                     # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
                 except self.skip_loop_error as e:
+                    # FIXME: This does not support previous demo (due to their last step is not for recording)
                     logger.warning(f"Skip loop {li} due to {e}")
-                    self.loop_idx += 1
-                    self.step_idx = 0
+                    # NOTE: strong assumption!  The last step is responsible for recording information
+                    self.step_idx = len(self.steps) - 1  # directly jump to the last step.
+                    self.loop_prev_out[self.EXCEPTION_KEY] = e
                     continue
-                except CoderError as e:
-                    logger.warning(f"Traceback loop {li} due to {e}")
-                    self.step_idx = 0
-                    continue
+                finally:
+                    # make sure failure steps are displayed correclty
+                    end = datetime.datetime.now(datetime.timezone.utc)
+                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
-                end = datetime.datetime.now(datetime.timezone.utc)
-
-                self.loop_trace[li].append(LoopTrace(start, end))
-
-                # Update tqdm progress bar
-                pbar.set_postfix(loop_index=li, step_index=si, step_name=name)
-                pbar.update(1)
+                    # Update tqdm progress bar directly to step_idx
+                    pbar.n = si + 1
+                    pbar.set_postfix(
+                        loop_index=li, step_index=si + 1, step_name=name
+                    )  # step_name indicate  last finished step_name
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)

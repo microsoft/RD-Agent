@@ -25,8 +25,8 @@ KG_hypothesis_gen_RAG: |-
   {% endif %}
 
 hypothesis_and_feedback: |-
-  {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
-  Hypothesis {{ loop.index }}: {{ hypothesis }}
+  {% for experiment, feedback in trace.hist[-10:] %}
+  Hypothesis {{ loop.index }}: {{ experiment.hypothesis }}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
@@ -225,7 +225,7 @@ model_tuning_feedback_generation:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. Suggest improvements or new directions. Stay innovative and adapative.
+    3. Suggest improvements or new directions. Stay innovative and adaptive.
 
     Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
     Example JSON Structure for Result Analysis:
@@ -343,7 +343,7 @@ gen_knowledge_from_code_mini_case:
     You were a proficient data scientist.
   user: |-
     The following notebook (contain markdown part and code part) is a high-performing solution for a kaggle competition.
-    Please answer the following questions one by one and **as detailedly as possible**.
+    Please answer the following questions one by one and **as detailed as possible**.
     Make sure that another data scientist can exactly reproduce this copy of code based on your answer.
     Focus on the training process.
 

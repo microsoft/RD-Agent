@@ -2,13 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import Field
+
 from rdagent.core.conf import ExtendedBaseSettings
 
 
 class LLMSettings(ExtendedBaseSettings):
+    # backend
+    backend: str = "rdagent.oai.backend.DeprecBackend"
+
     log_llm_chat_content: bool = True
 
-    use_azure: bool = False
+    use_azure: bool = Field(default=False, deprecated=True)
+    chat_use_azure: bool = False
+    embedding_use_azure: bool = False
+
     chat_use_azure_token_provider: bool = False
     embedding_use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
@@ -24,7 +32,7 @@ class LLMSettings(ExtendedBaseSettings):
     # Behavior of returning answers to the same question when caching is enabled
     use_auto_chat_cache_seed_gen: bool = False
     """
-    `_create_chat_completion_inner_function` provdies a feature to pass in a seed to affect the cache hash key
+    `_create_chat_completion_inner_function` provides a feature to pass in a seed to affect the cache hash key
     We want to enable a auto seed generator to get different default seed for `_create_chat_completion_inner_function`
     if seed is not given.
     So the cache will only not miss you ask the same question on same round.
@@ -33,7 +41,8 @@ class LLMSettings(ExtendedBaseSettings):
 
     # Chat configs
     openai_api_key: str = ""  # TODO: simplify the key design.
-    chat_openai_api_key: str = ""
+    chat_openai_api_key: str | None = None
+    chat_openai_base_url: str | None = None  #
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
     chat_model: str = "gpt-4-turbo"
@@ -50,6 +59,7 @@ class LLMSettings(ExtendedBaseSettings):
 
     # Embedding configs
     embedding_openai_api_key: str = ""
+    embedding_openai_base_url: str = ""
     embedding_azure_api_base: str = ""
     embedding_azure_api_version: str = ""
     embedding_model: str = ""

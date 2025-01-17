@@ -26,7 +26,7 @@ We use a runnable concrete example to demonstrate what the project should be lik
 
 
 ## Step1: write the feature engineering code
-- We can generate some file like [[feat01.py]] that match the pattern `feat.*\.py`
+- We can generate some file like [[feature.py]] that match the pattern `feat.*\.py`
 
 ## Step2: Model training
 

@@ -8,6 +8,7 @@ loguru
 fire
 fuzzywuzzy
 openai
+azure.identity
 
 numpy # we use numpy as default data format. So we have to install numpy
 pandas # we use pandas as default data format. So we have to install pandas

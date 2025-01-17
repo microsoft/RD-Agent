@@ -7,16 +7,15 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.developer import Developer
-from rdagent.core.exception import FactorEmptyError, ModelEmptyError
+from rdagent.core.exception import CoderError, FactorEmptyError, ModelEmptyError
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     Hypothesis2Experiment,
-    HypothesisExperiment2Feedback,
     HypothesisGen,
 )
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.time import measure_time
 from rdagent.scenarios.kaggle.experiment.scenario import (
     KG_ACTION_FEATURE_ENGINEERING,
     KG_ACTION_FEATURE_PROCESSING,
@@ -28,7 +27,6 @@ from rdagent.scenarios.kaggle.proposal.proposal import KGTrace
 
 
 class KaggleRDLoop(RDLoop):
-    @measure_time
     def __init__(self, PROP_SETTING: BasePropSetting):
         with logger.tag("init"):
             scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
@@ -55,27 +53,31 @@ class KaggleRDLoop(RDLoop):
             logger.log_object(self.feature_runner, tag="feature runner")
             self.model_runner: Developer = import_class(PROP_SETTING.model_runner)(scen)
             logger.log_object(self.model_runner, tag="model runner")
-            self.summarizer: HypothesisExperiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+            self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
             logger.log_object(self.summarizer, tag="summarizer")
             self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
             super(RDLoop, self).__init__()
 
-    @measure_time
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
-                exp = self.feature_coder.develop(prev_out["exp_gen"])
-            elif prev_out["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
-                exp = self.model_feature_selection_coder.develop(prev_out["exp_gen"])
+            if prev_out["direct_exp_gen"]["propose"].action in [
+                KG_ACTION_FEATURE_ENGINEERING,
+                KG_ACTION_FEATURE_PROCESSING,
+            ]:
+                exp = self.feature_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            elif prev_out["direct_exp_gen"]["propose"].action == KG_ACTION_MODEL_FEATURE_SELECTION:
+                exp = self.model_feature_selection_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             else:
-                exp = self.model_coder.develop(prev_out["exp_gen"])
+                exp = self.model_coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
-    @measure_time
     def running(self, prev_out: dict[str, Any]):
         with logger.tag("ef"):  # evaluate and feedback
-            if prev_out["propose"].action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
+            if prev_out["direct_exp_gen"]["propose"].action in [
+                KG_ACTION_FEATURE_ENGINEERING,
+                KG_ACTION_FEATURE_PROCESSING,
+            ]:
                 exp = self.feature_runner.develop(prev_out["coding"])
             else:
                 exp = self.model_runner.develop(prev_out["coding"])
@@ -113,7 +115,7 @@ class KaggleRDLoop(RDLoop):
 
         return exp
 
-    skip_loop_error = (ModelEmptyError, FactorEmptyError)
+    skip_loop_error = (ModelEmptyError, FactorEmptyError, CoderError)
 
 
 def main(path=None, step_n=None, competition=None):
@@ -126,7 +128,7 @@ def main(path=None, step_n=None, competition=None):
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
-        download_data(competition=competition, local_path=KAGGLE_IMPLEMENT_SETTING.local_data_path)
+        download_data(competition=competition, settings=KAGGLE_IMPLEMENT_SETTING)
         if KAGGLE_IMPLEMENT_SETTING.if_using_graph_rag:
             KAGGLE_IMPLEMENT_SETTING.knowledge_base = (
                 "rdagent.scenarios.kaggle.knowledge_management.graph.KGKnowledgeGraph"

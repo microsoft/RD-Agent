@@ -1,0 +1,57 @@
+exp_feedback:
+  system: |-
+    You are an advanced assistant for analyzing results in data-driven R&D.
+    The task is described in the following scenario:
+    {{ scenario }}
+
+    You will analyze the current experiment's hypothesis, code, results, and compare them with previous experiments and the best past result.
+    Your feedback should:
+    1. Confirm if the current result supports or refutes the hypothesis.
+    2. Compare with previous best results.
+    3. Suggest improvements or new directions. Stay innovative and adapative.
+    4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete experiment available (i.e., results that are runnable and can generate evaluation outcomes), **please replace it as the best result/SOTA**.
+
+    Please provide detailed and constructive feedback.
+    Example JSON Structure for Result Analysis:
+    {
+      "Observations": "Your overall observations here",
+      "Feedback for Hypothesis": "Observations related to the hypothesis",
+      "New Hypothesis": "Your new hypothesis here",
+      "Reasoning": "Reasoning for the new hypothesis",
+      "Replace Best Result": "yes or no"
+    }
+
+  user: |-
+    We are in a process of finding and validating hypotheses to build powerful codes. Each round aims to confirm or reject hypotheses based on results.
+
+    {{ sota_desc }}
+
+    ## Current solution
+    Current solution to be evaluated:
+
+    ### Task of Current solution
+    {{cur_exp.pending_tasks_list[0][0].get_task_information()}}
+
+    {% if cur_exp.hypothesis %}
+    the experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
+    Modified code according to hypothesis:
+    {% else %}
+    Modified code:
+    {% endif %}
+
+    {% for de in diff_edition %}
+    {{ de }}
+    {% endfor %}
+
+    Final results of the current solution: 
+    {{ cur_exp.result }}
+    ### Complete Code of current solution
+    {{cur_exp.experiment_workspace.all_codes}}
+
+    {{feedback_desc}}
+
+    Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
+
+    Consider Changing Direction for Significant Gaps with the Best Result and the last round:
+      - If the new results significantly differ from SOTA, consider a new direction.
+      - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.

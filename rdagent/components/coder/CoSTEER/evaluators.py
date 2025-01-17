@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
@@ -10,8 +11,52 @@ from rdagent.core.scenario import Task
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 
+# TODO:
+# 1. It seems logically sound, but we currently lack a scenario to apply it.
+# 2. If it proves to be useful, relocate it to a more general location.
+#
+# class FBWorkspaceExeFeedback(Feedback):
+#     """
+#     It pairs with FBWorkspace in the abstract level.
+#     """
+#     # ws: FBWorkspace   # potential
+#     stdout: str
 
+
+@dataclass
 class CoSTEERSingleFeedback(Feedback):
+    # TODO: (xiao)
+    # it should be more general class for FBWorkspaceExeFeedback
+    # A better name of it may be NormalFeedback
+    # TODO: It should be a general feeddback for CoSTEERR
+    """
+    The feedback for the data loader evaluation.
+    It is design align the phases of the implemented code
+    - Execution -> Return Value -> Code -> Final Decision
+    """
+    execution: str
+    # execution_feedback
+    return_checking: str | None  # including every check in the testing (constraints about the generated value)
+    # value_feedback, shape_feedback, value_generated_flag
+    code: str
+    final_decision: bool
+
+    def __str__(self) -> str:
+        return f"""------------------Execution------------------
+{self.execution}
+------------------Return Checking------------------
+{self.return_checking if self.return_checking is not None else 'No return checking'}
+------------------Code------------------
+{self.code}
+------------------Final Decision------------------
+This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
+"""
+
+    def __bool__(self):
+        return self.final_decision
+
+
+class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
     """This class is a base class for all code generator feedback to single implementation"""
 
     def __init__(
@@ -26,13 +71,32 @@ class CoSTEERSingleFeedback(Feedback):
         final_decision_based_on_gt: bool = None,
     ) -> None:
         self.execution_feedback = execution_feedback
-        self.shape_feedback = shape_feedback
         self.code_feedback = code_feedback
         self.value_feedback = value_feedback
         self.final_decision = final_decision
         self.final_feedback = final_feedback
         self.value_generated_flag = value_generated_flag
         self.final_decision_based_on_gt = final_decision_based_on_gt
+
+        # TODO:
+        # Not general enough. So we should not put them in the general costeer feedback
+        # Instead, we should create subclass for it.
+        self.shape_feedback = shape_feedback  # Not general enough. So
+
+    # TODO: @property
+    @property
+    def execution(self):
+        return self.execution_feedback
+
+    @property
+    def return_checking(self):
+        if self.value_generated_flag:
+            return f"value feedback: {self.value_feedback}\n\nshape feedback: {self.shape_feedback}"
+        return None
+
+    @property
+    def code(self):
+        return self.code_feedback
 
     def __str__(self) -> str:
         return f"""------------------Execution Feedback------------------
@@ -73,6 +137,8 @@ class CoSTEEREvaluator(Evaluator):
 
 
 class CoSTEERMultiEvaluator(Evaluator):
+    """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
+
     def __init__(self, single_evaluator: CoSTEEREvaluator, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.single_evaluator = single_evaluator

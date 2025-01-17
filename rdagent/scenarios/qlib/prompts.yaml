@@ -1,7 +1,7 @@
 hypothesis_and_feedback: |-
-  {% for hypothesis, experiment, feedback in trace.hist[-10:] %}
-  Hypothesis {{ loop.index }}: {{ hypothesis }}
-  Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].code_dict.get("model.py")}}
+  {% for experiment, feedback in trace.hist[-10:] %}
+  Hypothesis {{ loop.index }}: {{ experiment.hypothesis }}
+  Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].file_dict.get("model.py")}}
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   New Feedback for Context (For you to agree or improve upon):  {{ feedback.new_hypothesis }}
@@ -258,7 +258,7 @@ model_feedback_generation:
     Now let's come to this round. You will receive the result and you will evaluate if the performance increases or decreases. 
     Hypothesis: {{hypothesis.hypothesis}}
     Experiment Setup: {{exp.sub_tasks[0]}}
-    Code Implemented: {{exp.sub_workspace_list[0].code_dict.get("model.py")}}
+    Code Implemented: {{exp.sub_workspace_list[0].file_dict.get("model.py")}}
     Relevant Reasoning: {{hypothesis.reason}}
     Result: {{exp.result}}
 

@@ -8,8 +8,8 @@ from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
+    Experiment2Feedback,
     Hypothesis,
-    HypothesisExperiment2Feedback,
     HypothesisFeedback,
     Trace,
 )
@@ -22,7 +22,7 @@ prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
+class KGExperiment2Feedback(Experiment2Feedback):
     def process_results(self, current_result, sota_result):
         # Convert the results to dataframes
         current_df = pd.DataFrame(current_result)
@@ -46,7 +46,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         return combined_df, evaluation_description
 
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
         The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
         For example: `mlflow` of Qlib will be included.
@@ -60,6 +60,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         Returns:
             Any: The feedback generated for the given experiment and hypothesis.
         """
+        hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
         current_result = exp.result
 
@@ -105,12 +106,12 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         if hypothesis.action == "Model tuning":
             current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].code
         elif hypothesis.action == "Model feature selection":
-            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.code_dict[
+            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.file_dict[
                 KG_SELECT_MAPPING[exp.sub_tasks[0].model_type]
             ]
         else:
             current_sub_exps_to_code = {
-                sub_ws.target_task.get_task_information(): sub_ws.code for sub_ws in exp.sub_workspace_list
+                sub_ws.target_task.get_task_information(): sub_ws.all_codes for sub_ws in exp.sub_workspace_list
             }
         current_sub_exps_to_code_str = json.dumps(current_sub_exps_to_code, indent=2)
         current_result = exp.result
@@ -118,7 +119,7 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
 
         last_hypothesis_and_feedback = None
         if trace.hist and len(trace.hist) > 0:
-            last_hypothesis_and_feedback = (trace.hist[-1][0], trace.hist[-1][2])
+            last_hypothesis_and_feedback = (trace.hist[-1][0].hypothesis, trace.hist[-1][1])
 
         # Prepare render dictionary
         render_dict = {
@@ -156,16 +157,16 @@ class KGHypothesisExperiment2Feedback(HypothesisExperiment2Feedback):
         new_hypothesis = response_json.get("New Hypothesis", "No new hypothesis provided")
         reason = response_json.get("Reasoning", "No reasoning provided")
         decision = convert2bool(response_json.get("Replace Best Result", "no"))
-        leaderboard = self.scen.leaderboard
-        current_score = current_result.iloc[0]
-        sorted_scores = sorted(leaderboard, reverse=True)
-        import bisect
+        # leaderboard = self.scen.leaderboard
+        # current_score = current_result.iloc[0]
+        # sorted_scores = sorted(leaderboard, reverse=True)
+        # import bisect
 
-        if self.scen.evaluation_metric_direction:
-            insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
-        else:
-            insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
-        percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
+        # if self.scen.evaluation_metric_direction:
+        #     insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
+        # else:
+        #     insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
+        # percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
 
         experiment_feedback = {
             "hypothesis_text": current_hypothesis,

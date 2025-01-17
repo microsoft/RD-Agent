@@ -1,0 +1,65 @@
+"""
+A qualified ensemble implementation should:
+- Successfully run
+- Return predictions
+- Have correct shapes for inputs and outputs
+- Use validation data appropriately
+"""
+
+import numpy as np
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+from load_data import load_data
+from feature import feat_eng
+from ensemble import ens_and_decision
+
+X, y, test_X, test_ids = load_data()
+X, y, test_X = feat_eng(X, y, test_X)
+train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
+
+test_preds_dict = {}
+val_preds_dict = {}
+{% for mn in model_names %}
+from {{mn}} import model_workflow as {{mn}}_workflow
+val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
+    X=train_X,
+    y=train_y,
+    val_X=val_X,
+    val_y=val_y,
+    test_X=test_X
+)
+{% endfor %}
+
+for key in val_preds_dict.keys():
+    if val_preds_dict[key] is None: 
+        print(f"Model {key} validation predictions (val_preds_dict[key]) is None.")
+    elif isinstance(val_preds_dict[key], list):
+        print(f"Model {key} validation predictions (val_preds_dict[key]) (list type) length: {len(val_preds_dict[key])}")
+    else:
+        print(f"Model {key} validation predictions (val_preds_dict[key]) shape: {val_preds_dict[key].shape}")
+
+    if test_preds_dict[key] is None: 
+        print(f"Model {key} test predictions (test_preds_dict[key]) is None.")
+    elif isinstance(test_preds_dict[key], list):
+        print(f"Model {key} test predictions (test_preds_dict[key]) (list type) length: {len(test_preds_dict[key])}")
+    else:
+        print(f"Model {key} test predictions (test_preds_dict[key]) shape: {test_preds_dict[key].shape}")
+
+# Run ensemble
+final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
+
+# Check shape
+if isinstance(final_pred, list):
+    assert len(final_pred) == len(test_X), (
+        f"Wrong output sample size: len(final_pred) ({len(final_pred)}) and len(test_X) ({len(test_X)})"
+    )
+else:
+    assert final_pred.shape[0] == test_X.shape[0], (
+        f"Wrong output sample size: final_pred.shape[0] ({final_pred.shape[0]}) and test_X.shape[0] ({test_X.shape[0]})"
+    )
+
+# check if scores.csv is generated
+assert Path("scores.csv").exists(), "scores.csv is not generated"
+
+print("Ensemble test passed successfully.")
+print(f"Output shape: {final_pred.shape}")

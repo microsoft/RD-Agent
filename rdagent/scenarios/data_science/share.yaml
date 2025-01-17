@@ -1,0 +1,38 @@
+describe: # some template to describe some object
+  # exp is a template used fo
+  exp: |-
+    ## {{ heading | default('Best solution of previous exploration of the scenario') }}
+    {% if exp %}
+    ### Code
+    Here is the complete code of the solution.
+    {{ exp.experiment_workspace.all_codes }}
+
+    {% if exp.hypothesis is not none %}
+    ### Hypothesis for the experiment
+    the experiment is designed based on hypothesis: {{exp.hypothesis}}
+    {% endif %}
+
+    ### Results
+    {% if exp.result is none %}
+    There are no according evaluation results
+    {% else %}
+    Evaluated results on validation is:
+    {{ exp.result }}
+    {% endif %}
+
+    {% else %}
+    No previous complete experiment available.
+    {% endif %}
+
+  feedback: |-
+    {% if exp_and_feedback and exp_and_feedback|length > 1 %}
+    ## {{heading | default('Previous trial and feedback')}}
+    Before current trial, a previous recent trial is listed below.
+    {% if exp_and_feedback[0].hypothesis %}
+    the experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
+    {% endif %}
+    ### Task of previous trial
+    {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+    feedback decision: {{ exp_and_feedback[1].decision }}
+    reason: {{ exp_and_feedback[1].reason }}
+    {% endif %}

@@ -34,12 +34,16 @@ class FactorTask(CoSTEERTask):
         self.factor_name = (
             factor_name  # TODO: remove it in the later version. Keep it only for pickle version compatibility
         )
-        self.factor_description = factor_description
         self.factor_formulation = factor_formulation
         self.variables = variables
         self.factor_resources = resource
         self.factor_implementation = factor_implementation
-        super().__init__(name=factor_name, *args, **kwargs)
+        super().__init__(name=factor_name, description=factor_description, *args, **kwargs)
+
+    @property
+    def factor_description(self):
+        """for compatibility"""
+        return self.description
 
     def get_task_information(self):
         return f"""factor_name: {self.factor_name}
@@ -88,8 +92,8 @@ class FactorFBWorkspace(FBWorkspace):
 
     def hash_func(self, data_type: str = "Debug") -> str:
         return (
-            md5_hash(data_type + self.code_dict["factor.py"])
-            if ("factor.py" in self.code_dict and not self.raise_exception)
+            md5_hash(data_type + self.file_dict["factor.py"])
+            if ("factor.py" in self.file_dict and not self.raise_exception)
             else None
         )
 
@@ -114,7 +118,7 @@ class FactorFBWorkspace(FBWorkspace):
 
         """
         super().execute()
-        if self.code_dict is None or "factor.py" not in self.code_dict:
+        if self.file_dict is None or "factor.py" not in self.file_dict:
             if self.raise_exception:
                 raise CodeFormatError(self.FB_CODE_NOT_SET)
             else:

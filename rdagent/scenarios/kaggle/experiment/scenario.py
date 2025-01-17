@@ -39,7 +39,7 @@ class KGScenario(Scenario):
     def __init__(self, competition: str) -> None:
         super().__init__()
         self.competition = competition
-        self.competition_descriptions = crawl_descriptions(competition)
+        self.competition_descriptions = crawl_descriptions(competition, KAGGLE_IMPLEMENT_SETTING.local_data_path)
         self.input_shape = None
 
         self.competition_type = None
@@ -125,7 +125,7 @@ class KGScenario(Scenario):
         background_template = prompt_dict["kg_background"]
 
         train_script = (
-            Path(__file__).parent / f"{KAGGLE_IMPLEMENT_SETTING.competition}_template" / "train.py"
+            Path(__file__).parent / "templates" / KAGGLE_IMPLEMENT_SETTING.competition / "train.py"
         ).read_text()
 
         background_prompt = (

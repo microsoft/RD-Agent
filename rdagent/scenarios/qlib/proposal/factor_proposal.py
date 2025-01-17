@@ -65,7 +65,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        experiment_list: List[FactorExperiment] = [t[1] for t in trace.hist]
+        experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist]
 
         factor_list = []
         for experiment in experiment_list:
@@ -80,7 +80,7 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             "RAG": None,
         }, True
 
-    def convert_response(self, response: str, trace: Trace) -> FactorExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> FactorExperiment:
         response_dict = json.loads(response)
         tasks = []
 
@@ -97,8 +97,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
                 )
             )
 
-        exp = QlibFactorExperiment(tasks)
-        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[1] for t in trace.hist if t[2]]
+        exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
+        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [t[0] for t in trace.hist if t[1]]
 
         unique_tasks = []
 

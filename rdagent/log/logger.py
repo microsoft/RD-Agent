@@ -1,4 +1,6 @@
+import json
 import os
+import pickle
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -112,6 +114,21 @@ class RDAgentLog(SingletonBaseClass):
         # TODO: I think we can merge the log_object function with other normal log methods to make the interface simpler.
         caller_info = get_caller_info()
         tag = f"{self._tag}.{tag}.{self.get_pids()}".strip(".")
+
+        # FIXME: it looks like a hacking... We should redesign it...
+        if "debug_" in tag:
+            debug_log_path = self.log_trace_path / "debug_llm.pkl"
+            debug_data = {"tag": tag, "obj": obj}
+            if debug_log_path.exists():
+                with debug_log_path.open("rb") as f:
+                    existing_data = pickle.load(f)
+                existing_data.append(debug_data)
+                with debug_log_path.open("wb") as f:
+                    pickle.dump(existing_data, f)
+            else:
+                with debug_log_path.open("wb") as f:
+                    pickle.dump([debug_data], f)
+            return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")
 

@@ -204,7 +204,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
     .. code-block:: python
 
         class KGHypothesisGen(ModelHypothesisGen):
-            prompts: Prompts = a_specifc_prompt_dict
+            prompts: Prompts = a_specific_prompt_dict
     """
 
     def __init__(self, scen: Scenario) -> Tuple[dict, bool]:
@@ -233,7 +233,7 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
             reward = (performance_t - performance_t_minus_1) / performance_t_minus_1
             n_o = self.scen.action_counts[last_action]
             mu_o = self.scen.reward_estimates[last_action]
-            self.scen.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
+            self.scen.reward_estimates[last_action] += (reward - mu_o) / n_o
         else:
             # First iteration, nothing to update
             pass
@@ -276,11 +276,11 @@ class KGHypothesisGen(FactorAndModelHypothesisGen):
 
         hypothesis_specification = f"Hypothesis should avoid being too general and vague, and should be specific and actionable. For example, hypothesis like 'tune a model' is too general, while hypothesis like 'increase the learning rate to 0.1 of the lightgbm model will improve the performance' is specific and actionable."
         if len(trace.hist) > 0:
-            sota_features = str(trace.hist[-1][1].based_experiments[-1].experiment_workspace.data_description)
+            sota_features = str(trace.hist[-1][0].based_experiments[-1].experiment_workspace.data_description)
             sota_models = json.dumps(
-                trace.hist[-1][1].based_experiments[-1].experiment_workspace.model_description, indent=2
+                trace.hist[-1][0].based_experiments[-1].experiment_workspace.model_description, indent=2
             )
-            sota_result = trace.hist[-1][1].based_experiments[-1].result
+            sota_result = trace.hist[-1][0].based_experiments[-1].result
             hypothesis_specification += f"\nYour hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether your hypothesis is right on this specific ecompetition. \n\nSOTA Features: {sota_features}\n\nSOTA Models: {sota_models}\n\nSOTA Result: {sota_result}"
         if self.scen.if_action_choosing_based_on_UCB:
             hypothesis_specification += (
@@ -340,7 +340,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        experiment_list: List[ModelExperiment] = [t[1] for t in trace.hist]
+        experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
 
         model_list = []
         for experiment in experiment_list:
@@ -362,7 +362,7 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             ),
         }, True
 
-    def convert_feature_experiment(self, response: str, trace: Trace) -> KGFactorExperiment:
+    def convert_feature_experiment(self, response: str, hypothesis: Hypothesis, trace: Trace) -> KGFactorExperiment:
         response_dict = json.loads(response)
         tasks = []
 
@@ -384,12 +384,13 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             sub_tasks=tasks,
             based_experiments=(
                 [KGFactorExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])]
-                + [t[1] for t in trace.hist if t[2]]
+                + [t[0] for t in trace.hist if t[1]]
             ),
+            hypothesis=hypothesis,
         )
         return exp
 
-    def convert_model_experiment(self, response: str, trace: Trace) -> KGModelExperiment:
+    def convert_model_experiment(self, response: str, hypothesis: Hypothesis, trace: Trace) -> KGModelExperiment:
         response_dict = json.loads(response)
         tasks = []
         model_type = response_dict.get("model_type", "Model type not provided")
@@ -399,11 +400,11 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
             )
 
         based_experiments = [KGModelExperiment(sub_tasks=[], source_feature_size=trace.scen.input_shape[-1])] + [
-            t[1] for t in trace.hist if t[2]
+            t[0] for t in trace.hist if t[1]
         ]
         model_type = response_dict.get("model_type", "Model type not provided")
         if model_type in KG_MODEL_MAPPING:
-            base_code = based_experiments[-1].experiment_workspace.code_dict.get(KG_MODEL_MAPPING[model_type], None)
+            base_code = based_experiments[-1].experiment_workspace.file_dict.get(KG_MODEL_MAPPING[model_type], None)
         else:
             base_code = None
 
@@ -421,14 +422,15 @@ class KGHypothesis2Experiment(FactorAndModelHypothesis2Experiment):
         exp = KGModelExperiment(
             sub_tasks=tasks,
             based_experiments=based_experiments,
+            hypothesis=hypothesis,
         )
         return exp
 
-    def convert_response(self, response: str, trace: Trace) -> ModelExperiment:
+    def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
         if self.current_action in [KG_ACTION_FEATURE_ENGINEERING, KG_ACTION_FEATURE_PROCESSING]:
-            return self.convert_feature_experiment(response, trace)
+            return self.convert_feature_experiment(response, hypothesis, trace)
         elif self.current_action in [KG_ACTION_MODEL_FEATURE_SELECTION, KG_ACTION_MODEL_TUNING]:
-            return self.convert_model_experiment(response, trace)
+            return self.convert_model_experiment(response, hypothesis, trace)
 
 
 class KGTrace(Trace[KGScenario, KGKnowledgeGraph]):

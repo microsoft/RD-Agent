@@ -357,7 +357,7 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
     hover_texts = [
         hypothesis_hover_text(state.hypotheses[int(i[6:])], state.h_decisions[int(i[6:])])
         for i in df.index
-        if i != "alpha158"
+        if i != "alpha158" and i != "Baseline"
     ]
     if state.alpha158_metrics is not None:
         hover_texts = ["Baseline: alpha158"] + hover_texts
@@ -457,7 +457,7 @@ def summary_window():
                 for j, w in enumerate(ws):
                     with wtabs[j]:
                         # Evolving Code
-                        for k, v in w.code_dict.items():
+                        for k, v in w.file_dict.items():
                             with st.expander(f":green[`{k}`]", expanded=False):
                                 st.code(v, language="python")
 
@@ -652,7 +652,7 @@ def evolving_window():
             with wtabs[j]:
                 # Evolving Code
                 st.markdown(f"**Workspace Path**: {w.workspace_path}")
-                for k, v in w.code_dict.items():
+                for k, v in w.file_dict.items():
                     with st.expander(f":green[`{k}`]", expanded=True):
                         st.code(v, language="python")
 

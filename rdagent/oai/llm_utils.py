@@ -124,17 +124,13 @@ class SQliteLazyCache(SingletonBaseClass):
         md5_key = md5_hash(key)
         self.c.execute("SELECT chat FROM chat_cache WHERE md5_key=?", (md5_key,))
         result = self.c.fetchone()
-        if result is None:
-            return None
-        return result[0]
+        return None if result is None else result[0]
 
     def embedding_get(self, key: str) -> list | dict | str | None:
         md5_key = md5_hash(key)
         self.c.execute("SELECT embedding FROM embedding_cache WHERE md5_key=?", (md5_key,))
         result = self.c.fetchone()
-        if result is None:
-            return None
-        return json.loads(result[0])
+        return None if result is None else json.loads(result[0])
 
     def chat_set(self, key: str, value: str) -> None:
         md5_key = md5_hash(key)
@@ -143,6 +139,7 @@ class SQliteLazyCache(SingletonBaseClass):
             (md5_key, value),
         )
         self.conn.commit()
+        return None
 
     def embedding_set(self, content_to_embedding_dict: dict) -> None:
         for key, value in content_to_embedding_dict.items():
@@ -153,19 +150,18 @@ class SQliteLazyCache(SingletonBaseClass):
             )
         self.conn.commit()
 
-    def message_get(self, conversation_id: str) -> list[str]:
+    def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
         self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
         result = self.c.fetchone()
-        if result is None:
-            return []
-        return json.loads(result[0])
+        return [] if result is None else json.loads(result[0])
 
-    def message_set(self, conversation_id: str, message_value: list[str]) -> None:
+    def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
         self.c.execute(
             "INSERT OR REPLACE INTO message_cache (conversation_id, message) VALUES (?, ?)",
             (conversation_id, json.dumps(message_value)),
         )
         self.conn.commit()
+        return None
 
 
 class SessionChatHistoryCache(SingletonBaseClass):
@@ -173,10 +169,10 @@ class SessionChatHistoryCache(SingletonBaseClass):
         """load all history conversation json file from self.session_cache_location"""
         self.cache = SQliteLazyCache(cache_location=LLM_SETTINGS.prompt_cache_path)
 
-    def message_get(self, conversation_id: str) -> list[str]:
+    def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
         return self.cache.message_get(conversation_id)
 
-    def message_set(self, conversation_id: str, message_value: list[str]) -> None:
+    def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
         self.cache.message_set(conversation_id, message_value)
 
 
@@ -203,7 +199,7 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt)
         return self.api_backend.calculate_token_from_messages(messages)
 
-    def build_chat_completion(self, user_prompt: str, **kwargs: Any) -> str:
+    def build_chat_completion(self, user_prompt: str, *args, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """
         this function is to build the session messages
         user prompt should always be provided
@@ -211,11 +207,13 @@ class ChatSession:
         messages = self.build_chat_completion_message(user_prompt)
 
         with logger.tag(f"session_{self.conversation_id}"):
-            response = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
+            response: str = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
+                *args,
                 messages=messages,
                 chat_completion=True,
                 **kwargs,
             )
+            logger.log_object({"user": user_prompt, "resp": response}, tag="debug_llm")
 
         messages.append(
             {
@@ -264,7 +262,7 @@ class APIBackend:
             self.generator = Llama.build(
                 ckpt_dir=LLM_SETTINGS.llama2_ckpt_dir,
                 tokenizer_path=LLM_SETTINGS.llama2_tokenizer_path,
-                max_seq_len=LLM_SETTINGS.max_tokens,
+                max_seq_len=LLM_SETTINGS.chat_max_tokens,
                 max_batch_size=LLM_SETTINGS.llams2_max_batch_size,
             )
             self.encoder = None
@@ -307,7 +305,8 @@ class APIBackend:
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.encoder = None
         else:
-            self.use_azure = LLM_SETTINGS.use_azure
+            self.chat_use_azure = LLM_SETTINGS.chat_use_azure or LLM_SETTINGS.use_azure
+            self.embedding_use_azure = LLM_SETTINGS.embedding_use_azure or LLM_SETTINGS.use_azure
             self.chat_use_azure_token_provider = LLM_SETTINGS.chat_use_azure_token_provider
             self.embedding_use_azure_token_provider = LLM_SETTINGS.embedding_use_azure_token_provider
             self.managed_identity_client_id = LLM_SETTINGS.managed_identity_client_id
@@ -330,6 +329,8 @@ class APIBackend:
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.encoder = self._get_encoder()
+            self.chat_openai_base_url = LLM_SETTINGS.chat_openai_base_url
+            self.embedding_openai_base_url = LLM_SETTINGS.embedding_openai_base_url
             self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
             self.chat_api_version = (
                 LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version
@@ -345,44 +346,38 @@ class APIBackend:
                 LLM_SETTINGS.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
             )
 
-            if self.use_azure:
-                if self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider:
-                    dac_kwargs = {}
-                    if self.managed_identity_client_id is not None:
-                        dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
-                    credential = DefaultAzureCredential(**dac_kwargs)
-                    token_provider = get_bearer_token_provider(
-                        credential,
-                        "https://cognitiveservices.azure.com/.default",
-                    )
-                if self.chat_use_azure_token_provider:
-                    self.chat_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.chat_api_version,
-                        azure_endpoint=self.chat_api_base,
-                    )
-                else:
-                    self.chat_client = openai.AzureOpenAI(
-                        api_key=self.chat_api_key,
-                        api_version=self.chat_api_version,
-                        azure_endpoint=self.chat_api_base,
-                    )
+            if (self.chat_use_azure or self.embedding_use_azure) and (
+                self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider
+            ):
+                dac_kwargs = {}
+                if self.managed_identity_client_id is not None:
+                    dac_kwargs["managed_identity_client_id"] = self.managed_identity_client_id
+                credential = DefaultAzureCredential(**dac_kwargs)
+                token_provider = get_bearer_token_provider(
+                    credential,
+                    "https://cognitiveservices.azure.com/.default",
+                )
+            self.chat_client: openai.OpenAI = (
+                openai.AzureOpenAI(
+                    azure_ad_token_provider=token_provider if self.chat_use_azure_token_provider else None,
+                    api_key=self.chat_api_key if not self.chat_use_azure_token_provider else None,
+                    api_version=self.chat_api_version,
+                    azure_endpoint=self.chat_api_base,
+                )
+                if self.chat_use_azure
+                else openai.OpenAI(api_key=self.chat_api_key, base_url=self.chat_openai_base_url)
+            )
 
-                if self.embedding_use_azure_token_provider:
-                    self.embedding_client = openai.AzureOpenAI(
-                        azure_ad_token_provider=token_provider,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
-                    )
-                else:
-                    self.embedding_client = openai.AzureOpenAI(
-                        api_key=self.embedding_api_key,
-                        api_version=self.embedding_api_version,
-                        azure_endpoint=self.embedding_api_base,
-                    )
-            else:
-                self.chat_client = openai.OpenAI(api_key=self.chat_api_key)
-                self.embedding_client = openai.OpenAI(api_key=self.embedding_api_key)
+            self.embedding_client: openai.OpenAI = (
+                openai.AzureOpenAI(
+                    azure_ad_token_provider=token_provider if self.embedding_use_azure_token_provider else None,
+                    api_key=self.embedding_api_key if not self.embedding_use_azure_token_provider else None,
+                    api_version=self.embedding_api_version,
+                    azure_endpoint=self.embedding_api_base,
+                )
+                if self.embedding_use_azure
+                else openai.OpenAI(api_key=self.embedding_api_key, base_url=self.embedding_openai_base_url)
+            )
 
         self.dump_chat_cache = LLM_SETTINGS.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
         self.use_chat_cache = LLM_SETTINGS.use_chat_cache if use_chat_cache is None else use_chat_cache
@@ -401,7 +396,7 @@ class APIBackend:
         self.use_gcr_endpoint = LLM_SETTINGS.use_gcr_endpoint
         self.retry_wait_seconds = LLM_SETTINGS.retry_wait_seconds
 
-    def _get_encoder(self):
+    def _get_encoder(self) -> tiktoken.Encoding:
         """
         tiktoken.encoding_for_model(self.chat_model) does not cover all cases it should consider.
 
@@ -418,15 +413,16 @@ class APIBackend:
 
         model = self.chat_model
         try:
-            return tiktoken.encoding_for_model(model)
+            encoding = tiktoken.encoding_for_model(model)
         except KeyError:
             logger.warning(f"Failed to get encoder. Trying to patch the model name")
             for patch_func in [_azure_patch]:
                 try:
-                    return tiktoken.encoding_for_model(patch_func(model))
+                    encoding = tiktoken.encoding_for_model(patch_func(model))
                 except KeyError:
                     logger.error(f"Failed to get encoder even after patching with {patch_func.__name__}")
                     raise
+        return encoding
 
     def build_chat_session(
         self,
@@ -443,10 +439,10 @@ class APIBackend:
         self,
         user_prompt: str,
         system_prompt: str | None = None,
-        former_messages: list[dict] | None = None,
+        former_messages: list[dict[str, Any]] | None = None,
         *,
         shrink_multiple_break: bool = False,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         build the messages to avoid implementing several redundant lines of code
 
@@ -476,15 +472,15 @@ class APIBackend:
         )
         return messages
 
-    def build_messages_and_create_chat_completion(
+    def build_messages_and_create_chat_completion(  # type: ignore[no-untyped-def]
         self,
         user_prompt: str,
         system_prompt: str | None = None,
         former_messages: list | None = None,
         chat_cache_prefix: str = "",
-        *,
         shrink_multiple_break: bool = False,
-        **kwargs: Any,
+        *args,
+        **kwargs,
     ) -> str:
         if former_messages is None:
             former_messages = []
@@ -494,30 +490,37 @@ class APIBackend:
             former_messages,
             shrink_multiple_break=shrink_multiple_break,
         )
-        return self._try_create_chat_completion_or_embedding(
+
+        resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
+            *args,
             messages=messages,
             chat_completion=True,
             chat_cache_prefix=chat_cache_prefix,
             **kwargs,
         )
+        if isinstance(resp, list):
+            raise ValueError("The response of _try_create_chat_completion_or_embedding should be a string.")
+        logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
+        return resp
 
-    def create_embedding(self, input_content: str | list[str], **kwargs: Any) -> list[Any] | Any:
+    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[Any] | Any:  # type: ignore[no-untyped-def]
         input_content_list = [input_content] if isinstance(input_content, str) else input_content
-        resp = self._try_create_chat_completion_or_embedding(
+        resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             input_content_list=input_content_list,
             embedding=True,
+            *args,
             **kwargs,
         )
         if isinstance(input_content, str):
             return resp[0]
         return resp
 
-    def _create_chat_completion_auto_continue(self, messages: list, **kwargs: dict) -> str:
+    def _create_chat_completion_auto_continue(self, messages: list[dict[str, Any]], *args, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         TODO: This function only continues once, maybe need to continue more than once in the future.
         """
-        response, finish_reason = self._create_chat_completion_inner_function(messages=messages, **kwargs)
+        response, finish_reason = self._create_chat_completion_inner_function(messages, *args, **kwargs)
 
         if finish_reason == "length":
             new_message = deepcopy(messages)
@@ -528,44 +531,47 @@ class APIBackend:
                     "content": "continue the former output with no overlap",
                 },
             )
-            new_response, finish_reason = self._create_chat_completion_inner_function(messages=new_message, **kwargs)
+            new_response, finish_reason = self._create_chat_completion_inner_function(new_message, *args, **kwargs)
             return response + new_response
         return response
 
-    def _try_create_chat_completion_or_embedding(
+    def _try_create_chat_completion_or_embedding(  # type: ignore[no-untyped-def]
         self,
         max_retry: int = 10,
-        *,
         chat_completion: bool = False,
         embedding: bool = False,
-        **kwargs: Any,
-    ) -> Any:
+        *args,
+        **kwargs,
+    ) -> str | list[float]:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         for i in range(max_retry):
             try:
                 if embedding:
-                    return self._create_embedding_inner_function(**kwargs)
+                    return self._create_embedding_inner_function(*args, **kwargs)
                 if chat_completion:
-                    return self._create_chat_completion_auto_continue(**kwargs)
+                    return self._create_chat_completion_auto_continue(*args, **kwargs)
             except openai.BadRequestError as e:  # noqa: PERF203
-                logger.warning(e)
+                logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")
-                if "'messages' must contain the word 'json' in some form" in e.message:
+                if (
+                    "'messages' must contain the word 'json' in some form" in e.message
+                    or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
+                ):
                     kwargs["add_json_in_prompt"] = True
                 elif embedding and "maximum context length" in e.message:
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
             except Exception as e:  # noqa: BLE001
-                logger.warning(e)
+                logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")
                 time.sleep(self.retry_wait_seconds)
         error_message = f"Failed to create chat completion after {max_retry} retries."
         raise RuntimeError(error_message)
 
-    def _create_embedding_inner_function(
-        self, input_content_list: list[str], **kwargs: Any
+    def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
+        self, input_content_list: list[str], *args, **kwargs
     ) -> list[Any]:  # noqa: ARG002
         content_to_embedding_dict = {}
         filtered_input_content_list = []
@@ -584,7 +590,7 @@ class APIBackend:
                 filtered_input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
                 for i in range(0, len(filtered_input_content_list), LLM_SETTINGS.embedding_max_str_num)
             ]:
-                if self.use_azure:
+                if self.embedding_use_azure:
                     response = self.embedding_client.embeddings.create(
                         model=self.embedding_model,
                         input=sliced_filtered_input_content_list,
@@ -601,7 +607,7 @@ class APIBackend:
                     self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
-    def _build_log_messages(self, messages: list[dict]) -> str:
+    def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
         log_messages = ""
         for m in messages:
             log_messages += (
@@ -612,19 +618,20 @@ class APIBackend:
             )
         return log_messages
 
-    def _create_chat_completion_inner_function(  # noqa: C901, PLR0912, PLR0915
+    def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
-        messages: list[dict],
+        messages: list[dict[str, Any]],
         temperature: float | None = None,
         max_tokens: int | None = None,
         chat_cache_prefix: str = "",
         frequency_penalty: float | None = None,
         presence_penalty: float | None = None,
-        *,
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
         seed: Optional[int] = None,
-    ) -> str:
+        *args,
+        **kwargs,
+    ) -> tuple[str, str | None]:
         """
         seed : Optional[int]
             When retrying with cache enabled, it will keep returning the same results.
@@ -670,7 +677,7 @@ class APIBackend:
         finish_reason = None
         if self.use_llama2:
             response = self.generator.chat_completion(
-                messages,  # type: ignore
+                messages,
                 max_gen_len=max_tokens,
                 temperature=temperature,
             )
@@ -699,7 +706,7 @@ class APIBackend:
             if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
-            kwargs = dict(
+            call_kwargs = dict(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
@@ -715,8 +722,8 @@ class APIBackend:
                         message["content"] = message["content"] + "\nPlease respond in json format."
                         if message["role"] == "system":
                             break
-                kwargs["response_format"] = {"type": "json_object"}
-            response = self.chat_client.chat.completions.create(**kwargs)
+                call_kwargs["response_format"] = {"type": "json_object"}
+            response = self.chat_client.chat.completions.create(**call_kwargs)
 
             if self.chat_stream:
                 resp = ""
@@ -762,7 +769,9 @@ class APIBackend:
             self.cache.chat_set(input_content_json, resp)
         return resp, finish_reason
 
-    def calculate_token_from_messages(self, messages: list[dict]) -> int:
+    def calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
+        if self.encoder is None:
+            raise ValueError("Encoder is not initialized.")
         if self.use_llama2 or self.use_gcr_endpoint:
             logger.warning("num_tokens_from_messages() is not implemented for model llama2.")
             return 0  # TODO implement this function for llama2
@@ -787,7 +796,7 @@ class APIBackend:
         self,
         user_prompt: str,
         system_prompt: str | None,
-        former_messages: list[dict] | None = None,
+        former_messages: list[dict[str, Any]] | None = None,
         *,
         shrink_multiple_break: bool = False,
     ) -> int:
@@ -818,4 +827,4 @@ def calculate_embedding_distance_between_str_list(
     target_embeddings_np = target_embeddings_np / np.linalg.norm(target_embeddings_np, axis=1, keepdims=True)
     similarity_matrix = np.dot(source_embeddings_np, target_embeddings_np.T)
 
-    return similarity_matrix.tolist()
+    return similarity_matrix.tolist()  # type: ignore[no-any-return]

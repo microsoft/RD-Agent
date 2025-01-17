@@ -1,0 +1,18 @@
+filter_progress_bar:
+  system: |
+    You are an assistant helping to analyze and filter training log messages and a progress bar output from a given text. Evaluate the text to determine if training log messages and a progress bar output patterns are present and, if so, generate a list of regex patterns to remove them. 
+    Additionally, indicate whether substitution is needed. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
+    Note: About the training log message, if the log message contains useful information like loss or accuracy and it is reported in each epoch, it should not be removed. If the log message is not useful, for example, reporting nan in each iteration or just reporting the iteration number, please remove them.
+
+    Respond in the following JSON format and order:
+    ```json
+    {
+        "needs_sub": <true/false>, 
+        "regex_patterns": ["regex pattern 1", "regex pattern 2", ...]
+    }
+  user: |
+    The following text contains stdout:
+
+    {{ stdout }}
+
+    Check if the text contains training log messages and progress bar patterns. If patterns are found, provide a list of regex patterns to filter them. Otherwise, indicate that substitution is not needed.

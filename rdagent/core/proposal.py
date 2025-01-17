@@ -57,7 +57,34 @@ class Hypothesis:
 # Origin(path of repo/data/feedback) => view/summarization => generated Hypothesis
 
 
-class HypothesisFeedback(Feedback):
+class ExperimentFeedback(Feedback):
+    def __init__(
+        self,
+        decision: bool,
+        reason: str,
+        exception: Exception | None = None,
+    ) -> None:
+        self.decision = decision
+        self.reason = reason
+        self.exception: Exception | None = (
+            exception  # if the experiment raises exception, it will be integrated into part of the feedback.
+        )
+
+    def __bool__(self) -> bool:
+        return self.decision
+
+    def __str__(self) -> str:
+        return f"Decision: {self.decision}\nReason: {self.reason}"
+
+    @classmethod
+    def from_exception(cls, e: Exception) -> ExperimentFeedback:
+        """
+        A convenient method to create Feedback from an exception.
+        """
+        return cls(decision=False, reason=f"The experiment fails due to {e!s}", exception=e)
+
+
+class HypothesisFeedback(ExperimentFeedback):
     def __init__(
         self,
         observations: str,
@@ -66,21 +93,16 @@ class HypothesisFeedback(Feedback):
         reason: str,
         decision: bool,
     ) -> None:
+        super().__init__(decision, reason)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
-        self.reason = reason
-        self.decision = decision
-
-    def __bool__(self) -> bool:
-        return self.decision
 
     def __str__(self) -> str:
-        return f"""Observations: {self.observations}
+        return f"""{super().__str__()}
+Observations: {self.observations}
 Hypothesis Evaluation: {self.hypothesis_evaluation}
-New Hypothesis: {self.new_hypothesis}
-Decision: {self.decision}
-Reason: {self.reason}"""
+New Hypothesis: {self.new_hypothesis}"""
 
 
 ASpecificScen = TypeVar("ASpecificScen", bound=Scenario)
@@ -90,17 +112,39 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 class Trace(Generic[ASpecificScen, ASpecificKB]):
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
-        self.hist: list[tuple[Hypothesis, Experiment, HypothesisFeedback]] = []
+        self.hist: list[tuple[Experiment, ExperimentFeedback]] = []
+        # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
 
     def get_sota_hypothesis_and_experiment(self) -> tuple[Hypothesis | None, Experiment | None]:
         """Access the last experiment result, sub-task, and the corresponding hypothesis."""
         # TODO: The return value does not align with the signature.
-        for hypothesis, experiment, feedback in self.hist[::-1]:
+        for experiment, feedback in self.hist[::-1]:
             if feedback.decision:
-                return hypothesis, experiment
+                return experiment.hypothesis, experiment
 
         return None, None
+
+
+class ExpGen(ABC):
+
+    def __init__(self, scen: Scenario) -> None:
+        self.scen = scen
+
+    @abstractmethod
+    def gen(self, trace: Trace) -> Experiment:
+        """
+        Generate the experiment based on the trace.
+
+        `ExpGen().gen()` play a role like
+
+        .. code-block:: python
+
+            # ExpGen().gen() ==
+            Hypothesis2Experiment().convert(
+                HypothesisGen().gen(trace)
+            )
+        """
 
 
 class HypothesisGen(ABC):
@@ -141,7 +185,7 @@ class Hypothesis2Experiment(ABC, Generic[ASpecificExp]):
 # Boolean, Reason, Confidence, etc.
 
 
-class HypothesisExperiment2Feedback(ABC):
+class Experiment2Feedback(ABC):
     """ "Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks
     & their comparisons with previous performances"""
 
@@ -149,7 +193,7 @@ class HypothesisExperiment2Feedback(ABC):
         self.scen = scen
 
     @abstractmethod
-    def generate_feedback(self, exp: Experiment, hypothesis: Hypothesis, trace: Trace) -> HypothesisFeedback:
+    def generate_feedback(self, exp: Experiment, trace: Trace) -> ExperimentFeedback:
         """
         The `exp` should be executed and the results should be included, as well as the comparison
         between previous results (done by LLM).

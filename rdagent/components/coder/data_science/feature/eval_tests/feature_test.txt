@@ -1,0 +1,35 @@
+"""
+A qualified data loader should support following features
+- successfully run
+- len(test) == len(test_ids) == submission length
+- len(train) == len(y)
+
+Please make sure the stdout is rich enough to support informative feedback
+"""
+
+import pickle
+
+import numpy as np
+import pandas as pd
+from feature import feat_eng
+from load_data import load_data
+
+X, y, X_test, test_ids = load_data()
+print(f"X.shape: {X.shape}")
+print(f"y.shape: {y.shape}" if not isinstance(y, list) else f"y(list)'s length: {len(y)}")
+print(f"X_test.shape: {X_test.shape}")
+print(f"test_ids length: {len(test_ids)}")
+X, y, X_test = feat_eng(X, y, X_test)
+
+
+def get_length(data):
+    return len(data) if isinstance(data, list) else data.shape[0]
+
+assert get_length(X_test) == get_length(test_ids), (
+    f"Mismatch in length of test images and test IDs: X_test ({get_length(X_test)}) and test_ids ({get_length(test_ids)})"
+)
+assert get_length(X) == get_length(y), (
+    f"Mismatch in length of training images and labels: X ({get_length(X)}) and y ({get_length(y)})"
+)
+
+print("Feature Engineering test passed successfully. Length of test images matches length of test IDs.")

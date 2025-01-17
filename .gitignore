@@ -4,6 +4,7 @@
 Pipfile
 public
 release-notes.md
+typescript*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -170,3 +171,4 @@ mlruns/
 # shell script
 *.out
 *.sh
+.aider*

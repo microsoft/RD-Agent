@@ -4,6 +4,11 @@ from rdagent.core.experiment import Task
 
 
 class Scenario(ABC):
+    """
+    We should include scenario information here. Following inform should not be included
+    - method related (e.g. rag... config for a concrete module)
+    """
+
     @property
     @abstractmethod
     def background(self) -> str:
@@ -25,20 +30,9 @@ class Scenario(ABC):
         """
         return self.get_source_data_desc()
 
-    @property
-    @abstractmethod
-    def interface(self) -> str:
-        """Interface description about how to run the code"""
-
-    @property
-    @abstractmethod
-    def output_format(self) -> str:
-        """Output format description"""
-
-    @property
-    @abstractmethod
-    def simulator(self) -> str:
-        """Simulator description"""
+    # NOTE: we should keep the interface simpler. So some previous interfaces are deleted.
+    # If we need some specific function only used in the subclass(no external usage).
+    # We should not set them in the base class
 
     @property
     @abstractmethod

@@ -52,7 +52,7 @@ evolving_strategy_factor_implementation_v1_system: |-
   {% if queried_former_failed_knowledge|length != 0 %}
   --------------Your former latest attempt:---------------
   =====Code to the former implementation=====
-  {{ queried_former_failed_knowledge[-1].implementation.code }}
+  {{ queried_former_failed_knowledge[-1].implementation.all_codes }}
   =====Feedback to the former implementation=====
   {{ queried_former_failed_knowledge[-1].feedback }}
   {% endif %}
@@ -74,9 +74,9 @@ evolving_strategy_factor_implementation_v2_user: |-
   --------------Factor information to similar error ({{error_content}}):---------------
   {{ similar_error_knowledge[0].target_task.get_task_information() }}
   =====Code with similar error ({{error_content}}):=====
-  {{ similar_error_knowledge[0].implementation.code }}
+  {{ similar_error_knowledge[0].implementation.all_codes }}
   =====Success code to former code with similar error ({{error_content}}):=====
-  {{ similar_error_knowledge[1].implementation.code }}
+  {{ similar_error_knowledge[1].implementation.all_codes }}
   {% endfor %}
   {% else %}
   Recall your last failure, your implementation met some errors.
@@ -91,13 +91,13 @@ evolving_strategy_factor_implementation_v2_user: |-
   =====Factor {{loop.index}}:=====
   {{ similar_successful_knowledge.target_task.get_task_information() }}
   =====Code:=====
-  {{ similar_successful_knowledge.implementation.code }}
+  {{ similar_successful_knowledge.implementation.all_codes }}
   {% endfor %}
   {% endif %}
   {% if latest_attempt_to_latest_successful_execution is not none %}
   You have tried to correct your former failed code but still met some errors. Here is the latest attempt to the latest successful execution, try not to get the same error to your new code:
   =====Your latest attempt=====
-  {{ latest_attempt_to_latest_successful_execution.implementation.code }}
+  {{ latest_attempt_to_latest_successful_execution.implementation.all_codes }}
   =====Feedback to your latest attempt=====
   {{ latest_attempt_to_latest_successful_execution.feedback }}
   {% endif %}
@@ -126,9 +126,9 @@ evolving_strategy_error_summary_v2_user: |-
   --------------Factor information to similar error ({{error_content}}):---------------
   {{ similar_error_knowledge[0].target_task.get_task_information() }}
   =====Code with similar error ({{error_content}}):=====
-  {{ similar_error_knowledge[0].implementation.code }}
+  {{ similar_error_knowledge[0].implementation.all_codes }}
   =====Success code to former code with similar error ({{error_content}}):=====
-  {{ similar_error_knowledge[1].implementation.code }}
+  {{ similar_error_knowledge[1].implementation.all_codes }}
   {% endfor %}
   {% endif %}
 
@@ -158,7 +158,7 @@ select_implementable_factor_user: |-
   --------------Your former attempt:---------------
   {% for former_attempt in factor_info[2] %}
   =====Code to attempt {{ loop.index }}=====
-  {{ former_attempt.implementation.code }}
+  {{ former_attempt.implementation.all_codes }}
   =====Feedback to attempt {{ loop.index }}=====
   {{ former_attempt.feedback }}
   {% endfor %}

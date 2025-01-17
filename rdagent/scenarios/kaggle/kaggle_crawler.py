@@ -16,10 +16,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
+from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.debug.data import create_debug_data
+from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import MLEBDockerEnv
 
 # %%
@@ -31,8 +34,14 @@ options.add_argument("--headless")
 service = Service("/usr/local/bin/chromedriver")
 
 
-def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False) -> dict[str, str]:
-    if (fp := Path(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json")).exists() and not force:
+def crawl_descriptions(
+    competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
+) -> dict[str, str] | str:
+    if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
+        logger.info(f"Found {competition}/description.md, loading from it.")
+        return fp.read_text()
+
+    if (fp := Path(f"{local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)
@@ -94,35 +103,33 @@ def crawl_descriptions(competition: str, wait: float = 3.0, force: bool = False)
     descriptions["Data Description"] = data_element.get_attribute("innerHTML")
 
     driver.quit()
-    with open(f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}/{competition}.json", "w") as f:
+    with open(f"{local_data_path}/{competition}.json", "w") as f:
         json.dump(descriptions, f)
     return descriptions
 
 
-def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.local_data_path) -> None:
-    if KAGGLE_IMPLEMENT_SETTING.if_using_mle_data:
+def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING) -> None:
+    local_path = settings.local_data_path
+    if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
-        if (
-            not zip_competition_path.exists()
-            or not (Path(local_path) / competition).exists()
-            or list((Path(local_path) / competition).iterdir()) == []
-        ):
-            mleb_env = MLEBDockerEnv()
-            mleb_env.prepare()
-            (Path(local_path) / "zip_files").mkdir(parents=True, exist_ok=True)
-            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
+        mleb_env = MLEBDockerEnv()
+        mleb_env.prepare()
+        if not zip_competition_path.exists():
+            (Path(zipfile_path)).mkdir(parents=True, exist_ok=True)
             mleb_env.run(
                 f"mlebench prepare -c {competition} --data-dir ./zip_files",
                 local_path=local_path,
                 running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
             )
+
+        if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
+            (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
+
+            mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
             mleb_env.run(
-                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
-            )
-            mleb_env.run(
-                f'/bin/sh -c \'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done\'',
+                f'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done',
                 local_path=local_path,
             )
             # NOTE:
@@ -157,6 +164,10 @@ def download_data(competition: str, local_path: str = KAGGLE_IMPLEMENT_SETTING.l
                 unzip_data(unzip_file_path=f"{zipfile_path}/{competition}.zip", unzip_target_path=unzip_path)
                 for sub_zip_file in Path(unzip_path).rglob("*.zip"):
                     unzip_data(sub_zip_file, unzip_target_path=unzip_path)
+
+    # sample data
+    if not Path(f"{local_path}/sample/{competition}").exists():
+        create_debug_data(competition, dataset_path=local_path)
 
 
 def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
@@ -219,19 +230,8 @@ def download_notebooks(
 
 
 def notebook_to_knowledge(notebook_text: str) -> str:
-    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["user"])
-        .render(notebook=notebook_text)
-    )
+    sys_prompt = T(".prompts:gen_knowledge_from_code_mini_case.system").r()
+    user_prompt = T(".prompts:gen_knowledge_from_code_mini_case.user").r(notebook=notebook_text)
 
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,

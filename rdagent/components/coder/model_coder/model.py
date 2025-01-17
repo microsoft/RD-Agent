@@ -24,7 +24,6 @@ class ModelTask(CoSTEERTask):
         model_type: Optional[str] = None,
         **kwargs,
     ) -> None:
-        self.description: str = description
         self.formulation: str = formulation
         self.architecture: str = architecture
         self.variables: str = variables
@@ -32,7 +31,7 @@ class ModelTask(CoSTEERTask):
         self.model_type: str = (
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
         )
-        super().__init__(name=name, *args, **kwargs)
+        super().__init__(name=name, description=description, *args, **kwargs)
 
     def get_task_information(self):
         task_desc = f"""name: {self.name}
@@ -84,8 +83,8 @@ class ModelFBWorkspace(FBWorkspace):
         param_init_value: float = 1.0,
     ) -> str:
         target_file_name = f"{batch_size}_{num_features}_{num_timesteps}_{input_value}_{param_init_value}"
-        for code_file_name in sorted(list(self.code_dict.keys())):
-            target_file_name = f"{target_file_name}_{self.code_dict[code_file_name]}"
+        for code_file_name in sorted(list(self.file_dict.keys())):
+            target_file_name = f"{target_file_name}_{self.file_dict[code_file_name]}"
         return md5_hash(target_file_name)
 
     @cache_with_pickle(hash_func)
@@ -124,7 +123,7 @@ PARAM_INIT_VALUE = {param_init_value}
                 env={},
                 code_dump_file_py_name="model_test",
             )
-            if results is None:
+            if len(results) == 0:
                 raise RuntimeError(f"Error in running the model code: {log}")
             [execution_feedback_str, execution_model_output] = results
 
