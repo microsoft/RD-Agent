@@ -90,9 +90,10 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             system_prompt = T(".prompts:spec.system").r(
                 task_desc=data_loader_task_info,
                 competition_info=competition_info,
+                folder_spec=data_folder_info,
             )
             data_loader_prompt = T(".prompts:spec.user.data_loader").r(
-                latest_spec=workspace.file_dict.get("spec/data_loader.md")
+                latest_spec=workspace.file_dict.get("spec/data_loader.md") 
             )
             feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
             model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))

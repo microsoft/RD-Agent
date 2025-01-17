@@ -27,6 +27,10 @@ spec:
     -----------Competition Information-----------
     {{ competition_info }}
 
+    -----------Folder Description---------(All path are relative to the data folder)
+    - Ensure that all columns in sample_submission can be generated.
+    {{ folder_spec }}
+
   user:
     data_loader: |-
       Data loader specification text should follow these detailed requirements:
@@ -61,12 +65,14 @@ spec:
       4. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
         - Extend domain-specific handling steps based on the competition information.
-      
+
       {% if latest_spec %}
       5. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
+
+      
 
       Please respond with a JSON structure as follows:
       {
