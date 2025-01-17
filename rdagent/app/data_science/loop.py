@@ -59,7 +59,7 @@ class DataScienceRDLoop(RDLoop):
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = self.exp_gen.gen(self.trace)
-        logger.log_object(exp, tag="debug_exp_gen")
+        logger.log_object(exp, tag="direct_exp_gen")
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
@@ -79,13 +79,15 @@ class DataScienceRDLoop(RDLoop):
             else:
                 raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
             exp.sub_tasks = []
-
+        logger.log_object(exp, tag="coding")
         return exp
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
         if exp.next_component_required() is None:
-            return self.runner.develop(exp)
+            new_exp = self.runner.run(exp)
+            logger.log_object(new_exp, tag="running")
+            return new_exp
         else:
             return exp
 
@@ -98,6 +100,7 @@ class DataScienceRDLoop(RDLoop):
                 reason=f"{exp.hypothesis.component} is completed.",
                 decision=True,
             )
+        logger.log_object(feedback, tag="feedback")
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
@@ -111,6 +114,7 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
+        logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
