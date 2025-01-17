@@ -61,6 +61,9 @@ class DataScienceRDLoop(RDLoop):
     def direct_exp_gen(self, prev_out: dict[str, Any]):
         exp = self.exp_gen.gen(self.trace)
         logger.log_object(exp, tag="direct_exp_gen")
+        
+        # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
+        logger.log_object(exp, tag="debug_exp_gen")
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
