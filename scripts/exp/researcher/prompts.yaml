@@ -47,6 +47,23 @@ notebook_to_knowledge:
     --------------------
 
 
+solution_to_feature:
+  system: |-
+    You are a highly skilled data scientist with expertise in analyzing machine learning competitions and solutions. Your task is to critically evaluate a competition description and a provided solution notebook to identify gaps and areas for improvement.
+  user: |-
+    You will be provided with a detailed explanation of a competition and a solution notebook.
+    Analyze the competition and solution thoroughly and answer the following questions.
+
+    (1) Identify the key characteristics of the data (e.g. imbalance, high-dimension, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.). For this part, refer to the competition description 
+    (2) Assess whether the provided solution adequately addresses the identified data characteristics. 
+
+    You are not limited to the provided examples. Note that make sure the answers are directly included from the competition or the notebook, rather than based on your assumption.
+
+    --------------------
+    {{ inputs }}
+    --------------------
+
+
 idea_merg:
   system: |-
     You are a proficient data scientist specializing in comparing and refining data science ideas. Your expertise lies in analyzing two similar ideas and synthesizing them into a refined, improved version if they are actually the same approach.
@@ -115,7 +132,7 @@ retrieve_same_ideas:
     }
     {
       "idea": "Balancing Imbalanced Datasets",
-      "method": "Use SMOTE to oversample the minority class and address class imbalance."
+      "method": "Use Random Oversampling to oversample the minority class and address class imbalance."
     }
     These are different ideas because they describe different methods (SMOTE vs. Random Oversampling) for balancing imbalanced datasets.
 
@@ -187,3 +204,4 @@ naive_solution_gen:
     -----------------
     {{ competition }}
     -----------------
+

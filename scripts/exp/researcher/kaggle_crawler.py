@@ -36,6 +36,29 @@ options.add_argument("--headless")
 
 service = Service("/usr/local/bin/chromedriver")
 
+
+def solution_to_feature(inputs) -> str:
+    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+    sys_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["solution_to_feature"]["system"])
+        .render()
+    )
+
+    user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["solution_to_feature"]["user"])
+        .render(inputs=inputs)
+    )
+
+    response = APIBackend().build_messages_and_create_chat_completion(
+        user_prompt=user_prompt,
+        system_prompt=sys_prompt,
+        json_mode=False,
+    )
+    return response
+
+
 def crawl_discussions(
         competition: str, local_data_path: str, wait: float = 3.0, force: bool = False, num: int = 10
     ) -> dict[dict]: 

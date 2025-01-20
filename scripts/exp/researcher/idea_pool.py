@@ -45,11 +45,9 @@ class Idea:
 
 
     def knowledge(self) -> str: 
-        knowledge = f'''Problem Nature: {self.hypothesis['problem']}
-Data Nature: {self.hypothesis['data']}
-Method Description: {self.method}
-Method Characteristics: {self.hypothesis['method']}
-Reason for Using Method: {self.hypothesis['reason']}'''
+        knowledge = f'''For data: {self.hypothesis['problem']}{self.hypothesis['data']}
+For method: {self.hypothesis['method']}
+This is because {self.hypothesis['reason']}'''
         
         return knowledge
 
@@ -175,3 +173,14 @@ class Idea_Pool:
         self.idea_pool.append(new_idea)
 
 
+    def sample(self, solution, k=5):
+        source = [i.knowledge for i in self.idea_pool] # s
+        target = [solution] # t
+        sim_matrix = calculate_embedding_distance_between_str_list(
+            source_str_list=source, target_str_list=target
+        ) # [s, t]
+
+        sim_matrix = np.array(sim_matrix).flatten()
+        max_sim = np.max(sim_matrix)
+        max_idx = np.argmax(sim_matrix)
+        return max_sim, max_idx
