@@ -49,12 +49,12 @@ notebook_to_knowledge:
 
 solution_to_feature:
   system: |-
-    You are a highly skilled data scientist with expertise in analyzing machine learning competitions and solutions. Your task is to critically evaluate a competition description and a provided solution notebook to identify gaps and areas for improvement.
+    You are a highly skilled data scientist with expertise in analyzing data science competitions and solutions. Your task is to critically evaluate a competition description and a provided solution notebook to identify gaps and areas for improvement.
   user: |-
     You will be provided with a detailed explanation of a competition and a solution notebook.
     Analyze the competition and solution thoroughly and answer the following questions.
 
-    (1) Identify the key characteristics of the data (e.g. imbalance, high-dimension, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.). For this part, refer to the competition description 
+    (1) Identify the key characteristics of the data (e.g. imbalance, high-dimension, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.). For this part, refer to the competition description. 
     (2) Assess whether the provided solution adequately addresses the identified data characteristics. 
 
     You are not limited to the provided examples. Note that make sure the answers are directly included from the competition or the notebook, rather than based on your assumption.
