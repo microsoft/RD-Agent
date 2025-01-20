@@ -7,6 +7,7 @@ import time
 import zipfile
 from itertools import chain
 from pathlib import Path
+import logging
 
 import nbformat
 from jinja2 import Environment, StrictUndefined
@@ -371,13 +372,13 @@ def knowledge_base_generator(competition_text: str, notebook_text: str) -> dict:
     
     sys_prompt = (
         Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["knowledge_tag_gen_v3"]["system"])  
+        .from_string(prompt_dict["notebook_to_knowledge"]["system"])  
         .render()
     )
 
     user_prompt = (
         Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["knowledge_tag_gen_v3"]["user"]) 
+        .from_string(prompt_dict["notebook_to_knowledge"]["user"]) 
         .render(competition=competition_text, notebook=notebook_text)
     )
 

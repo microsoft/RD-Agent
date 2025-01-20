@@ -46,6 +46,7 @@ notebook_to_knowledge:
     {{ notebook }}
     --------------------
 
+
 idea_merg:
   system: |-
     You are a proficient data scientist specializing in comparing and refining data science ideas. Your expertise lies in analyzing two similar ideas and synthesizing them into a refined, improved version if they are actually the same approach.
@@ -94,6 +95,7 @@ idea_merg:
  
     # Refined Idea:
 
+
 retrieve_same_ideas:
   system: |-
     You are a proficient data scientist.
@@ -124,13 +126,10 @@ retrieve_same_ideas:
     }
     Your output should be a list of JSON objects in above format, without any additional text or explanations.
 
-    --------------------
     {{ new_idea }}
-    --------------------
  
-    --------------------
     {{ old_ideas }}
-    --------------------
+
 
 retrieve_and_refine_same_ideas:
   system: |-
@@ -175,3 +174,11 @@ retrieve_and_refine_same_ideas:
     {{ old_ideas }}
 
     # Refined Ideas
+
+
+generate_naive_solution:
+  system: |-
+    You are a proficient data scientist in comparing, refining and improving ideas. Your task is to compare a new idea with a list of old ideas, identify if they are the same, and refine the old ideas based on the new idea when applicable.
+  user:  |-
+    You will be provided with a new idea and a list of old ideas. Each idea strictly adheres to the following schema:
+    {

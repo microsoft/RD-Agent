@@ -152,6 +152,6 @@ def process_kaggle(competition_dir, notebook_dir, knowledge_base_dir):
 
 competition_dir = Path("/data/userdata/share/kaggle")
 notebook_dir = Path("/data/userdata/share/kaggle/notebooks")
-knowledge_base_dir = Path("/data/userdata/share/knowledge_base/knowledge_json2")
+knowledge_base_dir = Path("scripts/exp/researcher/output_ideas")
 process_kaggle(competition_dir, notebook_dir, knowledge_base_dir)
 
