@@ -129,6 +129,29 @@ def discussion_to_knowledge(discussion_text: str) -> str:
     return response
 
 
+def naive_solution_gen(competition: str) -> str:
+    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
+
+    sys_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["naive_solution_gen"]["system"])
+        .render()
+    )
+
+    user_prompt = (
+        Environment(undefined=StrictUndefined)
+        .from_string(prompt_dict["naive_solution_gen"]["user"])
+        .render(competition=competition)
+    )
+
+    response = APIBackend().build_messages_and_create_chat_completion(
+        user_prompt=user_prompt,
+        system_prompt=sys_prompt,
+        json_mode=False,
+    )
+    return response
+
+
 def convert_discussion_to_text(
     competition: str, local_path: str = f"{KAGGLE_IMPLEMENT_SETTING.local_data_path}"
 ) -> None: 
