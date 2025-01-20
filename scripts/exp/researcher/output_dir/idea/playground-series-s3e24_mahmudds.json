@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Apply multiple numerical transformations (log, sqrt, Box-Cox, Yeo-Johnson, power) to the features and select the best transformation based on the model performance with a single variable.",
+        "context": "The notebook applies various transformations such as log, sqrt, Box-Cox, and Yeo-Johnson to compress the data for each feature and selects the best transformation based on their individual performance using a single variable model.",
+        "hypothesis": {
+            "problem": "Improve model performance by transforming skewed features to approximate normal distribution.",
+            "data": "The dataset contains continuous features with potential skewness.",
+            "method": "Numerical transformations can help in reducing skewness and achieving better feature distributions.",
+            "reason": "The continuous features in the dataset may have different scales and skewness levels, which transformations can help normalize for better model performance."
+        }
+    },
+    {
+        "idea": "Missing Value Imputation",
+        "method": "Use an iterative missing value imputation method utilizing LightGBM regression to iteratively fill missing values by predicting them based on other features.",
+        "context": "The notebook uses an iterative method to fill missing numerical values by predicting them using a LightGBM model, which uses other available features as input.",
+        "hypothesis": {
+            "problem": "Effectively handle missing values without introducing bias.",
+            "data": "The dataset might have missing values in some continuous features.",
+            "method": "Iterative imputation using a predictive model leverages the information from other variables to estimate missing values.",
+            "reason": "Some features have missing values that could be important for prediction, and iterative imputation helps maintain dataset integrity by estimating these missing values accurately."
+        }
+    },
+    {
+        "idea": "Categorical Encoding",
+        "method": "Use multiple encoding techniques (target-guided mean encoding, count encoding, and one-hot encoding) for categorical variables and choose the best based on correlation and individual performance.",
+        "context": "The notebook applies different encoding techniques including target-guided mean encoding, count encoding, and one-hot encoding for categorical features, selecting the one with the best performance and lowest correlation with other variables.",
+        "hypothesis": {
+            "problem": "Convert categorical data into numerical format for model compatibility while preserving information.",
+            "data": "The dataset contains categorical variables that need to be encoded.",
+            "method": "Different encoding methods may capture different aspects of categorical data, impacting model performance differently.",
+            "reason": "By trying various encodings, the method aims to find the most informative representation of categorical variables for the given dataset."
+        }
+    },
+    {
+        "idea": "Feature Elimination",
+        "method": "Perform feature correlation analysis and eliminate features with high correlation (>0.95) after performing PCA or clustering to reduce dimensionality efficiently.",
+        "context": "The notebook eliminates features with high correlation by performing PCA or clustering to identify redundant features and reduce dimensionality.",
+        "hypothesis": {
+            "problem": "Reduce feature redundancy and overfitting while maintaining model accuracy.",
+            "data": "The dataset contains highly correlated features which can introduce multicollinearity.",
+            "method": "Reducing dimensionality through PCA or clustering helps in retaining only the most informative features.",
+            "reason": "High correlation between features can lead to redundancy; reducing such correlations helps in simplifying the model without losing significant information."
+        }
+    },
+    {
+        "idea": "Model Ensemble with Optuna Optimization",
+        "method": "Optimize ensemble weights using Optuna to find the best combination of predictions from different models based on validation ROC AUC scores.",
+        "context": "The notebook uses Optuna to determine the optimal weights for combining predictions from various models to maximize the ensemble's ROC AUC score on validation data.",
+        "hypothesis": {
+            "problem": "Improve predictive performance by combining strengths of multiple models.",
+            "data": "The dataset requires robust predictions through ensemble methods.",
+            "method": "Optuna's optimization helps in fine-tuning weights in an ensemble setup for improved aggregate performance.",
+            "reason": "Different models capture different patterns in data; optimizing their combination can lead to better generalization and performance."
+        }
+    },
+    {
+        "idea": "Arithmetic Feature Combinations",
+        "method": "Generate new features by performing arithmetic operations (addition, subtraction, multiplication, division) on existing features and select those that improve model performance or exhibit low correlation with others.",
+        "context": "The notebook generates new features through arithmetic operations between existing features and selects those that either improve model performance or have low correlation with other features.",
+        "hypothesis": {
+            "problem": "Enhance feature set by creating informative combinations of existing features.",
+            "data": "The dataset has multiple continuous features that can be combined to capture new patterns.",
+            "method": "Arithmetic combinations can reveal interactions or relationships not captured by individual features alone.",
+            "reason": "Combining existing features through arithmetic operations can create new insights or patterns that improve predictive power."
+        }
+    }
+]

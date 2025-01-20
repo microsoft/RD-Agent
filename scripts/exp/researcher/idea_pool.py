@@ -57,7 +57,7 @@ This is because {self.hypothesis['reason']}'''
 
 
 class Idea_Pool:
-    def __init__(self, threshold=0.8, cache_path = None) -> None:
+    def __init__(self, threshold=0.8, cache_path=None) -> None:
         self.threshold = threshold
         self.load_from_cache(cache_path)
     
@@ -149,23 +149,6 @@ class Idea_Pool:
             print(response)
 
 
-    def retrieve_based_on_sim(self, new_idea): 
-        '''
-        Based on the new idea, retrieve the most similar idea.
-        '''
-        # Todo (minrui): cache the embedding to avoid repetitive computation. 
-        source = [i.knowledge for i in self.idea_pool] # s
-        target = [new_idea.knowledge] # t
-        sim_matrix = calculate_embedding_distance_between_str_list(
-            source_str_list=source, target_str_list=target
-        ) # [s, t]
-
-        sim_matrix = np.array(sim_matrix).flatten()
-        max_sim = np.max(sim_matrix)
-        max_idx = np.argmax(sim_matrix)
-        return max_sim, max_idx
-
-
     def add_new_idea(self, new_idea: Idea) -> None:
         '''
         Currently, we skip the retrieve and refine steps as we sample based on hypothesis instead of method.
@@ -173,14 +156,26 @@ class Idea_Pool:
         self.idea_pool.append(new_idea)
 
 
-    def sample(self, solution, k=5):
-        source = [i.knowledge for i in self.idea_pool] # s
-        target = [solution] # t
+    def calculate_sim_matrix(self, source, target):
         sim_matrix = calculate_embedding_distance_between_str_list(
             source_str_list=source, target_str_list=target
-        ) # [s, t]
+        ) # [source, target]
 
-        sim_matrix = np.array(sim_matrix).flatten()
-        max_sim = np.max(sim_matrix)
-        max_idx = np.argmax(sim_matrix)
-        return max_sim, max_idx
+        return np.array(sim_matrix).flatten()
+
+
+    def sample(self, solution, k=5):
+        source = [idea.knowledge for idea in self.idea_pool]
+        target = [solution]
+        sim_matrix = self.calculate_sim_matrix(source, target)
+
+        # get topk
+        max_indices = np.argpartition(sim_matrix, -k)[-k:]
+        max_indices = max_indices[np.argsort(sim_matrix[max_indices])][::-1]
+        max_values = sim_matrix[max_indices]
+
+        # retrieve ideas
+        top_ideas = [self.idea_pool[i] for i in max_indices]
+        return top_ideas, max_values
+
+
