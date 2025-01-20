@@ -89,7 +89,7 @@ class DataScienceRDLoop(RDLoop):
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
         if exp.next_component_required() is None:
-            new_exp = self.runner.run(exp)
+            new_exp = self.runner.develop(exp)
             logger.log_object(new_exp, tag="running")
             return new_exp
         else:
