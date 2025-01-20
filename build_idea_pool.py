@@ -1,7 +1,9 @@
 import os, json
+from pathlib import Path
 from scripts.exp.researcher.idea_pool import Idea, Idea_Pool
 
-idea_path = "scripts/exp/researcher/cache/idea"
+script_dir = Path(__file__).parent
+idea_path = script_dir / "scripts/exp/researcher/output_dir/idea"
 idea_files = [file for file in os.listdir(idea_path) if file.endswith('.json')]
 
 max_num = 50
@@ -18,4 +20,5 @@ for file in idea_files:
     if count > max_num:
         break
 
-pool.save_to_cache("scripts/exp/researcher/cache/idea_pool/test.json")
+output_path = script_dir / "scripts/exp/researcher/output_dir/idea_pool/test.json"
+pool.save_to_cache(str(output_path))

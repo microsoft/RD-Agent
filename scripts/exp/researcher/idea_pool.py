@@ -58,8 +58,17 @@ This is because {self.hypothesis['reason']}'''
 
 class Idea_Pool:
     def __init__(self, threshold=0.8, cache_path=None) -> None:
+        """
+        Initialize the Idea_Pool class.
+
+        Args:
+            threshold (float): Similarity threshold for idea comparison.
+            cache_path (str): Path to a cache file for loading existing ideas.
+        """
         self.threshold = threshold
+        self.idea_pool = []  # Initialize idea_pool as an empty list
         self.load_from_cache(cache_path)
+
     
 
     def update_old_idea(self, old_idea_idx, new_idea) -> None: 
@@ -73,9 +82,9 @@ class Idea_Pool:
 
 
     def load_from_cache(self, cache_path) -> None: 
-        if cache_path is None:
-            self.idea_pool = []
-        pass
+        with open(cache_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.idea_pool = [Idea(raw_knowledge=idea) for idea in data]
 
 
     def save_to_cache(self, cache_path) -> None:
@@ -165,16 +174,29 @@ class Idea_Pool:
 
 
     def sample(self, solution, k=5):
+        """
+        Sample top-k ideas based on similarity to the given solution.
+
+        Args:
+            solution (str): Solution to compare against.
+            k (int): Number of top ideas to retrieve.
+
+        Returns:
+            Tuple[List[Idea], np.ndarray]: Top ideas and their similarity scores.
+        """
+        if not self.idea_pool:
+            raise ValueError("Idea pool is empty. Add ideas before sampling.")
+
         source = [idea.knowledge for idea in self.idea_pool]
         target = [solution]
         sim_matrix = self.calculate_sim_matrix(source, target)
 
-        # get topk
+        # Get top-k indices
         max_indices = np.argpartition(sim_matrix, -k)[-k:]
         max_indices = max_indices[np.argsort(sim_matrix[max_indices])][::-1]
         max_values = sim_matrix[max_indices]
 
-        # retrieve ideas
+        # Retrieve ideas
         top_ideas = [self.idea_pool[i] for i in max_indices]
         return top_ideas, max_values
 
