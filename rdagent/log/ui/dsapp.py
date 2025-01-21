@@ -135,7 +135,7 @@ def exp_after_running_win(data, mle_score):
 
 def feedback_win(data):
     st.header("Feedback" + ("✅" if bool(data) else "❌"), divider="orange")
-    st.write(data)
+    st.code(data, wrap_lines=True)
     if data.exception is not None:
         st.markdown(f"**:red[Exception]**: {data.exception}")
 
@@ -183,6 +183,7 @@ def summarize_data():
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
         if "running" in loop_data:
             mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
             try:
                 loop_data["running"].experiment_workspace.workspace_path.stat()
                 grade_output = loop_data["running"].experiment_workspace.execute(env=mleb_env, entry=f"mlebench grade-sample submission.csv {state.data['competition']}")
