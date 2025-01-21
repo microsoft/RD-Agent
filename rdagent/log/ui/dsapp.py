@@ -183,19 +183,20 @@ def summarize_data():
         loop_data = state.data[loop]
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
         if "running" in loop_data:
-            mle_de_conf = MLEBDockerConf()
-            mle_de_conf.extra_volumes = {
-                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-            }
-            de = DockerEnv(conf=mle_de_conf)
-            de.prepare()
-            try:
-                grade_output = loop_data["running"].experiment_workspace.execute(env=de, entry=f"mlebench grade-sample submission.csv {state.data['competition']} --data-dir /mle/data")
-                state.data[loop]["mle_score"] = grade_output
-            except PermissionError:
-                state.data[loop]["mle_score"] = "No permission to access the workspace path."
-            except Exception as e:
-                state.data[loop]["mle_score"] = e
+            if "mle_score" not in state.data[loop]:
+                mle_de_conf = MLEBDockerConf()
+                mle_de_conf.extra_volumes = {
+                    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+                }
+                de = DockerEnv(conf=mle_de_conf)
+                de.prepare()
+                try:
+                    grade_output = loop_data["running"].experiment_workspace.execute(env=de, entry=f"mlebench grade-sample submission.csv {state.data['competition']} --data-dir /mle/data")
+                    state.data[loop]["mle_score"] = grade_output
+                except PermissionError:
+                    state.data[loop]["mle_score"] = "No permission to access the workspace path."
+                except Exception as e:
+                    state.data[loop]["mle_score"] = e
 
             df.loc[loop, "Running"] = "✅"
         else:
