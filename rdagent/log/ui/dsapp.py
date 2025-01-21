@@ -132,7 +132,7 @@ def exp_after_running_win(data, mle_score):
     st.subheader("Result")
     st.write(data.result)
     st.subheader("MLE Submission Score")
-    st.write(mle_score)
+    st.code(mle_score, wrap_lines=True)
 
 def feedback_win(data):
     st.header("Feedback" + ("✅" if bool(data) else "❌"), divider="orange")

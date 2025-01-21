@@ -72,9 +72,6 @@ with st.sidebar:
         load_data()
         st.rerun()
 
-    expand_all = st.toggle("Expand All", key="expand_all")
-
-
 # Helper functions
 def show_text(text, lang=None):
     """显示文本代码块"""
@@ -125,6 +122,12 @@ for i, d in enumerate(session_state.data):
 sorted_loop_ids = sorted(loop_groups.keys(), key=int)  # 假设 Loop ID 是数字
 total_loops = len(sorted_loop_ids)
 total_pages = total_loops  # 每页展示一个 Loop
+
+
+# simple display
+for m in session_state.data[:100]:
+    st.write(m)
+
 
 if total_pages:
     # 初始化 current_loop
