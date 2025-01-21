@@ -3,7 +3,7 @@ from pathlib import Path
 from rdagent.log.storage import FileStorage
 from streamlit import session_state as state
 from collections import defaultdict
-from rdagent.utils.env import MLEBDockerEnv
+from rdagent.utils.env import MLEBDockerConf, DockerEnv
 import pandas as pd
 from rdagent.app.data_science.conf import DS_RD_SETTING
 
@@ -183,15 +183,14 @@ def summarize_data():
         loop_data = state.data[loop]
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
         if "running" in loop_data:
-            mleb_env = MLEBDockerEnv()
-            mleb_env.prepare()
+            mle_de_conf = MLEBDockerConf()
+            mle_de_conf.extra_volumes = {
+                DS_RD_SETTING.local_data_path: "/mle/data",
+            }
+            de = DockerEnv()
+            de.prepare()
             try:
-                mleb_env.run(
-                    f"mlebench prepare -c {state.data['competition']} --data-dir ./zip_files",
-                    local_path=DS_RD_SETTING.local_data_path,
-                    running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
-                )
-                grade_output = loop_data["running"].experiment_workspace.execute(env=mleb_env, entry=f"mlebench grade-sample submission.csv {state.data['competition']}")
+                grade_output = loop_data["running"].experiment_workspace.execute(env=de, entry=f"mlebench grade-sample submission.csv {state.data['competition']} --data-dir /mle/data")
                 state.data[loop]["mle_score"] = grade_output
             except PermissionError:
                 state.data[loop]["mle_score"] = "No permission to access the workspace path."
