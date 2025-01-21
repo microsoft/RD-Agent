@@ -307,6 +307,7 @@ class DataScienceScen(Scenario):
         )
 
     def get_runtime_environment(self) -> str:
+        # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
         ds_docker_conf = DSDockerConf()
         de = DockerEnv(conf=ds_docker_conf)
         implementation = FBWorkspace()
