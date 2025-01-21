@@ -458,7 +458,7 @@ class DockerEnv(Env[DockerConf]):
         )
 
         start = time.time()
-        if "mlebench prepare" in entry:
+        if "mlebench" in entry:
             out = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp=False)
         else:
             out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
