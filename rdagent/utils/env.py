@@ -458,7 +458,10 @@ class DockerEnv(Env[DockerConf]):
         )
 
         start = time.time()
-        out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+        if "mlebench prepare" in entry:
+            out = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp=False)
+        else:
+            out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         end = time.time()
 
         if end - start + 1 >= self.conf.running_timeout_period:
