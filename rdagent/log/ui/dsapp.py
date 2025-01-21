@@ -3,9 +3,9 @@ from pathlib import Path
 from rdagent.log.storage import FileStorage
 from streamlit import session_state as state
 from collections import defaultdict
-from rdagent.utils.env import MLEBDockerConf, DockerEnv
 import pandas as pd
-from rdagent.app.data_science.conf import DS_RD_SETTING
+import json
+import re
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -132,7 +132,7 @@ def exp_after_running_win(data, mle_score):
     st.subheader("Result")
     st.write(data.result)
     st.subheader("MLE Submission Score")
-    st.code(mle_score, wrap_lines=True)
+    st.json(mle_score)
 
 def feedback_win(data):
     st.header("Feedback" + ("✅" if bool(data) else "❌"), divider="orange")
@@ -175,32 +175,26 @@ def main_win(data):
 - [SOTA Experiment](#sota-experiment)
 """)
 
+def extract_json_from_log(log_content):
+    match = re.search(r'\{.*\}', log_content, re.DOTALL)
+    if match:
+        return json.loads(match.group(0))
+    return None
 
 def summarize_data():
     st.header("Summary", divider="rainbow")
-    df = pd.DataFrame(columns=["Component", "Running", "Feedback"], index=range(len(state.data)-1))
+    df = pd.DataFrame(columns=["Component", "Running Score", "Feedback"], index=range(len(state.data)-1))
     for loop in range(len(state.data)-1):
         loop_data = state.data[loop]
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
         if "running" in loop_data:
             if "mle_score" not in state.data[loop]:
-                mle_de_conf = MLEBDockerConf()
-                mle_de_conf.extra_volumes = {
-                    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-                }
-                de = DockerEnv(conf=mle_de_conf)
-                de.prepare()
-                try:
-                    grade_output = loop_data["running"].experiment_workspace.execute(env=de, entry=f"mlebench grade-sample submission.csv {state.data['competition']} --data-dir /mle/data")
-                    state.data[loop]["mle_score"] = grade_output
-                except PermissionError:
-                    state.data[loop]["mle_score"] = "No permission to access the workspace path."
-                except Exception as e:
-                    state.data[loop]["mle_score"] = e
+                grade_output = extract_json_from_log((loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt").read_text())
+                state.data[loop]["mle_score"] = grade_output
 
-            df.loc[loop, "Running"] = "✅"
+            df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
         else:
-            df.loc[loop, "Running"] = "N/A"
+            df.loc[loop, "Running Score"] = "N/A"
         if "feedback" in loop_data:
             df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]) else "❌"
         else:
