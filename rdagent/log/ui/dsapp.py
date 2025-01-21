@@ -185,7 +185,7 @@ def summarize_data():
         if "running" in loop_data:
             mle_de_conf = MLEBDockerConf()
             mle_de_conf.extra_volumes = {
-                DS_RD_SETTING.local_data_path: "/mle/data",
+                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
             }
             de = DockerEnv(conf=mle_de_conf)
             de.prepare()
