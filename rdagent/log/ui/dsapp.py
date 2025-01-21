@@ -5,6 +5,7 @@ from streamlit import session_state as state
 from collections import defaultdict
 from rdagent.utils.env import MLEBDockerEnv
 import pandas as pd
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -185,7 +186,11 @@ def summarize_data():
             mleb_env = MLEBDockerEnv()
             mleb_env.prepare()
             try:
-                loop_data["running"].experiment_workspace.workspace_path.stat()
+                mleb_env.run(
+                    f"mlebench prepare -c {state.data['competition']} --data-dir ./zip_files",
+                    local_path=DS_RD_SETTING.local_data_path,
+                    running_extra_volume={str(Path("~/.kaggle").expanduser().absolute()): "/root/.kaggle"},
+                )
                 grade_output = loop_data["running"].experiment_workspace.execute(env=mleb_env, entry=f"mlebench grade-sample submission.csv {state.data['competition']}")
                 state.data[loop]["mle_score"] = grade_output
             except PermissionError:
