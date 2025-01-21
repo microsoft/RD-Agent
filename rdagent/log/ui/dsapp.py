@@ -187,7 +187,7 @@ def summarize_data():
             mle_de_conf.extra_volumes = {
                 DS_RD_SETTING.local_data_path: "/mle/data",
             }
-            de = DockerEnv()
+            de = DockerEnv(conf=mle_de_conf)
             de.prepare()
             try:
                 grade_output = loop_data["running"].experiment_workspace.execute(env=de, entry=f"mlebench grade-sample submission.csv {state.data['competition']} --data-dir /mle/data")
