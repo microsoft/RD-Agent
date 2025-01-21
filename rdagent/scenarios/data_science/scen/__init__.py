@@ -312,7 +312,9 @@ class DataScienceScen(Scenario):
         de = DockerEnv(conf=ds_docker_conf)
         implementation = FBWorkspace()
         fname = "temp.py"
-        implementation.inject_files(**{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()})
+        implementation.inject_files(
+            **{fname: (Path(__file__).absolute().resolve().parent / "runtime_info.py").read_text()}
+        )
         stdout = implementation.execute(env=de, entry=f"python {fname}")
         return stdout
 
