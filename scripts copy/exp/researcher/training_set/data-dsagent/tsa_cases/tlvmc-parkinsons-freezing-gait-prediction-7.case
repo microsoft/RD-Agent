@@ -1,0 +1,30 @@
+EDIT BELOW!
+
+First of all thank you all for organising and participating in this wonderful challenge, I learned a lot about Parkinson and the techniques I used in my solution and especially used by others!
+
+The biggest thank you goes out to @mayukh18 for an incredible starter notebook.
+Please give it an upvote if you haven't already!
+
+
+[Mayukh's Baseline Notebook](
+
+
+I modified this notebook's dataset class to be compatible with with a 1D-ResNet that has three channels, one for each of the sensors ('AccV', 'AccML', 'AccAP'). I also removed the wx-parameter and used 1000ms cuts with a future of 50ms.
+
+Additionally, I implemented a learning rate scheduler (ReduceLROnPlateau) and started with a learning rate of 0.001.
+
+While the original notebook used only one train-validation split, I calculated five models based on the original folds in the notebook using each split.
+
+I calculated the models using my RTX 3060 which took about an hour per model, including validation. CV was around .30 if I remember correctly.
+
+My submission was the ensemble of the resulting five models and resulted in scores of : Public - .351 / Private - .356.
+
+If there are any questions I will gladly try to answer them in the upcoming days but as of now this is all I can do (moved to a new city just yesterday!).
+
+Best,
+Jan
+
+EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: 
+I took the time to generate a little write-up and publish the clean code, both available [here](
+EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT: EDIT:
+

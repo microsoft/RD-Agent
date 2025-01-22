@@ -1,0 +1,50 @@
+```python
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+# Load the training data
+train_data = pd.read_csv('/kaggle/input/optiver-trading-at-the-close/train.csv')
+
+# Feature engineering
+# For simplicity, we'll use a basic set of features. Further feature engineering can improve results.
+train_data['price_difference'] = train_data['far_price'] - train_data['near_price']
+train_data['bid_ask_spread'] = train_data['ask_price'] - train_data['bid_price']
+train_data['imbalance_ratio'] = train_data['imbalance_size'] / (train_data['imbalance_size'] + train_data['matched_size'])
+train_data.fillna(0, inplace=True)
+
+# Define features and target
+features = ['reference_price', 'matched_size', 'price_difference', 'bid_ask_spread', 'imbalance_ratio']
+X = train_data[features]
+y = train_data['target']
+
+# Train-test split
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize and fit a simple model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Make predictions on the validation set
+y_pred = model.predict(X_val)
+
+# Calculate mean absolute error
+mae = mean_absolute_error(y_val, y_pred)
+print(f'Mean Absolute Error: {mae:.4f}')
+
+# Prepare for submission
+test_data = pd.read_csv('/kaggle/input/optiver-trading-at-the-close/test.csv')
+test_data['price_difference'] = test_data['far_price'] - test_data['near_price']
+test_data['bid_ask_spread'] = test_data['ask_price'] - test_data['bid_price']
+test_data['imbalance_ratio'] = test_data['imbalance_size'] / (test_data['imbalance_size'] + test_data['matched_size'])
+test_data.fillna(0, inplace=True)
+
+X_test = test_data[features]
+test_predictions = model.predict(X_test)
+
+# Create a submission file
+submission = pd.DataFrame({'row_id': test_data.index, 'target': test_predictions})
+submission.to_csv('submission.csv', index=False)
+```

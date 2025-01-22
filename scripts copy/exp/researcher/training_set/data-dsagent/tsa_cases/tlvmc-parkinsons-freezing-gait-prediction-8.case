@@ -1,0 +1,61 @@
+Congrats to the winners! Thanks to the competition organizers for putting together an interesting challenge! Here's my solution.
+
+# Model architecture
+
+I used a 1D convolutional U-Net with squeeze-and-excitation and 5 encoder/decoder pairs.
+
+Squeeze-and-excitation seemed to be very beneficial, presumably because it allows the model to take global context into consideration while classifying each sample. I processed the data in extremely long context windows (10240 samples).
+
+# Features
+
+- **Raw acleration values:** AccV, AccML, AccAP
+- I did not normalize these in any way. 
+- **Time features:** 
+`
+df['NormalizedTime'] = df['Time'] / df['Time'].max()
+`
+`
+df['SinNormalizedTime'] = np.sin(df['NormalizedTime'] * np.pi)
+`
+
+I also experimented with adding a variety of frequency domain features that were calculated using wavelet transforms but that didn't help.
+
+# Training data augmentation
+
+- **Random low pass filtering:**
+- Frequency cutoff was 5% - 37.5% the sample rate
+- Applied to half the training sequences
+- **Random time warp:**
+- Used linear interpolation to change the sequence length by +/- 10% (or any value in between; the scale was sampled from a uniform distribution)
+- Applied to half the training sequences
+- **Random flip:**
+- Multiplied AccML by -1 to reverse right & left
+- Applied to half the training sequences
+- **Random magnitude warping:**
+- The difference between each acceleration feature's value and its mean value was multiplied by a coefficient randomly sampled from a gaussian distribution with a mean of 0 and a standard deviation of 0.1
+- Applied to half the training sequences
+- **Noisy time features:**
+- Normalized times within each context window shifted by value sampled from gaussian distribution with mean of 0 and standard deviation of 0.05
+- Applied before calculating SinNormalizedTime (so the same noise impacts both features).
+- Applied to ALL the training sequences
+
+# Inference time data augmentation
+
+Each sample was classified 16 times by each model.
+- With and without multiplying AccML by -1 to reverse right & left
+- Sequences were classified in overlapping context windows with a stride equal to 1/8 the window length. Similar to random crop data augmentation.
+
+The values saved to the submission file were the simple mean of all predictions from all models.
+
+# Handling defog vs tdcsfog
+
+I used the same models for both datasets. I did not do anything to normalize the sample rates or feature values. I did not even convert the features to have the same units. Normalization seemed to be harmful.
+
+# Ensembling / random seed hacking
+
+I used 2 near-identical models that were trained with identical hyperparameters from the same cross-validation fold, but with different random seeds for weight initialization & shuffling the training data. They were filtered to have mAP scores in the top 20% of my local cross validation and top 50% of my LB scores. This probably improved my score by around 0.01 - 0.02 vs. just using 2 random models.
+
+
+
+**Inference notebook:** 
+

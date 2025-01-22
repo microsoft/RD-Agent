@@ -1,0 +1,61 @@
+# Submission Overview
+I split the data into 4 folds on `prompt_id` and computed a 4-fold CV. Rather than submitting all 4 models for inference, I retrained on 100% of the training data. My final submission is 6x deberta-v3-large: 2 models with different random seeds from each of my top 3 experiments. I took the unweighted mean of the 6 models' predictions.
+
+# Source code
+I mostly work in Python scripts rather than notebooks. Here's a repo containing a package for running my training and inference scripts: 
+
+# Inputs and max length
+
+In addition to using the summary text, I found that using the `prompt_question` improved the score slightly, and using the `prompt_text` helped quite a bit, assuming that the max length was also increased. Increasing the max length only helped up to 1024 tokens for training, although increasing up to 1536 during inference improved both CV (on prompt `ebad26`) and LB scores.
+
+It was hard to tell if increasing beyond 1536 was worth it as none of the prompts in the training set were long enough, and I didn't get any consistent improvements from the LB when increasing to 2048 either.
+
+# Special tokens
+
+Another thing that helped was adding a special token for each section of the input rather than using `[SEP]`. I added `<text>`, `<question>`, and `<summary>` tokens to the tokenizer before training, and then fine-tuned them. Inputs took the format:
+```
+"<question> The prompt question text here. <summary> The student summary text here. <text> The original prompt text here."
+```
+I put the prompt text last to account for extremely long texts that would need to be truncated.
+
+I did also try adding the prompt title and a `<title>` token, but this didn't improve CV.
+
+# Inference
+
+Earlier in the competition I was submitting the mean of the 4 models trained in each experiment. However after I started increasing the max length up to and beyond 1024 tokens, I found that inference time increased quite significantly. It took about an hour to run inference with 1 deberta-v3-large at 1024 token max length, and about 1.5 hours at 1280 or 1536 tokens.
+
+This means a 4-fold mean would take 6 hours or more at 1536 tokens. To be able to submit a more diverse ensemble I decided to start retraining on 100% of training data instead. I found the LB scores of these 100% models to be fairly consistent with the ones trained on 75% of the data. This allowed me to submit an ensemble of my best 3 CV experiments. I retrained on 100% of training data twice with different random seeds for each of the experiments.
+
+# GPU resources
+
+I don't have access to any dedicated GPUs, and each 4 fold experiment took a long time on Kaggle P100s (particularly when training with long sequence lengths), so I subscribed to Paperspace Gradient which gave me intermittent access to an RTX5000 or an A4000, both of which allowed me to run experiments about 4x faster than running on Kaggle GPUs.
+
+Since none of these GPUs have more than 16GB of RAM, I was only able to train with a batch size of 1 at max length 1024. To compensate for this, I used gradient accumulation. I initially accumulated gradients for 8 steps per optimizer update, but found that 16 steps worked even better.
+
+# Dropout
+
+[This thread]( pointed out that turning off dropout can be useful in regression tasks. I gave this a try and found that turning off dropout in fully-connected layers helped a little, but not in attention layers.
+
+# Pooling
+
+I saw some public notebooks which used mean pooling or GeM pooling, but in my experiments neither of these worked better than the default [ContextPooler]( which is built into `transformers.DebertaV2ForSequenceClassification`.
+
+# Things which didn't work
+
+Here's a list of ideas either by me, or which I ~~stole~~ borrowed from public notebooks or discussions, which didn't lead to any noticeable improvement:
+
+* Using `prompt_title`.
+* Freezing embeddings.
+* Freezing encoder layers.
+* Max, mean, or GeMText pooling.
+* Extra attention head.
+* MSE, SmoothL1, or (modified) MarginRankingLoss. (I mostly used MCRMSE loss).
+* Training separate models to predict content and wording scores.
+* Training with max sequence lengths longer than 1024.
+* deberta-v2-xlarge with LoRA (even with large alpha).
+* Autocorrecting spelling.
+* Ensembling with linear models or gradient-boosted regressors with hand-made features. (I didn't spend much time on this, but I tried using some of the features from the high-scoring public notebooks and they didn't seem very useful)
+* Using abstractive summarization to reduce the length of the `prompt_text`. I was able to improve my CV a bit with this, but it significantly hurt my public LB, which was a good warning not to do this. I decided it was too risky, because I wouldn't be able to validate any generated summaries when scoring on the private test data. If the generative model hallucinated even once it could screw up my final LB score.
+
+I would've liked to have tried extractive summarization as this would prevent the hallucination problem, but I didn't come up with a good way to train a model to rank the most important sentences in each `prompt_text`. It would've been a fun direction to go down, but probably ultimately a waste of time in comparison to just increasing the max sequence length.
+

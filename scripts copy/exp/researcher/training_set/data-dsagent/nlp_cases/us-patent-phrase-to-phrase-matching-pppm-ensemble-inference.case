@@ -1,0 +1,21 @@
+(1) The overall design of the code is to make predictions on a test dataset using multiple pre-trained models. The code imports the necessary libraries, sets the directory paths, defines the configuration parameters, and loads the test dataset. It then defines the necessary functions and classes for data loading, model architecture, and inference. Finally, it loads the pre-trained models, makes predictions using each model, and combines the predictions to generate the final submission file.
+
+(2) The overall model architecture consists of multiple pre-trained models, including Deberta v3 large, BERT for Patents, Deberta large, and XLM-RoBERTa large. Each model is loaded with its respective tokenizer and configuration. The models are then used to extract features from the input text using attention mechanisms. The extracted features are passed through fully connected layers to obtain the final predictions. The models are trained using a combination of cross-entropy and mean squared error loss functions.
+
+(3) The important hyperparameters in this code are:
+- `num_workers`: Number of workers for data loading.
+- `batch_size`: Batch size for training and inference.
+- `fc_dropout`: Dropout rate for the fully connected layers.
+- `seed`: Random seed for reproducibility.
+- `n_fold`: Number of folds for cross-validation.
+- `trn_fold`: List of fold indices to use for training.
+
+(4) The optimization objective is to minimize the mean squared error (MSE) loss between the predicted scores and the ground truth scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code utilizes pre-trained models that have been trained on large-scale datasets to extract features from the input text. These features are then used to make predictions on the test dataset.
+
+(6) Some important tricks that play a role in high performance include:
+- Using multiple pre-trained models and combining their predictions to improve the overall performance.
+- Using attention mechanisms to extract relevant features from the input text.
+- Using a combination of cross-entropy and mean squared error loss functions to train the models.
+- Applying post-processing techniques to adjust the predicted scores and improve the final results.

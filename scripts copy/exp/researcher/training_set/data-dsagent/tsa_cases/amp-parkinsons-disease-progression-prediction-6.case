@@ -1,0 +1,21 @@
+Thanks my teammates @hookman @zui0711 @max2020 @librauee , I have learnt a lot from them. A crucial trick found by them is there are two groups in the data: **The true patients and the control group**. We can find this by **the minimum visit_month diff** of each id:
+```
+for df in [clinical, sup_clinical]:
+df['visit_month_diff'] = df.groupby(['patient_id'])['visit_month'].diff()
+df['visit_month_diff_min'] = df.groupby('patient_id')['visit_month_diff'].transform('min')
+```
+There are 3, 5, 6, 12, 36 visit_month diff in clinical and sup_clinical, we choose only 3, 6, 12, 36 parts as training data, and transform 3, 36 to 6. We find 3, 6 and 36 has obviously higher updrs values and 12 has lower updrs values(5 part dropped as abnormal).
+![updrs in different visit_month diff and months](
+We can draw a conclusion **visit_month diff==6** are true patients and **visit_month diff==12** are control group.
+We use piecewise function to optimize two groups smape separately:
+```
+def calculate_predictions(pred_month, trend):
+if target == 'updrs_4': 
+pred_month = pred_month.clip(60, None) 
+pred_month2 = (pred_month-60).clip(0, None)
+return np.round(trend[0] + pred_month * trend[1] + pred_month2 * trend[2])
+```
+![0=control group, 1=true patients](
+In the first loop inference, we cannot get visit_month diff, so we train additional coefficients based on true patients + control group. In every loop, we record history data so that we could get the **the minimum visit_month diff**.
+Finding these two groups can help you reach 54.2~54.8 on public board and 60.1~60.7 on private board.
+

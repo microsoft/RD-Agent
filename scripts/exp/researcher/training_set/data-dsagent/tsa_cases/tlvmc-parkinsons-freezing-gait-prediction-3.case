@@ -1,0 +1,16 @@
+The first and second place solution have much better fits to the individual defog/tdcs datasets;  this solution fit one model for both.
+
+Architectures: Deberta/VisionTransformer/VisionTransformerRelPos -> LSTM/GRU
+(typically 2-4 layers, with single-layer RNN)
+
+Patch sizes are 7-13, with sequences of 192-384 patches.
+
+All sequences have heavy augmentation--stretching, cropping, ablation, accumulated Gaussian noise, etc.
+
+--
+
+See data.py and model.py for details:
+
+Inference Code: 
+Additional Code: 
+

@@ -1,0 +1,18 @@
+(1) The overall design of this code is to train multiple regression models using different algorithms (XGBoost, LightGBM, CatBoost) and then blend or stack the predictions from these models to make the final submission for a Kaggle competition. The code includes data preprocessing, exploratory data analysis (EDA), model training, feature importance analysis, and submission generation.
+
+(2) The overall model architecture consists of three different regression models: XGBoost, LightGBM, and CatBoost. Each model is trained using a 10-fold cross-validation strategy. The XGBoost model is trained with 10,000 estimators, a maximum depth of 9, a learning rate of 0.001, a column subsample ratio of 0.66, a row subsample ratio of 0.9, a minimum child weight of 20, a regularization lambda of 16, and using GPU acceleration. The LightGBM model is trained with 10,000 estimators, a maximum depth of 9, 100 leaves, a column subsample ratio of 0.8, a row subsample ratio of 0.9, a subsample frequency of 5, a minimum child sample size of 36, a regularization lambda of 28, and using early stopping with a patience of 100. The CatBoost model is trained with 20,000 iterations, a maximum depth of 9, a learning rate of 0.01, a column subsample ratio of 0.88, a row subsample ratio of 0.795, a minimum data in leaf of 35, an L2 regularization lambda of 8, a random strength of 0.63, using Bernoulli bootstrap sampling, symmetric tree growth policy, and early stopping with a patience of 100.
+
+(3) The important hyperparameters in this code are set as follows:
+- XGBoost: n_estimators=10000, max_depth=9, learning_rate=0.001, colsample_bytree=0.66, subsample=0.9, min_child_weight=20, reg_lambda=16, tree_method='gpu_hist', seed=42
+- LightGBM: learning_rate=0.01, max_depth=9, num_leaves=100, colsample_bytree=0.8, subsample=0.9, subsample_freq=5, min_child_samples=36, reg_lambda=28, n_estimators=10000, metric='rmse', random_state=42
+- CatBoost: iterations=20000, depth=9, learning_rate=0.01, rsm=0.88, subsample=0.795, min_data_in_leaf=35, l2_leaf_reg=8, random_strength=0.63, bootstrap_type='Bernoulli', grow_policy='SymmetricTree', loss_function='RMSE', eval_metric='RMSE', task_type="CPU", random_state=42
+
+(4) The optimization objective of this code is to minimize the root mean squared error (RMSE) between the predicted and actual values of the target variable (MedHouseVal).
+
+(5) The advanced machine learning techniques used in this code are ensemble learning and stacking. Ensemble learning is used by training multiple regression models (XGBoost, LightGBM, CatBoost) and combining their predictions to improve the overall performance. Stacking is used by blending the predictions from different models to make the final submission.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+- Feature engineering: The code includes the creation of new features by rotating the coordinates (longitude and latitude) to provide more spatial information.
+- Cross-validation: The models are trained using a 10-fold cross-validation strategy to evaluate their performance and reduce overfitting.
+- Early stopping: The LightGBM and CatBoost models use early stopping to prevent overfitting by stopping the training process if the performance on the validation set does not improve for a certain number of iterations.
+- Hyperparameter tuning: The hyperparameters of the models are carefully tuned to optimize their performance.

@@ -1,0 +1,25 @@
+(1) The overall design of this code is to create a high-performing solution for a Kaggle competition. It aims to push the public leaderboard score under 0.50. The code is adapted from a previous kernel and makes updates to be valid for the second and last step of the competition. It uses the LightGBM library for training and prediction.
+
+(2) The overall model architecture is a LightGBM model. LightGBM is a gradient boosting framework that uses tree-based learning algorithms. It uses a gradient-based one-side sampling (GOSS) technique to select the most informative samples for training. The model architecture consists of multiple decision trees, where each tree is built iteratively to minimize the objective function.
+
+(3) The important hyperparameters in this code are:
+- "objective": The optimization objective, which is set to "poisson" in this code.
+- "metric": The evaluation metric, which is set to "rmse" (root mean squared error) in this code.
+- "learning_rate": The learning rate for the gradient boosting algorithm, set to 0.075.
+- "sub_row": The subsampling rate for rows, set to 0.75.
+- "bagging_freq": The frequency for bagging, set to 1.
+- "lambda_l2": The L2 regularization term, set to 0.1.
+- "num_iterations": The number of boosting iterations, set to 1200.
+- "num_leaves": The maximum number of leaves in each tree, set to 128.
+- "min_data_in_leaf": The minimum number of data points required in a leaf, set to 100.
+
+(4) The optimization objective is to minimize the root mean squared error (RMSE) between the predicted sales and the actual sales.
+
+(5) The advanced machine learning technique used in this code is gradient boosting with LightGBM. Gradient boosting is an ensemble learning method that combines multiple weak models (decision trees) to create a strong predictive model. LightGBM is a fast and efficient implementation of gradient boosting that uses a histogram-based algorithm for splitting and a GOSS technique for sampling.
+
+(6) Some important tricks that play a role in high performance include:
+- Lag features: The code creates lag features by shifting the sales values for different time periods. This helps capture the temporal dependencies in the data.
+- Rolling mean features: The code calculates rolling mean features by taking the average of lagged sales values over different time windows. This helps capture the trend and seasonality in the data.
+- Categorical encoding: The code converts categorical variables into numerical codes using the "cat.codes" method. This allows the categorical variables to be used in the model.
+- Random subsampling: The code randomly subsamples the training data to create a validation set for model evaluation. This helps prevent overfitting and provides an estimate of the model's performance on unseen data.
+- Hyperparameter tuning: The code sets the hyperparameters of the LightGBM model based on domain knowledge and experimentation. Tuning the hyperparameters can improve the model's performance.

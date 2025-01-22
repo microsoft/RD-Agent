@@ -1,0 +1,35 @@
+My solution is rather simple, because I used almost no complex tricks - instead I just built a reliable pipeline and found good hyperparameters. I had some brilliant ideas (at least I think so :)) - to use augmentation and generate synthetic data using some big model based on other texts from commonlit.org. But at that time, when I was still actively contributing, there was uncertainty with the license for the texts, and I did not complete the use of augmentations - I was too busy with my work (trying to get RLHF to work), so I left the competition - my last commit was a month ago. But apparently the decision was good, at least I didn’t overfit :)
+
+So let's break my solution down into parts.
+
+**1. Data:**
+I used a fairly standard template: prompt + question + text. At the end of my participation, I tried to dig into the data and do a good pre-processing - after all, there were quite a lot of very similar essays with exact or different scores. So, I tried to find these samples by similarity (like Levenstein) and then merge them. In addition, I decided to make augumentations based on this insight - if there are many similar essays (differing only in typos, for example) - I could use something like reverse autocorrect - randomly replace some words with its close analogues. With this technique I got 0.453 in private ONLY on fold3 (which is better than my chosen blend and probably could lead to a second place) - but I was too tired at this point so I didn't look further into augmentations. But I think augmentations could probably lead me to victory.
+
+**2. Models**
+Deberta is the king, so there's not much to say here. I tried using decoder models like Llama, but Deberta was still better. There were some techniques that gave me a boost - using EMA (honestly, without EMA it was very unstable, so it's probably just necessary) and using differential learning rates.I tried several pooling options, but the best option for me was to use concatenation of CLS token and student's text meanpooling. I also used token_type_ids to separate the prompt, question and essay.
+
+**3 Inference & train**
+I used following scheme - I tried to find a good hyperparameters on some fold (for example, fold0), and then train with exact hyperparameters on other folds. I then sumbittend the entire blend and 4 individual models (5 submission total - one day) and repeated the procedure the next day. I realized that I could use maxlen 1500 for inference (didn't research this number much, tried something like 1024 and 2048, but 1500 was better in terms of efficiency), so in my final mix I took the 10 best checkpoints across folds (some folds got 2 checkpoints, some folds got 3). First I averaged by folds, then averaged the rest. That's all. 
+
+Briefly what worked (ranked from most important to least important, IMO):
+1. Using Deberta
+2. EMA
+3. Augumentation
+4. Defferentiated learning rates
+5. Custom pooling
+6. token_type_ids
+7. Data cleaninig
+
+What did not work (random order):
+1. Decoder models
+2. AWP
+3. FGM
+4. WD
+5. Constant LR
+6. Handcrafted features
+7. GBT for stacking
+
+In the end, it was a good competition for me. Last year I competed in another NLP competition and got a silver medal, but I grinded all day at that competition (I wasn't working that time, so I had a lot of free time). This time I also expected silver, which I consider a solid result, but I got 3rd place. In any case, this competition was a cakewalk for me, since I spend very little effort on it (compared to the previous competition, at least). I'm hoping this means I'll grow a lot this year - and I think that's the main goal of participating in Kaggle.
+
+Good luck to all of you.
+

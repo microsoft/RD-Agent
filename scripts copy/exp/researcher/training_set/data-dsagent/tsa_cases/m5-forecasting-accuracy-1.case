@@ -1,0 +1,79 @@
+Hi kagglers! :)
+
+This my first solution sharing, i hope it's helpful for you.
+
+## Thanks to
+First of all, i'd like to thank the competition organizers and data scientists who participated in the competition. I have learned a lot from you, Really Really thank you.
+(especially, @kyakovlev's kernels and discussions. Really helpful.)
+
+## Solution
+The method i've used is very simple and not that much great. This is all based on insights from community. 
+
+### Pre-processing
+- features based on price
+- features based on calendar
+- features based on target lag (recursvie / non recursive)
+- features based on target lag rolling mean / std (recursive / non recursive)
+
+### CV strategies
+**Time based split** : mimic train/test split
+- cv1 : d\_1830 ~ d\_1857
+- cv2 : d\_1858 ~ d\_1885
+- cv3 : d\_1886 ~ d\_1913
+- public : d\_1914 ~ d\_1941
+- private : d\_1942 ~ d\_1969
+- without early stopping
+
+### Modeling strategies
+- recursive / non recursive
+- by store\_id
+- by store\_id - cat\_id
+- by store\_id - dept\_id
+
+### Model
+- LGBM(single)
+- objective = tweedie
+
+### Post-processing
+- **Without** post-processing. (e.g.) magic multiplier.
+
+### Simple summary as diagram
+<img src=" width="700">
+
+## Opinion
+A metric called WRMSSE was unfamiliar with me, and data structure was complicated. So I first read the documents provided by the organizer, and I got a lot of insights from the brilliant notebooks and discussions.
+1. different time series by state, store, cat, dept
+2. the effect of disaster and weather on sales(target)
+3. "out of stock" problem
+4. the anomaly of sales
+5. the importance of solid CV
+
+and so on...
+
+I decided two things through these insights.
+1. divide into groups with similar time series, and model it.
+(e.g.) by store, by store cat, by store dept, etc.
+2. select final model using mean(cvs, public score) and std(cvs, public score)
+(especially, focusing on std.)
+
+At first I made baseline using non recursive method, and i saw that there was a lot of variation in cv and public score.(large std)
+
+Then, i made second baseline using recursive method based on @kyakovlev's kernel, but there still was a lot of variation. 
+
+The interesting part here is,
+1. Overall, the recursive method had a better score than non recursive.
+2. non recursive method had best score at cv3.
+3. recursive method had best score at public.
+
+Based on these insights, i expected that ensembling non recur and recur might lead to robustness.
+
+Then, i selected as final model.
+
+---
+
+As i mentioned earlier, my method is very simple and not that much great. so i didn't expect this at all. I was very lucky to learn a lot and to get unbelievable result. 
+
+Thank you to all the kagglers!!
+
+(and very sorry for many participants who spent a lot of time and effort on this competition. It's all thanks to you.)
+

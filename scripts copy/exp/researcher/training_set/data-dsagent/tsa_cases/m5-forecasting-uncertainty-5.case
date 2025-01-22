@@ -1,0 +1,41 @@
+After missing the gold medal zone by picking the wrong submission in the 2019 Data Science Bowl, here I missed it again by just one place, what a pity. Anyway, if this will be my 2nd first student prize after the DSB, I'm more than happy.
+
+**Here a short wrap up of my solution:**
+
+I focussed on the Accuracy part of the competition (where my final private LB rank isn't that good though (274/5558)) and decided to go for day-to-day LGBM models. The notebook to create my uncertainty forecasts for horizon h=8 can be found here:
+
+The notebooks for other forecast horizons look similar.
+
+**The following steps are carried out for each horizon:**
+
+**1. Preprocessing:**
+- Process calendar dataframe to get some more features
+- Process selling prices dataframe: first, I built selling prices for aggregate time series by just taking the mean of the aggregated time series (e.g. for the Total aggregation, I put as sell_price the mean of all sell prices); second, I built some more features as sell_prices_std and so on
+- Process sales dataframe: first, I built the aggregate time series for all levels. For the state_id columns etc. I used the following strategy: If all aggregated time series had the same value, I used it, otherwise I put nan (e.g. for the CA_1 aggregate, all aggregated time series have state_id CA, so I left it; for the FOODS aggregate on the other hand, the aggregated time series have different state_ids, so I put state_id nan). Next, I removed some outliers (Christmas, Thanksgiving and something else), normalized each of the time series (details see below), and computed further features as rolling means, target encodings of calendar features etc.    
+
+**2. Modelling:**
+For each quantile q, I trained a LGBM model with objective 'quantile' and 'alpha'=q on all time series. The last 28 days were left out as validation set for early stopping. The WSPL weights were used during training passing them to the LGBM dataset as
+train = lgb.Dataset(train[features],train[['demand']],weight=train['weight'])
+
+**Normalization of sales time series**
+Based on some CV tests in my work on the accuracy part, I came up with the following normalization for all sales time series (aggregated ones and normal ones):
+First, I divided each time series by their nonzero mean.
+Second, to remove the trend, I considered some form of differences and set 
+a_trendRemoved[t]=a[t]+maxRollMean(28)-laggedRollMean(28,h)
+for each mean normalized time series a[t]. Here maxRollMean(28) is the maximum rolling mean over a 28 days period that the time series had anywhere during the 1941 provided days. The laggedRollMean(28,h) is the mean of a[t-28-h+1],...,a[t-h].
+So how did I come to this? Actually I wanted to use something like
+a_trendRemoved[t]=a[t]-rollMean(28)
+meaning how the sales at time t differ from the mean of the last 28 days. However, undoing this preprocessing after the predictions requires to use the predictions for the days F1,...,F(h-1) to build the rollMean(28) and I wanted the forecasts for each time horizon to be independent from all other forecasts to prevent error propagation. Therefore, I decided to replace the rollMean(28) by the laggedRollMean(28,h). Adding further the maxRollMean(28) term ensures that all values stay positive. I thought that this shouldn't matter, but in my CV experiments, it gave better results, so I used it.  
+
+**Sidenotes:**
+- As I used only kaggle kernels and no other ressources, it was quite a struggle to fit everything into RAM and into the 9 hours wallclock limit. Therefore, I used only days after dstart=1100 for training and only considered the forecast weekday and one similar weekday for training (e.g. F8 is a Monday, so for the horizon h=8 models, I used only Mondays and Fridays for training and discarded all other days). 
+- Tuning LGBM parameters didn't work out for me at all, I simply used the parameters that I found in some public kernel in the Accuracy part (except from objective=quantile and alpha=q of course).
+- I tried feature selection for the accuracy part. Leaving always one feature out, retraining my model and checking whether my CV score improved. As I didn't observe any stable improvements, I simply used all features here.
+- I refer to some CV tests above which worked like this: I considered only the accuracy part and picked 2 horizons, namely 8 and 22 days for which I used the last 3 28 days periods for cross validation. All parameter, feature and normalization decisions that I made where based on the results obtained there. However, I'm not sure, if this was such a good idea, as the CV obtained in those experiments indicated way higher scores than I obtained in the end on the accuracy private LB. Therefore, I think that I might have overfitted to the 2 specific horizons. Setting up a CV using all 28 horizons with day-to-day models (-&gt; always training 28 models * 3 validation sets) doesn't seem feasible either though, so I don't know how I could have done better.
+- I said I use the WSPL weights for my LGBM model. Actually, I do not use the original weights, but normalize them s.t. they all weights have mean 1. Then I clip them s.t. all weights lie between 0.2 and 30. The first step ensures that everything still works fine with normal learning rates. The clipping was done to make it a bit more stable ensuring that there aren't time series with weights in the order of 100 and others with weights in the order of 0.001.
+
+Happy Kaggling
+Tobias
+
+Edit: Unfortunately, @david1352413524 in front of me appended now as well _stu to his team name s.t. I guess this here is only the 2nd student place :( congrats to him though. Would you mind sharing your solution as well @david1352413524 ?
+

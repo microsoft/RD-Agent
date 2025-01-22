@@ -1,0 +1,66 @@
+Thanks contest organizer for holding such an interesting game. Thanks everyone joining and sharing during this contest. I learned a lot from discussions.
+	
+- **CV strategy**
+	Groupby anchor and stratify by score, also there are some words occur in both anchor and target, make sure to put them in the same fold.  
+
+- **NN model detail**
+		a. Pearson loss worked best for me
+		b. 5 epochs training, start AWP training from the 2nd epoch. 
+		AWP helps a lot in all my nlp contests recently.
+		c. Groupby['anchor',  'context'] ['target'] -> targets, add to input(anchor[SEP]target[SEP]CPC_TEXT[SEP]targets)  produce best model
+		Groupby['anchor',  'context[0]'] ['target'] -> targets,  add to input help ensemble a lot, let me define context[0] as sector, it is like F21 -> F
+		Remember to exclude current target from targets.
+		d. Random shuffle targets during each training step. (did not test enough, I remembered improved a lot on LB)
+		e. Freeze bert embedding layer (not much difference maybe but I used it for final models)
+Freeze embedding layer not hurt, means we do not need to finetue so much as our targets is simple short words similarity.
+		f. Using different learning rates for bert (2e-5, 3e-5) and other parts(1e-3), especially useful when adding LSTM which need large lr.
+		g. Add BI-LSTM header help a lot.
+		Deberta-v3-large CV 858-> 861  “prompt is all you need" gave me a hint we do not need to finetune/change bert model a lot, so I tried to add LSTM on top of bert and freeze bert embedding layer.
+		h.  Using linear attention pooling on top of BI-LSTM before fc.
+		i.  Lr matters a lot for best single model deberta-v3-large,  2e-5 much better then 3e-5 
+		Deberta-v3-large CV 861 -> 8627
+		j. Change rnn output dim * 2 from (bert out dim like 1024 to 2048) help a lot for some weak models like bert-for-patents and simcse-bert-for-patent.
+So for weak models we might need models to be widder.
+k. One possible method might be using token classfication to predict all targets score in 1 instance. 
+Seems a bit complex to implement and I do not know if it will help improve score, not tried that yet.
+		
+| model |  CV | backbone lr | base lr | scheduler | rnn dim * 2 | weight | 1 Fold LB | 1 Fold PB | Full train LB | Full train PB | 5 Folds LB | 5 Folds PB | 
+| --- | --- |
+| microsoft/deberta-v3-large | 8627  | 2e-5 | 1e-3 | linear | No | 1 | 8599 | 8710 | 8604 | 8745 | 8604 (may shake to 8615) | 8761 |
+| anferico/bert-for-patents | 8451  | 3e-5 | 1e-3 | cosine | Yes | 0.4 |  |  |  |  |  |  |
+| ahotrod/electra_large_discriminator_squad2_512 | 8514  | 2e-5 | 1e-3 | cosine | No | 0.3 |  |  |  |  |  |  |
+| Yanhao/simcse-bert-for-patent | 8393  | 3e-5 | 1e-3 | cosine | Yes | 0.2 |  |  |  |  |  |  |
+| funnel-transformer/large | 848  | 3e-5 | 1e-3 | cosine | No | Exp after game end |  |  |  |  |  |  |
+
+Interesting to see  deberta-v3-large and electra-large work best, they are both pretrained using electra style RTD not MLM.
+But for this problem bert-for-patents ensemble most well with deberta-v3-large due to better diversity.
+	
+- **Ensemble**
+		a. Using 5 folds + 1 full train for each backbone, with full train model weight * 2
+weight 2 is choosing by e., and tested ineed better then 1:1 for LB and PB.
+		b. Minmax scale for each model's output before adding to ensemble.
+		c. Be sure to use weighted ensemble as for simple mean average hurt LB, maybe due to deberta-v3-large is much better then other models. 
+		d. 5 folds self ensemble improve LB a lot which is a bit hard to measure by local cv
+		e. Use 20% data left out and train 10 folds models on the 80% and could find only lower down weight of weak models you could get gain.But this is costing, in the final days I only choose model weights by manually choosing those make my local first level cv best.
+| Ensemble | CV  | LB | PB 
+| --- | --- |
+| 4 * 6 models | 8651 | 8618 | 8745 
+| Add LSTM header | 8666 | 8625 | 8775 
+| Adjust params like lr and rnn out dims| 8677 | 8629 | 8779 
+| 7 * 6 models, Add 3 groupby context, sector models  | 8682 | 8633 | 8782
+
+Glad to see CV and LB PB match :)    
+
+
+- **Summary**    
+-- Add targets groupby anchor,context, key magic/trick to the gold. 
+-- Add LSTM help me get good enough single model, which is the key for win on PB. (8745 -> 8779)  
+-- Add targets groupby anchor,sector(context[0]) bring diverse models (comparing to change loss function, pooling method) )(8779->8782)  
+
+inference code:
+
+most training code in:
+  
+all training code opensource here:  
+
+

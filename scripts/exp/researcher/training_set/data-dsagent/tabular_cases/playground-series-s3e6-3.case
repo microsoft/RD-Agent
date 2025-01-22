@@ -1,0 +1,17 @@
+One need to trust the local CV when picking the submissions when they are ranked in the public rank 400-500 :) glad it worked here.
+
+The best single model was a work with some feature engineering and than tuning it with a XGB model via HPO.
+For the FE I used the orginal data to the comp. data and first manually removed the outliers below:
+train[train['made']!=10000]
+train[train['floors']!=6000]
+train[train['squareMeters']!=6071330]
+train[train['garage']!=9017]
+train[train['garage']!=2048]
+
+Then I applied some common FE such as scaling, remove perfect collinearity, cardinality reduction, power transform etc.
+I used a custom created HPO FE for finding the best FE for the data. Binned CV FE HPO on the train data is relevant and treat the val data as the coming test data per fold. After this I used the best CV FE HPO for tuning the XGB in the same way.
+
+This was the best single model, I also used a ensemble with different models, kernels, versions etc for the second submissions.
+
+Thats it!
+

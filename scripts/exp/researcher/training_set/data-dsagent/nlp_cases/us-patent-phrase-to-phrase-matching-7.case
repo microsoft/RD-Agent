@@ -1,0 +1,137 @@
+First of all, I would like to thank kaggle and the staff for hosting such an interesting competition.
+Also, I really appreciate my teammates, @harshit92, @ynishizono, @muhammad4hmed Congratulations to become the competition master and @trushk Congratulations to 2nd gold medal !
+
+
+# 1. Summary (Our Magic and got single model public LB : 0.8562, private : 0.8717)
+Our magic was to group the target words per "anchor + context" and attach them to the end of each sentence.Maybe it's easier to understand by looking at the code, so I'll share it.
+
+```
+train['group'] = train['context'] + " " + train['anchor']
+
+allres = {}
+
+for text in tqdm(train["group"].unique()):
+tmpdf = train[train["group"]==text].reset_index(drop=True)
+texts = ",".join(tmpdf["target"])
+allres[text] = texts
+
+train["target_gp"] = train["group"].map(allres)
+
+train["input"] = train.anchor + " " + tokenizer.sep_token + " " + train.target + " " + tokenizer.sep_token + " " + train.title + " " + tokenizer.sep_token + " " + train.target_gp
+
+```
+for example, we get like this sentence as input. And training.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+abatement [SEP] abatement of pollution [SEP] HUMAN NECESSITIES. FURNITURE; DOMESTIC ARTICLES OR APPLIANCES; COFFEE MILLS; SPICE MILLS; SUCTION CLEANERS IN GENERAL [SEP] abatement of pollution,act of abating,active catalyst,eliminating process,forest region,greenhouse gases,increased rate,measurement level,minimising sounds,mixing core materials,multi pollution abatement device,noise reduction,pollution abatement,pollution abatement incinerator,pollution certificate,rent abatement,sorbent material,source items pollution abatement technology,stone abutments,tax abatement,water bodies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By doing so, we thought that we could not only train one sentence, but also train considering the correlation of the target words for each "anchor + context" with attention. Moreover, in order to avoid leakage, groupkfold of "anchor + context" was adopted. As a result, this magic boosted our models (in best case, public lb 0.8418 → 0.8562) two days before closing.
+
+This idea was decisive for getting into the gold medal zone. (Only this single model we can get the gold)
+
+------------------Details below---------------------------------------
+
+# 2. Preprocess and cross validation
+
+preprocess and cross validation is proposed by @harshit92 Basically, we used the lower case, not using [SEP] but uses [sep], remove ";" , "," , and "." like this.
+
+~~~
+train['input'] = train['anchor'] + ' [SEP] ' + train['target'] + ' [SEP] '  + train['context_text']
+train['input'] = train['input'].apply(lambda x: x.lower())
+train['input'] = train['input'].apply(lambda x: x.replace(';','').replace(',','').replace('.',''))
+~~~
+
+And he found the boosting by changing 5kfold to 10kfold as NBME 1st solution
+(public LB : 5kfold 0.8395 → 10kfold 0.8435). These were the strong tools for us.
+
+# 3. Model making
+
+## 3.1 How to catch the problem
+We did not just solve the 1 target prediction, but to make it more diverse, we solved the problem as follows.
+
+### 3.1.1 BCE with binning
+The score value was replaced as follows. And sigmoid was calculated in each predictions and averaged.
+
+~~~
+0:[0,0,0,0], 0.25:[1,0,0,0], 0.5:[1,1,0,0], 0.75:[1,1,1,0],1:[1,1,1,1]
+output = sigmoid in each prediction and averaged
+
+For example, prediction = [0.1, 0.3, 0.2, 0.4], output = (0.1 + 0.3 + 0.2 + 0.4) /4
+
+~~~
+
+### 3.1.2 Softmax with binning
+The score was replaced as follows. And softmax was calculated in each predictions and convoluted.
+
+~~~
+0:[0, 0, 0, 0, 0], 0.25:[0,1,0,0,0], 0.5:[0,0,1,0,0], 0.75:[0,0,0,1,0],1:[0,0,0,0,1]
+output = softmax in each prediction and convolution operation
+
+For example, prediction = [0.1, 0.3, 0.2, 0.4, 0], output = 0*0.1 + 0.25*0.3 + 0.5*0.2 + 0.75*0.4 +1.0*0
+
+~~~
+
+## 3.2 AWP
+
+As with Feedback and NBME, we were able to improve our score with AWP.
+I got the code from the following in Feedback [code](
+
+
+This boosted my model public LB : 0.8394  to 0.8418
+
+## 3.3 Other tips that worked well
+
+- Mixout by @trushk 
+- Knowledge distillation(KD) by @ynishizono 
+- text embedding with SVR 
+- mix various loss (ex. MSE + Corr)
+- dynamic padding for some arches 
+
+## 3.4 Didn't work well
+
+- MLM
+- pseudo labeling (export all combination of anchor and target per context)
+- Random noise of [MASK]
+- change the order of input
+- post process of Gradiant Boost
+- adding per subsection title (some case is better.)
+- concat text embedding and SVR like PetFinder 1st solution
+
+# 4. Ensemble
+For our ensemble, we used the nelder-mead coefficient by oof files. Candidates were automatically exported by @trushk 's code which uses the mix of the hill climb and nelder-mead algorithm. Finally, the used models were extracted based on over 90 oof files, and adjusted manually.
+
+There are the list of models for the final submission. 
+
+| model id | model                        | Feature   | Task            | Magic | kfold | cv      | public LB  | private LB | weight |
+|----------|------------------------------|-----------|-----------------|-------|-------|---------|------------|------------|--------|
+| 1        | deberta-v3-large             | AWP       | MSE             | TRUE  | 15    | 0.8605  | 0.8562     | 0.8717     | 0.237  |
+| 2        | electra-large-discriminator  |           | MSE             | TRUE  | 15    | 0.8456  | 0.8406     | 0.8534     | 0.166  |
+| 3        | electra-large-discriminator  |           | MSE             |       | 15    | 0.8381  | 0.8339     | 0.8486     | 0.049  |
+| 4        | bert-for-patents             | KD + SVR  |  BCE binning    |       | 5     | 0.8339  |            |            | 0.087  |
+| 5        | deberta-v3-large             | KD + SVR  | MSE             |       | 5     | 0.8470  |            |            | 0.129  |
+| 6        | deberta-v3-large             |           |  BCE binning    | TRUE  | 5     | 0.8471  | 0.8512     | 0.8664     | 0.067  |
+| 7        | deberta-v3-large             | Mixout    | Softmax binning | TRUE  | 5     | 0.8440  | 0.8506     | 0.8644     | 0.057  |
+| 8        | bert-for-patents             | Mixout    | Softmax binning | TRUE  | 5     | 0.8340  |            |            | 0.084  |
+| 9        | deberta-v3-large             |           |  BCE binning    | TRUE  | 10    | 0.8463  |            |            | 0.092  |
+| 10       | deberta-v3-large             |           |  BCE binning    |       | 10    | 0.8335  | 0.8390     | 0.8579     | 0.073  |
+
+
+
+Final our cv is 0.8721, public lb is 0.8604, private lb is 0.8750 (11th).
+
+As reference, this is all of our cv and lb relationship. The difference in color indicates the difference between people. We discussed based on this. 
+
+![lb](
+
+
+# 5. Acknowledgments
+
+We couldn't get this score on our own. Thank you to everyone who shared past knowledge and code! We respect to you. 
+
+And I think the reason we got the gold medal was largely due to the sharing and discussion of the daily results. Eventually it leaded to the magic. We are the best team ! Thank you !!
+
+From our team :
+
+![Our team](
+

@@ -1,0 +1,31 @@
+(1) The overall design of this code is to forecast the demand for a set of products in a retail store. It uses historical sales data, calendar data, and selling prices data to train a LightGBM model. The model is then used to make predictions for a future time period. The code is divided into several sections: loading the data, preparing the calendar data, defining helper functions, preparing the model data sets, fitting the LightGBM model, calculating predictions, and saving the predictions to a CSV file.
+
+(2) The overall model architecture is a LightGBM model with a Poisson loss function. LightGBM is a gradient boosting framework that uses tree-based learning algorithms. The Poisson loss function is used because the target variable (demand) is a count variable and follows a Poisson distribution. The model is trained to minimize the root mean squared error (RMSE) metric.
+
+The model is trained using the following steps:
+- The data is prepared by dropping old dates, reshaping it to a long format, and adding demand features such as lagged values and rolling means.
+- The data is split into training and validation sets using a 90/10 split.
+- The LightGBM model is defined with hyperparameters such as the learning rate, lambda (L2 regularization term), number of leaves, and colsample_bytree (subsample ratio of columns when constructing each tree).
+- The model is trained using the training set and validated using the validation set. Early stopping is used to prevent overfitting.
+- The feature importance is plotted to visualize the importance of each feature.
+- The model is used to make predictions for the test set.
+
+(3) The important hyperparameters in this code are:
+- learning_rate: The learning rate controls the step size at each boosting iteration. It is set to 0.08.
+- lambda: The lambda parameter controls the L2 regularization term. It is set to 0.1.
+- num_leaves: The num_leaves parameter controls the maximum number of leaves in each tree. It is set to 63.
+- sub_row: The sub_row parameter controls the subsample ratio of rows when constructing each tree. It is set to 0.7.
+- bagging_freq: The bagging_freq parameter controls the frequency of bagging. It is set to 1.
+- colsample_bytree: The colsample_bytree parameter controls the subsample ratio of columns when constructing each tree. It is set to 0.7.
+
+(4) The optimization objective is to minimize the root mean squared error (RMSE) metric. The Poisson loss function is used as the objective function for training the LightGBM model. The RMSE metric is a common evaluation metric for regression problems and measures the average difference between the predicted and actual values.
+
+(5) The advanced machine learning technique used in this code is gradient boosting with LightGBM. Gradient boosting is an ensemble learning method that combines multiple weak models (decision trees) to create a strong predictive model. LightGBM is a gradient boosting framework that uses tree-based learning algorithms and is known for its efficiency and scalability.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+- Lagged features: The code creates lagged features by shifting the demand values for each product by a certain number of days. This allows the model to capture the temporal dependencies in the data.
+- Rolling mean features: The code calculates rolling mean features by taking the average of the lagged demand values over a certain window size. This helps to smooth out the noise in the data and capture the overall trend.
+- Ordinal encoding: The code uses ordinal encoding to convert categorical variables into numerical values. This allows the model to process the categorical variables as numerical features.
+- Train-validation split: The code splits the data into training and validation sets to evaluate the performance of the model. This helps to prevent overfitting and allows for hyperparameter tuning.
+- Early stopping: The code uses early stopping to stop the training process if the performance on the validation set does not improve after a certain number of iterations. This helps to prevent overfitting and saves computational resources.
+- Feature importance: The code plots the feature importance to visualize the importance of each feature in the model. This helps to identify the most influential features and can guide feature selection and engineering efforts.

@@ -1,0 +1,12 @@
+Thank you Georgia State University, The Learning Agency Lab, and Kaggle for a very well run competition. The data was high quality and interesting. It was great learning. 
+
+Thanks also to Huggingface  🤗  . Where would NLP be without you.
+
+Unfortunately, we missed out on the best of the postprocessing shown in some of the top approaches - WBF, GBM stackers, and Yolo-style span detector… really great work. Next time! 
+
+Our [solution]( was blending a number of models (Big bird, Longformer, Deberta, Deberta-v2, Deberta-v3, Bart) all large models. We used a weighted average which was tuned with Optuna. Thresholds were also tuned with Optuna. 
+
+As opposed to BIO tagging we used 9 model outputs - 7 classes & No span, as well one output to predict the initial token of each span. We found token dropout worked well to reduce overfitting. 
+
+Training on very long sequences did not help too much. Using max 1250 tokens seemed to do well. For the shorter model it worked well to adjust the model to extend position token lengths, and just repeat the position embeddings 2X or 3X times.
+

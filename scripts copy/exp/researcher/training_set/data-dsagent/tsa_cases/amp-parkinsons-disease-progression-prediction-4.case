@@ -1,0 +1,52 @@
+#AMP®-Parkinson's Disease Progression Prediction
+Wow, this competition had a close finish at the top. I suspected this would be the case because I believe there was only 1 source of reliable signal (i.e. `patient visit dates`) and all the tops teams were working hard to extract an extra SMAPE 0.1 from it. The metric SMAPE is a percentage so `0.1` is actually `0.001`. That's how close the finish was!
+
+The final leaderboard is separated into two groups. The top 18 teams have `SMAPE <= 62.5` and the next teams have `SMAPE >= 68.4`. I believe the top 18 teams used signal from `patient visit dates` and the next teams `did not`.
+
+# Signal from Protein/Peptide data
+In this competition, Kaggle provided 227 Protein NXP features and 968 Peptide PeptideAbundance features. That is 1195 features for each of 17 possible visit dates. We only have 248 train patients. And the `curse of dimensionality` begins when `number of features > train samples / 10`. In other words we only have enough train data to reasonably train 25 features not 1195 features!
+
+I did an experiment where i made 1000 columns of random numbers. Using forward feature selection, I found that columns of `random numbers` would boost GroupKFold CV score **the same amount that protein/peptide features did**. This means that there may be signal hiding in the protein peptide data but it is too weak to detect patterns with only 248 patients (because no protein nor peptide boost CV more than random numbers can).
+
+# Signal from Patient Visit Dates
+Next I searched patient visit dates for signal. Many Kagglers overlooked that we can engineer features from patient visit dates. Here are some example features
+* when was patient's first blood work measured?
+* did patient get blood work at their first doctor visit, yes or no?
+* how many times did a patient visit the doctor?
+* how long ago was the patient's last visit?
+
+Etc etc. We can create 100s of features about when a patient visited the doctor and when a patient had blood work done. I quickly noticed the following trend. **Patients who visit the doctor more often have larger UPDR scores**. This is shown in the following 3 plots. The first are patients who visited the doctor a normal number of times. The second are patients who visited 1 standard deviation less than normal. And the last are patients who visited 1 standard deviation more. In each plot, we display the average target value per visit month for these 3 groups of patients:
+![](
+![](
+![](
+
+# Feature Engineering
+The above plots show that there is signal in the `patient visit dates`. What is the best way to extract this signal? I generated 100s of features and used `for-loops` with **RAPIDS cuML SVR** to find which features extract the most signal.
+
+In the end, simple "booleans" worked best (and the model "created its own features internally"). For each visit month, i created a boolean variable. For example for visit month = 24, i created the following "boolean":
+* `v24 = 0` if we know that patient did **not** visit on visit month = 24
+* `v24 = 1` if we know that patient did visit on visit month = 24
+* `v24 = -1` if we **do not** know if patient visited on month = 24
+
+The reason for the third category is because at each time step of Kaggle's API we are asked to predict `0, 6, 12, 24` months into the future. So if the current visit month = 12 and we are predicting visit month 36, we do **not** know if the patient visited during visit month = 24.
+
+# Single Model RAPIDS cuML - 8th Place Gold
+A single **RAPIDS cuML SVR** model trained with 11 features which are `visit_month` and `v0`, `v6`, `v12`, `v18`, `v24`, `v36`, `v48`, `v60`, `v72`, `v84` where the `v` features are described above achieves `CV = 55.5` and `Public LB = 55.4` and `Private LB = 60.5`. This is 8th place Gold. Using **RAPIDS cuML** was great because it allowed me to experiment dozens of models in minutes!
+
+# Single Model TensorFlow MLP - 4th Place Gold
+After I found the above features, i tried different model types. I tried XGBoost with `PseudoHuber loss`. It's CV was not as good as **RAPIDS cuML SVR**. Next I tried TensorFlow MLP with `MeanAbsoluteError`. We built an MLP with 10 hidden layers where each hidden layer has 24 units and activation Relu. We used no Dropout and no BatchNormalization. We trained it for 15 epochs with Adam optimizer `LR = 1e-3` and then 15 epochs `LR = 1e-4`. This achieves `CV = 55.0` and `Public LB 54.9` and `Private LB 60.1`. This is 4th place Gold.
+
+# Creating Train Data
+Our model trained with `train_clinical_data.csv` only. Creating proper train data for the above features was not trivial. We needed to convert each row from the original train data into **4 new rows**. If the original row was `patient_id = 55` and `visit_month = 24`. Then we needed to replace this row with 4 new rows:
+* patient_id=55, visit_month=24, And v0=X1, v6=-1, v12=-1, v24=-1, v>24=-1
+* patient_id=55, visit_month=24, And v0=X1, v6=X6, v12=-1, v24=-1, v>24=-1
+* patient_id=55, visit_month=24, And v0=X1, v6=X6, v12=X12, v24=-1, v>24=-1
+* patient_id=55, visit_month=24, And v0=X1, v6=X6, v12=X12, v24=X24, v>24=-1
+
+where `X1`, `X6`, `X12`, `X24` are the values `0` or `1` based on whether `patient_id=55` visited on months 0, 6, 12, 24 in the train data. The 4 new rows are current visit month minus 0, 6, 12, 24. If any of these subtractions are not valid visit months then we don't make that row.
+
+# 4th Place Solution Code
+I published my 4th place submission code using TensorFlow MLP [here][1]. Enjoy!
+
+[1]: 
+

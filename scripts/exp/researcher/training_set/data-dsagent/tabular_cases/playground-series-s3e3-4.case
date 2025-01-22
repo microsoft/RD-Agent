@@ -1,0 +1,88 @@
+Hello all, it was another very fun competition! I have a decent amount to go through in my solution so I'll just get right to it. Link to full notebook: [here](
+
+### Encoding
+
+We had a decent amount of categorical features so there were many different valid approaches that I observed. Here is what I used:
+```python3
+LabelEncoder() on ["Gender", "OverTime", "MaritalStatus", "PerformanceRating"]
+OneHotEncoder() on ["Department", "BusinessTravel"]
+LeaveOneOutEncoder(sigma = 0.05) on ["EducationField", "JobRole"]
+```
+
+### Outliers
+
+There were a couple values in the train set that could be potentially disruptive for building models. Here was my strategy for dealing with them:
+
+```python3
+train.at[527, "Education"] = 5
+train.at[1535, "JobLevel"] = 5
+train.at[1398, "DailyRate"] = train["DailyRate"].median()
+```
+
+### Feature Engineering
+
+@snnclsr had a great idea in the first episode of season 3 to [add a feature to denote if the data is generated or not](
+```python3
+train["is_generated"] = 1
+test["is_generated"] = 1
+original["is_generated"] = 0
+```
+I ended up using this feature because we were once again working with synthetic data and it gave a small boost in CV score.
+
+@craigmthomas also had a great idea in the second episode of season 3 to use [Number of Risk Factors as a Feature]( It took a good amount of time but I went through all of features and looked closely at the ratio of `Attrition`. I experimented with a bunch of different subsets but this setup ended up improving CV the most:
+```python3
+def feature_risk_factors(df):
+df["risk_factors"] = df[[
+"RelationshipSatisfaction", "MonthlyIncome", 
+"BusinessTravel", "Department", "EducationField", 
+"Education", "JobInvolvement", "JobSatisfaction", 
+"RelationshipSatisfaction", "StockOptionLevel", 
+"TrainingTimesLastYear", "WorkLifeBalance", "OverTime"
+]].apply(
+lambda x: \
+0 + (1 if x.MonthlyIncome < 3000 else 0) + \
+(1 if x.BusinessTravel == "Travel_Frequently" else 0) + \
+(1 if x.Department == "Human Resources" else 0) + \
+(1 if x.EducationField in ["Human Resources", "Marketing"] else 0) + \
+(1 if x.Education == 1 else 0) + \
+(1 if x.JobInvolvement == 1 else 0) + \
+(1 if x.JobSatisfaction == 1 else 0) + \
+(1 if x.StockOptionLevel == 0 else 0) + \
+(1 if x.TrainingTimesLastYear == 0 else 0) + \
+(1 if x.WorkLifeBalance == 1 else 0) + \
+(1 if x.OverTime == 1 else 0),
+axis = 1
+)
+return df
+```
+
+This feature actually ended up having the most feature importance by far for CatBoost & XGBoost. Strangely, LGBM only had this feature as 13th most important.
+
+Alright alright, I didn't just use other people's feature engineering ideas. Here are the features I personally engineered:
+```python3
+def feature_engineering(df):
+df["Dedication"] = df["YearsAtCompany"] + df["YearsInCurrentRole"] + df["TotalWorkingYears"]
+df["JobSkill"] = df["JobInvolvement"] * df["JobLevel"]
+df["Satisfaction"] = df["EnvironmentSatisfaction"] * df["RelationshipSatisfaction"]
+df["MonthlyRateIncome"] = df["MonthlyIncome"] * df["MonthlyRate"]
+df["HourlyDailyRate"] = df["HourlyRate"] * df["DailyRate"]
+return df
+```
+Pretty basic interaction features, not much to comment on here other than using intuition and trial & error.
+
+### Models & Validation
+
+@kirkdco (who placed 1st in episode 2) had an excellent idea to not include the original data that the competition data was generated from in cross validation splits. I used this technique with 10 fold StratifiedKFold. I also used a basic GridSearch to find optimal hyper parameters for all 3 models. Random note: `max_depth = 1` for CatBoost surprisingly worked the best.
+
+final blended submission was: `cat_preds * 0.55 + xgb_preds * 0.25 + lgbm_preds * 0.2` 
+
+However `cat_preds * 0.34 + xgb_preds * 0.33 + lgbm_preds * 0.33` ended up being **just slightly** better (0.00004+).
+
+### Bonus
+
+@tilii7 posted this topic in episode 1: [A colorful reminder to always ensemble your predictions]( He explained that in some cases it helps to plot a cumulative distribution function of multiple models and visualize the differences directly. So that's exactly what I did!
+
+![](
+
+Thanks again to everyone who participated and shared their ideas! See you in episode 4!
+

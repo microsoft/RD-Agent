@@ -1,0 +1,23 @@
+(1) The overall design of this code is to predict the ratings for different target variables (updrs_1, updrs_2, updrs_3, updrs_4) based on protein data. It uses a combination of month trend predictions and protein-specific shifts to make the predictions.
+
+(2) The overall model architecture can be described as follows:
+- The code starts by generating the train dataset by merging the clinical data and protein data.
+- It then calculates the month trend predictions for each target variable using the provided trend values and the predicted month.
+- Next, it divides the NPX values of a specific protein into several groups based on quantiles and finds the best shift after the month trend predictions for each group.
+- Finally, it sums the predictions from the month trend and the corresponding NPX group shift to get the final ratings.
+
+(3) The important hyper-parameters in this code are:
+- `quantiles`: A list of quantiles used to divide the NPX values into groups.
+- `target_to_trend`: A dictionary mapping each target variable to its corresponding trend values and the minimum month with a non-zero median for updrs_4.
+- `target_to_clip_max`: A dictionary mapping each target variable to its maximum clipping value for the shifts.
+- `npx_groups`: A list of dictionaries, where each dictionary represents an NPX group and contains the quantile range, clipping range, and feature name.
+
+(4) The optimization objective of this code is to minimize the SMAPE+1 metric between the true ratings and the predicted ratings. The `function_to_minimize` function calculates the SMAPE+1 metric based on the true ratings, predicted ratings, and protein shifts.
+
+(5) The advanced machine learning technique used in this code is the combination of month trend predictions and protein-specific shifts. The month trend predictions capture the overall trend in the ratings over time, while the protein-specific shifts capture the protein-specific effects on the ratings.
+
+(6) Some important tricks that play a role in high performance are:
+- Filling missing values in the protein data using forward fill (`fillna(method='ffill')`).
+- Clipping the shifts to avoid extreme values that may lead to unrealistic predictions (`clip()` function).
+- Dividing the NPX values into groups based on quantiles to capture protein-specific effects on the ratings.
+- Using the Powell optimization method (`method='Powell'`) to find the best shift values that minimize the SMAPE+1 metric.

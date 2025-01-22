@@ -1,0 +1,28 @@
+(1) The overall design of the code is to train multiple models on different folds of the data and then use the trained models to make predictions on the test data. The predictions from each model are then combined to generate the final submission.
+
+(2) The overall model architecture consists of a transformer-based model (e.g., DeBERTa) as the backbone, followed by a custom head for each model. The transformer model is responsible for encoding the input text, and the custom head is responsible for making predictions based on the encoded representation. The code supports different types of custom heads, such as Extra_Head_1, Weighted_Linear, Cat_LSTM, and Pool_LSTM. Each custom head has its own specific architecture and functionality.
+
+(3) The important hyperparameters in this code are:
+- `n_classes`: The number of output classes.
+- `n_workers`: The number of workers for data loading.
+- `device`: The device to use for training (e.g., 'cuda' for GPU).
+- `batch_size`: The batch size for training and inference.
+- `max_len`: The maximum length of input sequences.
+- `tokenizer`: The path to the tokenizer used for encoding the input text.
+- `config`: The path to the model configuration file.
+- `folds`: The list of paths to the trained model weights for each fold.
+- `weight`: The weight assigned to each model's predictions during the final aggregation.
+- `aux`: Whether to use an auxiliary head for making additional predictions.
+- `head`: The type of custom head to use for each model.
+- `extra_head_instances`: The list of extra head instances to use for each model.
+
+(4) The optimization objective is not explicitly mentioned in the code. However, based on the usage of the models, it can be inferred that the objective is to minimize the loss between the predicted outputs and the ground truth labels. The specific loss function used is not provided in the code.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code utilizes pre-trained transformer-based models (e.g., DeBERTa) as the backbone for encoding the input text. These pre-trained models have been trained on large-scale datasets and have learned rich representations of text. By fine-tuning these pre-trained models on the specific task at hand, the code leverages the knowledge learned from the pre-training to improve performance on the target task.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Using different types of custom heads: The code supports multiple types of custom heads, each with its own architecture and functionality. This allows for flexibility in modeling different aspects of the data and capturing different patterns.
+- Using auxiliary heads: The code supports the use of auxiliary heads, which can make additional predictions based on the encoded representation. This can help capture different aspects of the data and improve overall performance.
+- Using weighted linear combination: The code combines the predictions from multiple models by taking a weighted linear combination of the predictions. This allows for the models with higher weights to have a larger influence on the final predictions, potentially improving performance.
+- Using pre-trained models: The code utilizes pre-trained transformer-based models as the backbone. These pre-trained models have learned rich representations of text from large-scale datasets, which can help improve performance on the target task.
+- Using data parallelism: The code uses data parallelism to train and make predictions with multiple models simultaneously. This can help speed up the training and inference process and improve overall performance.

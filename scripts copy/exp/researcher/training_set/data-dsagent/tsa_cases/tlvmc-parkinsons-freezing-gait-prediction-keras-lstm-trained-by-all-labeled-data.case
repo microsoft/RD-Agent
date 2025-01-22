@@ -1,0 +1,25 @@
+(1) The overall design of the code is to train and evaluate multiple models for a kaggle competition on Parkinson's freezing gait prediction. The code includes functions for data preprocessing, model architecture, training, and inference.
+
+(2) The overall model architecture includes multiple variations of bidirectional LSTM and 1D CNN models. The code provides functions to load and compile these models. The bidirectional LSTM models have multiple layers of bidirectional LSTM cells, followed by dense layers with activation functions. The 1D CNN models have multiple convolutional layers with different filter sizes, followed by bidirectional LSTM layers and a dense layer with a softmax activation function. The models are trained using the Adam optimizer and categorical cross-entropy loss.
+
+(3) The important hyperparameters in this code are:
+- `target_size`: The target size for resizing the input sequences.
+- `lr`: The learning rate for the optimizer.
+- `early_stop_patience`: The number of epochs to wait before early stopping if the validation loss does not improve.
+- `epoch`: The maximum number of epochs for training.
+- `batch_size`: The batch size for training.
+- `model_no`: The model number to load and train.
+- `use_percentile_feat`: Whether to use percentile features in the input data.
+- `train`: Whether to train the models or perform inference.
+
+(4) The optimization objective is to minimize the categorical cross-entropy loss between the predicted and true labels for the presence of events in the input sequences.
+
+(5) The advanced machine learning technique used in this code is the use of bidirectional LSTM and 1D CNN models for sequence classification. These models are capable of capturing temporal dependencies in the input sequences and have been shown to perform well on various sequence classification tasks.
+
+(6) Some important tricks that play a role in high performance include:
+- Resizing the input sequences to a target size to ensure consistent input dimensions for the models.
+- Using percentile features in the input data to capture additional information about the distribution of the sensor data.
+- Applying early stopping during training to prevent overfitting and find the best model weights based on the validation loss.
+- Using a learning rate scheduler to dynamically adjust the learning rate during training.
+- Using batch normalization and dropout layers to regularize the models and prevent overfitting.
+- Ensembling multiple models to improve the overall prediction performance.

@@ -1,0 +1,26 @@
+(1) The overall design of the code is to train a model for predicting the content and wording scores of student summaries. It uses a combination of transformer models and gradient boosting machines (lightgbm) for the training process. The code also includes post-processing steps to further improve the predictions.
+
+(2) The overall model architecture consists of two main components: the transformer models and the gradient boosting machines (lightgbm).
+
+- Transformer Models: The code uses the Huggingface library to load pre-trained transformer models for sequence classification. It uses the AutoTokenizer and AutoModelForSequenceClassification classes to load the models. The models are fine-tuned on the training data using the Trainer class from the transformers library. The input to the transformer models is a concatenation of the prompt title, prompt question, and student summary. The models output the predicted scores for content and wording.
+
+- Gradient Boosting Machines (lightgbm): The code uses the lightgbm library to train gradient boosting machines on the features extracted from the transformer models. The features include the predicted scores from the transformer models, as well as additional features such as the length of the summary, the ratio of copied words, and cosine similarity scores. The lightgbm models are trained using the lgb.train function and are used to make final predictions for content and wording scores.
+
+(3) The important hyperparameters in this code are:
+- `MODE`: Determines whether the code is running in training or test mode.
+- `POSTPROCESS`: Determines whether post-processing steps should be applied.
+- `model_name`: The name or path of the pre-trained transformer model to be used.
+- `hidden_dropout_prob`: The dropout probability for the transformer model.
+- `attention_probs_dropout_prob`: The dropout probability for the attention mechanism in the transformer model.
+- `max_length`: The maximum length of the input sequences for the transformer model.
+- `ENSEMBLE`: The index of the ensemble model to be used.
+
+(4) The optimization objective is to minimize the root mean squared error (RMSE) between the predicted scores and the true scores for both content and wording.
+
+(5) The advanced machine learning technique used in this code is the combination of transformer models and gradient boosting machines. The transformer models are used to extract features from the input sequences, while the gradient boosting machines are used to make final predictions based on these features.
+
+(6) Some important tricks that play a role in high performance are:
+- Cleaning and standardizing the input sequences: The code includes functions to clean and standardize the prompt text and student summaries, which helps in finding common sequences and improving the quality of the predictions.
+- Feature engineering: The code includes various features such as the length of the summary, the ratio of copied words, and cosine similarity scores, which provide additional information for the models to make predictions.
+- Ensemble learning: The code uses an ensemble of multiple models trained on different subsets of the data to improve the robustness and generalization of the predictions.
+- Post-processing: The code includes post-processing steps such as normalizing features and applying additional models (lightgbm) to further refine the predictions.

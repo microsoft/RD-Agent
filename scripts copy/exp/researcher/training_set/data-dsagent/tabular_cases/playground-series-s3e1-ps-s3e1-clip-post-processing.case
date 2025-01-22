@@ -1,0 +1,69 @@
+(1) The overall design of the code is to preprocess the data, train three different models (LGBM, CatBoost, and XGBoost), and then blend the predictions of these models to generate the final submission.
+
+(2) The overall model architecture consists of three models: LGBM, CatBoost, and XGBoost. Each model is trained using a specific set of hyperparameters and features. The training process involves splitting the data into folds, training the model on each fold, and evaluating the performance using RMSE. The predictions of each model are then blended using a weighted average to generate the final predictions.
+
+(3) The important hyperparameters in this code are:
+
+- LGBM:
+  - max_depth: Maximum depth of the tree.
+  - learning_rate: Learning rate for boosting.
+  - min_data_in_leaf: Minimum number of data points in a leaf.
+  - num_leaves: Maximum number of leaves in a tree.
+  - feature_fraction: Fraction of features to be used in each iteration.
+  - bagging_fraction: Fraction of data points to be used in each iteration.
+  - bagging_freq: Frequency of bagging.
+  - lambda_l2: L2 regularization term.
+  - seed: Random seed for reproducibility.
+  - objective: Objective function for regression.
+  - boosting_type: Type of boosting algorithm.
+  - device: Device to use for training.
+  - gpu_platform_id: GPU platform ID.
+  - gpu_device_id: GPU device ID.
+  - n_jobs: Number of parallel threads to use.
+  - metric: Evaluation metric.
+  - verbose: Verbosity level.
+
+- CatBoost:
+  - depth: Maximum depth of the tree.
+  - learning_rate: Learning rate for boosting.
+  - rsm: Feature fraction for each tree.
+  - subsample: Subsample ratio of the training instances.
+  - l2_leaf_reg: L2 regularization term.
+  - min_data_in_leaf: Minimum number of data points in a leaf.
+  - random_strength: Random strength for feature selection.
+  - use_best_model: Whether to use the best model found during training.
+  - task_type: Type of task to perform (CPU or GPU).
+  - bootstrap_type: Type of bootstrap sampling.
+  - grow_policy: Tree growth policy.
+  - random_seed: Random seed for reproducibility.
+  - loss_function: Loss function for regression.
+  - eval_metric: Evaluation metric.
+
+- XGBoost:
+  - max_depth: Maximum depth of the tree.
+  - eta: Learning rate for boosting.
+  - colsample_bytree: Fraction of features to be used in each tree.
+  - subsample: Subsample ratio of the training instances.
+  - min_child_weight: Minimum sum of instance weight needed in a child.
+  - lambda: L2 regularization term.
+  - gamma: Minimum loss reduction required to make a further partition on a leaf node.
+  - tree_method: Tree construction method.
+  - booster: Booster type.
+  - predictor: Predictor type.
+  - seed: Random seed for reproducibility.
+  - objective: Objective function for regression.
+  - eval_metric: Evaluation metric.
+
+(4) The optimization objective is to minimize the root mean squared error (RMSE) between the predicted and actual values of the target variable (MedHouseVal).
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The predictions of multiple models (LGBM, CatBoost, and XGBoost) are blended together using a weighted average to improve the overall performance.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Generating additional data by merging the original dataset with the California housing dataset.
+- Encoding latitude and longitude coordinates using a trigonometric trick.
+- Transforming latitude and longitude coordinates using PCA and UMAP.
+- Rotating latitude and longitude coordinates using a rotation matrix.
+- Determining the location of coordinates using reverse geocoding.
+- Calculating distances to cities and coast points using the haversine formula.
+- Using feature importance analysis to identify the most important features.
+- Applying rounding to the final predictions to improve the results.

@@ -1,0 +1,69 @@
+Hi everyone,
+We would like to share our solution with you.
+
+Firstly, we would like to thank hosts, Kaggle for opening this great competition. Also, thanks to all participants for useful discussions. Personally, this is the first competition I've joined, and I am happy to achieve a meaningful result.
+
+Our goal was to achieve a high rank in this competition using deep learning (neural network) approach. I and my colleague are more familiar with deep learning methods and we believed that NN can get competitive result with other ML approaches (especially gradient boosting).
+
+-----
+
+### Summary
+We trained modified DeepAR with Tweedie loss and make a final prediction from the ensemble of multiple models chosen using the past 14 periods of WRMSSEs.
+
+### Network
+Our base network is DeepAR( which consisted of multiple LSTMs. We modified the baseline network to predict 28days with rolling predictions in the training phase (original DeepAR only predict 1-day in the training phase). Our modified DeepAR generates losses from rolled 28days and this gives more stable predictions on rolled prediction.
+
+### Loss
+Tweedie Loss
+- Thanks to @timetraveller for a good discussion (
+
+### Features
+We used the following features. All features are concatenated and fed to the network.
+
+* Sale values
+* Lag 1 value
+* Moving average of 7, 28 days
+* Calendar: all values are normalized to [-0.5,0.5]
+* wday
+* month
+* year
+* week number
+* day
+* Event
+* Event type : use embedding
+* Event name : use embedding
+* SNAP : [0, 1]
+* Price
+* raw value
+* Normalized across time
+* Normalized within the same dept_id
+* Category
+* state_id, store_id, cat_id, dept_id, item_id : use embedding
+* Zero sales
+* Continuous zero-sale days until today
+
+### Training Scheme
+We randomly sampled 28-days slice from each sequence and made 64 slices for each batch. Each batch is fed to the network and network predicts the next 28-days. Training iterated 300 epoch (one-epoch = 30490/64 iterations). We used Adam optimizer and used cosine annealing for the learning rate schedule. We used all periods including validation(~1942) for training.
+
+### CV
+It was hard to select CV period as WRMSSE is severely fluctuated according to the period. Besides, we found that 1914~1942 period is more unreliable as the characteristics of this period are more different from other periods. (There were many items start to selling from zero-sales)
+As the level 12 value is intermediate and sporadic, we conclude that the network also struggles to learn about training values. And we conclude that we don't need to much care about over-fitting. Instead, we concentrate to select good model from the trained model, which has low WRMSSE values for a specific period.
+
+We evaluated WRMSSE for the past 14 periods ((1914, 1886, 1858,... 1550) and selected a model that has a low mean of WRMSSEs. For each model, we evaluated every 10-epoch (from 200~300 epoch) and selected the top-3 epoch. From the trained 8 models, we make an ensemble model from 8*3 selected model for the final prediction.
+- More precisely, we make a final prediction using 24 + 19 models (24 models have applied dropout, 19 models are not applied dropout). This was just a heuristic strategy.
+
+
+### What we tried, but failed
+* Models
+*  We used other network architectures including CNN, Transformers, ..., etc. We could not find any model superior to others, and we choose the most basic model, DeepAR. 
+* Loss
+* Classification loss (CE loss)
+* WRMSSE as a loss
+* Forecast Reconciliation
+* Used different level but worse than using lv12
+
+
+-----
+
+We are happy to achieve the goal with our method. More importantly, we've learned many things from this competition. Thanks to all again!
+

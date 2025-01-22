@@ -1,0 +1,19 @@
+(1) The overall design of this code is to perform an exploratory data analysis (EDA) on a dataset and then build a set of simple models for prediction. The code imports necessary libraries, defines constants, and provides functions for data description and visualization. It then imports the data, performs EDA and data modification, prepares the data for modeling, and finally makes predictions and generates a submission file.
+
+(2) The overall model architecture is based on the XGBoost algorithm. The code uses the XGBRegressor class from the xgboost library to build regression models. The models are trained separately on different subsets of the data based on the "made" feature. The code sets the hyperparameters of the XGBRegressor, such as max_depth, learning_rate, and n_estimators, and fits the models to the training data. The trained models are then used to make predictions on the test data.
+
+(3) The important hyperparameters in this code are:
+- LR (learning_rate): The learning rate of the XGBoost algorithm. It controls the step size at each boosting iteration. It is set to 0.24.
+- NE (n_estimators): The number of boosting iterations. It determines the number of trees to be built. It is set to 2000.
+- max_depth: The maximum depth of each tree. It controls the complexity of the model. It is set to 3.
+
+(4) The optimization objective of this code is to minimize the mean squared error (MSE) between the predicted prices and the actual prices. The XGBRegressor uses the reg:linear objective function, which is suitable for regression problems.
+
+(5) The advanced machine learning technique used in this code is the XGBoost algorithm. XGBoost is an optimized gradient boosting algorithm that combines the strengths of gradient boosting and regularization techniques. It is known for its high performance and ability to handle large datasets.
+
+(6) Some important tricks that play a role in high performance in this code include:
+- Feature engineering: The code performs feature engineering by creating new features based on the original dataset, such as filling missing values, transforming categorical variables, and creating interaction terms.
+- Data preprocessing: The code preprocesses the data by scaling numerical features using different scalers (StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler, Normalizer) to ensure that they are on a similar scale.
+- Model tuning: The code sets the hyperparameters of the XGBoost algorithm (learning_rate, n_estimators, max_depth) to optimize the performance of the models.
+- Ensemble modeling: The code builds separate models on different subsets of the data based on the "made" feature and combines the predictions to improve the overall performance.
+- Visualization: The code uses various visualization techniques, such as histograms, scatter plots, and correlation heatmaps, to gain insights into the data and identify patterns or outliers that may affect the modeling process.

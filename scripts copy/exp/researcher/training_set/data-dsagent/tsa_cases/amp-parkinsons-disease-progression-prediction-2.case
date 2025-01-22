@@ -1,0 +1,30 @@
+Sorry for late sharing. First of all, thanks to competition organizers for hosting this interesting competition and my great teammates(@hyd,@rib). And congrats my friend rib for becoming GM.
+
+Our solution is simple, we found information related to "visit_month" very useful and information related to proteins are useless. So we focus on the samples, structures and models.
+
+### Samples
+We used samples with visit_month in "[0, 6, 12, 18, 24 , 36, 48, 60, 72, 84]" for training. And found that our cv is much better correlated to LB.
+
+### Features
+- All about “visit_month”
+1) use visit_month as meta feature
+2) gap between visit_month and last visit_month
+3) times of visit for each patient
+- Little about “protein”
+use NPX’s ratio of each patient, instead of the original values
+![](
+### Structure
+1. 16 labels
+Predict each “updrs” for predicted_month_diff=0,6,12,24
+![](
+2. 4 labels
+Use predicted_month_diff as a feature, and predict each one’s 4 updrs
+![](
+### Models
+Simple MLP with different structures and parameters.Finally we blends with:
+1. Models training in different numbers of labels
+2. Models training in different structure of network
+3. Models training in different parameters of network
+
+code:[
+

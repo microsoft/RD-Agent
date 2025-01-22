@@ -1,0 +1,24 @@
+(1) The overall design of this code is to create Employee Attrition Prediction Models using DNN (Deep Neural Network) with the Employee Attrition Dataset. It performs Exploratory Data Analysis (EDA) to divide the features into categorical and numerical features, selects correlated features, and trains models using StratifiedKFold split strategy with different random seeds. It also uses KerasTuner for hyperparameter tuning and selects the best model based on the validation AUC score. Finally, it generates a submission file with the predicted probabilities for the test data.
+
+(2) The overall model architecture is a Deep Neural Network (DNN) with multiple dense layers. The number of layers and units in each layer are hyperparameters that are tuned using KerasTuner. The model takes the input features, applies normalization, and passes them through a series of dense layers with activation functions. The output layer has a sigmoid activation function to predict the probability of attrition. The model is trained using binary cross-entropy loss and optimized using the Adam optimizer.
+
+(3) The important hyperparameters in this code are:
+- `n_folds`: Number of folds for StratifiedKFold cross-validation.
+- `quick_experiment`: Boolean flag to control whether to perform a quick experiment or not.
+- `tuning_epochs`: Number of epochs for hyperparameter tuning using KerasTuner.
+- `max_trials`: Maximum number of hyperparameter search trials.
+- `epochs`: Number of epochs for training the final model.
+- `use_correlated_columns`: Boolean flag to control whether to use correlated columns or not.
+
+(4) The optimization objective is to maximize the validation AUC (Area Under the Curve) score. The models are trained using binary cross-entropy loss and the Adam optimizer.
+
+(5) The advanced machine learning technique used in this code is hyperparameter tuning using KerasTuner. KerasTuner is used to search for the best hyperparameters for the DNN model. It performs a Bayesian optimization search over the hyperparameter space to find the combination of hyperparameters that maximizes the validation AUC score.
+
+(6) Some important tricks that play a role in high performance are:
+- Using StratifiedKFold cross-validation to ensure that each fold has a similar distribution of the target variable.
+- Performing feature selection by selecting correlated features.
+- Applying normalization to the input features using the Normalization layer in TensorFlow.
+- Using a cosine decay learning rate scheduler to adjust the learning rate during training.
+- Using ModelCheckpoint to save the best model based on the validation AUC score.
+- Using early stopping based on the validation AUC score to prevent overfitting.
+- Ensembling the models by averaging the predicted probabilities weighted by their validation AUC scores.

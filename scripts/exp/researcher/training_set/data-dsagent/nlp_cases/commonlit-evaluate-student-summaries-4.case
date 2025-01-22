@@ -1,0 +1,166 @@
+Thank you very much for organizing such an interesting competition. I am greatly thankful to the hosts and the Kaggle staff.
+
+This competition turned out to be exactly what we had imagined and we are really happy to have won 4th place.
+
+And thank you so much @kurokurob for teaming up with me and for the daily discussions and experiments. Congratulations on your 4th GOLD MEDAL.
+(And I will become competition Grand Master!!!).
+We are a great team!
+
+
+# 1. Summary
+
+Our best private solution is 1 fulltrain x 7 models ensemble.
+
+This competition had only 4 prompts in the training data and with the information that 122 prompts were in the test data, one could imagine a big shake. Also, the public lb was very unstable. These things made us think that robustness is important, not only for cv.
+
+I used all 4kfold at first. Especially the models with prompt text, because I had to increase the maxlen to increase the score, I had to increase the inference time and could not ensemble other models (only 2-3 models could be included).
+
+Just then, I and kuro have team merged. And we mixed the fulltrain idea he had been working on. By replacing 4kfold with 1fulltrain, we arrived at the idea of compressing the information of 4kfold to 1fulltrain and ensemble more models.
+
+We imagined that by doing so, we would prevent the variation and reduction of scores on each prompt in the private test data and, in total, get better score.
+
+As a result, we believe we were able to prevent a shake down and finish in this position!
+| sub  | type      | models                 | cv      | public lb | private lb | rank | comment                                     |
+|------|-----------|------------------------|---------|-----------|------------|------|---------------------------------------------|
+| sub1 | best lb   | 1 fulltrain × 9 models | 0.4679 | 0.41991     | 0.45785      | 11 | using gbdt and expand of inference-maxlen   |
+| sub2 | best cv   | 1 fulltrain × 7 models | 0.4639 | 0.42979     | 0.45515      | 4    | just NLP result(expand of inference-maxlen) |
+| sub3 | insurance | 1 fulltrain × 8 models | 0.4693  | 0.43855     | 0.45597      | 6  | just NLP result                             |
+
+The best cv in sub2 is our best private, and that is the main explanation below.
+
+
+# 2. training
+
+
+Each of our models in sub2 is shown below.
+
+| modelno | InfNo | model                   | training<br/>maxlen | inference <br/>maxlen | freezing | layerwise | input           | pooling |                                   |                             | 2nd loss | preprocess | cv of 4kfold<br/> earlystop |
+|---------|-------|-------------------------|---------------------|-----------------------|----------|-----------|-----------------|---------|-----------------------------------|-----------------------------|----------|------------|-----------------------------|
+|         |       |                         |                     |                       |          |           | original prompt | cls     | attention of <br/>original prompt | mean of <br/>text part only |          |            |                             |
+| 1       | 91    | deberta-v3-large        | 768                 | 1500                  | ✓        |           |                 | ✓       |                                   |                             |          |            | 0.4818                      |
+| 2       | 22    | deberta-v3-large        | 1050                | 950                   |          | ✓         | ✓               |         | ✓                                 |                             |          |            | 0.4855                      |
+| 3       | 63    | deberta-v3-large        | 850                 | 1500                  |          | ✓         |                 |         |                                   | ✓                           |          |            | 0.4984                      |
+| 4       | 72    | deberta-v3-large        | 868                 | 1024                  |          | ✓         |                 | ✓       |                                   |                             | Arcface  | ✓          | 0.4919                      |
+| 5       | 2,3   | deberta-v3-large        | 868                 | 868                   |          | ✓         |                 | ✓       |                                   |                             |          |            | 0.4880                       |
+| 6       | 259   | deberta-v3-large-squad2 | 768                 | 1500                  | ✓        |           |                 | ✓       |                                   |                             |          |            | 0.4952                      |
+| 7       | 331   | deberta-v3-large-squad2 | 1050                | 950                   |          | ✓         | ✓               |         | ✓                                 |                             |          |            | 0.4993                      |
+
+The details are described below.
+
+## 2.1 model no1 : basemodel
+
+This model is a typical base for our model.
+
+First, two inputs are prepared and put into the tokenizer as a pair (an example of dataset). The same result can be obtained by connecting them with [SEP] even if you do not put them as a pair.
+~~~~
+self.text = self.df["text"].
+self.prompt = self.df["prompt_title"] + [SEP] + self.df["prompt_question"] + [SEP] + self.df["prompt_text"]
+
+tokens = tokenizer.encode_plus(
+self.text, 
+self.prompt,.
+...
+)
+~~~~
+Now all we have to do is put this in the model, increase the maxlen, and output the cls in the fc layer.
+
+## 2.2 model no2 : original prompt
+
+In this model, an original prompt was created and used for input.
+
+~~~
+self.text = "Evaluating the summarized text and calculating content and wording score : " + self.df["text"].values
+self.prompt = prompt_title + [SEP] + prompt_question + [SEP] + prompt_text
+
+tokens = tokenizer.encode_plus(
+self.text, 
+self.prompt,
+・・・
+)
+~~~
+
+Then, only the part of the original prompt (Evaluating the summarized...) is attentional pooled (an example of a model).
+
+~~~
+## init
+self.pool = AttentionPooling(self.config.hidden_size)
+...
+
+## forward
+output = self.model(ids, mask, token_type_ids)
+output = output[0][:,:12,:]
+output = self.pool(output,mask[:,:12])
+output = self.fc(output)
+~~~
+
+## 2.3 model no4 : using 2nd loss and preprocess
+
+As discussed in the discussion and notebook, the train data can be classified into 38 types. I thought I could make good use of this, so I included arcface as an auxiliary loss.
+I tried to make good use of embeddings at the end, but it was not available. However, it did contribute to the diversity of the ensemble.
+
+Also, as a preprocss, I made sure to include a space after the period and comma; after doing EDA, I noticed that if a sentence comes after a period or comma without a space, it is divided differently in the tokenizer. However, I don't think this affected the score significantly.
+
+## 2.4 Extending the inference max length
+
+Scores have been greatly improved by increasing the inference length over that of training. An example is shown below. The following was trained with maxlen 850, but by setting maxlen to 1500 during inference, cv and public lb improved (maybe not so much contribution to private).
+
+
+| traing<br/>maxlen | inference<br/>maxlen | 39c16e<br/>fold0 | 814d6b<br/>fold1 | ebad26<br/>fold2 | 3b9047<br/>fold3 | cv      |
+|-------------------|----------------------|------------------|------------------|------------------|------------------|---------|
+| 850               | 850                  | 0.4505           | 0.5595           | 0.5051           | 0.5024           | 0.4984  |
+| 850               | 1024                 | 0.4524           | 0.5590           | 0.4836           | 0.5018           | 0.4927  |
+| 850               | 1500                 | 0.4527           | 0.5588           | 0.4614           | 0.5013           | 0.4867  |
+
+
+However, some models may degrade. insurance submission(sub3) consisted only of models that did not expand this inference max length. As a result, cv and public were affected, but private had almost no effect.
+
+# 3. inference (ensemble)
+
+For best cv sub, we initially post-processed using GBDT (LGBM + Catboost + XGboost), but in the end, ensemble without GBDT resulted in a better CV, The submission that produced the best private did not use post-processing with GBDT. We also considered nealder-mead and optuna, but we did not use them because of the concern that they would definitely overfit. So we use the simple mean ensemble using a hill climb technique (we also added a full train with different seed to further increase robustness for the extra inference time).
+
+final cv(4kfold earlystopping result) : 0.46394 , public : 0.42979, private 0.45515 4th
+
+※ Futhermore, we took as insurance(sub3) that the inference max lengths were the same as that in training. This result was as follows.
+
+final cv 0.4693 , public : 0.43855, private 0.45597 6th.
+
+In this result, cv and lb were bad, but private was good, which shows how important the robustness of model was in this competition.
+
+# 4. Not working for us
+
+- mlm
+- awp
+- svr
+- other model
+- regression from classification model
+- other many many things...
+
+# 5. Acknowledgements
+
+We could not have achieved these results on our own. We were greatly influenced by those who we have collaborated with in the past, and we are grateful for their contributions. We would also like to express our sincere gratitude to those who have shared their knowledge and insights through previous competitions. Thank you very much.
+
+We would especially like to thank the following people for their help in this  competition! Thank you very much.
+
+* Fulltrain : Team Hydrogen [ref1]( [ref2]( Raja Biswas @conjuring92 [ref3](
+
+* Freezing : Takamichi Toda @takamichitoda  [ref4](
+
+* 37-38 classification : MOTH @alejopaullier [ref5]( 
+Alexander Chervov @alexandervc [ref6](
+
+* Postprocess : nogawanogawa @tsunotsuno [ref7](
+
+* Model selection(feedback3) : CHRIS DEOTTE @cdeotte [ref8]( TOM @tikutiku [ref9](
+
+# 6. team member
+* @chumajin
+* @kurokurob 
+
+![](
+
+# 7. code
+inference code :  (This is the cleaned code. Same score as the submission.)
+
+training code(chumajin part) : 
+training code(kuro_B part) : 
+

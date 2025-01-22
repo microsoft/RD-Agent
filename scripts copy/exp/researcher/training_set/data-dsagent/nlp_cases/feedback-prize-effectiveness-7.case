@@ -1,0 +1,42 @@
+Thanks a lot to the host and Kaggle for this interesting competition and congrats to the winners.
+Our solution is a great collaborative effort.
+Thank you @crodoc @thedrcat @ivanaerlic @tascj0 for teaming up.
+
+# Summary
+Our solution is an ensemble of several transformer based models, which take a full essay (including special tokens) or a concatenation of all discourse_text in the essay as input.
+Key points of our solution are a powerful MLM pre-training and soft pseudo labeling on previous competition data. Our MLM pipeline always forced special tokens to be masked and predicted which was important to detect span boundaries.
+
+# Cross-Validation
+For cross-validation we used MultilabelStratifiedKFold on discourse effectiveness and topic clusters to make efficient split on essays.
+
+These folds were really stable and CV to LB correlation was great.
+Most of our blending submissions have the same private and public lb score.
+
+# Modeling
+Overall, we followed the token classification approach.
+Our main modeling approach has input has follow:
+[CLS] [cls_lead]  Hi, i'm Isaac, i'm going to be writing about how this face on Mars is a natural landform or if there is life on Mars that made it. The story is about how NASA took a picture of Mars and a face was seen on the planet. NASA doesn't know if the landform was created by life on Mars, or if it is just a natural landform. [end_lead]   [cls_position]  On my perspective, I think that the face is a natural landform because I dont think that there is any life on Mars. In these next few paragraphs, I'll be talking about how I think that is is a natural landform [end_position].....[SEP]
+
+We feed this sample to the backbone and take cls embeddings or mean pooling between cls and end tokens for each discourse text.
+cls embeddings works better than mean pooling for us.
+
+**Model Backbones**
+- DeBERTa-Large
+- DeBERTa-XLarge
+- DeBERTa-V3-Large
+
+
+# What works
+- Pre-Training MLM
+- Soft pseudo labeling
+- Adversarial Weight Perturbation ( AWP)
+- Stochastic Weight Averaging (SWA)
+- Removing Dropout
+- Random mask augmentation (token dropout)
+
+# Efficiency solution
+Our best single model scored 0.562 with 8 min inference time.
+This single model finished 2nd place in the efficiency track and would make a gold medal score in the accuracy track.
+Unfortunately this model was not included in any blend of the final submission for accuracy.
+Please refer to [this]( post to read about our efficiency solution.
+

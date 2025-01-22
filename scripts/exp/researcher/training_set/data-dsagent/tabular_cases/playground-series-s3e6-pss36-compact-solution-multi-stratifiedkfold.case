@@ -1,0 +1,25 @@
+(1) The overall design of this code is to predict housing prices in Paris. It uses a combination of data cleaning, preprocessing, ensemble modeling, and cross-validation to achieve high performance. The code first loads the necessary data from CSV files and removes outliers. Then, it performs preprocessing steps such as merging datasets, creating yearly statistics, and splitting the data into different ranges based on the "made" column. Next, it defines an ensemble model consisting of Random Forest, Gradient Boosting, XGBoost, and CatBoost regressors. The code then predicts the housing prices for each range using the ensemble model. Finally, it evaluates the model performance using train-test split and multi-cross validation, and creates a submission file with the predicted prices.
+
+(2) The overall model architecture consists of an ensemble model that combines the predictions of four different regressors: Random Forest, Gradient Boosting, XGBoost, and CatBoost. The ensemble model is created using the VotingRegressor class from scikit-learn. Each regressor is trained on a specific range of data based on the "made" column. The ranges are defined using lambda functions and are split into four periods: before 2005, between 2005 and 2007, between 2007 and 2015, and after 2015. The ensemble model then predicts the housing prices for each range.
+
+(3) The important hyperparameters in this code are:
+
+- RandomForestRegressor: The random_state parameter is set to 0.
+- GradientBoostingRegressor: The random_state parameter is set to 0.
+- XGBRegressor: The n_estimators parameter is set to 300 and the gamma parameter is set to 0.1. The random_state parameter is set to 0.
+- CatBoostRegressor: The l2_leaf_reg parameter is set to 1, the depth parameter is set to 6, the verbose parameter is set to False, and the random_state parameter is set to 0.
+- VotingRegressor: No specific hyperparameters are set for the ensemble model.
+
+(4) The optimization objective of this code is to minimize the root mean squared error (RMSE) between the predicted housing prices and the actual prices. The code uses the mean_squared_error function from scikit-learn to calculate the RMSE.
+
+(5) The advanced machine learning technique used in this code is ensemble modeling. The code combines the predictions of multiple regressors (Random Forest, Gradient Boosting, XGBoost, and CatBoost) using the VotingRegressor class. This technique helps to improve the model's performance by leveraging the strengths of different models and reducing the impact of individual model weaknesses.
+
+(6) Some important tricks that play a role in achieving high performance in this code are:
+
+- Removing outliers: The code uses the interquartile range (IQR) method to identify and remove outliers from the training data. This helps to improve the cross-validation results by reducing the impact of outliers on the RMSE metric.
+- Piece-wise model: The code splits the data into different periods based on the "made" column. This approach allows the models to capture different patterns and trends in the housing prices over time, leading to better predictions.
+- Multi-StratifiedKFold: The code uses the StratifiedKFold cross-validation method multiple times with different random seeds. This helps to obtain more reliable statistics about the model's performance by reducing the impact of random variations in the data splitting process. The data is stratified based on the "made" column to ensure consistent results for the piece-wise model approach.
+- Low number of estimators: The code uses a relatively low number of estimators for the ensemble model (e.g., 300 for XGBoost). This helps to prevent overfitting to the noise in the data and improves the model's generalization ability.
+- Use of all features (except CityCode): The code includes all the features in the training dataset except for the CityCode column. Although the size of the house (squareMeters column) is the most dominant feature, the code finds that the other features also play some role in predicting the housing prices, especially in edge cases. Including these features helps the model make more informed decisions.
+- No extra features: The code does not use any additional artificial features that were tested but did not improve the cross-validation score. This suggests that the original features are sufficient for predicting the housing prices.
+- Inclusion of original data: The code includes the original data from the ParisHousing.csv file in the training dataset. Although the original data may look different based on adversarial validation, the code finds that including the original data, especially the squareMeters column, improves the results.

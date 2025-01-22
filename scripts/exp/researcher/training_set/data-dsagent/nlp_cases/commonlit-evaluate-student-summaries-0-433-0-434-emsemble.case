@@ -1,0 +1,25 @@
+(1) The overall design of the code is to train a model for predicting the content and wording scores of student summaries. It uses a combination of a pre-trained Deberta model and LightGBM for regression. The code also includes data preprocessing steps, feature engineering, and evaluation metrics.
+
+(2) The overall model architecture consists of two parts: a pre-trained Deberta model and LightGBM. The Deberta model is used for sequence classification and is fine-tuned on the training data. The input to the Deberta model is a concatenation of the prompt title, prompt question, and fixed summary text. The output of the Deberta model is then used as input features for the LightGBM model, which performs regression to predict the content and wording scores.
+
+(3) The important hyperparameters in this code are:
+- learning_rate: 1.5e-5
+- weight_decay: 0.02
+- hidden_dropout_prob: 0.007
+- attention_probs_dropout_prob: 0.007
+- num_train_epochs: 5
+- n_splits: 4
+- batch_size: 12
+- random_seed: 42
+- save_steps: 20
+- max_length: 512
+
+(4) The optimization objective is to minimize the root mean squared error (RMSE) between the predicted scores and the true scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The Deberta model is pre-trained on a large corpus of text data and then fine-tuned on the specific task of predicting student summary scores.
+
+(6) Some important tricks that play a role in high performance are:
+- Data preprocessing: The code includes various preprocessing steps such as tokenization, spell checking, and feature engineering to improve the quality of the input data.
+- Feature engineering: The code includes several feature engineering techniques such as word overlap count, n-grams co-occurrence, quotes overlap, and grammar check to extract meaningful features from the text data.
+- Ensemble learning: The code combines the predictions of multiple models trained on different folds of the data to improve the overall performance.
+- Hyperparameter tuning: The code uses hyperparameter tuning techniques such as Optuna to find the best set of hyperparameters for the models.

@@ -1,0 +1,75 @@
+# Overview
+Before writing our solution, we really thank to Georgia State University and Kaggle for hosting this competition and congrats to all. Also, I really enjoyed doing this competition with my UPSTAGE team (sergei, ducky, and dlrgy22).
+
+The training code and inference notebook are here:
+* [Training code](
+* [Inference notebook](
+* [model weights](
+* [solution documents](
+
+The pipeline is here.
+Validation strategy -> Text pre-processing -> Model -> Ensemble -> Post-processing on logits
+
+✔️ Things that worked.
+- Initial learning rate 1e-5
+- Max gradient norm to small (about 1.0)
+- Plateau or Linearly Reduced LR With Warmup
+- SWA (stabilize valid performance, at least +0.01 boost)
+- Mean teacher with noise label filtering by exponential moving average
+
+❌ Not worked.
+- Initial learning rate 3e-5
+- Max gradient norm to large (abot 10)
+- SAM Optimizer
+- Dice Loss / Focal Loss with gamma 2.0
+- Position Bucket Expanding at DeBERTaV3
+
+## Validation strategy
+* Cross validation with topic from [CHRIS DEOTTE notebook](
+* Use half of all oof data as a test to find post-processing hyper-parameters.
+
+## Text pre-processing
+* We use mask tokens to reflect newline information.
+* adjusting start of each entity to nearest alphanumeric character to the right  
+entity before pre-p: ,Some quotation here.
+entity after pre-p: Some quotation here.
+
+* some samples with a word split by the start or end of entity text
+Ex) discourse_id -> 1621804837671
+given text: t would allow students to ...
+modified text: it would allow students to ...
+
+## Model
+We used 4 DeBERTa models: DeBERTa version 1 with large and xlarge model, DeBERTa version 2 with xlarge model and DeBERTa version 3 with large model. 
+
+Here are the training code for each model and how to run it.
+* [DeBERTa v1 large and DeBERTa v2 xlarge](
+* [DeBERTa v1 xlarge](
+* [DeBERTa v3 large](
+
+For more details with examples, see the solution documents above.
+
+## Ensemble
+We used **First Token Ensemble**.
+
+For this competition we conducted an ensemble targeting logits of tokens. However, since the vocab defined for each tokenizer used in each model is different, the tokenized result may be different even for the same text. Therefore, it is not possible to simply sum the results of the two models because the results from tokenizer are different, and one idea is applied here: **First Token Ensemble** that will group overlapping tokens and add log probabilities for the first token of each group.
+
+For more details with examples, see the solution documents above.
+
+## Post-processing
+We applied **Start With I-tag**,  **Look a Head**, **First Appearance** and **Extending end span** pp.
+
+* Start With I-tag pp
+Not really a B tag but it starts with an I tag.
+
+* Look a Head pp
+There were cases where tags appeared in succession and only one was empty.
+
+* First Appearance pp
+Handling of classes that appear once per essay.
+
+* Extended extracted entities to the right
+Extending end span to some extent.
+
+For more details with examples, see the solution documents above.
+

@@ -1,0 +1,66 @@
+Thank you for hosting this awesome competition and congrats to the winners.
+
+This problem is interesting and challenging. The data and annotations are high quality. It's a great learning and practicing experience working on this competition.
+
+I started this competition compeletely ignoring those shared NER baselines. I thought in an "object detection" task, segmentation + posprocess approaches can not do better than object detection approaches. I'm surprised by the postprocess ideas in top solutions.
+
+Overall, what I made is a YOLO-like text span detector. I share my code in [this notebook](
+
+Checkpoints are shared [here](
+
+To reproduce the checkpoints, check the code and configs [here](
+
+
+## Modeling
+### Network
+
+```
+AutoModelForTokenClassification.from_pretrained(num_labels=1 + 2 + num_classes, ...)
+```
+
+1 for objectness (or span-ness?. fg/bg classification)
+
+2 for regression (distance from fg location to first and last index of corresponding span)
+
+num_classes for discourse type classification
+
+### Aggregate tokens to words
+
+Network logits is in shape (num_tokens, 10). This is inconvenient (decoding output, ensembling models with different tokenizers). So I aggregate the logits to (num_words, 10) using RoIAlign.
+
+### Training target
+
+The problem of this formulation is how to define positive for objectness training. In object detection, center of object is a natural choice of positve. In text span detection, I found the first word of span a good choice of positive.
+
+In addition, I assign lowest cost word in each span as positive during training. This is inspired by YOLOX.
+
+### Augmentation, loss, decoding outputs, etc.
+
+I randomly replace tokens with mask token during training.
+
+For other details, please check the code.
+
+### Post process
+
+The only post process is nms.
+
+### Ensemble
+
+I used one cycle policy in training and averaged weights of the last few epochs.
+To ensemble different models/folds, I simply averaged outputs of models.
+WBF ensemble does not work in local validation, and I didn't figure out why. I think I did something wrong here.
+
+## Results
+| backbone                                           | Validation | Public LB | Private LB |
+|----------------------------------------------------|------------|-----------|------------|
+| google/bigbird-roberta-base                        | 0.685~0.69 |           |            |
+| allenai/longformer-base-4096                       | 0.685~0.69 |           |            |
+| allenai/longformer-large-4096                      | 0.70~0.71  |           |            |
+| microsoft/deberta-base                             | 0.70~0.705 |           |            |
+| microsoft/deberta-large                            | 0.715~0.72 |           |            |
+| microsoft/deberta-xlarge                           | 0.715~0.72 |           |            |
+| microsoft/deberta-large + microsoft/deberta-xlarge | 0.723      | 0.714     | 0.732      |
+
+The best combination is `deberta-large` + `deberta-xlarge`. Ensembling more does not help.
+In the final submission, I used 2 weights (2/5 folds) each model. Submission time is around 2 hours.
+

@@ -1,0 +1,25 @@
+(1) The overall design of the code is to train a SlidingWindowTransformerModel on a Kaggle competition dataset and make predictions on the test set. The code includes the necessary imports, data preprocessing steps, model architecture definition, training loop, and inference process.
+
+(2) The overall model architecture is a SlidingWindowTransformerModel. It consists of a backbone transformer model (e.g., DeBERTa, Longformer) followed by a residual LSTM layer and a classification head. The backbone model is responsible for encoding the input text into contextualized representations. The LSTM layer captures the temporal dependencies within each discourse segment. The classification head maps the final hidden states to the output classes.
+
+(3) The important hyperparameters in this code are set in the `Experiment` class. These hyperparameters include:
+- `DOWNLOADED_MODEL_PATH`: The path to the downloaded pre-trained model.
+- `TRAINED_MODEL_PATH`: The path to the trained model.
+- `XGB_PATH`: The path to the XGBoost models.
+- `FOLDS`: The folds used for training and inference.
+- `hidden_state_dimension`: The dimension of the hidden states in the model.
+- `BATCH_SIZE`: The batch size used during training and inference.
+- `NUM_WORKERS`: The number of workers for data loading.
+- `MAX_LEN`: The maximum length of the input text.
+- `WINDOW_SIZE`: The size of the sliding window used for processing long texts.
+
+(4) The optimization objective is not explicitly mentioned in the code. However, based on the model architecture and the use of softmax activation in the final layer, it can be inferred that the optimization objective is to minimize the cross-entropy loss between the predicted probabilities and the true labels.
+
+(5) The advanced machine learning technique used in this code is the Sliding Window approach. It allows the model to process long texts by dividing them into smaller windows and applying the model to each window separately. This approach helps overcome the limitation of transformer models that have a fixed input length.
+
+(6) Some important tricks that play a role in high performance include:
+- Preprocessing the input text to include special tokens and discourse markers.
+- Using a residual LSTM layer to capture temporal dependencies within each discourse segment.
+- Applying sliding window technique to process long texts.
+- Using XGBoost models to generate additional features for the final predictions.
+- Ensembling multiple models with different hyperparameters and averaging their predictions.

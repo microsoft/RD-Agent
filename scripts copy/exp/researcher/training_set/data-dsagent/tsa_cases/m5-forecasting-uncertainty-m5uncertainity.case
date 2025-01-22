@@ -1,0 +1,23 @@
+(1) The overall design of this code is to train a model for a Kaggle competition on sales forecasting. It preprocesses the sales and calendar data, creates features, splits the data into training, validation, and test sets, builds a neural network model, trains the model, and makes predictions on the validation and test sets.
+
+(2) The overall model architecture is a neural network with multiple inputs and outputs. The inputs include categorical variables such as "snap_CA", "snap_TX", "snap_WI", "wday", "month", "year", "event", "nday", "item", "dept", "cat", "store", "state", and numerical variables such as "num". The categorical variables are embedded using embedding layers, and the embeddings are concatenated with the numerical variables. The concatenated features are then passed through multiple dense layers with dropout regularization. The output layer has 9 units corresponding to different quantiles of the target variable. The model is trained using the quantile loss function.
+
+(3) The important hyperparameters in this code are:
+- CATEGORIZE: A boolean variable indicating whether to categorize the categorical variables or not.
+- START: An integer indicating the starting day for the training data.
+- UPPER: An integer indicating the upper limit of the days for the training data.
+- LAGS: A list of integers indicating the lag values for creating lagged features.
+- FEATS: A list of strings indicating the names of the lagged features.
+- batch_size: An integer indicating the batch size for training the model.
+- epochs: An integer indicating the number of epochs for training the model.
+
+(4) The optimization objective is to minimize the quantile loss function, which is a pinball loss for multiple quantiles. The quantiles used in this code are [0.005, 0.025, 0.165, 0.250, 0.500, 0.750, 0.835, 0.975, 0.995].
+
+(5) The advanced machine learning technique used in this code is the use of a neural network with multiple inputs and outputs. The model architecture includes embedding layers for categorical variables, dense layers with dropout regularization, and the quantile loss function for training.
+
+(6) Some important tricks that play a role in high performance include:
+- Categorizing the categorical variables to reduce the dimensionality and improve the model's ability to capture patterns in the data.
+- Creating lagged features to capture temporal dependencies in the data.
+- Using embedding layers for categorical variables to learn meaningful representations.
+- Using dropout regularization to prevent overfitting.
+- Using the quantile loss function to train the model for multiple quantiles simultaneously.

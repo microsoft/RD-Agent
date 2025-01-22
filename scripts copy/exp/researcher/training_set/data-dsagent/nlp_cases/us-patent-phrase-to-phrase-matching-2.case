@@ -1,0 +1,67 @@
+First of all, I would like to thank competition organizers for hosting this interesting competition. And thanks to my great teammate [@Tifo]( , we discuss and work hard for the whole last month to explore new methods. And also thank to the community of great notebooks and discussions.
+
+## **Where is magic**
+
+The key is that there exits strong correlations between different targets under the same anchor.  (you can see from the gap between groupkfold and kfold) For example, some targets are similar to the origin target and some are similar to the anchor. In short, adding them to the context can more effectively capture the correlation between the anchor and the target.
+
+We used various methods to take advantage of this magic:
+
+#### stage1
+
+1. Group the targets from the same `anchor`, such as 'target1, target2, target3, ...'. Then add them to the context.
+2. Group the targets from the same `anchor` and `context`. This brings more relevant targets.
+3. Group the targets from the same `anchor`.  Group the anchors from the same `context`. Add them to the context in turn.
+
+#### stage2
+
+1. Group the targets from the same `anchor` and add oof score to describe more specific quantitative information, like 'target1 23, target2 47, ...'. The scores are multplied by 100 so can be recognized as a token.
+
+2. Group the targets from the same `anchor` and `context`, with score.
+
+#### details
+
+- During training, the group is performed inside the train-set, and the score is derived from the oof score from the first-stage models.
+- During inference, the group is performed after concatenating train-set and test-set, and the score is derived from both the oof and the prediction of test-set from first-stage models. (Why concat? Because overlap anchors in train and test.)
+
+## **Things that worked**
+
+- FGM
+
+-  [Adversarial-training in NLP]( 
+-  eps: 0.1
+-  single model cv 0.002-0.005
+
+- EMA （Exponential Moving Average）
+
+- decay: 0.999
+- single model cv 0.001-0.003
+
+- Knowledge distillation
+- In other words, soft label from ensemble oof. In this way, single model can achieve performance close to ensemble models (just save time but no more diversity)
+- Make sure to use only the corresponding label for each fold to avoid leakage
+- The actual performance of second or more rounds is almost the same as first round, and the cv will be distorted in a strange way. We only use few models distiled from the first round.
+
+## **Not worked**
+
+- BCE Loss
+- MLM
+- Post processing
+
+## **Models**
+
+- Deberta-v3-large
+- Bert-for-patents
+- Deberta-large
+
+## **CV split**
+
+We use the 5fold StratifiedGroupKFold (the same seed 42, group by anchor).  So we are able to use OOF to get ensemble scores and model weights effectively. Linear regression is much faster than optuna search.
+
+When there are enough models, our CV and LB are perfectly correlated. 
+
+## **Notebook**
+
+submit: 
+
+You can find more details in the code.
+

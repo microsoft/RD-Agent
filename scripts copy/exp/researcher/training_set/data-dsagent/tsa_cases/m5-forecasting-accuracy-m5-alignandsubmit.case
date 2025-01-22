@@ -1,0 +1,29 @@
+(1) The overall design of this code is to generate high-performing forecasts for a Kaggle competition. It combines two different types of forecasts: bottom-level forecasts on item level derived from a lgbm model, and top-level forecasts for levels 1-5 created with N-Beats. The code then aggregates the bottom-level forecasts up to the higher levels and compares them with the N-Beats forecasts to select the most suitable probability distribution for the forecast period. The code also includes calculations of comparison metrics and visualizations for analysis.
+
+(2) The overall model architecture consists of two main components: the lgbm model for bottom-level forecasts and the N-Beats model for top-level forecasts.
+
+- Bottom-level forecasts: The lgbm model is trained to predict the probability of an item being bought based on datetime features, price features, and other non-time-dependent features. The model uses a custom loss function with a multiplier to adjust for trend or other effects. The predictions from this model are aggregated and used as inputs for the higher-level forecasts.
+
+- Top-level forecasts: The N-Beats model is used to generate forecasts for levels 1-5. The model is trained and predicted using two different settings, resulting in two sets of forecasts. These forecasts are then compared with the aggregated bottom-level forecasts to select the most suitable probability distribution for the forecast period.
+
+(3) The important hyperparameters in this code are not explicitly mentioned in the provided code. However, based on the code, we can infer the following hyperparameters:
+
+- For the lgbm model: The hyperparameters for the lgbm model, such as the number of trees, learning rate, maximum depth, and feature importance threshold, are not mentioned in the code. These hyperparameters would have been set during the training process.
+
+- For the N-Beats model: The hyperparameters for the N-Beats model, such as the number of stacks, the number of blocks per stack, the hidden layer size, and the learning rate, are not mentioned in the code. These hyperparameters would have been set during the training process.
+
+(4) The optimization objective of this code is to generate accurate forecasts for the Kaggle competition. The code aims to minimize the error between the predicted forecasts and the ground truth values. The comparison metrics, such as RMSSE (Root Mean Squared Scaled Error), RMSE (Root Mean Squared Error), mean error, and mean absolute error, are calculated to evaluate the performance of the forecasts.
+
+(5) The advanced machine learning technique used in this code is the combination of different models for forecasting. It combines the lgbm model for bottom-level forecasts and the N-Beats model for top-level forecasts. By aggregating and comparing the forecasts from these models, the code aims to select the most suitable probability distribution for the forecast period.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+
+- Ensemble averaging: The code builds an ensemble by averaging the predictions from multiple bottom-level lgbm models. This helps to reduce the variance and improve the overall accuracy of the forecasts.
+
+- Aggregation and comparison: The code aggregates the bottom-level forecasts up to the higher levels and compares them with the N-Beats forecasts. This allows for the selection of the most suitable probability distribution for the forecast period, taking into account both the bottom-level and top-level forecasts.
+
+- Custom loss function: The lgbm model uses a custom loss function with a multiplier to adjust for trend or other effects. This helps to improve the fit of the model and capture important patterns in the data.
+
+- Visualization and analysis: The code includes visualizations and calculations of comparison metrics to analyze the performance of the forecasts. This helps to identify any issues or areas for improvement in the models and guide the selection of the final forecasts for submission.
+
+Note: The specific hyperparameters and details of the models used in this code are not provided, so it may not be possible to exactly reproduce the code without additional information.
