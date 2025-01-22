@@ -67,6 +67,13 @@ ensemble_eval:
     {{test_code}}
     ```
     
+    {% if workflow_stdout is not none %}
+    Your ensemble code is also part of the whole workflow, the user also tested the whole workflow and provided you the stdout.
+    The whole workflow code is:
+    {{workflow_code}}
+    Please consider both stdout and approve the code when both the ensemble test and the whole workflow test pass.
+    {% endif %}
+    
     You'll be given the stdout of your testing scripts.
     Please respond with your feedback in the following JSON format: 
     {
@@ -76,4 +83,9 @@ ensemble_eval:
         "final_decision": <true/false>
     }    
   user: |-    
+    Ensemble test stdout:
     {{stdout}}   
+    {% if workflow_stdout is not none %}
+    Whole workflow test stdout:
+    {{workflow_stdout}}
+    {% endif %}

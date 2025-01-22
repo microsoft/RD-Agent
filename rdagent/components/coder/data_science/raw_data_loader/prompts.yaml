@@ -373,6 +373,13 @@ data_loader_eval:
     {{test_code}}
     ```
 
+    {% if workflow_stdout is not none %}
+    Your feature engineering code is also part of the whole workflow, the user also tested the whole workflow and provided you the stdout.
+    The whole workflow code is:
+    {{workflow_code}}
+    Please consider both stdout and approve the code when both the feature engineering test and the whole workflow test pass.
+    {% endif %}
+    
     You'll be given the stdout of your testing scripts.
     Please respond with your feedback in the following JSON format and order
     ```json
@@ -384,6 +391,9 @@ data_loader_eval:
     }
     ```
   user: |-
-    ```
-    {{stdout}}
-    ```
+    Data loader test stdout:
+    {{stdout}}   
+    {% if workflow_stdout is not none %}
+    Whole workflow test stdout:
+    {{workflow_stdout}}
+    {% endif %}
