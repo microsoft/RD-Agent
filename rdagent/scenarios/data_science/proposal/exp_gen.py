@@ -150,6 +150,7 @@ class DSExpGen(ExpGen):
         spec: str = None,
         hypothesis: Hypothesis | None = None,
         exp_and_feedback_desc: str | None = None,
+        former_task: str | None = None,
     ) -> dict:
         system_prompt = T(".prompts:task_gen.system").r(
             targets=targets,
@@ -163,6 +164,7 @@ class DSExpGen(ExpGen):
             hypothesis=hypothesis,
             workspace_code=workspace_code,
             exp_and_feedback_desc=exp_and_feedback_desc,
+            former_task_desc=former_task,
         )
 
         resp_dict = json.loads(
@@ -192,11 +194,17 @@ class DSExpGen(ExpGen):
             last_successful_exp: Last successful experiment or None
             spec_file: Path to specification file if needed
         """
+        former_task_desc = (
+            trace.hist[-1][0].pending_tasks_list[0][0].get_task_information()
+            if len(trace.hist) > 0 and trace.hist[-1] is not last_successful_exp
+            else None
+        )
         resp_dict = self._init_task_gen(
             targets=component,
             scenario_desc=scenario_desc,
             spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
             task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
+            former_task=former_task_desc,
         )
 
         # Create task instance
