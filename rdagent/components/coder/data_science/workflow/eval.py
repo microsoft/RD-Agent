@@ -58,6 +58,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
         }
         de = DockerEnv(conf=ds_docker_conf)
+        # Clean the scores.csv & submission.csv.
+        stdout = implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
+
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
