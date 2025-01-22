@@ -68,7 +68,7 @@ class Idea_Pool:
         """
         self.threshold = threshold
         self.idea_pool = []
-        if cache_path:
+        if cache_path is not None:
             self.load_from_cache(cache_path)
 
     
@@ -86,6 +86,7 @@ class Idea_Pool:
         with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         self.idea_pool = [Idea(raw_knowledge=idea) for idea in data]
+        print(f"Build Idea Pool with {len(self.idea_pool)} Ideas")
 
 
     def save_to_cache(self, cache_path) -> None:

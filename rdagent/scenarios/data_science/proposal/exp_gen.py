@@ -139,10 +139,10 @@ class DSExpGen(ExpGen):
     def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> None:
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
-        self._init_idea_pool(idea_cache_path)
+        self._init_idea_pool(cache_path=idea_cache_path)
 
     def _init_idea_pool(self, cache_path: str) -> None:
-        self.idea_pool = Idea_Pool(cache_path)
+        self.idea_pool = Idea_Pool(cache_path=cache_path)
 
     def _init_task_gen(
         self,
