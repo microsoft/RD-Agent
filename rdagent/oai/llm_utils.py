@@ -197,7 +197,7 @@ class ChatSession:
 
     def build_chat_completion_message_and_calculate_token(self, user_prompt: str) -> Any:
         messages = self.build_chat_completion_message(user_prompt)
-        return self.api_backend.calculate_token_from_messages(messages)
+        return self.api_backend._calculate_token_from_messages(messages)
 
     def build_chat_completion(self, user_prompt: str, *args, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """
@@ -435,7 +435,7 @@ class APIBackend:
         """
         return ChatSession(self, conversation_id, session_system_prompt)
 
-    def build_messages(
+    def _build_messages(
         self,
         user_prompt: str,
         system_prompt: str | None = None,
@@ -484,7 +484,7 @@ class APIBackend:
     ) -> str:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(
+        messages = self._build_messages(
             user_prompt,
             system_prompt,
             former_messages,
@@ -769,7 +769,7 @@ class APIBackend:
             self.cache.chat_set(input_content_json, resp)
         return resp, finish_reason
 
-    def calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
+    def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
         if self.encoder is None:
             raise ValueError("Encoder is not initialized.")
         if self.use_llama2 or self.use_gcr_endpoint:
@@ -802,10 +802,10 @@ class APIBackend:
     ) -> int:
         if former_messages is None:
             former_messages = []
-        messages = self.build_messages(
+        messages = self._build_messages(
             user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
         )
-        return self.calculate_token_from_messages(messages)
+        return self._calculate_token_from_messages(messages)
 
 
 def calculate_embedding_distance_between_str_list(
