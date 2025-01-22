@@ -23,7 +23,7 @@ from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSEx
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff
-
+from scripts.exp.researcher.idea_pool import Idea, Idea_Pool
 
 class DSHypothesis(Hypothesis):
     def __init__(
@@ -137,9 +137,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
-    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3) -> None:
+    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3, idea_cache_path: str = None) -> None:
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
+        self._init_idea_pool(idea_cache_path)
+
+    def _init_idea_pool(self, cache_path: str) -> None:
+        self.idea_pool = Idea_Pool(cache_path)
 
     def _init_task_gen(
         self,
@@ -280,19 +284,19 @@ class DSExpGen(ExpGen):
                 )
             )
             exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-                exp_and_feedback=exp_and_feedback
+                exp_and_feedback=exp_and_feedback 
             )
+
+            # Retrieve the best idea
+            idea = self.idea_pool.idea_pool[0]
 
             # Generate component using template with proper context
-            component_sys_prompt = T(".prompts:component_gen.system").r(
+            component_sys_prompt = T(".prompts:idea_component_gen.system").r()
+            component_user_prompt = T(".prompts:idea_component_gen.user").r(
                 scenario=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-                last_exp_diff=last_exp_diff,
-                component_output_format=T(".prompts:output_format.component").r(),
-            )
-
-            component_user_prompt = T(".prompts:component_gen.user").r(
-                exp_and_feedback_desc=exp_and_feedback_desc,
+                solution=sota_exp.experiment_workspace.all_codes,
+                idea=idea.format_JSON(),
+                component_output_format=T(".prompts:output_format.idea_component").r(),
             )
 
             resp_dict_component: dict = json.loads(

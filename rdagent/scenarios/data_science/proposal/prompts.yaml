@@ -217,7 +217,6 @@ direct_exp_gen:
     {{last_exp_diff}}
     {% endif %}
 
-
 extra_requirement:
   model: |-
     If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
@@ -231,7 +230,6 @@ extra_requirement:
     Make a decision and proceed accordingly:
     - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
     - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
-
 
 component_gen:
   system: |-
@@ -260,6 +258,32 @@ component_gen:
   user: |-
     {{ exp_and_feedback_desc }}
 
+idea_component_gen:
+  system: |-
+    You are a data scientist with expertise in machine learning, data analysis, and problem-solving. You are skilled at understanding Kaggle competition scenarios, evaluating solutions, and integrating innovative ideas to improve model performance or workflow efficiency.
+
+  user: |-
+    You will be provided with a kaggle competition scenario, a corresponding Python solution and a potential idea to improve the solution.
+    Your task is to identify the component of the Python solution you are going to modify in order to integrate the idea into the current solution.
+
+    Here is the description of the competition scenario.
+    ```
+    {{ scenario }}
+    ```
+
+    Here is the current Python solution.
+    ```
+    {{ solution }}
+    ```
+
+    Here is the idea to integrate.
+    ```
+    {{ idea }}
+    ```
+
+   Please select the components you are going to improve in order to integrate the idea into the current solution in a way that aligns with the competition's goals and constraints. 
+   Please generate the output following the format below
+   {{ component_output_format }}
 
 exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
@@ -282,6 +306,10 @@ output_format:
   component: |-
     {
       "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
+    }
+  idea_component: |-
+    {
+      "component": "The components you suggest to focus on. It must a list of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
     }
   hypothesis: |-
     The output should follow JSON format. The schema is as follows:
