@@ -2,6 +2,7 @@ import json
 import random
 import unittest
 
+from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
 
@@ -35,6 +36,10 @@ class TestChatCompletion(unittest.TestCase):
         assert response is not None
         assert isinstance(response, str)
         json.loads(response)
+    
+    def test_chat_completion_litellm(self):
+        LLM_SETTINGS.backend = "rdagent.oai.backend.LiteLLMAPIBackend"
+        self.test_chat_completion()
 
     def test_chat_multi_round(self) -> None:
         system_prompt = "You are a helpful assistant."

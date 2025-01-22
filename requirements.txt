@@ -8,6 +8,7 @@ loguru
 fire
 fuzzywuzzy
 openai
+litellm
 azure.identity
 
 numpy # we use numpy as default data format. So we have to install numpy
@@ -46,5 +47,5 @@ kaggle
 nbformat
 
 # tool
-seaborn
 setuptools-scm
+seaborn
