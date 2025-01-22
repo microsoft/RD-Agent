@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Feature Selection",
+        "method": "Drop less informative columns from the dataset before training, such as 'id' and 'cityCode'.",
+        "context": "The notebook drops columns 'id' and 'cityCode' from the training and test datasets.",
+        "hypothesis": {
+            "problem": "The objective is to predict housing prices using a set of features.",
+            "data": "The dataset includes columns that might not directly contribute to the prediction task.",
+            "method": "Feature selection helps in reducing noise and improving model simplicity.",
+            "reason": "There are a lot of redundant columns in the dataset that do not contribute to the prediction task, allowing for simplification by removing them."
+        }
+    },
+    {
+        "idea": "Handling Missing Values",
+        "method": "Use dropna() to remove rows with missing values from the dataset.",
+        "context": "The notebook applies df_train.dropna(inplace=True) to handle missing data.",
+        "hypothesis": {
+            "problem": "Missing data can skew results and reduce model accuracy if not handled properly.",
+            "data": "The dataset contains missing values that need to be addressed.",
+            "method": "Dropping missing values is a straightforward approach that works well when the proportion of missing data is small.",
+            "reason": "The number of data samples is sufficient, so losing some due to missing values does not severely impact the model's ability to learn."
+        }
+    },
+    {
+        "idea": "Model Selection and Training",
+        "method": "Train an XGBoost regressor with specific hyperparameters (max_depth=3, learning_rate=0.24, n_estimators=50000).",
+        "context": "The notebook uses XGBRegressor with specified hyperparameters for training on the dataset.",
+        "hypothesis": {
+            "problem": "The task is a regression problem predicting numeric values (housing prices).",
+            "data": "The training data is available in a structured format suitable for tree-based models.",
+            "method": "XGBoost is known for its ability to handle large datasets efficiently and capture complex patterns through boosting.",
+            "reason": "The data may have non-linear relationships that XGBoost can model effectively due to its boosting mechanism."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine predictions from a new model with an existing leaderboard submission using weighted averaging (20% new model, 80% existing).",
+        "context": "The notebook creates a final prediction by blending test predictions from XGBRegressor with an existing leaderboard submission.",
+        "hypothesis": {
+            "problem": "Improving prediction accuracy by leveraging multiple models' strengths.",
+            "data": "The target variable (price) benefits from different predictive insights captured by multiple models.",
+            "method": "Ensemble methods can improve robustness by averaging predictions from diverse models.",
+            "reason": "The data in the scenario is very noisy, and using a combination of models tends to reduce overfitting to these noisy patterns."
+        }
+    },
+    {
+        "idea": "Data Splitting",
+        "method": "Use train_test_split() from sklearn to split the dataset into training and testing sets with a test size of 0.3.",
+        "context": "The notebook splits the data into training and test sets using a 70-30 ratio for model evaluation.",
+        "hypothesis": {
+            "problem": "Model evaluation requires a separate testing set to assess performance accurately.",
+            "data": "The dataset size is large enough to allow for an effective split without compromising training data volume.",
+            "method": "A common practice in machine learning to ensure model validation and prevent overfitting.",
+            "reason": "Ensures that the model's ability to generalize is tested on unseen data, reflecting more reliable performance metrics."
+        }
+    }
+]

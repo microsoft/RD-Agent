@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine predictions from U-Net segmentation and a classification CNN to reduce false positives.",
+        "context": "The notebook combines the U-Net model for segmentation with a classification CNN to filter out false positives, ensuring higher accuracy in ship detection.",
+        "hypothesis": {
+            "problem": "Detecting ships in satellite images with high accuracy and minimizing false positives.",
+            "data": "Images may contain noise and distractions such as clouds or haze, leading to potential false positives.",
+            "method": "Using ensemble learning techniques to combine models that focus on different aspects of the problem.",
+            "reason": "The data is likely noisy with potential distractors, so combining models helps mitigate errors and improve overall accuracy."
+        }
+    },
+    {
+        "idea": "Data Augmentation",
+        "method": "Use extensive image augmentation including rotation, shift, shear, zoom, and flips.",
+        "context": "The model employs a variety of augmentations such as rotation, width and height shift, shear, zoom, and horizontal and vertical flips to increase the diversity of the training data.",
+        "hypothesis": {
+            "problem": "Segmenting ships accurately despite various orientations and conditions in images.",
+            "data": "The dataset contains ships in various orientations and environmental conditions.",
+            "method": "Augmentation techniques help improve model generalization by simulating various real-world scenarios.",
+            "reason": "The scenario involves diverse conditions; hence, augmentation helps the model generalize better by experiencing more varied input during training."
+        }
+    },
+    {
+        "idea": "Feature Scaling",
+        "method": "Scale images down by a factor before processing to reduce computational load.",
+        "context": "The notebook scales down images by a factor of three before processing to manage computational resources effectively while maintaining performance.",
+        "hypothesis": {
+            "problem": "Efficiently processing large satellite images without degrading model performance.",
+            "data": "Images are high-resolution satellite images that require significant computational resources.",
+            "method": "Downscaling helps manage computational resources while retaining essential features for detection.",
+            "reason": "In scenarios involving large images, scaling helps reduce computational cost while still capturing important features necessary for model predictions."
+        }
+    },
+    {
+        "idea": "Loss Function Modification",
+        "method": "Use a custom loss function based on Intersection over Union (IoU) for training.",
+        "context": "The model uses a custom loss function that aligns closely with the competition's evaluation metric (IoU), focusing on maximizing overlap between predicted and true masks.",
+        "hypothesis": {
+            "problem": "Optimizing the model's performance according to the competition's evaluation metric.",
+            "data": "The nature of the data involves object detection with overlap considerations.",
+            "method": "Custom loss functions tailored to evaluation metrics help improve performance on specific tasks.",
+            "reason": "Tailoring the loss function to match the evaluation metric ensures that training objectives align directly with competition goals, leading to improved performance."
+        }
+    },
+    {
+        "idea": "Balanced Dataset Creation",
+        "method": "Undersample the dataset to balance classes based on ship presence.",
+        "context": "The notebook undersamples empty images to create a balanced dataset, improving model learning on ship detection.",
+        "hypothesis": {
+            "problem": "Handling class imbalance where many images may not contain ships.",
+            "data": "The dataset contains many more images without ships than with ships, leading to class imbalance.",
+            "method": "Balancing the dataset helps the model learn more effectively by ensuring it is exposed equally to both classes during training.",
+            "reason": "In scenarios with class imbalance, undersampling helps prevent the model from being biased toward the majority class."
+        }
+    },
+    {
+        "idea": "Transfer Learning",
+        "method": "Use a pre-trained CNN for initial ship presence classification before segmentation.",
+        "context": "In conjunction with U-Net, a pre-trained CNN is used to classify whether an image contains a ship or not, thus pre-filtering images for further analysis.",
+        "hypothesis": {
+            "problem": "Quickly identifying images that do not contain ships to reduce unnecessary computations.",
+            "data": "Images vary greatly, with many potentially not containing any ships.",
+            "method": "Transfer learning allows leveraging pre-trained models for initial classification tasks, saving time and resources.",
+            "reason": "Using pre-trained models for initial classification is beneficial in scenarios where many samples may not need further processing, thus optimizing resource use."
+        }
+    }
+]

@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Create binary features to capture holiday and weekend effects in the data.",
+        "context": "The notebook creates binary features 'is_holiday' and 'is_weekend' by checking the calendar for holidays and weekend days.",
+        "hypothesis": {
+            "problem": "Forecasting sales data where certain dates may have special significance affecting sales volume.",
+            "data": "The dataset includes a calendar with holidays and weekends which could affect sales patterns.",
+            "method": "Binary features can capture the influence of holidays and weekends on sales without introducing noise.",
+            "reason": "Sales are often influenced by holidays and weekends, making it crucial to account for these in forecasting models."
+        }
+    },
+    {
+        "idea": "Data Transformation",
+        "method": "Transform the sales data from wide format to long format using the melt function.",
+        "context": "The notebook uses the melt function to reshape the sales data, making it easier to merge with other datasets.",
+        "hypothesis": {
+            "problem": "Combining sales data with other datasets for enriched feature sets.",
+            "data": "The original sales data is in a wide format, which complicates integration with other data sources.",
+            "method": "Long format data is easier to manipulate and merge with other datasets.",
+            "reason": "Facilitates merging with calendar and price data by having a single column for dates."
+        }
+    },
+    {
+        "idea": "Data Integration",
+        "method": "Merge sales data with calendar and price data to create a comprehensive dataset.",
+        "context": "The notebook merges sales data with calendar and price information based on common keys.",
+        "hypothesis": {
+            "problem": "Leveraging multiple data sources to improve prediction accuracy.",
+            "data": "Separate datasets containing calendar events and price information.",
+            "method": "Merging allows for the creation of a richer feature set that can improve model performance.",
+            "reason": "Sales are influenced by both price and temporal events, necessitating their integration."
+        }
+    },
+    {
+        "idea": "One-Hot Encoding",
+        "method": "Apply one-hot encoding to categorical variables to prepare them for model input.",
+        "context": "The notebook uses one-hot encoding on columns like 'dept_id', 'cat_id', 'store_id', and 'state_id'.",
+        "hypothesis": {
+            "problem": "Handling categorical variables in regression models used for forecasting.",
+            "data": "The dataset contains multiple categorical features that are not numerical.",
+            "method": "One-hot encoding is necessary to convert categorical variables into a numerical format suitable for models.",
+            "reason": "Allows categorical variables to be used effectively in machine learning models by avoiding ordinal assumptions."
+        }
+    },
+    {
+        "idea": "Model Training",
+        "method": "Train a LightGBM model with specific hyperparameters optimized for sales prediction.",
+        "context": "The notebook trains a LightGBM regressor with parameters such as 'num_leaves' and 'learning_rate'.",
+        "hypothesis": {
+            "problem": "Predicting sales volumes based on historical data and additional features.",
+            "data": "A large dataset that can benefit from the speed and efficiency of gradient boosting models.",
+            "method": "LightGBM is well-suited for large datasets and can effectively handle missing values and categorical features.",
+            "reason": "LightGBM's ability to handle large-scale data efficiently makes it suitable for this forecasting task."
+        }
+    },
+    {
+        "idea": "Model Validation",
+        "method": "Use early stopping during model training to prevent overfitting.",
+        "context": "The LightGBM training process includes early stopping with a patience of 1500 rounds based on validation set performance.",
+        "hypothesis": {
+            "problem": "Optimizing model training to achieve the best generalization performance.",
+            "data": "The dataset is large enough to potentially lead to overfitting during model training.",
+            "method": "Early stopping helps to halt training once performance stops improving, thus avoiding overfitting.",
+            "reason": "Prevents overfitting by stopping training when validation performance plateaus, ensuring better generalization."
+        }
+    }
+]

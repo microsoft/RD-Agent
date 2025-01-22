@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Ensemble Learning",
+        "method": "Use a parallel ensemble of models to predict the freezing of gait events, averaging the predictions from multiple models to improve accuracy.",
+        "context": "The notebook creates a ParallelModel class that stacks predictions from multiple models and averages them to make final predictions.",
+        "hypothesis": {
+            "problem": "Predicting freezing of gait events in Parkinson's disease using sensor data.",
+            "data": "Sensor data with various patterns and potential noise.",
+            "method": "Model ensemble combining predictions from multiple models.",
+            "reason": "The data in the scenario is very noisy, and using only one model tends to overfit to these noisy patterns."
+        }
+    },
+    {
+        "idea": "Metadata Feature Engineering",
+        "method": "Generate additional features from metadata such as UPDRS scores and medication status that are standardized and clipped for improved model input.",
+        "context": "The notebook processes metadata to create features like 'UPDRS_On_vs_Off' and normalizes them before feeding into the model.",
+        "hypothesis": {
+            "problem": "Predicting precise freezing of gait events relies on accurate input features.",
+            "data": "Metadata provides valuable context not directly available in sensor data.",
+            "method": "Feature engineering to enrich input data for models.",
+            "reason": "There are a lot of redundant columns in the pattern, and careful selection and transformation of metadata can highlight relevant features."
+        }
+    },
+    {
+        "idea": "Data Augmentation through Sampling",
+        "method": "Implement a sampling technique by modifying the SAMPLE variable to handle different time resolutions in the data processing pipeline.",
+        "context": "The notebook uses a SAMPLE variable to downsample or upsample data to ensure consistent temporal resolution for model inputs.",
+        "hypothesis": {
+            "problem": "Inconsistent temporal resolution in time-series data can affect model training and prediction accuracy.",
+            "data": "Time-series data with varying sampling rates across different datasets.",
+            "method": "Temporal data sampling for consistent model input.",
+            "reason": "The data is time-series, and having a consistent time resolution allows the model to better learn patterns across different datasets."
+        }
+    },
+    {
+        "idea": "Parallel Data Processing",
+        "method": "Utilize joblib's parallel processing to handle large datasets efficiently by distributing file processing across CPU cores.",
+        "context": "The notebook uses joblib's Parallel and delayed functions to process each file in the dataset concurrently, optimizing the preprocessing phase.",
+        "hypothesis": {
+            "problem": "Large datasets require efficient processing to reduce computation time.",
+            "data": "High-volume sensor data that needs preprocessing before model training.",
+            "method": "Parallel processing to speed up data handling.",
+            "reason": "The scenario involves large datasets, and parallel processing significantly reduces preprocessing time by utilizing multiple CPU cores."
+        }
+    },
+    {
+        "idea": "Model Selection based on Hyperparameter Groups",
+        "method": "Group models based on hyperparameter configurations and evaluate their performance, selecting the best performing group for ensemble predictions.",
+        "context": "The notebook groups models by hyperparameter settings and uses these groups to make ensemble predictions, prioritizing higher-performing groups.",
+        "hypothesis": {
+            "problem": "Selecting optimal models for ensemble predictions to improve overall accuracy.",
+            "data": "Multiple models trained with different hyperparameter configurations on sensor data.",
+            "method": "Hyperparameter grouping for model selection in ensemble learning.",
+            "reason": "There are multiple effective configurations, and grouping helps identify combinations that perform well together."
+        }
+    }
+]

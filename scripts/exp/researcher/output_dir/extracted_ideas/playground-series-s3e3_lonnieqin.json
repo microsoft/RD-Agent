@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Hyperparameter Tuning",
+        "method": "Use KerasTuner's Bayesian Optimization to find the best hyperparameters for a DNN model, optimizing for 'val_auc'.",
+        "context": "The notebook uses KerasTuner to search for the best hyperparameters for different folds, allowing the model to achieve better performance by optimizing hyperparameters specific to each fold's data distribution.",
+        "hypothesis": {
+            "problem": "Predicting employee attrition as a binary classification task.",
+            "data": "Small dataset with potential variance across folds.",
+            "method": "Bayesian Optimization is well-suited for tuning DNNs with continuous hyperparameters.",
+            "reason": "The dataset is small, and hyperparameter tuning helps find optimal parameter settings that prevent overfitting and improve generalization, especially when variations exist across different data splits."
+        }
+    },
+    {
+        "idea": "Cross-Validation with StratifiedKFold",
+        "method": "Apply StratifiedKFold cross-validation to ensure each fold maintains the proportion of classes, using different random seeds to stabilize results.",
+        "context": "StratifiedKFold is used in the notebook to split the data into 5 folds across multiple seeds to ensure robust validation and reduce variance in model evaluation.",
+        "hypothesis": {
+            "problem": "Binary classification of employee attrition with class imbalance.",
+            "data": "Class imbalance exists in the target variable.",
+            "method": "StratifiedKFold helps in maintaining class distribution across folds.",
+            "reason": "Ensures that each fold has a similar distribution of the target class, which is important in imbalanced binary classification tasks to prevent biased model evaluation."
+        }
+    },
+    {
+        "idea": "Data Augmentation by Combining Datasets",
+        "method": "Combine the competition dataset with an external dataset for training to increase data volume and diversity.",
+        "context": "The notebook concatenates the competition's train dataset with IBM HR Analytics Employee Attrition dataset to enhance training data.",
+        "hypothesis": {
+            "problem": "Limited data availability for training a robust model.",
+            "data": "The original dataset is small and synthetically generated.",
+            "method": "Combining datasets increases sample size and potential feature variability.",
+            "reason": "Augmenting training data with similar external datasets can improve model performance by providing more samples and capturing a broader range of feature interactions."
+        }
+    },
+    {
+        "idea": "Learning Rate Scheduler",
+        "method": "Implement a cosine decay learning rate scheduler to adjust the learning rate over epochs.",
+        "context": "The notebook uses a cosine decay schedule for learning rate adjustment during model training to enhance convergence.",
+        "hypothesis": {
+            "problem": "Optimizing training process of DNN models.",
+            "data": "Training involves deep neural networks with multiple layers.",
+            "method": "Cosine decay efficiently adjusts learning rate to improve convergence.",
+            "reason": "Helps in fine-tuning learning rates dynamically, which can lead to better convergence and prevent overshooting in optimization, particularly beneficial in deep learning where initial learning rates may not be optimal throughout training."
+        }
+    },
+    {
+        "idea": "Feature Engineering - Normalization Layer",
+        "method": "Create a TensorFlow Normalization layer adapted on the entire training dataset for input preprocessing.",
+        "context": "A normalization layer is created and adapted on the training data to ensure inputs are standardized before feeding into the neural network.",
+        "hypothesis": {
+            "problem": "Neural network training can be sensitive to input scales.",
+            "data": "Features have different scales and units.",
+            "method": "Normalization layers help stabilize and speed up training.",
+            "reason": "Standardizing inputs ensures that each feature contributes equally to the learning process, which is crucial for deep learning models to converge efficiently and avoid issues related to scale differences among features."
+        }
+    },
+    {
+        "idea": "Feature Selection Based on Correlation",
+        "method": "Select features based on their correlation with the target variable, using a threshold to filter.",
+        "context": "The notebook identifies and selects features that have a correlation above a certain threshold with the target variable for model input.",
+        "hypothesis": {
+            "problem": "High dimensionality can lead to overfitting in small datasets.",
+            "data": "Dataset includes both relevant and irrelevant features.",
+            "method": "Correlation-based feature selection reduces dimensionality while retaining predictive power.",
+            "reason": "Selecting features highly correlated with the target variable helps in reducing noise from irrelevant features, enhancing model performance and interpretability by focusing on the most informative features."
+        }
+    }
+]

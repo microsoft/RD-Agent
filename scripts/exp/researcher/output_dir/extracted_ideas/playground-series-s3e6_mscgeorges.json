@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Outlier removal",
+        "method": "Remove rows with outliers using the Interquartile Range (IQR) method to improve cross-validation results.",
+        "context": "The notebook applies IQR to identify and remove 20 records as outliers to stabilize RMSE scores during cross-validation.",
+        "hypothesis": {
+            "problem": "The nature of the problem is a regression task where the target variable is sensitive to extreme values.",
+            "data": "The dataset contains extreme outliers that could skew the performance metrics.",
+            "method": "The IQR method assumes that the data follows a distribution where outliers can be detected using quantiles.",
+            "reason": "There are a lot of outliers in the data, and removing them helps in getting a more reliable performance estimate during cross-validation."
+        }
+    },
+    {
+        "idea": "Piece-Wise model",
+        "method": "Split the dataset based on specific features (e.g., 'made' column) and train separate models for each subset.",
+        "context": "The notebook splits the data into four periods based on the 'made' column and trains separate models for each period, resulting in improved performance.",
+        "hypothesis": {
+            "problem": "The problem involves predicting a target variable that may have different underlying distributions over time.",
+            "data": "The data changes characteristics over different periods, making a single model less effective.",
+            "method": "Piece-Wise modeling works well when data can be naturally segmented into different time periods or categories.",
+            "reason": "The scenario contains patterns that vary significantly across different time periods, warranting separate models for better predictions."
+        }
+    },
+    {
+        "idea": "Ensemble learning",
+        "method": "Use a VotingRegressor to combine predictions from Random Forest, Gradient Boosting, XGBoost, and CatBoost models.",
+        "context": "The notebook ensembles different models using a VotingRegressor to create a stable prediction by averaging predictions from multiple algorithms.",
+        "hypothesis": {
+            "problem": "The objective is to predict housing prices accurately amidst noisy data.",
+            "data": "The dataset is noisy, and individual models may overfit or underfit specific patterns.",
+            "method": "Ensemble learning leverages the strengths of multiple models to improve performance.",
+            "reason": "The data in the scenario is very noisy, and using only one model tends to overfit to these noisy patterns. An ensemble approach offers robustness."
+        }
+    },
+    {
+        "idea": "Multi-Stratified K-Fold Cross-Validation",
+        "method": "Perform StratifiedKFold with multiple runs using different seeds to obtain reliable statistics on model performance.",
+        "context": "The notebook uses Multi-StratifiedKFold by running StratifiedKFold multiple times with different seeds, providing a robust estimate of model performance variance.",
+        "hypothesis": {
+            "problem": "The need is to evaluate model performance reliably in a noisy regression task.",
+            "data": "The dataset has an uneven distribution of target values or other stratification criteria.",
+            "method": "StratifiedKFold assumes that each fold should have a similar distribution of target variable values.",
+            "reason": "The scenario involves uneven distribution in the 'made' column, which stratifying helps address while getting a more consistent model evaluation."
+        }
+    },
+    {
+        "idea": "Feature selection",
+        "method": "Use all features except one known to be irrelevant, while retaining features with potential marginal contributions.",
+        "context": "The notebook excludes 'CityCode', retaining all other features including those with lower correlations based on cross-validation feedback.",
+        "hypothesis": {
+            "problem": "Predicting housing prices where feature importance varies across samples.",
+            "data": "Most features have low correlation with the target but may contribute in specific cases.",
+            "method": "Feature selection assumes some features may offer marginal value despite low correlation.",
+            "reason": "While one feature dominates, other features potentially aid in edge cases due to complex interactions in the dataset."
+        }
+    },
+    {
+        "idea": "Incorporating external data with adversarial validation",
+        "method": "Include original dataset in training after verifying similarity through adversarial validation, focusing on key columns.",
+        "context": "The notebook includes original data after adversarial validation showed significant similarity in key features like 'squareMeters'.",
+        "hypothesis": {
+            "problem": "Enhancing training data diversity and volume for better generalization in noisy regression tasks.",
+            "data": "External datasets have some overlapping characteristics with the competition dataset.",
+            "method": "Adversarial validation checks for distributional alignment between datasets before integration.",
+            "reason": "Despite differences, key feature alignment indicates potential for improved generalization and model robustness."
+        }
+    }
+]
