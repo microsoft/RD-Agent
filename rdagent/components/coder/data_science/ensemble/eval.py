@@ -64,12 +64,22 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
 
+        if "main.py" in implementation.file_dict:
+            workflow_stdout = implementation.execute(env=de, entry="python main.py")
+        else:
+            workflow_stdout = None
+
         system_prompt = T(".prompts:ensemble_eval.system").r(
             task_desc=target_task_information,
             test_code=test_code,
             code=implementation.file_dict["ensemble.py"],
+            workflow_stdout=workflow_stdout,
+            workflow_code=implementation.all_codes,
         )
-        user_prompt = T(".prompts:ensemble_eval.user").r(stdout=stdout)
+        user_prompt = T(".prompts:ensemble_eval.user").r(
+            stdout=stdout,
+            workflow_stdout=workflow_stdout,
+        )
 
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return EnsembleEvalFeedback(**json.loads(resp))

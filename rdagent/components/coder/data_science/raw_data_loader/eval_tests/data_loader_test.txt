@@ -8,18 +8,45 @@ Please make sure the stdout is rich enough to support informative feedback
 """
 
 import pickle
+
+import pandas as pd
 from load_data import load_data
 
 X, y, X_test, test_ids = load_data()
 
+
 def get_length(data):
     return len(data) if isinstance(data, list) else data.shape[0]
 
-assert get_length(X_test) == get_length(test_ids), (
-    f"Mismatch in length of test images and test IDs: X_test ({get_length(X_test)}) and test_ids ({get_length(test_ids)})"
-)
-assert get_length(X) == get_length(y), (
-    f"Mismatch in length of training images and labels: X ({get_length(X)}) and y ({get_length(y)})"
-)
+
+def get_width(data):
+    return 1 if isinstance(data, list) else data.shape[1:]
+
+
+def get_column_list(data):
+    return data.columns.tolist() if isinstance(data, pd.DataFrame) else None
+
+
+assert get_length(X_test) == get_length(
+    test_ids
+), f"Mismatch in length of test images and test IDs: X_test ({get_length(X_test)}) and test_ids ({get_length(test_ids)})"
+assert get_length(X) == get_length(
+    y
+), f"Mismatch in length of training images and labels: X ({get_length(X)}) and y ({get_length(y)})"
+
+assert get_length(X) != 0, f"Training data is empty."
+assert get_length(y) != 0, f"Training labels are empty."
+assert get_length(X_test) != 0, f"Test data is empty."
+
+assert get_width(X) == get_width(
+    X_test
+), "Mismatch in width of training and test data. Width means the number of features."
+
+if isinstance(X, pd.DataFrame) and isinstance(X_test, pd.DataFrame):
+    assert get_column_list(X) == get_column_list(X_test), "Mismatch in column names of training and test data."
+
+assert get_width(X) == get_width(
+    X_test
+), "Mismatch in width of training and test data. Width means the number of features."
 
 print("Data loader test passed successfully. Length of test images matches length of test IDs.")

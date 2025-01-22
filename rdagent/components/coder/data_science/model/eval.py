@@ -73,15 +73,23 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
             )
 
+        if "main.py" in implementation.file_dict:
+            workflow_stdout = implementation.execute(env=de, entry="python main.py")
+        else:
+            workflow_stdout = None
+
         system_prompt = T(".prompts:model_eval.system").r(
             task_desc=target_task.get_task_information(),
             test_code=test_code,
             scenario=self.scen.get_scenario_all_desc(),
             spec=implementation.file_dict["spec/model.md"],
+            workflow_stdout=workflow_stdout,
+            workflow_code=implementation.all_codes,
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,
             code=implementation.file_dict[f"{target_task.name}.py"],
+            workflow_stdout=workflow_stdout,
         )
         resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
         return ModelSingleFeedback(**json.loads(resp))
