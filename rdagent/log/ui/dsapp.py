@@ -184,17 +184,23 @@ def extract_json_from_log(log_content):
 def summarize_data():
     st.header("Summary", divider="rainbow")
     df = pd.DataFrame(columns=["Component", "Running Score", "Feedback"], index=range(len(state.data)-1))
+
     for loop in range(len(state.data)-1):
         loop_data = state.data[loop]
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
+
         if "running" in loop_data:
             if "mle_score" not in state.data[loop]:
-                grade_output = extract_json_from_log((loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt").read_text())
-                state.data[loop]["mle_score"] = grade_output
-
-            df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                mle_score_path = loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt"
+                try:
+                    state.data[loop]["mle_score"] = extract_json_from_log(mle_score_path.read_text())
+                    df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                except Exception as e:
+                    state.data[loop]["mle_score"] = str(e)
+                    df.loc[loop, "Running Score"] = "❌"
         else:
             df.loc[loop, "Running Score"] = "N/A"
+
         if "feedback" in loop_data:
             df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]) else "❌"
         else:
