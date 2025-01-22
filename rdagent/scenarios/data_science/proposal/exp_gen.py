@@ -45,14 +45,13 @@ class DSHypothesis(Hypothesis):
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
         return f"""Chosen Component: {self.component}
-Hypothesis: {self.hypothesis}
-Reason: {self.reason}
-Concise Reason & Knowledge: {self.concise_reason}
-Concise Observation: {self.concise_observation}
-Concise Justification: {self.concise_justification}
-Concise Knowledge: {self.concise_knowledge}
+Data Feature: {self.hypothesis}
+Problem Feature: {self.reason}
+Method: {self.concise_reason}
+Method Feature: {self.concise_observation}
+Reason: {self.concise_justification}
+Example Usage: {self.concise_knowledge}
 """
-
 
 COMPONENT_TASK_MAPPING = {
     "DataLoadSpec": {
@@ -137,7 +136,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
-    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3, idea_cache_path: str = None) -> None:
+    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> None:
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
         self._init_idea_pool(idea_cache_path)
@@ -296,7 +295,7 @@ class DSExpGen(ExpGen):
                 scenario=scenario_desc,
                 solution=sota_exp.experiment_workspace.all_codes,
                 idea=idea.format_JSON(),
-                component_output_format=T(".prompts:output_format.idea_component").r(),
+                component_output_format=T(".prompts:output_format.component").r(),
             )
 
             resp_dict_component: dict = json.loads(
@@ -305,7 +304,7 @@ class DSExpGen(ExpGen):
                 )
             )
 
-            component = resp_dict_component.get("component", "Component not provided")
+            component = resp_dict_component.get("component", "Component not provided") # one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']
 
             # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
@@ -347,18 +346,16 @@ class DSExpGen(ExpGen):
                         user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
                 )
-                assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
                 assert "task_design" in resp_dict, "Task design not provided."
                 task_class = component_info["task_class"]
-                hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
                 hypothesis = DSHypothesis(
                     component=component,
-                    hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                    reason=hypothesis_proposal.get("reason", ""),
-                    concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                    concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                    concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                    concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                    hypothesis=idea.hypothesis["data"],
+                    reason=idea.hypothesis["problem"],
+                    concise_reason=idea.method,
+                    concise_observation=idea.hypothesis["method"],
+                    concise_justification=idea.hypothesis["reason"],
+                    concise_knowledge=idea.context,
                 )
 
                 task_design = resp_dict.get("task_design", {})

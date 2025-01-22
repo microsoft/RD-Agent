@@ -217,6 +217,70 @@ direct_exp_gen:
     {{last_exp_diff}}
     {% endif %}
 
+idea_exp_gen:
+  system: |-
+    You are a data scientist and a top Kaggle competitor. The user is working on creating a solution for a Kaggle competition. Your task is to design a task to enhance the current best solution based on a given hypothesis.
+
+    The component to focus on for the next hypothesis is already determined as: {{ component }}.
+    It will be used in the following scenario:
+    {{ scenario }}
+
+    # Hypothesis Proposal
+
+    Here is a given hypothesis for you to refer.
+    {{ hypothesis }}
+
+    # Task Design
+
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step.
+
+    The scope of the {{ targets }} can be described by a interface specification as follows
+    ```Python
+    {{task_specification}}
+    ```
+
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3.  Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+
+    [Partial Response Format 1] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Workflow update
+    Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your response should follow the format and specifications provided below:
+    {
+      "task_design": [Partial Response Format 1],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 2], {% endif %}
+    }
+
+    {% if extra_requirement %}
+    {{extra_requirement}}
+    {% endif %}
+
+  user: |-
+    # The detailed description of current best experiments
+    {{sota_exp_desc}}
+
+    ## The according feedbacks for the best experiments
+    {{ exp_and_feedback_desc }}
+
+    {% if recent_trace_desc %}
+    # Several trials after the best experiments
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{recent_trace_desc}}
+
+    # The difference from the best experiments to the last one
+    {{last_exp_diff}}
+    {% endif %}
+
 extra_requirement:
   model: |-
     If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
@@ -281,9 +345,9 @@ idea_component_gen:
     {{ idea }}
     ```
 
-   Please select the components you are going to improve in order to integrate the idea into the current solution in a way that aligns with the competition's goals and constraints. 
-   Please generate the output following the format below
-   {{ component_output_format }}
+    Please select the components you are going to improve in order to integrate the idea into the current solution in a way that aligns with the competition's goals and constraints. 
+    Please generate the output following the format below:
+    {{ component_output_format }}
 
 exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
@@ -306,10 +370,6 @@ output_format:
   component: |-
     {
       "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
-    }
-  idea_component: |-
-    {
-      "component": "The components you suggest to focus on. It must a list of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
     }
   hypothesis: |-
     The output should follow JSON format. The schema is as follows:

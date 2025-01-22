@@ -68,7 +68,8 @@ class Idea_Pool:
         """
         self.threshold = threshold
         self.idea_pool = []
-        self.load_from_cache(cache_path)
+        if cache_path:
+            self.load_from_cache(cache_path)
 
     
     def update_old_idea(self, old_idea_idx, new_idea) -> None: 
