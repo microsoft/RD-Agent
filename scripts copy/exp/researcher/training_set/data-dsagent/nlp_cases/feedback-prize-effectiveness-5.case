@@ -1,0 +1,60 @@
+First of all, thanks to competition organizers for hosting this competition and great teammates ( @shinomoriaoshi, @horsek, @runningz, @nickycan ).
+Thanks also to the community for sharing many ideas in Notebook and Discussion.
+
+Note: This post is a brief summary, and more detailed information will be updated or posted as a new topic by my teammates.
+- [tri's pipeline](
+- [housuke's pipeline](
+
+# Summary
+We ensembled 6 token classification models and 1 seq classification model.
+![](
+
+# Models
+We trained following models and used them for final submission.
+- tri( @shinomoriaoshi )'s pipeline
+- token classification Deberta-v3-large
+- housuke( @horsek )'s pipeline
+- token classification Deberta-v3-large
+- token classification Deberta-large
+- nakama( @yasufuminakama )'s pipeline
+- token classification Deberta-v3-large
+- seq classification Deberta-v3-large
+- RunningZ ( @runningz )'s pipeline
+- token classification Deberta-v3-large
+- token classification Deberta-v2-xlarge
+- 鲲 ( @nickycan )'s pipeline
+- mostly engaged on efficiency track
+
+# Main methods that worked
+- MLM pretraining
+- 
+- Resolve encoding error
+- This method was used in previous 2021 Feedback Prize competition.
+- 
+- Mask augmentation
+- This method was used in previous 2021 Feedback Prize competition.
+- 
+- Adversarial training (AWP, FGM)
+- This method was used in previous 2021 Feedback Prize competition.
+- 
+- Multi-sample dropout
+- This method was used in Google QUEST Q&A Labeling competition.
+- 
+- Add GRU layer
+- Label smoothing
+- Add discourse_type for each discourse_text
+- Add [head] [tail] tokens for each discourse_text
+- Back translation (worked only for RunningZ's pipeline)
+- Pseudo labeling
+
+# 2nd stage Stacking using LSTM
+housuke( @horsek ) tried this early in the competition, and it worked very well.
+
+# 3rd stage Stacking using XGBoost
+After the 2nd stage Stacking, we applied 3rd stage Stacking using XGBoost, it improved result a bit.
+
+# Final Result
+CV: 0.5609
+Public LB: 0.555
+Private LB: 0.560
+

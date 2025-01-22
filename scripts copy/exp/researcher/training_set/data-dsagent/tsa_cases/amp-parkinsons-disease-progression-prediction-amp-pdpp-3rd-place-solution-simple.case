@@ -1,0 +1,23 @@
+(1) The overall design of the code is to preprocess the data, read the data, perform feature engineering, make predictions using a combination of constant values and slope coefficients, and then output the predictions.
+
+(2) The overall model architecture is as follows:
+- Preprocessing: The code includes functions for missing value completion and rank normalization of features.
+- Reading Data: The code reads the training data from multiple CSV files and concatenates them into a single dataframe.
+- Feature Engineering: The code creates additional features based on the original data, such as differences between visit months, cumulative minimum visit months, and rank-based features for proteins and peptides.
+- Prediction (Const): The code defines constant values for each target variable (updrs_1, updrs_2, updrs_3, updrs_4) based on specific conditions and increments.
+- Prediction (Slope): The code calculates slope coefficients for each target variable based on specific conditions and coefficients.
+- CV Score: The code calculates the SMAPE score for cross-validation using the predicted values and the actual values.
+- Time Series API: The code uses the Time Series API to iterate over the test data, preprocess it, perform feature engineering, and make predictions using the trained model.
+
+(3) The important hyperparameters in this code are the initial constant values (const_init1, const_init2, const_init3, const_init4) and the lists of increments for each target variable (list_const_increment1, list_const_increment2, list_const_increment3, list_const_increment4). These hyperparameters determine the values of the constant and slope coefficients used for prediction.
+
+(4) The optimization objective of this code is to minimize the Symmetric Mean Absolute Percentage Error (SMAPE) between the predicted values and the actual values of the target variables.
+
+(5) The advanced machine learning technique used in this code is time series analysis. The code takes into account the temporal nature of the data by considering the differences between visit months, cumulative minimum visit months, and rank-based features for proteins and peptides.
+
+(6) Some important tricks that play a role in high performance include:
+- Missing value completion: The code replaces missing values with appropriate values based on the context.
+- Rank normalization: The code performs rank normalization of features to ensure that they have similar scales and distributions.
+- Feature engineering: The code creates additional features based on the original data to capture important patterns and relationships.
+- Constant and slope coefficients: The code uses a combination of constant values and slope coefficients to make predictions, taking into account specific conditions and increments.
+- Cross-validation: The code calculates the SMAPE score for cross-validation to evaluate the performance of the model.

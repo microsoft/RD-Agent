@@ -1,0 +1,126 @@
+First, thanks to the competition hosts for a meaningful competition with interesting data. Second, congrats to the winners! My team was able to shake up a bit but ended up one place shy of the prize zone. All in all, I'm still happy since we did well to survive the shakeup. I'm also excited to see what top 5 teams did to create a significant gap between us. 
+
+Our final ensemble is a combination of spectrogram models, wavelet models, and 1D conv models, which scores 0.369/0.462. Below I will discuss them as well as other important technical details. See below for an overview ![](
+
+# Validation setup
+
+Validation setup is important due to the noisy data. I ended up with a nested CV setup. The procedure is as follows:
+1. split data into 4 folds stratified by data type and grouped by subject
+2. set aside the validation fold (i call this the outer fold)
+3. resplit the 3 training folds into 4 folds and do cross validation (I call these inner folds)
+4. take last epoch or epoch with best validation score
+5. evaluate on outer fold with 4 inner fold models averaged for each outer fold 
+With this setup, we can more accurately simulate a situation where we have 250 sequences in the test set and we avg the fold model predictions. Later on, I switched to training on full inner fold data for 4 times without validation and evaluate with last epoch models on the outer fold set. 
+
+# Input features
+All of our models use the 3 waves and the pct time feature. In addition, Ahmet uses some metadata features in his models.
+
+# Spectrogram Models
+
+When I first saw the data I thought it looked like some sort of waveform, like audio data, so I thought it might work well to use spectrograms to model it. The 3 dimension waves are transformed into 2D spectrograms with STFT. Importantly, transforming the data in spectrograms significantly downscaled the data in the time dimension, so since I use a hop length of 64/50, each frame represents a 0.5 secs window and I'm basically making predictions for 0.5 sec windows. During training, labels are resized with torchvision's resize to fit the size of the time dimension of the spectrograms and during inference the model output is resized back to full dimensionality. Sequences are cut into chunks of 128 secs (256 spectrogram frames) to generate spectrograms. 
+
+Another important thing with using spectrograms is that if we use a regular type 2D conv model like resnet18, it wouldn't preserve the full dimensionality of the spectrogram (e.g a 256x256 becomes 8x8 after resnet18). In order to circumvent that, I thought to use a UNet to upsample the small feature map after the conv network. Following that, the spectrograms are pooled along the frequency dimension so I have a 1D sequence, which is then inputted into a transformer network before outputting predictions. 
+
+Best submitted single spectrogram model scores 0.432/0.372. Spectrogram models are good at predicting StartHesitation and Turn but bad at Walking. 
+
+# Wavelet Models
+
+Wavelets are similar to spectrograms but also different because wavelets have different frequency/time resolutions at different frequencies. Transforming a wave into a wavelet also does not reduce the dimensionality of the scaleogram (I think this is the term for the image you get after wavelet transform). Since there's no downsampling in the time dimension, Unet is no longer needed and I simply use a resnet18/34, which downsample the scaleogram to the same time resolution as spectrogram models after Unet. In turn, I'm also classifying 0.5 sec windows. Similarly, sequences are cut into chunks of 128 secs (256 spectrogram frames) to generate spectrograms.
+
+Best submitted single spectrogram model scores 0.386/0.345. Wavelet models are good at predicting Walking but bad at StartHesitation and Turn, so it complements spectrogram models nicely.  
+
+# Transformer modeling
+
+Just plugging in a transformer actually does not work so well because it overfits, so I bias the transformer self-attention with a float bias mask to condition each prediction on its adjacent time points, which helps the model predict long events well. 
+
+What the float bias mask looks like (see above) ![](
+
+```
+def get_distance_mask(L,power):
+
+m=torch.zeros((L,L))
+
+
+for i in range(L):
+for j in range(L):
+if i!=j:
+m[i,j]=(1-abs(i-j)/L)**2
+
+if i==j:
+m[i,i]=1.0
+return m
+
+```
+
+# Data augmentation
+
+I used data augmentation for spectrogram/wavelet models including the following (mostly from audiomentations): 
+1. time stretch 
+2. gaussian noise
+3. pitch shift 
+4. wave scale aug (randomly multiply wave by 0.75~1.5 to get scale invariance)
+5. time feature shift aug.  
+
+
+```
+self.augment = Compose([
+AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.5),
+TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5,leave_length_unchanged=False,n_fft=n_fft,hop_length=hop_length),
+PitchShift(min_semitones=-4, max_semitones=4, p=0.5,n_fft=n_fft,hop_length=hop_length),
+])
+```
+```
+#wave scale aug
+if np.random.uniform()>0.5:
+data['wave']*=np.random.uniform(0.75,1.5)
+```
+```
+#time feature shift aug
+if self.train and np.random.uniform()>0.5:
+data['time']=data['time']+np.random.uniform(-0.1,0.1)
+```
+
+# Frequency encoding and range
+
+It's important to not use the high frequency bins of fourier transform, so I simply discard them and only keep the first 64 bins, corresponding to 0-15 hz. For spectrogram models, I also encode the frequency bin with torch.linspace(0,15,n_bins) expanded in the time and channel dimension and concatted so the input to the 2D conv network has 4 channels (3 directions of spectrograms + frequency encoding). It was also useful to resample the waves to a lower frequency, which I think reduces the level of noise. I used 32, 64, and 128 hz for spectrogram models and 64 hz for wavelet models. Defog waves are resampled to match the sample rate of tdcsfog waves.
+
+```
+if self.df.loc[idx,'data_type']=='defog':
+data['wave']=FA.resample(data['wave'],100,self.sample_rate)
+else:
+data['wave']=FA.resample(data['wave'],128,self.sample_rate)
+```
+
+# 1D conv Models
+1D conv models are Ahmet's solution. Please see below for details:
+1. First align defog and tdcs on time axis (downsampled by 32 and 25, but kept their std as a feature)
+2. pct_time, total_len, Test are used as independent features. Their prediction is summed with the prediction from the 1D CNN.
+3. Because the input was only around 7 seconds long, cumsum features are also fed into 1D CNN.
+4. Outlier dominant subject is downweighted.
+5. Used snapshot ensembling.
+6. Used notype data by applying max on the predictions.
+
+1D conv models are weaker compared to the other 2, scoring 0.373/0.293, but are still a nice addition to the ensemble. Interestingly, 1D conv models and spectrogram models have a similar gap of 0.09 between public and private, whereas wavelet models have only a gap of 0.04. We think this is due to a change in class balance between private/public where public has more start hesitation and private has more walking. 
+
+# Ensemble Weight Tuning 
+
+For our big ensemble, the weights are first hand tuned as a starting point and then I used GP_minimize to maximize CV score. We used 2 weight tuning setups at the end 1. map of 4 folds + map of full data excluding Subject 2d57c2, 2.  map of 3 folds excluding fold with Subject 2d57c2 + map of full data excluding Subject 2d57c2. We do this because we consider Subject 2d57c2 to an outlier. 
+
+
+```
+results=gp_minimize(get_score,boundaries,x0=w,verbose=1,n_jobs=48,acq_optimizer='lbfgs',random_state=0)
+```
+
+The weights for our models are (we downweight loss of 2d57c2 to 0.2 in some of them)
+
+[0.1821, 0.2792, 0.1052] Ahemt model
+[0.2153, 0.0, 0.0] test257 (32 hz spectrogram)
+[0.6026, 0.1734, 0.0] test262 (64 hz spectrogram)
+[0.0, 0.0287, 0.2579] test264 wavelet
+[0.0, 0.2168, 0.0] test265 (32 hz spectrogram) downweight 2d57c2
+[0.0, 0.1734, 0.2997] test266 wavelet downweight 2d57c2
+[0.0, 0.1284, 0.1124] test263 128 hz spec
+[0.0, 0.0, 0.2248] test271 wavelet double freq scales
+
+Let me know if you have questions, and I wouldn't be surprised if I forgot to mention some details . The code is a bit messy atm but i will clean up and release it soon.
+

@@ -1,0 +1,29 @@
+(1) The overall design of the code is to train multiple models using different pre-trained transformer models and then combine their predictions using weighted averaging to make the final prediction.
+
+(2) The overall model architecture consists of multiple transformer models, such as Electra, Deberta, BERT, Funnel, Roberta, and ERNIE. Each model is loaded from a pre-trained checkpoint using the AutoModelForSequenceClassification class. The models are then fine-tuned on the training data using a custom loss function (either MSELoss or BCEWithLogitsLoss) and the AdamW optimizer. The models take input sequences encoded by the tokenizer and output a single logit value. The final prediction is obtained by averaging the predictions of all models.
+
+(3) The important hyperparameters in this code are:
+- DEBUG: a boolean flag to control whether to run the code in debug mode or not.
+- SEED: the random seed for reproducibility.
+- MODEL_TYPE: the type of pre-trained transformer model to use.
+- MODEL_PATH: the path to the pre-trained transformer model checkpoint.
+- BATCH_SIZE: the batch size for training and inference.
+- DEVICE: the device to use for training and inference (either 'cuda' or 'cpu').
+- LR: the learning rate for the optimizer.
+- N_WARMUP: the number of warmup steps for the learning rate scheduler.
+- EPOCHS: the number of training epochs.
+
+(4) The optimization objective is to minimize the loss function, which is either the mean squared error (MSE) or the binary cross-entropy with logits (BCEWithLogitsLoss) depending on the training mode.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code utilizes pre-trained transformer models that have been trained on large-scale language modeling tasks. These models are then fine-tuned on the specific task of predicting a score for phrase-to-phrase matching.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Using multiple pre-trained transformer models and combining their predictions using weighted averaging.
+- Using different loss functions (MSE and BCEWithLogitsLoss) to train the models.
+- Using a learning rate scheduler (either get_linear_schedule_with_warmup or get_cosine_schedule_with_warmup) to adjust the learning rate during training.
+- Using a custom dataset class (TrainDataset) to preprocess and load the training data efficiently.
+- Using a custom model class (Model) to define the architecture of the transformer models and the loss function.
+- Using a validation function (val_fn) to evaluate the performance of the models on the validation data.
+- Setting random seeds for reproducibility.
+- Using tqdm for progress tracking during training and validation.
+- Saving and loading model checkpoints for later use.

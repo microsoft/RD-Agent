@@ -1,0 +1,48 @@
+I am very surprised that I can get 7th place &amp; 1st place in students in this M5 forecasting competition. It is my first year that I participate in Kaggle competitions, and the first time that I get ranked here. It is more than happy that I can share my solution here (although it may be a bit too late).
+
+## Model Summary
+In this competition, I first focused on the Accuracy competition (i.e. producing the mean forecast), and then leveraged on the model built on Accuracy competition to produce any uncertainty estimate (i.e. quantile prediction).
+
+I built two seq2seq LSTM model to produce the mean forecast on the next 28D. One is trying to forecast on the store-item level, another attempts to forecast on the dept-store level. The final accuracy forecast consists of simple averaging of both model. The uncertainty estimate is built using the estimated residuals of both models, while assuming the forecast residuals are i.i.d. normal.
+
+## Takeaway
+I think the key takeaway in this competition is the importance of a reliable local validation scheme, together with the model ensembling technique, which makes my model to deliver stable performance both locally and in public / private LB. At the early stage of the competition where people are optimizing for the public LB, my model performance on public LB is actually not comparable to those top solutions. However, the key benefit of my solution is that it delivers stable performance both locally and in public / private LB.
+
+The WRMSSE / WSPL metric can be volatile given only 28D of validation window (i.e. public LB), because it is equally weighted on all aggregate levels (meaning that the top aggregate levels forecast, even with a few observations, already give a huge proportion of the loss). It would be potentially overfitting if we focus too much on optimizing for the public LB, without a reliable local validation scheme.
+
+## Model Architecture
+The seq2seq LSTM model takes an input window of 28D, and output window of 28D. Basically it is similar to an encoder-decoder model for machine translation except that I add some exogenous features to the model, and avoid using any forecast information in the decoder input (i.e. trained &amp; forecasted unconditionally). The rationale behind training unconditionally is to ensure that the model performs similarly at inference time as at training time. In the following graph, y denotes the time series (i.e. sales), z denotes the exogenous features (e.g. weekday, holiday event, is snap, item id), h denotes the hidden state (as well as cell state).
+
+![](
+
+## Features
+I do not use any special features. Basically the features are calendar features (e.g. holiday event, holiday type, weekday), id features (item-id, dept-id, store-id) and price features. By SHAP value analysis, the id features and weekday are significant to the model performance. The categorical features with high cardinality are post-processed using embedding layers.
+
+Some important feature processing steps are:
+1. Re-scale each time-series into [0, 1] using its max.
+2. Train the model to forecast the increment of sales value since the first day of input window (i.e. remove trend).
+
+## Training Method
+The LSTM models are trained using Adam algorithm. The dept-store model is trained with weighted MSE loss. The store-item model is trained with unweighted zero-inflated poisson loss (to deal with cases with many 0s).
+
+### Improving Model Stability
+During training, an issue of model instability is observed, similar to the observations [here]( The following graph shows how the WRMSSE metric (used for accuracy measure) changes during training epochs.
+
+![](
+
+To resolve the instability issue, each seq2seq LSTM model actually consists of models trained at 20 different checkpoints (i.e. training epochs) and is a simple average of the 20 checkpoint models. The submission model is trained blindly without any early stopping, and is observed to have stable performance.
+
+## Hierarchical Forecast
+The dept-store level forecast is first converted into store-item level forecast using the 28D historical average of ratio. Then both models' forecasts are simple averaged and converted to forecast on all aggregate level by bottom-up approach.
+
+## CV Scheme
+My local validation scheme consists of 4 folds of data, each is of 28D. Particularly:
+Fold 1: (training) [train st, d1829] --&gt; (validation) [d1830, d1857]
+Fold 2: (training) [train st, d1857] --&gt; (validation) [d1858, d1885]
+Fold 3: (training) [train st, d1885] --&gt; (validation) [d1886, d1913]
+Fold 4: (training) [train st, d1913] --&gt; (validation) [d1914, d1941]
+where train st is 2.5 yrs before the end of training data when training store-item model, and is 0 when training dept-store model (i.e. training on full dataset). The model is trained once only on fold 1 so as to speed up the local validation process. It is observed that the score in each fold has large variance, indicating that it may be unreliable / overfitting to optimize on any 28D data (i.e. the public LB). Therefore, I focus on the local CV score which also gives close alignment with both public LB and private LB score.
+
+
+Thanks a lot for the host who gave us a chance to join such a rewarding competition. I learnt a lot from this competition. Also special thanks to @kyakovlev who built a lot of great discussion thread &amp; great notebook (which are super useful for us as a newbie to Kaggle).
+

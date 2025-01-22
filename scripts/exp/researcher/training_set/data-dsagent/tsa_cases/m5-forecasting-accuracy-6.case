@@ -1,0 +1,37 @@
+I learned a lot from the community in this competition, so I wanted share my solution and some learnings I had from the competition as well. 
+
+Before I go deeper, I wanted to first thank the hosts, Kaggle, and the community as a whole. I learned a lot from this experience and am glad to have done it. Credit also to these two notebooks where a lot of my inspiration came from:
+* @kyakovlev :  
+* @kneroma : 
+
+# Solution
+
+My solution itself is not too innovative, but how I got there might be interesting. One of the big things I learned from this competition is the importance of having a reliable and fast cross-validation method. Common with themes in other posts, I ended up finding that simpler was better. With the cross-validation, I pruned a lot of features that I found did not provide a large benefit to keep the model simpler.
+
+## Algorithm
+Gradient boosting trees (LightGBM), one model per store
+
+## Features
+* Item id, department id, category id
+* Price features: current price, price relative to past prices, statistics on the price (max, min, standard deviation, mean… etc.)
+* Sales features: recursive 7-day, 14-day lagged rolling means + 28-day lagged rolling means. No lagged rolling standard deviations
+* Date features: date attributes (e.g. month, year, is weekend, day of week, … etc.), nearest upcoming/past event name, event name 1, event name 2, SNAP, no event type
+
+## Cross-validation / hyperparameter optimization
+* It took me a while to come up with a cross-validation approach I was happy with, trying to balance accuracy and speed. I took the data for stores CA1, TX2, and WI3 to increase training speed, and used time periods d1550-d1577, d1858-d1885, d1886-d1913 as my cross-validation periods. For each period, I trained a model with all data before the period, and then used the models to predict the sales within the period.
+* I tested the sensitivity of the method by running it on the same model with different seeds to see how widely the scores varied by random chance.
+* Even with those optimizations, cross validation took a while: ~24 hours for 40 parameter sets
+* I tuned LightGBM parameters with [hyperopt](
+* A shoutout also to [this thread]( for helping to improve LightGBM training speed by ~2x.
+
+## Things that I tried but did not include
+I think the following, if done better, may have helped. However, I found the benefit of these improvements to be marginal so opted not to use them for simplicity.
+* Predicting overall sales for each day and scaling predictions accordingly. I did notice that if I could perfectly predict overall sales for each day, the scores would improve tremendously. 
+* Weighting data points 
+* Predicting number of dollars spent per item instead.
+* Removing "out-of-stock" periods from the training dataset.
+
+For those that are interested, I also wrote a quick [blog post]( on some high-level learnings.
+
+Hope you might find some of these thoughts helpful and happy to answer any questions!
+

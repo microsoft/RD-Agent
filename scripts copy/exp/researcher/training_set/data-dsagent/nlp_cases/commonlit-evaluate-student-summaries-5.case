@@ -1,0 +1,55 @@
+First of all, I would like to thank the host for hosting such a wonderful competition.Also thanks to kagglers for sharing valuable information in notebooks and discussions.
+
+I'll briefly share my approach that led to the 5th place finish. Honestly, I didn't use any special techniques, so I believe the shake-up was largely due to luck. However, I'm extremely pleased with my first solo gold.
+
+### Overview
+The key points of my approach are mainly threefold.
+* Use all of summary, question, title, and prompt_text.
+* Use a single deberta v3 large model, improved with longer max_len and freeze layer, etc.
+* An ensemble of deberta v3 large and LightGBM.
+
+### Approach
+* deberta v3 large
+* Input all of summary + question + title + prompt_text.
+* No preprocessing.
+* max_len: 1536.
+* Freeze embedding and the first 18 layers. 
+* No dropout.
+* Train content and wording simultaneously.
+
+* LightGBM
+* Uses mostly the same features as public notebooks.
+
+* ensemble
+* Weighted average of deberta and LGB.
+* Weights optimized using nelder mead.
+
+### validation
+* strategy
+* groupkfold (group = prompt_id)
+* cv score
+* deberta v3 large :0.4816
+* LGBM :  0.5513
+* ensemble : 0.4748
+
+
+### What Didn't Work
+
+* Models other than deberta v3 large.
+* When including prompt_text as input, other models (including deberta-v3-base) had much poorer performance.
+
+* Additional training data with LLM
+* Considered data augmentation by creating summaries from prompt_texts using LLM.
+* I used the scraped prompt_text from commonlit.
+* Created ground truth using pseudo labels and added to training, but it did not improve.
+
+* LGB-based stacking
+* Tried stacking using deberta's oof, similar to public notebooks, but it did not improve in my model.
+* Hence, changed to the weighted average of each model as mentioned above.
+
+* Text preprocessing.
+* Inputting other summaries from the same prompt.
+* Inspired by the PPPM competition's magic, considered concatenating other summaries from the same prompt, but it did not improve.
+
+* etc...
+

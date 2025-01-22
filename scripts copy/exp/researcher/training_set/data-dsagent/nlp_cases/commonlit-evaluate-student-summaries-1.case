@@ -1,0 +1,46 @@
+## Some Feelings    
+
+I would like to thank the organizers for bringing us the wonderful competition, and thank you for the atmosphere of sharing and discussion. This competition is a practical project required by the natural language processing course. My teammates and I learned in this competition than in the school class. Of course, thanks to the lucky shake, luck is also an important factor.
+
+## What we did in the comp
+Our final submission only used a 4fold microsoft/deberta v3 large. Because each team member's academic pressure and time reasons, we did not plan to study various tricks or training skills from the beginning, but started with the quality and diversity of data.
+
+WHY data? Because we found that the training data provided, only contains four topics, but from our own experience to think, training a student writing ability requires a lot of different topics, so the real test scenario, the model for the understanding of different topics is the most important (subsequent other players through prob test set also proved this), and we found that the LLM game, many people use LLM data increase and obtained the exciting fect, so we focus on improving the diversity of topic.(We continue to focus on other competitions and competitors' experience and progress in using LLM, but we do not see anyone openly revealing whether using LLM is "USEFUL", even if they have tried to use the generated data.)
+
+**We sincerely hope that our ideas can provide some feasible ideas for the use of LLM in the FUTURE competitions, and can bring reference value to other participants**
+
+### The key points of our solution:
+
+1. Meta pseudo label (3 rounds), the most critical and time-consuming part, is the key to associating unannotated data with annotated data, from a paper by Google.(
+
+2. Carefully designed prompt to guide LLM to spit out the topic and topic text in his stomach (we can actually use the commonlit website, but we didn't realize that at the moment.)
+
+3. Another prompt used to generate ten summary of different quality for each additional topic.
+
+4. Change the data preprocessing in the open source training code to introduce prompt text into the model, but most other good teams have this key point, which commonly mentioned in discussion.
+
+5. Two stage traning: stage1 - Use pseudo labeled data only for 2epoch and valid on train. stage2 - Use train data only for 2-3 epochs. In this way, we need not to pay too much attention to the data distribution of pseudo-labels, which mentioned by  @philippsinger in his insightful [solution]( of Feedback-ELL.
+
+6. Sort index according to the length of the input text, and reduce the infer time. The whole model of inference is estimated to be 7 hours, but if you do not do so, the inference time will exceed the limit of 9 hours.
+
+7. Traning and inference pipeline[code]( shared by @tsunotsuno ,the perfect process steps save us a lot of time to build pipeline.
+
+## Other words
+We only used the open source code and did not make any improvement on the model.
+In these days, we have read the plans of other teams, which impressed us, especially the "Head Mask" mentioned by  @ivanaerlic  and his deep understanding and insight into the game itself and the nature of the model structure, which made us admire and hope that one day we can make such excellent model optimization like you.
+
+I believe combine the head mask and llm meta pseudo procedure, the private score might improved to .43+ ONLY BY ONE MODEL.
+
+Thanks again to all the participants for your selfless sharing. I hope our working can contribute to the community!!  :)
+
+## Prompt used for LLM generate prompts:
+![](
+## Prompt used for LLM generate summaries:
+![](
+
+## Related source:
+
+inference code: 
+
+llm generated data: 
+

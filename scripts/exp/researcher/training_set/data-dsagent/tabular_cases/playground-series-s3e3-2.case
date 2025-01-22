@@ -1,0 +1,44 @@
+Thanks to all the competitors for another week of informative discussions!  Thanks also to the Kaggle organizers for another interesting episode of the Playground Series.  I was able to garner an 8th place position using my XGBoost + focused CV approach from Episode 2 ([notebook]( and [discussion](
+
+The notebook I used for this competition can be found [here](
+
+### Influences
+
+The main influence on this week's competition was the [fantastic EDA notebook]( by @craigmthomas.  I studied this one very closely and made a lot of decisions from this EDA work.  **Give that notebook an upvote!**
+
+### Modeling 
+
+As I did in Episode 2, used tried a variety of techniques (XGBoost, CatBoost, Neural Net, Logistic Regression), and XGBoost consistently gave me the best CVs.  Others came close, but never quite surpassed XGBoost.
+
+I used the same CV strategy as before in that I did 10-fold cross-validation and only used the synthetic dataset for calculation of AUC in each fold.   I added the original dataset (using the whole dataset this time around) to the training set within each fold, but did not measure performance on the original set in any way.  I believe this was a huge factor in this competition particularly given the very unbalanced nature of the target class and the small dataset size.  There were too many opportunities for overtraining to occur. 
+
+### Feature Engineering
+
+A big difference for this competition was the way I approached feature engineering.  The data consisted of a number of different types of data, and I approached each type independently.
+
+####  Winsorization
+
+Others found that there were some data points with overly extreme values.  I chose to reset those extreme values to the maximum value for that particular feature.  Nothing unique here - there are lots of notebooks where others did the same.  There were only 2 Winsorizations, but it did take away their outlier status.
+
+#### Label Encoding
+
+One variable, `BusinessTravel` was an ordinal variable with text categories, `Non-Travel`, `Travel_Rarely`, `Travel_Frequently`.  These 3 categories have a logical order that can be converted to numerical values [0, 1, 2].  I anticipated high levels of `BusinessTravel` would lead to Attrition, and wanted to maintain the ordinal nature of the variable, rather than converting it to multiple one-hot-encoded files.
+
+#### Ordinal Variables
+
+There were a number of ordinal variables that were coded numerically.  I left these in their original form as I thought the relative levels could be important, and one-hot encoding would have increased the total number of features substantially.
+
+#### One-hot Encoding
+
+There were 6 categorical features for which I used one-hot encoding.  I was concerned about the number of additional columns this would create, even when using sparse one-hot encoding, and looked at the various features (in a quick and dirty [notebook](  For this figure, I took all the models for which an average CV of 0.8 or greater was found and calculated variable importances - 100s of models.  The boxplots show those importances (y-axis) by each variable.  
+
+`JobRole` in particular looks like there is high attrition in sales-related roles and lower attrition in other roles - see the far right of the boxplot.  I tried changing this to Sales and Non-sales categories, but it didn't seem to help.  For min 8th place submission, I left all the one-hot encoded columns in place.  I also used this to drop a few columns, but my results didn't improve.
+
+#### Center and Scale
+
+For the continuous variables, I also centered and scaled them, probably more out of habit.  I'm sure this doesn't matter for XGBoost.
+
+### TPOT
+
+One very interesting result came from using [TPOT]( an autoML tool.  I ran TPOT multiple times with small, short simulations just to get an idea of what kinds of models it found.  About 90% of the time XGBoost or a GradientBoostingClassifer was the top classifier.
+

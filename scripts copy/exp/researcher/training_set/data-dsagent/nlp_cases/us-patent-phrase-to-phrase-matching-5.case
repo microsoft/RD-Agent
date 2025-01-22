@@ -1,0 +1,117 @@
+Thanks to The U.S. Patent and Trademark Office (USPTO) and Kaggle for organizing such an engaging competition. This was my 3rd NLP competition, and I wouldn’t be able to get the position I got without the teachings and sharing of the Kaggle community, particularly @cdeotte, @abhishek, @theoviel, @yasufuminakama, and @cpmpml. Thank you!
+
+I finally got some time off work yesterday to review some of the posts and it seems that all top teams used the same base idea. So, instead of just talking about my solution, today I’m going to also share a bit about my journey through NLP competitions and my thought process.
+
+# My journey
+
+This was my 3rd NLP competition. I learned a lot in each one. From the first one in which I relied mainly in tuning a public notebook for one epoch while consuming a week of GPU quota, to the second in which I managed to train a deberta-v3-large model end-to-end, and this one in which I managed to train a deberta-v2-xlarge, it’s been quite a ride. Even now, after reading some of the write-ups I learned new stuff about the capabilities of the torch library. Kaggle is truly a unique platform that gives you the opportunity to compete with the best and learn from them.
+
+My journey in this competition started in early June after I was done with reviewing the write ups of my previous competition and doing some tests. I wondered if it wasn’t too late to join. I took a look at the data, compiled a list of ideas and decided to give it a try. First, I built a base solution that I could use as a benchmark. To my surprise even after some tweaks, its CV was pretty low when compared to both the LB and the top scoring public notebook. I expected a bump up from simply ensembling the various folds of a model, but my basis was so low that I doubted that would help much. With about two and a half weeks left I seriously considered moving on. Yet, I was curious to see whether some of my ideas would work and I figured that I could spend that time and pressed forward. 
+
+The next day, June 6th, I made my first submission, mainly to make sure I could do it successfully. In my second competition I waited to submit until I had a model worth submitting and I struggled for several days to get it right with only 5 submissions per day to run tests, while the competition deadline was fast approaching. Since then, I like to get that out of the way as soon as possible. I wasn’t yet ready to submit anything other than single models, so that’s what I did. From then on, every day I’d use my 5 submissions, if for nothing else, to get more data to understand the correlation between my CV and the LB.
+
+On the second day, while continuing to train models, I completed the code for submitting an ensemble, and I submitted my first one. It was a simple mean of the models I had at the time. The following day I realized the submission had failed. I corrected a bug and made another submission right away. It didn’t take long for it to fail. I corrected the problem (a left over from the bug fix tests) and submitted again. A few hours later I realized it had also failed. I fixed another bug and repeated the submission. It was almost the end of the Kaggle day, so I submitted 2 more single models and with that completed my 3rd day of submissions. 
+
+The next morning, I woke up in solid silver medal territory with LB=0.8525. The CV was 0.8589, but given that I hadn’t submitted any ensemble yet, I had no idea how that would translate in the LB. I was a great and encouraging surprise. Little did I know that the PB for that first ensemble, consisting of a simple mean of my first models, was 0.8714; more than enough to win a gold medal. To think that just 3 days before I was ready to move on because essentially those same individual models compared very poorly with the LB. I guess that if a large number of teams make a large number of attempts, it’s likely that some of them will get a good score by chance (aka overfit). Hence, the LB scores may not reflect the quality of a team’s solutions. Only each team can assess what they have. Others can only guess. Persistence pays off, or in my case, curiosity.
+
+The next day I got into gold territory and stayed there through the end. The competition was fierce. Two or three of the teams were always farther away at the top, but the others changed positions frequently. Given that my initial ideas were working well, I parked the other ones. I planned on trying 3 of them in the last days. Yet on the last Thursday I got a “nan” validation score during training. That was big wake-up call. I redirected my efforts to try to understand what had happened. For some reason, the prediction of the last items in the last validation batch was nan. Why the hell was that happening? There was nothing unusual in the input data. My focus changed completely. I realized that my gold medal position could be a mirage. What if the same thing was happening with my previous submissions and my PB score was nan? I spent most of my remaining time and submissions making my code as robust as possible. That seriously hampered my progress but felt like the right thing to do. I can now see that none of my submissions had a PB problem, but I didn’t know that, and I didn’t want to take any chances. I’m pretty happy with the outcome and if placed in the same circumstances, I’d do the same thing.
+
+# solution
+
+The input data was small enough that I could review it in Excel. I noticed that small variations of the same words had an impact on the score. I further noticed that the same anchor and target would sometimes have different scores depending on the context. I compiled a list of ideas for postprocessing and checked how well some of them would work considering the whole data. I knew that applying rules to the whole data was a recipe for disaster, but this was just Excel and I figured that I could use that “knowledge” to build new features and properly test them with an L2 model. But why build hand-made features and use level 2 models when transformers are great at doing that? I decided to use them instead. That lead to my decision to create two types of models: one based on a text prediction and another on a token prediction.
+
+## Encoding for text models
+
+Text models predict a single score for each text, which in this case means one target. I used the following encoding:
+
+```
+anchor [SEP] target [SEP] context [SEP] n_additional_targets
+```
+
+The n_additional_targets are targets for the same anchor and context separated by “;”. I used a random permutation caped at size n: a parameter set mostly to 0 or 20. I further cut the encoding at max_len. Setting n=0 equated to the approach used by public notebooks. I was surprised that several teams used “;” as a target separator. I discarded “.” because the context used it. I didn’t feel it was necessary to add a new token and “;” felt aligned with what happens in a regular text and I expected the transformer to be well equipped to process it. I wonder what the reasoning was for others. My final submissions use both models with 0 additional targets and with 20.
+
+## Encoding for token models
+
+Token models predict multiple targets at once. For each target, I generate an encoding using one of the following methods:
+
+-  1) balanced: the target goes first and is followed by one random permutation of the remaining targets (for the same anchor and context). The permutation is cut at max_len. The reason the target goes first is that in some cases the permutation is cut short and I wanted to ensure that each target would go in at least once.
+
+```
+anchor [SEP] target; permutation_other_targets [SEP] context [SEP]
+```
+
+-  2) full: the target goes first and is followed by multiple random permutations of the remaining targets. The permutations are cut at max_len and are not repeated (implying that, for example, if we have only two additional targets, we only get two permutations). For a brief moment I considered whether I should avoid repeating sequences (this may ring a bell to Santa 2021 participants), but it didn’t seem worth the trouble 😊.
+
+```
+anchor [SEP] target; permutation_other_targets_1;..; permutation_other_targets_n [SEP] context [SEP]
+```
+
+- 3) hybrid: this is similar to full in that it attempts to maximize the usage of the encoding length but does it differently. It works roughly as follows: the sequences “target; permutation_other _targets” are concatenated and used to fill encodings until we have as many encodings as targets. Any part of a permutation that is truncated in one encoding is used for the following encoding.
+
+```
+anchor [SEP] target_a; permutation_other_targets_a_part1 [SEP] context [SEP]
+
+anchor [SEP] permutation_other_targets_a_part2; target_b; permutation_other_targets_b_part1 [SEP] context [SEP]
+```
+
+I kept the number of encodings equal to the number of targets. The intent was to maintain some balance between the targets with large permutations and those with smaller ones. I didn’t want the training to be driven by the former, especially because I didn’t notice any patterns in the residual errors of targets with long permutations versus those with small permutations. I included in the code a factor that would increase that ratio, but I never set it to anything other than 1. I intended to test other values and theorized that a ratio higher than 1 might help at least with the predictions (you get more of them). However, it would also increase the prediction time and I wasn’t sure it would be worthwhile versus using the submission time to ensemble more models. Looking back, I should have tried it at least once, but in the race against the clock (mine and the GPUs) it never felt like a priority.
+
+For the training dataset I tried all 3 options and noticed that 1 and 3 performed much better, so I quickly discarded 2. As for the predictions, I expected that each model would perform better using the same approach as the training dataset, but for some reason balanced seemed to always perform better so I adopted it.
+
+Each encoding provides token predictions for multiple targets. The final prediction for each target is computed by averaging the various predictions of its tokens. I tried 3 different averaging methods:
+
+1. Simple average: just a simple average if all tokens for all predictions
+
+2. Length weighted average: average all tokens for all predictions using the length of the text represented by the token as the weight.
+
+3. Score weighted average: average all tokens for all predictions using the prediction as a weight. Cases of high similarity are less common in the training data, so I wanted to prioritize those predictions. A simple way was to use the prediction as the weight. Before using it, I reviewed the range of predictions for the tokens and noticed that they tended not to vary by much.
+
+![](
+
+The best approach tended to be sometimes 1 and sometimes 3. Approach 2 was consistently worse. Maybe because the presence of short stop words would sometimes have a huge impact on the score. I ended up taking the mean of 1 and 3.
+
+# model architecture
+
+The model architecture for text model consists of a transformer, an optional MLP layer that feeds of the transformer’s last hidden state, and a head. The latter is one of the following:
+
+1. attention head published by [@yasufuminakama](
+2. attention head masked by the target tokens.
+3. attention head masked by the encoding’s attention_mask (ignore padding).
+4. 2 and 3 with equal weight
+5. GlobalAveragePooling
+
+I believe my final submissions used mainly 2, but also 1 and 5. The presence of the MLP layer didn’t seem to make much difference in the score, though it helped a bit with diversity (slightly lower correlation with other models).
+
+![](
+
+The model architecture for token models is roughly the same, except for the head, which doesn’t consolidate the predictions of the tokens. 
+
+I tried a few other variations that didn’t work. For example: adding some hand-made features to the model and feed them to the MLP/head concatenated with the transformers output; use multiple hidden layers of the transformer instead of just the last one.
+
+# ensembling
+
+I tried the following ensembling methods:
+
+- Simple mean. This was the first one I tried - it can’t get easier than that 😊. In other competitions I used median or some combination of mean and median. I never tried it here because it didn’t feel right for a Pearson correlation. After the competition ended, I saw a comment refer to it and I wondered if my intuition had been wrong. It took me about a minute to open an Excel with all my oof predictions and verify that I wasn’t wrong. Considering how long it took to check that, I should have done it earlier rather than count only on my intuition.
+
+- Optuna. This didn’t take long because I already had most of the code from a previous competition. I started with 0 and 1 weights just to select the best combination of models and then moved to discrete intervals of 0.01. The first option performed better than the mean and the second even better.
+
+- Linear regression on full oof data: this was very simple to code and produced the best results. I tried using unrestricted coefficients and only positive ones. The former had a higher CV, but lower LB. The CV difference was small, so I took the conservative approach of using only the latter. At some point my best ensemble was a two layer regression: I split the models into groups defined by their type (text/token) and transformer; I built an ensemble for each group using linear regression and then used the results to ensemble the groups. As started having more diverse models I felt that wouldn’t help and stopped doing it (without actually testing it).
+
+- LGBM: to my surprise this performed markedly worse than linear regression. Possibly with some tunning and some hand-made features that would change, but that didn’t feel like a good use of my time.
+
+- Ridge: I used this mainly to validate the usage of linear regression with the whole data. I was concerned that the usage of the whole data could lead to overfitting and used ridge with multiple folds to try to assess that. I ended up with weights that were similar to those produced by linear regression and resulted in slightly lower CV and LB scores. 
+After the initial tests, all my submissions used linear regression, with one exception that I’ll mention later.
+
+# final thoughts
+
+My two selected solutions were linear regression ensembles of various models combining the approaches previously described. The difference between them is that one excludes the model that generated the nan. I changed the way the predictions were processed to “ensure” the presence of nans would not be an issue, even if all predictions for a target were nans. That model was my best one, so I used it for my first selection, but I didn’t want to run the risk of having missed something and selected another ensemble without it. Both selections use different error processing mechanisms to cover my bases (when I was in college a professor mentioned that in its missions NASA ran simultaneously 3 versions of each program developed by different teams, so who am I to disagree 😊).
+
+An interesting characteristic of my solution is that it’s not deterministic (unless you set seeds during prediction, but I didn’t see the point). In fact, my last 3 submissions (from which I used the same model (with different “error” handling approaches) and scored 0.8607, 0.8508 and 0.8610 on the LB. I should say that this large difference was an exception, and, in fact, they all got the same PB.
+
+My CV was a lot higher than the LB. That was a cause of concern because I didn’t know what was causing that. I first thought it might be because my oof predictions were based on different splits of the data and that might lead to some leakage. To test that I submitted a prediction of models trained on the same split and whose ensemble also used that split (I used ridge for that) and I got the same gap. With the benefit of seeing the PB scores, I now suppose that the gap was the result of an “unlucky” LB sample, because the PB is actually higher than the CV. In spite of the gap, the correlation of the CV and LB was remarkable. In most cases, if cv went up say 2 points (0.0002) the LB would go up the same 2 points. Sometimes that would change. The cause was always the same: a bug in the prediction. At times my score in the LB would stall for 1 to 3 days. That meant I was either writing code or more commonly fixing bugs. Often, I used submissions to test bug fixes instead or spending the GPU quota. It may not seem productive, but I had to conserve that quota and it balanced well with my job’s workload (as engaging as Kaggle is, at the end of the day it’s just a hobby for me). I’m pleased that in all my NLP competitions I managed to select the solution with the highest PB. Some would call it luck but I prefer to think of it as solid cv strategy and good judgement 😊.
+
+I only used Kaggle resources which put a premium on any testing and tuning. Hence, you should take my conclusions with a grain of salt. Although my wish was to use a full training cycle with its various folds to test something, often I used only one fold for one epoch. I wouldn’t be surprised if some of my decisions were flawed.
+
+That’s it. I wished I had tried some other ideas. I felt two of them had great potential, but I’m pretty happy with the results. There’s always a next time.
+

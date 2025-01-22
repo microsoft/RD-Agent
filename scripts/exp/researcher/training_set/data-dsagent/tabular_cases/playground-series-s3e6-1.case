@@ -1,0 +1,12 @@
+# Hello, everybody!
+
+I'd like to believe it wasn't just luck.
+My work here 
+tips:
+1. Using the original data (
+2. CV with n_splits = 5, n_repeats =10.
+3. Applying Permutation Importance for each model separately.
+4. Using three models (CAT, XGB, RF) for the first level and LGBM as a metamodel.
+
+Friends, good luck with the books!
+

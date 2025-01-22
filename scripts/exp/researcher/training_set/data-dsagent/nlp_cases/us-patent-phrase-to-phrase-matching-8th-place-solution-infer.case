@@ -1,0 +1,27 @@
+(1) The overall design of the code is to load pre-trained models and tokenizer, define the dataset and model architecture, perform inference on the test data, and post-process the predictions.
+
+(2) The overall model architecture consists of a pre-trained transformer model (such as Electra-Large-Discriminator, Deberta-V3-Large, or BERT-for-Patents) followed by a linear layer. The input to the model is a sequence of tokens, including the anchor text, target text, and context text. The anchor and target texts are concatenated with special tokens, and the context text is appended at the end. The model outputs a single score for each input sequence.
+
+(3) The important hyperparameters in this code are:
+- `num_workers`: Number of workers for data loading.
+- `path`: Path to the pre-trained model and tokenizer.
+- `config_path`: Path to the model configuration file.
+- `model`: Name of the pre-trained model.
+- `ckpt_name`: Name of the checkpoint file.
+- `batch_size`: Batch size for inference.
+- `target_size`: Size of the target variable.
+- `max_len`: Maximum length of the input sequence.
+- `seed`: Random seed for reproducibility.
+- `n_fold`: Number of folds for cross-validation.
+- `tar_token_id`: Token ID for the target token.
+- `tar_token`: Target token.
+- `trn_fold`: List of folds to use for training.
+- `n_augs`: Number of augmentations for test data.
+
+(4) The optimization objective is to minimize the mean squared error between the predicted scores and the ground truth scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code loads pre-trained transformer models (such as Electra-Large-Discriminator, Deberta-V3-Large, or BERT-for-Patents) and fine-tunes them on the given task of predicting scores for patent phrase matching.
+
+(6) Some important tricks that play a role in high performance are:
+- Data augmentation: The code performs data augmentation by shuffling the order of target phrases within each anchor-context pair.
+- Post-processing: The code applies post-processing techniques to the predictions, such as setting the score to 1.0 for anchor-target pairs that are exactly the same, normalizing the score to 1.0 for anchor-target pairs that have the same normalized form, and fitting the score to specific values near 0.0, 0.25, 0.5, 0.75, and 1.0. These post-processing techniques help improve the correlation between the predicted scores and the ground truth scores.

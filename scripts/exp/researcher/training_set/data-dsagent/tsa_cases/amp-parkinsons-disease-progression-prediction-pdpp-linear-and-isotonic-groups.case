@@ -1,0 +1,22 @@
+(1) The overall design of this code is to predict the progression of Parkinson's disease based on clinical data, peptides, and proteins. It assumes that there are three groups of patients: the control group, the green group, and the orange group. The control group is examined only once a year, while the other two groups are examined more frequently. The model aims to predict the updrs scores for each group based on the visit month and other features.
+
+(2) The overall model architecture consists of the following steps:
+- Reading the data: The code reads the clinical data, peptides, and proteins from CSV files.
+- Preprocessing the training data: The code preprocesses the training data by creating a dataframe with one row per (patient_id, visit_month, pred_month) triple. It also distinguishes the three groups of patients based on their visit months.
+- Defining the model: The code defines a custom model called "IsotonicGroups" which predicts the updrs scores based on the group and pred_month features. It uses linear regression for the ill group and isotonic regression for the healthy group.
+- Cross-validation: The code performs cross-validation to evaluate the performance of the model using the SMAPE metric.
+- Training: The code trains the model on the full training set.
+- Submission: The code generates predictions for the test set and creates a submission file.
+
+(3) The important hyperparameters in this code are not explicitly set in the code. However, there are some hyperparameters that can be adjusted in the optimization functions, such as the bounds for the linear regression coefficients and the optimization method used. These hyperparameters can be modified in the `optimize_smapep1_linear` and `optimize_smapep1_isotonic` functions.
+
+(4) The optimization objective in this code is to minimize the SMAPE (Symmetric Mean Absolute Percentage Error) metric. The code defines a custom scorer object called `smapep1_scorer` which calculates the SMAPE score. The model is trained to minimize this score during cross-validation and optimization.
+
+(5) The advanced machine learning technique used in this code is isotonic regression. Isotonic regression is used to model the relationship between the visit month and the updrs scores for the healthy group. It ensures that the predicted updrs scores are monotonically increasing with the visit month.
+
+(6) Some important tricks that play a role in high performance include:
+- Distinguishing the control group from the real patients based on their first non-zero visit month.
+- Using isotonic regression for the healthy group to capture the monotonic relationship between visit month and updrs scores.
+- Optimizing the linear regression coefficients for the ill group to minimize the SMAPE score.
+- Performing cross-validation to evaluate the model's performance and tune hyperparameters.
+- Using the SMAPE metric as the optimization objective to account for the nonlinearity of the problem.

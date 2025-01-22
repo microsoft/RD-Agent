@@ -1,0 +1,39 @@
+We are really glad to reach top 10 in our first Kaggle Competition. (We did invest countless hours in this project)
+
+One thing to know about our team is that we are all Supply Chain professionals first, data scientists second. We used a lot of domain knowledge to crack the problem, and many of the techniques we've used were recycled from things we do on a daily basis at Lokad (where we all work or used to work). 
+
+**Summary**
+
+Our solution is a multi-stage state-space model, states being active or inactive. 
+(A good reference here: 
+
+Our predictions were generated through Monte Carlo simulation at level 12, we considered demand at different stores to be independent so we aggregated demand trajectories from level 12 up to level 10. Levels 1 to 9 time-series were handled individually with simple innovation state space models.  We modeled emission with a Negative Binomial distribution to represent the fact that demand is discrete. 
+
+Seasonality factors were carefully hand-crafted and events were modeled with simple linear coefficients. (Calculated at store department level)
+
+**Good properties**
+
+1. Our solution is fully explainable, (white-box approach) - so we can easily describe each forecast in case we are challenged. 
+
+2. It is linearly scalable, you can give us the whole WalMart dataset and it will still run without a problem (of course we would need some extra cpu =). (And we could still get a factor 10x by moving some core parts of the code to a compiled language).
+
+3. It clearly differentiates demand from sales, (how much it would sell if we were never stock-out)
+
+4. It can output full demand distributions for horizons, example: how much will it sell next week ? Note that this is different from how much will sell day by day.
+
+5. It can be used for training agent-based models (used for our MEIO solutions)   
+
+**Not so good properties**
+
+1. Time consuming. Adding new categories would require additional human analysis.
+
+2. Does not account for pricing effects (could not properly model it with the given dataset)
+
+3. Does not forecast new SKU. (We would require a separate solution for this case)
+
+**Conclusion**
+
+We do believe that tailored statical models were a good fit to the problem at hand. We had a fairly stable score accross the years and periods and above all full control of the solution.
+
+
+

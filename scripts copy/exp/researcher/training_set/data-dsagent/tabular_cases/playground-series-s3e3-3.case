@@ -1,0 +1,39 @@
+I wanted to share a technique I've been working on.  It's something that can be used for this episode, and every episode really, especially if the *CV <-> LB score is unreliable*   Note that 20% leaderboards such as we're getting in the playgrounds can suffer from this.
+
+The idea is to use predicted labels to reverse score back onto train as a way to measure the fitness of your model.
+
+I tried with novoenzymes here and have encountered some success (warning, long thread) - 
+
+I also tried with the last playground, and found some success.  I got perfect spearman / rank correlation between the scores on train versus the scores on the private LB for a number of subs I pulled from the public notebooks.   
+
+But critically, when I scored the winning sub I got roc auc of "0.9023200244502575" on train, which was more than all the other subs I tried.   As folks may already know, that sub only scored "0.87945" on the public LB.
+
+Here's the code if you'd like to try it yourself - 
+
+```python
+test = pd.read_csv("/kaggle/input/playground-series-s3e2/test.csv")
+train = pd.read_csv("/kaggle/input/playground-series-s3e2/train.csv")
+sub =pd.read_csv("/kaggle/input/winpg1/submisson_16.csv") #<- Winning sub
+traind = pd.get_dummies(train)
+test['stroke'] = sub['stroke']
+import xgboost
+testd = pd.get_dummies(test)
+model = xgboost.XGBRegressor()
+X = testd.drop(["id", 'stroke'], axis=1)
+model.fit(X, testd['stroke'])
+import sklearn.metrics
+sklearn.metrics.roc_auc_score(traind['stroke'], model.predict(traind.drop(["id", "stroke"], axis=1)))
+0.9023200244502575
+```
+I've attached a copy of the winning sub to this post.
+
+This is something I suspect that could be used broadly across all kaggle contests when selecting final submission candidates, and in fact could be used as a way to measure overfitting / fitness itself in perhaps any situation (well, with some tuning of course :)
+
+In code competitions, the idea there might be to use oof labels predicting against in fold labels and cross validating your score that way.
+
+As I have time, I'm going to go back over some competitions that suffered shakeup and see if this could have been used.  My guess is that it may be somewhat reliant on relatively good scores in accuracy.  Ie, without accuracy the results might be more noisy and less useful.
+
+It'd be interesting to see if something like this could also be used for training, eg selecting epochs / forward feature selection / hill climbing based on not just validation loss but also some kind of semi supervised learning coherence.
+
+To be clear, I'm not suggesting here to use pseudo labels for training.  That works for certain things, but also frequently leads to overfitting.  You still need an underlying set of models that are compelling.
+

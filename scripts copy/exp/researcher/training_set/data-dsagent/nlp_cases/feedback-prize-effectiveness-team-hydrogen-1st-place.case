@@ -1,0 +1,18 @@
+(1) The overall design of the code is to train multiple models using different architectures and techniques, and then combine their predictions using weighted averaging to obtain the final prediction.
+
+(2) The overall model architecture consists of multiple models, including FeedbackModel and ModelYauhen. FeedbackModel uses the DeBERTa-Large backbone and applies different pooling techniques (such as All [CLS] token pooling and GeM pooling) to extract features from the input text. These features are then passed through a linear layer to obtain the final logits. ModelYauhen also uses the DeBERTa-Large backbone and applies word-level pooling to extract features from the input text. These features are then passed through a linear layer to obtain the final logits.
+
+(3) The important hyper-parameters in this code are set in the configuration files (cfg.yaml) for each model. These hyper-parameters include the backbone architecture, whether to use lowercase text, the text column in the dataset, the cache directory for the backbone model, the path to the model checkpoint, and whether to add wide dropout or types to the model.
+
+(4) The optimization objective is to minimize the cross-entropy loss between the predicted probabilities and the true labels. This is achieved by training the models using gradient descent and backpropagation.
+
+(5) The advanced machine learning technique used in this code is the use of pre-trained transformer models (DeBERTa-Large) for text classification tasks. These models have been trained on large amounts of text data and can capture complex patterns and relationships in the text.
+
+(6) Some important tricks that play a role in high performance include:
+- Using different pooling techniques (such as All [CLS] token pooling and GeM pooling) to extract features from the input text.
+- Applying word-level pooling to extract features from the input text.
+- Using weighted averaging to combine the predictions of multiple models.
+- Scaling the predicted probabilities to ensure that they sum to 1 and align with the label means.
+- Using pre-trained transformer models (DeBERTa-Large) for text classification tasks, which have been shown to perform well on various natural language processing tasks.
+- Using different data augmentation techniques, such as adding types or wide dropout, to improve the generalization ability of the models.
+- Using ensemble methods to combine the predictions of multiple models and reduce the variance of the final prediction.

@@ -1,0 +1,18 @@
+(1) The overall design of the code is to generate a high-performing solution for a Kaggle competition. It involves reading in multiple CSV files, manipulating the data, and generating predictions for the competition.
+
+(2) The overall model architecture is not explicitly mentioned in the code. However, based on the code, it appears that the model is using a combination of ensemble methods, such as gradient boosting (LightGBM) and deep learning (Keras), to make predictions. The code reads in multiple CSV files containing predictions from different models and combines them using weighted exponential moving average. The final predictions are then adjusted using quantile coefficients based on different aggregation levels (e.g., item_id, dept_id, cat_id, store_id, state_id, etc.). The adjusted predictions are then used to generate the final submission file.
+
+(3) The important hyper-parameters in this code are the coefficients used for calculating the quantile ratios. These coefficients are set manually in the code and control the range of the quantiles. The code provides different functions (`get_ratios`, `get_ratios2`, `get_ratios3`) to calculate the quantile ratios based on different distributions (e.g., normal, skew-normal, power-log-normal). The coefficients for each aggregation level are stored in the `level_coef_dict` dictionary.
+
+(4) The optimization objective of this code is to generate accurate point predictions and quantile predictions for the Kaggle competition. The code aims to minimize the difference between the predicted values and the actual values in the training data.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The code combines predictions from multiple models (LightGBM, Keras) using weighted exponential moving average. This ensemble approach helps to improve the overall performance and robustness of the predictions.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Using ensemble methods to combine predictions from multiple models.
+- Adjusting the predictions using quantile coefficients based on different aggregation levels.
+- Applying exponential moving average to smooth the predictions.
+- Handling different quantile ranges for different aggregation levels.
+- Adjusting the predictions for specific quantiles (e.g., median) to improve accuracy.
+- Manipulating the data to handle different time periods and aggregation levels.
+- Using a combination of different distributions (e.g., normal, skew-normal, power-log-normal) to calculate the quantile ratios.

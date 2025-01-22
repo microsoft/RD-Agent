@@ -1,0 +1,176 @@
+First of all, we would like to thank the competition organizers and the Kaggle platform for hosting such an exciting competition. And I also want to give thanks to my teammates. Without them, I would have given up a week ago and couldn't have leveraged my idea efficiently.
+
+I learned a lot from this competition and acquired some general knowledge that can be applied to other NLP tasks.
+
+We ended up with 8th place (both on public/private LB) and I'd like to summarize our solution and share some trials that didn’t work for us.
+
+The inference notebook is available [here](
+
+# Overview
+
+We used 6 models trained with BCELoss and just averaged with different weights as the ensemble.
+![overview](
+
+# Model
+
+## Token Classification Model
+
+![token_classification_model](
+
+This competition aims for estimating the semantic similarity between specific word pair (anchor and target) under specific context. There are multiple targets to compare with specific anchor.
+
+So, we assumed that we could use three kinds of information to predict the similarity.
+
+They are
+
+1. semantic relativity between anchor and target
+
+2. semantic relativity between word pair and context
+
+3. semantic relativity between targets that are supposed to be compared with same anchor and specific target
+
+We wrack our brains over and defined the input as below and fed it to the model.
+
+![anchorwise_input](
+
+[TAR] is a special token that we added for letting model recognize the positions of each target tokens.
+
+This approach made a huge improvement on the score and made train/inference time shorter because the model can infer multiple anchor-target pairs at once.
+
+Public LB: 0.8380（out of medal zone） -> 0.8535(silver medal zone)
+
+Private LB: 0.8526（out of medal zone）  -> 0.8656(silver medal zone)
+
+EDIT: 
+I published a notebook for training a token classification model.
+
+
+## Text Classification Model
+
+![text_classification_model](
+
+We also trained models as a text classification task. Probably most of the competitors took this approach, but we added a little trick. We used only attention output corresponding to the CLS token. In our experiment, this made the model learn faster and improved the score. Although this model performs lower cv than the token classification model, it contributes the ensembling performance.
+
+# Train
+
+## CV Strategy
+
+We used StratifiedGroupKFold(n_folds=4) and made train data stratified by score, grouped by anchor.
+
+## Target Shuffle Augmentation
+
+We defined anchor-wise input that have multiple targets, so we augmented data by shuffling targets every sample. This can prevent the model from memorizing the train samples themselves.
+
+![target_shuffle_aug](
+
+## AWP(Adversarial Weight Perturbation)
+
+This adversarial training method boosted our CV score. We modified the code of AWP made by @currypurin.
+
+The hyper parameters are very important. The primary hyper parameter is `adv_lr`.  In past competitions, winners often adjusted `adv_eps`. However, after reading the original paper carefully, we concluded that `adv_lr` is more important.
+
+In our understanding, `adv_eps` and `adv_lr` can be illustrated as the following figure. (However, we've had some experiences that are a little different from the expected behavior, so there may be a mistake somewhere.)
+
+AWP improved score about 0.005 in the text classification models and about 0.01 in the token classification models.
+
+![awp](
+
+## Hyper Parameters Tuning
+
+The combination with small batch_size (like `2`) and medium lr (like `1e-5`) performs the best local CV in token classification model. The important combination of parameters was thoroughly explored as following figure.
+
+This (almost) comprehensive hyper parameter tuning improved score about 0.002.
+
+![hyper_param_tuning1](
+
+![hyper_param_tuning2](
+
+# Inference
+
+## TTA(Test Time Augmentation)
+
+We further improved the score with TTA. We shuffled the target positions for two times per anchor, just as we did during the training, and took mean value of the two predictions.
+Finally this led us to the gold medal zone; 8th place.
+
+0.8535(silver medal zone) -> 0.8555(gold medal zone)
+
+Note: 
+The scores shown above are accomplished by just a single deberta v3 large model.
+
+## Ensemble with Constrained Least Squares Method
+
+At the end, we created about 20 trained models. This means we had to optimize the weights for the averaging ensemble. The problem was that we must search for the best weights in almost no time (in fact, we had just about 15 hours left for the deadline when we finally obtained the whole trained models ). Taking this problem into account, we used constrained least squares method. 
+
+1.Suppose you want to find the best weights from the following data: y are labels, X are oofs.
+```
+y = np.array([0.5, 0.75, 0.25, 1.0, 0.5])
+X = np.array([
+[0.52, 0.9, 0.41, 0.99, 0.51],
+[0.52, 0.7, 0.41, 0.99, 0.51],
+[0.48, 0.73, 0.12, 0.97, 0.47],
+[0.45, 0.35, 0.25, 0.9, 0.49],
+])
+```
+
+2.First, let's simply look at the MSE for each row of X.
+```
+np.square(X - y).mean(axis=1)
+#=> array([0.00974, 0.00574, 0.0039 , 0.03452])
+np.square(X - y).mean(axis=0).mean(axis=0)
+#=> 0.013475
+```
+
+3.Then, compute the coefficients with linear regression.
+```
+from sklearn.linear_model import LinearRegression
+reg = LinearRegression().fit(X.T, y)
+reg.coef_
+#=> array([ 0.43575566, -0.05397578,  0.46076883,  0.21063718])
+X.T @ reg.coef_
+#=> array([0.51448131, 0.76448131, 0.26448131, 1.01448131, 0.51448131])
+np.square(X.T @ reg.coef_ - y).mean(axis=0)
+#=> 0.00020970822203200185
+```
+Voila! Unfortunately, some coefficients can have negative values with the vanilla linear regression. Instead, we use the least-squares method with non-negative value constraints.
+
+4.Fortunately, scipy seems to have a solver for that. Let's find the weights as soon as possible.
+```
+weights, rnorm = scipy.optimize.nnls(X.T, y)
+weights
+# => array([0.29260857, 0.08404164, 0.52487508, 0.12761238])
+X.T @ weights
+# => array([0.50522372, 0.75      , 0.24931469, 0.99686367, 0.50131296])
+np.square(X.T @ weights - y).mean(axis=0)
+# => 7.863453999510499e-06
+```
+
+This method enabled us to easily find the optimal combined weights for ensembling, just within a minute!
+
+# What didn’t work well
+
+- increasing the number of TTA
+- adding multi sampled dropout layer
+- Custom Losses
+- optimizing Pearson Loss
+- optimizing MSE loss (although stable)
+- mixed above
+- MLM for patent texts (the size was about 4 million)
+- augmenting data
+- back translation(Japanese, Korean, Chinese, French, German, Spanish)
+- position swapping of anchor and target
+- adding special tokens that denote each context
+- pseudo labeling for the training data
+- increasing n_folds (It worked a little but too computational)
+- other pretrained models
+- AI-Growth-Lab/PatentSBERTa
+- microsoft/deberta-v2-xlarge
+- microsoft/deberta-v2-xxlarge
+
+—
+
+This post is written by all the members of my team. 
+
+@masakiaota @taromasuda @skraiii @hotchpotch 
+
+![team_n](
+

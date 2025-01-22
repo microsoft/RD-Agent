@@ -1,0 +1,166 @@
+## 2nd place solution
+
+
+First of all, thanks to the host for an interesting competition and congratulations to all the winners!
+
+## Summary
+- We designed separate models for tDCS FOG and DeFog.
+- Both tDCS FOG and DeFog were trained using GRUs.
+- Each Id was split into sequences of a specified length. During training, we used a shorter length (e.g., 1000 for tdcsfog, 5000 for defog), but for inference, a longer length (e.g., 5000 for tdcsfog, 30000 for defog) was applied. This emerged as the most crucial factor in this competition.
+- For the DeFog model, we utilized the ‘notype’ data for training with pseudo-labels, significantly improving the scores; by leveraging the Event column, robust pseudo-labels could be created.
+- Although CV and the public score were generally correlated, they became uncorrelated as the public score increased. Additionally, the CV was quite variable and occasionally surprisingly high. Therefore, we employed the public score for model selection, while CV guided the sequence length.
+
+## tDCS FOG
+- Features
+- Three provided accelerations
+- Feature engineering performed on each acceleration involved:
+- Difference between prior and subsequent accelerations
+- Cumulative sum of acceleration
+
+- Standardization
+- Used RobustScaler
+- Each Id was standardized individually
+
+- Sequence Creation Method:
+- Training
+- Sequence length: 1000
+- Sequences were created by shifting 500 steps from the starting position.
+
+- Inference
+- Sequence length: 3000 or 5000 (3000 if data size was less than 5000, 5000 otherwise)
+- Sequences were created by shifting 1500 or 2500 steps from the starting position.
+- During prediction, the sequence section from 750/1250 to 2250/3750 was utilized.
+- The initial segment spanned from 0 to 2250/3750, while the final segment used from 750/1250 to the end of the sequence. 
+
+- Models
+- For each target, we ensembled four models.
+- The following settings were common to each model
+- Model : GRU
+- Cross validation method : StratifiedGroupKFold
+- group : Subject
+- Loss : BCEWithLogitsLoss
+- Optimizer : AdamW
+- Scheduler : get_linear_schedule_with_warmup
+- (Although not verified in detail) get_linear_schedule_with_warmup seemd to work better in CV than get_cosine_schedule_with_warmup.
+- Sequence length
+- Train : 1000
+- Inference : 3000 / 5000
+- Training the model with a longer sequence did not improve CV or public score. However, training with a short sequence and performing inference with a long sequence significantly improved both CV and public score. 
+- Model1
+- This model trained with equal loss for each target.
+- CV
+- Sequence length 3000 / 5000 : 0.493 </br>
+(Sequence length 1000 : 0.438)
+- Ensemble weight : 0.2
+
+- Model2
+- The loss weight of one target was set to 0.6, and the remaining targets were set at 0.4.
+- The following three patterns
+- StartHesitation : 0.6 , Turn & Walking : 0.4
+- Turn : 0.6 , StartHesitation & Walking : 0.4
+- Walking : 0.6 , StartHesitation & Turn : 0.4
+- The model was saved at the epoch where the target with the weight set to 0.6 had the best score.
+- Only the predictions with the loss weight set to 0.6 were used in the test predictions.
+- CV
+- Sequence length 3000 / 5000 : 0.520
+- Ensemble weight : 0.4
+
+- Model3 & 4
+- The loss weight for two targets was set to 0.8, and the remaining target was set at 0.2.
+- The following three patterns
+- StartHesitation & Turn : 0.8 , Walking : 0.2
+- StartHesitation & Walking : 0.8 , Turn : 0.2
+- Turn & Walking : 0.8 , StartHesitation : 0.2
+-  The model was saved at the epoch where the two targets with the weight set to 0.8 had the best score.
+- Only the predictions with a loss weight set to 0.8 were used in the test predictions.
+- CV 
+- Sequence length 3000 / 5000 : 0.536
+- Ensemble weight : 0.4
+
+- ensemble
+- CV
+- Sequence length 3000 / 5000 : 0.537
+
+## DeFog
+- Features
+- Three provided accelerations
+- Feature engineering performed for each acceleration included
+- Difference between prior and subsequent accelerations
+
+- Standardization
+- Used StandardScaler
+- Each Id was standardized individually
+
+- Sequence Creation Method:
+- Training
+- Sequence length: 5000
+- Sequences were created by shifting 2500 steps from the starting position.
+
+- Inference
+- Sequence length: 15000 or 30000 (15000 if data size was less than 200000, 30000 otherwise)
+- Sequences were created by shifting 7500 or 15000 steps from the starting position.
+- During prediction, the sequence section from 3750/7500 to 11250/22500 was utilized.
+- The initial segment spanned from 0 to 11250/22500, while the final segment used from 3750/7500 to the end of the sequence.
+
+- Models
+- We ensembled five models 
+- The following settings are common to each model
+- Model : GRU
+- Cross validation method : StratifiedGroupKFold
+- group : Subject
+- Optimizer : AdamW
+- Loss : BCEWithLogitsLoss
+- Scheduler : get_linear_schedule_with_warmup
+- Sequence length
+- Train : 5000
+- Inference : 15000 / 30000
+- The loss weights for each target were uniform
+- Only instances where both 'Valid' and 'Task' were true were considered for loss calculation.
+
+- model1
+- CV
+- Sequence length 15000 / 30000 : 0.279
+- Ensemble weight : 0.35
+
+- model2
+- Utilized the first round of pseudo-labeling
+- Applied hard labels, with the label set to 1 only if the data value of the 'Event' was 1, otherwise it was set to 0
+- The label was determined based on the highest predictive value among the three target predictions
+- Inference results from sequences of length 15000 from model1 were used
+- The application of pseudo-labeling significantly improved both public and private scores
+- CV
+- Sequence length 15000 / 30000 : 0.306
+- Ensemble weight : 0.25
+
+- model3
+- Utilized the second round of pseudo-labeling
+- CV
+- Sequence length 15000 & 30000 : 0.313
+- Ensemble weight : 0.25
+
+- model4
+- Increased the hidden size of the GRU
+- Utilized the first round of pseudo-labeling
+- CV
+- Sequence length 15000 & 30000 : 0.3393
+- Ensemble weight : 0.10
+
+- model5
+- Trained with all data
+- Utilized pseudo-labeling
+- Ensemble weight : 0.05
+
+- ensemble(excluding model5)
+- Sequence length 15000 & 30000 : 0.33706
+
+## tDCS FOG & DeFog
+- CV : 0.548
+- Public Score : 0.530
+- Private Score : 0.450
+
+## Inference notebook
+
+
+## Code
+
+

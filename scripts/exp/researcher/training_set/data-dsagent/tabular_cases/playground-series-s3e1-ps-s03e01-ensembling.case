@@ -1,0 +1,46 @@
+(1) The overall design of this code is to solve a Kaggle competition problem related to predicting the median house value for California districts. The code performs various data preprocessing steps, including data loading, exploratory data analysis, feature engineering, and model training. Finally, it generates a submission file with the predicted house values.
+
+(2) The overall model architecture consists of three different regression models: XGBoost, LightGBM, and CatBoost. Each model is trained using 10-fold cross-validation. The features used for training include 'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Latitude', 'Longitude', 'rot_15_x', 'rot_15_y', 'rot_30_x', 'rot_30_y', 'rot_45_x', and 'rot_45_y'. The models are trained using different hyperparameters, and the predictions from each model are combined using weighted averaging.
+
+(3) The important hyperparameters in this code are set as follows:
+- XGBoost:
+  - n_estimators: 20000
+  - max_depth: 9
+  - learning_rate: 0.01
+  - colsample_bytree: 0.66
+  - subsample: 0.9
+  - min_child_weight: 22
+  - reg_lambda: 16
+  - tree_method: 'gpu_hist'
+- LightGBM:
+  - learning_rate: 0.01
+  - max_depth: 9
+  - num_leaves: 90
+  - colsample_bytree: 0.8
+  - subsample: 0.9
+  - subsample_freq: 5
+  - min_child_samples: 36
+  - reg_lambda: 28
+  - n_estimators: 20000
+- CatBoost:
+  - iterations: 20000
+  - depth: 9
+  - learning_rate: 0.01
+  - rsm: 0.88
+  - subsample: 0.795
+  - min_data_in_leaf: 35
+  - l2_leaf_reg: 8
+  - random_strength: 0.63
+  - bootstrap_type: 'Bernoulli'
+  - grow_policy: 'SymmetricTree'
+
+(4) The optimization objective of this code is to minimize the Root Mean Squared Error (RMSE) between the predicted median house values and the actual median house values.
+
+(5) The advanced machine learning techniques used in this code are ensemble learning and stacking. The code trains multiple regression models (XGBoost, LightGBM, and CatBoost) and combines their predictions using weighted averaging to improve the overall performance.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+- Feature engineering: The code creates new features by rotating the coordinates (latitude and longitude) to provide more spatial information.
+- Cross-validation: The code uses 10-fold cross-validation to evaluate the performance of the models and prevent overfitting.
+- Model stacking: The code combines the predictions from multiple regression models using weighted averaging to improve the overall prediction accuracy.
+- Hyperparameter tuning: The code tunes the hyperparameters of each model to find the best combination for achieving high performance.
+- Feature importance analysis: The code analyzes the feature importance of each model to understand the contribution of different features in predicting the median house values.

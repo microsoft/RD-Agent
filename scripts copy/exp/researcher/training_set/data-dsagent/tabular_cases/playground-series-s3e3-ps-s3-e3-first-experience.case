@@ -1,0 +1,59 @@
+(1) The overall design of this code is to train multiple machine learning models using different algorithms and combine their predictions to make the final prediction. The code starts by importing the necessary libraries and loading the training, test, and submission data. It then performs some data preprocessing steps, such as removing outliers, formatting the original dataset, concatenating the train and original datasets, and encoding categorical features. After preprocessing, the code splits the data into features and target variables. It then scales the features using StandardScaler. Next, the code trains multiple models, including CatBoostRegressor, CatBoostClassifier, XGBRegressor, XGBClassifier, LGBMRegressor, LassoCV, and RidgeCV. Finally, it combines the predictions from these models using weighted averaging and saves the final prediction in a submission file.
+
+(2) The overall model architecture of this code is an ensemble of multiple machine learning models. The code trains several models using different algorithms, including CatBoost, XGBoost, LightGBM, LassoCV, and RidgeCV. Each model is trained on the same set of features and target variable. The models are trained using cross-validation, where the data is split into multiple folds and the models are trained on different combinations of these folds. The predictions from each model are then combined using weighted averaging to make the final prediction.
+
+(3) The important hyperparameters in this code are set as follows:
+- For CatBoostRegressor and CatBoostClassifier:
+    - iterations: 15000
+    - early_stopping_rounds: 1000
+    - eval_metric: 'RMSE' for CatBoostRegressor and 'AUC' for CatBoostClassifier
+    - depth: 3
+    - learning_rate: 0.01
+    - rsm: 0.5
+    - subsample: 0.931
+    - l2_leaf_reg: 69
+    - min_data_in_leaf: 20
+    - random_strength: 0.175
+- For XGBRegressor and XGBClassifier:
+    - n_estimators: 1000
+    - learning_rate: 0.01
+    - max_depth: 9
+    - colsample_bytree: 0.9
+    - subsample: 1
+    - reg_lambda: 20
+    - eval_metric: 'rmse' for XGBRegressor and 'auc' for XGBClassifier
+    - early_stopping_rounds: 200
+- For LGBMRegressor and LGBMClassifier:
+    - learning_rate: 0.01
+    - max_depth: 9
+    - num_leaves: 90
+    - colsample_bytree: 0.8
+    - subsample: 0.9
+    - subsample_freq: 5
+    - min_child_samples: 36
+    - reg_lambda: 28
+    - n_estimators: 20000
+    - metric: 'rmse'
+- For LassoCV:
+    - precompute: "auto"
+    - fit_intercept: True
+    - normalize: False
+    - max_iter: 1000
+    - verbose: False
+    - eps: 1e-04
+    - cv: 5
+    - n_alphas: 1000
+    - n_jobs: 8
+- For RidgeCV:
+    - alphas: np.linspace(0.0001, 100, 1000)
+
+(4) The optimization objective of this code is to maximize the ROC AUC score. The objective function used in the optimization process is defined as `coef_objective(trial)`, which takes a set of hyperparameters as input and returns the ROC AUC score based on the weighted averaging of the predictions from different models.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The code trains multiple machine learning models using different algorithms and combines their predictions to make the final prediction. This ensemble of models helps to improve the overall performance and generalization of the model.
+
+(6) Some important tricks that play an important role in achieving high performance in this code include:
+- Data preprocessing: The code performs various data preprocessing steps, such as removing outliers, formatting the original dataset, concatenating datasets, encoding categorical features, and adding new features. These preprocessing steps help to improve the quality and relevance of the data for training the models.
+- Feature scaling: The code uses StandardScaler to scale the features before training the models. Scaling the features helps to normalize the data and improve the convergence and performance of the models.
+- Cross-validation: The code uses cross-validation to train the models. Cross-validation helps to evaluate the performance of the models on different subsets of the data and provides a more reliable estimate of the model's performance.
+- Model selection: The code trains multiple models using different algorithms. This helps to capture different patterns and relationships in the data and improve the overall performance of the ensemble.
+- Weighted averaging: The code combines the predictions from different models using weighted averaging. This allows the models with higher performance to have a greater influence on the final prediction, improving the overall accuracy and robustness of the model.

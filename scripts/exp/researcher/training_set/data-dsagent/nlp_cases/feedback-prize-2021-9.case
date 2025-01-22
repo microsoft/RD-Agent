@@ -1,0 +1,70 @@
+My solution is an simple ensemble of bert models. 
+I have tried to use recall of different models to do l2 rerank using lgb, but failed to make it work, sad story:(. So no stacking here, just simple ensemble of level 1 bert models with optimized post process(search by optuna).
+- Best single model is **deberta-v3-large**!
+deberta-v3-large is the king for both feedback-prize and nbme maybe😉
+deberta-v3-large + maxlen 1536 single model(train on all 15k) could get **LB 705, PB 718**
+the submission run is about 34min , I late submit test 5 folds of this model, score is **LB 708, PB 723**
+Longformer maxlen 1536 with the same model structure could only get **LB 690, PB 705**
+- Longformers(maxlen >= 1024) could improve but shortformers(maxlen == 512) can help a lot!
+We could get **Lb 705, PB 717** using just two seperately train 512 length models.
+deberta-v1-xlarge first 512 + deberta-v1-xlarge last 512   
+We could get **LB 712, PB 723** with 10 shortformers only ensemble.
+list(zip(range(len(model_dirs)), model_dirs, mns, weights)): 
+[(0, '../input/feedback-model0', 'base.deberta-v3.start', 1),
+(1, '../input/feedback-model1', 'base.deberta-v3.end', 1),
+(2, '../input/feedback-model2', 'base.deberta-v3.se', 1),
+(3, '../input/feedback-model3', 'large.deberta-v2-xlarge.start', 1),
+(4, '../input/feedback-model4', 'large.deberta-v2-xlarge.se2', 1),
+(5, '../input/feedback-model5', 'base.deberta.start', 1),
+(6, '../input/feedback-model6', 'base.deberta.mid', 1),
+(7, '../input/feedback-model7', 'base.electra.start', 1),
+(8, '../input/feedback-model8', 'large.deberta-v3.start.mui-end-mid', 2),
+(9, '../input/feedback-model9', 'large.electra.start.mui-end-mid', 2)]
+len(model_dirs): 10
+- What improved single model performance?   
+Be sure **not to remove '\n'**, super important feature, I change '\n' to new word  '[BR]' , to make sure all models(like tokenizer of roberta) can handle it correctly.
+**Word level LSTM on top of bert** help a lot!  (using torch scatter_add, LB +2K, PB +3K)    
+I used multi obj model,  **token classfication**(8 class) + **seperator classification**(binary)  
+Lovasz loss help a bit  (LB 4K, but no gain on PB)
+-  Post process  
+How to split is important, I found below rules help a lot !  But it could not beat LGB:)
+![image.png](
+- Ensemble 
+Use per word prob mean of different models, model weight is choosen from 1-10 with optuna.  
+Backbones: deberta-v3-large, deberta-xlarge, deberta-large, longformer-large, bart-large, roberta-larege. (funnel-transformer-large help a bit on PB , but no gain on LB I did not choose it)
+Best model is online **LB 716, PB 729**,  **local CV 724**(about **721** without fancy parameter search) 
+16 models running 5hour 20min, model names without len. means 512 length models, start means from position 0, end means from the end(last position), se means like first 256 + end 256, mid means from middle position, seq_encoder-0 means not using word level LSTM.
+[(10, 'deberta-v3.start.nwemb-0.mark_end-0'),
+(10, 'deberta-v3.start.len1024.stride-256.seq_encoder-0'),
+(10, 'deberta-v3.se2'),
+(10, 'deberta-v3.se'),
+(10, 'deberta-v3.end.len1024.seq_encoder-0'),
+(9, 'roberta.start.nwemb-0'),
+(9, 'deberta-xlarge.start'),
+(9, 'deberta-xlarge.end'),
+(9, 'bart.start.run2'),
+(8, 'deberta.start'),
+(8, 'deberta-v3.start.len1024.rnn_bi'),
+(8, 'deberta-v3.mid.len1024'),
+(7, 'deberta-v3.start.stride-256.seq_encoder-0'),
+(7, 'deberta-v3.start.len1536'),
+(6, 'longformer.start.len1536'),
+(6, 'deberta-v3.start.len1024.stride-256')]
+![image.png](
+![image.png](
+![image.png](
+![image.png](
+![image.png](
+![image.png](
+- Thanks @nbroad . I used two of your notebooks.
+
+
+corrected train.csv help improve LB and PB around 0.001.
+fast tokenizer of deberta-v3 is a key for best single model.
+
+My code has open sourced here:
+infering: 
+
+training:
+
+

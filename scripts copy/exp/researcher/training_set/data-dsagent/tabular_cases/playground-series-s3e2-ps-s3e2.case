@@ -1,0 +1,26 @@
+(1) The overall design of this code is to train multiple machine learning models on a dataset for a kaggle competition. It uses three original datasets, but only includes data with stroke = 1. It applies data preprocessing techniques such as scaling and encoding to prepare the data. It then trains three different models (LGBMClassifier, CatBoostClassifier, and RandomForestClassifier) using RepeatedKFold cross-validation. Finally, it combines the predictions of these models using an ensemble technique and generates a submission file.
+
+(2) The overall model architecture consists of three different machine learning models: LGBMClassifier, CatBoostClassifier, and RandomForestClassifier. These models are trained using the training data and evaluated using cross-validation. The predictions of these models are then combined using an ensemble technique to generate the final predictions for the test data.
+
+(3) The important hyper-parameters in this code are as follows:
+- `random`: The random seed used for reproducibility.
+- `load_original`: A boolean flag indicating whether to load external data or not.
+- `only_positive`: A boolean flag indicating whether to include only positive stroke cases or not.
+- `folds`: The number of folds to use in cross-validation.
+- `n_estimators`: The number of estimators (trees) to use in the LGBMClassifier and RandomForestClassifier models.
+- `iterations`: The number of iterations to use in the CatBoostClassifier model.
+- `min_samples_leaf`: The minimum number of samples required to be at a leaf node in the RandomForestClassifier model.
+- `max_depth`: The maximum depth of the tree in the RandomForestClassifier model.
+- `max_samples`: The maximum number of samples to use in the RandomForestClassifier model.
+- `class_weight`: The class weights to use in the RandomForestClassifier model.
+
+(4) The optimization objective of this code is to maximize the area under the ROC curve (ROC AUC) for the predictions of the machine learning models. This is measured using the roc_auc_score metric.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The predictions of multiple machine learning models (LGBMClassifier, CatBoostClassifier, and RandomForestClassifier) are combined using an ensemble technique to improve the overall performance.
+
+(6) Some important tricks that play a role in high performance in this code include:
+- Using three original datasets to increase the amount of training data.
+- Applying data preprocessing techniques such as scaling and encoding to handle different types of features.
+- Using RepeatedKFold cross-validation to evaluate the models and reduce overfitting.
+- Tuning the hyperparameters of the models to optimize performance.
+- Using ensemble learning to combine the predictions of multiple models and improve performance.

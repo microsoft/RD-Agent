@@ -1,0 +1,73 @@
+## **Edit**
+Finally our joint paper (with  my colleague [Costas Voglis]( is published by [IJF]( Preprint can be downloaded [here](
+
+
+## **Thanks**
+I would like to thank the organizers for putting out such an exceptional competition on this scale. I also need to mention that my involvement in the M5 competition was both tasked and sponsored by my employer (Nodalpoint Systems, Athens, Greece). Due to other engagements, including a [3rd prize in the SpaceNet 6 challenge]( hosted at Topcoder (team SatShipAI), I was able to get involved in both M5 tracks (Accuracy &amp; Uncertainly) no sooner that the beginning of May, i.e. more than 2 months after the competitions had started.
+
+## **Background**
+Together with my colleague [Costas Voglis]( we formed a team (Nodalpoints) for the Accuracy track of M5, ending up in the [21st position]( For several reasons, we preferred to participate in the Uncertainty track separately, having first [confirmed]( that this was indeed not a violation of the competition terms. Costas himself ended up 26th in the Uncertainty track.
+
+## **Solution** 
+My solution is an extension of my own contribution to the team Nodalpoints submission to the M5 Accuracy track; in other words, the **starting point** of my solution is **my own part** of the predictions submitted to the M5 accuracy track by the team Nodalpoints. 
+
+Having many failures at the beginning trying to tackle this competition with a classic RNN approach, probably due to the hierarchical nature of the outcome, I realized that I wouldn’t get good results if I continued treating it as a time series problem, and I should treat / transform it to a regression problem instead (as already suggested in several forum threads). 
+
+All necessary code is now available at [GitHub repo](
+
+
+## **Accuracy Modeling:**
+• **1 lightgbm model per store** (10 stores) training for different number of rounds for every store (700-1600) using a total of 70 features and all available data. 
+• **3 keras models** (with categorical embeddings) of almost similar architecture training on the last 17*28=476 days data using only 19 features.
+• Ensembling, weighted geometric mean:
+((Lgbm ** 3) * KerasSimpleAverageOf3Models) ** (1/4)
+**Keypoint:** Keras models fails on last day’s prediction (outlier – see note below) probably due to NBA finals on that day (and because I only used 1 year’s data for training – mainly to speed up). For that day, I have just let Lightgbm predictions alone (no ensemble).
+
+(Note: from sales_train_evaluation.csv file, mean sales per day over the last 2 years (28*26 days) is 1.25 with a standard deviation of 0.22. Keras last day mean prediction is 3.9, which is over 6 sigma away from the mean, thus an outlier.)
+
+![](
+
+
+This M5 accuracy solution is the outcome of a regression problem. But there is another dimension which is not mined: for every item we get the predictions for 28 days; these regression predictions can benefit from the fact that this is actually a time-series problem, utilizing a simple **exponential weighted mean** (row-wise):
+
+Acc_subm.iloc[:,1:]=Acc_subm.iloc[:,1:].ewm(com=0.04, axis=1).mean().values
+
+This is a post-process that should be done in the Accuracy track, but because it was a last minute finding (2 hours before competitions closing), I only inserted it in the Uncertainty track (it cost us 3 places in the Accuracy one).
+
+
+## **Uncertainty Predictions:**
+Furthermore, for the Uncertainty track, we had to calculate the median and four prediction intervals, not just for every item but for all 12 levels. Having the median from the Accuracy track as a starting point for level 12, **with simple aggregations we obtain the median for the other 11 levels**. Going from the median to complete 9 quantiles estimations was done mostly by **tuning coefficient multipliers**. Tuning was done using only 1 fold (trying to overfit the public LB), but for more accurate results more folds should be used.
+
+The higher the aggregation level, the more confident we are in the point prediction and thus we use lower (closer to 1) coefficient multipliers. For multipliers estimation for each level the **normal distribution was used in levels 1 – 9 and a skew-normal distribution for levels 10-12**. Also, **due to right-skewness** in our sales data on every aggregation level, the last of 9 quantiles (=99.5%) was furthermore multiplied with a factor (1.02 or 1.03).
+
+In the Accuracy track, I worked on 3 different folds, and the final model ensembling weights were selected from the mean score of those folds. Looking at every fold alone, I noticed that there was a multiplier that could be used to maximize accuracy. These multipliers were 1.04, 0.97 and 1.0 for each fold. The meaning of this is that the **final submission in the Accuracy track will be very sensitive to multipliers**, and this will affect the Uncertainty track, too. Needing to minimize this volatility for the Uncertainty track, I decided to amplify the above tuned coefficient multipliers by a really small amount. **All tuned multipliers (except for the median) was moved away from 1 by 0.5%.**
+
+
+**Level 12** (the only non-aggregated one) was the most difficult for accurate estimations, and the above calculations were not enough here. Statistical calculations played a major role for this level. **Sales quantiles** were calculated over the last 364 days and over the last 28 days for every item and later weighted averaged (weights = [1, 1.75], accordingly). Also, **weekly sales quantiles** were calculated over the last 13*28 days and 3*28 days, and these results were simply averaged. Finally, Level 12 was calculated as:
+all quantiles excluding median
+**0.2*coefficient tuning + 0.7 * sales quantiles + 0.1 * weekly sales quantiles**
+median (not sure if should have done this)
+0.8*coefficient tuning + 0.2 * sales quantiles
+
+As for Level 12, so for **level 11 of item_id – state_id aggregation**, sales quantiles were calculated too and final predictions were calculated as:
+all quantiles excluding median (which was left as-is)
+**0.91*coefficient tuning + 0.09 * sales quantiles**
+
+## **Flowchart**
+![](
+
+
+## **Late submissions**
+From late submissions both to M5 Accuracy and Uncertainty competitions, as expected, there is a strong correlation between scores.
+
+![](
+
+## **Summary**
+
+- I used accuracy predictions as a starting point for uncertainty estimations.
+- Better accuracy results give better uncertainty estimations.
+- Weaker Keras models strongly increase overall accuracy performance.
+- Ensembling of statistical calculated sales quantiles with tuned coefficient multipliers for level 12 was the key in the uncertainty competition.
+- Talking about multipliers: if I had used the magic number 0.97, I would have ended up on the top of the leaderboard in the uncertainty track and in place 6 in the accuracy.
+- I played around with recurrent implementations, but they never reached an appropriate maturity level in order to include them in the final blend.
+

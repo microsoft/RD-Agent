@@ -1,0 +1,73 @@
+(1) The overall design of this code is to train and evaluate models for a Kaggle competition on stroke prediction. It starts by importing necessary libraries and loading the training, test, and submission data. Then, it performs data preprocessing steps such as filling missing values, creating new features, and scaling numerical features. After that, it trains two models - LassoCV and CatBoost - using cross-validation. Finally, it generates predictions on the test data and creates a submission file.
+
+(2) The overall model architecture consists of two models - LassoCV and CatBoost.
+
+- LassoCV: LassoCV is a linear regression model with L1 regularization. It is trained using cross-validation with 20 folds. The hyperparameters for LassoCV are set as follows:
+  - precompute: 'auto'
+  - fit_intercept: True
+  - max_iter: 100000
+  - verbose: False
+  - eps: 1e-04
+  - n_alphas: 1000
+  - n_jobs: -1
+
+- CatBoost: CatBoost is a gradient boosting model. It is trained using cross-validation with 10 folds. The hyperparameters for CatBoost are set as follows:
+  - depth: 3
+  - learning_rate: 0.01
+  - rsm: 0.5
+  - subsample: 0.931
+  - l2_leaf_reg: 69
+  - min_data_in_leaf: 20
+  - random_strength: 0.175
+  - use_best_model: True
+  - task_type: 'CPU'
+  - bootstrap_type: 'Bernoulli'
+  - grow_policy: 'SymmetricTree'
+  - loss_function: 'Logloss'
+  - eval_metric: 'AUC'
+  - scale_pos_weight: 5
+
+(3) The important hyperparameters in this code are set as follows:
+
+- LassoCV:
+  - precompute: 'auto'
+  - fit_intercept: True
+  - max_iter: 100000
+  - verbose: False
+  - eps: 1e-04
+  - n_alphas: 1000
+  - n_jobs: -1
+
+- CatBoost:
+  - depth: 3
+  - learning_rate: 0.01
+  - rsm: 0.5
+  - subsample: 0.931
+  - l2_leaf_reg: 69
+  - min_data_in_leaf: 20
+  - random_strength: 0.175
+  - use_best_model: True
+  - task_type: 'CPU'
+  - bootstrap_type: 'Bernoulli'
+  - grow_policy: 'SymmetricTree'
+  - loss_function: 'Logloss'
+  - eval_metric: 'AUC'
+  - scale_pos_weight: 5
+
+(4) The optimization objective of this code is to maximize the area under the ROC curve (AUC) for stroke prediction. The models are trained and evaluated using the AUC metric.
+
+(5) The advanced machine learning technique used in this code is gradient boosting. CatBoost, one of the models used, is a gradient boosting algorithm that can handle categorical features and provides better performance compared to traditional gradient boosting algorithms.
+
+(6) Some important tricks that play a role in high performance in this code include:
+
+- Filling missing values using a DecisionTreeRegressor: The missing values in the 'bmi' feature are filled using a DecisionTreeRegressor trained on the available data.
+
+- Creating new features: Two new features, 'morbid' and 'obese', are created based on the 'bmi' feature. These features indicate whether a person is morbidly obese or obese based on a threshold.
+
+- Feature engineering: The 'risk_factors' feature is created by combining multiple features related to glucose level, age, bmi, hypertension, heart disease, and smoking status. This feature represents the presence of risk factors for stroke.
+
+- Scaling numerical features: The numerical features 'age', 'avg_glucose_level', and 'bmi' are scaled using StandardScaler.
+
+- Cross-validation: Both LassoCV and CatBoost models are trained using cross-validation to ensure robustness and avoid overfitting.
+
+- Ensemble prediction: The predictions from both models are combined using rank averaging to generate the final predictions. This ensemble approach can improve the overall performance.

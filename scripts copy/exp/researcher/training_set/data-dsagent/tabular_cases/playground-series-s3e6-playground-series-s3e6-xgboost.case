@@ -1,0 +1,22 @@
+(1) The overall design of this code is to predict housing prices in Paris. It uses a dataset of housing information, including features such as square meters, number of rooms, and location. The code preprocesses the data, performs exploratory data analysis, trains three separate XGBoost regression models on different subsets of the data, and generates a submission file with the predicted prices.
+
+(2) The overall model architecture consists of three separate XGBoost regression models. Each model is trained on a different subset of the data based on the "made" feature. The subsets are divided into three categories: made <= 2000, 2001 <= made <= 2007, and made > 2007. For each subset, the model is trained using the features in the "num_cols" list, which includes all numerical columns except for "id" and "price". The target variable is the "price" column. The XGBoost models are configured with a maximum depth of 3, learning rate of 0.24, 2000 estimators, and a linear regression objective.
+
+(3) The important hyper-parameters in this code are set as follows:
+- `max_depth`: The maximum depth of each tree in the XGBoost models. It is set to 3.
+- `learning_rate`: The learning rate or step size shrinkage used in each boosting iteration. It is set to 0.24.
+- `n_estimators`: The number of boosting iterations or trees to build. It is set to 2000.
+- `objective`: The optimization objective for the XGBoost models. It is set to 'reg:linear', indicating linear regression.
+- `booster`: The type of booster to use. It is set to 'gbtree', indicating tree-based boosting.
+
+(4) The optimization objective of this code is to minimize the mean squared error between the predicted housing prices and the actual prices. This is achieved by training XGBoost regression models that learn to predict the prices based on the given features.
+
+(5) The advanced machine learning technique used in this code is XGBoost, which is an optimized gradient boosting framework. XGBoost is known for its high performance and ability to handle large datasets with high-dimensional features. It combines the strengths of both gradient boosting and regularization techniques to improve model accuracy and generalization.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+- Data preprocessing: The code uses various data preprocessing techniques such as scaling and encoding to prepare the data for modeling.
+- Feature selection: The code selects a subset of numerical features for training the XGBoost models, which helps to reduce dimensionality and focus on the most relevant features.
+- Subset training: The code divides the data into three subsets based on the "made" feature and trains separate models on each subset. This allows the models to capture different patterns and relationships within each subset.
+- Hyperparameter tuning: The code sets the hyperparameters of the XGBoost models to optimal values, which are determined through experimentation or grid search using the GridSearchCV function.
+- Cross-validation: The code uses StratifiedKFold for cross-validation during hyperparameter tuning to ensure that the models are evaluated on different subsets of the data and to prevent overfitting.
+- Ensemble prediction: The code combines the predictions from the three XGBoost models to generate the final submission. This ensemble approach can help to improve the overall prediction accuracy.

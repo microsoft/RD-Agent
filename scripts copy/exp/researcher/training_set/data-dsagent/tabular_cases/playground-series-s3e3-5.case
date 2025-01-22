@@ -1,0 +1,12 @@
+This episode frustrated me a lot since I couldn't improve my public leaderboard score from day 2, but it ended up giving me a good result in the private leaderboard. I just cleaned up the data and gave only one new feature "MonthlyIncome/Age" as I posted on the [discussion]( 
+
+My model was very simple. I used the competition and original data for training.
+
+```python
+model = CatBoostClassifier(verbose=0,n_estimators=500)
+predictions_cat = make_predictions(full,5,model)
+cat =[np.mean(a) for a in zip(*predictions_cat)]
+```
+I have a note on how I developed my notebook at the end.  If you are interested, please have a look at [my notebook]( The best score was from version 8 of this notebook.
+
+Hope this helps someone here, and see you soon in the next episode.👍

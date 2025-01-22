@@ -1,0 +1,49 @@
+First of all, I would like to appreciate the participants and organizers of the competition very much. I have learned a lot from this competition.
+My solution may not seem to be of much value, but I have gained a lot of insight from the community so I felt obligated to share the solution with you.
+(I especially learned a lot from @kyakovlev kernel. Thank you.)
+
+[Solution]
+- Model
+- LightGBM (single)
+- objective = tweedie
+- Validation
+- 5 holdout (d1578-d1605, d1830-d1857, d1858-d1885, d1886-d1913, d1914-d1941)
+- no early stopping
+- Model split
+- for each store
+- for each week
+- model w1 predicts F01, F02, ..., F07
+- model w2 predicts F08, F09, ..., F14
+- model w3 predicts F15, F16, ..., F21
+- model w4 predicts F22, F23, ..., F28
+- Features
+- General time-series features
+- General price features
+- General calendar features
+- No recursive features
+
+When the competition began, I first understood the data and evaluation metrics and created a baseline model.
+Then I realized that the validation scores varied significantly over the period of time. (I can't build a proper validation.)
+I was strongly convinced that this competition would be very difficult and that it would be impossible to build a model with high accuracy.
+
+So I decided to give up on trying to get a high ranking in the competition. Instead of it, I decided to try to build a "practical" solution.
+My strategy is as follows:
+- Not to use post processing, multiplier, and leaks
+- In practice, it is not possible to utilize such information, so I have decided that it should not be used.
+- Trust CV but Not care about official evaluation metrics (WRMSSE)
+- WRMSSE is evaluation metrics by the competition organizer, but in practice, I think WRMSSE is not always reasonable. Therefore I didn't make a custom loss function to avoid overfit this competition task itself.
+- Not to use complex and recursive features
+- Just use general features that can be applied to any practical tasks.
+- Recursive features lead to error accumulation
+- Not to use computation resources too much
+- Single model (LightGBM only, no stacking/blending)
+- Memory efficiency (model for each store and week)
+
+As I mentioned earlier, I was not aiming for the high ranking, so I was very surprised by this result (4th place).
+As you can see from the solution above, I'm not doing anything special.
+What was valuable to me was learning a lot about building a simple solution that can be widely used in practice. The ranking itself means absolutely nothing to me.
+(However, I feel very sorry for those of you who put in a great deal of effort to get to the top...)
+
+Either way, I have learned a lot from this competition and community.
+Thank you to all the kaggle community members.
+

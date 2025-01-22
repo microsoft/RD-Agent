@@ -1,0 +1,24 @@
+(1) The overall design of this code is to build a model for a Kaggle competition on sales forecasting. It preprocesses the sales and calendar data, creates features, and trains a model using a combination of numerical and categorical inputs.
+
+(2) The overall model architecture consists of an embedding layer for categorical features, followed by a concatenation of the embeddings with the numerical features. This concatenated input is then passed through three GRU layers with dropout, and finally a dense layer with 9 outputs corresponding to the quantiles of the sales forecast.
+
+(3) The important hyperparameters in this code are:
+- CATEGORIZE: a boolean flag indicating whether to categorize the categorical features or not.
+- START: the starting day of the sales data to consider.
+- UPPER: the upper limit of the days to consider in the sales data.
+- LAGS: a list of lag values to use for creating lagged features.
+- seq_len: the length of the input sequence for the GRU layers.
+- batch_size: the batch size for training the model.
+- epochs: the number of epochs for training the model.
+- learning_rate: the learning rate for the optimizer.
+
+(4) The optimization objective is to minimize the weighted quantile loss, which is a pinball loss for multiple quantiles. The quantiles used are [0.005, 0.025, 0.165, 0.250, 0.500, 0.750, 0.835, 0.975, 0.995].
+
+(5) The advanced machine learning technique used in this code is the GRU (Gated Recurrent Unit) layer, which is a type of recurrent neural network (RNN) layer. The GRU layer is used to capture the temporal dependencies in the sales data.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Lagged features: The code creates lagged features of the sales data using the specified lag values. These lagged features capture the historical patterns in the sales data.
+- Embedding layers: The categorical features are converted into embeddings using embedding layers. This allows the model to learn meaningful representations of the categorical variables.
+- Dropout: Dropout is applied to the GRU layers to prevent overfitting and improve generalization.
+- Weighted quantile loss: The quantile loss is weighted by the inverse of the sales volume for each item, which gives more importance to items with higher sales volume.
+- Early stopping: The training process is stopped early if the validation loss does not improve for a certain number of epochs, which helps prevent overfitting.

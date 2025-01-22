@@ -1,0 +1,18 @@
+(1) The overall design of the code is to make predictions on a given dataset using multiple pre-trained models and then perform ensemble predictions to improve the overall performance. The code uses different models with different hyperparameters and combines their predictions to generate the final output.
+
+(2) The overall model architecture consists of multiple transformer-based models, such as Longformer, Funnel Transformers, and DeBERTa. Each model is loaded with its pre-trained weights and fine-tuned on the given dataset. The models take input sequences, tokenize them using the AutoTokenizer, and pass them through the transformer layers. The output of the transformer is then passed through a linear layer with softmax activation to generate the final predictions for each token in the input sequence.
+
+(3) The important hyperparameters in this code are set through the `args` classes. These hyperparameters include the input path, model path, model weights, output path, batch size, maximum sequence length, and the folds to be used for training. These hyperparameters are set differently for each model, allowing for flexibility and experimentation.
+
+(4) The optimization objective of this code is to minimize the cross-entropy loss between the predicted labels and the ground truth labels. This is achieved by training the models using the DataLoader and backpropagating the gradients through the model layers. The models are optimized using the Adam optimizer with a learning rate of 1e-5.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The code combines the predictions of multiple models with different architectures and hyperparameters to improve the overall performance. The predictions from each model are weighted based on their performance and then combined to generate the final output.
+
+(6) Some important tricks that play a role in achieving high performance include:
+- Seed initialization: The `seed_everything` function is used to set the random seed for reproducibility.
+- Tokenization and padding: The input sequences are tokenized using the AutoTokenizer and padded to a maximum length of 4096 tokens.
+- Data parallelism: The code uses multiple workers and parallel processing to speed up the data loading and training process.
+- Gradient accumulation: The code accumulates gradients over multiple batches to reduce memory usage and improve training stability.
+- Half-precision training: The code uses mixed-precision training with automatic mixed precision (AMP) to speed up training and reduce memory usage.
+- Ensemble prediction: The code combines the predictions of multiple models using weighted averaging to improve the overall performance.
+- Post-processing: The code applies post-processing techniques, such as removing certain words and linking adjacent tokens, to refine the final predictions.

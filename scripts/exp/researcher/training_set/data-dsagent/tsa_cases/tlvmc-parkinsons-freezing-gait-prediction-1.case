@@ -1,0 +1,454 @@
+Greetings to the Kaggle Community. In this message I want to tell you about my solution.
+
+Thanks to Kaggle for providing free GPU and TPU resources to everyone. On my graphics card (1050 Ti) I would not have achieved those results.
+Thanks to Google for the excellent tensorflow library.
+All of my work was done in Kaggle Notebooks and relies on TensorFlow capabilities.
+
+The key decisions that, in my opinion, led to a good result:
+1. Use a combination of transformer encoder and two BidirectionalLSTM layers.
+2. Use patches like VisualTransformer.
+3. Reduce the resolution of targets.
+
+*How does it work?*
+
+Suppose we have a tdcsfog sensor data series with AccV, AccML, AccAP columns and len of 5000.
+
+First, apply mean-std normalization to AccV, AccML, AccAP columns.
+
+```python
+def sample_normalize(sample):
+	mean = tf.math.reduce_mean(sample)
+	std = tf.math.reduce_std(sample)
+	sample = tf.math.divide_no_nan(sample-mean, std)
+
+	return sample.numpy()
+```
+Then the series is zero-padded so that the final length is divisible by block_size = 15552  (or 12096 for defog). Now the series shape is (15552,  3). 
+
+And create patches with the patch_size = 18 (or 14 for defog):
+
+```python
+series # Example shape (15552, 3)
+series = tf.reshape(series, shape=(CFG['block_size'] // CFG['patch_size'], CFG['patch_size'], 3)) # Example shape (864, 18, 3)
+series = tf.reshape(series, shape=(CFG['block_size'] // CFG['patch_size'], CFG['patch_size']*3))  # Example shape (864, 54)
+```
+
+Now the series shape is (864,  54). It's a model input.
+
+What to do with the StartHesitation, Turn, Walking data? Same, but apply tf.reduce_max at the end.
+
+```python
+series_targets # Example shape (15552,  3)
+series_targets = tf.reshape(series_targets, shape=(CFG['block_size'] // CFG['patch_size'], CFG['patch_size'], 3)) # Example shape (864, 18, 3)
+series_targets = tf.transpose(series_targets, perm=[0, 2, 1]) # Example shape (864, 3, 18)
+series_targets = tf.reduce_max(series_targets, axis=-1) # Example shape (864, 3)
+```
+
+Now the series shape is (864, 3). It's a model output.
+
+At the end, simply return the true resolution with tf.tile
+
+```python
+predictions = model.predict(...) # Example shape (1, 864, 3)
+predictions = tf.expand_dims(predictions, axis=-1) # Example shape (1, 864, 3, 1)
+predictions = tf.transpose(predictions, perm=[0, 1, 3, 2]) # Example shape (1, 864, 1, 3)
+predictions = tf.tile(predictions, multiples=[1, 1, CFG['patch_size'], 1]) # Example shape (1, 864, 18, 3)
+predictions = tf.reshape(predictions, shape=(predictions.shape[0], predictions.shape[1]*predictions.shape[2], 3)) # Example shape (1, 15552, 3)
+```
+# Details
+
+Daily data, events.csv, subjects.csv, tasks.csv have never been used.
+
+Tdcsfog data is not used to train defog models. 
+
+Defog data is not used to train tdcsfog models.
+
+*Optimizer* 
+
+```python
+tf.keras.optimizers.Adam(learning_rate=Schedule(LEARNING_RATE, WARMUP_STEPS), beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+```
+
+*Loss function*
+
+```python
+'''
+loss_function args exp
+
+real is a tensor with the shape (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], 5) where the last axis means:
+0 - StartHesitation
+1 - Turn
+2 - Walking
+3 - Valid
+4 - Mask
+
+output is a tensor with the shape (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], 3) where the last axis means:
+0 - StartHesitation predicted
+1 - Turn predicted
+2 - Walking predicted
+
+'''
+
+ce = tf.keras.losses.BinaryCrossentropy(reduction='none')
+
+def loss_function(real, output, name='loss_function'):
+	loss = ce(tf.expand_dims(real[:, :, 0:3], axis=-1), tf.expand_dims(output, axis=-1)) # Example shape (32, 864, 3)
+
+	mask = tf.math.multiply(real[:, :, 3], real[:, :, 4]) # Example shape (32, 864)
+	mask = tf.cast(mask, dtype=loss.dtype)
+	mask = tf.expand_dims(mask, axis=-1) # Example shape (32, 864, 1)
+	mask = tf.tile(mask, multiples=[1, 1, 3]) # Example shape (32, 864, 3)
+	loss *= mask # Example shape (32, 864, 3)
+
+	return tf.reduce_sum(loss) / tf.reduce_sum(mask)
+```
+*Model* 
+
+```python
+CFG = {'TPU': 0,
+	'block_size': 15552,
+	'block_stride': 15552//16,
+	'patch_size': 18,
+	 
+	'fog_model_dim': 320,
+	'fog_model_num_heads': 6,
+	'fog_model_num_encoder_layers': 5,
+	'fog_model_num_lstm_layers': 2,
+	'fog_model_first_dropout': 0.1,
+	'fog_model_encoder_dropout': 0.1,
+	'fog_model_mha_dropout': 0.0,
+	}
+
+'''
+The transformer encoder layer
+For more details, see  [Attention Is All You Need]
+
+'''
+
+class EncoderLayer(tf.keras.layers.Layer):
+	def __init__(self):
+	super().__init__()
+	 
+	self.mha = tf.keras.layers.MultiHeadAttention(num_heads=CFG['fog_model_num_heads'], key_dim=CFG['fog_model_dim'], dropout=CFG['fog_model_mha_dropout'])
+	 
+	self.add = tf.keras.layers.Add()
+	 
+	self.layernorm = tf.keras.layers.LayerNormalization()
+	 
+	self.seq = tf.keras.Sequential([tf.keras.layers.Dense(CFG['fog_model_dim'], activation='relu'),
+	tf.keras.layers.Dropout(CFG['fog_model_encoder_dropout']),
+	tf.keras.layers.Dense(CFG['fog_model_dim']),
+	tf.keras.layers.Dropout(CFG['fog_model_encoder_dropout']),
+	])
+	 
+	def call(self, x):
+	attn_output = self.mha(query=x, key=x, value=x)
+	x = self.add([x, attn_output])
+	x = self.layernorm(x)
+	x = self.add([x, self.seq(x)])
+	x = self.layernorm(x)
+	 
+	return x
+
+'''
+FOGEncoder is a combination of transformer encoder (D=320, H=6, L=5) and two BidirectionalLSTM layers
+
+'''
+
+class FOGEncoder(tf.keras.Model):
+	def __init__(self):
+	super().__init__()
+	 
+	self.first_linear = tf.keras.layers.Dense(CFG['fog_model_dim'])
+	 
+	self.add = tf.keras.layers.Add()
+	 
+	self.first_dropout = tf.keras.layers.Dropout(CFG['fog_model_first_dropout'])
+	 
+	self.enc_layers = [EncoderLayer() for _ in range(CFG['fog_model_num_encoder_layers'])]
+	 
+	self.lstm_layers = [tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(CFG['fog_model_dim'], return_sequences=True)) for _ in range(CFG['fog_model_num_lstm_layers'])]
+	 
+	self.sequence_len = CFG['block_size'] // CFG['patch_size']
+	self.pos_encoding = tf.Variable(initial_value=tf.random.normal(shape=(1, self.sequence_len, CFG['fog_model_dim']), stddev=0.02), trainable=True)
+	 
+	def call(self, x, training=None): # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['patch_size']*3), Example shape (4, 864, 54)
+	x = x / 25.0 # Normalization attempt in the segment [-1, 1]
+	x = self.first_linear(x) # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['fog_model_dim']), Example shape (4, 864, 320)
+	 
+	if training: # augmentation by randomly roll of the position encoding tensor
+	random_pos_encoding = tf.roll(tf.tile(self.pos_encoding, multiples=[GPU_BATCH_SIZE, 1, 1]),
+	shift=tf.random.uniform(shape=(GPU_BATCH_SIZE,), minval=-self.sequence_len, maxval=0, dtype=tf.int32),
+	axis=GPU_BATCH_SIZE * [1],
+	)
+	x = self.add([x, random_pos_encoding])
+	 
+	else: # without augmentation
+	x = self.add([x, tf.tile(self.pos_encoding, multiples=[GPU_BATCH_SIZE, 1, 1])])
+	 
+	x = self.first_dropout(x)
+	 
+	for i in range(CFG['fog_model_num_encoder_layers']): x = self.enc_layers[i](x) # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['fog_model_dim']), Example shape (4, 864, 320)
+	for i in range(CFG['fog_model_num_lstm_layers']): x = self.lstm_layers[i](x) # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['fog_model_dim']*2), Example shape (4, 864, 640)
+	 
+	return x
+
+class FOGModel(tf.keras.Model):
+	def __init__(self):
+	super().__init__()
+	 
+	self.encoder = FOGEncoder()
+	self.last_linear = tf.keras.layers.Dense(3)
+	 
+	def call(self, x): # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['patch_size']*3), Example shape (4, 864, 54)
+	x = self.encoder(x) # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], CFG['fog_model_dim']*2), Example shape (4, 864, 640)
+	x = self.last_linear(x) # (GPU_BATCH_SIZE, CFG['block_size'] // CFG['patch_size'], 3), Example shape (4, 864, 3)
+	x = tf.nn.sigmoid(x) # Sigmoid activation
+	 
+	return x
+
+```
+
+
+
+# Submission (Private Score 0.514, Public Score 0.527) consists of 8 models:
+
+### Model 1 (tdcsfog model)
+
+```python
+CFG = {'TPU': 1, 
+'block_size': 15552, 
+'block_stride': 15552//16,
+'patch_size': 18, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/38
+STEPS_PER_EPOCH = 64
+WARMUP_STEPS = 64
+BATCH_SIZE=32
+```
+
+Validation subjects 
+['07285e', '220a17', '54ee6e', '312788', '24a59d', '4bb5d0', '48fd62', '79011a', '7688c1']
+
+Train 15 minutes on TPU. Validation scores:
+StartHesitation AP - 0.462 Turn AP - 0.896 Walking AP - 0.470 mAP - 0.609
+
+### Model 2 (tdcsfog model)
+
+```python
+CFG = {'TPU': 0, 
+'block_size': 15552, 
+'block_stride': 15552//16,
+'patch_size': 18, 
+
+'fog_model_dim': 256,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 3,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/24
+STEPS_PER_EPOCH = 64
+WARMUP_STEPS = 64
+BATCH_SIZE = 16
+```
+
+Validation subjects 
+['07285e', '220a17', '54ee6e', '312788', '24a59d', '4bb5d0', '48fd62', '79011a', '7688c1']
+
+Train 40 minutes on GPU. Validation scores:
+StartHesitation AP - 0.481 Turn AP - 0.886 Walking AP - 0.437 mAP - 0.601
+
+### Model 3 (tdcsfog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 15552, 
+'block_stride': 15552//16,
+'patch_size': 18, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/48
+STEPS_PER_EPOCH = 64
+WARMUP_STEPS = 64
+BATCH_SIZE = 32
+```
+
+Validation subjects 
+['e39bc5', '516a67', 'af82b2', '4dc2f8', '743f4e', 'fa8764', 'a03db7', '51574c', '2d57c2']
+
+Train 11 minutes on TPU. Validation scores:
+StartHesitation AP - 0.601 Turn AP - 0.857 Walking AP - 0.289 mAP - 0.582
+
+### Model 4 (tdcsfog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 15552, 
+'block_stride': 15552//16,
+'patch_size': 18, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/38
+STEPS_PER_EPOCH = 64
+WARMUP_STEPS = 64
+BATCH_SIZE = 32
+```
+
+Validation subjects 
+['5c0b8a', 'a03db7', '7fcee9', '2c98f7', '2a39f8', '4f13b4', 'af82b2', 'f686f0', '93f49f', '194d1d', '02bc69', '082f01']
+
+Train 13 minutes on TPU. Validation scores:
+StartHesitation AP - 0.367 Turn AP - 0.879 Walking AP - 0.194 mAP - 0.480
+
+### Model 5 (defog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 12096, 
+'block_stride': 12096//16,
+'patch_size': 14, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/62
+STEPS_PER_EPOCH = 256
+WARMUP_STEPS = 256
+BATCH_SIZE = 32
+```
+
+Validation subjects 
+['00f674', '8d43d9', '107712', '7b2e84', '575c60', '7f8949', '2874c5', '72e2c7']
+
+Train data: defog data, notype data
+Validation data: defog data, notype data
+
+Train 45 minutes on TPU. Validation scores:
+StartHesitation AP - [not used] Turn AP - 0.625 Walking AP - 0.238 mAP - 0.432
+Event AP - 0.800
+
+### Model 6 (defog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 12096, 
+'block_stride': 12096//16,
+'patch_size': 14, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 5,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+```
+
+Train data: defog data (about 85%)
+Validation data: defog data (about 15%), notype data (100%)
+
+### Model 7 (defog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 12096, 
+'block_stride': 12096//16,
+'patch_size': 14, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 4,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/24
+STEPS_PER_EPOCH = 32
+WARMUP_STEPS = 64
+BATCH_SIZE = 128
+```
+
+Train data: defog data (100%)
+Validation data: notype data (100%)
+
+Train 18 minutes on TPU. Validation scores:
+StartHesitation AP - [not used] Turn AP - [not used] Walking AP - [not used] mAP - [not used]
+Event AP - 0.764
+
+### Model 8 (defog model)
+
+```python
+CFG = {'TPU': 1,
+'block_size': 12096, 
+'block_stride': 12096//16,
+'patch_size': 14, 
+
+'fog_model_dim': 320,
+'fog_model_num_heads': 6,
+'fog_model_num_encoder_layers': 5,
+'fog_model_num_lstm_layers': 2,
+'fog_model_first_dropout': 0.1,
+'fog_model_encoder_dropout': 0.1,
+'fog_model_mha_dropout': 0.0,
+}
+
+LEARNING_RATE = 0.01/46
+STEPS_PER_EPOCH = 256
+WARMUP_STEPS = 256
+BATCH_SIZE = 32
+```
+
+Validation subjects
+['12f8d1', '8c1f5e', '387ea0', 'c56629', '7da72f', '413532', 'd89567', 'ab3b2e', 'c83ff6', '056372']
+
+Train data: defog data, notype data
+Validation data: defog data, notype data
+
+Train 28 minutes on TPU. Validation scores:
+StartHesitation AP - [not used] Turn AP - 0.758 Walking AP - 0.221 mAP - 0.489
+Event AP - 0.744
+
+# Final models
+
+Tdcsfog:  0.25 * Model 1 + 0.25 * Model 2 + 0.25 * Model 3 + 0.25 * Model 4
+
+Defog: 0.25 * Model 5 + 0.25 * Model 6 + 0.25 * Model 7 + 0.25 * Model 8
+

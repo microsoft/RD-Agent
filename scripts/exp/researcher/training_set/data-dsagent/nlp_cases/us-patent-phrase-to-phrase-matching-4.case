@@ -1,0 +1,38 @@
+# Abstract 
+In this competition, my main model structure is mainly based on prompt learning，Because prompt learning can make more full use of the existing knowledge of the model for reasoning and has obvious advantages in few shot learning, and I used prompt learning to get the first place in the SEMEVAL 2022 PCL Detection.I first reformulate the task as a specific form of cloze prompt, and then apply prompt-based learning on it to predict the confidence of label words.
+
+
+
+# Method
+
+
+### prompt learning
+![](
+In order to enable the model to directly output the similarity between anchor and target, I improved the model of the pet paper. I manually set YES as the label words of 1, and then took out the logits of the model in this word as input, and used bce loss to calculate ,make logits of YES  equal to the similarity.
+
+In the experiment, we found that the effect of the prompt model was 0.005 better than that of the regular model
+
+
+| method | cv | lb |
+| :------| ------: | :------: |
+| attention_pool | 0.8485| 0.8535 |
+| prompt |  0.8535| 0.8570|
+
+
+
+### Trick 
+
+Through eda, I found that there are very similar transformations between all the target parts under the same anchor. At the same time, I found that the same anchor was grouped and the target-related features were sorted in the use of lgb to construct features, which improved a lot. , so I decided to construct the input for teammate_info
+
+
+teamte_info = ";".join(set(train.group(['anchor'])['target'].tolist())
+
+
+context = anchor+[SEP]+target+[SEP]+teamate_info
+
+
+
+
+### Summarize
+In the last few days of the competition I was busy with something more important than the competition and lost a lot of time for the final sprint, but thank god I still finished the gold medal in solo and became a kaggle GM, thank you all.
+

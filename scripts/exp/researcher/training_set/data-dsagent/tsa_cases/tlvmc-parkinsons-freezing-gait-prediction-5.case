@@ -1,0 +1,117 @@
+## **Overall Pipeline**
+![](
+## **Training Methodology**
+***DataSet***
+- For Pretraining divide each unlabeled series into segment with length 100000
+- For Training
+- - Divide each time series with window size of 2000 observation with overlapping of 500
+- - For defog randomly select 4 window from the above set. 
+- - For tdcsfog select 1 window from the above set. tdcsfog data is resampled 10 100 Hz using librosa (v 0.9.2). when I ported my training on Kaggle code then i found that training is not converging fast enough when I did resampled using librosa( v 0.10.0). Maybe difference is due to default resampling technique.
+- - Set length of dataloader as 8 times number of time series each fold
+***Folds***
+- Create 5 Folds using GroupKFold with Subject as groups
+- - This could be improved by creating by carefully selecting subjects so that there is similar representation of each target type in each fold
+
+***Network Architecture***
+All models has following architecture
+`class Wave_Block(nn.Module):
+
+def __init__(self, in_channels, out_channels, dilation_rates, kernel_size):
+super(Wave_Block, self).__init__()
+self.num_rates = dilation_rates
+self.convs = nn.ModuleList()
+self.filter_convs = nn.ModuleList()
+self.gate_convs = nn.ModuleList()
+
+self.convs.append(nn.Conv1d(in_channels, out_channels, kernel_size=1))
+dilation_rates = [2 ** i for i in range(dilation_rates)]
+for dilation_rate in dilation_rates:
+self.filter_convs.append(
+nn.Conv1d(out_channels, out_channels, kernel_size=kernel_size, padding=int((dilation_rate*(kernel_size-1))/2), dilation=dilation_rate))
+self.gate_convs.append(
+nn.Conv1d(out_channels, out_channels, kernel_size=kernel_size, padding=int((dilation_rate*(kernel_size-1))/2), dilation=dilation_rate))
+self.convs.append(nn.Conv1d(out_channels, out_channels, kernel_size=1))
+
+def forward(self, x):
+x = self.convs[0](x)
+res = x
+for i in range(self.num_rates):
+x = torch.tanh(self.filter_convs[i](x)) * torch.sigmoid(self.gate_convs[i](x))
+x = self.convs[i + 1](x)
+res = res + x
+return res
+`
+`class Classifier(nn.Module):
+def __init__(self, inch=3, kernel_size=3):
+super().__init__()
+self.LSTM = nn.GRU(input_size=128, hidden_size=128, num_layers=4, 
+batch_first=True, bidirectional=True)
+
+#self.wave_block1 = Wave_Block(inch, 16, 12, kernel_size)
+self.wave_block2 = Wave_Block(inch, 32, 8, kernel_size)
+self.wave_block3 = Wave_Block(32, 64, 4, kernel_size)
+self.wave_block4 = Wave_Block(64, 128, 1, kernel_size)
+self.fc1 = nn.Linear(256, 3)
+
+def forward(self, x):
+x = x.permute(0, 2, 1)
+#x = self.wave_block1(x)
+x = self.wave_block2(x)
+x = self.wave_block3(x)
+
+x = self.wave_block4(x)
+x = x.permute(0, 2, 1)
+x, h = self.LSTM(x)
+x = self.fc1(x)
+
+
+return x`
+### Different Models 
+#### WaveNet-GRU-v1
+Training Notebook is found at following link
+- 
+The model is using all available data in training and validation irrespective of *Valid* column value is True and False and only best weight are saved. Last 2 best weights for each fold are used for inference.
+
+#### WaveNet-GRU-v2
+Training Notebook is found at following link
+- 
+The model is using all available data in training and for validation data *Valid* column value as True is selected.
+All the weights with average precision score > 0.25 are saved. Best 2 weights, based on average precision score, are selected.
+
+#### WaveNet-GRU-v3
+This notebook is based on pre-training on unlabeled data. In pretraining target is to predict next value in the time series. For data creation each unlabeled series is divided into segment of length 100000.
+
+**Data Creation Notebook is available at** :  
+*Note*: This notebook will fail in Kaggle kernel as it requires more disk space as default available for kaggle notebooks. Please run on different PC/ Server/ VM
+**PreTraining Notebook is available at** : 
+The training will be executed for single fold and best weight will be used as initial weights (without LSTM layer) 
+for WaveNet-GRU-v3
+*Note*: Singe epoch takes around 1-1:30 hours on RTX 3090 so the kernel will timeout. Please run on different PC/ Server/ VM
+**WaveNet-GRU-v3**: **Training notebook is available at **: 
+Use best weight for each fold in final inference. 
+CV score for this notebook is low as compared to WaveNet-GRU-v1 and WaveNet-GRU-v2 but it improves the final ensemble ( During competition time it improved CV score but due to some bug in inferencing code the final private leader-board score as come down. I will explain this in inferencing section.
+
+## ** Inference Methodology**
+- Each series is predicted independently
+- For inference, each series are divided into segments of size 16000 or 20000 and the last segment is comprised of last 16000/20000 data points of the series. It is possible that with this size complete tdcsfog series is predicted in single step.
+- tdcsfog data are resampled at 100 Hz and prediction are restored back to 128 Hz.
+- librosa 0.10.0, is used for resampling. After competition, I found that librosa 0.9.2 is improves score a bit. This is miss from my side (as i did training using librosa 0.9.2) but it has not much impact on the final score.
+- Prediction of all the models are ensembled using simple mean.
+
+### **CPU based Inference Methodology**
+As during last week my GPU quota has been exhausted so i need to use CPU for inference. Simple CPU based pytorch inference was exceeding the time limit of 9 hours. So I need to convert pytorch models into ONNX model. *Please refer following notebook for model conversion*: 
+
+The converted models are used in final inference. One of the final inference notebook is available at:
+
+
+After competition I found that, in ensemble, WaveNet-GRU-v3 (model that uses pretrained weight) is overfitting on public leaderboard and in private leaderboard its inclusion had decreased the score. While in local CV ensemble inclusion of this model was increasing  the CV score. 
+
+So i debugged more and I found that with GPU based inference WaveNet-GRU-v3 is indeed increasing the score. in face simple ensemble of WaveNet-GRU-v1 and WaveNet-GRU-v3 has private leaderboard score of 0.437.  More than third position score.
+
+The best GPU based inference notebook is available at
+
+
+
+Regards
+Aditya
+

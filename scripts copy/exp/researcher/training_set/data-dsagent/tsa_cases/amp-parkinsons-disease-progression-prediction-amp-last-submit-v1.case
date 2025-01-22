@@ -1,0 +1,30 @@
+(1) The overall design of this code is to make predictions for a kaggle competition. It uses a combination of linear trends, CatBoost models, and other techniques to predict the rating for each prediction_id.
+
+(2) The overall model architecture consists of the following steps:
+- Load trend data: This code loads various trend data files that are used for prediction.
+- Load CatBoost protein models: This code loads pre-trained CatBoost models for each UPDRS score (1, 2, 3) and each fold (0-9).
+- Prediction loop: For each test sample, the code performs the following steps:
+  - Get protein model prediction: The code pivots the test_proteins and test_peptides dataframes and joins them to create a test_pr_pe_base dataframe. Then, it uses the CatBoost models to make predictions for each UPDRS score (1, 2, 3) and stores the predictions in the oof_df dataframe.
+  - Pred loop: For each prediction_id, the code calculates the prediction based on the visit_month, UPDRS score, and time difference. It uses linear trends, CatBoost models, and other ratios to calculate the final prediction.
+  - Store predictions: The code stores the prediction_id and corresponding rating in the result dataframe.
+- Predict: The code uses the env object to predict the ratings for the test samples and outputs the result.
+
+(3) The important hyper-parameters in this code are:
+- cb_model_path: The path to the directory containing the pre-trained CatBoost models.
+- folds: The number of folds used in the CatBoost models.
+- use_model_ratio: The ratio of using the CatBoost models for prediction.
+- first_cb_huber_use_ratio: The ratio of using the CatBoost huber predictions for the first visit month.
+- first_cb_mae_use_ratio: The ratio of using the CatBoost mae predictions for the first visit month.
+- cb_huber_use_ratio: The ratio of using the CatBoost huber predictions for non-healthy patients.
+- cb_mae_use_ratio: The ratio of using the CatBoost mae predictions for non-healthy patients.
+
+(4) The optimization objective of this code is to minimize the difference between the predicted ratings and the actual ratings for the test samples. The code uses various techniques such as linear trends, CatBoost models, and ratios to optimize the predictions.
+
+(5) The advanced machine learning technique used in this code is the CatBoostRegressor. CatBoost is a gradient boosting framework that uses decision trees as base models. It is known for its ability to handle categorical features and its fast training speed.
+
+(6) Some important tricks that play a role in high performance are:
+- Using linear trends: The code uses linear trends to make predictions for the first visit month and for non-healthy patients.
+- Using CatBoost models: The code uses pre-trained CatBoost models to make predictions for each UPDRS score. It combines the predictions from the models with other techniques to improve the accuracy.
+- Using ratios: The code uses different ratios to combine the predictions from linear trends, CatBoost models, and other techniques. These ratios are tuned to optimize the predictions.
+- Handling missing values: The code handles missing values in the test_pr_pe_base dataframe by replacing them with NaN values.
+- Grouping and folding: The code uses GroupKFold and StratifiedKFold to split the data into folds for training the CatBoost models. This helps to prevent overfitting and improve generalization.

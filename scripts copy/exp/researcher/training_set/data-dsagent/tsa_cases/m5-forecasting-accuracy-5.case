@@ -1,0 +1,63 @@
+Hi guys, I would like to share my solution with you, 
+
+but first I would like to thank Kaggle, the hosts, and all participants, especially @kneroma and @kailex for their kernel contributions. In addition, thanks to the whole discussion about the magic multiplier led by the @kyakovlev kernels.
+
+**1) The features:**
+
+A) From the calendar:
+I created features from the remaining days for the event. Each event would be a column, and the values in this column refer to the "strength" of the proximity of the event limited to 30.
+Still in this matter, a new variable that would be the sum of all these "forces" was created, if this column had a high value, it would indicate that they would have one or more events nearby.
+Also used some variables to indicate seasonality. For example, indicating how near the day is to the end of the month. Week of the year, day of the week...
+
+B) Prices:
+I decided to remove the current price of the items in the model. Instead, I calculated the percentage difference between the price of the week and the price of previous weeks, thus creating some columns related to that price difference. I figured that a fall or rise in price that week was going to make more sense for a more generalized prediction.
+
+C) Historical series
+Here, thanks to the @kkiller and @kxx kernels with the variables
+['lag_7', 'lag_28', 'rmean_7_7', 'rmean_28_7', 'rmean_7_28', 'rmean_28_28']. 
+
+Also inserted some other variables like the item id and the store id as cat variables.
+
+**2) The model**
+
+I used an LGBM model with early stopping, and with Poisson objective, for each department, resulting in a total of 7 models. It made it easier for me not to burst the memory and be able to use more days from the past. 
+I also used the predicted value to predict the next (eg lag_7)
+
+**3) Post-processing magic multipliers.**
+
+A magic multiplier of ~1.03 really improved the result, but I was not confident on that.
+
+So I went to analyze how the true values differed from the predicted values, for each store and department. And we have graphs like these:
+
+![](
+
+![](
+
+
+Some stores/departments showed the prediction "constantly below" (of course with a lot of noise) of the true value. And other stores/departments showed the prediction "constantly above" the true value. I then decided to create an average correction factor for each store/department, based on the last week (validation). And we have a matrix like this:
+
+![](
+
+...
+
+That is, ~ 0.92 represents a specific factor for FOODS_1/CA_1, because the true value was, on average, 92% of the predicted value to the validation set.
+
+In this way, I imagined that the historical correction factors for the validation would behave similarly from the historical to the evaluation.
+
+In summary for this item, instead of using a magic multiplier, I used a magic multiplier for each store/department. Here, I was not afraid of overfitting the result. It could be much worse, I could overfit a lot more by creating a factor for each item, but it would be too much. So, it was a compromise between creating just one magic multiplier for the entire result and one magic multiplier for each item.
+
+
+**4) A simple diagram:**
+
+![](
+
+
+
+The solution in the public was far from winning, but the private score remained close to the public one.
+
+Finally, I hope to be able to contribute more to the discussions of the next challenges. 
+
+I am very grateful to everyone for the great learning I was able to absorb in this competition, regardless of the result.
+
+Thank you again
+

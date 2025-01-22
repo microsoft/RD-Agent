@@ -1,0 +1,85 @@
+Thanks to the organizer and the Kaggle team for hosting this competition. And thanks to many participants who shared their ideas with notebook or discussion. It's difficult to improve the score until we find the "magic". Fortunately, our team make the breakthrough and get 3rd place at the end of the competition. Great thanks to my teammates and their hard work! @xiamaozi11 @renxingkai @decalogue 
+
+## Summary
+
+Our team tried to find the additional information about anchor and target in the [public dataset]( shared by the organizer. However, this method has a little benefit because only part of them are matched or those texts are useless.
+
+The essential part of our solution is adding targets with the same anchor to each data sample. This data processing trick boosts our score from 0.84x to 0.85x on LB by a single model.
+
+We stack 12 different models in the final submission. DeBERTa V3 large with MSE loss gives the best single model score on both CV and LB.
+
+
+## Validation strategy
+
+Both `StratifiedGroupKFold` and  `GroupKFold` can prevent data with the same anchor from leaking to validation set. `GroupKFold` can keep the same training data size of each fold, while `StratifiedGroupKFold` can keep the distribution of the label. Both of them are used (by different team member) and get relatively strong correlation between CV and LB.
+
+
+## Data processing
+
+Input data from baseline
+```
+anchor [SEP] target [SEP] context text
+```
+
+Our input data
+```
+anchor [SEP] target; target_x1; target_x2; ... traget_xn; [SEP] context text
+```
+where target_xi are targets with the same anchor and context code.
+
+It's easy to get comaprable improvement by hard encoding them while shuffling the sequence can reach higher score.
+
+
+## Model
+
+Pretrained model
+- Electra large
+- Bert For Patent
+- DeBERTa V3 large
+- DeBERTa V1
+- DeBERTa V1 xlarge
+
+Loss
+- binary cross entropy loss
+- mean squared error loss
+- pearson correlation loss
+
+There is no big difference among those loss functions. However, using different loss in training phrases will lead to high diversity when ensembling because the distribution of the prediction looks different from oof.
+
+Tricks
+- different learning rate for different layer
+- fgm
+- ema
+
+You may get around 1k~2k improvement by adding all of those tricks.
+
+## Result
+
+Single Model
+
+| Model             | CV     | Public Score | Private Score |
+| ----------------- | ------ | ------------ | ------------- |
+| Bert For Patent   | 0.8362 | /            | /             |
+| DeBERTa V3 large  | 0.8516 | 0.8559       | 0.8675        |
+| DeBERTa V1        | 0.8385 | /            | /             |
+| DeBERTa V1 xlarge | 0.8423 | /            | /             |
+| Electra large     | 0.8483 | /            | /             |
+
+Ensemble
+
+12 models with different cross validation strategy, different concatenating methods, different pretrained models and different loss function.
+
+| Model              | CV     | Public Score | Private Score |
+| ------------------ | ------ | ------------ | ------------- |
+| Mean of 12 models  | 0.8674 | 0.8627       | 0.8765        |
+| Stacking 12 models | 0.8683 | 0.8640       | 0.8772        |
+
+
+## Other ideas
+
+There are some ideas we think useful but have no time to try
+
+- Pretrained with the cpc text
+- Prompt learning
+- Predict the score of those concatenated targets together
+

@@ -1,0 +1,54 @@
+First of all we would like to thank Kaggle and AMP PD for hosting this competition and providing a great dataset to dig into and rich enough to get lost in it for several months. It is always an extra motivation to work on problems that can bring value to the medical field or contribute to scientific research. Additional words of gratitude of course go to @kyakovlev for the amazing work he has done, I think we formed a great team for this competition and the results reflect that.
+
+We publish the full code of the winning notebook [here](
+
+## Quick summary
+
+Our final solution is a simple average of two models: LGB and NN. Both models were trained on the same features (+ scaling/binarization for NN):
+- Visit month
+- Forecast horizon
+- Target prediction month
+- Indicator whether blood was taken during the visit
+- Supplementary dataset indicator
+- Indicators whether a patient visit occurred on 6th, 18th and 48th month
+- Count of number of previous “non-annual” visits (6th or 18th)
+- Index of the target (we pivot the dataset to have a single target column)
+
+The winning solution fully ignores the results of the blood tests. We’ve tried hard to find any signal in this crucial piece of the data, but unfortunately we came to the conclusion that none of our approaches or models can benefit from blood test features significant enough to distinguish it from random variations. The final models were trained only on the union of clinical and supplementary datasets.
+
+
+## LGB
+
+For the entire duration of the competition LGB was our model to beat and only a NN trained with the competition metric as the loss function was able to achieve competitive performance on CV. At first, we tried running a regression LGB model with different hyperparameters and custom objective functions, but nothing was better than l1 regression, which does not optimize the desired metric SMAPE+1. We also noticed that on CV the performance of every model is always better when the regression outputs are rounded to integers. Then we switched to an alternative approach.
+
+Our LGB model is a classification model with 87 target classes (0 to maximum target value) and logloss objective. To produce the forecast we applied the following post-processing: given the predicted distribution of target classes, pick a value that minimizes SMAPE+1. Taking into account the observation that the optimal predictions are always integers, the task boils down to a trivial search among 87 possible values. Such an approach would have worked well for the original SMAPE metric also, because the approach treats cases with multiple local minimums naturally.
+
+We ran an optimization routine to tune LGB hyperparameters to minimize SMAPE+1 on CV using the described post-processing.
+
+
+## NN
+
+The neural network has a simple multi-layer feed-forward architecture with a regression target, using the competition metric SMAPE+1 as the loss function. We fixed the number of epochs and scheduler, and then tuned the learning rate and hidden layer size. The only trick there was to add a leaky relu activation as the last layer to prevent NN from getting stuck at negative predictions. Of course there are alternative ways to solve this issue.
+
+
+## Cross-Validation
+
+We’ve tried multiple cross-validation schemes due to the small training sample size, all of them were stratified by patient id. Once a sufficient number of folds is used, they all are quite well correlated to each other. Better than to the public leaderboard :) The final scheme we relied on was leave-one-(patient)-out or, in other words, a group k-fold cross validation with a fold for each patient. We used it because it doesn’t depend on random numbers. The cross-validation correlated well enough with the private leaderboard, and the submit we chose turned out to be our best private LB submission.
+
+
+## What worked
+
+The most impactful feature was the indication of whether a patient visit happened on the 6th month or not. It correlates strongly with the UPDRS targets (especially 2 and 3) and with frequency of medications being taken. As we can observe only the data correlation, it is impossible to judge what is the core reason for that. During the competition our hypothesis was that the patients that had more severe symptoms during the first examination (UPDRS scores parts 2 and 3) were more likely to get invited for a visit after 6 months and more likely to get medications prescribed. But for model training it was important that the patients that made a visit on the 6th month, have higher UPDRS scores on average. The same is true for an 18th month visit as well, but these 2 features are correlated. I personally wonder if presence / absence of these variables in the models are the reason for the private LB cliff effect around 20th place.
+
+Another curious effect related to it is observed for the forecasts made at visit_month = 0. If you look at the model forecasts for 0, 12 and 24 months ahead, they are consistently lower than the forecasts 6 months ahead. It is very logical from the math point of view - if a patient will show up on the 6th month, they will have higher UPDRS scores on average, and if not - the forecast will be ignored. But such model behaviour is unreasonable from a clinical point of view of course.
+
+It was also important to pay attention to the differences between training and test datasets as e.g. nicely summarized [here]( That, for instance, explains well why adding a feature indicating the visit on the 30th month could improve the CV, but ruin LB.
+
+
+## What didn’t work
+
+Blood test data. We’ve tried many approaches to add proteins and/or peptides data to our models, but none of them improved CV. We narrowed it down to a bag of logistic regressions that forecasted the visit on the 6th month based on the blood test result on the 0th month. We applied soft up/down scaling of model-based predictions for patients that were more/less likely to visit on the 6th month based on the logistic regression probabilities. It worked on public LB after tuning a couple of “magic” coefficients directly on public LB itself. That gave us a boost all the way up to the second place on public LB, but it was clearly an overfit. We chose a “mild” version of that approach as our second final submission. It scored worse on private LB than the other submission, but, interestingly enough, not by as much as one could have expected (60.0 vs 60.3).
+
+
+Thanks to everyone who participated in the competition, those who kept many interesting discussions going on the forum and those who suggested improvements! And congrats to all the winners!
+

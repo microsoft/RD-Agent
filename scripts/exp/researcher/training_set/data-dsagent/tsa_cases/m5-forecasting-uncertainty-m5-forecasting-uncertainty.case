@@ -1,0 +1,24 @@
+(1) The overall design of the code is to train a model for a Kaggle competition on sales forecasting. It preprocesses the sales and calendar data, creates a dataset, defines the model architecture, trains the model, and makes predictions.
+
+(2) The overall model architecture consists of an embedding layer for categorical features, followed by three GRU layers with dropout regularization. The model takes in multiple inputs including categorical features (such as snap_CA, snap_TX, etc.) and numerical features (such as lagged sales values). The categorical features are embedded into lower-dimensional representations, and all the features are concatenated and fed into the GRU layers. The output of the model is a dense layer with 9 units, representing the predicted quantiles of the sales.
+
+(3) The important hyperparameters in this code are:
+- CATEGORIZE: A boolean variable indicating whether to categorize the categorical features or not.
+- START: An integer indicating the starting day of the sales data to consider.
+- UPPER: An integer indicating the upper limit of the days to consider in the sales data.
+- LAGS: A list of integers representing the lag values for the lagged sales features.
+- seq_len: An integer representing the sequence length of the input data.
+- batch_size: An integer representing the batch size for training the model.
+- patience: An integer representing the number of epochs with no improvement after which training will be stopped.
+- min_lr: A float representing the lower bound of the learning rate during training.
+
+(4) The optimization objective is to minimize the weighted quantile loss (wqloss) function. This loss function calculates the pinball loss for multiple quantiles and weights the losses based on the actual sales values.
+
+(5) The advanced machine learning technique used in this code is the use of a recurrent neural network (RNN) architecture, specifically the GRU (Gated Recurrent Unit) layers. The GRU layers allow the model to capture temporal dependencies in the sales data and make predictions based on the historical sales values.
+
+(6) Some important tricks that play a role in high performance include:
+- Categorizing the categorical features to reduce the dimensionality and improve the model's ability to learn from the data.
+- Using lagged sales values as additional features to capture temporal patterns in the data.
+- Using dropout regularization to prevent overfitting and improve generalization.
+- Using the Adam optimizer for efficient gradient-based optimization.
+- Using early stopping and learning rate reduction techniques to prevent overfitting and improve convergence.

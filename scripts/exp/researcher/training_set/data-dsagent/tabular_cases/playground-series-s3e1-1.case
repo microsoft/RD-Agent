@@ -1,0 +1,17 @@
+First - thanks for the fun competition, great public solutions and contributions! 👍
+
+This will be a short summary but still as some maybe are interested in what FE/models etc. included to the solution.
+
+Didn't had much time for this competition while doing other as well but joined the competitions for trying some new frameworks versions in this specific dataset.
+
+I finally picked the AutoGluon framework and its tabular predictor for the task.
+"AutoGluon-Tabular: Robust and Accurate AutoML for Structured Data" - 
+
+For the FE part I used a public notebook  ,  credit to author!
+
+The AG trained solution is an weighted ensemble of many 8 fold trained common architectures as xgb,lgbm,catb,RF,NN etc and it also used bootstrap aggregation and stacking(3 levels for this one).
+
+The final local CV score was 0.5006.
+
+That's it! 🙂
+

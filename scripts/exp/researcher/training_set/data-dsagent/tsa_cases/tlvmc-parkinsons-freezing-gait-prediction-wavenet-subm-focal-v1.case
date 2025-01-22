@@ -1,0 +1,22 @@
+(1) The overall design of the code is to create a high-performing solution for a Kaggle competition related to gait prediction. It uses a deep learning model called WaveNet to predict three target variables: StartHesitation, Turn, and Walking. The code includes data preprocessing, model architecture, training process, and testing process.
+
+(2) The overall model architecture consists of a Wave_Block module and a Classifier module. The Wave_Block module is responsible for capturing temporal dependencies in the input data using dilated convolutions. It takes the input data and applies a series of dilated convolutions with different dilation rates. The output of each convolutional layer is passed through a tanh activation function and a sigmoid activation function, and then multiplied element-wise. The result is added to the input data, creating a residual connection. This process is repeated for each dilation rate. The Classifier module consists of a bidirectional LSTM layer followed by four Wave_Block modules. The output of the last Wave_Block module is passed through a linear layer to obtain the final predictions.
+
+(3) The important hyperparameters in this code are:
+- WAV_SIZE: The size of each chunk of the input waveform.
+- STEP_SIZE: The step size for creating chunks from the input waveform.
+- TIMES_REAL: The number of times to repeat each real sample in the training dataset.
+- TIMES_TRAIN: The number of times to repeat each sample in the training dataset.
+- is_mixed_precision: Whether to use mixed precision training.
+- TARGET_COLS: The names of the target variables.
+
+(4) The optimization objective is not explicitly mentioned in the code. However, based on the model architecture and the use of sigmoid activation function in the final layer, it can be inferred that the optimization objective is binary cross-entropy loss. The model aims to minimize the binary cross-entropy loss between the predicted probabilities and the true labels for each target variable.
+
+(5) The advanced machine learning technique used in this code is the WaveNet architecture. WaveNet is a deep learning model that is specifically designed for generating audio waveforms. It uses dilated convolutions to capture long-range dependencies in the input data, making it suitable for time series data with temporal dependencies.
+
+(6) Some important tricks that play a role in high performance are:
+- Resampling the input waveform: The code resamples the input waveform from 128 Hz to 100 Hz using librosa library. This helps to reduce the dimensionality of the input data and make it more manageable for the model.
+- Normalizing the input waveform: The code divides the resampled waveform by 40 to normalize it. This helps to bring the input data to a similar scale and improve the convergence of the model.
+- Creating chunks from the input waveform: The code creates chunks of fixed size from the input waveform. This helps to handle variable-length input data and enables batch processing.
+- Using residual connections: The code uses residual connections in the Wave_Block module. This helps to alleviate the vanishing gradient problem and improve the flow of gradients during training.
+- Using mixed precision training: The code uses mixed precision training, which combines both single precision and half precision floating-point numbers. This helps to speed up the training process and reduce memory usage without sacrificing model performance.

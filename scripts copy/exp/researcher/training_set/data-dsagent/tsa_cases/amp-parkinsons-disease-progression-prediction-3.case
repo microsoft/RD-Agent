@@ -1,0 +1,40 @@
+First of all, I would like to thank Kaggle and AMP PD for organizing this great competition. I would also like to thank all the kagglers who participated in this competition. I am very happy to have won my first gold medal and also to have won a prize.
+
+My solution is simple and consists of three main functions.
+
+## 1. Grouping
+
+As many have pointed out, I have divided the groups into two, each optimized for a different visit interval (6 or 12 months).
+One key point is that we need to focus not only on the 6th month, but also on the 18th month. There are patients who are missing the 6th month but have the 18th month present, and this patient is not healthy.
+By using the cumulative minimum function, I considered patients with either the 6th month or the 18th month present as unhealthy.
+
+#### [Group A : Healthy]
+- Patients with a minimum visit interval of 12 months or more
+#### [Group B : Unhealthy]
+- Patients with a minimum visit interval of 6 months or less
+
+## 2. Labeling (mainly Group B)
+
+As I looked at the data for Group B, the unhealthy group, I found several patterns. The frequency of protein collection and protein information are linked to the severity of symptoms. I then generated several labels based on protein collection frequency and protein information and used them as features.
+
+The following 9 labels were finally adopted.
+
+#### [more severe symptoms]
+- Protein was collected at 6 months
+- Protein was collected at 6 months and again at 12 months
+- Low number of unique "UniPort" (approximately the bottom 20%)
+- Low number of unique "UniPort" (approximately the bottom 10%)
+
+#### [milder symptoms]
+- Protein not collected at 6 months
+- Protein was collected at 6 months but not at 12 months
+- Protein not collected at 6 months, but collected at 18 months
+- High number of unique "UniPort" and high change of "Peptide" from the previous measurement (approximately the top 20%)
+- High number of unique "UniPort" and high change of "Peptide" from the previous measurement (approximately the top 10%)
+
+## 3. Modeling
+
+Initially, I also tried LightGBM using these features, but LB worsened and I did not use them in my final model. In my final model, I used these features to obtain the coefficients (severity) by grid search.
+Due to the small sample size of the train data (248 patients), some labels improved for the train data (248 patients) but worsened for the LB (50 patients). In my various experiments, I decided to adopt only those that improved both train and LB (248 + 50 patients).
+I thought this would be a more robust model. As a result, the final scores were also stable.
+

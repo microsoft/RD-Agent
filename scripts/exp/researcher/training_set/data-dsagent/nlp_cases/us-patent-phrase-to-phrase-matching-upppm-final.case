@@ -1,0 +1,31 @@
+(1) The overall design of the code is to train multiple models using different configurations and then use an ensemble of these models to make predictions on the test data. The code first preprocesses the data by cleaning and transforming it. It then defines a custom dataset class and a collate function for creating data loaders. Next, it defines the model architecture and a function for testing the model. It then loads the trained models, makes predictions on the test data, and combines the predictions using an ensemble approach. Finally, it generates a submission file with the predicted scores.
+
+(2) The overall model architecture is based on pre-trained transformer models (BERT and DeBERTa). The code uses the Hugging Face library `transformers` to load the pre-trained models and tokenizer. The models are fine-tuned for sequence classification by adding a linear layer on top of the transformer output. The input to the model is a sequence of tokens, which includes the anchor phrase, target phrase, and context text. The model outputs a single value representing the similarity score between the anchor and target phrases.
+
+(3) The important hyperparameters in this code are defined in the `CFG` dictionaries. These hyperparameters include:
+- `fold_num`: Number of folds for cross-validation.
+- `seed`: Random seed for reproducibility.
+- `model`: Path to the pre-trained model.
+- `path`: Path to save the trained model.
+- `max_len`: Maximum length of the input sequence.
+- `epochs`: Number of training epochs.
+- `train_bs`: Batch size for training.
+- `valid_bs`: Batch size for validation.
+- `lr`: Learning rate for optimization.
+- `num_workers`: Number of workers for data loading.
+- `weight_decay`: Weight decay for regularization.
+- `sigmoid`: Whether to apply sigmoid activation to the model output.
+
+(4) The optimization objective is to minimize the mean squared error (MSE) loss between the predicted similarity scores and the true scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code utilizes pre-trained transformer models (BERT and DeBERTa) that have been trained on large-scale language modeling tasks. By fine-tuning these models on the specific task of phrase matching, the code leverages the pre-trained knowledge to improve performance on the target task.
+
+(6) Some important tricks that play a role in high performance include:
+- Data preprocessing: The code cleans and transforms the data to create informative input sequences for the model.
+- Custom dataset class: The code defines a custom dataset class to handle the input data and create batches for training and validation.
+- Collate function: The code defines a collate function to handle variable-length input sequences and create tensors for model input.
+- Model architecture: The code uses state-of-the-art transformer models for sequence classification, which have been shown to perform well on various natural language processing tasks.
+- Ensemble approach: The code combines predictions from multiple models using an ensemble approach, which can improve the overall performance by reducing the impact of individual model biases.
+- Seed setting: The code sets the random seed to ensure reproducibility of the results.
+- GPU acceleration: The code checks for the availability of a GPU and uses it for model training and inference, which can significantly speed up the process.
+- Hyperparameter tuning: The code explores different hyperparameter settings by training multiple models with different configurations, allowing for better performance optimization.
