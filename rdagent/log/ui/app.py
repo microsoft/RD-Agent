@@ -145,6 +145,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
             try:
                 msg = next(state.fs)
                 msg.tag = re.sub(r'\.evo_loop_\d+', '', msg.tag)
+                msg.tag = re.sub(r'Loop_\d+\.[^.]+', '', msg.tag)
+                msg.tag = re.sub(r'\.\.', '.', msg.tag)
+                
                 if should_display(msg):
                     tags = msg.tag.split(".")
                     if "r" not in state.current_tags and "r" in tags:

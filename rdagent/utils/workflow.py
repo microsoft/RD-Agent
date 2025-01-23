@@ -111,29 +111,29 @@ class LoopBase:
                 li, si = self.loop_idx, self.step_idx
 
                 name = self.steps[si]
-                # with logger.tag(f"Loop_{li}.{name}"):
-                start = datetime.datetime.now(datetime.timezone.utc)
-                func = getattr(self, name)
-                try:
-                    self.loop_prev_out[name] = func(self.loop_prev_out)
-                    # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
-                except self.skip_loop_error as e:
-                    # FIXME: This does not support previous demo (due to their last step is not for recording)
-                    logger.warning(f"Skip loop {li} due to {e}")
-                    # NOTE: strong assumption!  The last step is responsible for recording information
-                    self.step_idx = len(self.steps) - 1  # directly jump to the last step.
-                    self.loop_prev_out[self.EXCEPTION_KEY] = e
-                    continue
-                finally:
-                    # make sure failure steps are displayed correclty
-                    end = datetime.datetime.now(datetime.timezone.utc)
-                    self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
+                with logger.tag(f"Loop_{li}.{name}"):
+                    start = datetime.datetime.now(datetime.timezone.utc)
+                    func = getattr(self, name)
+                    try:
+                        self.loop_prev_out[name] = func(self.loop_prev_out)
+                        # TODO: Fix the error logger.exception(f"Skip loop {li} due to {e}")
+                    except self.skip_loop_error as e:
+                        # FIXME: This does not support previous demo (due to their last step is not for recording)
+                        logger.warning(f"Skip loop {li} due to {e}")
+                        # NOTE: strong assumption!  The last step is responsible for recording information
+                        self.step_idx = len(self.steps) - 1  # directly jump to the last step.
+                        self.loop_prev_out[self.EXCEPTION_KEY] = e
+                        continue
+                    finally:
+                        # make sure failure steps are displayed correclty
+                        end = datetime.datetime.now(datetime.timezone.utc)
+                        self.loop_trace[li].append(LoopTrace(start, end, step_idx=si))
 
-                    # Update tqdm progress bar directly to step_idx
-                    pbar.n = si + 1
-                    pbar.set_postfix(
-                        loop_index=li, step_index=si + 1, step_name=name
-                    )  # step_name indicate  last finished step_name
+                        # Update tqdm progress bar directly to step_idx
+                        pbar.n = si + 1
+                        pbar.set_postfix(
+                            loop_index=li, step_index=si + 1, step_name=name
+                        )  # step_name indicate  last finished step_name
 
                 # index increase and save session
                 self.step_idx = (self.step_idx + 1) % len(self.steps)
