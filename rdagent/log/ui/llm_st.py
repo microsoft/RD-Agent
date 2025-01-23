@@ -72,8 +72,6 @@ with st.sidebar:
         load_data()
         st.rerun()
 
-    expand_all = st.toggle("Expand All", key="expand_all")
-
 
 # Helper functions
 def show_text(text, lang=None):
@@ -125,6 +123,67 @@ for i, d in enumerate(session_state.data):
 sorted_loop_ids = sorted(loop_groups.keys(), key=int)  # 假设 Loop ID 是数字
 total_loops = len(sorted_loop_ids)
 total_pages = total_loops  # 每页展示一个 Loop
+
+
+# simple display
+# FIXME: Delete this simple UI if trace have tag(evo_id & loop_id)
+# with st.sidebar:
+#     start = int(st.text_input("start", 0))
+#     end = int(st.text_input("end", 100))
+# for m in session_state.data[start:end]:
+#     if "tpl" in m["tag"]:
+#         obj = m["obj"]
+#         uri = obj["uri"]
+#         tpl = obj["template"]
+#         cxt = obj["context"]
+#         rd = obj["rendered"]
+#         with st.expander(highlight_prompts_uri(uri), expanded=False, icon="⚙️"):
+#             t1, t2, t3 = st.tabs([":green[**Rendered**]", ":blue[**Template**]", ":orange[**Context**]"])
+#             with t1:
+#                 show_text(rd)
+#             with t2:
+#                 show_text(tpl, lang="django")
+#             with t3:
+#                 st.json(cxt)
+#     if "llm" in m["tag"]:
+#         obj = m["obj"]
+#         system = obj.get("system", None)
+#         user = obj["user"]
+#         resp = obj["resp"]
+#         with st.expander(f"**LLM**", expanded=False, icon="🤖"):
+#             t1, t2, t3 = st.tabs([":green[**Response**]", ":blue[**User**]", ":orange[**System**]"])
+#             with t1:
+#                 try:
+#                     rdict = json.loads(resp)
+#                     if "code" in rdict:
+#                         code = rdict["code"]
+#                         st.markdown(":red[**Code in response dict:**]")
+#                         st.code(code, language="python", wrap_lines=True, line_numbers=True)
+#                         rdict.pop("code")
+#                     elif "spec" in rdict:
+#                         spec = rdict["spec"]
+#                         st.markdown(":red[**Spec in response dict:**]")
+#                         st.markdown(spec)
+#                         rdict.pop("spec")
+#                     else:
+#                         # show model codes
+#                         showed_keys = []
+#                         for k, v in rdict.items():
+#                             if k.startswith("model_") and k.endswith(".py"):
+#                                 st.markdown(f":red[**{k}**]")
+#                                 st.code(v, language="python", wrap_lines=True, line_numbers=True)
+#                                 showed_keys.append(k)
+#                         for k in showed_keys:
+#                             rdict.pop(k)
+#                     st.write(":red[**Other parts (except for the code or spec) in response dict:**]")
+#                     st.json(rdict)
+#                 except:
+#                     st.json(resp)
+#             with t2:
+#                 show_text(user)
+#             with t3:
+#                 show_text(system or "No system prompt available")
+
 
 if total_pages:
     # 初始化 current_loop
