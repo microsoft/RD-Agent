@@ -6,12 +6,13 @@ from pathlib import Path
 import fire
 import pandas as pd
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.log.storage import FileStorage
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
 mle_de_conf = MLEBDockerConf()
 mle_de_conf.extra_volumes = {
-    f"/data/userdata/share/mle_kaggle/zip_files": "/mle/data",
+    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
 }
 de = DockerEnv(conf=mle_de_conf)
 de.prepare()
