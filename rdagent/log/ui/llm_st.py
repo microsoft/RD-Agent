@@ -72,6 +72,7 @@ with st.sidebar:
         load_data()
         st.rerun()
 
+
 # Helper functions
 def show_text(text, lang=None):
     """显示文本代码块"""
