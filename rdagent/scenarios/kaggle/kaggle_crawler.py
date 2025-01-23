@@ -133,11 +133,13 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                 with zipfile.ZipFile(zip_path, "r") as zip_ref:
                     if len(zip_ref.namelist()) == 1:
                         mleb_env.run(
-                            f"unzip -o {zip_path} -d {zip_path.parent}",
+                            f"unzip -o ./{zip_path.relative_to(local_path)} -d {zip_path.parent.relative_to(local_path)}",
+                            local_path=local_path,
                         )
                     else:
                         mleb_env.run(
-                            f"mkdir -p {zip_path.stem}; unzip -o {zip_path} -d {zip_path.stem}",
+                            f"mkdir -p ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(local_path)} -d ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}",
+                            local_path=local_path,
                         )
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
