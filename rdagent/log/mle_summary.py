@@ -73,7 +73,9 @@ def summarize_folder(log_folder: Path):
                         valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
                         grade_output_path = msg.content.experiment_workspace.workspace_path / "mle_score.txt"
                         if not grade_output_path.exists():
-                            raise FileNotFoundError(f"mle_score.txt in {grade_output_path} not found, genarate it first!")
+                            raise FileNotFoundError(
+                                f"mle_score.txt in {grade_output_path} not found, genarate it first!"
+                            )
                         grade_output = extract_mle_json(grade_output_path.read_text())
                         if grade_output["score"] is not None:
                             test_scores[loop_num - 1] = grade_output["score"]
