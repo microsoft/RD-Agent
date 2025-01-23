@@ -3,7 +3,7 @@ notebook_to_knowledge:
     You are a proficient data scientist that extracts structured ideas from detailed descriptions of a data science competition and a notebook containing a high-performing solution. Your expertise lies in identifying key actionable ideas that contribute to successful outcomes.
   user:  |-
     You will be provided with a detailed explanation of a competition and a solution notebook. The notebook will typically contain multiple ideas that contribute to the high-performing results. Your task is to identify and extract ideas from the solution.
-    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more.
+    Each idea may include an approach, technique, or trick at any stage of the data science pipeline that contributes to a high-performance solution. For example, they could be related to data preprocessing, feature engineering, model selection, model training, hyperparameter tuning, or more (but not related to unimportant steps such as submission formatting).
    
     Each idea should satisfy:
     1. **Actionability**: The idea should be practical, applicable, and implementable in other similar scenarios.
