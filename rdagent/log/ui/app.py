@@ -1,4 +1,5 @@
 import argparse
+import re
 import textwrap
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -143,6 +144,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
         while True:
             try:
                 msg = next(state.fs)
+
+                # new scenario gen this tags, old version UI not have these tags.
+                msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
+                msg.tag = re.sub(r"Loop_\d+\.[^.]+", "", msg.tag)
+                msg.tag = re.sub(r"\.\.", ".", msg.tag)
+                msg.tag = msg.tag.strip(".")
+
                 if should_display(msg):
                     tags = msg.tag.split(".")
                     if "r" not in state.current_tags and "r" in tags:
