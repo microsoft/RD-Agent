@@ -109,8 +109,8 @@ class LoopBase:
                     step_n -= 1
 
                 li, si = self.loop_idx, self.step_idx
-
                 name = self.steps[si]
+                logger.info(f"Start Loop {li}, Step {si}: {name}")
                 with logger.tag(f"Loop_{li}.{name}"):
                     start = datetime.datetime.now(datetime.timezone.utc)
                     func = getattr(self, name)
