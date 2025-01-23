@@ -24,6 +24,7 @@ from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff
 from scripts.exp.researcher.idea_pool import Idea, Idea_Pool
+from scripts.exp.researcher.kaggle_crawler import solution_to_feature
 
 class DSHypothesis(Hypothesis):
     def __init__(
@@ -287,7 +288,14 @@ class DSExpGen(ExpGen):
             )
 
             # Retrieve the best idea
-            idea = self.idea_pool.idea_pool[0]
+            solution = f'''## Competition Scenario
+{scenario_desc}
+
+## Solution Notebook
+{sota_exp.experiment_workspace.all_codes}
+'''
+            idea, sim = self.idea_pool.sample(solution_to_feature(solution), k=1)
+            idea = idea[0]
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:idea_component_gen.system").r()
