@@ -47,4 +47,5 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     consecutive_errors: int = 1
 
+
 DS_RD_SETTING = DataScienceBasePropSetting()
