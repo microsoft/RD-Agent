@@ -284,7 +284,7 @@ class DSExpGen(ExpGen):
                 )
             )
             exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-                exp_and_feedback=exp_and_feedback 
+                exp_and_feedback=exp_and_feedback
             )
 
             # Retrieve the best idea
@@ -301,7 +301,7 @@ class DSExpGen(ExpGen):
             component_sys_prompt = T(".prompts:idea_component_gen.system").r()
             component_user_prompt = T(".prompts:idea_component_gen.user").r(
                 scenario=scenario_desc,
-                solution=sota_exp.experiment_workspace.all_codes,
+                solution=sota_exp_desc,
                 idea=idea.format_JSON(),
                 component_output_format=T(".prompts:output_format.component").r(),
             )
@@ -312,7 +312,7 @@ class DSExpGen(ExpGen):
                 )
             )
 
-            component = resp_dict_component.get("component", "Component not provided") # one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']
+            component = resp_dict_component.get("component", "Component not provided")
 
             # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
