@@ -58,51 +58,51 @@ class RAGEvoAgent(EvoAgent):
         eva: Evaluator | Feedback,
         filter_final_evo: bool = False,
     ) -> EvolvableSubjects:
-        for _ in tqdm(range(self.max_loop), "Implementing"):
-            # with logger.tag(f"evo_loop_{evo_loop_id}"):
-            # 1. knowledge self-evolving
-            if self.knowledge_self_gen and self.rag is not None:
-                self.rag.generate_knowledge(self.evolving_trace)
-            # 2. RAG
-            queried_knowledge = None
-            if self.with_knowledge and self.rag is not None:
-                # TODO: Putting the evolving trace in here doesn't actually work
-                queried_knowledge = self.rag.query(evo, self.evolving_trace)
+        for evo_loop_id in tqdm(range(self.max_loop), "Implementing"):
+            with logger.tag(f"evo_loop_{evo_loop_id}"):
+                # 1. knowledge self-evolving
+                if self.knowledge_self_gen and self.rag is not None:
+                    self.rag.generate_knowledge(self.evolving_trace)
+                # 2. RAG
+                queried_knowledge = None
+                if self.with_knowledge and self.rag is not None:
+                    # TODO: Putting the evolving trace in here doesn't actually work
+                    queried_knowledge = self.rag.query(evo, self.evolving_trace)
 
-            # 3. evolve
-            evo = self.evolving_strategy.evolve(
-                evo=evo,
-                evolving_trace=self.evolving_trace,
-                queried_knowledge=queried_knowledge,
-            )
-            # TODO: Due to design issues, we have chosen to ignore this mypy error.
-            logger.log_object(evo.sub_workspace_list, tag="evolving code")  # type: ignore[attr-defined]
-            for sw in evo.sub_workspace_list:  # type: ignore[attr-defined]
-                logger.info(f"evolving code workspace: {sw}")
-
-            # 4. Pack evolve results
-            es = EvoStep(evo, queried_knowledge)
-
-            # 5. Evaluation
-            if self.with_feedback:
-                es.feedback = (
-                    # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator,
-                    # it fails mypy's test here, so we'll ignore this error for now.
-                    eva
-                    if isinstance(eva, Feedback)
-                    else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
+                # 3. evolve
+                evo = self.evolving_strategy.evolve(
+                    evo=evo,
+                    evolving_trace=self.evolving_trace,
+                    queried_knowledge=queried_knowledge,
                 )
-                logger.log_object(es.feedback, tag="evolving feedback")
+                # TODO: Due to design issues, we have chosen to ignore this mypy error.
+                logger.log_object(evo.sub_workspace_list, tag="evolving code")  # type: ignore[attr-defined]
+                for sw in evo.sub_workspace_list:  # type: ignore[attr-defined]
+                    logger.info(f"evolving code workspace: {sw}")
 
-            # 6. update trace
-            self.evolving_trace.append(es)
+                # 4. Pack evolve results
+                es = EvoStep(evo, queried_knowledge)
 
-            # 7. check if all tasks are completed
-            if self.with_feedback:
-                all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback
-                if all_completed:
-                    logger.info("All tasks in evolving subject have been completed.")
-                    break
+                # 5. Evaluation
+                if self.with_feedback:
+                    es.feedback = (
+                        # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator,
+                        # it fails mypy's test here, so we'll ignore this error for now.
+                        eva
+                        if isinstance(eva, Feedback)
+                        else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
+                    )
+                    logger.log_object(es.feedback, tag="evolving feedback")
+
+                # 6. update trace
+                self.evolving_trace.append(es)
+
+                # 7. check if all tasks are completed
+                if self.with_feedback:
+                    all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback
+                    if all_completed:
+                        logger.info("All tasks in evolving subject have been completed.")
+                        break
 
         if self.with_feedback and filter_final_evo:
             evo = self.filter_evolvable_subjects_by_feedback(evo, self.evolving_trace[-1].feedback)
