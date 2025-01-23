@@ -128,10 +128,17 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
             (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
             mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
-            mleb_env.run(
-                f'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done',
-                local_path=local_path,
-            )
+
+            for zip_path in (Path(local_path) / competition).rglob("*.zip"):
+                with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                    if len(zip_ref.namelist()) == 1:
+                        mleb_env.run(
+                            f"unzip -o {zip_path} -d {zip_path.parent}",
+                        )
+                    else:
+                        mleb_env.run(
+                            f"mkdir -p {zip_path.stem}; unzip -o {zip_path} -d {zip_path.stem}",
+                        )
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
             # We have to switch the schema back to a uniform one;
