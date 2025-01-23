@@ -237,6 +237,7 @@ def all_summarize_win():
         )
         return
     summary = pd.read_pickle(state.log_folder / "summary.pkl")
+    summary = {k: v for k, v in summary.items() if "competition" in v}
     base_df = pd.DataFrame(
         columns=["Competition", "Total Loops", "Made Submission", "Successful Final Decision", "Medal"],
         index=summary.keys(),
