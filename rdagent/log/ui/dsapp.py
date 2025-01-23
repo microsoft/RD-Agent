@@ -6,6 +6,10 @@ from collections import defaultdict
 import pandas as pd
 import json
 import re
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from rdagent.log.mle_summary import extract_mle_json
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -66,6 +70,7 @@ with st.sidebar:
         state.data = load_data(state.log_path)
         st.rerun()
 
+    show_all_summary = st.toggle("One Trace / Log Folder Summary", value=True)
 
 # UI windows
 def task_win(data):
@@ -175,12 +180,6 @@ def main_win(data):
 - [SOTA Experiment](#sota-experiment)
 """)
 
-def extract_json_from_log(log_content):
-    match = re.search(r'\{.*\}', log_content, re.DOTALL)
-    if match:
-        return json.loads(match.group(0))
-    return None
-
 def summarize_data():
     st.header("Summary", divider="rainbow")
     df = pd.DataFrame(columns=["Component", "Running Score", "Feedback"], index=range(len(state.data)-1))
@@ -193,7 +192,7 @@ def summarize_data():
             if "mle_score" not in state.data[loop]:
                 mle_score_path = loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt"
                 try:
-                    state.data[loop]["mle_score"] = extract_json_from_log(mle_score_path.read_text())
+                    state.data[loop]["mle_score"] = extract_mle_json(mle_score_path.read_text())
                     df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
                 except Exception as e:
                     state.data[loop]["mle_score"] = str(e)
@@ -207,8 +206,45 @@ def summarize_data():
             df.loc[loop, "Feedback"] = "N/A"
     st.dataframe(df)
 
+def all_summarize_win():
+    if not (state.log_folder / "summary.pkl").exists():
+        st.warning(f"No summary file found in {state.log_folder}\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder=<your trace folder>`")
+        return
+    summary = pd.read_pickle(state.log_folder / "summary.pkl")
+    base_df = pd.DataFrame(columns=["Competition", "Total Loops", "Made Submission", "Successful Final Decision", "Medal"], index=summary.keys())
+    for k, v in summary.items():
+        loop_num = v["loop_num"]
+        base_df.loc[k, "Competition"] = v["competition"]
+        base_df.loc[k, "Total Loops"] = loop_num
+        base_df.loc[k, "Made Submission"] = f"{v['made_submission_num']} ({round(v['made_submission_num'] / loop_num * 100, 2)}%)"
+        base_df.loc[k, "Successful Final Decision"] = f"{v['success_loop_num']} ({round(v['success_loop_num'] / loop_num * 100, 2)}%)"
+        base_df.loc[k, "Medal"] = v["medal"]
+    st.dataframe(base_df)
+    # write curve
+    for k, v in summary.items():
+        with st.container(border=True):
+            st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
+            vscores = {k:v.iloc[:,0] for k,v in v["valid_scores"].items()}
+            if len(vscores) > 0:
+                metric_name = list(vscores.values())[0].name
+            else:
+                metric_name = "None"
+
+            fc1, fc2 = st.columns(2)
+            vdf = pd.DataFrame(vscores)
+            vdf.columns = [f"loop {i}" for i in vdf.columns]
+            f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+            fc1.plotly_chart(f1, key=f"{k}_v")
+
+            tscores = {f"loop {k}":v for k,v in v["test_scores"].items()}
+            tdf = pd.Series(tscores, name="score")
+            f2 = px.line(tdf, markers=True, title="Test scores")
+            fc2.plotly_chart(f2, key=k)
+                
 # UI - Main
-if "data" in state:
+if show_all_summary:
+    all_summarize_win()
+elif "data" in state:
     st.title(state.data["competition"])
     summarize_data()
     loop_id = st.slider("Loop", 0, len(state.data)-2, 0)
