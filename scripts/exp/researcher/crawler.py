@@ -10,7 +10,7 @@ def ensure_directory_exists(path):
 
 if __name__ == "__main__":
     competition = "data-science-bowl-2018"
-    local_data_path = "/data/userdata/v-xhong/ds_researcher/RD-Agent/scripts/exp/researcher/training_set/raw_jsons/data-science-bowl-2018"
+    local_data_path = "/data/userdata/v-xhong/researcher/RD-Agent/scripts/exp/researcher/training_set/raw_jsons/data-science-bowl-2018"
 
     # Ensure the competition directory exists
     ensure_directory_exists(local_data_path)
