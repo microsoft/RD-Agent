@@ -46,14 +46,13 @@ class DSHypothesis(Hypothesis):
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
         return f"""Chosen Component: {self.component}
-Hypothesis: {self.hypothesis}
-Reason: {self.reason}
-Concise Reason & Knowledge: {self.concise_reason}
-Concise Observation: {self.concise_observation}
-Concise Justification: {self.concise_justification}
-Concise Knowledge: {self.concise_knowledge}
+Data Feature: {self.hypothesis}
+Problem Feature: {self.reason}
+Method: {self.concise_reason}
+Method Feature: {self.concise_observation}
+Reason: {self.concise_justification}
+Example Usage: {self.concise_knowledge}
 """
-
 
 COMPONENT_TASK_MAPPING = {
     "DataLoadSpec": {
@@ -307,16 +306,12 @@ class DSExpGen(ExpGen):
             idea = idea[0]
 
             # Generate component using template with proper context
-            component_sys_prompt = T(".prompts:component_gen.system").r(
+            component_sys_prompt = T(".prompts:idea_component_gen.system").r()
+            component_user_prompt = T(".prompts:idea_component_gen.user").r(
                 scenario=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-                last_exp_diff=last_exp_diff,
-                component_output_format=T(".prompts:output_format.component").r(),
-            )
-
-            component_user_prompt = T(".prompts:component_gen.user").r(
-                exp_and_feedback_desc=exp_and_feedback_desc,
+                solution=sota_exp_desc,
                 idea=idea.format_JSON(),
+                component_output_format=T(".prompts:output_format.component").r(),
             )
 
             resp_dict_component: dict = json.loads(
@@ -358,7 +353,6 @@ class DSExpGen(ExpGen):
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
                     exp_and_feedback_desc=exp_and_feedback_desc,
                     sota_exp_desc=sota_exp_desc,
-                    idea=idea.format_JSON(),
                     last_exp_diff=last_exp_diff,
                     recent_trace_desc="\n".join(recent_trace_desc),
                 )
@@ -368,18 +362,16 @@ class DSExpGen(ExpGen):
                         user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
                 )
-                assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
                 assert "task_design" in resp_dict, "Task design not provided."
                 task_class = component_info["task_class"]
-                hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
                 hypothesis = DSHypothesis(
                     component=component,
-                    hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                    reason=hypothesis_proposal.get("reason", ""),
-                    concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                    concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                    concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                    concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                    hypothesis=idea.hypothesis["data"],
+                    reason=idea.hypothesis["problem"],
+                    concise_reason=idea.method,
+                    concise_observation=idea.hypothesis["method"],
+                    concise_justification=idea.hypothesis["reason"],
+                    concise_knowledge=idea.context,
                 )
 
                 task_design = resp_dict.get("task_design", {})
