@@ -100,9 +100,9 @@ workflow_eval:
     Please respond with your feedback in the following JSON format and order:
     ```json
     {
-        "execution": "Describe whether the model executed successfully, including any errors or issues encountered. Please keep the error message and tracking information",
-        "return_checking": "Check the generated value, including whether the value is generated and comparing the shape of the model output with the requirement in the specification. You also need to check whether the hyperparameters used for retraining are correctly returned during the test execution of the model.",
-        "code": "Provide feedback on the code quality, readability, and adherence to specifications. Check whether the hyperparameters from the previous run are used in the model code, compare the parameter names in stdout and if they are used in the retraining part of the code.",
+        "execution": "Describe whether the main code executed successfully(well organizing different components and generating the final submission), including any errors or issues encountered. Please keep the error message and tracking information",
+        "return_checking": "Review the generated files, specifically the submission file, to ensure the format matches the sample submission. Pay attention to the index, columns, and content of the CSV files in the stdout."
+        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
     }
     ```

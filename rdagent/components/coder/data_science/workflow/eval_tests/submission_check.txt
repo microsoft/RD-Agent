@@ -1,5 +1,5 @@
-import pandas as pd
 from pathlib import Path
+import pandas as pd
 
 # Check if the sample submission file exists
 if not Path("/kaggle/input/sample_submission.csv").exists():
@@ -9,10 +9,33 @@ sample_submission = pd.read_csv('/kaggle/input/sample_submission.csv')
 our_submission = pd.read_csv('submission.csv')
 
 success = True
+# Print the columns of the sample submission file
+print("Columns in sample_submission.csv:", sample_submission.columns)
+print("Columns in our_submission.csv:", our_submission.columns)
+
 for col in sample_submission.columns:
     if col not in our_submission.columns:
         success = False
         print(f'Column {col} not found in submission.csv')
 
 if success:
-    print('submission.csv is valid.')
+    print('submission.csv\'s columns aligns with sample_submission.csv .')
+
+
+# Print the first 5 rows of the two submission files, with columns separated by commas.
+def print_first_rows(file_path, file_name, num_rows=5):
+    print(f"\nFirst {num_rows} rows of {file_name}:")
+    try:
+        with open(file_path, 'r') as file:
+            for i, line in enumerate(file):
+                if i < num_rows:
+                    print(line.strip())
+                else:
+                    break
+    except FileNotFoundError:
+        print(f"Error: {file_name} not found.")
+
+print_first_rows('/kaggle/input/sample_submission.csv', 'sample_submission.csv')
+print_first_rows('submission.csv', 'submission.csv')
+
+print("\nPlease Checked the content of the submission file(submission.csv should align with sample_submission.csv). ")

@@ -101,6 +101,12 @@ task_gen: # It is deprecated now, please refer to direct_exp_gen
     {{workspace_code}}
     {% endif %}
 
+    {% if former_task_desc is not none %}
+    The user has made several task on this scenario but didn't get the expected result due to wrong implementation or just bad luck. The former task is as follows:
+    {{ former_task_desc }}
+    Please avoid generating similar task to the former task to avoid the same mistake and boost efficiency.
+    {% endif %}
+
     {% if hypothesis is not none %}
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The target hypothesis you are targeting to generate {{ targets }} for is as follows:

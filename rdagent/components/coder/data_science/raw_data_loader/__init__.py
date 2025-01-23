@@ -55,6 +55,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
         competition_info = self.scen.get_scenario_all_desc()
+        runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         data_loader_task_info = target_task.get_task_information()
 
@@ -88,6 +89,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # TODO: We may move spec into a separated COSTEER task
         if "spec/data_loader.md" not in workspace.file_dict:  # Only generate the spec once
             system_prompt = T(".prompts:spec.system").r(
+                runtime_environment=runtime_environment,
                 task_desc=data_loader_task_info,
                 competition_info=competition_info,
                 folder_spec=data_folder_info,
