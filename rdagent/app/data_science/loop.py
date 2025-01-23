@@ -28,34 +28,34 @@ class DataScienceRDLoop(RDLoop):
 
     def __init__(self, PROP_SETTING: BasePropSetting):
         logger.log_object(PROP_SETTING.competition, tag="competition")
-        scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
+        self.scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
 
         ### shared components in the workflow  # TODO: check if
         knowledge_base = (
-            import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
+            import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, self.scen)
             if PROP_SETTING.knowledge_base != ""
             else None
         )
 
         # 1) task generation from scratch
-        # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
+        # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(self.scen),
 
         # 2) task generation from a complete solution
-        # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        self.exp_gen = DSExpGen(scen)
-        self.data_loader_coder = DataLoaderCoSTEER(scen)
-        self.feature_coder = FeatureCoSTEER(scen)
-        self.model_coder = ModelCoSTEER(scen)
-        self.ensemble_coder = EnsembleCoSTEER(scen)
-        self.workflow_coder = WorkflowCoSTEER(scen)
+        # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(self.scen)
+        self.exp_gen = DSExpGen(self.scen)
+        self.data_loader_coder = DataLoaderCoSTEER(self.scen)
+        self.feature_coder = FeatureCoSTEER(self.scen)
+        self.model_coder = ModelCoSTEER(self.scen)
+        self.ensemble_coder = EnsembleCoSTEER(self.scen)
+        self.workflow_coder = WorkflowCoSTEER(self.scen)
 
-        self.runner = DSRunner(scen)
-        # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
+        self.runner = DSRunner(self.scen)
+        # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(self.scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
         # self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
-        self.trace = DSTrace(scen=scen)
-        self.summarizer = DSExperiment2Feedback(scen)
+        self.trace = DSTrace(scen=self.scen)
+        self.summarizer = DSExperiment2Feedback(self.scen)
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
@@ -118,6 +118,18 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
+            if len(self.trace.hist) > DS_RD_SETTING.consecutive_errors:
+                cons_errors = 0
+                for _, feedback in reversed(self.trace.hist[-DS_RD_SETTING.consecutive_errors:]):
+                    if feedback == ExperimentFeedback.from_exception(e) or feedback.reason.startswith("The experiment fails due to"):
+                        cons_errors += 1
+                    else:
+                        break
+                if cons_errors == DS_RD_SETTING.consecutive_errors + 1:
+                    logger.error("Consecutive errors reached the limit. Dumping trace.")
+                    logger.log_object(self.trace, tag="trace before restart")
+                    self.trace = DSTrace(scen=self.scen)
+                    return
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 

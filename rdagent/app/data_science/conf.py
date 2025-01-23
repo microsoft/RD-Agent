@@ -45,5 +45,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGExperiment2Feedback"
     """Summarizer class"""
 
+    consecutive_errors: int = 1
 
 DS_RD_SETTING = DataScienceBasePropSetting()
