@@ -50,7 +50,7 @@ class DSRunner(Developer[DSExperiment]):
                 if unused_files:
                     logger.warning(f"Unused scripts: {unused_files}")
                     exp.experiment_workspace.inject_files(
-                        {file_path.name: exp.experiment_workspace.DEL_KEY for file_path in unused_files}
+                        **{file_path.name: exp.experiment_workspace.DEL_KEY for file_path in unused_files}
                     )
             os.remove(exp.experiment_workspace.workspace_path / "coverage.json")
         return exp

@@ -68,6 +68,7 @@ spec:
       4. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
         - Extend domain-specific handling steps based on the competition information.
+        - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
 
       {% if latest_spec %}
       5. Former Specification:
