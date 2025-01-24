@@ -20,30 +20,46 @@ if "log_folder" not in state:
     state.log_folder = Path("./log")
 if "log_path" not in state:
     state.log_path = None
+if "show_all_summary" not in state:
+    state.show_all_summary = True
+
+
+def extract_loopid_func_name(tag):
+    """提取 Loop ID 和函数名称"""
+    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
+    return match.groups() if match else (None, None)
+
+
+def extract_evoid(tag):
+    """提取 EVO ID"""
+    match = re.search(r"\.evo_loop_(\d+)\.", tag)
+    return match.group(1) if match else None
 
 
 # @st.cache_data
 def load_data(log_path):
-    data = defaultdict(lambda: defaultdict(dict))
-    li = -1  # loop id
-    ei = -1  # evo id
+    state.data = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(state.log_folder / log_path).iter_msg():
         if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
             if msg.tag == "competition":
-                data["competition"] = msg.content
+                state.data["competition"] = msg.content
                 continue
-            if msg.tag == "direct_exp_gen":
-                li += 1
-                ei = -1
 
-            if "evolving " in msg.tag:
-                if "evolving code" in msg.tag:
-                    ei += 1
-                data[li][ei][msg.tag] = msg.content
+            li, fn = extract_loopid_func_name(msg.tag)
+            li = int(li)
+            ei = extract_evoid(msg.tag)
+            msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
+            msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
+            msg.tag = msg.tag.strip()
+
+            if ei:
+                state.data[li][int(ei)][msg.tag] = msg.content
             else:
-                data[li][msg.tag] = msg.content
-
-    return data
+                if msg.tag:
+                    state.data[li][fn][msg.tag] = msg.content
+                else:
+                    if not isinstance(msg.content, str):
+                        state.data[li][fn] = msg.content
 
 
 @st.cache_data
@@ -72,10 +88,9 @@ with st.sidebar:
             st.toast("Please select a log path first!", type="error")
             st.stop()
 
-        state.data = load_data(state.log_path)
-        st.rerun()
+        load_data(state.log_path)
 
-    show_all_summary = st.toggle("One Trace / Log Folder Summary", value=True)
+    st.toggle("One Trace / Log Folder Summary", key="show_all_summary")
 
 
 # UI windows
@@ -153,8 +168,11 @@ def exp_after_running_win(data, mle_score):
     workspace_win(data.experiment_workspace)
     st.subheader("Result")
     st.write(data.result)
-    st.subheader("MLE Submission Score")
-    st.json(mle_score)
+    st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
+    if isinstance(mle_score, dict):
+        st.json(mle_score)
+    else:
+        st.code(mle_score, wrap_lines=True)
 
 
 def feedback_win(data):
@@ -215,8 +233,13 @@ def summarize_data():
             if "mle_score" not in state.data[loop]:
                 mle_score_path = loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt"
                 try:
-                    state.data[loop]["mle_score"] = extract_mle_json(mle_score_path.read_text())
-                    df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                    mle_score_txt = mle_score_path.read_text()
+                    state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                    if state.data[loop]["mle_score"]["score"] is not None:
+                        df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                    else:
+                        state.data[loop]["mle_score"] = mle_score_txt
+                        df.loc[loop, "Running Score"] = "❌"
                 except Exception as e:
                     state.data[loop]["mle_score"] = str(e)
                     df.loc[loop, "Running Score"] = "❌"
@@ -277,7 +300,7 @@ def all_summarize_win():
 
 
 # UI - Main
-if show_all_summary:
+if state.show_all_summary:
     all_summarize_win()
 elif "data" in state:
     st.title(state.data["competition"])
