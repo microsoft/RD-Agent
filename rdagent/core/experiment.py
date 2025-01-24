@@ -271,6 +271,9 @@ class Experiment(
         # If we implement the whole workflow, we don't have to use it, then we remove it.
         self.based_experiments: Sequence[ASpecificWSForExperiment] = based_experiments
 
+        # NOTE: Assumption
+        # - only runner will assign this variable
+        # - We will always create a new Experiment without copying previous results when we goto the next new loop.
         self.result: object = None  # The result of the experiment, can be different types in different scenarios.
         self.sub_results: dict[str, float] = (
             {}
