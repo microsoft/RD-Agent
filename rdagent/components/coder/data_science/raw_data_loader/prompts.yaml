@@ -289,7 +289,7 @@ spec:
               test_X=test_X
           )
           {% endfor %}
-          final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
+          final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
           {% endraw %}
 
         {% if latest_spec %}
