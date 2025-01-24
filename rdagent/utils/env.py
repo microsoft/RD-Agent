@@ -464,7 +464,7 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.enable_cache:
             out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            out = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp=False)
+            out = self.__run(entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False)
         end = time.time()
 
         if end - start + 1 >= self.conf.running_timeout_period:
