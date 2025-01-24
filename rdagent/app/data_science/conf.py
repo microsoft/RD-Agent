@@ -30,8 +30,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     # model_feature_selection_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelFeatureSelectionCoder"
     # """Model Feature Selection Coder class"""
-
     # model_coder: str = "rdagent.scenarios.kaggle.developer.coder.KGModelCoSTEER"
+
     # """Model Coder class"""
 
     ## dev/runner
@@ -45,7 +45,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     summarizer: str = "rdagent.scenarios.kaggle.developer.feedback.KGExperiment2Feedback"
     """Summarizer class"""
 
+    ## Workflow Related
     consecutive_errors: int = 5
+
+    debug_timeout: int = 600
+    """The timeout limit for running on debugging data"""
+    full_timeout: int = 3600
+    """The timeout limit for running on full data"""
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
