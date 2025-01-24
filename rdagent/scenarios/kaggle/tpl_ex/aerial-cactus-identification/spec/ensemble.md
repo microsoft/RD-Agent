@@ -3,7 +3,7 @@
 - Implement a function for ensemble and decision making with the following signature:
 
 ```python
-def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray], val_label: np.ndarray) -> np.ndarray:
+def ensemble_workflow(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray], val_label: np.ndarray) -> np.ndarray:
     """
     Handle the following:
     1) Ensemble predictions using a simple average.

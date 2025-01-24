@@ -7,11 +7,14 @@ A qualified ensemble implementation should:
 """
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import torch
+import tensorflow as tf
 from load_data import load_data
 from feature import feat_eng
-from ensemble import ens_and_decision
+from ensemble import ensemble_workflow
 
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
@@ -46,16 +49,19 @@ for key in val_preds_dict.keys():
         print(f"Model {key} test predictions (test_preds_dict[key]) shape: {test_preds_dict[key].shape}")
 
 # Run ensemble
-final_pred = ens_and_decision(test_preds_dict, val_preds_dict, val_y)
+final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
+
+# Check type
+pred_type = type(next(iter(test_preds_dict.values())))
+assert isinstance(final_pred, pred_type), (
+    f"Type mismatch: 'final_pred' is of type {type(final_pred)}, but expected {pred_type} "
+)
 
 # Check shape
-if isinstance(final_pred, list):
+if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor)):
     assert len(final_pred) == len(test_X), (
-        f"Wrong output sample size: len(final_pred) ({len(final_pred)}) and len(test_X) ({len(test_X)})"
-    )
-else:
-    assert final_pred.shape[0] == test_X.shape[0], (
-        f"Wrong output sample size: final_pred.shape[0] ({final_pred.shape[0]}) and test_X.shape[0] ({test_X.shape[0]})"
+        f"Wrong output sample size: len(final_pred)={len(final_pred)} "
+        f"vs. len(test_X)={len(test_X)}"
     )
 
 # check if scores.csv is generated
