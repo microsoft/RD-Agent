@@ -25,9 +25,9 @@ val_pred, test_pred, _ = model_workflow(train_images, train_labels, validation_i
 
 
 # Ensemble
-from ensemble import ens_and_decision
+from ensemble import ensemble_workflow
 
-pred_binary = ens_and_decision([test_pred], [val_pred], validation_labels)
+pred_binary = ensemble_workflow([test_pred], [val_pred], validation_labels)
 
 
 # Save
