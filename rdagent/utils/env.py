@@ -134,7 +134,7 @@ class DockerConf(ExtendedBaseSettings):
     default_entry: str  # the entry point of the image
 
     extra_volumes: dict = {}
-    extra_volume_mode: str = "r"  # by default. only the mount_path should be writable.
+    extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
