@@ -1,16 +1,31 @@
 from pathlib import Path
 import pandas as pd
 
+# Find sample submission file dynamically
+input_dir = Path("/kaggle/input")
+sample_submission_files = list(input_dir.glob("*sample_submission*.csv"))
+
+if not sample_submission_files:
+    print("Error: No sample submission file found in /kaggle/input/")
+    exit(1)
+
+# Use first matching file
+sample_submission_name = sample_submission_files[0].name
+SAMPLE_SUBMISSION_PATH = str(sample_submission_files[0])
+print(f"Using sample submission file: {sample_submission_name}")
+
 # Check if the sample submission file exists
-if not Path("/kaggle/input/sample_submission.csv").exists():
+if not Path(SAMPLE_SUBMISSION_PATH).exists():
+    print(f"Error: {sample_submission_name} not found at {SAMPLE_SUBMISSION_PATH}")
     exit(0)
 
-sample_submission = pd.read_csv('/kaggle/input/sample_submission.csv')
+
+sample_submission = pd.read_csv(SAMPLE_SUBMISSION_PATH)
 our_submission = pd.read_csv('submission.csv')
 
 success = True
 # Print the columns of the sample submission file
-print("Columns in sample_submission.csv:", sample_submission.columns)
+print(f"Columns in {sample_submission_name}:", sample_submission.columns)
 print("Columns in our_submission.csv:", our_submission.columns)
 
 for col in sample_submission.columns:
@@ -19,7 +34,7 @@ for col in sample_submission.columns:
         print(f'Column {col} not found in submission.csv')
 
 if success:
-    print('submission.csv\'s columns aligns with sample_submission.csv .')
+    print(f'submission.csv\'s columns aligns with {sample_submission_name} .')
 
 
 # Print the first 5 rows of the two submission files, with columns separated by commas.
@@ -35,7 +50,7 @@ def print_first_rows(file_path, file_name, num_rows=5):
     except FileNotFoundError:
         print(f"Error: {file_name} not found.")
 
-print_first_rows('/kaggle/input/sample_submission.csv', 'sample_submission.csv')
+print_first_rows(SAMPLE_SUBMISSION_PATH, sample_submission_name)
 print_first_rows('submission.csv', 'submission.csv')
 
-print("\nPlease Checked the content of the submission file(submission.csv should align with sample_submission.csv). ")
+print(f"\nPlease Checked the content of the submission file(submission.csv should align with {sample_submission_name}). ")
