@@ -35,7 +35,7 @@ def save_grade_info(log_trace_path: Path):
             if isinstance(msg.content, DSExperiment):
                 msg.content.experiment_workspace.execute(
                     env=de,
-                    entry=f"bash -c 'mlebench grade-sample submission.csv {competition} --data-dir /mle/data > mle_score.txt 2>&1'",
+                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data > mle_score.txt 2>&1",
                 )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
 
@@ -77,7 +77,7 @@ def summarize_folder(log_folder: Path):
                                 f"mle_score.txt in {grade_output_path} not found, genarate it first!"
                             )
                         grade_output = extract_mle_json(grade_output_path.read_text())
-                        if grade_output["score"] is not None:
+                        if grade_output and grade_output["score"] is not None:
                             test_scores[loop_num - 1] = grade_output["score"]
                             if grade_output["any_medal"]:
                                 medal = (
