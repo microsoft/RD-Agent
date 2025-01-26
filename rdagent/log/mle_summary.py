@@ -47,6 +47,7 @@ def save_all_grade_info(log_folder):
 
 
 def summarize_folder(log_folder: Path):
+    log_folder = Path(log_folder)
     stat = defaultdict(dict)
     for log_trace_path in log_folder.iterdir():  # One log trace
         if not log_trace_path.is_dir():
@@ -59,36 +60,38 @@ def summarize_folder(log_folder: Path):
         success_loop_num = 0
 
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
-            if "competition" in msg.tag:
-                stat[log_trace_path.name]["competition"] = msg.content
+            if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
+                if "competition" in msg.tag:
+                    stat[log_trace_path.name]["competition"] = msg.content
 
-            if "direct_exp_gen" in msg.tag:
-                loop_num += 1
-            if "running" in msg.tag:
-                if isinstance(msg.content, DSExperiment):
-                    submission_path = msg.content.experiment_workspace.workspace_path / "submission.csv"
-                    if submission_path.exists():
-                        made_submission_num += 1
-                        scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
-                        valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
-                        grade_output_path = msg.content.experiment_workspace.workspace_path / "mle_score.txt"
-                        if not grade_output_path.exists():
-                            raise FileNotFoundError(
-                                f"mle_score.txt in {grade_output_path} not found, genarate it first!"
-                            )
-                        grade_output = extract_mle_json(grade_output_path.read_text())
-                        if grade_output and grade_output["score"] is not None:
-                            test_scores[loop_num - 1] = grade_output["score"]
-                            if grade_output["any_medal"]:
-                                medal = (
-                                    "gold"
-                                    if grade_output["gold_medal"]
-                                    else "silver" if grade_output["silver_medal"] else "bronze"
+                if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
+                    loop_num += 1
+
+                if "running" in msg.tag:
+                    if isinstance(msg.content, DSExperiment):
+                        submission_path = msg.content.experiment_workspace.workspace_path / "submission.csv"
+                        if submission_path.exists():
+                            made_submission_num += 1
+                            scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
+                            valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
+                            grade_output_path = msg.content.experiment_workspace.workspace_path / "mle_score.txt"
+                            if not grade_output_path.exists():
+                                raise FileNotFoundError(
+                                    f"mle_score.txt in {grade_output_path} not found, genarate it first!"
                                 )
+                            grade_output = extract_mle_json(grade_output_path.read_text())
+                            if grade_output and grade_output["score"] is not None:
+                                test_scores[loop_num - 1] = grade_output["score"]
+                                if grade_output["any_medal"]:
+                                    medal = (
+                                        "gold"
+                                        if grade_output["gold_medal"]
+                                        else "silver" if grade_output["silver_medal"] else "bronze"
+                                    )
 
-            if "feedback" in msg.tag and "evolving" not in msg.tag:
-                if bool(msg.content):
-                    success_loop_num += 1
+                if "feedback" in msg.tag and "evolving" not in msg.tag:
+                    if bool(msg.content):
+                        success_loop_num += 1
 
         stat[log_trace_path.name].update(
             {
