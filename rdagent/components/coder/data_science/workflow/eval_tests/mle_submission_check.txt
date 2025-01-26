@@ -1,10 +1,9 @@
-import os
 from pathlib import Path
 
 from mlebench.grade import validate_submission
 from mlebench.registry import registry
 
-COMPETITION_ID = os.getenv("COMPETITION_ID")
+COMPETITION_ID = "<competition_id>"
 new_registry = registry.set_data_dir(Path("/mle/data"))
 competition = new_registry.get_competition(COMPETITION_ID)
 

@@ -102,12 +102,14 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout += implementation.execute(env=de, entry="python submission_check.py")
 
             # MLEBench Check
-            mle_check_code = (DIRNAME / "eval_tests" / "mle_submission_check.txt").read_text()
+            mle_check_code = (
+                (DIRNAME / "eval_tests" / "mle_submission_check.txt")
+                .read_text()
+                .replace("<competition_id>", self.scen.competition)
+            )
             implementation.inject_files(**{"mle_submission_check.py": mle_check_code})
             stdout += "----Submission Check 2-----\n"
-            stdout += implementation.execute(
-                env=mde, entry=f"COMPETITION_ID={self.scen.competition} python mle_submission_check.py"
-            )
+            stdout += implementation.execute(env=mde, entry=f"python mle_submission_check.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
