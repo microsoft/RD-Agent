@@ -53,14 +53,14 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 code="This task has failed too many times, skip implementation.",
                 final_decision=False,
             )
-        
+
         # DockerEnv for Kaggle Competition
         ds_docker_conf = DSDockerConf()
         ds_docker_conf.extra_volumes = {
             f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
         }
         de = DockerEnv(conf=ds_docker_conf)
-        
+
         # DockerEnv for MLEBench submission validation
         mle_de_conf = MLEBDockerConf()
         mle_de_conf.extra_volumes = {
@@ -68,7 +68,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         mde = DockerEnv(conf=mle_de_conf)
         mde.prepare()
-        
+
         # Clean the scores.csv & submission.csv.
         stdout = implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
 
@@ -100,12 +100,14 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             implementation.inject_files(**{"submission_check.py": base_check_code})
             stdout += "----Submission Check 1-----\n"
             stdout += implementation.execute(env=de, entry="python submission_check.py")
-            
+
             # MLEBench Check
             mle_check_code = (DIRNAME / "eval_tests" / "mle_submission_check.txt").read_text()
             implementation.inject_files(**{"mle_submission_check.py": mle_check_code})
             stdout += "----Submission Check 2-----\n"
-            stdout += implementation.execute(env=mde, entry=f"COMPETITION_ID={self.scen.competition} python mle_submission_check.py")
+            stdout += implementation.execute(
+                env=mde, entry=f"COMPETITION_ID={self.scen.competition} python mle_submission_check.py"
+            )
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
