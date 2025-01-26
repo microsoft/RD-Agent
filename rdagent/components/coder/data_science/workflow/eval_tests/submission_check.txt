@@ -1,9 +1,24 @@
 from pathlib import Path
 import pandas as pd
 
+
+"""
+find . | grep -i sample | grep -i submission | grep -v sample_submission.csv | grep -v zip_files  | grep -v 'sample/'
+./denoising-dirty-documents/sampleSubmission.csv
+./the-icml-2013-whale-challenge-right-whale-redux/sampleSubmission.csv
+./text-normalization-challenge-russian-language/ru_sample_submission_2.csv.zip
+./text-normalization-challenge-russian-language/ru_sample_submission_2.csv
+./random-acts-of-pizza/sampleSubmission.csv
+./text-normalization-challenge-english-language/en_sample_submission_2.csv.zip
+./text-normalization-challenge-english-language/en_sample_submission_2.csv
+./detecting-insults-in-social-commentary/sample_submission_null.csv
+"""
+
 # Find sample submission file dynamically
 input_dir = Path("/kaggle/input")
-sample_submission_files = list(input_dir.glob("*sample_submission*.csv"))
+# Look for common variations of sample submission filenames
+sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + \
+                         list(input_dir.glob("*sampleSubmission*.csv"))
 
 if not sample_submission_files:
     print("Error: No sample submission file found in /kaggle/input/")
