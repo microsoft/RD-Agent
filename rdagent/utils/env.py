@@ -46,6 +46,7 @@ class Env(Generic[ASpecificBaseModel]):
     """
 
     conf: ASpecificBaseModel  # different env have different conf.
+    # last_exit_code:  # TODO: get the more concrete information about the exit code.
 
     def __init__(self, conf: ASpecificBaseModel):
         self.conf = conf
