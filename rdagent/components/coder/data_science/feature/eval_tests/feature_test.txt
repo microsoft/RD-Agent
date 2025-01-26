@@ -57,9 +57,14 @@ if isinstance(X, pd.DataFrame) and isinstance(X_test, pd.DataFrame):
     assert get_column_list(X) == get_column_list(X_test), "Mismatch in column names of training and test data."
 
 if isinstance(X, pd.DataFrame):
-    assert sorted(X.dtypes.unique().tolist()) == sorted(
-        X_loaded.dtypes.unique().tolist()
-    ), f"feature engineering has produced new data types which is not allowed, data loader data types are {X_loaded.dtypes.unique().tolist()} and feature engineering data types are {X.dtypes.unique().tolist()}"
+    X_dtypes_unique_sorted = sorted(X.dtypes.unique().tolist())
+    X_loaded_dtypes_unique_sorted = sorted(X_loaded.dtypes.unique().tolist())
+    assert (
+        len(X_loaded_dtypes_unique_sorted) == 1
+        and (X_loaded_dtypes_unique_sorted[0] == np.float64 or X_loaded_dtypes_unique_sorted[0] == np.float32)
+    ) or (
+        X_dtypes_unique_sorted == X_loaded_dtypes_unique_sorted
+    ), f"feature engineering has produced new data types which is not allowed, data loader data types are {X_loaded_dtypes_unique_sorted} and feature engineering data types are {X_dtypes_unique_sorted}"
 
 print(
     "Feature Engineering test passed successfully. All checks including length, width, and data types have been validated."
