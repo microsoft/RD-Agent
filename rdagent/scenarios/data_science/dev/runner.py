@@ -43,7 +43,7 @@ class DSRunner(Developer[DSExperiment]):
         stdout = exp.experiment_workspace.execute(env=de, entry="coverage json -o coverage.json")
         if Path(exp.experiment_workspace.workspace_path / "coverage.json").exists():
             with open(exp.experiment_workspace.workspace_path / "coverage.json") as f:
-                used_files = set(json.load(f)["files"].keys()) | {"submission_check.py"}
+                used_files = set(json.load(f)["files"].keys()) | {"submission_check.py", "mle_submission_check.py"}
                 logger.info("All used scripts: {}".format(used_files))
                 all_python_files = set(Path(exp.experiment_workspace.workspace_path).rglob("*.py"))
                 unused_files = [
