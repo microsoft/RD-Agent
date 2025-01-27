@@ -9,12 +9,12 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
-    CoSTEERSingleFeedbackDeprecated,
 )
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.env import DockerEnv, DSDockerConf, MLEBDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -39,7 +39,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         gt_implementation: FBWorkspace,
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
-    ) -> CoSTEERSingleFeedbackDeprecated:
+    ) -> CoSTEERSingleFeedback:
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -120,5 +120,6 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
-        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
-        return WorkflowSingleFeedback(**json.loads(resp))
+        return build_cls_from_json_with_retry(
+            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+        )
