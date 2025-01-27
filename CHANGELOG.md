@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.4.0](https://github.com/microsoft/RD-Agent/compare/v0.3.0...v0.4.0) (2025-01-27)
+
+
+### Features
+
+* (Kaggle) add base template for competition: tabular-playground-series-may-2022 ([#481](https://github.com/microsoft/RD-Agent/issues/481)) ([f3405ca](https://github.com/microsoft/RD-Agent/commit/f3405ca732eb0ddca8e18ea72f69cbd86055c4ab))
+* a unified CoSTEER to fit more scenarios ([#491](https://github.com/microsoft/RD-Agent/issues/491)) ([cddbd02](https://github.com/microsoft/RD-Agent/commit/cddbd02e3ad3ccf6ad01443777319dc5c7eb08a7))
+* add a new competition ([#474](https://github.com/microsoft/RD-Agent/issues/474)) ([2fc0d77](https://github.com/microsoft/RD-Agent/commit/2fc0d77c485a31f647e21f4578e2e326f7032964))
+* add configurable volume mode for Docker volumes in env.py ([#537](https://github.com/microsoft/RD-Agent/issues/537)) ([642a022](https://github.com/microsoft/RD-Agent/commit/642a02239431411b91959f23e69b454997ca75d5))
+* add mlebench submission validitor ([#545](https://github.com/microsoft/RD-Agent/issues/545)) ([712d94a](https://github.com/microsoft/RD-Agent/commit/712d94a7d6f22187fc3d18bd434e71ec6997aa9f))
+* add restart and fix unzip ([#538](https://github.com/microsoft/RD-Agent/issues/538)) ([ed2c7d1](https://github.com/microsoft/RD-Agent/commit/ed2c7d175f1f44ca06ad7a63b08da12f6c4df9ab))
+* add timeout settings and cleanup step in data science runner ([#539](https://github.com/microsoft/RD-Agent/issues/539)) ([295abd5](https://github.com/microsoft/RD-Agent/commit/295abd56f7b58055bd27b247dfed47eb85e9b0cd))
+* align mlebench data and evaluation & several fix on kaggle workflow ([#477](https://github.com/microsoft/RD-Agent/issues/477)) ([f6c522b](https://github.com/microsoft/RD-Agent/commit/f6c522b651db3c1f6af6815347589917f46e433a))
+* base data science scenario UI ([#525](https://github.com/microsoft/RD-Agent/issues/525)) ([39917b3](https://github.com/microsoft/RD-Agent/commit/39917b354b22a8488a17396fe2245cb41e3def03))
+* Dynamically find and use sample submission file in eval tests ([#542](https://github.com/microsoft/RD-Agent/issues/542)) ([5f12b44](https://github.com/microsoft/RD-Agent/commit/5f12b44c89dd26b250e914192f9beb2da38fb3ab))
+* end-to-end optimization ([#473](https://github.com/microsoft/RD-Agent/issues/473)) ([d41343a](https://github.com/microsoft/RD-Agent/commit/d41343a63d87bf3479f5ec30745ea788580495bf))
+* Enhance eval script with file cleanup and detailed submission checks ([#529](https://github.com/microsoft/RD-Agent/issues/529)) ([cf2ff92](https://github.com/microsoft/RD-Agent/commit/cf2ff9213d3a8b0fad64df7cae0c35f996d72e27))
+* independent use_azure_token_provider on chat and embedding ([#452](https://github.com/microsoft/RD-Agent/issues/452)) ([d223004](https://github.com/microsoft/RD-Agent/commit/d223004917692e231b251330cbc8676081d5a10d))
+* kaggle refactor ([#489](https://github.com/microsoft/RD-Agent/issues/489)) ([1b057d0](https://github.com/microsoft/RD-Agent/commit/1b057d0d63a861fba4b3cb59c6c5fc1a0e3da383))
+* **kaggle:** several update in kaggle scenarios ([#476](https://github.com/microsoft/RD-Agent/issues/476)) ([245d211](https://github.com/microsoft/RD-Agent/commit/245d211dcbfb18ebcc554247a0e3a8dbecf6f3bd))
+* new-york-city-taxi-fare-prediction_template ([#488](https://github.com/microsoft/RD-Agent/issues/488)) ([a9caab7](https://github.com/microsoft/RD-Agent/commit/a9caab7bc5dc86f395a008e523355922137aef17))
+* refactor for general data science ([#498](https://github.com/microsoft/RD-Agent/issues/498)) ([7002dc4](https://github.com/microsoft/RD-Agent/commit/7002dc4981a4f72096b438d2fe4fd9ff268c54f3))
+* refine logic for qlib_factor_from_report ([#463](https://github.com/microsoft/RD-Agent/issues/463)) ([21348d8](https://github.com/microsoft/RD-Agent/commit/21348d89e0e0eec1b4fab4e7a497f1eb34b8fe72))
+* run benchmark on gpt-4o & llama 3.1 ([#497](https://github.com/microsoft/RD-Agent/issues/497)) ([64af0b5](https://github.com/microsoft/RD-Agent/commit/64af0b5529b687cce8b5b7a1893946e15edca626))
+* template changes for some kaggle competitions ([#484](https://github.com/microsoft/RD-Agent/issues/484)) ([2e38000](https://github.com/microsoft/RD-Agent/commit/2e38000091030811fc081d72016c7bbadf7efd50))
+
+
+### Bug Fixes
+
+* a default conf in scen qlib ([#503](https://github.com/microsoft/RD-Agent/issues/503)) ([d64a228](https://github.com/microsoft/RD-Agent/commit/d64a228525cbedd7687c1e06132eacd0d0647697))
+* add DSExperiment type check and directory validation in log proc… ([#535](https://github.com/microsoft/RD-Agent/issues/535)) ([f59b12c](https://github.com/microsoft/RD-Agent/commit/f59b12c9cc9afde82b74bc133797ff1396678627))
+* avoid warning for missing llama installation when not in use ([#509](https://github.com/microsoft/RD-Agent/issues/509)) ([5ec3422](https://github.com/microsoft/RD-Agent/commit/5ec342224c2c8c4cf591f1eae673e25b14218726))
+* filter empty log traces in ds UI ([#533](https://github.com/microsoft/RD-Agent/issues/533)) ([1a2057c](https://github.com/microsoft/RD-Agent/commit/1a2057c9fc11edc4637f0baaa6dd226eb049c36e))
+* fix a bug in kaggle conf ([#459](https://github.com/microsoft/RD-Agent/issues/459)) ([b4ed32b](https://github.com/microsoft/RD-Agent/commit/b4ed32b17ef07d8557450063765585a48d5fcd32))
+* fix submission file search and add TODO in env.py ([#544](https://github.com/microsoft/RD-Agent/issues/544)) ([54d930e](https://github.com/microsoft/RD-Agent/commit/54d930e91e629f0fc2f8bdd0d0d62fcad1e99a9c))
+* patching weird azure deployment ([#494](https://github.com/microsoft/RD-Agent/issues/494)) ([89c50ae](https://github.com/microsoft/RD-Agent/commit/89c50aee2ec8bfd1cb23767ddf7dcdd023daac8b))
+* refine prompt to generate the most simple task in init stage ([#546](https://github.com/microsoft/RD-Agent/issues/546)) ([9d6feed](https://github.com/microsoft/RD-Agent/commit/9d6feed28ce034db48482d8d9741ef8c72f4bddc))
+* replace API call with build_cls_from_json_with_retry function ([#548](https://github.com/microsoft/RD-Agent/issues/548)) ([eb72a47](https://github.com/microsoft/RD-Agent/commit/eb72a47fbf9c88dacea9691b8d7e92610492d190))
+* templates bug ([#456](https://github.com/microsoft/RD-Agent/issues/456)) ([434a868](https://github.com/microsoft/RD-Agent/commit/434a8687eeda77e27b4938fb19694c15858ee446))
+* unzip kaggle data ([#464](https://github.com/microsoft/RD-Agent/issues/464)) ([3a9fc8e](https://github.com/microsoft/RD-Agent/commit/3a9fc8e73337d3757267b6f4482499499a1b6792))
+
 ## [0.3.0](https://github.com/microsoft/RD-Agent/compare/v0.2.1...v0.3.0) (2024-10-21)
 
 
