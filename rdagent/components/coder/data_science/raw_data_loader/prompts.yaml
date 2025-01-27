@@ -248,10 +248,10 @@ spec:
           - Integrate the following components into the workflow:
             - Data loading (`load_data.py`).
             - Feature engineering (`feature.py`).
-            - Model workflow for training and testing (`model_*.py`). 
+            - Model workflow for training (`model_*.py`). 
             - Ensemble workflow that combines results from the model workflow to obtain the final prediction (`ensemble.py`).
           - Treat each component as a modular and callable Python function.
-          - The workflow script should be flexible enough to handle either a single model or multiple models, with filenames (model_*.py) that are not determined at the outset.
+          - The workflow script should be flexible enough to handle either a single model or multiple models, with filenames (`model_(?!test)\w+\.py`) that are not determined at the outset.
             For multiple model selection, utilize Python code to identify eligible models based on filenames, for example:
             ```python
             available_models = [f for f in os.listdir('.') if f.startswith('model_') and 'test' not in f]
@@ -310,6 +310,7 @@ data_loader_coder:
     {{ task_desc }}
     You should follow the provided specifications to complete this task.
     You need to write the corresponding data loading code based on the information provided in the user's Data Folder Description, rather than relying on any suggestions that might exist in the spec.
+    If a label encoder is used, it should be saved to a file named `label_encoder.pkl` in the workspace folder.
 
     Notice, the data files are stored in the data folder located at `/kaggle/input/`, and the data folder is structured as described in the Data Folder Description. Please don't load the data from the current directory.
 
