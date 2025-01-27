@@ -8,7 +8,11 @@ from rdagent.oai.llm_utils import APIBackend
 T = TypeVar("T")
 
 
-def build_cls_from_json_with_retry(cls: Type[T], system_prompt: str, user_prompt: str, retry_n: int = 5, **kwargs) -> T:
+def build_cls_from_json_with_retry(cls: Type[T],
+                                   system_prompt: str,
+                                   user_prompt: str,
+                                   retry_n: int = 5,
+                                   **kwargs: dict) -> T:
     """
     Parameters
     ----------
@@ -30,9 +34,10 @@ def build_cls_from_json_with_retry(cls: Type[T], system_prompt: str, user_prompt
     """
     for i in range(retry_n):
         # currently, it only handle exception caused by initial class
-        resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs
-        )
+        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt=user_prompt,
+                                                                      system_prompt=system_prompt,
+                                                                      json_mode=True,
+                                                                      **kwargs)  # type: ignore[arg-type]
         try:
             return cls(**json.loads(resp))
         except Exception as e:
