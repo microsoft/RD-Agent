@@ -120,4 +120,6 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
-        return build_cls_from_json_with_retry(WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        return build_cls_from_json_with_retry(
+            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+        )

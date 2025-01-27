@@ -81,4 +81,6 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             stdout=stdout,
             workflow_stdout=workflow_stdout,
         )
-        return build_cls_from_json_with_retry(EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        return build_cls_from_json_with_retry(
+            EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+        )

@@ -1,4 +1,3 @@
-
 class WorkflowError(Exception):
     """
     Exception indicating an error that the current loop cannot handle, preventing further progress.
@@ -9,6 +8,7 @@ class FormatError(WorkflowError):
     """
     After multiple attempts, we are unable to obtain the answer in the correct format to proceed.
     """
+
 
 class CoderError(WorkflowError):
     """
