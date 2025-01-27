@@ -33,8 +33,8 @@ def build_cls_from_json_with_retry(
     for i in range(retry_n):
         # currently, it only handle exception caused by initial class
         resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs
-        )  # type: ignore[arg-type]
+            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs  # type: ignore[arg-type]
+        )
         try:
             return cls(**json.loads(resp))
         except Exception as e:
