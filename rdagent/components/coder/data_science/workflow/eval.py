@@ -60,7 +60,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
         }
         de = DockerEnv(conf=ds_docker_conf)
-        
+
         # DockerEnv for MLEBench submission validation
         mle_de_conf = MLEBDockerConf()
         mle_de_conf.extra_volumes = {
@@ -70,7 +70,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         mde.prepare()
 
         # Clean the scores.csv & submission.csv.
-        stdout = implementation.execute(env=de, entry=f"mv scores.csv scores_backup.csv && mv submission.csv submission_backup.csv")
+        stdout = implementation.execute(
+            env=de, entry=f"mv scores.csv scores_backup.csv && mv submission.csv submission_backup.csv"
+        )
 
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
