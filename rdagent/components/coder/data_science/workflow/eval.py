@@ -70,9 +70,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         mde.prepare()
 
         # Clean the scores.csv & submission.csv.
-        stdout = implementation.execute(
-            env=de, entry=f"mv scores.csv scores_backup.csv && mv submission.csv submission_backup.csv"
-        )
+        stdout = implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
 
         fname = "main.py"
         stdout = implementation.execute(env=de, entry=f"python {fname}")
