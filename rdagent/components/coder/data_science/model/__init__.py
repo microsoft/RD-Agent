@@ -82,6 +82,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             workspace_code=workspace.get_codes(
                 r"^model_(?!test)\w+\.py$"
             ),  # TODO: If we have high failure rate here, we should clean this step with less information.
+            output_channel=self.scen.model_output_channel if hasattr(self.scen, "model_output_channel") else None,
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
         )
 
