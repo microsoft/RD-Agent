@@ -118,6 +118,14 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
+            if len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+                trace_exp_next_component_list = [
+                    exp.next_component_required() for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]
+                ]
+                if None not in trace_exp_next_component_list and len(set(trace_exp_next_component_list)) == 1:
+                    logger.error("Consecutive errors reached the limit. Dumping trace.")
+                    logger.log_object(self.trace, tag="trace before restart")
+                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 

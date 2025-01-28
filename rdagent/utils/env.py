@@ -46,6 +46,7 @@ class Env(Generic[ASpecificBaseModel]):
     """
 
     conf: ASpecificBaseModel  # different env have different conf.
+    # last_exit_code:  # TODO: get the more concrete information about the exit code.
 
     def __init__(self, conf: ASpecificBaseModel):
         self.conf = conf
@@ -134,6 +135,7 @@ class DockerConf(ExtendedBaseSettings):
     default_entry: str  # the entry point of the image
 
     extra_volumes: dict = {}
+    extra_volume_mode: str = "ro"  # by default. only the mount_path should be writable, others are changed to read-only
     # Sometime, we need maintain some extra data for the workspace.
     # And the extra data may be shared and the downloading can be time consuming.
     # So we just want to download it once.
@@ -345,10 +347,10 @@ class DockerEnv(Env[DockerConf]):
             volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumns[lp] = {"bind": rp, "mode": "rw"}
+                volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
         if running_extra_volume is not None:
             for lp, rp in running_extra_volume.items():
-                volumns[lp] = {"bind": rp, "mode": "rw"}
+                volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         log_output = ""
 
@@ -464,7 +466,7 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.enable_cache:
             out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            out = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp=False)
+            out = self.__run(entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False)
         end = time.time()
 
         if end - start + 1 >= self.conf.running_timeout_period:

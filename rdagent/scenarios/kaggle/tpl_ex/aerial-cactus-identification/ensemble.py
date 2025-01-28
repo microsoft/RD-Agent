@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 
-def ens_and_decision(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray], val_label: np.ndarray) -> np.ndarray:
+def ensemble_workflow(test_pred_l: list[np.ndarray], val_pred_l: list[np.ndarray], val_label: np.ndarray) -> np.ndarray:
     """
     Handle the following:
     1) Ensemble predictions using a simple average.
