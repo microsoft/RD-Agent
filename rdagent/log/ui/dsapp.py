@@ -270,10 +270,10 @@ def all_summarize_win():
         base_df.loc[k, "Competition"] = v["competition"]
         base_df.loc[k, "Total Loops"] = loop_num
         base_df.loc[k, "Made Submission"] = (
-            f"{v['made_submission_num']} ({round(v['made_submission_num'] / loop_num * 100, 2)}%)"
+            f"{v['made_submission_num']} ({round(v['made_submission_num'] / loop_num * 100, 2) if loop_num != 0 else 0}%)"
         )
         base_df.loc[k, "Successful Final Decision"] = (
-            f"{v['success_loop_num']} ({round(v['success_loop_num'] / loop_num * 100, 2)}%)"
+            f"{v['success_loop_num']} ({round(v['success_loop_num'] / loop_num * 100, 2) if loop_num != 0 else 0}%)"
         )
         base_df.loc[k, "Medal"] = v["medal"]
     st.dataframe(base_df)
