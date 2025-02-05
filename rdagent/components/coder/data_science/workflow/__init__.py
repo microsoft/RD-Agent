@@ -72,7 +72,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
-            label_encoder="label_encoder" if "label_encoder.pkl" in workspace.file_dict["load_data.py"] else None,
+            label_encoder="label_encoder" if "LabelEncoder()" in workspace.file_dict["load_data.py"] else None,
         )
 
         for _ in range(5):

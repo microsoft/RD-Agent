@@ -50,6 +50,7 @@ spec:
           - Specify the data source location (`/kaggle/input/`).
           - Clearly define the structure and type of the output.
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
+          - If a label encoder is needed, it should be returned as the fifth parameter in the output.
 
       2. Precautions for Data Loading and Preprocessing:
         - File Handling:
@@ -311,7 +312,6 @@ data_loader_coder:
     You should follow the provided specifications to complete this task.
     You need to write the corresponding data loading code based on the information provided in the user's Data Folder Description, rather than relying on any suggestions that might exist in the spec.
     If a label encoder is used, it should be saved to a file named `label_encoder.pkl` in the workspace folder.
-
     Notice, the data files are stored in the data folder located at `/kaggle/input/`, and the data folder is structured as described in the Data Folder Description. Please don't load the data from the current directory.
 
     Please response the code in the following json format. Here is an example structure for the JSON output:

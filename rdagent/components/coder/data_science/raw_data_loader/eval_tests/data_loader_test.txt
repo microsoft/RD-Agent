@@ -12,7 +12,7 @@ import pickle
 import pandas as pd
 from load_data import load_data
 
-X, y, X_test, test_ids = load_data()
+X, y, X_test, test_ids, *extra = load_data()
 
 
 def get_length(data):
