@@ -3,8 +3,8 @@
 Loop should not large change exclude
 - Action Choice[current data loader & spec]
 - other should share
-    - Propose[choice] => Task[Choice] => CoSTEER => 
-        - 
+    - Propose[choice] => Task[Choice] => CoSTEER =>
+        -
 
 Extra feature:
 - cache

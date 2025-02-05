@@ -1,7 +1,7 @@
 """
 CLI entrance for all rdagent application.
 
-This will 
+This will
 - make rdagent a nice entry and
 - autoamtically load dotenv
 """

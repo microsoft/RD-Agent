@@ -1,7 +1,7 @@
 """
 Motivation of the model:
 The Linear Regression model is chosen for its simplicity and interpretability. It is a good starting point for regression tasks
-and provides a baseline to compare more complex models against. Linear Regression assumes a linear relationship between the 
+and provides a baseline to compare more complex models against. Linear Regression assumes a linear relationship between the
 features and the target variable, which can be a reasonable assumption for many problems.
 """
 
