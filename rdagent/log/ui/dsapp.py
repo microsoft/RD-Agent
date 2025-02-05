@@ -248,7 +248,7 @@ def summarize_data():
                     df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
                 else:
                     df.loc[loop, "Running Score"] = "❌"
-                
+
         else:
             df.loc[loop, "Running Score"] = "N/A"
 
