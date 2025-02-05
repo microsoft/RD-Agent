@@ -144,14 +144,18 @@ def evolving_win(data):
         evo_id = 0
 
     if evo_id in data:
-        st.subheader("codes")
-        workspace_win(data[evo_id]["evolving code"][0])
-        fb = data[evo_id]["evolving feedback"][0]
-        st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"), anchor="c_feedback")
-        f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
-        f1.code(fb.execution, wrap_lines=True)
-        f2.code(fb.return_checking, wrap_lines=True)
-        f3.code(fb.code, wrap_lines=True)
+        if data[evo_id]["evolving code"][0] is not None:
+            st.subheader("codes")
+            workspace_win(data[evo_id]["evolving code"][0])
+            fb = data[evo_id]["evolving feedback"][0]
+            st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"), anchor="c_feedback")
+            f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
+            f1.code(fb.execution, wrap_lines=True)
+            f2.code(fb.return_checking, wrap_lines=True)
+            f3.code(fb.code, wrap_lines=True)
+        else:
+            st.write("data[evo_id]['evolving code'][0] is None.")
+            st.write(data[evo_id])
     else:
         st.markdown("No evolving.")
 
