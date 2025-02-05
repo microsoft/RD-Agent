@@ -19,7 +19,7 @@ de = DockerEnv(conf=mle_de_conf)
 de.prepare()
 
 
-def extract_mle_json(log_content):
+def extract_mle_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
     if match:
         return json.loads(match.group(0))
@@ -54,9 +54,14 @@ def summarize_folder(log_folder: Path):
             continue
         loop_num = 0
         made_submission_num = 0
+        valid_submission_num = 0
+        above_median_num = 0
+        get_medal_num = 0
+        bronze_num = 0
+        silver_num = 0
+        gold_num = 0
         test_scores = {}
         valid_scores = {}
-        medal = "None"
         success_loop_num = 0
 
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
@@ -80,14 +85,21 @@ def summarize_folder(log_folder: Path):
                                     f"mle_score.txt in {grade_output_path} not found, genarate it first!"
                                 )
                             grade_output = extract_mle_json(grade_output_path.read_text())
-                            if grade_output and grade_output["score"] is not None:
-                                test_scores[loop_num - 1] = grade_output["score"]
+                            if grade_output:
+                                if grade_output["score"] is not None:
+                                    test_scores[loop_num - 1] = grade_output["score"]
+                                if grade_output["valid_submission"]:
+                                    valid_submission_num += 1
+                                if grade_output["above_median"]:
+                                    above_median_num += 1
                                 if grade_output["any_medal"]:
-                                    medal = (
-                                        "gold"
-                                        if grade_output["gold_medal"]
-                                        else "silver" if grade_output["silver_medal"] else "bronze"
-                                    )
+                                    get_medal_num += 1
+                                if grade_output["bronze_medal"]:
+                                    bronze_num += 1
+                                if grade_output["silver_medal"]:
+                                    silver_num += 1
+                                if grade_output["gold_medal"]:
+                                    gold_num += 1
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if bool(msg.content):
@@ -97,9 +109,14 @@ def summarize_folder(log_folder: Path):
             {
                 "loop_num": loop_num,
                 "made_submission_num": made_submission_num,
+                "valid_submission_num": valid_submission_num,
+                "above_median_num": above_median_num,
+                "get_medal_num": get_medal_num,
+                "bronze_num": bronze_num,
+                "silver_num": silver_num,
+                "gold_num": gold_num,
                 "test_scores": test_scores,
                 "valid_scores": valid_scores,
-                "medal": medal,
                 "success_loop_num": success_loop_num,
             }
         )

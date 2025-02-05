@@ -144,14 +144,18 @@ def evolving_win(data):
         evo_id = 0
 
     if evo_id in data:
-        st.subheader("codes")
-        workspace_win(data[evo_id]["evolving code"][0])
-        fb = data[evo_id]["evolving feedback"][0]
-        st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"), anchor="c_feedback")
-        f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
-        f1.code(fb.execution, wrap_lines=True)
-        f2.code(fb.return_checking, wrap_lines=True)
-        f3.code(fb.code, wrap_lines=True)
+        if data[evo_id]["evolving code"][0] is not None:
+            st.subheader("codes")
+            workspace_win(data[evo_id]["evolving code"][0])
+            fb = data[evo_id]["evolving feedback"][0]
+            st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"), anchor="c_feedback")
+            f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
+            f1.code(fb.execution, wrap_lines=True)
+            f2.code(fb.return_checking, wrap_lines=True)
+            f3.code(fb.code, wrap_lines=True)
+        else:
+            st.write("data[evo_id]['evolving code'][0] is None.")
+            st.write(data[evo_id])
     else:
         st.markdown("No evolving.")
 
@@ -268,20 +272,44 @@ def all_summarize_win():
     summary = pd.read_pickle(state.log_folder / "summary.pkl")
     summary = {k: v for k, v in summary.items() if "competition" in v}
     base_df = pd.DataFrame(
-        columns=["Competition", "Total Loops", "Made Submission", "Successful Final Decision", "Medal"],
+        columns=[
+            "Competition",
+            "Total Loops",
+            "Successful Final Decision",
+            "Made Submission",
+            "Valid Submission",
+            "Above Median",
+            "Bronze",
+            "Silver",
+            "Gold",
+            "Any Medal",
+        ],
         index=summary.keys(),
     )
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
         base_df.loc[k, "Total Loops"] = loop_num
-        base_df.loc[k, "Made Submission"] = (
-            f"{v['made_submission_num']} ({round(v['made_submission_num'] / loop_num * 100, 2) if loop_num != 0 else 0}%)"
-        )
-        base_df.loc[k, "Successful Final Decision"] = (
-            f"{v['success_loop_num']} ({round(v['success_loop_num'] / loop_num * 100, 2) if loop_num != 0 else 0}%)"
-        )
-        base_df.loc[k, "Medal"] = v["medal"]
+        if loop_num == 0:
+            base_df.loc[k] = "N/A"
+        else:
+            base_df.loc[k, "Successful Final Decision"] = (
+                f"{v['success_loop_num']} ({round(v['success_loop_num'] / loop_num * 100, 2)}%)"
+            )
+            base_df.loc[k, "Made Submission"] = (
+                f"{v['made_submission_num']} ({round(v['made_submission_num'] / loop_num * 100, 2)}%)"
+            )
+            base_df.loc[k, "Valid Submission"] = (
+                f"{v['valid_submission_num']} ({round(v['valid_submission_num'] / loop_num * 100, 2)}%)"
+            )
+            base_df.loc[k, "Above Median"] = (
+                f"{v['above_median_num']} ({round(v['above_median_num'] / loop_num * 100, 2)}%)"
+            )
+            base_df.loc[k, "Bronze"] = f"{v['bronze_num']} ({round(v['bronze_num'] / loop_num * 100, 2)}%)"
+            base_df.loc[k, "Silver"] = f"{v['silver_num']} ({round(v['silver_num'] / loop_num * 100, 2)}%)"
+            base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
+            base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
+
     st.dataframe(base_df)
     # write curve
     for k, v in summary.items():
