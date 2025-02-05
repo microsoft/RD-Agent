@@ -243,6 +243,12 @@ def summarize_data():
                 except Exception as e:
                     state.data[loop]["mle_score"] = str(e)
                     df.loc[loop, "Running Score"] = "❌"
+            else:
+                if isinstance(state.data[loop]["mle_score"], dict):
+                    df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                else:
+                    df.loc[loop, "Running Score"] = "❌"
+
         else:
             df.loc[loop, "Running Score"] = "N/A"
 
