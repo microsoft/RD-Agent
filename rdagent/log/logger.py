@@ -129,7 +129,6 @@ class RDAgentLog(SingletonBaseClass):
             for m in fs.iter_msg():
                 lp = extract_loopid_func_name(m.tag)
                 lp_id = lp[0] if lp and lp[0] is not None else None
-                # lp_id = (lp := extract_loopid_func_name(m.tag))[0] if lp[0] is not None else None
                 if "r.hypothesis generation" in m.tag:
                     h: Hypothesis = m.content
                     self.msgs_for_frontend[did].append(
@@ -151,7 +150,6 @@ class RDAgentLog(SingletonBaseClass):
                         }
                     )
 
-                # m.tag 中不存在 d.load_experiment, 存在 r.load_experiment
                 elif "r.experiment generation" in m.tag or "d.load_experiment" in m.tag:
                     if "d.load_experiment" in m.tag:
                         tasks: list[FactorTask | ModelTask] = m.content.sub_tasks
