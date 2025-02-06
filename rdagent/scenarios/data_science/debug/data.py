@@ -256,7 +256,7 @@ def create_debug_data(
             if str(fp.name) in sample_used_file_names or str(fp.stem) in sample_used_file_names:
                 used_files.append(fp)
             else:
-                if file_types_count.get('.txt', 1000) < 100 and fp.suffix.lower() == '.txt':
+                if file_types_count.get(".txt", 1000) < 100 and fp.suffix.lower() == ".txt":
                     extra_files.append(fp)
                 not_used_files.append(fp)
 
@@ -282,7 +282,7 @@ def create_debug_data(
                     continue
                 sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(nf, sampled_file_path)
-        
+
         # Copy extra files
         print(f"Copying {len(extra_files)} extra files")
         for uf in extra_files:
