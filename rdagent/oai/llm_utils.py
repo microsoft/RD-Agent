@@ -18,7 +18,7 @@ from typing import Any, Optional
 import numpy as np
 import tiktoken
 
-from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
+from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -828,3 +828,15 @@ def calculate_embedding_distance_between_str_list(
     similarity_matrix = np.dot(source_embeddings_np, target_embeddings_np.T)
 
     return similarity_matrix.tolist()  # type: ignore[no-any-return]
+
+
+def get_api_backend() -> APIBackend:  # TODO: import it from base.py
+    """
+    get llm api backend based on settings dynamically.
+    """
+    api_backend_cls = import_class(LLM_SETTINGS.backend)
+    return api_backend_cls()
+
+
+# Alias
+APIBackend = get_api_backend

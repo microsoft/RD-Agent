@@ -33,3 +33,11 @@ class APIBackend(ABC):
                                           shrink_multiple_break: bool = False) -> int:
         """Build messages and calculate their token count"""
         pass
+
+
+
+# TODO: seperate cache layer. try to be tranparent.
+class CachedAPIBackend(APIBackend):
+    ...
+    # @abstractmethod
+    # def none_cache_function ...
