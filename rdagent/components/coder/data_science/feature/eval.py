@@ -10,6 +10,7 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.env import DockerEnv, DSDockerConf
 from rdagent.utils.fmt import shrink_text
 
@@ -74,5 +75,4 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_stdout=workflow_stdout,
         )
 
-        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
-        return FeatureEvalFeedback(**json.loads(resp))
+        return build_cls_from_json_with_retry(FeatureEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
