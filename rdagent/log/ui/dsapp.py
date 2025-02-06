@@ -132,7 +132,7 @@ def workspace_win(data):
 def exp_gen_win(data):
     st.header("Exp Gen", divider="blue")
     st.subheader("Hypothesis")
-    st.markdown(data.hypothesis)
+    st.code(str(data.hypothesis).replace('\n', '\n\n'), wrap_lines=True)
 
     st.subheader("pending_tasks")
     for tasks in data.pending_tasks_list:
