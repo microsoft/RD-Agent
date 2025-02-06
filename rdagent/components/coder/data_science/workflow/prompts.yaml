@@ -51,7 +51,7 @@ workflow_coder:
     ---------Workflow Specification---------
     {{ workflow_spec }}
     {% if label_encoder %}
-    You should also load the encoder from `label_encoder.pkl` and apply the transform() method to encode the labels based on the previously stored encoding
+    You should use the encoder from load_data() and apply the transform() method to encode the labels.
     {% endif %}
     ---------load data code---------
     file: load_data.py
