@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Type, TypeVar
+from typing import Callable, Type, TypeVar, Union
 
 from rdagent.core.exception import FormatError
 from rdagent.log import rdagent_logger as logger
@@ -12,7 +12,7 @@ def build_cls_from_json_with_retry(cls: Type[T],
                                    system_prompt: str,
                                    user_prompt: str,
                                    retry_n: int = 5,
-                                   init_kwargs_udpate_func: Callable[[dict], dict] | None = None,
+                                   init_kwargs_update_func: Union[Callable[[dict], dict], None] = None,
                                    **kwargs: dict) -> T:
     """
     Parameters
@@ -25,7 +25,7 @@ def build_cls_from_json_with_retry(cls: Type[T],
         The prompt given by the user to guide the response generation.
     retry_n : int
         The number of attempts to retry in case of failure.
-    init_kwargs_udpate_func : Callable[[dict], dict] | None
+    init_kwargs_update_func : Union[Callable[[dict], dict], None]
         A function that takes the initial keyword arguments as input and returns the updated keyword arguments.
         This function can be used to modify the response data before it is used to instantiate the class.
 
@@ -44,8 +44,8 @@ def build_cls_from_json_with_retry(cls: Type[T],
         )
         try:
             resp = json.loads(resp)
-            if init_kwargs_udpate_func:
-                resp = init_kwargs_udpate_func(resp)
+            if init_kwargs_update_func:
+                resp = init_kwargs_update_func(resp)
             return cls(**resp)
         except Exception as e:
             logger.warning(f"Attempt {i + 1}: The previous attempt didn't work due to: {e}")
