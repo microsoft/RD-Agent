@@ -40,9 +40,13 @@ def save_grade_info(log_trace_path: Path):
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
 
 
+def is_valid_session(p: Path) -> bool:
+    return p.is_dir() and p.joinpath("__session__").exists()
+
+
 def save_all_grade_info(log_folder):
     for log_trace_path in log_folder.iterdir():
-        if log_trace_path.is_dir():
+        if is_valid_session(log_trace_path):
             save_grade_info(log_trace_path)
 
 
