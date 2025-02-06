@@ -7,10 +7,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 from streamlit import session_state as state
 
-from rdagent.log.mle_summary import extract_mle_json
+from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
@@ -18,6 +17,8 @@ st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initi
 # 设置主日志路径
 if "log_folder" not in state:
     state.log_folder = Path("./log")
+if "log_folders" not in state:
+    state.log_folders = ["./log"]
 if "log_path" not in state:
     state.log_path = None
 if "show_all_summary" not in state:
@@ -39,7 +40,7 @@ def extract_evoid(tag):
 # @st.cache_data
 def load_data(log_path):
     state.data = defaultdict(lambda: defaultdict(dict))
-    for msg in FileStorage(state.log_folder / log_path).iter_msg():
+    for msg in FileStorage(log_path).iter_msg():
         if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
             if msg.tag == "competition":
                 state.data["competition"] = msg.content
@@ -67,7 +68,7 @@ def get_folders_sorted(log_path):
     """缓存并返回排序后的文件夹列表，并加入进度打印"""
     with st.spinner("正在加载文件夹列表..."):
         folders = sorted(
-            (folder for folder in log_path.iterdir() if folder.is_dir() and list(folder.iterdir())),
+            (folder for folder in log_path.iterdir() if is_valid_session(folder)),
             key=lambda folder: folder.stat().st_mtime,
             reverse=True,
         )
@@ -77,9 +78,15 @@ def get_folders_sorted(log_path):
 
 # UI - Sidebar
 with st.sidebar:
-    state.log_folder = Path(st.text_input("**Log Folder**", placeholder=state.log_folder, value=state.log_folder))
+    log_folder_str = st.text_area(
+        "**Log Folders**(split by ';')", placeholder=state.log_folder, value=";".join(state.log_folders)
+    )
+    state.log_folders = [folder.strip() for folder in log_folder_str.split(";") if folder.strip()]
+
+    state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
+
     folders = get_folders_sorted(state.log_folder)
     st.selectbox(f"Select from :blue[**{state.log_folder.absolute()}**]", folders, key="log_path")
 
@@ -88,7 +95,7 @@ with st.sidebar:
             st.toast("Please select a log path first!", type="error")
             st.stop()
 
-        load_data(state.log_path)
+        load_data(state.log_folder / state.log_path)
 
     st.toggle("One Trace / Log Folder Summary", key="show_all_summary")
 
@@ -111,7 +118,7 @@ def task_win(data):
 def workspace_win(data):
     show_files = {k: v for k, v in data.file_dict.items() if not "test" in k}
     if len(show_files) > 0:
-        with st.expander(f"Files in :blue[{data.workspace_path}]"):
+        with st.expander(f"Files in :blue[{replace_ep_path(data.workspace_path)}]"):
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
@@ -127,7 +134,7 @@ def workspace_win(data):
 def exp_gen_win(data):
     st.header("Exp Gen", divider="blue")
     st.subheader("Hypothesis")
-    st.markdown(data.hypothesis)
+    st.code(str(data.hypothesis).replace("\n", "\n\n"), wrap_lines=True)
 
     st.subheader("pending_tasks")
     for tasks in data.pending_tasks_list:
@@ -225,6 +232,18 @@ def main_win(data):
         )
 
 
+def replace_ep_path(p: Path):
+    # 替换workspace path为对应ep机器mount在ep03的path
+    # TODO: FIXME: 使用配置项来处理
+    match = re.search(r"ep\d+", str(state.log_folder))
+    if match:
+        ep = match.group(0)
+        return Path(
+            str(p).replace("repos/RD-Agent-Exp", f"repos/batch_ctrl/all_projects/{ep}").replace("/Data", "/data")
+        )
+    return p
+
+
 def summarize_data():
     st.header("Summary", divider="rainbow")
     df = pd.DataFrame(columns=["Component", "Running Score", "Feedback"], index=range(len(state.data) - 1))
@@ -235,7 +254,9 @@ def summarize_data():
 
         if "running" in loop_data:
             if "mle_score" not in state.data[loop]:
-                mle_score_path = loop_data["running"].experiment_workspace.workspace_path / "mle_score.txt"
+                mle_score_path = (
+                    replace_ep_path(loop_data["running"].experiment_workspace.workspace_path) / "mle_score.txt"
+                )
                 try:
                     mle_score_txt = mle_score_path.read_text()
                     state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
@@ -264,12 +285,23 @@ def summarize_data():
 
 
 def all_summarize_win():
-    if not (state.log_folder / "summary.pkl").exists():
-        st.warning(
-            f"No summary file found in {state.log_folder}\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder=<your trace folder>`"
-        )
+    summarys = {}
+    for lf in state.log_folders:
+        if not (Path(lf) / "summary.pkl").exists():
+            st.warning(
+                f"No summary file found in {lf}\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder=<your trace folder>`"
+            )
+        else:
+            summarys[lf] = pd.read_pickle(Path(lf) / "summary.pkl")
+
+    if len(summarys) == 0:
         return
-    summary = pd.read_pickle(state.log_folder / "summary.pkl")
+
+    summary = {}
+    for lf, s in summarys.items():
+        for k, v in s.items():
+            summary[f"{lf[lf.rfind('ep'):]}{k}"] = v
+
     summary = {k: v for k, v in summary.items() if "competition" in v}
     base_df = pd.DataFrame(
         columns=[
@@ -311,6 +343,27 @@ def all_summarize_win():
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
     st.dataframe(base_df)
+    total_stat = (
+        (
+            base_df[
+                [
+                    "Made Submission",
+                    "Valid Submission",
+                    "Above Median",
+                    "Bronze",
+                    "Silver",
+                    "Gold",
+                    "Any Medal",
+                ]
+            ]
+            != "0 (0.0%)"
+        ).sum()
+        / base_df.shape[0]
+        * 100
+    )
+    total_stat.name = "总体统计(%)"
+    st.dataframe(total_stat.round(2))
+
     # write curve
     for k, v in summary.items():
         with st.container(border=True):
