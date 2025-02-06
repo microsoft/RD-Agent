@@ -48,6 +48,11 @@ exp_feedback:
     ### Complete Code of current solution
     {{cur_exp.experiment_workspace.all_codes}}
 
+    {% if format_check is not none %}
+    Submission format check to current solution:
+    {{ format_check }}
+    {% endif %}
+
     {{feedback_desc}}
 
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
