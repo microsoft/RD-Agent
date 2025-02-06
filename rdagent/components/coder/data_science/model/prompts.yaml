@@ -87,6 +87,9 @@ model_coder:
         ---------Model Specification---------
         When you are implementing the code, you should follow the spec
         {{ model_spec }}
+        {% if output_channel is not none %}
+        The model outputs the top {{ output_channel }} predictions (TOPK).
+        {% endif %}
 
 
 model_eval:

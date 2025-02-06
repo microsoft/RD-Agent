@@ -41,6 +41,17 @@ ensemble_coder:
     Please implement an ensemble function with the following specification:
     -----------Ensemble Specification-----------
     {{ ensemble_spec }}
+    
+    {% if output_channel is not none %}
+    Note: Predictions are in Top-K format (K={{ output_channel }}), not single-class.
+    For accuracy calculation, we need to check if val_label is in the Top-K predictions.
+    For test predictions, we should use Majority Voting for Top-K.
+    {% endif %}
+
+    ---------model training code---------
+    Attention: The input and output of the model function is flexible. Training dataset is necessary, but validation and test dateset might be optional. The hyperparameters can either be passed as arguments or be set as default values in the function. You need to use the function correctly.
+    All model files share the same function name. Please import the model files with their name like: from {file_name} import {function_name}
+    {{ model_codes }}
 
     {% if latest_code %}
     ---------Former code---------

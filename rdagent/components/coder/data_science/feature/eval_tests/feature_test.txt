@@ -15,7 +15,7 @@ import pandas as pd
 from feature import feat_eng
 from load_data import load_data
 
-X, y, X_test, test_ids = load_data()
+X, y, X_test, test_ids, *extra = load_data()
 print(f"X.shape: {X.shape}")
 print(f"y.shape: {y.shape}" if not isinstance(y, list) else f"y(list)'s length: {len(y)}")
 print(f"X_test.shape: {X_test.shape}")
