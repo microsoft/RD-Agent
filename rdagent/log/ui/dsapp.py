@@ -7,10 +7,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 from streamlit import session_state as state
 
-from rdagent.log.mle_summary import extract_mle_json
+from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
@@ -69,7 +68,7 @@ def get_folders_sorted(log_path):
     """缓存并返回排序后的文件夹列表，并加入进度打印"""
     with st.spinner("正在加载文件夹列表..."):
         folders = sorted(
-            (folder for folder in log_path.iterdir() if folder.is_dir() and list(folder.iterdir())),
+            (folder for folder in log_path.iterdir() if is_valid_session(folder)),
             key=lambda folder: folder.stat().st_mtime,
             reverse=True,
         )
