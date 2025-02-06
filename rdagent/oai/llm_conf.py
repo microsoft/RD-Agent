@@ -10,6 +10,7 @@ from rdagent.core.conf import ExtendedBaseSettings
 class LLMSettings(ExtendedBaseSettings):
     # backend
     backend: str = "rdagent.oai.backend.DeprecBackend"
+    # backend : str = "rdagent.oai.backend.LiteLLMAPIBackend"
 
     log_llm_chat_content: bool = True
 
