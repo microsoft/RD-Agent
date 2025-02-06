@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar, Union, cast
 
 from rdagent.core.exception import FormatError
 from rdagent.log import rdagent_logger as logger
@@ -12,7 +12,7 @@ def build_cls_from_json_with_retry(cls: Type[T],
                                    system_prompt: str,
                                    user_prompt: str,
                                    retry_n: int = 5,
-                                   init_kwargs_update_func: Union[Callable[[dict], dict], None] = None,
+                                   init_kwargs_update_func: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
                                    **kwargs: dict) -> T:
     """
     Parameters
@@ -43,10 +43,10 @@ def build_cls_from_json_with_retry(cls: Type[T],
             user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs  # type: ignore[arg-type]
         )
         try:
-            resp = json.loads(resp)
+            resp_dict = json.loads(resp)
             if init_kwargs_update_func:
-                resp = init_kwargs_update_func(resp)
-            return cls(**resp)
+                resp_dict = init_kwargs_update_func(resp_dict)
+            return cls(**resp_dict)
         except Exception as e:
             logger.warning(f"Attempt {i + 1}: The previous attempt didn't work due to: {e}")
             user_prompt = user_prompt + f"\n\nAttempt {i + 1}: The previous attempt didn't work due to: {e}"
