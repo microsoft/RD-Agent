@@ -239,8 +239,10 @@ class FBWorkspace(Workspace):
         if env is not None and entry is not None:
             # We believe that removing the progress bar might resolve the issue.
             # If needed, cutting off the information in the middle should be a backup plan.
-            return shrink_text(filter_progress_bar(env.run(entry, str(self.workspace_path))),
-                               context_lines=RD_AGENT_SETTINGS.stdout_context_len)
+            return shrink_text(
+                filter_progress_bar(env.run(entry, str(self.workspace_path))),
+                context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            )
         return None
 
     def __str__(self) -> str:
