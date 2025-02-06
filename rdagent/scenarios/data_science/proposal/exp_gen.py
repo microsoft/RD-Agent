@@ -1,23 +1,12 @@
 import json
-import re
-from typing import Literal
-
-import pandas as pd
 
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.experiment import Experiment, Workspace
 from rdagent.core.knowledge_base import KnowledgeBase
-from rdagent.core.proposal import (
-    ExperimentFeedback,
-    ExpGen,
-    Hypothesis,
-    HypothesisFeedback,
-    Trace,
-)
+from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
@@ -225,7 +214,10 @@ class DSExpGen(ExpGen):
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
             description=resp_dict.get("description", f"{component} description not provided"),
-            **resp_dict.get("extra_params", {}),
+            **{
+                k: resp_dict.get("extra_params", {}).get(k, v)
+                for k, v in COMPONENT_TASK_MAPPING[component].get("extra_params", {}).items()
+            },
         )
 
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(component))
