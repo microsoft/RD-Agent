@@ -1,5 +1,5 @@
 import json
-from typing import Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, Union, cast
 
 from rdagent.core.exception import FormatError
 from rdagent.log import rdagent_logger as logger
@@ -9,7 +9,12 @@ T = TypeVar("T")
 
 
 def build_cls_from_json_with_retry(
-    cls: Type[T], system_prompt: str, user_prompt: str, retry_n: int = 5, **kwargs: dict
+    cls: Type[T],
+    system_prompt: str,
+    user_prompt: str,
+    retry_n: int = 5,
+    init_kwargs_update_func: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    **kwargs: dict,
 ) -> T:
     """
     Parameters
@@ -22,6 +27,10 @@ def build_cls_from_json_with_retry(
         The prompt given by the user to guide the response generation.
     retry_n : int
         The number of attempts to retry in case of failure.
+    init_kwargs_update_func : Union[Callable[[dict], dict], None]
+        A function that takes the initial keyword arguments as input and returns the updated keyword arguments.
+        This function can be used to modify the response data before it is used to instantiate the class.
+
     **kwargs
         Additional keyword arguments passed to the API call.
 
@@ -36,9 +45,11 @@ def build_cls_from_json_with_retry(
             user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs  # type: ignore[arg-type]
         )
         try:
-            return cls(**json.loads(resp))
+            resp_dict = json.loads(resp)
+            if init_kwargs_update_func:
+                resp_dict = init_kwargs_update_func(resp_dict)
+            return cls(**resp_dict)
         except Exception as e:
             logger.warning(f"Attempt {i + 1}: The previous attempt didn't work due to: {e}")
             user_prompt = user_prompt + f"\n\nAttempt {i + 1}: The previous attempt didn't work due to: {e}"
-    else:
-        raise FormatError("Unable to produce a JSON response that meets the specified requirements.")
+    raise FormatError("Unable to produce a JSON response that meets the specified requirements.")

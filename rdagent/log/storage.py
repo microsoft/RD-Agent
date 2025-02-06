@@ -142,7 +142,10 @@ class FileStorage(Storage):
                     if "Logging object in" in msg:
                         absolute_p = msg.split("Logging object in ")[1]
                         p = Path(absolute_p)
-                        p.unlink()
+                        if p.exists():
+                            p.unlink()
+                        else:
+                            print(f"Missing pickle object: {p}.")
                     continue
 
                 new_content += content[log_start:log_end]
