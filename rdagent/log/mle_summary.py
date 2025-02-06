@@ -54,7 +54,7 @@ def summarize_folder(log_folder: Path):
     log_folder = Path(log_folder)
     stat = defaultdict(dict)
     for log_trace_path in log_folder.iterdir():  # One log trace
-        if not log_trace_path.is_dir():
+        if not is_valid_session(log_trace_path):
             continue
         loop_num = 0
         made_submission_num = 0
