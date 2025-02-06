@@ -5,7 +5,7 @@ Tools that support generating better formats.
 
 def shrink_text(text: str, context_lines: int = 200) -> str:
     """
-    When the context is too long, hide the part that is not important.
+    When the context is too long, hide the part in the middle.
 
         text before
         ... (XXXXX lines are hidden) ...
