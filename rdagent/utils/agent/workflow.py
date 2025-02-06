@@ -8,12 +8,14 @@ from rdagent.oai.llm_utils import APIBackend
 T = TypeVar("T")
 
 
-def build_cls_from_json_with_retry(cls: Type[T],
-                                   system_prompt: str,
-                                   user_prompt: str,
-                                   retry_n: int = 5,
-                                   init_kwargs_update_func: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
-                                   **kwargs: dict) -> T:
+def build_cls_from_json_with_retry(
+    cls: Type[T],
+    system_prompt: str,
+    user_prompt: str,
+    retry_n: int = 5,
+    init_kwargs_update_func: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    **kwargs: dict,
+) -> T:
     """
     Parameters
     ----------

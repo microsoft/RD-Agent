@@ -1,18 +1,12 @@
 import json
 
-
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.knowledge_base import KnowledgeBase
-from rdagent.core.proposal import (
-    ExperimentFeedback,
-    ExpGen,
-    Hypothesis,
-    Trace,
-)
+from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
