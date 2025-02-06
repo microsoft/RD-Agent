@@ -83,8 +83,9 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_code=workspace.file_dict.get("ensemble.py"),
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
             model_codes=workspace.get_codes(r"^model_(?!test)\w+\.py$"),
-            output_channel=self.scen.model_output_channel if hasattr(self.scen, "model_output_channel") and self.scen.model_output_channel != 1 else None,
-
+            output_channel=self.scen.model_output_channel
+            if hasattr(self.scen, "model_output_channel") and self.scen.model_output_channel != 1
+            else None,
         )
 
         for _ in range(5):
