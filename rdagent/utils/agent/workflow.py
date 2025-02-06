@@ -12,7 +12,7 @@ def build_cls_from_json_with_retry(cls: Type[T],
                                    system_prompt: str,
                                    user_prompt: str,
                                    retry_n: int = 5,
-                                   init_kwargs_udpate_func: Callable | None = None,
+                                   init_kwargs_udpate_func: Callable[[dict], dict] | None = None,
                                    **kwargs: dict) -> T:
     """
     Parameters
