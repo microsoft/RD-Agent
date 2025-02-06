@@ -234,6 +234,7 @@ def main_win(data):
 
 def replace_ep_path(p: Path):
     # 替换workspace path为对应ep机器mount在ep03的path
+    # TODO: FIXME: 使用配置项来处理
     match = re.search(r"ep\d+", str(state.log_folder))
     if match:
         ep = match.group(0)
@@ -342,6 +343,27 @@ def all_summarize_win():
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
     st.dataframe(base_df)
+    total_stat = (
+        (
+            base_df[
+                [
+                    "Made Submission",
+                    "Valid Submission",
+                    "Above Median",
+                    "Bronze",
+                    "Silver",
+                    "Gold",
+                    "Any Medal",
+                ]
+            ]
+            != "0 (0.0%)"
+        ).sum()
+        / base_df.shape[0]
+        * 100
+    )
+    total_stat.name = "总体统计(%)"
+    st.dataframe(total_stat.round(2))
+
     # write curve
     for k, v in summary.items():
         with st.container(border=True):
