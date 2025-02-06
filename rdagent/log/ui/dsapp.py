@@ -78,9 +78,11 @@ def get_folders_sorted(log_path):
 
 # UI - Sidebar
 with st.sidebar:
-    log_folder_str = st.text_area("**Log Folders**(split by ';')", placeholder=state.log_folder, value=";".join(state.log_folders))
+    log_folder_str = st.text_area(
+        "**Log Folders**(split by ';')", placeholder=state.log_folder, value=";".join(state.log_folders)
+    )
     state.log_folders = [folder.strip() for folder in log_folder_str.split(";") if folder.strip()]
-    
+
     state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
@@ -132,7 +134,7 @@ def workspace_win(data):
 def exp_gen_win(data):
     st.header("Exp Gen", divider="blue")
     st.subheader("Hypothesis")
-    st.code(str(data.hypothesis).replace('\n', '\n\n'), wrap_lines=True)
+    st.code(str(data.hypothesis).replace("\n", "\n\n"), wrap_lines=True)
 
     st.subheader("pending_tasks")
     for tasks in data.pending_tasks_list:
@@ -229,13 +231,17 @@ def main_win(data):
 """
         )
 
+
 def replace_ep_path(p: Path):
     # 替换workspace path为对应ep机器mount在ep03的path
-    match = re.search(r'ep\d+', str(state.log_folder))
+    match = re.search(r"ep\d+", str(state.log_folder))
     if match:
         ep = match.group(0)
-        return Path(str(p).replace('repos/RD-Agent-Exp', f'repos/batch_ctrl/all_projects/{ep}').replace("/Data", "/data"))
+        return Path(
+            str(p).replace("repos/RD-Agent-Exp", f"repos/batch_ctrl/all_projects/{ep}").replace("/Data", "/data")
+        )
     return p
+
 
 def summarize_data():
     st.header("Summary", divider="rainbow")
@@ -247,7 +253,9 @@ def summarize_data():
 
         if "running" in loop_data:
             if "mle_score" not in state.data[loop]:
-                mle_score_path = replace_ep_path(loop_data["running"].experiment_workspace.workspace_path) / "mle_score.txt"
+                mle_score_path = (
+                    replace_ep_path(loop_data["running"].experiment_workspace.workspace_path) / "mle_score.txt"
+                )
                 try:
                     mle_score_txt = mle_score_path.read_text()
                     state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
@@ -284,10 +292,10 @@ def all_summarize_win():
             )
         else:
             summarys[lf] = pd.read_pickle(Path(lf) / "summary.pkl")
-    
+
     if len(summarys) == 0:
         return
-    
+
     summary = {}
     for lf, s in summarys.items():
         for k, v in s.items():
