@@ -13,6 +13,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         super().__init__(sub_tasks=[], *args, **kwargs)
         self.experiment_workspace = FBWorkspace()
         self.pending_tasks_list = pending_tasks_list
+        self.format_check_result = None
 
     def next_component_required(self) -> COMPONENT | None:
         files = list(self.experiment_workspace.file_dict.keys())

@@ -9,7 +9,7 @@ from rdagent.core.developer import Developer
 from rdagent.core.exception import RunnerError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils.env import DockerEnv, DSDockerConf, MLEBDockerConf
 
 
 class DSRunner(Developer[DSExperiment]):
@@ -36,6 +36,22 @@ class DSRunner(Developer[DSExperiment]):
         if not submission_fp.exists():
             logger.error("Submission file (submission.csv) is not generated.")
             raise RunnerError(f"Submission file (submission.csv) is not generated, log is:\n{stdout}")
+        else:
+            # DockerEnv for MLEBench submission validation
+            mle_de_conf = MLEBDockerConf()
+            mle_de_conf.extra_volumes = {
+                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+            }
+            mde = DockerEnv(conf=mle_de_conf)
+            mde.prepare()
+            # MLEBench Check
+            mle_check_code = (
+                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_check.txt")
+                .read_text()
+                .replace("<competition_id>", self.scen.competition)
+            )
+            exp.experiment_workspace.inject_files(**{"mle_submission_check.py": mle_check_code})
+            exp.format_check_result = exp.experiment_workspace.execute(env=mde, entry=f"python mle_submission_check.py")
 
         exp.result = pd.read_csv(score_fp, index_col=0)
 

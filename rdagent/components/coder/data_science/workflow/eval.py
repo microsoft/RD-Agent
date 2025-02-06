@@ -61,13 +61,13 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        # DockerEnv for MLEBench submission validation
-        mle_de_conf = MLEBDockerConf()
-        mle_de_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-        }
-        mde = DockerEnv(conf=mle_de_conf)
-        mde.prepare()
+        # # DockerEnv for MLEBench submission validation
+        # mle_de_conf = MLEBDockerConf()
+        # mle_de_conf.extra_volumes = {
+        #     f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+        # }
+        # mde = DockerEnv(conf=mle_de_conf)
+        # mde.prepare()
 
         # Clean the scores.csv & submission.csv.
         stdout = implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
