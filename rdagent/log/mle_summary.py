@@ -40,9 +40,13 @@ def save_grade_info(log_trace_path: Path):
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
 
 
+def is_valid_session(p: Path) -> bool:
+    return p.is_dir() and p.joinpath("__session__").exists()
+
+
 def save_all_grade_info(log_folder):
     for log_trace_path in log_folder.iterdir():
-        if log_trace_path.is_dir():
+        if is_valid_session(log_trace_path):
             save_grade_info(log_trace_path)
 
 
@@ -50,7 +54,7 @@ def summarize_folder(log_folder: Path):
     log_folder = Path(log_folder)
     stat = defaultdict(dict)
     for log_trace_path in log_folder.iterdir():  # One log trace
-        if not log_trace_path.is_dir():
+        if not is_valid_session(log_trace_path):
             continue
         loop_num = 0
         made_submission_num = 0
