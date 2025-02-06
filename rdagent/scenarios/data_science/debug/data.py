@@ -36,7 +36,7 @@ class GenericDataHandler(DataHandler):
         suffix = path.suffix.lower()
 
         if suffix == ".csv":
-            return pd.read_csv(path)
+            return pd.read_csv(path, encoding="utf-8")
         elif suffix == ".pkl":
             return pd.read_pickle(path)
         elif suffix == ".parquet":
@@ -61,7 +61,7 @@ class GenericDataHandler(DataHandler):
         suffix = path.suffix.lower()
 
         if suffix == ".csv":
-            df.to_csv(path, index=False)
+            df.to_csv(path, index=False, encoding="utf-8")
         elif suffix == ".pkl":
             df.to_pickle(path)
         elif suffix == ".parquet":
@@ -114,6 +114,8 @@ class UniqueIDDataReducer(DataReducer):
         self.random_reducer = RandDataReducer(min_frac, min_num)
 
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
+        if not len(df):
+            return df
         if (
             not isinstance(df, pd.DataFrame)
             or not isinstance(df.iloc[0, -1], (int, float, str, tuple, frozenset, bytes, complex, type(None)))
@@ -247,12 +249,15 @@ def create_debug_data(
     for rel_dir, file_list in tqdm(subfolder_dict.items(), desc="Processing files", unit="file"):
         used_files = []
         not_used_files = []
+        extra_files = []
 
         # Check if each file is in the "used" list
         for fp in file_list:
             if str(fp.name) in sample_used_file_names or str(fp.stem) in sample_used_file_names:
                 used_files.append(fp)
             else:
+                if file_types_count.get(".txt", 1000) < 100 and fp.suffix.lower() == ".txt":
+                    extra_files.append(fp)
                 not_used_files.append(fp)
 
         # Directly copy used files
@@ -277,6 +282,15 @@ def create_debug_data(
                     continue
                 sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(nf, sampled_file_path)
+
+        # Copy extra files
+        print(f"Copying {len(extra_files)} extra files")
+        for uf in extra_files:
+            sampled_file_path = sample_folder / uf.relative_to(data_folder)
+            if sampled_file_path.exists():
+                continue
+            sampled_file_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(uf, sampled_file_path)
 
     final_files_count = count_files_in_folder(sample_folder)
     print(f"[INFO] After sampling, the sample folder `{sample_folder}` contains {final_files_count} files in total.")
