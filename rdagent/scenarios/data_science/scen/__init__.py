@@ -187,7 +187,9 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
             for file, size, path in files_details[file_type]:
                 if file_type == "csv":
                     df = pd.read_csv(path)
-                    result.append(" " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)")
+                    result.append(
+                        " " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)"
+                    )
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
                     csv_head = read_csv_head(path, indent + 4)
                     result.append(csv_head)
