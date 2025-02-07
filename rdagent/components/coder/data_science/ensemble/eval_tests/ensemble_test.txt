@@ -20,6 +20,9 @@ X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# Print the types of train_y and val_y
+print(f"train_y type: {type(train_y)}, val_y type: {type(val_y)}")
+
 test_preds_dict = {}
 val_preds_dict = {}
 {% for mn in model_names %}
