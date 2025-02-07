@@ -63,7 +63,7 @@ def load_data(log_path):
                         state.data[li][fn] = msg.content
 
 
-@st.cache_data
+# @st.cache_data
 def get_folders_sorted(log_path):
     """缓存并返回排序后的文件夹列表，并加入进度打印"""
     with st.spinner("正在加载文件夹列表..."):
