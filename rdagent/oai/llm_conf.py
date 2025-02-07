@@ -103,5 +103,9 @@ class LLMSettings(ExtendedBaseSettings):
 
     chat_model_map: str = "{}"
 
-
+    # LiteLLM backend related config
+    litellm_chat_model_name : str = ""
+    # LiteLLM embedding related config
+    litellm_embedding_model_name : str = ""
+        
 LLM_SETTINGS = LLMSettings()

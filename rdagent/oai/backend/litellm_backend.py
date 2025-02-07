@@ -2,25 +2,38 @@ from typing import Any, Optional, Union, List, Dict
 import uuid
 from rdagent.oai.backend.base import APIBackend
 from litellm import completion, acompletion
-import tiktoken
 import os
+
+from pathlib import Path
+
+from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
+from rdagent.log import LogColors
+from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_conf import LLM_SETTINGS
+
+DEFAULT_QLIB_DOT_PATH = Path("./")
+
+
+
+
 
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
     
-    def __init__(self, **kwargs):
+    def __init__(self, litellm_model_name : str = "",litellm_api_key: str = ""):
         super().__init__()
         # Set up any required LiteLLM configurations
-        self.encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
         
     def build_chat_session(self, conversation_id: Optional[str] = None,
                          session_system_prompt: Optional[str] = None) -> Any:
         """Create a new chat session using LiteLLM"""
-        return {
-            "conversation_id": conversation_id or str(uuid.uuid4()),
-            "system_prompt": session_system_prompt,
-            "messages": []
-        }
+        # return {
+        #     "conversation_id": conversation_id or str(uuid.uuid4()),
+        #     "system_prompt": session_system_prompt,
+        #     "messages": []
+        # }
+        raise NotImplementedError("LiteLLM backend does not support chat session creation")
+        # TODO: Implement the chat session creation logic , with ChatSession class
         
     def build_messages_and_create_chat_completion(self, user_prompt: str,
                                                  system_prompt: Optional[str] = None,
@@ -41,34 +54,42 @@ class LiteLLMAPIBackend(APIBackend):
         
         # Call LiteLLM completion
         response = completion(
-            model=kwargs.get("model", "gpt-3.5-turbo"),
+            model=LLM_SETTINGS.litellm_chat_model_name or kwargs.get("litellm_chat_model_name", "ollama/mistral"),
             messages=messages,
             stream=kwargs.get("stream", False),
             temperature=kwargs.get("temperature", 0.7),
             max_tokens=kwargs.get("max_tokens", 1000),
             **kwargs
         )
-        
+        logger.info({"user": user_prompt, "resp": response.choices[0].message.content}, tag="debug_llm")
+        logger.info(f"Using chat model {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}",tag="debug_llm")
         return response.choices[0].message.content
         
-    def create_embedding(self, input_content: Union[str, List[str]],
+    def create_embedding(self, input_content_list: Union[str, List[str]],
                         *args, **kwargs) -> Union[List[Any], Any]:
         """Create embeddings using LiteLLM"""
         from litellm import embedding
-        
-        if isinstance(input_content, str):
-            input_content = [input_content]
-            
-        response = embedding(
-            model=kwargs.get("model", "text-embedding-ada-002"),
-            input=input_content,
-            **kwargs
-        )
-        
-        if isinstance(input_content, str):
-            return response.data[0].embedding
-        return [item.embedding for item in response.data]
-        
+        single_input = False
+        if isinstance(input_content_list, str):
+            input_content_list = [input_content_list]
+            single_input = True
+        response_list = []
+        for input_content in input_content_list:
+            logger.info(f"Creating embedding for: {input_content}", tag="debug_litellm_emb")
+            if not isinstance(input_content, str):
+                raise ValueError("Input content must be a string")
+            response = embedding(
+                model=LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text"),
+                input=input_content,
+                **kwargs
+            )
+            model_name = LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text")
+            logger.info(f"Using emb model {model_name}",tag="debug_litellm_emb")
+            response_list.append(response.data[0]['embedding'])
+        if single_input:
+            return response_list[0]
+        return response_list
+    
     def build_messages_and_calculate_token(self, user_prompt: str,
                                           system_prompt: Optional[str],
                                           former_messages: Optional[List[Dict[str, Any]]] = None,
