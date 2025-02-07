@@ -97,7 +97,6 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
         dirs.sort()
         if not dirs:
             for file in files:
-                print(file)
                 file_path = os.path.join(root, file)
                 file_type = os.path.splitext(file)[1][1:]
                 file_size = os.path.getsize(file_path)
@@ -186,14 +185,16 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
             result.append(" " * (indent + 2) + "... (file limit reached)")
         else:
             for file, size, path in files_details[file_type]:
-                result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "csv":
+                    df = pd.read_csv(path)
+                    result.append(
+                        " " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)"
+                    )
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
                     csv_head = read_csv_head(path, indent + 4)
-                    # if len(csv_head) > 300:
-                    #     csv_head = " ".join(csv_head.strip().split())
-                    #     csv_head = csv_head[:300] + "\n" + " " * (indent + 4) + "... (truncated)"
                     result.append(csv_head)
+                    continue
+                result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "md":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     if file == "description.md":
