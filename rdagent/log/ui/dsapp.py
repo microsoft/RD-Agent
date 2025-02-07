@@ -1,6 +1,6 @@
-import json
 import re
 from collections import defaultdict
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -9,8 +9,10 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
+from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
+from rdagent.utils import remove_ansi_codes
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -23,6 +25,18 @@ if "log_path" not in state:
     state.log_path = None
 if "show_all_summary" not in state:
     state.show_all_summary = True
+if "show_stdout" not in state:
+    state.show_stdout = False
+
+
+def load_stdout():
+    # FIXME: TODO: 使用配置项来指定stdout文件名
+    stdout_path = state.log_folder / f"{state.log_path}.stdout"
+    if stdout_path.exists():
+        stdout = stdout_path.read_text()
+    else:
+        stdout = f"Please Set: {stdout_path}"
+    return stdout
 
 
 def extract_loopid_func_name(tag):
@@ -38,8 +52,9 @@ def extract_evoid(tag):
 
 
 # @st.cache_data
-def load_data(log_path):
+def load_data(log_path: Path):
     state.data = defaultdict(lambda: defaultdict(dict))
+    state.times = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
         if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
             if msg.tag == "competition":
@@ -48,6 +63,12 @@ def load_data(log_path):
 
             li, fn = extract_loopid_func_name(msg.tag)
             li = int(li)
+
+            # read times
+            loop_obj_path = log_path / "__session__" / f"{li}" / "4_record"
+            if loop_obj_path.exists():
+                state.times[li] = DataScienceRDLoop.load(loop_obj_path).loop_trace[li]
+
             ei = extract_evoid(msg.tag)
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
             msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
@@ -98,6 +119,7 @@ with st.sidebar:
         load_data(state.log_folder / state.log_path)
 
     st.toggle("One Trace / Log Folder Summary", key="show_all_summary")
+    st.toggle("Show stdout", key="show_stdout")
 
 
 # UI windows
@@ -246,12 +268,18 @@ def replace_ep_path(p: Path):
 
 def summarize_data():
     st.header("Summary", divider="rainbow")
-    df = pd.DataFrame(columns=["Component", "Running Score", "Feedback"], index=range(len(state.data) - 1))
+    df = pd.DataFrame(
+        columns=["Component", "Running Score", "Feedback", "Time", "Start Time (UTC+8)", "End Time (UTC+8)"],
+        index=range(len(state.data) - 1),
+    )
 
     for loop in range(len(state.data) - 1):
         loop_data = state.data[loop]
         df.loc[loop, "Component"] = loop_data["direct_exp_gen"].hypothesis.component
-
+        if state.times[loop]:
+            df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
+            df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
+            df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
         if "running" in loop_data:
             if "mle_score" not in state.data[loop]:
                 mle_score_path = (
@@ -386,6 +414,31 @@ def all_summarize_win():
             fc2.plotly_chart(f2, key=k)
 
 
+def stdout_win(loop_id: int):
+    stdout = load_stdout()
+    if stdout.startswith("Please Set"):
+        st.toast(stdout, icon="🟡")
+        return
+    start_index = stdout.find(f"Start Loop {loop_id}")
+    end_index = stdout.find(f"Start Loop {loop_id + 1}")
+    loop_stdout = remove_ansi_codes(stdout[start_index:end_index])
+    with st.container(border=True):
+        st.subheader(f"Loop {loop_id} stdout")
+        pattern = f"Start Loop {loop_id}, " + r"Step \d+: \w+"
+        matches = re.finditer(pattern, loop_stdout)
+        step_stdouts = {}
+        for match in matches:
+            step = match.group(0)
+            si = match.start()
+            ei = loop_stdout.find(f"Start Loop {loop_id}", match.end())
+            step_stdouts[step] = loop_stdout[si:ei].strip()
+
+        for k, v in step_stdouts.items():
+            expanded = True if "coding" in k else False
+            with st.expander(k, expanded=expanded):
+                st.code(v, language="log", wrap_lines=True)
+
+
 # UI - Main
 if state.show_all_summary:
     all_summarize_win()
@@ -393,4 +446,6 @@ elif "data" in state:
     st.title(state.data["competition"])
     summarize_data()
     loop_id = st.slider("Loop", 0, len(state.data) - 2, 0)
+    if state.show_stdout:
+        stdout_win(loop_id)
     main_win(state.data[loop_id])
