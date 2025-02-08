@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 import tiktoken
@@ -21,6 +21,7 @@ import tiktoken
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.backend.base import APIBackend as BaseAPIBackend
 from rdagent.oai.llm_conf import LLM_SETTINGS
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
@@ -153,7 +154,7 @@ class SQliteLazyCache(SingletonBaseClass):
     def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
         self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
         result = self.c.fetchone()
-        return [] if result is None else json.loads(result[0])
+        return [] if result is None else cast(list[dict[str, Any]], json.loads(result[0]))
 
     def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
         self.c.execute(
@@ -254,12 +255,12 @@ def calculate_embedding_distance_between_str_list(
     return similarity_matrix.tolist()  # type: ignore[no-any-return]
 
 
-def get_api_backend(*args,**kwargs ) -> APIBackend:  # TODO: import it from base.py
+def get_api_backend(*args: Any, **kwargs: Any) -> BaseAPIBackend:  # TODO: import it from base.py
     """
     get llm api backend based on settings dynamically.
     """
     api_backend_cls = import_class(LLM_SETTINGS.backend)
-    return api_backend_cls(*args, **kwargs)
+    return cast(BaseAPIBackend, api_backend_cls(*args, **kwargs))
 
 
 # Alias
