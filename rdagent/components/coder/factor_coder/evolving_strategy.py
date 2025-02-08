@@ -162,13 +162,14 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_similar_error_knowledge_to_render = queried_similar_error_knowledge_to_render[:-1]
         for _ in range(10):
             try:
-                code = json.loads(
+                from rdagent.utils.agent.ret import PythonAgentOut
+                code =  PythonAgentOut().extract_output(
                     APIBackend(
                         use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
                     ).build_messages_and_create_chat_completion(
                         user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
-                )["code"]
+                )
                 return code
             except json.decoder.JSONDecodeError:
                 pass
