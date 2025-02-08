@@ -1,12 +1,6 @@
 import json
-import random
 import unittest
-
-from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
-
-
-
 
 class TestChatCompletion(unittest.TestCase):
     def test_chat_completion(self) -> None:
