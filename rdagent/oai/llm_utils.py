@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional, cast, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar, cast
 
 import numpy as np
 import tiktoken

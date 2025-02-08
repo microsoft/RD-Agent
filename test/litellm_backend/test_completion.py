@@ -36,7 +36,7 @@ class TestChatCompletion(unittest.TestCase):
         assert response is not None
         assert isinstance(response, str)
         json.loads(response)
-    
+
     # def test_chat_multi_round(self) -> None:
     #     system_prompt = "You are a helpful assistant."
     #     fruit_name = random.SystemRandom().choice(["apple", "banana", "orange", "grape", "watermelon"])
@@ -54,7 +54,6 @@ class TestChatCompletion(unittest.TestCase):
     #     response2 = session.build_chat_completion(user_prompt=user_prompt_2)
     #     assert response2 is not None
     #     TODO: Implement the test_chat_cache_multiprocess test case , due to ChatSession has not been implemented yet
-
 
 
 if __name__ == "__main__":

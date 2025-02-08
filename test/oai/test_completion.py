@@ -36,7 +36,7 @@ class TestChatCompletion(unittest.TestCase):
         assert response is not None
         assert isinstance(response, str)
         json.loads(response)
-    
+
     def test_chat_completion_litellm(self):
         LLM_SETTINGS.backend = "rdagent.oai.backend.LiteLLMAPIBackend"
         self.test_chat_completion()

@@ -14,8 +14,9 @@ import uuid
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
-import openai
+
 import numpy as np
+import openai
 import tiktoken
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
@@ -26,7 +27,6 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
 from rdagent.oai.backend.base import APIBackend
-
 
 
 def md5_hash(input_string: str) -> str:
@@ -255,7 +255,6 @@ def calculate_embedding_distance_between_str_list(
     similarity_matrix = np.dot(source_embeddings_np, target_embeddings_np.T)
 
     return similarity_matrix.tolist()  # type: ignore[no-any-return]
-
 
 
 class DeprecBackend(APIBackend):
@@ -832,4 +831,3 @@ class DeprecBackend(APIBackend):
             user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
         )
         return self._calculate_token_from_messages(messages)
-
