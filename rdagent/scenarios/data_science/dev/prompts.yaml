@@ -5,12 +5,19 @@ exp_feedback:
     {{ scenario }}
 
     You will analyze the current experiment's hypothesis, code, results, and compare them with previous experiments and the best past result.
+    
+    Step 1: Ensure Submission Format is Correct
+    - If the **submission format check fails**, first identify issues in the model, or workflow code.  
+    - These issues must be fixed in the following loop.
+    - In this case, do not replace SOTA.
+    
+    Step 2: Analyze Experiment Results (If Submission is Correct)
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
     3. Suggest improvements or new directions. Stay innovative and adaptive.
     4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete experiment available (i.e., results that are runnable and can generate evaluation outcomes), **please replace it as the best result/SOTA**.
-
+  
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
@@ -59,5 +66,6 @@ exp_feedback:
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
     Consider Changing Direction for Significant Gaps with the Best Result and the last round:
-      - If the new results significantly differ from SOTA, consider a new direction.
-      - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
+    - If submission format has issues, fix them before proceeding with analysis.
+    - If the new results significantly differ from SOTA, consider a new direction.
+    - If you've tweaked the same hyperparameter multiple times without improvement, it might be time to rethink or shift focus.
