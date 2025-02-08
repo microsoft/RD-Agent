@@ -111,7 +111,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env*
 .venv
 ^env/
 venv/
@@ -172,5 +172,4 @@ mlruns/
 *.out
 *.sh
 .aider*
-.env_litellm
 rdagent/app/benchmark/factor/example.json
