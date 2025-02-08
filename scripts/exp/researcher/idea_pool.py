@@ -187,9 +187,9 @@ class Idea_Pool:
     def calculate_sim_matrix(self, source, target):
         sim_matrix = calculate_embedding_distance_between_str_list(
             source_str_list=source, target_str_list=target
-        ) # [source, target]
+        ) # [s,t]
 
-        return np.array(sim_matrix).flatten()
+        return np.array(sim_matrix).flatten() # [s,t] -> [s*t]
 
 
     def sample(self, solution, k=5):
@@ -197,7 +197,7 @@ class Idea_Pool:
         Sample top-k ideas based on similarity to the given solution.
 
         Args:
-            solution (str): Solution to compare against.
+            solution (str or List[str]): Solution to compare against.
             k (int): Number of top ideas to retrieve.
 
         Returns:
@@ -207,9 +207,9 @@ class Idea_Pool:
             raise ValueError("Idea pool is empty. Add ideas before sampling.")
 
         unused_idea_pool = [idea for idea in self.idea_pool if idea.status] # only consider the unused ideas
-        source = [idea.knowledge for idea in unused_idea_pool]
-        target = [solution]
-        sim_matrix = self.calculate_sim_matrix(source, target)
+        source = [idea.knowledge for idea in unused_idea_pool] # [s]
+        target = [solution] if isinstance(solution, str) else solution # [t]
+        sim_matrix = self.calculate_sim_matrix(source, target) # [s*t]
 
         # get top-k indices
         max_indices = np.argpartition(sim_matrix, -k)[-k:]
@@ -219,6 +219,7 @@ class Idea_Pool:
         # retrieve ideas
         top_ideas = []
         for i in max_indices:
-            top_ideas.append(unused_idea_pool[i])
-            unused_idea_pool[i].status = False
+            map_idx = i % len(unused_idea_pool)
+            top_ideas.append(unused_idea_pool[map_idx])
+            unused_idea_pool[map_idx].status = False
         return top_ideas, max_values

@@ -295,8 +295,26 @@ class DSExpGen(ExpGen):
 ## Solution Notebook
 {sota_exp.experiment_workspace.all_codes}
 '''
-            idea, sim = self.idea_pool.sample(solution_to_feature(solution), k=1)
-            idea = idea[0]
+            solution_feature = solution_to_feature(solution)
+            try: 
+                features = json.loads(solution_feature)
+            except: 
+                match = re.search(r'\[(?:[^\[\]]|\[.*\])*\]', solution_feature)
+                features = json.loads(match.group(0)) if match else None
+
+            if features is None: 
+                idea, sim = self.idea_pool.sample(solution_feature, k=1)
+                idea = idea[0]
+            else: 
+                extracted_features = []   
+                for feat in features:
+                    characteristic, contents = next(iter(feat.items()))
+                    if contents['Assessment'].lower() != 'no':
+                        temp = f'''The characteristic of the data is {characteristic}.
+                This is because {contents['Reason']}'''
+                        extracted_features.append(temp)
+                idea, sim = self.idea_pool.sample(extracted_features, k=1)
+                idea = idea[0]
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
