@@ -11,18 +11,18 @@ class APIBackend(ABC):
         pass
 
     @abstractmethod
-    def build_messages_and_create_chat_completion(self, user_prompt: str, 
+    def build_messages_and_create_chat_completion(self, user_prompt: str,
                                                  system_prompt: Optional[str] = None,
-                                                 former_messages: Optional[List] = None,
+                                                 former_messages: Optional[List[Any]] = None,
                                                  chat_cache_prefix: str = "",
                                                  shrink_multiple_break: bool = False,
-                                                 *args, **kwargs) -> str:
+                                                 *args: Any, **kwargs: Any) -> str:
         """Build messages and get chat completion"""
         pass
 
     @abstractmethod
     def create_embedding(self, input_content: Union[str, List[str]], 
-                        *args, **kwargs) -> Union[List[Any], Any]:
+                        *args: Any, **kwargs: Any) -> Union[List[Any], Any]:
         """Create embeddings for input text"""
         pass
 
@@ -30,7 +30,7 @@ class APIBackend(ABC):
     def build_messages_and_calculate_token(self, user_prompt: str,
                                           system_prompt: Optional[str],
                                           former_messages: Optional[List[Dict[str, Any]]] = None,
-                                          shrink_multiple_break: bool = False) -> int:
+                                          *, shrink_multiple_break: bool = False) -> int:
         """Build messages and calculate their token count"""
         pass
 

@@ -21,12 +21,12 @@ DEFAULT_QLIB_DOT_PATH = Path("./")
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
     
-    def __init__(self, litellm_model_name : str = "",litellm_api_key: str = "",*args, **kwargs) :
+    def __init__(self, litellm_model_name: str = "", litellm_api_key: str = "", *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        def _get_encoder(text):
-            return encode_litellm(model=LLM_SETTINGS.litellm_embedding_model_name or "ollama/nomic-embed-text",text=text)
+        def _get_encoder(text: str) -> Any:
+            return encode_litellm(model=LLM_SETTINGS.litellm_embedding_model_name or "ollama/nomic-embed-text", text=text)
         class _Encoder:
-            def encode(self,text):
+            def encode(self, text: str) -> Any:
                 return _get_encoder(text)
         self.encoder = _Encoder()
         # Set up any required LiteLLM configurations
@@ -46,10 +46,10 @@ class LiteLLMAPIBackend(APIBackend):
         
     def build_messages_and_create_chat_completion(self, user_prompt: str,
                                                  system_prompt: Optional[str] = None,
-                                                 former_messages: Optional[List] = None,
+                                                 former_messages: Optional[List[Any]] = None,
                                                  chat_cache_prefix: str = "",
                                                  shrink_multiple_break: bool = False,
-                                                 *args, **kwargs) -> str:
+                                                 *args: Any, **kwargs: Any) -> str:
         """Build messages and get LiteLLM chat completion"""
         messages = []
         
@@ -81,8 +81,7 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}", tag="debug_llm")
         return response.choices[0].message.content
         
-    def create_embedding(self, input_content_list: Union[str, List[str]],
-                        *args, **kwargs) -> Union[List[Any], Any]:
+    def create_embedding(self, input_content_list: Union[str, List[str]], *args: Any, **kwargs: Any) -> Union[List[Any], Any]:
         """Create embeddings using LiteLLM"""
         from litellm import embedding
         single_input = False

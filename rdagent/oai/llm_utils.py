@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, Type, TypeVar
 
 import numpy as np
 import tiktoken
@@ -259,8 +259,8 @@ def get_api_backend(*args: Any, **kwargs: Any) -> BaseAPIBackend:  # TODO: impor
     """
     get llm api backend based on settings dynamically.
     """
-    api_backend_cls = import_class(LLM_SETTINGS.backend)
-    return cast(BaseAPIBackend, api_backend_cls(*args, **kwargs))
+    api_backend_cls: Type[BaseAPIBackend] = import_class(LLM_SETTINGS.backend)
+    return api_backend_cls(*args, **kwargs)
 
 
 # Alias
