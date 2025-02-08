@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from litellm import acompletion, completion
+from litellm import acompletion, completion, token_counter
 from litellm import encode as encode_litellm
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
@@ -12,8 +12,6 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
 from rdagent.oai.llm_conf import LLM_SETTINGS
 
-DEFAULT_QLIB_DOT_PATH = Path("./")
-
 
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
@@ -21,16 +19,16 @@ class LiteLLMAPIBackend(APIBackend):
     def __init__(self, litellm_model_name: str = "", litellm_api_key: str = "", *args: Any, **kwargs: Any) -> None:
         super().__init__()
 
-        def _get_encoder(text: str) -> Any:
-            return encode_litellm(
-                model=LLM_SETTINGS.litellm_embedding_model_name or "ollama/nomic-embed-text", text=text
-            )
+        # def _get_encoder(text: str) -> Any:
+        #     return encode_litellm(
+        #         model=LLM_SETTINGS.litellm_embedding_model_name or "ollama/nomic-embed-text", text=text
+        #     )
 
-        class _Encoder:
-            def encode(self, text: str) -> Any:
-                return _get_encoder(text)
+        # class _Encoder:
+        #     def encode(self, text: str) -> Any:
+        #         return _get_encoder(text)
 
-        self.encoder = _Encoder()
+        # self.encoder = _Encoder()
         # Set up any required LiteLLM configurations
         # if *args or **kwargs:
         if len(args) > 0 or len(kwargs) > 0:
@@ -68,10 +66,10 @@ class LiteLLMAPIBackend(APIBackend):
             messages.extend(former_messages)
 
         messages.append({"role": "user", "content": user_prompt})
-
+        model_name = LLM_SETTINGS.litellm_chat_model_name or "openai/gpt4-o"
         # Call LiteLLM completion
         response = completion(
-            model=LLM_SETTINGS.litellm_chat_model_name or kwargs.get("litellm_chat_model_name", "ollama/mistral"),
+            model=model_name,
             messages=messages,
             stream=kwargs.get("stream", False),
             temperature=kwargs.get("temperature", 0.7),
@@ -79,7 +77,7 @@ class LiteLLMAPIBackend(APIBackend):
             **kwargs,
         )
         logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}",
+            f"{LogColors.GREEN}Using chat model{LogColors.END} {model_name}",
             tag="debug_llm",
         )
 
@@ -106,13 +104,13 @@ class LiteLLMAPIBackend(APIBackend):
             single_input = True
         response_list = []
         for input_content_iter in input_content:
-            model_name = LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text")
+            model_name = LLM_SETTINGS.litellm_embedding_model_name or 'azure/text-embedding-3-small'
             logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
             logger.info(f"Creating embedding for: {input_content_iter}", tag="debug_litellm_emb")
             if not isinstance(input_content_iter, str):
                 raise ValueError("Input content must be a string")
             response = embedding(
-                model=LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text"),
+                model=model_name,
                 input=input_content_iter,
                 **kwargs,
             )
@@ -140,12 +138,17 @@ class LiteLLMAPIBackend(APIBackend):
         messages.append({"role": "user", "content": user_prompt})
 
         # Calculate tokens
-        num_tokens = 0
-        for message in messages:
-            num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
-            for key, value in message.items():
-                num_tokens += len(self.encoder.encode(value))
-                if key == "name":  # if there's a name, the role is omitted
-                    num_tokens += -1  # role is always required and always 1 token
-        num_tokens += 2  # every reply is primed with <im_start>assistant
+        # num_tokens = 0
+        # for message in messages:
+        #     num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+        #     for key, value in message.items():
+        #         num_tokens += len(self.encoder.encode(value))
+        #         if key == "name":  # if there's a name, the role is omitted
+        #             num_tokens += -1  # role is always required and always 1 token
+        # num_tokens += 2  # every reply is primed with <im_start>assistant
+        num_tokens = token_counter(
+            model=LLM_SETTINGS.litellm_chat_model_name or "openai/gpt4-o",
+            messages=messages,
+        )
+        logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
