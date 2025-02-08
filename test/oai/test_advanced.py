@@ -71,9 +71,7 @@ class TestAdvanced(unittest.TestCase):
 
     def test_chat_multi_round(self) -> None:
         system_prompt = "You are a helpful assistant."
-        fruit_name = random.SystemRandom().choice(
-            ["apple", "banana", "orange", "grape", "watermelon"]
-        )
+        fruit_name = random.SystemRandom().choice(["apple", "banana", "orange", "grape", "watermelon"])
         user_prompt_1 = (
             f"I will tell you a name of fruit, please remember them and tell me later. "
             f"The name is {fruit_name}. Once you remember it, please answer OK."
