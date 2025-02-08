@@ -221,8 +221,12 @@ direct_exp_gen:
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
     {{recent_trace_desc}}
 
-    # The difference from the best experiments to the last one
-    {{last_exp_diff}}
+    {% if last_exp_diff %}
+    # Here are the differences between the latest version of implementation and the current best version of implementation
+    It is presented in diff format, highlighting changes from the best version to the latest version.
+    {{ last_exp_diff }}
+    {% endif %}
+
     {% endif %}
 
 
@@ -254,7 +258,8 @@ component_gen:
     {{sota_exp_desc}}
 
     {% if last_exp_diff %}
-    # Here is the latest version of implementation different from the sota_exp_desc
+    # Here are the differences between the latest version of implementation and the current best version of implementation
+    It is presented in diff format, highlighting changes from the best version to the latest version.
     {{ last_exp_diff }}
     {% endif %}
 
