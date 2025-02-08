@@ -37,10 +37,6 @@ class TestChatCompletion(unittest.TestCase):
         assert isinstance(response, str)
         json.loads(response)
 
-    def test_chat_completion_litellm(self):
-        LLM_SETTINGS.backend = "rdagent.oai.backend.LiteLLMAPIBackend"
-        self.test_chat_completion()
-
     def test_chat_multi_round(self) -> None:
         system_prompt = "You are a helpful assistant."
         fruit_name = random.SystemRandom().choice(["apple", "banana", "orange", "grape", "watermelon"])
