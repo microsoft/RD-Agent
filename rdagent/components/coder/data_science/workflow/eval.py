@@ -80,16 +80,17 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not score_fp.exists():
             stdout += "\nMetrics file (scores.csv) is not generated."
         else:
-            score_df = pd.read_csv(score_fp, index_col=0)
-            model_set_in_scores = set(score_df.index)
-            model_set_in_folder = set(
-                f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
-            )
-            for model in model_set_in_folder:
-                if model not in model_set_in_scores:
-                    stdout += (
-                        f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
-                    )
+            try:
+                score_df = pd.read_csv(score_fp, index_col=0)
+                model_set_in_scores = set(score_df.index)
+                model_set_in_folder = set(
+                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
+                )
+                for model in model_set_in_folder:
+                    if model not in model_set_in_scores:
+                        stdout += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
+            except Exception as e:
+                stdout += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
 
         # Check submission file
         submission_fp = implementation.workspace_path / "submission.csv"
