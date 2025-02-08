@@ -7,6 +7,7 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
@@ -106,7 +107,7 @@ def summarize_folder(log_folder: Path):
                                     gold_num += 1
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
-                    if bool(msg.content):
+                    if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
                         success_loop_num += 1
 
         stat[log_trace_path.name].update(
