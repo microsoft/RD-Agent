@@ -1,2 +1,2 @@
-from .deprec_backend import DeprecBackend
-from .litellm_backend import LiteLLMAPIBackend
+from .deprec import DeprecBackend
+from .litellm import LiteLLMAPIBackend
