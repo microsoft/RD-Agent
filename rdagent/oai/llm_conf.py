@@ -10,7 +10,6 @@ from rdagent.core.conf import ExtendedBaseSettings
 class LLMSettings(ExtendedBaseSettings):
     # backend
     backend: str = "rdagent.oai.backend.DeprecBackend"
-    # backend : str = "rdagent.oai.backend.LiteLLMAPIBackend"
 
     log_llm_chat_content: bool = True
 
@@ -102,11 +101,6 @@ class LLMSettings(ExtendedBaseSettings):
     gcr_endpoint_max_token: int = 100
 
     chat_model_map: str = "{}"
-
-    # LiteLLM backend related config
-    litellm_chat_model_name: str = ""
-    # LiteLLM embedding related config
-    litellm_embedding_model_name: str = ""
 
 
 LLM_SETTINGS = LLMSettings()
