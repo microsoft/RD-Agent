@@ -29,26 +29,20 @@ def generate_diff(dir1: str, dir2: str) -> List[str]:
 
         if file1.exists() and file2.exists():
             with file1.open() as f1, file2.open() as f2:
-                diff = list(
-                    difflib.unified_diff(f1.readlines(), f2.readlines(), fromfile=str(file1), tofile=str(file2))
-                )
+                diff = list(difflib.unified_diff(f1.readlines(), f2.readlines(), fromfile=str(file), tofile=str(file)))
                 if diff:
                     diff_files.extend(diff)
         else:
             if file1.exists():
                 with file1.open() as f1:
                     diff = list(
-                        difflib.unified_diff(
-                            f1.readlines(), [], fromfile=str(file1), tofile=str(file2) + " (empty file)"
-                        )
+                        difflib.unified_diff(f1.readlines(), [], fromfile=str(file), tofile=str(file) + " (empty file)")
                     )
                     diff_files.extend(diff)
             elif file2.exists():
                 with file2.open() as f2:
                     diff = list(
-                        difflib.unified_diff(
-                            [], f2.readlines(), fromfile=str(file1) + " (empty file)", tofile=str(file2)
-                        )
+                        difflib.unified_diff([], f2.readlines(), fromfile=str(file) + " (empty file)", tofile=str(file))
                     )
                     diff_files.extend(diff)
 

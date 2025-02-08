@@ -122,6 +122,15 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 return exp
         return None
 
+    def last_runnable_exp_fb(self) -> tuple[DSExperiment, ExperimentFeedback] | None:
+        """
+        Access the last runnable experiment (no exception, usually not all task failed) and feedback
+        """
+        for exp, ef in self.hist[::-1]:
+            if ef.exception is None:
+                return exp, ef
+        return None
+
 
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
@@ -266,7 +275,8 @@ class DSExpGen(ExpGen):
             # - Extra RAG
             sota_exp = trace.sota_experiment()
             assert sota_exp is not None, "SOTA experiment is not provided."
-            exp_and_feedback = trace.hist[-1]
+            exp_and_feedback = trace.last_runnable_exp_fb()
+            assert exp_and_feedback is not None, "Last runnable experiment is not provided."
             last_exp = exp_and_feedback[0]
 
             # Step 1: Generate component
