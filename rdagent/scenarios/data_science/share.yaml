@@ -18,6 +18,10 @@ describe: # some template to describe some object
     {% else %}
     Evaluated results on validation is:
     {{ exp.result }}
+    {% if exp.format_check_result is not none %}
+    Submission format check results is:
+    {{ exp.format_check_result }}
+    {% endif %}
     {% endif %}
 
     {% else %}
