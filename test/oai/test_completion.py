@@ -34,5 +34,6 @@ class TestChatCompletion(unittest.TestCase):
         assert token is not None
         assert isinstance(token, int)
 
+
 if __name__ == "__main__":
     unittest.main()

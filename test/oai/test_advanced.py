@@ -18,6 +18,7 @@ def _worker(system_prompt, user_prompt):
         user_prompt=user_prompt,
     )
 
+
 class TestAdvanced(unittest.TestCase):
 
     def test_chat_cache_multiprocess(self) -> None:
@@ -155,7 +156,6 @@ class TestAdvanced(unittest.TestCase):
         assert (
             response1 != response2 and response3 != response4 and response5 != response6
         ), "Same question should get different response when use_auto_chat_cache_seed_gen=True"
-
 
 
 if __name__ == "__main__":

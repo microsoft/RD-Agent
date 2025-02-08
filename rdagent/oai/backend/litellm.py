@@ -29,6 +29,7 @@ class LiteLLMSettings(ExtendedBaseSettings):
 
 LITELLM_SETTINGS = LiteLLMSettings()
 
+
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
 
