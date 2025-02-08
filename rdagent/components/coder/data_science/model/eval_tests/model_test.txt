@@ -50,4 +50,4 @@ val_pred, test_pred, final_hypers = model_workflow(
 )
 log_execution_results(start_time, val_pred, test_pred, final_hypers, "The second execution")
 
-print("Model code test passed successfully.")
+print("Model code test end.")
