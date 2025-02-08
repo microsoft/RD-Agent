@@ -65,7 +65,6 @@ class DSExperiment2Feedback(Experiment2Feedback):
             sota_desc=sota_desc,
             cur_exp=exp,
             diff_edition=diff_edition,
-            format_check=exp.format_check_result,
             feedback_desc=feedback_desc,
         )
 

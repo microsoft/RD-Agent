@@ -8,7 +8,7 @@ exp_feedback:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. Suggest improvements or new directions. Stay innovative and adapative.
+    3. Suggest improvements or new directions. Stay innovative and adaptive.
     4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete experiment available (i.e., results that are runnable and can generate evaluation outcomes), **please replace it as the best result/SOTA**.
 
     Please provide detailed and constructive feedback.
@@ -45,13 +45,14 @@ exp_feedback:
 
     Final results of the current solution: 
     {{ cur_exp.result }}
+    
+    {% if cur_exp.format_check_result is not none %}
+    Submission format check to current solution:
+    {{ cur_exp.format_check_result }}
+    {% endif %}
+    
     ### Complete Code of current solution
     {{cur_exp.experiment_workspace.all_codes}}
-
-    {% if format_check is not none %}
-    Submission format check to current solution:
-    {{ format_check }}
-    {% endif %}
 
     {{feedback_desc}}
 
