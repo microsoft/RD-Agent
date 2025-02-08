@@ -18,17 +18,16 @@ from rdagent.oai.llm_conf import LLM_SETTINGS
 class LiteLLMSettings(ExtendedBaseSettings):
 
     class Config:
-        env_prefix = "LITELLM"
+        env_prefix = "LITELLM_"
         """Use `LITELLM_` as prefix for environment variables"""
 
     # LiteLLM backend related config
-    chat_model: str = "gpt4-o"
+    chat_model: str = "openai/gpt-4o"
     # LiteLLM embedding related config
-    embedding_model: str = ""
+    embedding_model: str = "openai/text-embedding-3-small"
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
-
 
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
