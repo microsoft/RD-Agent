@@ -44,7 +44,24 @@ class Idea:
         }
         return json.dumps(idea_dict)
 
+    def format_text(self) -> str:
+        idea_text = f'''# Idea: {self.idea}
+**Overview of Idea**  
+In the context of {self.idea}, the idea uses {self.method} to address a specific challenge in the machine learning workflow.
+For example, an example scenario of incorporating this idea is that {self.context}
 
+**Hypothesis of the Idea**
+The hypothesis supporting this idea is structured as follows: 
+- **Problem Nature:**  
+  The problem being addressed is: {self.hypothesis["problem"]}  
+- **Data Characteristics:**  
+  This idea assumes the data has the following properties: {self.hypothesis["data"]}  
+- **Method Characteristics:**  
+  The method works effectively under these conditions: {self.hypothesis["method"]}  
+- **Reasoning:**  
+  This method is effective in this scenario because: {self.hypothesis["reason"]}'''
+        return idea_text
+        
     def knowledge(self) -> str: 
         knowledge = f'''For data: {self.hypothesis['problem']}{self.hypothesis['data']}
 For method: {self.hypothesis['method']}

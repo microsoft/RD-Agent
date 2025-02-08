@@ -308,7 +308,7 @@ class DSExpGen(ExpGen):
 
             component_user_prompt = T(".prompts:component_gen.user").r(
                 exp_and_feedback_desc=exp_and_feedback_desc,
-                idea=idea.format_JSON(),
+                idea=idea.format_text(),
             )
 
             resp_dict_component: dict = json.loads(
@@ -350,7 +350,7 @@ class DSExpGen(ExpGen):
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
                     exp_and_feedback_desc=exp_and_feedback_desc,
                     sota_exp_desc=sota_exp_desc,
-                    idea=idea.format_JSON(),
+                    idea=idea.format_text(),
                     last_exp_diff=last_exp_diff,
                     recent_trace_desc="\n".join(recent_trace_desc),
                 )

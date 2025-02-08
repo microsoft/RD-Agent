@@ -7,7 +7,7 @@ dotenv run -- python rdagent/app/data_science/loop.py --competition tabular-play
 # spooky-author-identification 
 # tabular-playground-series-dec-2021
 
-streamlit run rdagent/log/ui/llm_st.py --server.port=10880 -- --log_dir ./log
+streamlit run rdagent/log/ui/llm_st.py --server.port=10883 -- --log_dir ./log
 
 dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder=./log
 
