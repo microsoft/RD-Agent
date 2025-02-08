@@ -67,8 +67,15 @@ if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tens
         f"vs. len(test_X)={len(test_X)}"
     )
 
-# check if scores.csv is generated
+# check scores.csv
 assert Path("scores.csv").exists(), "scores.csv is not generated"
+score_df = pd.read_csv("scores.csv", index_col=0)
+model_set_in_scores = set(score_df.index)
+for model in {{model_names}}:
+    if model not in model_set_in_scores:
+        print(f"\nModel {model} is not evaluated in the scores.csv.")
+print("Please check scores dataframe's format, it's:")
+print(score_df)
 
 print("Ensemble test passed successfully.")
 print(f"Output shape: {final_pred.shape}")
