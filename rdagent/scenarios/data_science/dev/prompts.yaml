@@ -45,8 +45,8 @@ exp_feedback:
 
     Final results of the current solution: 
     {{ cur_exp.result }}
+    
     {% if cur_exp.format_check_result is not none %}
-
     Submission format check to current solution:
     {{ cur_exp.format_check_result }}
     {% endif %}
