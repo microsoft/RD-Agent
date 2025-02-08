@@ -173,3 +173,4 @@ mlruns/
 *.sh
 .aider*
 .env_litellm
+rdagent/app/benchmark/factor/example.json

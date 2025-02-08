@@ -70,6 +70,8 @@ class LiteLLMAPIBackend(APIBackend):
             max_tokens=kwargs.get("max_tokens", 1000),
             **kwargs
         )
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}", tag="debug_llm")
+        
         if system_prompt:
             logger.info(f"{LogColors.RED}system:{LogColors.END} {system_prompt}", tag="debug_llm")
         if former_messages:
@@ -78,28 +80,27 @@ class LiteLLMAPIBackend(APIBackend):
         else:
             logger.info(f"{LogColors.RED}user:{LogColors.END} {user_prompt}\n{LogColors.BLUE}resp(next row):\n{LogColors.END} {response.choices[0].message.content}", tag="debug_llm")
         
-        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}", tag="debug_llm")
-        return response.choices[0].message.content
+        return str(response.choices[0].message.content)
         
-    def create_embedding(self, input_content_list: Union[str, List[str]], *args: Any, **kwargs: Any) -> Union[List[Any], Any]:
+    def create_embedding(self, input_content: str | list[str], *args: Any, **kwargs: Any) -> list[Any] | Any:
         """Create embeddings using LiteLLM"""
         from litellm import embedding
         single_input = False
-        if isinstance(input_content_list, str):
-            input_content_list = [input_content_list]
+        if isinstance(input_content, str):
+            input_content = [input_content]
             single_input = True
         response_list = []
-        for input_content in input_content_list:
-            logger.info(f"Creating embedding for: {input_content}", tag="debug_litellm_emb")
-            if not isinstance(input_content, str):
+        for input_content_iter in input_content:
+            model_name = LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text")
+            logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}",tag="debug_litellm_emb")
+            logger.info(f"Creating embedding for: {input_content_iter}", tag="debug_litellm_emb")
+            if not isinstance(input_content_iter, str):
                 raise ValueError("Input content must be a string")
             response = embedding(
                 model=LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text"),
-                input=input_content,
+                input=input_content_iter,
                 **kwargs
             )
-            model_name = LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text")
-            logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}",tag="debug_litellm_emb")
             response_list.append(response.data[0]['embedding'])
         if single_input:
             return response_list[0]
