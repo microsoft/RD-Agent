@@ -1,7 +1,7 @@
 """
-    We have implemented a basic version of litellm.
-    Not all features in the interface are included.
-    Therefore, the advanced tests will be placed in a separate file for easier testing of litellm.
+We have implemented a basic version of litellm.
+Not all features in the interface are included.
+Therefore, the advanced tests will be placed in a separate file for easier testing of litellm.
 """
 
 import json
