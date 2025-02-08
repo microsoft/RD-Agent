@@ -43,7 +43,7 @@ class TestChatCompletion(unittest.TestCase):
         token = APIBackend().build_messages_and_calculate_token(user_prompt=user_prompt, system_prompt=system_prompt)
         assert token is not None
         assert isinstance(token, int)
-        
+
     # def test_chat_multi_round(self) -> None:
     #     system_prompt = "You are a helpful assistant."
     #     fruit_name = random.SystemRandom().choice(["apple", "banana", "orange", "grape", "watermelon"])
