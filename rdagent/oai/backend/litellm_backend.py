@@ -1,7 +1,8 @@
 from typing import Any, Optional, Union, List, Dict
 import uuid
 from rdagent.oai.backend.base import APIBackend
-from litellm import completion, acompletion
+from litellm import completion, acompletion 
+from litellm import encode as encode_litellm
 import os
 
 from pathlib import Path
@@ -20,10 +21,18 @@ DEFAULT_QLIB_DOT_PATH = Path("./")
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
     
-    def __init__(self, litellm_model_name : str = "",litellm_api_key: str = ""):
+    def __init__(self, litellm_model_name : str = "",litellm_api_key: str = "",*args, **kwargs) :
         super().__init__()
+        def _get_encoder(text):
+            return encode_litellm(model=LLM_SETTINGS.litellm_embedding_model_name or "ollama/nomic-embed-text",text=text)
+        class _Encoder:
+            def encode(self,text):
+                return _get_encoder(text)
+        self.encoder = _Encoder()
         # Set up any required LiteLLM configurations
-        
+        # if *args or **kwargs:
+        if len (args) > 0 or len(kwargs) > 0:
+            logger.warning("LiteLLM backend does not support any additional arguments")
     def build_chat_session(self, conversation_id: Optional[str] = None,
                          session_system_prompt: Optional[str] = None) -> Any:
         """Create a new chat session using LiteLLM"""
@@ -61,8 +70,15 @@ class LiteLLMAPIBackend(APIBackend):
             max_tokens=kwargs.get("max_tokens", 1000),
             **kwargs
         )
-        logger.info({"user": user_prompt, "resp": response.choices[0].message.content}, tag="debug_llm")
-        logger.info(f"Using chat model {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}",tag="debug_llm")
+        if system_prompt:
+            logger.info(f"{LogColors.RED}system:{LogColors.END} {system_prompt}", tag="debug_llm")
+        if former_messages:
+            for message in former_messages:
+                logger.info(f"{LogColors.CYAN}{message['role']}:{LogColors.END} {message['content']}", tag="debug_llm")
+        else:
+            logger.info(f"{LogColors.RED}user:{LogColors.END} {user_prompt}\n{LogColors.BLUE}resp(next row):\n{LogColors.END} {response.choices[0].message.content}", tag="debug_llm")
+        
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LLM_SETTINGS.litellm_chat_model_name or kwargs.get('litellm_chat_model_name', 'ollama/mistral')}", tag="debug_llm")
         return response.choices[0].message.content
         
     def create_embedding(self, input_content_list: Union[str, List[str]],
@@ -84,7 +100,7 @@ class LiteLLMAPIBackend(APIBackend):
                 **kwargs
             )
             model_name = LLM_SETTINGS.litellm_embedding_model_name or kwargs.get("model", "ollama/nomic-embed-text")
-            logger.info(f"Using emb model {model_name}",tag="debug_litellm_emb")
+            logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}",tag="debug_litellm_emb")
             response_list.append(response.data[0]['embedding'])
         if single_input:
             return response_list[0]

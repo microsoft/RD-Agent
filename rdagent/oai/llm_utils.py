@@ -254,12 +254,12 @@ def calculate_embedding_distance_between_str_list(
     return similarity_matrix.tolist()  # type: ignore[no-any-return]
 
 
-def get_api_backend() -> APIBackend:  # TODO: import it from base.py
+def get_api_backend(*args,**kwargs ) -> APIBackend:  # TODO: import it from base.py
     """
     get llm api backend based on settings dynamically.
     """
     api_backend_cls = import_class(LLM_SETTINGS.backend)
-    return api_backend_cls()
+    return api_backend_cls(*args, **kwargs)
 
 
 # Alias
