@@ -169,7 +169,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     APIBackend(
                         use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
                     ).build_messages_and_create_chat_completion(
-                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        user_prompt=user_prompt, system_prompt=system_prompt
                     )
                 )
                 logger.info(f"{LogColors.BOLD}extracted code(next row):\n{code}{LogColors.END}", tag="debug_factor_code")
