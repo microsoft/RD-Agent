@@ -314,6 +314,7 @@ class DockerEnv(Env[DockerConf]):
                 [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
             ),
         }
+
         @wait_retry(5, 10)
         def _f():
             try:
@@ -322,6 +323,7 @@ class DockerEnv(Env[DockerConf]):
             except docker.errors.APIError:
                 return {}
             return gpu_kwargs
+
         return _f()
 
     def replace_time_info(self, input_string: str) -> str:
