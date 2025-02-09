@@ -11,7 +11,8 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.repo.diff import generate_diff
+from rdagent.utils.repo.diff import generate_diff_from_dict
+from rdagent.utils.workflow import wait_retry
 
 
 class DSHypothesis(Hypothesis):
@@ -285,10 +286,10 @@ class DSExpGen(ExpGen):
                 exp=sota_exp, heading="Best of previous exploration of the scenario"
             )
             last_exp_diff = "\n".join(
-                generate_diff(
-                    sota_exp.experiment_workspace.workspace_path, last_exp.experiment_workspace.workspace_path
+                generate_diff_from_dict(
+                    sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
                 )
-            )
+            )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
             exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
                 exp_and_feedback=exp_and_feedback
             )
@@ -348,40 +349,51 @@ class DSExpGen(ExpGen):
                     recent_trace_desc="\n".join(recent_trace_desc),
                 )
 
-                resp_dict = json.loads(
-                    APIBackend().build_messages_and_create_chat_completion(
-                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-                    )
-                )
-                assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
-                assert "task_design" in resp_dict, "Task design not provided."
-                task_class = component_info["task_class"]
-                hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
-                hypothesis = DSHypothesis(
-                    component=component,
-                    hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                    reason=hypothesis_proposal.get("reason", ""),
-                    concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                    concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                    concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                    concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-                )
+                def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+                    # Only modify the user_prompt on retries (i > 0)
+                    user_prompt = args[0]
+                    user_prompt += "\n\nretrying..."
+                    return (user_prompt,), kwargs
 
-                task_design = resp_dict.get("task_design", {})
-                task_name = task_design["model_name"] if component == "Model" else component
-                description = task_design.get(
-                    "description", f"{component_info['target_name']} description not provided"
-                )
-                task = task_class(
-                    name=task_name,
-                    description=description,
-                    **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
-                )
+                @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+                def _f(user_prompt):
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        )
+                    )
+                    assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+                    assert "task_design" in resp_dict, "Task design not provided."
+                    task_class = component_info["task_class"]
+                    hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+                    hypothesis = DSHypothesis(
+                        component=component,
+                        hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                        reason=hypothesis_proposal.get("reason", ""),
+                        concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                        concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                        concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                        concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                    )
+
+                    task_design = resp_dict.get("task_design", {})
+                    task_name = task_design["model_name"] if component == "Model" else component
+                    description = task_design.get(
+                        "description", f"{component_info['target_name']} description not provided"
+                    )
+                    task = task_class(
+                        name=task_name,
+                        description=description,
+                        **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+                    )
+                    new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+                    return hypothesis, task, new_workflow_desc
+
+                hypothesis, task, new_workflow_desc = _f(user_prompt)
 
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
 
-                new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
                 if new_workflow_desc != "No update needed":
                     workflow_task = WorkflowTask(
                         name="Workflow",
