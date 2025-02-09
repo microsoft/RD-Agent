@@ -1,0 +1,46 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Extract domain names from image URLs to create a new feature 'site_name'.",
+        "context": "The notebook creates a new column 'site_name' in both training and test data by extracting domain names from the 'url' field.",
+        "hypothesis": {
+            "problem": "The objective is to retrieve images containing the same landmarks by analyzing query images.",
+            "data": "The dataset is large, with over a million images having unique URLs, which could have hidden patterns related to landmarks.",
+            "method": "Extracting domain names can reveal patterns about image sources, potentially correlating with landmark presence.",
+            "reason": "The scenario involves images sourced from various websites, and the domain name might implicitly indicate specific landmark types due to different website focuses."
+        }
+    },
+    {
+        "idea": "Data Exploration",
+        "method": "Analyze and visualize the distribution of images from different sites using bar plots.",
+        "context": "The notebook uses seaborn to plot the count of images from each site in both training and test datasets.",
+        "hypothesis": {
+            "problem": "The task involves identifying patterns in image data for retrieval.",
+            "data": "Images are sourced from multiple domains, potentially leading to an uneven distribution.",
+            "method": "Visual representation helps in understanding data distribution, which can impact model training and retrieval accuracy.",
+            "reason": "The scenario might have dominant sites contributing more images, which can introduce bias or be leveraged as a feature."
+        }
+    },
+    {
+        "idea": "Missing Data Analysis",
+        "method": "Check for missing values in the datasets to ensure data quality and completeness.",
+        "context": "The notebook calculates the total and percentage of missing values in the training and test datasets.",
+        "hypothesis": {
+            "problem": "High-quality data is crucial for accurate image retrieval.",
+            "data": "The dataset may have missing entries due to inaccessible URLs or other issues.",
+            "method": "Understanding missing data patterns allows for better data preprocessing strategies.",
+            "reason": "Missing values can lead to incomplete feature information, affecting model predictions in scenarios where complete data is expected."
+        }
+    },
+    {
+        "idea": "Data Visualization",
+        "method": "Display images from URLs within the notebook for exploratory analysis.",
+        "context": "The notebook uses HTML and IPython display functions to show sample images directly from URLs.",
+        "hypothesis": {
+            "problem": "Visual inspection is necessary for understanding the type and quality of images being used for retrieval.",
+            "data": "Images are stored as URLs in both training and test datasets.",
+            "method": "Displaying images helps in verifying data quality and understanding visual patterns.",
+            "reason": "For scenarios involving image retrieval, seeing the actual images provides insights into visual similarities and differences that might not be apparent from metadata alone."
+        }
+    }
+]

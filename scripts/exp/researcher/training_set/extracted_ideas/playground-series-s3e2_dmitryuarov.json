@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Handling Missing Values with KNN",
+        "method": "Apply KNeighborsRegressor to impute missing values for numerical features.",
+        "context": "The notebook uses KNeighborsRegressor with a neighborhood of 100 to impute missing 'bmi' values instead of filling them with the mean.",
+        "hypothesis": {
+            "problem": "The task involves handling missing data in the training set, specifically in the 'bmi' feature.",
+            "data": "The dataset has missing values in one of its numerical features.",
+            "method": "KNN can predict missing values by averaging the 'bmi' values of the nearest neighbors.",
+            "reason": "The dataset is sufficiently large and has enough instances with similar 'bmi' values to provide meaningful imputations using KNN."
+        }
+    },
+    {
+        "idea": "Outlier Removal",
+        "method": "Remove specific outliers based on domain-specific rules to improve model performance.",
+        "context": "The notebook removes 8 specific outliers based on age, glucose levels, hypertension, and marital status, which improves CatBoost performance.",
+        "hypothesis": {
+            "problem": "The task is sensitive to extreme values that could skew model training.",
+            "data": "The dataset contains outliers that could adversely affect model predictions.",
+            "method": "Removing outliers can help models like CatBoost generalize better by not fitting to extreme, non-representative data points.",
+            "reason": "Outliers in the dataset do not represent the typical distribution and removing them aligns the data more closely with general trends."
+        }
+    },
+    {
+        "idea": "Feature Encoding with Label Encoding",
+        "method": "Use LabelEncoder to convert categorical variables into numerical format.",
+        "context": "The categorical features are encoded using LabelEncoder before training models.",
+        "hypothesis": {
+            "problem": "The task involves categorical features that need to be converted to numerical format for model training.",
+            "data": "The dataset includes categorical features that are not ordinal.",
+            "method": "Label encoding is a simple method to convert categorical data into numerical format without adding complexity.",
+            "reason": "Label encoding is suitable when categorical variables have no intrinsic order and models like CatBoost can handle encoded categories well."
+        }
+    },
+    {
+        "idea": "Model Blending with Weighted Averaging",
+        "method": "Blend predictions from CatBoost, Neural Network, and Lasso using weighted averages.",
+        "context": "The notebook combines predictions from CatBoost, Neural Network, and Lasso with specific weights to create a final submission.",
+        "hypothesis": {
+            "problem": "The task requires improving prediction accuracy by leveraging multiple models.",
+            "data": "The dataset benefits from diverse predictive insights from different models.",
+            "method": "Blending predictions from multiple models can capture different aspects of the data distribution and improve overall performance.",
+            "reason": "Combining models reduces the risk of individual model overfitting and leverages diverse learned patterns for better generalization."
+        }
+    },
+    {
+        "idea": "Standardizing Features for Neural Networks",
+        "method": "Standardize numerical features using StandardScaler prior to training a neural network.",
+        "context": "Numerical features are standardized before being input into the neural network model.",
+        "hypothesis": {
+            "problem": "The task requires numerical stability and convergence during neural network training.",
+            "data": "Numerical features have varying scales that could impact neural network performance.",
+            "method": "Standardization ensures that each feature contributes equally to the distance computations in neural networks.",
+            "reason": "Standardizing inputs helps in faster convergence and better performance of neural networks as it normalizes the feature scale."
+        }
+    }
+]

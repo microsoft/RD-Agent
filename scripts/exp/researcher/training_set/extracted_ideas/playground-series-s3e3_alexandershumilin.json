@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Create new features based on domain knowledge, such as 'is_young' and 'young_and_underpaid' to capture specific demographic insights.",
+        "context": "The notebook defines functions like 'is_young' and 'young_and_low_daily_rate' to create features based on age and salary, which might help to capture important patterns related to employee attrition.",
+        "hypothesis": {
+            "problem": "Binary classification to predict employee attrition.",
+            "data": "Synthetic dataset mimicking real-world HR data.",
+            "method": "Feature engineering based on domain knowledge.",
+            "reason": "The dataset likely contains demographic patterns that correlate with attrition, and these engineered features can highlight important trends that are not directly captured by the raw data."
+        }
+    },
+    {
+        "idea": "Data Augmentation",
+        "method": "Combine synthetic training data with a similar real-world dataset to enhance model training.",
+        "context": "The notebook concatenates the synthetic train data with the original IBM HR Analytics dataset to potentially improve model performance.",
+        "hypothesis": {
+            "problem": "Binary classification for predicting attrition.",
+            "data": "Synthetic data similar to real-world HR data.",
+            "method": "Data augmentation by merging datasets.",
+            "reason": "Augmenting synthetic data with real-world data may provide more diverse examples, improving model robustness and generalization."
+        }
+    },
+    {
+        "idea": "Categorical Encoding",
+        "method": "Apply Weight of Evidence (WOE) encoding for categorical variables, which transforms categories into numerical values based on their predictive power.",
+        "context": "The notebook utilizes WOEEncoder to encode categorical features, aiming to maintain the predictive power of categories in relation to the target variable.",
+        "hypothesis": {
+            "problem": "Binary classification where categorical features are present.",
+            "data": "Categorical features with potential predictive power.",
+            "method": "WOE encoding suitable for binary classification tasks.",
+            "reason": "WOE encoding captures the relationship between categories and the target variable, which is crucial in scenarios where categorical variables have a significant impact on predictions."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Use a weighted ensemble of various models including CatBoost, XGBoost, LightGBM, and Neural Networks to improve prediction accuracy.",
+        "context": "The notebook computes an ensemble prediction by averaging weighted predictions from multiple models like CatBoost, XGBoost, LightGBM, and Neural Networks.",
+        "hypothesis": {
+            "problem": "Binary classification with a need for high accuracy.",
+            "data": "Data with complex patterns that might benefit from multiple perspectives.",
+            "method": "Combining multiple model outputs to reduce variance and bias.",
+            "reason": "Different models capture different aspects of the data. An ensemble can leverage strengths of each model, especially beneficial in noisy or complex datasets."
+        }
+    },
+    {
+        "idea": "Hyperparameter Tuning",
+        "method": "Optimize the hyperparameters of models like CatBoost and XGBoost using Optuna for better performance.",
+        "context": "The notebook uses Optuna to search for optimal hyperparameters of CatBoost and XGBoost models, specifically tuning parameters like learning rate and depth.",
+        "hypothesis": {
+            "problem": "Binary classification with a focus on maximizing predictive performance.",
+            "data": "Data where model performance is sensitive to hyperparameter settings.",
+            "method": "Hyperparameter optimization using Optuna's efficient search capabilities.",
+            "reason": "Optimizing hyperparameters can significantly enhance model performance by finding the best configurations tailored to the dataset's specific properties."
+        }
+    },
+    {
+        "idea": "Neural Network Architecture",
+        "method": "Develop a deep neural network architecture using Keras with layers like Dense, Dropout, and LeakyReLU for binary classification tasks.",
+        "context": "The notebook builds a neural network with multiple layers and LeakyReLU activation to model complex relationships within the data for predicting attrition.",
+        "hypothesis": {
+            "problem": "Binary classification requiring modeling of complex patterns in the data.",
+            "data": "Data rich in features where deep learning can extract intricate patterns.",
+            "method": "Neural networks for capturing non-linear relationships within the data.",
+            "reason": "Neural networks can learn complex relationships through layers of abstraction, making them well-suited for scenarios where patterns are not easily captured by simpler models."
+        }
+    }
+]

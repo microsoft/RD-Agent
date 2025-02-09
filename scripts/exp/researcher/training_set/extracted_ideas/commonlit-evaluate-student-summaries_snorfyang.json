@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Text Preprocessing with Custom Token Replacement",
+        "method": "Implement custom token replacement to preprocess text by replacing specific patterns such as newline characters with special tokens (e.g., '[BR]').",
+        "context": "The notebook preprocesses text by replacing newline characters with '[BR]' to standardize formatting before tokenization.",
+        "hypothesis": {
+            "problem": "Evaluating student summaries against provided prompts.",
+            "data": "Text data with possible inconsistent formatting due to different newline characters.",
+            "method": "Text preprocessing using custom token replacement.",
+            "reason": "The data contains newline characters that may disrupt tokenization or model input, and standardizing these across the dataset can lead to better feature extraction and model performance."
+        }
+    },
+    {
+        "idea": "Plagiarism Detection and Replacement",
+        "method": "Implement plagiarism detection by comparing n-grams between student text and source text, marking potentially plagiarized sections with '[QUOTE]' and '[ENDQUOTE]', then replacing them with '[PASSAGE]' or '[PLAGIARISM]' depending on context.",
+        "context": "The notebook marks plagiarized sections in the text and replaces them to prepare the data for downstream task processing.",
+        "hypothesis": {
+            "problem": "Detecting and handling plagiarism in student summaries.",
+            "data": "Text data with potential plagiarism from the source text.",
+            "method": "Plagiarism detection using n-gram comparison and contextual replacement.",
+            "reason": "The scenario involves evaluating summaries where students may copy sections from provided texts; identifying and marking these can help models focus on evaluating original content."
+        }
+    },
+    {
+        "idea": "Model Ensembling for Wording Prediction",
+        "method": "Ensemble multiple model predictions for wording scores using weighted averages to improve prediction robustness.",
+        "context": "The notebook combines predictions from four different models for wording using specific weights to form a final ensemble prediction.",
+        "hypothesis": {
+            "problem": "Predicting wording scores for student summaries.",
+            "data": "Predictions from multiple models trained on similar data.",
+            "method": "Model ensembling via weighted average.",
+            "reason": "Combining model predictions can mitigate individual model biases and capture diverse patterns in the data, leading to improved performance."
+        }
+    },
+    {
+        "idea": "Feature Engineering with N-gram Overlap",
+        "method": "Calculate n-gram (bigram and trigram) overlap between student summaries and prompt texts as features for model training.",
+        "context": "The notebook computes bigram and trigram overlaps between the prompt text and summary to use as features for content evaluation.",
+        "hypothesis": {
+            "problem": "Evaluating content quality of student summaries.",
+            "data": "Textual data of student summaries and associated prompts.",
+            "method": "N-gram overlap feature engineering.",
+            "reason": "N-gram overlap can indicate how closely a summary aligns with its prompt, which is a critical factor in evaluating summary content."
+        }
+    },
+    {
+        "idea": "LightGBM Model for Content Prediction",
+        "method": "Use LightGBM with engineered features like word overlap, n-gram overlap, spelling errors, etc., for predicting content scores.",
+        "context": "The notebook employs LightGBM models trained on various linguistic features to predict content scores of student summaries.",
+        "hypothesis": {
+            "problem": "Predicting content scores of student summaries.",
+            "data": "Structured features derived from text data of student summaries.",
+            "method": "LightGBM model training with engineered features.",
+            "reason": "LightGBM is effective for structured data with engineered features, providing flexibility in handling diverse feature types such as overlap counts and error ratios."
+        }
+    },
+    {
+        "idea": "Tokenization and Special Token Addition",
+        "method": "Add new tokens such as '[PASSAGE]', '[PLAGIARISM]', '[REFERENCE]', '[ENDREFERENCE]' to tokenizer vocabulary to handle specific text patterns during tokenization.",
+        "context": "The notebook extends the tokenizer's vocabulary with additional tokens to handle marked sections within the text more effectively during tokenization.",
+        "hypothesis": {
+            "problem": "Tokenizing text with newly marked sections indicating special patterns like plagiarism or passage reference.",
+            "data": "Text data marked with special tokens to indicate specific sections like passages or plagiarism.",
+            "method": "Extending tokenizer vocabulary with custom tokens.",
+            "reason": "Custom tokens allow precise representation of marked sections in the text, enabling models to learn and distinguish these patterns more effectively during training."
+        }
+    }
+]

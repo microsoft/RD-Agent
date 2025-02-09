@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine predictions from XGBoost and LightGBM models using predefined weights for each discourse type.",
+        "context": "The notebook loads multiple models (5-fold) for each discourse type from XGBoost and LightGBM, combines their predictions using predefined weights, and averages them to improve prediction accuracy.",
+        "hypothesis": {
+            "problem": "The task involves accurately classifying segments of text into various discourse types, which requires handling complex linguistic patterns.",
+            "data": "The data consists of argumentative essays with diverse rhetorical structures, making it challenging to classify using a single model.",
+            "method": "Ensemble methods are known for improving model performance by leveraging the strengths of different models.",
+            "reason": "The data is likely noisy and complex, with multiple layers of discourse that a single model might overfit to or miss entirely. By combining multiple models, the ensemble approach increases robustness and generalization."
+        }
+    },
+    {
+        "idea": "Threshold Tuning",
+        "method": "Use specific probability thresholds for each discourse type to decide when a sequence is considered a valid prediction.",
+        "context": "The notebook sets different probability thresholds for each discourse type (e.g., Claim, Evidence) to adjust the sensitivity of predictions.",
+        "hypothesis": {
+            "problem": "Determining the exact boundaries of text segments that belong to a given discourse type is tricky, as different types may have varying levels of predictability.",
+            "data": "The distribution and characteristics of each discourse type are likely different, requiring tailored approaches for each.",
+            "method": "Adjusting thresholds allows for more precise control over the classification performance for each class.",
+            "reason": "Different discourse types may have varying levels of ambiguity or overlap with other types, thus requiring specific tuning to accurately capture them."
+        }
+    },
+    {
+        "idea": "Sliding Window Approach",
+        "method": "Implement a sliding window technique to handle long sequences by processing manageable segments of text.",
+        "context": "The notebook uses a sliding window mechanism with edge overlap to process texts longer than the model's input limit, ensuring no loss of context.",
+        "hypothesis": {
+            "problem": "The model needs to process long text sequences that exceed its maximum input length limit.",
+            "data": "Essays can be quite lengthy, requiring a method to efficiently handle large inputs without truncation.",
+            "method": "Sliding windows help manage memory and computation by breaking down inputs into smaller segments while maintaining context through overlaps.",
+            "reason": "This approach ensures that the model can process long texts without losing important information at the boundaries of each window."
+        }
+    },
+    {
+        "idea": "Sequence Feature Engineering",
+        "method": "Extract sequence-based features such as length, positional statistics, and class probability statistics for model training.",
+        "context": "Each sub-sequence of text is converted into a feature vector capturing its length, position, and statistical properties of prediction probabilities.",
+        "hypothesis": {
+            "problem": "Capturing the unique characteristics of each discourse segment is vital for accurate classification.",
+            "data": "The data requires understanding both local and global context within each essay to classify segments correctly.",
+            "method": "Feature engineering enhances model input by providing rich descriptive information about each sequence.",
+            "reason": "By incorporating both position-based and statistical features, the model can better distinguish between different types of discourse elements."
+        }
+    },
+    {
+        "idea": "Residual LSTM",
+        "method": "Use a Residual LSTM architecture to process sequences and capture temporal dependencies in token embeddings.",
+        "context": "The network architecture includes a Residual LSTM layer that helps in learning complex patterns in the sequence data while avoiding vanishing gradient issues.",
+        "hypothesis": {
+            "problem": "Modeling sequential dependencies is crucial for understanding the flow and structure of argumentative writing.",
+            "data": "The data consists of sequences where temporal dependencies between tokens are important for classification.",
+            "method": "Residual connections in LSTM help in training deeper networks by providing shortcut paths for gradients.",
+            "reason": "This architecture allows for capturing long-range dependencies in text while maintaining stable training dynamics."
+        }
+    },
+    {
+        "idea": "Token Classification with Transformers",
+        "method": "Fine-tune transformer models like DeBERTa and Longformer on token classification tasks using NER-style labeling.",
+        "context": "The notebook employs transformers pre-trained on large corpora and adapts them to predict token-level labels corresponding to discourse elements.",
+        "hypothesis": {
+            "problem": "The task involves identifying specific tokens within text sequences that correspond to distinct discourse elements.",
+            "data": "The essays are rich in linguistic features that can be effectively captured by transformer models trained on large datasets.",
+            "method": "Transformers have shown state-of-the-art results in various NLP tasks due to their ability to capture contextual information across long sequences.",
+            "reason": "Transformers' self-attention mechanism efficiently captures contextual relationships across tokens, crucial for the complex task of segmenting text into discourse elements."
+        }
+    }
+]

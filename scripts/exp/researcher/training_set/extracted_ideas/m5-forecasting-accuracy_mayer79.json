@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Feature engineering with lags and rolling means",
+        "method": "Create lag features and rolling mean features for demand data. Specifically, use lags of 7 and 28 days, and compute rolling means over these lags with window sizes of 7 and 28 days.",
+        "context": "The notebook derives lag features and rolling mean features from sales data using specified lag periods of 7 and 28 days and computes rolling means for these lags over windows of the same size.",
+        "hypothesis": {
+            "problem": "Forecasting future sales based on historical sales data.",
+            "data": "The data consists of time-series sales data for various items across multiple stores.",
+            "method": "LightGBM model with time-series forecasting capabilities.",
+            "reason": "Time-series data often contain autocorrelations where past values influence future values. Lag features help capture these patterns, while rolling means smooth out noise and highlight trends."
+        }
+    },
+    {
+        "idea": "Use of Poisson loss in LightGBM",
+        "method": "Train a LightGBM model with a Poisson loss function to handle count data effectively.",
+        "context": "The notebook sets the objective to 'poisson' in LightGBM parameters, which is suitable for modeling count-based data such as sales.",
+        "hypothesis": {
+            "problem": "Predicting the number of items sold, which is count data.",
+            "data": "Sales data are non-negative integers representing counts of items sold.",
+            "method": "LightGBM model with a Poisson loss function.",
+            "reason": "Poisson distribution is appropriate for modeling count data, especially when predicting sales counts, as it naturally handles non-negative integers and can model variance proportional to the mean."
+        }
+    },
+    {
+        "idea": "Categorical feature encoding using Ordinal Encoder",
+        "method": "Apply OrdinalEncoder to transform categorical variables into integer values for model training.",
+        "context": "The notebook uses OrdinalEncoder to encode categorical features like 'event_name', 'item_id', 'store_id', etc., into integers before training.",
+        "hypothesis": {
+            "problem": "Forecasting tasks involving categorical inputs related to products and events.",
+            "data": "Contains several categorical variables that represent discrete labels or categories.",
+            "method": "Encoding categorical variables into a numerical format for inclusion in tree-based models.",
+            "reason": "Tree-based models like LightGBM can handle integer-encoded categorical features efficiently, capturing interactions between categories and other features without needing one-hot encoding, which can be memory-intensive."
+        }
+    },
+    {
+        "idea": "Recursive forecasting strategy",
+        "method": "Perform recursive prediction by iteratively using the model's previous day's prediction as input for the next day.",
+        "context": "The notebook calculates predictions recursively for each day in the forecast horizon by updating the test data with predictions from the previous day.",
+        "hypothesis": {
+            "problem": "Multi-step time-series forecasting over a fixed horizon of days.",
+            "data": "Sales forecasting over a short-term period (28 days).",
+            "method": "LightGBM used iteratively to predict each time step based on previous predictions.",
+            "reason": "Recursive forecasting is necessary when predicting multiple steps ahead in time-series data, as it allows for dependencies of future predictions on previous predictions, which mimics real-world forecasting scenarios."
+        }
+    },
+    {
+        "idea": "Data preparation with feature selection",
+        "method": "Drop columns with old dates, merge sales data with calendar and price data, and encode categorical variables.",
+        "context": "The notebook removes unnecessary columns, merges relevant datasets, and encodes remaining categorical variables to prepare features for modeling.",
+        "hypothesis": {
+            "problem": "Forecasting sales with multiple datasets providing contextual information.",
+            "data": "Historical sales data with associated calendar events and pricing information.",
+            "method": "Combining relevant datasets and selecting significant features for training a forecasting model.",
+            "reason": "Efficiently preparing and selecting relevant features allows the model to focus on important patterns and relationships in the data, leading to improved predictive performance."
+        }
+    }
+]

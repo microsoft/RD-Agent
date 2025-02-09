@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Create new features from geographical data using geometric transformations such as rotation and polar coordinates.",
+        "context": "The notebook calculates the distance and angle (theta) from origin using latitude and longitude, and creates rotated coordinate features at multiple angles (15, 30, 45 degrees) for both train and test datasets.",
+        "hypothesis": {
+            "problem": "Regression task to predict house prices using tabular data.",
+            "data": "Synthetically generated data with geographic features like latitude and longitude.",
+            "method": "Geometric transformations can expose hidden patterns related to location-specific trends in the housing data.",
+            "reason": "Geospatial data often contains latent features that can be exploited by transforming coordinates, which can help in capturing location-based variations in house prices."
+        }
+    },
+    {
+        "idea": "Feature Engineering",
+        "method": "Combine original dataset with synthetic dataset to enhance the training data.",
+        "context": "The notebook combines the synthetic dataset with the original California Housing Dataset to increase the training sample size and to provide more diverse samples.",
+        "hypothesis": {
+            "problem": "Enhancing model performance by leveraging additional data.",
+            "data": "Synthetic dataset generated from the original California housing dataset.",
+            "method": "Combining datasets increases data variety and volume, potentially leading to better model generalization.",
+            "reason": "The original dataset can provide additional patterns not present in the synthetic version, thereby enriching the learning process and improving predictive performance."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine predictions from multiple models (CatBoost, LightGBM, XGBoost) using weighted average.",
+        "context": "The notebook combines predictions from CatBoost and LightGBM models with specific weights (0.45 for XGBoost and 0.55 for CatBoost) to improve performance on test data.",
+        "hypothesis": {
+            "problem": "Optimizing regression model performance using ensemble techniques.",
+            "data": "The data is tabular with a range of numerical and categorical features.",
+            "method": "Ensemble learning leverages the strengths of different models to create a more robust predictor.",
+            "reason": "Different models capture different aspects of the data's underlying structure, and combining them helps in reducing variance and improving predictive accuracy, especially in noisy datasets."
+        }
+    },
+    {
+        "idea": "Feature Engineering",
+        "method": "Generate additional features by calculating ratios and differences between existing features.",
+        "context": "The notebook creates features such as occupancy per bedroom, income per block, and total number of rooms to provide more direct indicators of housing conditions.",
+        "hypothesis": {
+            "problem": "Predicting housing prices based on characteristics of houses and their surroundings.",
+            "data": "The data includes attributes like occupancy, income, number of rooms, etc., which are directly related to housing prices.",
+            "method": "Derived features can capture complex relationships within the data that raw features do not explicitly express.",
+            "reason": "Ratios and differences often reveal more meaningful patterns than raw numbers, such as density of occupants or wealth distribution, which are crucial for predicting house values."
+        }
+    },
+    {
+        "idea": "Cross-Validation",
+        "method": "Use K-Fold cross-validation with early stopping to optimize model training and prevent overfitting.",
+        "context": "The notebook employs a 10-fold cross-validation strategy with early stopping during model training for CatBoost, LightGBM, and XGBoost models.",
+        "hypothesis": {
+            "problem": "Regression task requiring robust model selection and validation.",
+            "data": "Tabular data with potential overfitting risks due to complex feature engineering.",
+            "method": "Cross-validation assesses model performance across different subsets, while early stopping prevents overfitting by halting training when no improvement is observed.",
+            "reason": "Early stopping combined with cross-validation ensures that models do not overfit the training data and are evaluated on unseen splits, providing a more reliable estimate of their generalization ability."
+        }
+    }
+]

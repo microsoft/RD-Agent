@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Create interaction features by combining existing features to capture complex relationships.",
+        "context": "The notebook creates interaction features such as 'income_level_environ_job_sat' by combining 'EnvironmentSatisfaction', 'JobSatisfaction', and 'MonthlyIncome'.",
+        "hypothesis": {
+            "problem": "Predicting employee attrition based on various features.",
+            "data": "The dataset includes multiple categorical and numerical features related to employees.",
+            "method": "Feature interactions can capture non-linear relationships and dependencies between features.",
+            "reason": "There are complex interactions between employee attributes and satisfaction levels that impact attrition, which can be captured by interaction terms."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Blend predictions from multiple models using different algorithms with optimally tuned weights.",
+        "context": "The notebook combines predictions from CatBoost, XGBoost, LightGBM, LassoCV, RidgeCV, and a Keras neural network using weights optimized by Optuna.",
+        "hypothesis": {
+            "problem": "Binary classification with a need for high accuracy in prediction.",
+            "data": "Synthetic dataset with potential noise and variance.",
+            "method": "Ensemble methods leverage the strengths of different algorithms to improve robustness.",
+            "reason": "The data is noisy, and using only one model tends to overfit to these noisy patterns. Combining models helps mitigate this issue."
+        }
+    },
+    {
+        "idea": "Categorical Encoding",
+        "method": "Use Weight of Evidence (WOE) encoding for categorical variables to enhance model performance.",
+        "context": "The notebook applies WOE encoding to categorical features like 'BusinessTravel' and 'Department'.",
+        "hypothesis": {
+            "problem": "Binary classification with categorical predictors.",
+            "data": "Presence of categorical variables with varying levels.",
+            "method": "WOE encoding converts categories into a continuous scale, which is useful for tree-based models.",
+            "reason": "The dataset contains categorical variables that need to be converted into numerical form while preserving information about the target variable. WOE encoding provides a good balance for this."
+        }
+    },
+    {
+        "idea": "Repeated Stratified K-Fold Cross-Validation",
+        "method": "Use Repeated Stratified K-Fold for better generalization and model validation.",
+        "context": "The notebook uses Repeated Stratified K-Fold with 5 splits and 10 repeats for cross-validation of models like CatBoost and XGBoost.",
+        "hypothesis": {
+            "problem": "Ensuring model generalization in binary classification tasks.",
+            "data": "Synthetic data with imbalanced classes.",
+            "method": "Stratified K-Fold ensures each fold is a good representative of the whole dataset, maintaining the class distribution.",
+            "reason": "The dataset might have class imbalance issues, and repeated stratified cross-validation helps ensure that each fold has a balanced distribution of the target variable."
+        }
+    },
+    {
+        "idea": "Data Normalization",
+        "method": "Apply standard scaling to normalize feature distributions.",
+        "context": "The notebook uses StandardScaler to scale features before training models.",
+        "hypothesis": {
+            "problem": "Binary classification where model performance is sensitive to feature scales.",
+            "data": "Features have different scales and units, potentially affecting model training.",
+            "method": "Normalization brings all features onto a similar scale, which can improve convergence in gradient-based models.",
+            "reason": "The scenario includes features of varying magnitudes which could skew model training if left unscaled."
+        }
+    },
+    {
+        "idea": "Outlier Removal",
+        "method": "Identify and remove outliers from the training data to stabilize model learning.",
+        "context": "The notebook removes specific outliers from the training dataset before proceeding with feature engineering and modeling.",
+        "hypothesis": {
+            "problem": "Binary classification with potential outlier impact on model performance.",
+            "data": "Synthetic dataset that may contain erroneous or extreme values.",
+            "method": "Outlier removal helps in reducing noise and improving model stability.",
+            "reason": "There are significant outliers in the data that could distort parameter estimation and reduce model accuracy."
+        }
+    }
+]
