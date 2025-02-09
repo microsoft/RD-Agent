@@ -31,7 +31,7 @@ class PythonAgentOut(AgentOut):
 
     @classmethod
     def extract_output(cls, resp: str):
-        match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
+        match = re.search(r".*```[Pp]ython\n(.*?)\n```", resp, re.DOTALL)
         if match:
             code = match.group(1)
             return code
