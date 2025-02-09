@@ -316,7 +316,7 @@ class DockerEnv(Env[DockerConf]):
         }
 
         @wait_retry(5, 10)
-        def _f():
+        def _f() -> dict:
             try:
                 client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
                 logger.info("GPU Devices are available.")
