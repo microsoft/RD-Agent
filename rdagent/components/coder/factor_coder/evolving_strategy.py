@@ -16,6 +16,8 @@ from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
+from rdagent.log import LogColors
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
@@ -170,6 +172,7 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                         user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
                     )
                 )
+                logger.info(f"{LogColors.BOLD}extracted code(next row):\n{code}{LogColors.END}", tag="debug_factor_code")
                 return code
             except json.decoder.JSONDecodeError:
                 pass

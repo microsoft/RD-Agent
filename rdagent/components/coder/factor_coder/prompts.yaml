@@ -57,10 +57,6 @@ evolving_strategy_factor_implementation_v1_system: |-
   {{ queried_former_failed_knowledge[-1].feedback }}
   {% endif %}
 
-  Please response the code in the following json format. Here is an example structure for the JSON output:
-  {
-      "code": "The Python code as a string."
-  }
 
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
