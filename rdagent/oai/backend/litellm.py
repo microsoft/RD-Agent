@@ -95,7 +95,13 @@ class LiteLLMAPIBackend(APIBackend):
                 f"{LogColors.RED}user:{LogColors.END} {user_prompt}\n{LogColors.BLUE}resp(next row):\n{LogColors.END} {response.choices[0].message.content}",
                 tag="debug_llm",
             )
-
+        # print (response.choices[0])
+        num_tokens = token_counter(
+            model=model_name,
+            text=response.choices[0].message.content,
+        )
+        logger.info(f"{LogColors.CYAN}Resp Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
+        
         return str(response.choices[0].message.content)
 
     def create_embedding(self, input_content: str | list[str], *args: Any, **kwargs: Any) -> list[Any] | Any:
