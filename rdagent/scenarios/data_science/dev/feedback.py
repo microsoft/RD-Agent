@@ -14,7 +14,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
 from rdagent.utils import convert2bool, remove_path_info_from_str
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.repo.diff import generate_diff
+from rdagent.utils.repo.diff import generate_diff_from_dict
 
 
 class DSExperiment2Feedback(Experiment2Feedback):
@@ -40,21 +40,13 @@ class DSExperiment2Feedback(Experiment2Feedback):
 
         # Retrieve the last experiment from the history
         last_exp = trace.hist[-1][0] if trace.hist else None
-        if last_exp:
-            last_workspace_path = last_exp.experiment_workspace.workspace_path
-            current_workspace_path = exp.experiment_workspace.workspace_path
+        if last_exp and last_exp.experiment_workspace and exp.experiment_workspace:
             # Generate a diff between the two workspaces
-            diff_edition = generate_diff(last_workspace_path, current_workspace_path)
+            last_exp_files = last_exp.experiment_workspace.file_dict
+            current_exp_files = exp.experiment_workspace.file_dict
+            diff_edition = generate_diff_from_dict(last_exp_files, current_exp_files)
         else:
             diff_edition = []
-
-        diff_edition = [
-            remove_path_info_from_str(
-                exp.experiment_workspace.workspace_path,
-                remove_path_info_from_str(last_exp.experiment_workspace.workspace_path, line),
-            )
-            for line in diff_edition
-        ]
 
         # assumption:
         # The feedback should focus on experiment **improving**.
