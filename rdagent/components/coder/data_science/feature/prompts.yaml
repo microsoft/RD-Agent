@@ -12,7 +12,7 @@ feature_coder:
     
     {% if queried_similar_successful_knowledge|length != 0 %}
     --------- Successful Implementations for Similar Models ---------
-    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
     {{ similar_successful_knowledge.implementation.file_dict["feature.py"] }}
@@ -81,7 +81,7 @@ feature_eval:
 
     {% if workflow_stdout is not none %}
     ### Whole Workflow Consideration
-    The feature engineering code is part of a larger workflow. The user has executed the entire pipeline and provided additional stdout.
+    The feature engineering code is part of the whole workflow. The user has executed the entire pipeline and provided additional stdout.
 
     **Workflow Code:**
     ```python
