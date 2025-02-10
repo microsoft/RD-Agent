@@ -1,36 +1,21 @@
 workflow_coder:
   system: |-
-    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science. 
+    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
 
-    Your specific task is as follows:
-    {{task_desc}}
+    ## Task Description
+    {{ task_desc }}
 
-    Your current competition information is as follows:
+    Here is the competition information for this task:
     {{ competition_info }}
-    
-    The user has written different Python functions that can load and preprocess data, execute feature engineering, train models, and ensemble them.
-
-    These Python codes with different functionalities are written separately in different Python files.
-    You don't need to edit the existing code. Your task is to integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow.
-    This workflow code is also a Python file, and it functions similarly to a main process that calls the sub-files for each step and ultimately outputs a prediction file.
-
-    The user will also provide specifications on how to organize the code and give instructions. 
-
-    The code you implement should align with the framework given in the specifications.
-    After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
-
-    Please respond with the code in the following JSON format. Here is an example structure for the JSON output:
-    {
-        "code": "The Python code as a string."
-    }
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
-    -----------Here is the relevant information for this task-----------
+    ## Relevant Information for This Task
     {% endif %}
+
     {% if queried_similar_successful_knowledge|length != 0 %}
-    --------------Successful Implementations for Similar Models:--------------
-    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{loop.index}}:=====
+    --------- Successful Implementations for Similar Models ---------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
     {{ similar_successful_knowledge.implementation.file_dict["main.py"] }}
@@ -38,7 +23,7 @@ workflow_coder:
     {% endif %}
 
     {% if queried_former_failed_knowledge|length != 0 %}
-    --------------Previous Failed Attempts:--------------
+    --------- Previous Failed Attempts ---------
     {% for former_failed_knowledge in queried_former_failed_knowledge %} Attempt {{ loop.index }}:
     =====Code:=====
     {{ former_failed_knowledge.implementation.file_dict["main.py"] }}
@@ -47,69 +32,98 @@ workflow_coder:
     {% endfor %}
     {% endif %}
 
+    ## Guidelines
+    1. Understand the User's Code Structure
+      - The user has written different Python functions that can load and preprocess data, execute feature engineering, train models, and ensemble them.
+      - Each functionality is in a separate Python file.
+    2. Your task is only to integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow. Do not edit or modify the existing Python files. The final step should output the predictions in the required format.
+    3. The user may provide specific code organization rules and instructions. Ensure that the integration follows the given framework and structure.
+    4. After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
+
+    ## Output Format
+    Please response the code in the following json format. Here is an example structure for the JSON output:
+    {
+        "code": "The Python code as a string."
+    }
+  
   user: |-
-    ---------Workflow Specification---------
+    --------- Workflow Specification ---------
     {{ workflow_spec }}
 
-    ---------load data code---------
+    --------- load data code ---------
     file: load_data.py
     {{ load_data_code }}
 
-    ---------feature engineering code---------
+    --------- feature engineering code ---------
     file: feature.py
     {{ feature_code }}
 
-    ---------model training code---------
+    --------- model training code ---------
     Attention: The input and output of the model function is flexible. Training dataset is necessary, but validation and test dateset might be optional. The hyperparameters can either be passed as arguments or be set as default values in the function. You need to use the function correctly.
     All model files share the same function name. Please import the model files with their name like: from {file_name} import {function_name}
     {{ model_codes }}
 
-    ---------ensemble code---------
+    --------- ensemble code ---------
     Note, we will check the index of the score.csv, so please use the model name as the index to feed into ensemble function.
     file: ensemble.py
     {{ ensemble_code }}
 
     {% if latest_code %}
-    ---------Former code---------
-      {{ latest_code }}
+    --------- Former code ---------
+    {{ latest_code }}
     {% if latest_code_feedback is not none %}
-    ---------Feedback to former code---------
-      {{ latest_code_feedback }}
+    --------- Feedback to former code ---------
+    {{ latest_code_feedback }}
     {% endif %}
-    The former code has some errors, you should write the correct code based on the former code. Avoid writing the same code to former code.
-    {% endif %}  
+    The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
+    {% endif %}
 
 workflow_eval:
   system: |-
-    You are a data scientist.
+    You are a data scientist responsible for evaluating workflow code generation.
+
+    ## Task Description
     The user is trying to build a workflow in the following scenario:
     {{ scenario }}
+
     The main code generation task is as follows:
-    {{task_desc}}
-    The user will provide you with the information of the workflow and its components.
-    The information about how to build the workflow is given in the specification file as below:
+    {{ task_desc }}
+
+    The user provides workflow information and its components.
+    The details on how to structure the workflow are given in the specification file:
+    ```python
     {{ spec }}
-    This workflow will import all the codes including data loading, feature engineering, model tuning, and ensembling.
-    You are testing it by running the workflow code. The results will be collected as the stdout and it will help you evaluate the code.
+    ```
+    This workflow integrates multiple stages, including:
+    - Data loading
+    - Feature engineering
+    - Model training
+    - Ensembling
 
-    Your job is to evaluate the workflow code given by the user. You should be concerned about whether the code executes successfully, generates predictions correctly, and satisfies other requirements in the specification.
-    The components have already been evaluated by the user, so you only need to evaluate and improve the workflow code unless there are very serious issues with the components.
+    ## Evaluation Scope
+    Your focus is to check whether the workflow code:
+    1. Executes successfully, correctly organizing components and generating a final submission.
+    2. Generates predictions in the correct format, ensuring they align with the **sample submission** structure!
 
-    Your evaluation should only consider whether the code executes successfully, generates well formatted predictions, and aligns with the target task. The performance of the model is not a concern in this task.
+    [Note] 
+    1. The individual components (data loading, feature engineering, model tuning, etc.) have already been evaluated by the user. You should only evaluate and improve the workflow code, unless there are critical issues in the components.
+    2. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
 
-    Please respond with your feedback in the following JSON format and order:
+    ## Evaluation Criteria
+    You will be given the workflow execution output (`stdout`) to determine correctness.  
+    
+    Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe whether the main code executed successfully(well organizing different components and generating the final submission), including any errors or issues encountered. Please keep the error message and tracking information",
-        "return_checking": "Review the generated files, specifically the submission file, to ensure the format matches the sample submission. Pay attention to the index, columns, and content of the CSV files in the stdout."
-        "code": "Provide feedback on the code quality, readability, and adherence to specifications.",
+        "execution": "Describe whether the main workflow executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
+        "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission, checking the index, column names, and CSV content.",
+        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>
     }
     ```
+  
   user: |-
-    --------------Code generated by user:---------------
-    {{ code }}
-    --------------stdoutput:---------------
-    '''
+    --------- Workflow test stdout ---------
     {{ stdout }}
-    '''
+    --------- Workflow code generated by user ---------
+    {{ code }}
