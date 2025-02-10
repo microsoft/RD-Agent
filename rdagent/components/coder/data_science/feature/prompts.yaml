@@ -73,7 +73,7 @@ feature_eval:
     ```
 
     ## Testing Process
-    The feature processing code is being tested using the following script:
+    The feature engineering code is tested using the following script:
     ```python
     {{ test_code }}
     ```
@@ -88,16 +88,16 @@ feature_eval:
     {{ workflow_code }}
     ```
 
-    You should evaluate both the feature processing test results and the overall workflow results. **Approve the code only if both tests pass.**
+    You should evaluate both the feature engineering test results and the overall workflow results. **Approve the code only if both tests pass.**
     {% endif %}
     
     ## Evaluation Criteria
-    You will be given the standard output (`stdout`) from the feature processing test and, if applicable, the workflow test. 
+    You will be given the standard output (`stdout`) from the feature engineering test and, if applicable, the workflow test. 
     
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe how well the feature processing executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the feature engineering executed, including any errors or issues encountered. Retain all error messages and traceback details.",
         "return_checking": "Evaluate the correctness and integrity of processed data, checking for missing values, incorrect transformations, and data consistency.",
         "code": "Assess code quality, readability, and adherence to specifications. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for optimization.",
         "final_decision": <true/false>
