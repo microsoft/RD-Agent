@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 import tiktoken
@@ -153,7 +153,7 @@ class SQliteLazyCache(SingletonBaseClass):
     def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
         self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
         result = self.c.fetchone()
-        return [] if result is None else json.loads(result[0])
+        return [] if result is None else cast(list[dict[str, Any]], json.loads(result[0]))
 
     def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
         self.c.execute(

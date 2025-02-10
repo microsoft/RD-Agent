@@ -397,21 +397,31 @@ def all_summarize_win():
         with st.container(border=True):
             st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
             vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
+            tscores = {f"loop {k}": v for k, v in v["test_scores"].items()}
             if len(vscores) > 0:
                 metric_name = list(vscores.values())[0].name
             else:
                 metric_name = "None"
 
             fc1, fc2 = st.columns(2)
-            vdf = pd.DataFrame(vscores)
-            vdf.columns = [f"loop {i}" for i in vdf.columns]
-            f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
-            fc1.plotly_chart(f1, key=f"{k}_v")
+            try:
+                vdf = pd.DataFrame(vscores)
+                vdf.columns = [f"loop {i}" for i in vdf.columns]
+                f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+                fc1.plotly_chart(f1, key=f"{k}_v")
 
-            tscores = {f"loop {k}": v for k, v in v["test_scores"].items()}
-            tdf = pd.Series(tscores, name="score")
-            f2 = px.line(tdf, markers=True, title="Test scores")
-            fc2.plotly_chart(f2, key=k)
+                tdf = pd.Series(tscores, name="score")
+                f2 = px.line(tdf, markers=True, title="Test scores")
+                fc2.plotly_chart(f2, key=k)
+            except Exception as e:
+                import traceback
+
+                st.markdown("- Error: " + str(e))
+                st.code(traceback.format_exc())
+                st.markdown("- Valid Scores: ")
+                st.json(vscores)
+                st.markdown("- Test Scores: ")
+                st.json(tscores)
 
 
 def stdout_win(loop_id: int):

@@ -16,8 +16,12 @@ describe: # some template to describe some object
     {% if exp.result is none %}
     There are no according evaluation results
     {% else %}
-    Evaluated results on validation is:
+    Evaluated results on validation are:
     {{ exp.result }}
+    {% if exp.format_check_result is not none %}
+    Submission format check result is:
+    {{ exp.format_check_result }}
+    {% endif %}
     {% endif %}
 
     {% else %}
