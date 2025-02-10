@@ -51,10 +51,10 @@ feature_coder:
 
     {% if latest_code %}
     --------- Former code ---------
-      {{ latest_code }}
+    {{ latest_code }}
     {% if latest_code_feedback is not none %}
     --------- Feedback to former code ---------
-      {{ latest_code_feedback }}
+    {{ latest_code_feedback }}
     {% endif %}
     The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     {% endif %}
@@ -92,7 +92,7 @@ feature_eval:
     {% endif %}
     
     ## Evaluation Criteria
-    You will be given the standard output (`stdout`) from the feature engineering test and, if applicable, the workflow test. 
+    You will be given the standard output (`stdout`) from the feature engineering test and, if applicable, the workflow test.
     
     Please respond with your feedback in the following JSON format and order
     ```json

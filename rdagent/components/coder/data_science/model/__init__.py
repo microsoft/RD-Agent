@@ -79,7 +79,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # We want to use a simpler way to
         user_prompt = T(".prompts:model_coder.user_general").r(
             model_spec=workspace.file_dict["spec/model.md"],
-            workspace_code=workspace.get_codes(
+            latest_model_code=workspace.get_codes(
                 r"^model_(?!test)\w+\.py$"
             ),  # TODO: If we have high failure rate here, we should clean this step with less information.
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
