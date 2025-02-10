@@ -1,0 +1,16 @@
+mistral:7b
+mistral-nemo:12b
+mistral-small:22b
+mistral-large:123b
+phi4:14b
+llama3.3:70b
+gemma2:9b
+gemma2:27b
+qwen2.5:7b
+qwen2.5:72b
+qwen2.5-coder:32b
+marco-o1:7b
+deepseek-r1:32b
+deepseek-r1:70b
+qwq:32b
+huihui_ai/skywork-o1-abliterated:8b
