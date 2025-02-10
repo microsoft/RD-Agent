@@ -25,6 +25,10 @@ class LiteLLMSettings(ExtendedBaseSettings):
     chat_model: str = "openai/gpt-4o"
     # LiteLLM embedding related config
     embedding_model: str = "openai/text-embedding-3-small"
+    max_tokens: int = 1000
+    temperature: float = 0.7
+    stream: bool = False # only surpport False
+
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
@@ -72,12 +76,14 @@ class LiteLLMAPIBackend(APIBackend):
         messages.append({"role": "user", "content": user_prompt})
         model_name = LITELLM_SETTINGS.chat_model
         # Call LiteLLM completion
+        if LITELLM_SETTINGS.stream:
+            raise NotImplementedError("LiteLLM backend stream mode is not supported yet")
         response = completion(
             model=model_name,
             messages=messages,
-            stream=kwargs.get("stream", False),
-            temperature=kwargs.get("temperature", 0.7),
-            max_tokens=kwargs.get("max_tokens", 1000),
+            stream=LITELLM_SETTINGS.stream,
+            temperature=LITELLM_SETTINGS.temperature,
+            max_tokens=LITELLM_SETTINGS.max_tokens,
             **kwargs,
         )
         logger.info(
