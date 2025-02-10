@@ -3,9 +3,6 @@ import fnmatch
 from pathlib import Path
 
 
-# support two interfaces. add another one like  def generate_diff(file_dict1: dict, file_dict2: dict) -> List[str]:
-# the file_dict1 and file_dict2 are like {file_path: file_content}.
-# the two shuld share code.
 def generate_diff(dir1: str, dir2: str, file_pattern: str = "*.py") -> list[str]:
     """
     Generate a diff between two directories (from dir1 to dir2) using files that match the specified file pattern.
@@ -20,8 +17,8 @@ def generate_diff(dir1: str, dir2: str, file_pattern: str = "*.py") -> list[str]
         list[str]: A list of diffs for files that differ between the two directories.
     """
 
-    dir1_files = {f.relative_to(dir1) for f in Path(dir1).rglob("*") if f.is_file()}
-    dir2_files = {f.relative_to(dir2) for f in Path(dir2).rglob("*") if f.is_file()}
+    dir1_files = {f.relative_to(dir1) for f in Path(dir1).rglob(file_pattern) if f.is_file()}
+    dir2_files = {f.relative_to(dir2) for f in Path(dir2).rglob(file_pattern) if f.is_file()}
 
     all_files = dir1_files.union(dir2_files)
     file_dict1 = {}
@@ -39,7 +36,7 @@ def generate_diff(dir1: str, dir2: str, file_pattern: str = "*.py") -> list[str]
                 file_dict2[str(file)] = f2.read()
         else:
             file_dict2[str(file)] = ""
-    return generate_diff_from_dict(file_dict1, file_dict2, file_pattern=file_pattern)
+    return generate_diff_from_dict(file_dict1, file_dict2, file_pattern="*")
 
 
 def generate_diff_from_dict(file_dict1: dict, file_dict2: dict, file_pattern: str = "*.py") -> list[str]:
