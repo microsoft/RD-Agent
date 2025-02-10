@@ -44,7 +44,7 @@ feature_coder:
     {
         "code": "The Python code as a string."
     }
-
+  
   user: |-
     --------- Feature Processing Specification ---------
     {{ feature_spec }}
@@ -103,6 +103,7 @@ feature_eval:
         "final_decision": <true/false>
     }
     ```
+  
   user: |-
     --------- Feature engineering test stdout ---------
     {{ stdout }}   
