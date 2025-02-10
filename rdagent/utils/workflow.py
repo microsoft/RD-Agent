@@ -14,7 +14,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, Callable, TypeVar, cast
 
 from tqdm.auto import tqdm
 
@@ -40,7 +40,7 @@ class LoopMeta(type):
                     steps.append(step)
         return steps
 
-    def __new__(mcs: type, clsname: str, bases: tuple[type, ...], attrs: dict[str, Any]) -> Any:
+    def __new__(mcs, clsname: str, bases: tuple[type, ...], attrs: dict[str, Any]) -> Any:
         """
         Create a new class with combined steps from base classes and current class.
 
@@ -164,9 +164,12 @@ class LoopBase:
         return session
 
 
+ASpecificRet = TypeVar("ASpecificRet")
+
+
 def wait_retry(
     retry_n: int = 3, sleep_time: int = 1, transform_args_fn: Callable[[tuple, dict], tuple[tuple, dict]] | None = None
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[[Callable[..., ASpecificRet]], Callable[..., ASpecificRet]]:
     """Decorator to wait and retry the function for retry_n times.
 
     Example:
@@ -189,20 +192,24 @@ def wait_retry(
     >>> counter
     2
     """
+    assert retry_n > 0, "retry_n should be greater than 0"
 
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            for i in range(retry_n):
+    def decorator(f: Callable[..., ASpecificRet]) -> Callable[..., ASpecificRet]:
+        def wrapper(*args: Any, **kwargs: Any) -> ASpecificRet:
+            for i in range(retry_n + 1):
                 try:
                     return f(*args, **kwargs)
                 except Exception as e:
                     print(f"Error: {e}")
                     time.sleep(sleep_time)
-                    if i == retry_n - 1:
-                        raise e
+                    if i == retry_n:
+                        raise
                     # Update args and kwargs using the transform function if provided.
                     if transform_args_fn is not None:
                         args, kwargs = transform_args_fn(args, kwargs)
+            else:
+                # just for passing mypy CI.
+                return f(*args, **kwargs)
 
         return wrapper
 
