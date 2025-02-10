@@ -34,6 +34,7 @@ from rdagent.core.conf import ExtendedBaseSettings, ExtendedSettingsConfigDict
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils.workflow import wait_retry
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -313,12 +314,17 @@ class DockerEnv(Env[DockerConf]):
                 [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
             ),
         }
-        try:
-            client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
-            logger.info("GPU Devices are available.")
-        except docker.errors.APIError:
-            return {}
-        return gpu_kwargs
+
+        @wait_retry(5, 10)
+        def _f() -> dict:
+            try:
+                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                logger.info("GPU Devices are available.")
+            except docker.errors.APIError:
+                return {}
+            return gpu_kwargs
+
+        return _f()
 
     def replace_time_info(self, input_string: str) -> str:
         """To remove any time related information from the logs since it will destroy the cache mechanism"""
