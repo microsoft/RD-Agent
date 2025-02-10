@@ -325,6 +325,7 @@ class DSExpGen(ExpGen):
                     targets=component_info["target_name"],
                     component=component,
                     scenario=scenario_desc,
+                    hypothesis_specification=T(".prompts:hypothesis_specification").r(),
                     hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                     task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
                     task_output_format=component_info["task_output_format"],
