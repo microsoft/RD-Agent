@@ -69,6 +69,8 @@ def summarize_folder(log_folder: Path):
         valid_scores = {}
         success_loop_num = 0
 
+        sota_exp_stat = ""
+        grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
@@ -109,6 +111,18 @@ def summarize_folder(log_folder: Path):
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
                         success_loop_num += 1
+                        
+                        if grade_output: # sota exp's grade output
+                            if grade_output["gold_medal"]:
+                                sota_exp_stat = "gold"
+                            elif grade_output["silver_medal"]:
+                                sota_exp_stat = "silver"
+                            elif grade_output["bronze_medal"]:
+                                sota_exp_stat = "bronze"
+                            elif grade_output["above_median"]:
+                                sota_exp_stat = "above_median"
+                            elif grade_output["valid_submission"]:
+                                sota_exp_stat = "valid_submission"
 
         stat[log_trace_path.name].update(
             {
@@ -123,6 +137,7 @@ def summarize_folder(log_folder: Path):
                 "test_scores": test_scores,
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
+                "sota_exp_stat": sota_exp_stat,
             }
         )
     if (log_folder / "summary.pkl").exists():

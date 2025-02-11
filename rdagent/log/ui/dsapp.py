@@ -338,11 +338,13 @@ def all_summarize_win():
             "Successful Final Decision",
             "Made Submission",
             "Valid Submission",
+            "V/M",
             "Above Median",
             "Bronze",
             "Silver",
             "Gold",
             "Any Medal",
+            "SOTA Exp",
         ],
         index=summary.keys(),
     )
@@ -362,6 +364,12 @@ def all_summarize_win():
             base_df.loc[k, "Valid Submission"] = (
                 f"{v['valid_submission_num']} ({round(v['valid_submission_num'] / loop_num * 100, 2)}%)"
             )
+            if v["made_submission_num"] != 0:
+                base_df.loc[k, "V/M"] = (
+                    f"{round(v['valid_submission_num'] / v['made_submission_num'] * 100, 2)}%"
+                )
+            else:
+                base_df.loc[k, "V/M"] = "N/A"
             base_df.loc[k, "Above Median"] = (
                 f"{v['above_median_num']} ({round(v['above_median_num'] / loop_num * 100, 2)}%)"
             )
@@ -369,8 +377,12 @@ def all_summarize_win():
             base_df.loc[k, "Silver"] = f"{v['silver_num']} ({round(v['silver_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
+            
+            if "sota_exp_stat" in v:
+                base_df.loc[k, "SOTA Exp"] = v["sota_exp_stat"]
 
     st.dataframe(base_df)
+    ts1,ts2 = st.columns(2)
     total_stat = (
         (
             base_df[
@@ -390,7 +402,12 @@ def all_summarize_win():
         * 100
     )
     total_stat.name = "总体统计(%)"
-    st.dataframe(total_stat.round(2))
+    ts1.dataframe(total_stat.round(2))
+
+    # 统计 base_df["SOTA Exp"] 列中各个值的数量
+    sota_exp_stat = base_df["SOTA Exp"].value_counts() / base_df.shape[0] * 100
+    sota_exp_stat.name = "SOTA Exp 统计(%)"
+    ts2.dataframe(sota_exp_stat.round(2))
 
     # write curve
     for k, v in summary.items():
