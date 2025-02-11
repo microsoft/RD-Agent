@@ -365,9 +365,7 @@ def all_summarize_win():
                 f"{v['valid_submission_num']} ({round(v['valid_submission_num'] / loop_num * 100, 2)}%)"
             )
             if v["made_submission_num"] != 0:
-                base_df.loc[k, "V/M"] = (
-                    f"{round(v['valid_submission_num'] / v['made_submission_num'] * 100, 2)}%"
-                )
+                base_df.loc[k, "V/M"] = f"{round(v['valid_submission_num'] / v['made_submission_num'] * 100, 2)}%"
             else:
                 base_df.loc[k, "V/M"] = "N/A"
             base_df.loc[k, "Above Median"] = (
@@ -377,12 +375,12 @@ def all_summarize_win():
             base_df.loc[k, "Silver"] = f"{v['silver_num']} ({round(v['silver_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
-            
+
             if "sota_exp_stat" in v:
                 base_df.loc[k, "SOTA Exp"] = v["sota_exp_stat"]
 
     st.dataframe(base_df)
-    ts1,ts2 = st.columns(2)
+    ts1, ts2 = st.columns(2)
     total_stat = (
         (
             base_df[

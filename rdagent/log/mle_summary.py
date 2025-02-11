@@ -111,8 +111,8 @@ def summarize_folder(log_folder: Path):
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
                         success_loop_num += 1
-                        
-                        if grade_output: # sota exp's grade output
+
+                        if grade_output:  # sota exp's grade output
                             if grade_output["gold_medal"]:
                                 sota_exp_stat = "gold"
                             elif grade_output["silver_medal"]:
