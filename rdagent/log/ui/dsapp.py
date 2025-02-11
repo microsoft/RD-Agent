@@ -407,7 +407,7 @@ def all_summarize_win():
     se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
     se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
     se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
-    
+
     sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
     sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
     sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
@@ -417,7 +417,7 @@ def all_summarize_win():
     sota_exp_stat.loc["Gold"] = se_counts.get("gold", 0)
     sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
     sota_exp_stat = sota_exp_stat / base_df.shape[0] * 100
-    
+
     stat_df = pd.concat([total_stat, sota_exp_stat], axis=1)
     st.dataframe(stat_df.round(2))
 
