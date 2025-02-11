@@ -100,12 +100,14 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 for key, value in batch_edit.items()
             }
 
+            user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+            if batch_edit and max(len(i.encode("utf-8")) for i in batch_edit.keys()) > 255:
+                continue
+
             if batch_edit[f"{target_task.name}.py"] != "__DEL__" and batch_edit[
                 f"{target_task.name}.py"
             ] != workspace.file_dict.get(f"{target_task.name}.py"):
                 break
-            else:
-                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
         else:
             raise CoderError("Failed to generate a new model code.")
 
