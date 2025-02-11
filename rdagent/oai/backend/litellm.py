@@ -78,14 +78,26 @@ class LiteLLMAPIBackend(APIBackend):
         # Call LiteLLM completion
         if LITELLM_SETTINGS.stream:
             raise NotImplementedError("LiteLLM backend stream mode is not supported yet")
-        response = completion(
-            model=model_name,
-            messages=messages,
-            stream=LITELLM_SETTINGS.stream,
-            temperature=LITELLM_SETTINGS.temperature,
-            max_tokens=LITELLM_SETTINGS.max_tokens,
-            **kwargs,
-        )
+        if "json_mode" in kwargs and kwargs["json_mode"]:
+            kwargs.pop("json_mode")
+            response = completion(
+                model=model_name,
+                response_format={"type": "json_object"},
+                messages=messages,
+                stream=LITELLM_SETTINGS.stream,
+                temperature=LITELLM_SETTINGS.temperature,
+                max_tokens=LITELLM_SETTINGS.max_tokens,
+                **kwargs,
+            )
+        else:
+            response = completion(
+                model=model_name,
+                messages=messages,
+                stream=LITELLM_SETTINGS.stream,
+                temperature=LITELLM_SETTINGS.temperature,
+                max_tokens=LITELLM_SETTINGS.max_tokens,
+                **kwargs,
+            )
         logger.info(
             f"{LogColors.GREEN}Using chat model{LogColors.END} {model_name}",
             tag="debug_llm",
