@@ -123,16 +123,20 @@ def filter_progress_bar(stdout: str) -> str:
         )
         needs_sub = response.get("needs_sub", True)
         regex_patterns = response.get("regex_patterns", [])
-        if isinstance(regex_patterns, list):
-            for pattern in regex_patterns:
-                filtered_stdout = re.sub(pattern, "", filtered_stdout)
-        else:
-            filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
+        try:
+            if isinstance(regex_patterns, list):
+                for pattern in regex_patterns:
+                    filtered_stdout = re.sub(pattern, "", filtered_stdout)
+            else:
+                filtered_stdout = re.sub(regex_patterns, "", filtered_stdout)
 
-        if not needs_sub:
-            break
-        filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
+            if not needs_sub:
+                break
+            filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
+        except re.error as e:  # sometime the generated regex pattern is invalid  and yield exception.
+            from rdagent.log import rdagent_logger as logger
 
+            logger.error(f"Error in filtering progress bar: due to {e}")
     return filtered_stdout
 
 
