@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     # 5.run the eval
     res = eval_method.eval(eval_method.develop())
-
+    print ('eval has completed')
+    print ('res:',res)
     # 6.save the result
     logger.log_object(res)
