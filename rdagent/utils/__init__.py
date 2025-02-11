@@ -135,6 +135,7 @@ def filter_progress_bar(stdout: str) -> str:
             filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
         except re.error as e:  # sometime the generated regex pattern is invalid  and yield exception.
             from rdagent.log import rdagent_logger as logger
+
             logger.error(f"Error in filtering progress bar: due to {e}")
     return filtered_stdout
 
