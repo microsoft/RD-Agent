@@ -123,6 +123,8 @@ def summarize_folder(log_folder: Path):
                                 sota_exp_stat = "above_median"
                             elif grade_output["valid_submission"]:
                                 sota_exp_stat = "valid_submission"
+                            elif grade_output["submission_exists"]:
+                                sota_exp_stat = "made_submission"
 
         stat[log_trace_path.name].update(
             {
