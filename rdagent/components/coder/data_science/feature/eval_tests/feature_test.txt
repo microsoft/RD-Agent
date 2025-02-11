@@ -38,6 +38,10 @@ def get_column_list(data):
     return data.columns.tolist() if isinstance(data, pd.DataFrame) else None
 
 
+assert X is not None, "The feature engineering function returned None for X."
+assert y is not None, "The feature engineering function returned None for y."
+assert X_test is not None, "The feature engineering function returned None for X_test."
+
 assert get_length(X_test) == get_length(
     test_ids
 ), f"Mismatch in length of test images and test IDs: X_test ({get_length(X_test)}) and test_ids ({get_length(test_ids)})"

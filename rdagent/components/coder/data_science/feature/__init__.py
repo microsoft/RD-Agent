@@ -57,13 +57,13 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
         # 2. code
-        system_prompt = T(".prompts:feature.system").r(
+        system_prompt = T(".prompts:feature_coder.system").r(
             task_desc=feature_information_str,
             data_loader_code=workspace.file_dict.get("load_data.py"),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
-        user_prompt = T(".prompts:feature.user").r(
+        user_prompt = T(".prompts:feature_coder.user").r(
             feature_spec=workspace.file_dict["spec/feature.md"],
             latest_code=workspace.file_dict.get("feature.py"),
             latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,

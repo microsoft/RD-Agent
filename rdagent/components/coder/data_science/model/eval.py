@@ -82,6 +82,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:model_eval.system").r(
             task_desc=target_task.get_task_information(),
             test_code=test_code,
+            code=implementation.file_dict[f"{target_task.name}.py"],
             scenario=self.scen.get_scenario_all_desc(),
             spec=implementation.file_dict["spec/model.md"],
             workflow_stdout=workflow_stdout,
@@ -89,7 +90,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,
-            code=implementation.file_dict[f"{target_task.name}.py"],
             workflow_stdout=workflow_stdout,
         )
         return build_cls_from_json_with_retry(ModelSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
