@@ -338,11 +338,13 @@ def all_summarize_win():
             "Successful Final Decision",
             "Made Submission",
             "Valid Submission",
+            "V/M",
             "Above Median",
             "Bronze",
             "Silver",
             "Gold",
             "Any Medal",
+            "SOTA Exp",
         ],
         index=summary.keys(),
     )
@@ -362,6 +364,10 @@ def all_summarize_win():
             base_df.loc[k, "Valid Submission"] = (
                 f"{v['valid_submission_num']} ({round(v['valid_submission_num'] / loop_num * 100, 2)}%)"
             )
+            if v["made_submission_num"] != 0:
+                base_df.loc[k, "V/M"] = f"{round(v['valid_submission_num'] / v['made_submission_num'] * 100, 2)}%"
+            else:
+                base_df.loc[k, "V/M"] = "N/A"
             base_df.loc[k, "Above Median"] = (
                 f"{v['above_median_num']} ({round(v['above_median_num'] / loop_num * 100, 2)}%)"
             )
@@ -370,6 +376,10 @@ def all_summarize_win():
             base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
+            if "sota_exp_stat" in v:
+                base_df.loc[k, "SOTA Exp"] = v["sota_exp_stat"]
+
+    base_df["SOTA Exp"].replace("", pd.NA, inplace=True)
     st.dataframe(base_df)
     total_stat = (
         (
@@ -390,7 +400,26 @@ def all_summarize_win():
         * 100
     )
     total_stat.name = "总体统计(%)"
-    st.dataframe(total_stat.round(2))
+
+    # SOTA Exp 统计
+    se_counts = base_df["SOTA Exp"].value_counts(dropna=True)
+    se_counts.loc["made_submission"] = se_counts.sum()
+    se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
+    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
+    se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
+
+    sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
+    sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
+    sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
+    sota_exp_stat.loc["Above Median"] = se_counts.get("above_median", 0)
+    sota_exp_stat.loc["Bronze"] = se_counts.get("bronze", 0)
+    sota_exp_stat.loc["Silver"] = se_counts.get("silver", 0)
+    sota_exp_stat.loc["Gold"] = se_counts.get("gold", 0)
+    sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
+    sota_exp_stat = sota_exp_stat / base_df.shape[0] * 100
+
+    stat_df = pd.concat([total_stat, sota_exp_stat], axis=1)
+    st.dataframe(stat_df.round(2))
 
     # write curve
     for k, v in summary.items():
