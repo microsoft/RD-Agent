@@ -41,21 +41,14 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-        latest_code_feedback = [
-            knowledge.feedback
-            for knowledge in queried_former_failed_knowledge[0]
-            if knowledge.implementation.file_dict.get("main.py") is not None
-            and knowledge.implementation.file_dict.get("main.py") == workspace.file_dict.get("main.py")
-        ]
-        if len(latest_code_feedback) > 0:
-            queried_former_failed_knowledge = (
-                [
-                    knowledge
-                    for knowledge in queried_former_failed_knowledge[0]
-                    if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
-                ],
-                queried_former_failed_knowledge[1],
-            )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
@@ -71,7 +64,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
-            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
+            latest_code_feedback=workspace.feedback,
         )
 
         for _ in range(5):

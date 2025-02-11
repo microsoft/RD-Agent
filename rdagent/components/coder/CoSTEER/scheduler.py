@@ -4,7 +4,7 @@ from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.core.evaluation import Scenario
+from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 
 
