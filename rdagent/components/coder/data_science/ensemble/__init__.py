@@ -52,21 +52,14 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-        latest_code_feedback = [
-            knowledge.feedback
-            for knowledge in queried_former_failed_knowledge[0]
-            if knowledge.implementation.file_dict.get("ensemble.py") is not None
-            and knowledge.implementation.file_dict.get("ensemble.py") == workspace.file_dict.get("ensemble.py")
-        ]
-        if len(latest_code_feedback) > 0:
-            queried_former_failed_knowledge = (
-                [
-                    knowledge
-                    for knowledge in queried_former_failed_knowledge[0]
-                    if knowledge.implementation.file_dict.get("ensemble.py") != workspace.file_dict.get("ensemble.py")
-                ],
-                queried_former_failed_knowledge[1],
-            )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("ensemble.py") != workspace.file_dict.get("ensemble.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # Generate code with knowledge integration
         competition_info = self.scen.get_scenario_all_desc()
@@ -81,7 +74,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:ensemble_coder.user").r(
             ensemble_spec=workspace.file_dict["spec/ensemble.md"],
             latest_code=workspace.file_dict.get("ensemble.py"),
-            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
+            latest_code_feedback=workspace.feedback,
         )
 
         for _ in range(5):

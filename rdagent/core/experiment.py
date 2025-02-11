@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.evaluation import Feedback
 from rdagent.utils import filter_progress_bar
 from rdagent.utils.fmt import shrink_text
 
@@ -55,9 +56,10 @@ class Task(AbsTask):
 
 
 ASpecificTask = TypeVar("ASpecificTask", bound=Task)
+ASpecificFeedback = TypeVar("ASpecificFeedback", bound=Feedback)
 
 
-class Workspace(ABC, Generic[ASpecificTask]):
+class Workspace(ABC, Generic[ASpecificTask, ASpecificFeedback]):
     """
     A workspace is a place to store the task implementation. It evolves as the developer implements the task.
     To get a snapshot of the workspace, make sure call `copy` to get a copy of the workspace.
@@ -65,6 +67,7 @@ class Workspace(ABC, Generic[ASpecificTask]):
 
     def __init__(self, target_task: ASpecificTask | None = None) -> None:
         self.target_task: ASpecificTask | None = target_task
+        self.feedback: ASpecificFeedback | None = None
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> object | None:

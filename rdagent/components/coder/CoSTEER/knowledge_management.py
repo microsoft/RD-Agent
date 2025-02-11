@@ -25,9 +25,8 @@ from rdagent.core.evolving_framework import (
     QueriedKnowledge,
     RAGStrategy,
 )
-from rdagent.core.experiment import FBWorkspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.prompts import Prompts
-from rdagent.core.scenario import Task
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import (
     APIBackend,

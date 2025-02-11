@@ -97,21 +97,21 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not submission_fp.exists():
             stdout += "\nSubmission file (submission.csv) is not generated."
         else:
-            base_check_code = (DIRNAME / "eval_tests" / "submission_check.txt").read_text()
-            implementation.inject_files(**{"submission_check.py": base_check_code})
+            base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
+            implementation.inject_files(**{"submission_format_test.py": base_check_code})
             # stdout += "----Submission Check 1-----\n"
-            stdout += implementation.execute(env=de, entry="python submission_check.py")
+            stdout += implementation.execute(env=de, entry="python submission_format_test.py")
 
             # MLEBench Check
             # !!! Since we are running on a sampled dataset, mlebench check is not required.
             # mle_check_code = (
-            #     (DIRNAME / "eval_tests" / "mle_submission_check.txt")
+            #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
             #     .read_text()
             #     .replace("<competition_id>", self.scen.competition)
             # )
-            # implementation.inject_files(**{"mle_submission_check.py": mle_check_code})
+            # implementation.inject_files(**{"mle_submission_format_test.py": mle_check_code})
             # stdout += "----Submission Check 2-----\n"
-            # stdout += implementation.execute(env=mde, entry=f"python mle_submission_check.py")
+            # stdout += implementation.execute(env=mde, entry=f"python mle_submission_format_test.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),

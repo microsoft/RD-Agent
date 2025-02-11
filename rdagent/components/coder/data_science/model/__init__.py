@@ -44,23 +44,15 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-        latest_code_feedback = [
-            knowledge.feedback
-            for knowledge in queried_former_failed_knowledge[0]
-            if knowledge.implementation.file_dict.get(f"{target_task.name}.py") is not None
-            and knowledge.implementation.file_dict.get(f"{target_task.name}.py")
-            == workspace.file_dict.get(f"{target_task.name}.py")
-        ]
-        if len(latest_code_feedback) > 0:
-            queried_former_failed_knowledge = (
-                [
-                    knowledge
-                    for knowledge in queried_former_failed_knowledge[0]
-                    if knowledge.implementation.file_dict.get(f"{target_task.name}.py")
-                    != workspace.file_dict.get(f"{target_task.name}.py")
-                ],
-                queried_former_failed_knowledge[1],
-            )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get(f"{target_task.name}.py")
+                != workspace.file_dict.get(f"{target_task.name}.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # 2. code
         system_prompt = T(".prompts:model_coder.system").r(
@@ -82,7 +74,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             latest_model_code=workspace.get_codes(
                 r"^model_(?!test)\w+\.py$"
             ),  # TODO: If we have high failure rate here, we should clean this step with less information.
-            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
+            latest_code_feedback=workspace.feedback,
         )
 
         for _ in range(5):
