@@ -14,12 +14,12 @@ notebook_to_knowledge:
     {
       "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
       "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
-      "context": "An example of how the notebook incorportate this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+      "context": "An example of how the notebook incorporate  this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
       "hypothesis": {
         "problem": "The nature of the problem (e.g., definition, objective, constraints).",
         "data": "The nature of the data (e.g., size, quality, distribution).",
         "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
-        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list mulitple requirements about the scenarios. Here are some examples, the senario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
+        "reason": "A comprehensive analysis of why this method works well in this scenario. You can list multiple  requirements about the scenarios. Here are some examples, the scenario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
       }
     }
 
