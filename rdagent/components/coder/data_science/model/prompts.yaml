@@ -35,6 +35,7 @@ model_coder:
     {{ data_loader_code }}
     --------- Feature Engineering Code ---------
     {{ feature_code }}
+    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
     {% if out_spec %}
