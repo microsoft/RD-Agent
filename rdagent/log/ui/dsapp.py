@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
@@ -358,7 +357,7 @@ def all_summarize_win():
     )
 
     # Read baseline results
-    baseline_result_path = DS_RD_SETTING.baseline_result_path
+    baseline_result_path = ""
     if Path(baseline_result_path).exists():
         baseline_df = pd.read_csv(baseline_result_path)
 
@@ -402,7 +401,7 @@ def all_summarize_win():
             ):
                 base_df.loc[k, "Ours - Base"] = v.get("sota_exp_score", 0.0) - baseline_score
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
-            base_df.loc[k, "Baseline Score"] = v.get("baseline_score", None)
+            base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
             base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
             base_df.loc[k, "Gold Threshold"] = v.get("gold_threshold", None)
