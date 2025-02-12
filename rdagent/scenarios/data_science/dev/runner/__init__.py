@@ -16,6 +16,7 @@ from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
 from rdagent.utils import APIBackend
 from rdagent.utils.agent.ret import BatchEditOut
@@ -92,7 +93,7 @@ class DSCoSTEERRunner(CoSTEER):
         exp.sub_tasks = [
             CoSTEERTask(
                 name="Debug running solution",
-                description="The whole workflow of the solution has finished with some execution error, please check the error message and debug the whole code repo.",
+                description=f"The whole workflow of the solution has finished with some execution error, please check the error message and debug the whole code repo.\nCurrent code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             )
         ]
         exp = super().develop(exp)
