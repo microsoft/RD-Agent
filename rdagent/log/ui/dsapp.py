@@ -359,7 +359,7 @@ def all_summarize_win():
 
     # Read baseline results
     baseline_result_path = DS_RD_SETTING.baseline_result_path
-    if baseline_result_path.exists():
+    if Path(baseline_result_path).exists():
         baseline_df = pd.read_csv(baseline_result_path)
 
     for k, v in summary.items():
@@ -391,7 +391,7 @@ def all_summarize_win():
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
             baseline_score = None
-            if baseline_result_path.exists():
+            if Path(baseline_result_path).exists():
                 baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
