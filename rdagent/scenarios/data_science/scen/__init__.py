@@ -95,6 +95,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
     for root, dirs, files in os.walk(folder_path):
         dirs.sort()
+        files.sort()
         if not dirs:
             for file in files:
                 file_path = os.path.join(root, file)
