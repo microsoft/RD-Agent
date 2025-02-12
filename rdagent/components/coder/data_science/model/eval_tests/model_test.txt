@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 def log_execution_results(start_time, val_pred, test_pred, hypers, execution_label):
     """Log the results of a single model execution."""
-    feedback_str = f"{execution_label} successful.\n"
+    feedback_str = f"{execution_label} end.\n"
     feedback_str += f"Validation predictions shape: {val_pred.shape if val_pred is not None else 'None'}\n"
     feedback_str += f"Test predictions shape: {test_pred.shape if test_pred is not None else 'None'}\n"
     feedback_str += f"Hyperparameters: {hypers if hypers is not None else 'None'}\n"

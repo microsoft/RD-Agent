@@ -12,6 +12,10 @@ BatchEditOut: |-
   For example:
   Inject the code into the folder. Your file name should always contain the suffix. Your file name keys should be unique to avoid delete or replace conflicts.
   {
-      <file name1>: "<code>",  // indicate writing <code> into <file name> (create new file or replace existing file)
+      <file name1>: "<code>",  // indicate writing <code> into <file name1> (create new file or replace existing file)
+      {% if with_del %}
       <file name2>: "__DEL__"  // indicate removing file name2. When we want to replace a file to a new one, we usually use this
+      {% else %}
+      <file name2>(optional): "<code>"  // indicate writing <code> into <file name2> (create new file or replace existing file)
+      {% endif %}
   }

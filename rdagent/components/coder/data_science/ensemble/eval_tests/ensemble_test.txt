@@ -74,7 +74,7 @@ model_set_in_scores = set(score_df.index)
 for model in {{model_names}}:
     if model not in model_set_in_scores:
         print(f"\nModel {model} is not evaluated in the scores.csv.")
-print("Please check scores dataframe's format, it's:")
+print("Please check the format of the scores dataframe and ignore the magnitude of its values:")
 print(score_df)
 
 print("Ensemble test end.")
