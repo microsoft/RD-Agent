@@ -9,11 +9,11 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
 from rdagent.utils import remove_ansi_codes
-from rdagent.app.data_science.conf import DS_RD_SETTING
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -395,7 +395,11 @@ def all_summarize_win():
                 baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
-            if baseline_score is not None and not pd.isna(baseline_score) and not pd.isna(v.get("sota_exp_score", None)):
+            if (
+                baseline_score is not None
+                and not pd.isna(baseline_score)
+                and not pd.isna(v.get("sota_exp_score", None))
+            ):
                 base_df.loc[k, "Ours - Base"] = v.get("sota_exp_score", 0.0) - baseline_score
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
             base_df.loc[k, "Baseline Score"] = v.get("baseline_score", None)

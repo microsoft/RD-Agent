@@ -20,4 +20,5 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     baseline_result_path: str = ""
 
+
 DS_RD_SETTING = DataScienceBasePropSetting()
