@@ -18,5 +18,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     full_timeout: int = 3600
     """The timeout limit for running on full data"""
 
+    baseline_result_path: str = ""
 
 DS_RD_SETTING = DataScienceBasePropSetting()
