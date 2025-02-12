@@ -316,17 +316,20 @@ class DSExpGen(ExpGen):
 
             if features is None: 
                 idea, sim = self.idea_pool.sample(solution_feature, k=1)
-                idea = idea[0]
             else: 
                 extracted_features = []   
                 for feat in features:
                     characteristic, contents = next(iter(feat.items()))
-                    if contents['Assessment'].lower() != 'no':
-                        temp = f'''The characteristic of the data is {characteristic}.
-                This is because {contents['Reason']}'''
+                    if contents['Assessment'].lower() == 'no':
+                        temp = f"The characteristic of the data is {characteristic}.\nThis is because {contents['Reason']}"
                         extracted_features.append(temp)
                 idea, sim = self.idea_pool.sample(extracted_features, k=1)
+            
+            # Todo (minrui): make the if else logic more compact
+            if len(idea) > 0:
                 idea = idea[0]
+            else:
+                idea = self.idea_pool.random_sample(1)[0]
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(

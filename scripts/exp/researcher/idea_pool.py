@@ -1,7 +1,7 @@
 from typing import List, Dict
 from tqdm import tqdm
 import numpy as np
-import json, re
+import json, re, random
 from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 from rdagent.core.prompts import Prompts
@@ -190,6 +190,11 @@ class Idea_Pool:
         ) # [s,t]
 
         return np.array(sim_matrix).flatten() # [s,t] -> [s*t]
+
+    def random_sample(self, k=5): 
+        random_indices = random.sample(range(len(self.idea_pool)), k)
+        sampled_ideas = [self.idea_pool[i] for i in random_indices]
+        return sampled_ideas
 
 
     def sample(self, solution, k=5):
