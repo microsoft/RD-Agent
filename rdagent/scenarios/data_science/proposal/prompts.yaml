@@ -232,7 +232,7 @@ direct_exp_gen:
     # Several trials after the best experiments
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree). Remember that you should propose a new hypothesis to represent and integrate the suggested idea
-    {{recent_trace_desc}}
+    {{ recent_trace_desc }}
 
     {% if last_exp_diff %}
     # Here are the differences between the latest version of implementation and the current best version of implementation
