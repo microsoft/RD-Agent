@@ -1,7 +1,7 @@
 import os
 import platform
 import shutil
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -274,9 +274,34 @@ def create_debug_data(
                 num_to_keep = len(file_list)
             else:
                 num_to_keep = max(int(len(file_list) * min_frac), min_num)
-            print(f"Sampling {num_to_keep} files without label from {len(file_list)} files in {rel_dir}")
-            sampled_not_used = pd.Series(not_used_files).sample(n=num_to_keep, random_state=1)
+
+            # Group files by their base name (i.e., filename without extension)
+            groups = defaultdict(list)
+            for nf in not_used_files:
+                groups[nf.stem].append(nf)  # nf.stem gives the file name without its extension
+
+            # Convert the dictionary to a list of groups, where each group is a list of files with the same base name
+            group_list = list(groups.values())
+
+            # Use a greedy strategy to select groups so that the total number of files is as close as possible to num_to_keep
+            selected_groups = []
+            total_files = 0
+            for group in group_list:
+                # If adding the entire group does not exceed the target, add it
+                if not selected_groups or total_files + len(group) <= num_to_keep:
+                    selected_groups.append(group)
+                    total_files += len(group)
+                else:
+                    break
+
+            print(f"Sampling {num_to_keep} files without label from {total_files} files in {rel_dir}")
+
+            # Flatten the selected groups into a single list of files
+            sampled_not_used = [nf for group in selected_groups for nf in group]
+
+            # Copy the selected files to the target directory (all files with the same base name will be copied)
             for nf in sampled_not_used:
+                # Construct the target path based on the relative path of nf from data_folder
                 sampled_file_path = sample_folder / nf.relative_to(data_folder)
                 if sampled_file_path.exists():
                     continue
