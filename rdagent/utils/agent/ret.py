@@ -41,8 +41,8 @@ class BatchEditOut(AgentOut):
     json_mode: bool = True
 
     @classmethod
-    def get_spec(cls):
-        return T(".tpl:BatchEditOut").r()
+    def get_spec(cls, with_del=True):
+        return T(".tpl:BatchEditOut").r(with_del=with_del)
 
     @classmethod
     def extract_output(cls, resp: str):

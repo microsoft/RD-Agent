@@ -1,10 +1,9 @@
 import typing
 from abc import ABC, abstractmethod
 
-from rdagent.core.scenario import Scenario
-
 if typing.TYPE_CHECKING:
     from rdagent.core.experiment import Task, Workspace
+    from rdagent.core.scenario import Scenario
 
 
 class Feedback:
@@ -23,14 +22,14 @@ class Evaluator(ABC):
     Design Principle:
 
         It should cover the building process of feedback from raw information.
-            Typically the buiilding of feedback will be two phases.
-            1. raw information including stdout & workspace  (feeedback itself will handle this)
-            2. advanced/summaried feedback information. (evaluate will handle this)
+            Typically the building of feedback will be two phases.
+            1. raw information including stdout & workspace  (feedback itself will handle this)
+            2. advanced/summarized feedback information. (evaluate will handle this)
     """
 
     def __init__(
         self,
-        scen: Scenario,
+        scen: "Scenario",
     ) -> None:
         self.scen = scen
 
