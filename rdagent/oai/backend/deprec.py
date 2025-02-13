@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import inspect
 import json
 import os
@@ -28,12 +27,6 @@ DEFAULT_QLIB_DOT_PATH = Path("./")
 
 from rdagent.oai.backend.base import APIBackend
 
-
-def md5_hash(input_string: str) -> str:
-    hash_md5 = hashlib.md5(usedforsecurity=False)
-    input_bytes = input_string.encode("utf-8")
-    hash_md5.update(input_bytes)
-    return hash_md5.hexdigest()
 
 
 try:
