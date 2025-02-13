@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Type
 
 import numpy as np
@@ -8,13 +7,7 @@ import numpy as np
 from rdagent.core.utils import import_class
 from rdagent.oai.backend.base import APIBackend as BaseAPIBackend
 from rdagent.oai.llm_conf import LLM_SETTINGS
-
-
-def md5_hash(input_string: str) -> str:
-    hash_md5 = hashlib.md5(usedforsecurity=False)
-    input_bytes = input_string.encode("utf-8")
-    hash_md5.update(input_bytes)
-    return hash_md5.hexdigest()
+from rdagent.utils import md5_hash  # for compatible with previous import
 
 
 def calculate_embedding_distance_between_str_list(
