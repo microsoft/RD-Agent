@@ -22,11 +22,11 @@ from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_cl
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.llm_utils import md5_hash
 
 DEFAULT_QLIB_DOT_PATH = Path("./")
 
 from rdagent.oai.backend.base import APIBackend
-
 
 
 try:
