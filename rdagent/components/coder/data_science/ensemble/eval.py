@@ -50,7 +50,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        fname = "ensemble_test.txt"
+        fname = "test/ensemble_test.txt"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()
         test_code = (
             Environment(undefined=StrictUndefined)

@@ -62,7 +62,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        fname = "model_test.py"
+        fname = "test/model_test.py"
         test_code = (
             (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
         )  # only check the model changed this time
