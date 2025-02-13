@@ -536,12 +536,12 @@ class DeprecBackend(APIBackend):
     def _create_chat_completion_auto_continue(
         self,
         messages: list[dict[str, Any]],
-        *args,
+        *args: Any,
         json_mode: bool = False,
         chat_cache_prefix: str = "",
         seed: Optional[int] = None,
-        **kwargs,
-    ) -> str:  # type: ignore[no-untyped-def]
+        **kwargs: Any,
+    ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
         """
@@ -561,9 +561,11 @@ class DeprecBackend(APIBackend):
         all_response = ""
         new_messages = deepcopy(messages)
         for _ in range(10):
+            if "json_mode" in kwargs:
+                del kwargs["json_mode"]
             response, finish_reason = self._create_chat_completion_inner_function(
                 new_messages, json_mode=json_mode, *args, **kwargs
-            )
+            )  # type: ignore[misc]
             all_response += response
             if finish_reason is None or finish_reason != "length":
                 if self.chat_use_azure_deepseek:
@@ -584,6 +586,7 @@ class DeprecBackend(APIBackend):
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response
             new_messages.append({"role": "assistant", "content": response})
+        return all_response
 
     def _try_create_chat_completion_or_embedding(  # type: ignore[no-untyped-def]
         self,
