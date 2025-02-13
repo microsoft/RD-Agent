@@ -79,6 +79,7 @@ def filter_progress_bar(stdout: str) -> str:
     Filter out progress bars from stdout using regex.
     """
     from rdagent.oai.llm_utils import APIBackend  # avoid circular import
+
     # Initial progress bar regex pattern
     progress_bar_re = (
         r"(\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+|"
@@ -155,4 +156,3 @@ def md5_hash(input_string: str) -> str:
     input_bytes = input_string.encode("utf-8")
     hash_md5.update(input_bytes)
     return hash_md5.hexdigest()
-
