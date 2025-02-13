@@ -9,6 +9,8 @@ ensemble_coder:
     Your specific task as follows:
     {{ task_desc }}
 
+    Your implementation must strictly adhere to the specific evaluation metrics and output format outlined in the `competition information` (e.g., probability distribution vs. one-hot encoding).
+
     Here is the competition information for this task:
     {{ competition_info }}
 
@@ -97,7 +99,7 @@ ensemble_eval:
     {
         "execution": "Describe how well the ensemble executed, including any errors or issues encountered. Retain all error messages and traceback details.",
         "return_checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
-        "code": "Assess code quality, readability, and adherence to specifications. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for optimization.",
+        "code": "Assess code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
     }
     ```

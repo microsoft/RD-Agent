@@ -37,7 +37,7 @@ exp_feedback:
     Current solution to be evaluated:
 
     ### Task of Current solution
-    {{cur_exp.pending_tasks_list[0][0].get_task_information()}}
+    {{ cur_exp.pending_tasks_list[0][0].get_task_information() }}
 
     {% if cur_exp.hypothesis %}
     the experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
@@ -50,18 +50,21 @@ exp_feedback:
     {{ de }}
     {% endfor %}
 
-    Final results of the current solution: 
+    ### Final results of the current solution
+    1. Pay close attention to the performance of ensemble, as it represents the final score for this iteration.
+    2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. If the final ensemble score surpasses the current SOTA, you may update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
+    Below are the results for this experiment:
     {{ cur_exp.result }}
     
     {% if cur_exp.format_check_result is not none %}
-    Submission format check to current solution:
+    ### Submission format check to current solution:
     {{ cur_exp.format_check_result }}
     {% endif %}
     
     ### Complete Code of current solution
-    {{cur_exp.experiment_workspace.all_codes}}
+    {{ cur_exp.experiment_workspace.all_codes }}
 
-    {{feedback_desc}}
+    {{ feedback_desc }}
 
     Please refer to these hypotheses and feedback to help you recommend new experiment and hypothesis
 
