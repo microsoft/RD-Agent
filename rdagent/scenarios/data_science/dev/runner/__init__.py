@@ -16,9 +16,8 @@ from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import md5_hash
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
-from rdagent.utils import APIBackend
 from rdagent.utils.agent.ret import BatchEditOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, MLEBDockerConf

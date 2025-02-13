@@ -6,6 +6,7 @@ it is not binding to the scenarios or framework (So it is not placed in rdagent.
 # TODO: merge the common utils in `rdagent.core.utils` into this folder
 # TODO: split the utils in this module into different modules in the future.
 
+import hashlib
 import importlib
 import json
 import re
@@ -15,7 +16,6 @@ from types import ModuleType
 from typing import Union
 
 from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
 
@@ -78,6 +78,8 @@ def filter_progress_bar(stdout: str) -> str:
     """
     Filter out progress bars from stdout using regex.
     """
+    from rdagent.oai.llm_utils import APIBackend  # avoid circular import
+
     # Initial progress bar regex pattern
     progress_bar_re = (
         r"(\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+|"
@@ -147,3 +149,10 @@ def remove_path_info_from_str(base_path: Path, target_string: str) -> str:
     target_string = re.sub(str(base_path), "...", target_string)
     target_string = re.sub(str(base_path.absolute()), "...", target_string)
     return target_string
+
+
+def md5_hash(input_string: str) -> str:
+    hash_md5 = hashlib.md5(usedforsecurity=False)
+    input_bytes = input_string.encode("utf-8")
+    hash_md5.update(input_bytes)
+    return hash_md5.hexdigest()
