@@ -217,9 +217,10 @@ class DSExpGen(ExpGen):
                 and component == "Model"
             )
         ):  # Assumption: when completing missing component, using component name as task name
-            resp_dict[
-                "description"
-            ] += f"\n\nYou have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+            resp_dict["description"] = (
+                str(resp_dict.get("description"), "")
+                + f"\n\nYou have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+            )
 
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
