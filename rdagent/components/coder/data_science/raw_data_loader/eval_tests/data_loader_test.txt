@@ -26,6 +26,10 @@ def get_width(data):
 def get_column_list(data):
     return data.columns.tolist() if isinstance(data, pd.DataFrame) else None
 
+assert X is not None, "Training data (X) is None."
+assert y is not None, "Training labels (y) are None."
+assert X_test is not None, "Test data (X_test) is None."
+assert test_ids is not None, "Test IDs (test_ids) are None."
 
 assert get_length(X_test) == get_length(
     test_ids

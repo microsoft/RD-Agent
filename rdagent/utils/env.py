@@ -34,6 +34,7 @@ from rdagent.core.conf import ExtendedBaseSettings, ExtendedSettingsConfigDict
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
+from rdagent.utils.workflow import wait_retry
 
 ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
 
@@ -313,12 +314,17 @@ class DockerEnv(Env[DockerConf]):
                 [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
             ),
         }
-        try:
-            client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
-            logger.info("GPU Devices are available.")
-        except docker.errors.APIError:
-            return {}
-        return gpu_kwargs
+
+        @wait_retry(5, 10)
+        def _f() -> dict:
+            try:
+                client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
+                logger.info("GPU Devices are available.")
+            except docker.errors.APIError:
+                return {}
+            return gpu_kwargs
+
+        return _f()
 
     def replace_time_info(self, input_string: str) -> str:
         """To remove any time related information from the logs since it will destroy the cache mechanism"""
@@ -428,6 +434,18 @@ class DockerEnv(Env[DockerConf]):
         """
         target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
         target_folder.mkdir(parents=True, exist_ok=True)
+
+        # we must add the information of data (beyound code) into the key.
+        # Otherwise, all commands operating on data will become invalue (e.g. rm -r submission.csv)
+        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
+        data_key = []
+        for path in Path(local_path).rglob("*"):
+            p = str(path.relative_to(Path(local_path)))
+            if p.startswith("__pycache__"):
+                continue
+            data_key.append(p)
+        data_key = sorted(data_key)
+
         key = md5_hash(
             json.dumps(
                 [
@@ -437,6 +455,7 @@ class DockerEnv(Env[DockerConf]):
             )
             + json.dumps({"entry": entry, "running_extra_volume": running_extra_volume})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})
+            + json.dumps(data_key)
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:

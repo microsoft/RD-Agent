@@ -338,14 +338,29 @@ def all_summarize_win():
             "Successful Final Decision",
             "Made Submission",
             "Valid Submission",
+            "V/M",
             "Above Median",
             "Bronze",
             "Silver",
             "Gold",
             "Any Medal",
+            "SOTA Exp",
+            "Ours - Base",
+            "SOTA Exp Score",
+            "Baseline Score",
+            "Bronze Threshold",
+            "Silver Threshold",
+            "Gold Threshold",
+            "Medium Threshold",
         ],
         index=summary.keys(),
     )
+
+    # Read baseline results
+    baseline_result_path = ""
+    if Path(baseline_result_path).exists():
+        baseline_df = pd.read_csv(baseline_result_path)
+
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
@@ -362,6 +377,10 @@ def all_summarize_win():
             base_df.loc[k, "Valid Submission"] = (
                 f"{v['valid_submission_num']} ({round(v['valid_submission_num'] / loop_num * 100, 2)}%)"
             )
+            if v["made_submission_num"] != 0:
+                base_df.loc[k, "V/M"] = f"{round(v['valid_submission_num'] / v['made_submission_num'] * 100, 2)}%"
+            else:
+                base_df.loc[k, "V/M"] = "N/A"
             base_df.loc[k, "Above Median"] = (
                 f"{v['above_median_num']} ({round(v['above_median_num'] / loop_num * 100, 2)}%)"
             )
@@ -370,6 +389,25 @@ def all_summarize_win():
             base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
+            baseline_score = None
+            if Path(baseline_result_path).exists():
+                baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
+
+            base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
+            if (
+                baseline_score is not None
+                and not pd.isna(baseline_score)
+                and not pd.isna(v.get("sota_exp_score", None))
+            ):
+                base_df.loc[k, "Ours - Base"] = v.get("sota_exp_score", 0.0) - baseline_score
+            base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
+            base_df.loc[k, "Baseline Score"] = baseline_score
+            base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
+            base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
+            base_df.loc[k, "Gold Threshold"] = v.get("gold_threshold", None)
+            base_df.loc[k, "Medium Threshold"] = v.get("median_threshold", None)
+
+    base_df["SOTA Exp"].replace("", pd.NA, inplace=True)
     st.dataframe(base_df)
     total_stat = (
         (
@@ -390,28 +428,57 @@ def all_summarize_win():
         * 100
     )
     total_stat.name = "总体统计(%)"
-    st.dataframe(total_stat.round(2))
+
+    # SOTA Exp 统计
+    se_counts = base_df["SOTA Exp"].value_counts(dropna=True)
+    se_counts.loc["made_submission"] = se_counts.sum()
+    se_counts.loc["Any Medal"] = se_counts.get("gold", 0) + se_counts.get("silver", 0) + se_counts.get("bronze", 0)
+    se_counts.loc["above_median"] = se_counts.get("above_median", 0) + se_counts.get("Any Medal", 0)
+    se_counts.loc["valid_submission"] = se_counts.get("valid_submission", 0) + se_counts.get("above_median", 0)
+
+    sota_exp_stat = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp 统计(%)")
+    sota_exp_stat.loc["Made Submission"] = se_counts.get("made_submission", 0)
+    sota_exp_stat.loc["Valid Submission"] = se_counts.get("valid_submission", 0)
+    sota_exp_stat.loc["Above Median"] = se_counts.get("above_median", 0)
+    sota_exp_stat.loc["Bronze"] = se_counts.get("bronze", 0)
+    sota_exp_stat.loc["Silver"] = se_counts.get("silver", 0)
+    sota_exp_stat.loc["Gold"] = se_counts.get("gold", 0)
+    sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
+    sota_exp_stat = sota_exp_stat / base_df.shape[0] * 100
+
+    stat_df = pd.concat([total_stat, sota_exp_stat], axis=1)
+    st.dataframe(stat_df.round(2))
 
     # write curve
     for k, v in summary.items():
         with st.container(border=True):
             st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
             vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
+            tscores = {f"loop {k}": v for k, v in v["test_scores"].items()}
             if len(vscores) > 0:
                 metric_name = list(vscores.values())[0].name
             else:
                 metric_name = "None"
 
             fc1, fc2 = st.columns(2)
-            vdf = pd.DataFrame(vscores)
-            vdf.columns = [f"loop {i}" for i in vdf.columns]
-            f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
-            fc1.plotly_chart(f1, key=f"{k}_v")
+            try:
+                vdf = pd.DataFrame(vscores)
+                vdf.columns = [f"loop {i}" for i in vdf.columns]
+                f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+                fc1.plotly_chart(f1, key=f"{k}_v")
 
-            tscores = {f"loop {k}": v for k, v in v["test_scores"].items()}
-            tdf = pd.Series(tscores, name="score")
-            f2 = px.line(tdf, markers=True, title="Test scores")
-            fc2.plotly_chart(f2, key=k)
+                tdf = pd.Series(tscores, name="score")
+                f2 = px.line(tdf, markers=True, title="Test scores")
+                fc2.plotly_chart(f2, key=k)
+            except Exception as e:
+                import traceback
+
+                st.markdown("- Error: " + str(e))
+                st.code(traceback.format_exc())
+                st.markdown("- Valid Scores: ")
+                st.json(vscores)
+                st.markdown("- Test Scores: ")
+                st.json(tscores)
 
 
 def stdout_win(loop_id: int):

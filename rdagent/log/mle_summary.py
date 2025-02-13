@@ -67,8 +67,15 @@ def summarize_folder(log_folder: Path):
         gold_num = 0
         test_scores = {}
         valid_scores = {}
+        bronze_threshold = 0.0
+        silver_threshold = 0.0
+        gold_threshold = 0.0
+        median_threshold = 0.0
         success_loop_num = 0
 
+        sota_exp_stat = ""
+        sota_exp_score = None
+        grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
@@ -105,10 +112,30 @@ def summarize_folder(log_folder: Path):
                                     silver_num += 1
                                 if grade_output["gold_medal"]:
                                     gold_num += 1
+                                bronze_threshold = grade_output["bronze_threshold"]
+                                silver_threshold = grade_output["silver_threshold"]
+                                gold_threshold = grade_output["gold_threshold"]
+                                median_threshold = grade_output["median_threshold"]
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
                         success_loop_num += 1
+
+                        if grade_output:  # sota exp's grade output
+                            if grade_output["gold_medal"]:
+                                sota_exp_stat = "gold"
+                            elif grade_output["silver_medal"]:
+                                sota_exp_stat = "silver"
+                            elif grade_output["bronze_medal"]:
+                                sota_exp_stat = "bronze"
+                            elif grade_output["above_median"]:
+                                sota_exp_stat = "above_median"
+                            elif grade_output["valid_submission"]:
+                                sota_exp_stat = "valid_submission"
+                            elif grade_output["submission_exists"]:
+                                sota_exp_stat = "made_submission"
+                            if grade_output["score"] is not None:
+                                sota_exp_score = grade_output["score"]
 
         stat[log_trace_path.name].update(
             {
@@ -123,6 +150,12 @@ def summarize_folder(log_folder: Path):
                 "test_scores": test_scores,
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
+                "sota_exp_stat": sota_exp_stat,
+                "sota_exp_score": sota_exp_score,
+                "bronze_threshold": bronze_threshold,
+                "silver_threshold": silver_threshold,
+                "gold_threshold": gold_threshold,
+                "median_threshold": median_threshold,
             }
         )
     if (log_folder / "summary.pkl").exists():

@@ -64,6 +64,8 @@ class ExperimentFeedback(Feedback):
     ) -> None:
         self.decision = decision
         self.reason = reason
+        # Exception is not None means failing to generate runnable experiments due to exception.
+        # Runable reuslts are not always good.
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )

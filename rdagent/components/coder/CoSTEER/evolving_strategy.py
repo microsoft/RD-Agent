@@ -10,11 +10,10 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evaluation import Scenario
 from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
-from rdagent.core.experiment import FBWorkspace
+from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.prompts import Prompts
-from rdagent.core.scenario import Task
+from rdagent.core.scenario import Scenario
 from rdagent.core.utils import multiprocessing_wrapper
 
 implement_prompts = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
@@ -110,5 +109,9 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         evo = self.assign_code_list_to_evo(code_list, evo)
         evo.corresponding_selection = to_be_finished_task_index
+
+        # After implementation, the feedback should be reset
+        for workspace in evo.sub_workspace_list:
+            workspace.feedback = None
 
         return evo

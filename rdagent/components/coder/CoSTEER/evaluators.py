@@ -6,8 +6,7 @@ from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Evaluator, Feedback
 from rdagent.core.evolving_framework import QueriedKnowledge
-from rdagent.core.experiment import Workspace
-from rdagent.core.scenario import Task
+from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 
@@ -164,6 +163,9 @@ class CoSTEERMultiEvaluator(Evaluator):
             ],
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
+
+        for index in range(len(evo.sub_tasks)):
+            evo.sub_workspace_list[index].feedback = multi_implementation_feedback[index]
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
