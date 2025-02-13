@@ -345,9 +345,22 @@ def all_summarize_win():
             "Gold",
             "Any Medal",
             "SOTA Exp",
+            "Ours - Base",
+            "SOTA Exp Score",
+            "Baseline Score",
+            "Bronze Threshold",
+            "Silver Threshold",
+            "Gold Threshold",
+            "Medium Threshold",
         ],
         index=summary.keys(),
     )
+
+    # Read baseline results
+    baseline_result_path = ""
+    if Path(baseline_result_path).exists():
+        baseline_df = pd.read_csv(baseline_result_path)
+
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
@@ -376,8 +389,23 @@ def all_summarize_win():
             base_df.loc[k, "Gold"] = f"{v['gold_num']} ({round(v['gold_num'] / loop_num * 100, 2)}%)"
             base_df.loc[k, "Any Medal"] = f"{v['get_medal_num']} ({round(v['get_medal_num'] / loop_num * 100, 2)}%)"
 
-            if "sota_exp_stat" in v:
-                base_df.loc[k, "SOTA Exp"] = v["sota_exp_stat"]
+            baseline_score = None
+            if Path(baseline_result_path).exists():
+                baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
+
+            base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
+            if (
+                baseline_score is not None
+                and not pd.isna(baseline_score)
+                and not pd.isna(v.get("sota_exp_score", None))
+            ):
+                base_df.loc[k, "Ours - Base"] = v.get("sota_exp_score", 0.0) - baseline_score
+            base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
+            base_df.loc[k, "Baseline Score"] = baseline_score
+            base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
+            base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
+            base_df.loc[k, "Gold Threshold"] = v.get("gold_threshold", None)
+            base_df.loc[k, "Medium Threshold"] = v.get("median_threshold", None)
 
     base_df["SOTA Exp"].replace("", pd.NA, inplace=True)
     st.dataframe(base_df)
