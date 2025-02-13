@@ -7,6 +7,7 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -81,6 +82,19 @@ def summarize_folder(log_folder: Path):
                 if "competition" in msg.tag:
                     stat[log_trace_path.name]["competition"] = msg.content
 
+                    # get threshold scores
+                    workflowexp = FBWorkspace()
+                    stdout = workflowexp.execute(
+                        env=de,
+                        entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
+                    )
+                    grade_output = extract_mle_json(stdout)
+                    if grade_output:
+                        bronze_threshold = grade_output["bronze_threshold"]
+                        silver_threshold = grade_output["silver_threshold"]
+                        gold_threshold = grade_output["gold_threshold"]
+                        median_threshold = grade_output["median_threshold"]
+
                 if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
                     loop_num += 1
 
@@ -112,10 +126,6 @@ def summarize_folder(log_folder: Path):
                                     silver_num += 1
                                 if grade_output["gold_medal"]:
                                     gold_num += 1
-                                bronze_threshold = grade_output["bronze_threshold"]
-                                silver_threshold = grade_output["silver_threshold"]
-                                gold_threshold = grade_output["gold_threshold"]
-                                median_threshold = grade_output["median_threshold"]
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
