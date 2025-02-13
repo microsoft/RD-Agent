@@ -16,7 +16,6 @@ from types import ModuleType
 from typing import Union
 
 from rdagent.oai.llm_conf import LLM_SETTINGS
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 
 
@@ -79,6 +78,7 @@ def filter_progress_bar(stdout: str) -> str:
     """
     Filter out progress bars from stdout using regex.
     """
+    from rdagent.oai.llm_utils import APIBackend  # avoid circular import
     # Initial progress bar regex pattern
     progress_bar_re = (
         r"(\d+/\d+\s+[━]+\s+\d+s?\s+\d+ms/step.*?\u0008+|"
