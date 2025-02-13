@@ -49,3 +49,4 @@ nbformat
 # tool
 setuptools-scm
 seaborn
+azure.ai.inference

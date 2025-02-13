@@ -44,6 +44,19 @@ except ImportError:
     if LLM_SETTINGS.use_llama2:
         logger.warning("llama is not installed.")
 
+try:
+    from azure.ai.inference import ChatCompletionsClient
+    from azure.ai.inference.models import (
+        AssistantMessage,
+        ChatRequestMessage,
+        SystemMessage,
+        UserMessage,
+    )
+    from azure.core.credentials import AzureKeyCredential
+except ImportError:
+    if LLM_SETTINGS.chat_use_azure_deepseek:
+        logger.warning("azure.ai.inference or azure.core.credentials is not installed.")
+
 
 class ConvManager:
     """
@@ -299,6 +312,15 @@ class DeprecBackend(APIBackend):
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
             self.encoder = None
+        elif LLM_SETTINGS.chat_use_azure_deepseek:
+            self.client = ChatCompletionsClient(
+                endpoint=LLM_SETTINGS.chat_azure_deepseek_endpoint,
+                credential=AzureKeyCredential(LLM_SETTINGS.chat_azure_deepseek_key),
+            )
+            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.encoder = None
+            self.chat_model = "deepseek-R1"
+            self.chat_stream = LLM_SETTINGS.chat_stream
         else:
             self.chat_use_azure = LLM_SETTINGS.chat_use_azure or LLM_SETTINGS.use_azure
             self.embedding_use_azure = LLM_SETTINGS.embedding_use_azure or LLM_SETTINGS.use_azure
@@ -389,6 +411,7 @@ class DeprecBackend(APIBackend):
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = LLM_SETTINGS.use_llama2
         self.use_gcr_endpoint = LLM_SETTINGS.use_gcr_endpoint
+        self.chat_use_azure_deepseek = LLM_SETTINGS.chat_use_azure_deepseek
         self.retry_wait_seconds = LLM_SETTINGS.retry_wait_seconds
 
     def _get_encoder(self) -> tiktoken.Encoding:
@@ -510,25 +533,60 @@ class DeprecBackend(APIBackend):
             return resp[0]
         return resp
 
-    def _create_chat_completion_auto_continue(self, messages: list[dict[str, Any]], *args, **kwargs) -> str:  # type: ignore[no-untyped-def]
+    def _create_chat_completion_auto_continue(
+        self,
+        messages: list[dict[str, Any]],
+        *args: Any,
+        json_mode: bool = False,
+        chat_cache_prefix: str = "",
+        seed: Optional[int] = None,
+        **kwargs: Any,
+    ) -> str:
         """
         Call the chat completion function and automatically continue the conversation if the finish_reason is length.
-        TODO: This function only continues once, maybe need to continue more than once in the future.
         """
-        response, finish_reason = self._create_chat_completion_inner_function(messages, *args, **kwargs)
+        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
+            seed = LLM_CACHE_SEED_GEN.get_next_seed()
+        input_content_json = json.dumps(messages)
+        input_content_json = (
+            chat_cache_prefix + input_content_json + f"<seed={seed}/>"
+        )  # FIXME this is a hack to make sure the cache represents the round index
+        if self.use_chat_cache:
+            cache_result = self.cache.chat_get(input_content_json)
+            if cache_result is not None:
+                if LLM_SETTINGS.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
+                return cache_result
 
-        if finish_reason == "length":
-            new_message = deepcopy(messages)
-            new_message.append({"role": "assistant", "content": response})
-            new_message.append(
-                {
-                    "role": "user",
-                    "content": "continue the former output with no overlap",
-                },
-            )
-            new_response, finish_reason = self._create_chat_completion_inner_function(new_message, *args, **kwargs)
-            return response + new_response
-        return response
+        all_response = ""
+        new_messages = deepcopy(messages)
+        for _ in range(10):
+            if "json_mode" in kwargs:
+                del kwargs["json_mode"]
+            response, finish_reason = self._create_chat_completion_inner_function(
+                new_messages, json_mode=json_mode, *args, **kwargs
+            )  # type: ignore[misc]
+            all_response += response
+            if finish_reason is None or finish_reason != "length":
+                if self.chat_use_azure_deepseek:
+                    match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
+                    think_part, all_response = match.groups() if match else ("", all_response)
+                    if LLM_SETTINGS.log_llm_chat_content:
+                        logger.info(f"{LogColors.CYAN}Think:{think_part}{LogColors.END}", tag="llm_messages")
+                        logger.info(f"{LogColors.CYAN}Response:{all_response}{LogColors.END}", tag="llm_messages")
+
+                if json_mode:
+                    try:
+                        json.loads(all_response)
+                    except:
+                        match = re.search(r"```json(.*?)```", all_response, re.DOTALL)
+                        all_response = match.groups()[0] if match else all_response
+                        json.loads(all_response)
+                if self.dump_chat_cache:
+                    self.cache.chat_set(input_content_json, all_response)
+                return all_response
+            new_messages.append({"role": "assistant", "content": response})
+        return all_response
 
     def _try_create_chat_completion_or_embedding(  # type: ignore[no-untyped-def]
         self,
@@ -618,12 +676,10 @@ class DeprecBackend(APIBackend):
         messages: list[dict[str, Any]],
         temperature: float | None = None,
         max_tokens: int | None = None,
-        chat_cache_prefix: str = "",
         frequency_penalty: float | None = None,
         presence_penalty: float | None = None,
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
-        seed: Optional[int] = None,
         *args,
         **kwargs,
     ) -> tuple[str, str | None]:
@@ -633,23 +689,11 @@ class DeprecBackend(APIBackend):
             To make retries useful, we need to enable a seed.
             This seed is different from `self.chat_seed` for GPT. It is for the local cache mechanism enabled by RD-Agent locally.
         """
-        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
-            seed = LLM_CACHE_SEED_GEN.get_next_seed()
 
         # TODO: we can add this function back to avoid so much `self.cfg.log_llm_chat_content`
         if LLM_SETTINGS.log_llm_chat_content:
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
-        input_content_json = json.dumps(messages)
-        input_content_json = (
-            chat_cache_prefix + input_content_json + f"<seed={seed}/>"
-        )  # FIXME this is a hack to make sure the cache represents the round index
-        if self.use_chat_cache:
-            cache_result = self.cache.chat_get(input_content_json)
-            if cache_result is not None:
-                if LLM_SETTINGS.log_llm_chat_content:
-                    logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
-                return cache_result, None
 
         if temperature is None:
             temperature = LLM_SETTINGS.chat_temperature
@@ -700,6 +744,46 @@ class DeprecBackend(APIBackend):
             resp = json.loads(response.read().decode())["output"]
             if LLM_SETTINGS.log_llm_chat_content:
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
+        elif self.chat_use_azure_deepseek:
+            azure_style_message: list[ChatRequestMessage] = []
+            for message in messages:
+                if message["role"] == "system":
+                    azure_style_message.append(SystemMessage(content=message["content"]))
+                elif message["role"] == "user":
+                    azure_style_message.append(UserMessage(content=message["content"]))
+                elif message["role"] == "assistant":
+                    azure_style_message.append(AssistantMessage(content=message["content"]))
+
+            response = self.client.complete(
+                messages=azure_style_message,
+                stream=self.chat_stream,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
+            if self.chat_stream:
+                resp = ""
+                # TODO: with logger.config(stream=self.chat_stream): and add a `stream_start` flag to add timestamp for first message.
+                if LLM_SETTINGS.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{LogColors.END}", tag="llm_messages")
+
+                for chunk in response:
+                    content = (
+                        chunk.choices[0].delta.content
+                        if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None
+                        else ""
+                    )
+                    if LLM_SETTINGS.log_llm_chat_content:
+                        logger.info(LogColors.CYAN + content + LogColors.END, raw=True, tag="llm_messages")
+                    resp += content
+                    if len(chunk.choices) > 0 and chunk.choices[0].finish_reason is not None:
+                        finish_reason = chunk.choices[0].finish_reason
+            else:
+                resp = response.choices[0].message.content
+                finish_reason = response.choices[0].finish_reason
+                if LLM_SETTINGS.log_llm_chat_content:
+                    logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             call_kwargs = dict(
                 model=model,
@@ -758,13 +842,11 @@ class DeprecBackend(APIBackend):
                         ),
                         tag="llm_messages",
                     )
-            if json_mode:
-                json.loads(resp)
-        if self.dump_chat_cache:
-            self.cache.chat_set(input_content_json, resp)
         return resp, finish_reason
 
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
+        if self.chat_use_azure_deepseek:
+            return 0
         if self.encoder is None:
             raise ValueError("Encoder is not initialized.")
         if self.use_llama2 or self.use_gcr_endpoint:

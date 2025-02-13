@@ -67,18 +67,15 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 .read_text()
                 .replace("<competition_id>", self.scen.competition)
             )
-            implementation.inject_files(**{"mle_submission_format_test.py": mle_check_code})
+            implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
             stdout += f"\n MLEBench submission check:"
-            stdout += implementation.execute(env=mde, entry="python mle_submission_format_test.py")
+            stdout += implementation.execute(env=mde, entry="python test/mle_submission_format_test.py")
 
         # remove unused files
         implementation.execute(env=de, entry="coverage json -o coverage.json")
         if Path(implementation.workspace_path / "coverage.json").exists():
             with open(implementation.workspace_path / "coverage.json") as f:
-                used_files = set(json.load(f)["files"].keys()) | {
-                    "submission_format_test.py",
-                    "mle_submission_format_test.py",
-                }
+                used_files = set(json.load(f)["files"].keys())
                 logger.info("All used scripts: {}".format(used_files))
                 all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
                 unused_files = [
