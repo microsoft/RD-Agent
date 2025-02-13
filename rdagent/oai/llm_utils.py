@@ -4,6 +4,7 @@ import hashlib
 from typing import Any, Type
 
 import numpy as np
+
 from rdagent.core.utils import import_class
 from rdagent.oai.backend.base import APIBackend as BaseAPIBackend
 from rdagent.oai.llm_conf import LLM_SETTINGS

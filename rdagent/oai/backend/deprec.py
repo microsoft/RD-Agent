@@ -28,7 +28,6 @@ DEFAULT_QLIB_DOT_PATH = Path("./")
 
 from rdagent.oai.backend.base import APIBackend
 
-
 try:
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 except ImportError:
