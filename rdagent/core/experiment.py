@@ -287,7 +287,7 @@ class Experiment(
         # Life cycle:
         # - Developer assigns feedback for next component;
         # - Workflow control clears feedback.
-        self.prop_dev_feedback: ExperimentFeedback | None = None
+        self.prop_dev_feedback: Feedback | None = None
 
         # TODO: (xiao) I think this is too concrete; we should move it into
         # NOTE: Assumption

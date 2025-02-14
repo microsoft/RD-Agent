@@ -12,6 +12,7 @@ from typing import Any, ClassVar, NoReturn, cast
 
 from filelock import FileLock
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
+
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.oai.llm_conf import LLM_SETTINGS
 

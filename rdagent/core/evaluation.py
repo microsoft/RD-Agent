@@ -25,7 +25,6 @@ class EvaluableObj:
     """
 
 
-
 class Evaluator(ABC):
     """
     Design Principle:

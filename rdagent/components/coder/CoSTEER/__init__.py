@@ -119,16 +119,10 @@ class CoSTEER(Developer[Experiment]):
         -
         """
         assert isinstance(evo, Experiment)
-        # FIXME: the list does not align with the annotation; It should be MultipleFeedback instead of a list of feedbacks
         assert isinstance(feedback, CoSTEERMultiFeedback)
         assert len(evo.sub_workspace_list) == len(feedback)
 
-        # TODO: we should not remove this.
-        for index in range(len(evo.sub_workspace_list)):
-            evo.sub_workspace_list[index].feedback = None
-            if evo.sub_workspace_list[index] is not None and feedback[index] is not None and not feedback[index]:
-                evo.sub_workspace_list[index].clear()
-
+        # FIXME: when whould the feedback be None?
         failed_feedbacks = [
             f"- feedback{index + 1:02d}:\n  - execution: {f.execution}\n  - return_checking: {f.return_checking}\n  - code: {f.code}"
             for index, f in enumerate(feedback)
