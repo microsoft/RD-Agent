@@ -1,3 +1,4 @@
+
 spec:
   system: |-
     You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
@@ -23,14 +24,14 @@ spec:
     
     Your specification should consists two parts:
     1. The function definition in code format with detailed annotation to each parameter and return value.
-    2. A detailed docstring to the function that explains the purpose of the function, the input parameters, and the output.
+    2. A correct, concise, and complete docstring to the function that explains the purpose of the function, the input parameters, and the output.
     3. Additional information or notes that the coder should consider while implementing the function.
     Your specifications should not include any code implementation, only the function definition and docstring.
 
-    -----------Competition Information-----------
+    ----------- Competition Information -----------
     {{ competition_info }}
 
-    -----------Folder Description---------(All path are relative to the data folder)
+    -----------Folder Description (All path are relative to the data folder) ---------
     - Ensure that all columns in sample_submission can be generated.
     {{ folder_spec }}
 
@@ -53,11 +54,11 @@ spec:
 
       2. Precautions for Data Loading and Preprocessing:
         - File Handling:
-          - Ensure proper file encoding (e.g., UTF-8) and delimiters (e.g., CSV comma-separated).
+          - Ensure proper file encoding and delimiters.
           - Combine or process multiple files if necessary.
         - Data Preprocessing:
           - Convert data types correctly (e.g., numeric, categorical, date parsing).
-          - Handle missing values appropriately (e.g., impute, drop rows/columns).
+          - Handle missing values appropriately.
           - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
         - Domain-Specific Handling: 
           - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
@@ -67,7 +68,6 @@ spec:
 
       4. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
-        - Extend domain-specific handling steps based on the competition information.
         - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
 
       {% if latest_spec %}
@@ -75,8 +75,6 @@ spec:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
-
-
 
       Please respond with a JSON structure as follows:
       {
@@ -160,7 +158,7 @@ spec:
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
 
       2. Code Standards:
-        - Avoid using progress bars (e.g., `tqdm`) in the implementation.  
+        - Do not use progress bars (e.g., `tqdm`) in the implementation.
 
       3. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have consistent dimensions and shapes.
@@ -168,7 +166,6 @@ spec:
         - Train the model on `X` and `y`.
         - Evaluate the model using `val_X` and `val_y` if validation data is available.
         - If `test_X` is provided, generate predictions for it.
-        - Do not use progress bars (e.g., `tqdm`) in the implementation.
 
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
@@ -206,25 +203,24 @@ spec:
           - Ensure all predictions in `test_preds_dict` and `val_preds_dict` have consistent shapes and dimensions.
           - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
-        - You should calculate the metric for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
-          ```python
-          scores = {}
-          for model_name, val_pred in val_preds_dict.items():
-              scores[model_name] = calculate_metric(val_label, val_pred)
-          
-          ... some code about ensemble strategy ...
-          ensemble_score = calculate_metric(val_label, ensemble_pred)
-          scores[<ensemble_strategy_name>] = ensemble_score
-          
-          scores_df = pd.DataFrame(scores.items(), columns=['Model', <metric_name>])
-          scores_df.to_csv("scores.csv", index=False)
-          ```
-        - Consensus Strategy:
-          - Clearly define how the ensemble predictions are aggregated (e.g., majority voting, weighted average).
-          - Avoid introducing biases or overfitting during decision-making.
-      
+        - Metric Calculation and Storage:
+          - Calculate the metric for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
+            ```python
+            scores = {}
+            for model_name, val_pred in val_preds_dict.items():
+                scores[model_name] = calculate_metric(val_label, val_pred)
+            
+            # ... some code about ensemble strategy ...
+            ensemble_score = calculate_metric(val_label, ensemble_pred)
+            scores["ensemble"] = ensemble_score  # Ensure "ensemble" is explicitly stored
+            
+            scores_df = pd.DataFrame(scores.items(), columns=["Model", <metric_name>])
+            scores_df.to_csv("scores.csv", index=False)
+            ```
+          - If there is only one model, still compute the ensemble score and store it under "ensemble".
+        
       3. Code Standards:
-        - Avoid using progress bars (e.g., `tqdm`) in the implementation. 
+        - Do not use progress bars (e.g., tqdm) in the code.
 
       4. Notes:
         - Align `DT` (data type) definitions with those used in model specifications.
@@ -263,16 +259,13 @@ spec:
 
         3. Dataset Splitting
           - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
-          - By default, split the dataset into 80% for training and 20% for testing. 
-          - You can also use cross-validation or other splitting methods as you deem more useful and appropriate based on the Competition Information.
+          - Choose the splitting methods you deem useful and appropriate based on the `Competition Information`.
 
         4. Submission File:
-          - Save the final predictions as `submission.csv` in the format required by the competition.
+          - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
           - Present the required submission format explicitly and ensure the output adheres to it.
 
         5. Code Standards:
-          - Use consistent naming conventions and type annotations.
-          - Document the workflow with clear comments and docstring.
           - Do not use progress bars (e.g., tqdm) in the code.
 
         6. Ensemble Strategy:
@@ -336,7 +329,6 @@ data_loader_coder:
 
     ## Guidelines
     1. Ensure that the dataset is loaded strictly from `/kaggle/input/`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
-    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
     Please response the code in the following json format. Here is an example structure for the JSON output:
