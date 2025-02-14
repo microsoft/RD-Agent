@@ -24,7 +24,7 @@ class FactorCoSTEER(CoSTEER):
 
     def develop(self, exp: Experiment) -> Experiment:
         try:
-            super().develop(exp)
+            exp = super().develop(exp)
         finally:
             es = self.evolve_agent.evolving_trace[-1]
             # TODO: convert feedback to experiment feedback

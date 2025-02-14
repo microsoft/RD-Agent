@@ -10,7 +10,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evolving_framework import EvoStep, EvolvingStrategy, QueriedKnowledge
+from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario

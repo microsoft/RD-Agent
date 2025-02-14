@@ -289,7 +289,7 @@ class Experiment(
         # - The workflow control is reponsible for clearing feedback
         self.prop_dev_feedback: ExperimentFeedback | None = None
 
-        # TODO: (xiao) I think this is too concrete; we should move it into 
+        # TODO: (xiao) I think this is too concrete; we should move it into
         # NOTE: Assumption
         # - only runner will assign this variable
         # - We will always create a new Experiment without copying previous results when we goto the next new loop.

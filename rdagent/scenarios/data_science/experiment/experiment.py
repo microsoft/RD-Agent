@@ -15,7 +15,7 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # - Initial: blank;
         # - Injecting from SOTA code;
         # - New version no matter successful or not
-        # the initial workspace or the successful new version after coding 
+        # the initial workspace or the successful new version after coding
         self.experiment_workspace = FBWorkspace()
         self.pending_tasks_list = pending_tasks_list
         self.format_check_result = None

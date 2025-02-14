@@ -9,12 +9,13 @@ if TYPE_CHECKING:
     from rdagent.core.evaluation import Evaluator
     from rdagent.core.evolving_framework import EvolvableSubjects
 
-from rdagent.core.evaluation import Feedback
+from rdagent.core.evaluation import EvaluableObj, Feedback
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
 
 class EvoAgent(ABC):
+
     def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
         self.evolving_strategy = evolving_strategy
@@ -24,10 +25,22 @@ class EvoAgent(ABC):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-    ) -> EvolvableSubjects:        ...
+    ) -> EvolvableSubjects: ...
+
+
+class RAGEvaluator(Evaluator):
+
+    @abstractmethod
+    def evaluate(
+        self,
+        eo: EvaluableObj,
+        queried_knowledge: object = None,
+    ) -> Feedback:
+        raise NotImplementedError
 
 
 class RAGEvoAgent(EvoAgent):
+
     def __init__(
         self,
         max_loop: int,
@@ -47,7 +60,7 @@ class RAGEvoAgent(EvoAgent):
     def multistep_evolve(
         self,
         evo: EvolvableSubjects,
-        eva: Evaluator | Feedback,
+        eva: RAGEvaluator | Feedback,
     ) -> Generator[EvolvableSubjects, None, None]:
         for evo_loop_id in tqdm(range(self.max_loop), "Implementing"):
             with logger.tag(f"evo_loop_{evo_loop_id}"):
@@ -74,8 +87,7 @@ class RAGEvoAgent(EvoAgent):
                 # 5. Evaluation
                 if self.with_feedback:
                     es.feedback = (
-                        eva if isinstance(eva, Feedback) else eva.evaluate(
-                            evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
+                        eva if isinstance(eva, Feedback) else eva.evaluate(evo, queried_knowledge=queried_knowledge)
                     )
                     logger.log_object(es.feedback, tag="evolving feedback")
 

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -10,7 +10,6 @@ from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from rdagent.core.scenario import Scenario
 
@@ -115,6 +114,7 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
 ------------------Final Decision------------------
 This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
+
 
 class CoSTEERMultiFeedback(Feedback):
     """Feedback contains a list, each element is the corresponding feedback for each factor implementation."""

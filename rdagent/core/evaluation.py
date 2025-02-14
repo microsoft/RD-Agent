@@ -1,6 +1,7 @@
 """
 It is expected to be shared among different frameworks.
 """
+
 import typing
 from abc import ABC, abstractmethod
 
@@ -23,6 +24,7 @@ class EvaluableObj:
     - Solution
     - Ground Truth
     """
+
     ...
 
 

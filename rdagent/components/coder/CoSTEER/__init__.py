@@ -112,12 +112,11 @@ class CoSTEER(Developer[Experiment]):
         exp.experiment_workspace = evo_exp.experiment_workspace
         return exp
 
-    def _exp_postprocess_by_feedback(self, evo: Experiment,
-                                           feedback: CoSTEERMultiFeedback) -> Experiment:
+    def _exp_postprocess_by_feedback(self, evo: Experiment, feedback: CoSTEERMultiFeedback) -> Experiment:
         """
         Responsibility:
         - Raise Error if it failed to handle the develop task
-        - 
+        -
         """
         assert isinstance(evo, Experiment)
         # FIXME: the list does not align with the annotation; It should be MultipleFeedback instead of a list of feedbacks
