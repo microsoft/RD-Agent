@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, Generator, Generic, TypeVar
 
 from tqdm import tqdm
 
@@ -13,8 +13,10 @@ from rdagent.core.evaluation import EvaluableObj, Feedback
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
+ASpecificEvaluator = TypeVar("ASpecificEvaluator", bound=Evaluator)
 
-class EvoAgent(ABC):
+
+class EvoAgent(ABC, Generic[ASpecificEvaluator]):
 
     def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
@@ -24,8 +26,11 @@ class EvoAgent(ABC):
     def multistep_evolve(
         self,
         evo: EvolvableSubjects,
-        eva: Evaluator | Feedback,
-    ) -> EvolvableSubjects: ...
+        eva: ASpecificEvaluator | Feedback,
+    ) -> Generator[EvolvableSubjects, None, None]:
+        """
+        yield EvolvableSubjects for caller for easier process control and logging.
+        """
 
 
 class RAGEvaluator(Evaluator):
@@ -39,7 +44,7 @@ class RAGEvaluator(Evaluator):
         raise NotImplementedError
 
 
-class RAGEvoAgent(EvoAgent):
+class RAGEvoAgent(EvoAgent[RAGEvaluator]):
 
     def __init__(
         self,
