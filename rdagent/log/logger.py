@@ -136,6 +136,7 @@ class RDAgentLog(SingletonBaseClass):
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
         )
         logger.patch(lambda r: r.update(caller_info)).info(f"Logging object in {Path(logp).absolute()}")
+        print(f"Logging object in {Path(logp).absolute()}")
         logger.remove(file_handler_id)
 
     def info(self, msg: str, *, tag: str = "", raw: bool = False) -> None:

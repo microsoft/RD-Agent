@@ -147,21 +147,57 @@ class BenchmarkAnalyzer:
                 "Avg Format SR": format_succ_rate_f.iloc[:, 0],
                 "Avg Run SR": succ_rate_f.iloc[:, 0],
                 "Max Correlation": corr_max_res.iloc[:, 0],
-                "Max Accuracy": value_max_res.iloc[:, 0],
-                "Avg Accuracy": value_avg_res.iloc[:, 0],
+                # "Max Accuracy": value_max_res.iloc[:, 0],
+                # "Avg Accuracy": value_avg_res.iloc[:, 0],
             },
             axis=1,
         )
 
         df = result_all.sort_index(axis=1, key=self.result_all_key_order).sort_index(axis=0)
         print(df)
-
+        print(df.to_latex())
         print()
         print(df.groupby("Category").mean())
-
+        print(df.groupby("Category").mean().to_latex())
         print()
         print(df.mean())
+        print(df.mean().to_latex())
 
+        with open("/data/userdata/v-yihuachen/repo/RD-Agent/scripts/exp/tools/result.txt", "a") as f:
+            pd.set_option("display.max_columns", None)
+            pd.set_option("display.max_rows", None)
+            f.write(df.to_string(line_width=200))
+            f.write("\n")
+            f.write(df.to_latex())
+            f.write("\n")
+
+            # 分组并计算均值
+            grouped = df.groupby("Category").mean()
+
+            # 计算每一列的平均值，并将其转换为一个DataFrame，索引设为'Total'
+            total_row = grouped.mean().to_frame('Mean Value').T
+
+            # 将总行添加到分组结果中
+            result = pd.concat([grouped, total_row])
+
+            print(result)
+
+            # f.write(df.groupby("Category").mean().to_string(line_width=200))
+            # f.write("\n")
+            # f.write(df.groupby("Category").mean().to_latex())
+            # f.write("\n")
+
+
+            f.write(result.to_string(line_width=200))
+            f.write("\n")
+            f.write(result.to_latex( float_format=lambda x: '%.3f' % x))
+            f.write("\n")
+            f.write(str(df.mean()))
+            f.write("\n")
+            f.write(df.mean().to_latex())
+            f.write("\n\n\n\n\n\n")
+            f.write("----------------------------------------------------")
+        
         # Calculate the mean of each column
         mean_values = df.fillna(0.0).mean()
         mean_df = pd.DataFrame(mean_values).T
@@ -208,6 +244,7 @@ def main(
     only_correct_format=False,
 ):
     settings = BenchmarkSettings()
+    print(f"Analyzing {path}")
     benchmark = BenchmarkAnalyzer(settings, only_correct_format=only_correct_format)
     results = {
         f"{round} round experiment": path,
@@ -216,7 +253,7 @@ def main(
     final_results_df = pd.DataFrame(final_results)
 
     Plotter.change_fs(20)
-    plot_data = final_results_df.drop(["Max Accuracy", "Avg Accuracy"], axis=0).T
+    # plot_data = final_results_df.drop(["Max Accuracy", "Avg Accuracy"], axis=0).T
     plot_data = plot_data.reset_index().melt("index", var_name="a", value_name="b")
     Plotter.plot_data(plot_data, "./comparison_plot.png", title)
 
