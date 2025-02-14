@@ -59,9 +59,9 @@ class ExperimentFeedback(Feedback):
     def __init__(
         self,
         reason: str,
-        exception: Exception | None = None,
         *,
         decision: bool,
+        exception: Exception | None = None,
     ) -> None:
         self.decision = decision
         self.reason = reason
@@ -95,7 +95,7 @@ class HypothesisFeedback(ExperimentFeedback):
         *,
         decision: bool,
     ) -> None:
-        super().__init__(decision, reason)
+        super().__init__(reason, decision=decision)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis
