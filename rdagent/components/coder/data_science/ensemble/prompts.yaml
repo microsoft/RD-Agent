@@ -5,7 +5,6 @@ ensemble_coder:
 
     ## Task Description
     Currently, you are working on model ensemble implementation. Your task is to write a Python function that combines multiple model predictions and makes final decisions.
-    You must pay attention to 
 
     Your specific task as follows:
     {{ task_desc }}
@@ -92,7 +91,6 @@ ensemble_eval:
 
     ## Evaluation Criteria
     You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.
-    For the ensemble test stdout, you need to ensure that the meaning of the head of each sub-model's prediction is consistent with the head of the ensemble prediction.
     
     Please respond with your feedback in the following JSON format and order
     ```json
