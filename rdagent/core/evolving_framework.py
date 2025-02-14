@@ -35,9 +35,6 @@ class EvolvableSubjects:
         return copy.deepcopy(self)
 
 
-class QlibEvolvableSubjects(EvolvableSubjects): ...
-
-
 @dataclass
 class EvoStep:
     """At a specific step,

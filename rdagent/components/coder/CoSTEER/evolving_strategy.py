@@ -10,7 +10,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 )
 from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.evolving_framework import EvoStep, EvolvingStrategy, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
@@ -54,9 +54,12 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         return random_select(to_be_finished_task_index, evo, selected_num, queried_knowledge, scen)
 
     @abstractmethod
-    def assign_code_list_to_evo(self, code_list: list, evo: EvolvingItem) -> None:
+    def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
         """
         Assign the code list to the evolving item.
+
+        Due to the implement_one_task take `workspace` as input and output the `modification`.
+        We should apply implmentation to evo
 
         The code list is aligned with the evolving item's sub-tasks.
         If a task is not implemented, put a None in the list.
@@ -68,6 +71,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         *,
         evo: EvolvingItem,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        evolving_trace: list[EvoStep] = [],
         **kwargs,
     ) -> EvolvingItem:
         # 1.找出需要evolve的task

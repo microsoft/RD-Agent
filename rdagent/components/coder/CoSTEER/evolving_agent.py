@@ -1,4 +1,5 @@
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
+from rdagent.core.evaluation import Feedback
 from rdagent.core.evolving_agent import RAGEvoAgent
 from rdagent.core.evolving_framework import EvolvableSubjects
 from rdagent.core.exception import CoderError
@@ -6,7 +7,8 @@ from rdagent.core.exception import CoderError
 
 class FilterFailedRAGEvoAgent(RAGEvoAgent):
 
-    def filter_evolvable_subjects_by_feedback(self, evo: EvolvableSubjects, feedback: list) -> EvolvableSubjects:
+    def filter_evolvable_subjects_by_feedback(self, evo: EvolvableSubjects,
+                                              feedback: list[Feedback]) -> EvolvableSubjects:
         assert isinstance(evo, EvolvingItem)
         # FIXME: the list does not align with the annotation; It should be MultipleFeedback instead of a list of feedbacks
         assert isinstance(feedback, list)
