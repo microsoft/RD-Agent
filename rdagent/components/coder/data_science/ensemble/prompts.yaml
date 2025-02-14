@@ -9,7 +9,7 @@ ensemble_coder:
     Your specific task as follows:
     {{ task_desc }}
 
-    Here is the competition information for this task:
+    ## Competition Information for This Task
     {{ competition_info }}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
@@ -97,7 +97,7 @@ ensemble_eval:
     {
         "execution": "Describe how well the ensemble executed, including any errors or issues encountered. Retain all error messages and traceback details.",
         "return_checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
-        "code": "Assess code quality, readability, and adherence to specifications. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for optimization.",
+        "code": "Assess code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>
     }
     ```
