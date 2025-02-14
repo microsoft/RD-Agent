@@ -342,7 +342,6 @@ output_format:
           },
         },
     }
-    Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
   ensemble: |-
     Design a specific and detailed ensemble task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
     The output should follow JSON format. The schema is as follows:
