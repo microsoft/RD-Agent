@@ -7,6 +7,7 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -67,14 +68,32 @@ def summarize_folder(log_folder: Path):
         gold_num = 0
         test_scores = {}
         valid_scores = {}
+        bronze_threshold = 0.0
+        silver_threshold = 0.0
+        gold_threshold = 0.0
+        median_threshold = 0.0
         success_loop_num = 0
 
         sota_exp_stat = ""
+        sota_exp_score = None
         grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
                     stat[log_trace_path.name]["competition"] = msg.content
+
+                    # get threshold scores
+                    workflowexp = FBWorkspace()
+                    stdout = workflowexp.execute(
+                        env=de,
+                        entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
+                    )
+                    grade_output = extract_mle_json(stdout)
+                    if grade_output:
+                        bronze_threshold = grade_output["bronze_threshold"]
+                        silver_threshold = grade_output["silver_threshold"]
+                        gold_threshold = grade_output["gold_threshold"]
+                        median_threshold = grade_output["median_threshold"]
 
                 if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
                     loop_num += 1
@@ -125,6 +144,8 @@ def summarize_folder(log_folder: Path):
                                 sota_exp_stat = "valid_submission"
                             elif grade_output["submission_exists"]:
                                 sota_exp_stat = "made_submission"
+                            if grade_output["score"] is not None:
+                                sota_exp_score = grade_output["score"]
 
         stat[log_trace_path.name].update(
             {
@@ -140,6 +161,11 @@ def summarize_folder(log_folder: Path):
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
                 "sota_exp_stat": sota_exp_stat,
+                "sota_exp_score": sota_exp_score,
+                "bronze_threshold": bronze_threshold,
+                "silver_threshold": silver_threshold,
+                "gold_threshold": gold_threshold,
+                "median_threshold": median_threshold,
             }
         )
     if (log_folder / "summary.pkl").exists():

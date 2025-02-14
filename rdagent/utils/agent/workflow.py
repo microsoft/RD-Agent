@@ -3,7 +3,6 @@ from typing import Any, Callable, Type, TypeVar, Union, cast
 
 from rdagent.core.exception import FormatError
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend
 
 T = TypeVar("T")
 
@@ -39,6 +38,8 @@ def build_cls_from_json_with_retry(
     T
         An instance of the specified class type created from the response data.
     """
+    from rdagent.oai.llm_utils import APIBackend  # avoid circular import
+
     for i in range(retry_n):
         # currently, it only handle exception caused by initial class
         resp = APIBackend().build_messages_and_create_chat_completion(

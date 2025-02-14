@@ -52,7 +52,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated temporary content?
-        fname = "feature_test.py"
+        fname = "test/feature_test.py"
         test_code = (DIRNAME / "eval_tests" / "feature_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
 

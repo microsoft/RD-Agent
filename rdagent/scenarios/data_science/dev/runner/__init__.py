@@ -16,9 +16,8 @@ from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import md5_hash
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
-from rdagent.utils import APIBackend
 from rdagent.utils.agent.ret import BatchEditOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
@@ -118,9 +117,9 @@ class DSCoSTEERRunner(CoSTEER):
             .read_text()
             .replace("<competition_id>", self.scen.competition)
         )
-        exp.experiment_workspace.inject_files(**{"mle_submission_format_test.py": mle_check_code})
+        exp.experiment_workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
         exp.format_check_result = exp.experiment_workspace.execute(
-            env=mde, entry=f"python mle_submission_format_test.py"
+            env=mde, entry=f"python test/mle_submission_format_test.py"
         )
 
         return exp
