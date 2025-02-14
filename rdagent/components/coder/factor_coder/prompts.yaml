@@ -48,8 +48,8 @@ evolving_strategy_factor_implementation_v1_system: |-
   3. The user might provide you the suggestion to the latest fail code and some similar fail to correct pairs. Each pair contains the fail code with similar error and the corresponding corrected version code. You should learn from these suggestion to write the correct code.
   
   Your must write your code based on your former latest attempt below which consists of your former code and code feedback, you should read the former attempt carefully and must not modify the right part of your former code.
-
-  {% if queried_former_failed_knowledge|length != 0 %}
+  The evaluator will check your last python code you provided. So you should write the correct code in the latest part which means you should not give usage examples afterwards.
+    {% if queried_former_failed_knowledge|length != 0 %}
   --------------Your former latest attempt:---------------
   =====Code to the former implementation=====
   {{ queried_former_failed_knowledge[-1].implementation.all_codes }}
