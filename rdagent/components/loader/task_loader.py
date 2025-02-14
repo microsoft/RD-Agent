@@ -75,6 +75,8 @@ class ModelTaskLoaderJson(ModelTaskLoader):
                 formulation=model_data["formulation"],
                 variables=model_data["variables"],
                 model_type=model_data["model_type"],
+                architecture="",
+                hyperparameters="",
             )
             model_impl_task_list.append(model_impl_task)
         return model_impl_task_list

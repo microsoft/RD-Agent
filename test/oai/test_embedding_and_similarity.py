@@ -13,6 +13,12 @@ class TestEmbedding(unittest.TestCase):
         assert isinstance(emb, list)
         assert len(emb) > 0
 
+    def test_embedding_list(self) -> None:
+        emb = APIBackend().create_embedding(["hello", "hi"])
+        assert emb is not None
+        assert isinstance(emb, list)
+        assert len(emb) == 2
+
     def test_embedding_similarity(self) -> None:
         similarity = calculate_embedding_distance_between_str_list(["Hello"], ["Hi"])[0][0]
         assert similarity is not None

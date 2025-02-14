@@ -100,6 +100,10 @@ class LLMSettings(ExtendedBaseSettings):
     gcr_endpoint_do_sample: bool = False
     gcr_endpoint_max_token: int = 100
 
+    chat_use_azure_deepseek: bool = False
+    chat_azure_deepseek_endpoint: str = ""
+    chat_azure_deepseek_key: str = ""
+
     chat_model_map: str = "{}"
 
 
