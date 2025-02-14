@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generator
 
 from tqdm import tqdm
 
@@ -24,15 +24,7 @@ class EvoAgent(ABC):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-        filter_final_evo: bool = False,
-    ) -> EvolvableSubjects: ...
-
-    @abstractmethod
-    def filter_evolvable_subjects_by_feedback(
-        self,
-        evo: EvolvableSubjects,
-        feedback: Feedback | list[Feedback] | None,
-    ) -> EvolvableSubjects: ...
+    ) -> EvolvableSubjects:        ...
 
 
 class RAGEvoAgent(EvoAgent):
@@ -56,8 +48,7 @@ class RAGEvoAgent(EvoAgent):
         self,
         evo: EvolvableSubjects,
         eva: Evaluator | Feedback,
-        filter_final_evo: bool = False,
-    ) -> EvolvableSubjects:
+    ) -> Generator[EvolvableSubjects, None, None]:
         for evo_loop_id in tqdm(range(self.max_loop), "Implementing"):
             with logger.tag(f"evo_loop_{evo_loop_id}"):
                 # 1. knowledge self-evolving
@@ -75,10 +66,7 @@ class RAGEvoAgent(EvoAgent):
                     evolving_trace=self.evolving_trace,
                     queried_knowledge=queried_knowledge,
                 )
-                # TODO: Due to design issues, we have chosen to ignore this mypy error.
-                logger.log_object(evo.sub_workspace_list, tag="evolving code")  # type: ignore[attr-defined]
-                for sw in evo.sub_workspace_list:  # type: ignore[attr-defined]
-                    logger.info(f"evolving code workspace: {sw}")
+                yield evo  # yield the control to caller for process control and logging.
 
                 # 4. Pack evolve results
                 es = EvoStep(evo, queried_knowledge)
@@ -86,11 +74,8 @@ class RAGEvoAgent(EvoAgent):
                 # 5. Evaluation
                 if self.with_feedback:
                     es.feedback = (
-                        # TODO: Due to the irregular design of rdagent.core.evaluation.Evaluator,
-                        # it fails mypy's test here, so we'll ignore this error for now.
-                        eva
-                        if isinstance(eva, Feedback)
-                        else eva.evaluate(evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
+                        eva if isinstance(eva, Feedback) else eva.evaluate(
+                            evo, queried_knowledge=queried_knowledge)  # type: ignore[arg-type, call-arg]
                     )
                     logger.log_object(es.feedback, tag="evolving feedback")
 
@@ -98,12 +83,6 @@ class RAGEvoAgent(EvoAgent):
                 self.evolving_trace.append(es)
 
                 # 7. check if all tasks are completed
-                if self.with_feedback:
-                    all_completed = all(es.feedback) if isinstance(es.feedback, list) else es.feedback
-                    if all_completed:
-                        logger.info("All tasks in evolving subject have been completed.")
-                        break
-
-        if self.with_feedback and filter_final_evo:
-            evo = self.filter_evolvable_subjects_by_feedback(evo, self.evolving_trace[-1].feedback)
-        return evo
+                if self.with_feedback and es.feedback:
+                    logger.info("All tasks in evolving subject have been completed.")
+                    break
