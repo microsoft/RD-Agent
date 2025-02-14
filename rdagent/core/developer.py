@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic
 
-from rdagent.core.evaluation import Feedback
 from rdagent.core.experiment import ASpecificExp
 
 if TYPE_CHECKING:

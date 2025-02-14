@@ -282,11 +282,11 @@ class Experiment(
 
         self.experiment_workspace: ASpecificWSForExperiment | None = None
 
-        # The experiment may be dveloped by different developers, so we need to last feedback to propagate the information.
-        # It is optional. If we want to propogate it into next developer, previous developer should assign feedback to it.
+        # The experiment may be developed by different developers.
+        # Last feedback is used to propagate info to the next developer.
         # Life cycle:
-        # - The developer is responsible assign feedback for next component;
-        # - The workflow control is reponsible for clearing feedback
+        # - Developer assigns feedback for next component;
+        # - Workflow control clears feedback.
         self.prop_dev_feedback: ExperimentFeedback | None = None
 
         # TODO: (xiao) I think this is too concrete; we should move it into

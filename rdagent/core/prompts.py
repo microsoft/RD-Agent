@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import yaml
-
 from rdagent.core.utils import SingletonBaseClass
 
 

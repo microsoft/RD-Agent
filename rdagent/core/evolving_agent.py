@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generator, Generic, TypeVar
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from rdagent.core.evaluation import Evaluator
     from rdagent.core.evolving_framework import EvolvableSubjects
 
-from rdagent.core.evaluation import EvaluableObj, Feedback
+from rdagent.core.evaluation import EvaluableObj, Evaluator, Feedback
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep
 from rdagent.log import rdagent_logger as logger
 
@@ -51,6 +51,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
         max_loop: int,
         evolving_strategy: EvolvingStrategy,
         rag: Any,
+        *,
         with_knowledge: bool = False,
         with_feedback: bool = True,
         knowledge_self_gen: bool = False,
