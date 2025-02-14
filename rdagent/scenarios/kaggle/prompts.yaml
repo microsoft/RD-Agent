@@ -173,7 +173,6 @@ model_experiment_output_format: |-
       "model_type": "Please select only **one** model type from the following four options: XGBoost, RandomForest, LightGBM, or NN. The selected model must be unique and used as the **primary model**. You may choose an auxiliary model for support or optimization on specific tasks if necessary, but the primary model must come from the provided options."
 
   }
-  Usually, a larger model works better than a smaller one. Hence, the parameters should be larger.
 
 kg_feedback_generation_user: |-
   We are in a process of finding and validating hypotheses to build a powerful model. Each round aims to confirm or reject hypotheses based on results.
