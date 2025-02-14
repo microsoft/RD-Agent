@@ -133,8 +133,8 @@ class FBWorkspace(Workspace):
         Helper function to format the code dictionary into a string.
         """
         code_string = ""
-        for file_name, code in code_dict.items():
-            code_string += f"\nFile Path: {file_name}\n```\n{code}\n```"
+        for file_name in sorted(code_dict.keys()):
+            code_string += f"\nFile Path: {file_name}\n```\n{code_dict[file_name]}\n```"
         return code_string
 
     @property
