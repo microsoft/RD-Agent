@@ -560,7 +560,7 @@ class DeprecBackend(APIBackend):
 
         all_response = ""
         new_messages = deepcopy(messages)
-        for _ in range(10):
+        for _ in range(3):
             if "json_mode" in kwargs:
                 del kwargs["json_mode"]
             response, finish_reason = self._create_chat_completion_inner_function(
@@ -586,7 +586,7 @@ class DeprecBackend(APIBackend):
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response
             new_messages.append({"role": "assistant", "content": response})
-        return all_response
+        raise RuntimeError("Failed to continue the conversation after 3 retries.")
 
     def _try_create_chat_completion_or_embedding(  # type: ignore[no-untyped-def]
         self,
