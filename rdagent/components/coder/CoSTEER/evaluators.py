@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -9,6 +9,9 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
+
+if TYPE_CHECKING:
+    from rdagent.core.scenario import Scenario
 
 # TODO:
 # 1. It seems logically sound, but we currently lack a scenario to apply it.
@@ -113,14 +116,35 @@ This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
 """
 
 
-class CoSTEERMultiFeedback(
-    Feedback,
-    List[CoSTEERSingleFeedback],
-):
+class CoSTEERMultiFeedback(Feedback):
     """Feedback contains a list, each element is the corresponding feedback for each factor implementation."""
+
+    def __init__(self, feedback_list: List[CoSTEERSingleFeedback]) -> None:
+        self.feedback_list = feedback_list
+
+    def __getitem__(self, index: int) -> CoSTEERSingleFeedback:
+        return self.feedback_list[index]
+
+    def __len__(self) -> int:
+        return len(self.feedback_list)
+
+    def append(self, feedback: CoSTEERSingleFeedback) -> None:
+        self.feedback_list.append(feedback)
+
+    def __iter__(self):
+        return iter(self.feedback_list)
+
+    def __bool__(self):
+        return all(feedback.final_decision for feedback in self.feedback_list)
 
 
 class CoSTEEREvaluator(Evaluator):
+    def __init__(
+        self,
+        scen: "Scenario",
+    ) -> None:
+        self.scen = scen
+
     # TODO:
     # I think we should have unified interface for all evaluates, for examples.
     # So we should adjust the interface of other factors
@@ -135,7 +159,7 @@ class CoSTEEREvaluator(Evaluator):
         raise NotImplementedError("Please implement the `evaluator` method")
 
 
-class CoSTEERMultiEvaluator(Evaluator):
+class CoSTEERMultiEvaluator(CoSTEEREvaluator):
     """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
 
     def __init__(self, single_evaluator: CoSTEEREvaluator, *args, **kwargs) -> None:
@@ -164,9 +188,6 @@ class CoSTEERMultiEvaluator(Evaluator):
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
-        for index in range(len(evo.sub_tasks)):
-            evo.sub_workspace_list[index].feedback = multi_implementation_feedback[index]
-
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback
@@ -177,4 +198,4 @@ class CoSTEERMultiEvaluator(Evaluator):
             if final_decision[index]:
                 evo.sub_tasks[index].factor_implementation = True
 
-        return multi_implementation_feedback
+        return CoSTEERMultiFeedback(multi_implementation_feedback)

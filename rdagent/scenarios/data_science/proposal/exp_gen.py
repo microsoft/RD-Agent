@@ -274,8 +274,7 @@ class DSExpGen(ExpGen):
             # - Extra RAG
             sota_exp = trace.sota_experiment()
             assert sota_exp is not None, "SOTA experiment is not provided."
-            exp_and_feedback = trace.last_runnable_exp_fb()
-            assert exp_and_feedback is not None, "Last runnable experiment is not provided."
+            exp_and_feedback = trace.hist[-1]
             last_exp = exp_and_feedback[0]
 
             # Step 1: Generate component

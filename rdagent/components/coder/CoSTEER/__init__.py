@@ -2,8 +2,8 @@ import pickle
 from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
-from rdagent.components.coder.CoSTEER.evolving_agent import FilterFailedRAGEvoAgent
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERKnowledgeBaseV1,
     CoSTEERKnowledgeBaseV2,
@@ -11,8 +11,9 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERRAGStrategyV2,
 )
 from rdagent.core.developer import Developer
-from rdagent.core.evaluation import Evaluator
-from rdagent.core.evolving_agent import EvolvingStrategy
+from rdagent.core.evaluation import Evaluator, Feedback
+from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvoAgent
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
 
@@ -83,9 +84,9 @@ class CoSTEER(Developer[Experiment]):
     def develop(self, exp: Experiment) -> Experiment:
 
         # init intermediate items
-        experiment = EvolvingItem.from_experiment(exp)
+        evo_exp = EvolvingItem.from_experiment(exp)
 
-        self.evolve_agent = FilterFailedRAGEvoAgent(
+        self.evolve_agent = RAGEvoAgent(
             max_loop=self.max_loop,
             evolving_strategy=self.evolving_strategy,
             rag=self.rag,
@@ -94,16 +95,43 @@ class CoSTEER(Developer[Experiment]):
             knowledge_self_gen=self.knowledge_self_gen,
         )
 
-        experiment = self.evolve_agent.multistep_evolve(
-            experiment,
-            self.evaluator,
-            filter_final_evo=self.filter_final_evo,
-        )
+        for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
+            assert isinstance(evo_exp, Experiment)  # multiple inheritance
+            logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
+            for sw in evo_exp.sub_workspace_list:
+                logger.info(f"evolving code workspace: {sw}")
+
+        if self.with_feedback and self.filter_final_evo:
+            evo_exp = self._exp_postprocess_by_feedback(evo_exp, self.evolve_agent.evolving_trace[-1].feedback)
 
         # save new knowledge base
         if self.new_knowledge_base_path is not None:
-            pickle.dump(self.knowledge_base, open(self.new_knowledge_base_path, "wb"))
+            with self.new_knowledge_base_path.open("wb") as f:
+                pickle.dump(self.knowledge_base, f)
             logger.info(f"New knowledge base saved to {self.new_knowledge_base_path}")
-        exp.sub_workspace_list = experiment.sub_workspace_list
-        exp.experiment_workspace = experiment.experiment_workspace
+        exp.sub_workspace_list = evo_exp.sub_workspace_list
+        exp.experiment_workspace = evo_exp.experiment_workspace
         return exp
+
+    def _exp_postprocess_by_feedback(self, evo: Experiment, feedback: CoSTEERMultiFeedback) -> Experiment:
+        """
+        Responsibility:
+        - Raise Error if it failed to handle the develop task
+        -
+        """
+        assert isinstance(evo, Experiment)
+        assert isinstance(feedback, CoSTEERMultiFeedback)
+        assert len(evo.sub_workspace_list) == len(feedback)
+
+        # FIXME: when whould the feedback be None?
+        failed_feedbacks = [
+            f"- feedback{index + 1:02d}:\n  - execution: {f.execution}\n  - return_checking: {f.return_checking}\n  - code: {f.code}"
+            for index, f in enumerate(feedback)
+            if f is not None and not f.final_decision
+        ]
+
+        if len(failed_feedbacks) == len(feedback):
+            feedback_summary = "\n".join(failed_feedbacks)
+            raise CoderError(f"All tasks are failed:\n{feedback_summary}")
+
+        return evo
