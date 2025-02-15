@@ -15,7 +15,10 @@ import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
@@ -37,6 +40,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: EnsembleTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         # Get task information for knowledge querying
         ensemble_information_str = target_task.get_task_information()
@@ -74,7 +78,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         user_prompt = T(".prompts:ensemble_coder.user").r(
             ensemble_spec=workspace.file_dict["spec/ensemble.md"],
             latest_code=workspace.file_dict.get("ensemble.py"),
-            latest_code_feedback=workspace.feedback,
+            latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):

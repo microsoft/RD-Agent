@@ -13,6 +13,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.core.developer import Developer
 from rdagent.core.evaluation import Evaluator, Feedback
 from rdagent.core.evolving_agent import EvolvingStrategy, RAGEvoAgent
+from rdagent.core.exception import CoderError
 from rdagent.core.experiment import Experiment
 from rdagent.log import rdagent_logger as logger
 

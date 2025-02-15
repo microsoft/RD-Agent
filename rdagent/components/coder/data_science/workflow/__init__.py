@@ -2,7 +2,10 @@ import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
@@ -26,6 +29,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: WorkflowTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         # competition_info = self.scen.competition_descriptions
         workflow_information_str = target_task.get_task_information()
@@ -64,7 +68,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
-            latest_code_feedback=workspace.feedback,
+            latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):

@@ -188,9 +188,6 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
             n=RD_AGENT_SETTINGS.multi_proc_n,
         )
 
-        for index in range(len(evo.sub_tasks)):
-            evo.sub_workspace_list[index].feedback = multi_implementation_feedback[index]
-
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
             for single_feedback in multi_implementation_feedback

@@ -6,7 +6,10 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder import CoSTEER
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolvable_subjects import FBWorkspace
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     CoSTEERQueriedKnowledge,
@@ -29,8 +32,10 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: CoSTEERTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        if workspace.feedback is None:
+        if prev_task_feedback is None:
+            # if no prev_tak_feedback, it is the first loop; we do not make any changes and goto evaluators directly.
             return {}
 
         task_information_str = target_task.get_task_information()
@@ -41,7 +46,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
         user_prompt = T(".prompts:DSCoSTEER_debugger.user").r(
             code=workspace.all_codes,
-            feedback=workspace.feedback,
+            feedback=prev_task_feedback,
         )
 
         batch_edit = BatchEditOut.extract_output(
