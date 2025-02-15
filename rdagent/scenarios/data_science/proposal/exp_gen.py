@@ -198,15 +198,7 @@ class DSExpGen(ExpGen):
             if len(trace.hist) > 0 and trace.hist[-1] is not last_successful_exp
             else None
         )
-        resp_dict = self._init_task_gen(
-            targets=component,
-            scenario_desc=scenario_desc,
-            spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
-            task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
-            former_task=former_task_desc,
-        )
 
-        # Create task instance
         exp_and_feedback = trace.hist[-1] if len(trace.hist) > 0 else None
         if (
             exp_and_feedback
@@ -217,10 +209,15 @@ class DSExpGen(ExpGen):
                 and component == "Model"
             )
         ):  # Assumption: when completing missing component, using component name as task name
-            resp_dict["description"] = (
-                str(resp_dict.get("description", ""))
-                + f"\n\nYou have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
-            )
+            former_task_desc += f"\n\nYou have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+
+        resp_dict = self._init_task_gen(
+            targets=component,
+            scenario_desc=scenario_desc,
+            spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
+            task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
+            former_task=former_task_desc,
+        )
 
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),

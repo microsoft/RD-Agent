@@ -16,6 +16,21 @@ from load_data import load_data
 from feature import feat_eng
 from ensemble import ensemble_workflow
 
+def print_preds_info(model_name, data_type, preds):
+    if preds is None:
+        print(f"Model {model_name} {data_type} predictions: None")
+    else:
+        print(f"Model {model_name} {data_type} predictions shape: {preds.shape}")
+
+        if isinstance(preds, pd.DataFrame):
+            print(preds.head())
+        elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
+            print(pd.DataFrame(preds).head())
+        elif isinstance(preds, list):
+            print(pd.DataFrame(preds[:5]))
+        else:
+            print(f"Unknown prediction type: {type(preds)}")
+
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -34,6 +49,8 @@ val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
     val_y=val_y,
     test_X=test_X
 )
+
+print_preds_info("{{mn}}", "test", test_preds_dict["{{mn}}"])
 {% endfor %}
 
 for key in val_preds_dict.keys():
@@ -53,6 +70,8 @@ for key in val_preds_dict.keys():
 
 # Run ensemble
 final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
+
+print_preds_info("ensemble", "test", final_pred)
 
 # Check type
 pred_type = type(next(iter(test_preds_dict.values())))
