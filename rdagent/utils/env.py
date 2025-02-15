@@ -11,6 +11,7 @@ import json
 import os
 import pickle
 import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -416,6 +417,11 @@ class DockerEnv(Env[DockerConf]):
         """
         Unzip a file into a folder, use zipfile instead of subprocess
         """
+        # Clear folder_path before extracting
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        os.makedirs(folder_path)
+
         with zipfile.ZipFile(zip_file_path, "r") as z:
             z.extractall(folder_path)
 
