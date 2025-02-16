@@ -18,7 +18,7 @@ from rdagent.utils import filter_progress_bar
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
-    from rdagent.core.proposal import Hypothesis
+    from rdagent.core.proposal import ExperimentFeedback, Hypothesis
     from rdagent.utils.env import Env
 
 """
@@ -280,6 +280,16 @@ class Experiment(
         # If we implement the whole workflow, we don't have to use it, then we remove it.
         self.based_experiments: Sequence[ASpecificWSForExperiment] = based_experiments
 
+        self.experiment_workspace: ASpecificWSForExperiment | None = None
+
+        # The experiment may be developed by different developers.
+        # Last feedback is used to propagate info to the next developer.
+        # Life cycle:
+        # - Developer assigns feedback for next component;
+        # - Workflow control clears feedback.
+        self.prop_dev_feedback: Feedback | None = None
+
+        # TODO: (xiao) I think this is too concrete; we should move it into
         # NOTE: Assumption
         # - only runner will assign this variable
         # - We will always create a new Experiment without copying previous results when we goto the next new loop.
@@ -287,7 +297,6 @@ class Experiment(
         self.sub_results: dict[str, float] = (
             {}
         )  # TODO: in Kaggle, now sub results are all saved in self.result, remove this in the future.
-        self.experiment_workspace: ASpecificWSForExperiment | None = None
 
 
 ASpecificExp = TypeVar("ASpecificExp", bound=Experiment)

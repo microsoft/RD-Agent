@@ -4,13 +4,17 @@ from abc import abstractmethod
 from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiFeedback,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
 from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
-from rdagent.core.evolving_framework import EvolvingStrategy, QueriedKnowledge
+from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.prompts import Prompts
 from rdagent.core.scenario import Scenario
@@ -28,13 +32,26 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
     def implement_one_task(
         self,
         target_task: Task,
-        queried_knowledge: QueriedKnowledge = None,
+        queried_knowledge: QueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:  # FIXME: fix interface of previous implement
         """
         This method will input the task & current workspace,
         and output the modification to applied to the workspace.
         (i.e. replace the content <filename> with <content>)
+
+        Parameters
+        ----------
+        target_task : Task
+
+        queried_knowledge : QueriedKnowledge | None
+
+        workspace : FBWorkspace | None
+
+        prev_task_feedback : CoSTEERSingleFeedback | None
+            task feedback for previous evolving step
+            None indicate it is the first loop.
 
         Return
         ------
@@ -54,9 +71,12 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         return random_select(to_be_finished_task_index, evo, selected_num, queried_knowledge, scen)
 
     @abstractmethod
-    def assign_code_list_to_evo(self, code_list: list, evo: EvolvingItem) -> None:
+    def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
         """
         Assign the code list to the evolving item.
+
+        Due to the implement_one_task take `workspace` as input and output the `modification`.
+        We should apply implmentation to evo
 
         The code list is aligned with the evolving item's sub-tasks.
         If a task is not implemented, put a None in the list.
@@ -68,6 +88,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         *,
         evo: EvolvingItem,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        evolving_trace: list[EvoStep] = [],
         **kwargs,
     ) -> EvolvingItem:
         # 1.找出需要evolve的task
@@ -93,11 +114,20 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
                 to_be_finished_task_index, evo, self.settings.select_threshold, queried_knowledge, self.scen
             )
 
+        last_feedback = None
+        if len(evolving_trace) > 0:
+            last_feedback = evolving_trace[-1].feedback
+            assert isinstance(last_feedback, CoSTEERMultiFeedback)
         result = multiprocessing_wrapper(
             [
                 (
                     self.implement_one_task,
-                    (evo.sub_tasks[target_index], queried_knowledge, evo.experiment_workspace),
+                    (
+                        evo.sub_tasks[target_index],
+                        queried_knowledge,
+                        evo.experiment_workspace,
+                        None if last_feedback is None else last_feedback[target_index],
+                    ),
                 )
                 for target_index in to_be_finished_task_index
             ],
@@ -109,9 +139,5 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
 
         evo = self.assign_code_list_to_evo(code_list, evo)
         evo.corresponding_selection = to_be_finished_task_index
-
-        # After implementation, the feedback should be reset
-        for workspace in evo.sub_workspace_list:
-            workspace.feedback = None
 
         return evo
