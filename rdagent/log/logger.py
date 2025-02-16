@@ -21,6 +21,7 @@ from psutil import Process
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.utils import SingletonBaseClass
 
+from .ui.utils import format_pkl
 from .storage import FileStorage
 from .utils import LogColors, get_caller_info
 
@@ -131,6 +132,7 @@ class RDAgentLog(SingletonBaseClass):
             return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")
+        format_pkl(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
 
         file_handler_id = logger.add(
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
