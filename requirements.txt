@@ -38,6 +38,8 @@ docker
 streamlit
 plotly
 st-theme
+flask
+flask-cors
 
 # kaggle crawler
 selenium
