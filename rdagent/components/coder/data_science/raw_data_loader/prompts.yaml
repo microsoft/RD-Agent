@@ -23,15 +23,15 @@ spec:
     The specifications for each step should be tailored to the competition information provided. 
     
     Your specification should consists two parts:
-    1. The function definition in code format with detailed annotation to each parameter and return value.
-    2. A correct, concise, and complete docstring to the function that explains the purpose of the function, the input parameters, and the output.
-    3. Additional information or notes that the coder should consider while implementing the function.
-    Your specifications should not include any code implementation, only the function definition and docstring.
+    1. The function definition in code format, including type annotations and a clear, complete docstring that describes the function's purpose, input parameters, return value, and any relevant exceptions.
+    2. Additional information or notes that the coder should consider while implementing the function.
+    
+    Your specifications should include only the function definition and docstring, without any code implementation or inline comments.
 
     ----------- Competition Information -----------
     {{ competition_info }}
 
-    -----------Folder Description (All path are relative to the data folder) ---------
+    ----------- Folder Description (All path are relative to the data folder) ---------
     - Ensure that all columns in sample_submission can be generated.
     {{ folder_spec }}
 

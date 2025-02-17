@@ -36,6 +36,7 @@ model_coder:
     --------- Feature Engineering Code ---------
     {{ feature_code }}
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    3. You can decide whether to use AutoML based on the characteristics of the task.
 
     ## Output Format
     {% if out_spec %}

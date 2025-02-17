@@ -38,8 +38,9 @@ workflow_coder:
       - Each functionality is in a separate Python file.
     2. Your task is only to integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow. Do not edit or modify the existing Python files. The final step should output the predictions in the required format.
     3. The user may provide specific code organization rules and instructions. Ensure that the integration follows the given framework and structure.
-    4. After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
-    5. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    4. Implement cross-validation when training models to evaluate performance on different subsets of the data if you think it is necessary.
+    5. After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
+    6. You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
     Please response the code in the following json format. Here is an example structure for the JSON output:
