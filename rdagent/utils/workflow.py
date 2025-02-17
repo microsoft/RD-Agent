@@ -91,7 +91,7 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
-    def run(self, step_n: int | None = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None) -> None:
         """
 
         Parameters
@@ -108,6 +108,13 @@ class LoopBase:
                     step_n -= 1
 
                 li, si = self.loop_idx, self.step_idx
+
+                if loop_n is not None:
+                    if loop_n <= 0:
+                        break
+                    if self.step_idx == len(self.steps) - 1:
+                        loop_n -= 1
+
                 name = self.steps[si]
                 logger.info(f"Start Loop {li}, Step {si}: {name}")
                 with logger.tag(f"Loop_{li}.{name}"):

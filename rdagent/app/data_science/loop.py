@@ -64,6 +64,9 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
+        """
+        Generate Experiment.
+        """
         exp = self.exp_gen.gen(self.trace)
         logger.log_object(exp)
 
@@ -72,6 +75,9 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def coding(self, prev_out: dict[str, Any]):
+        """
+        Finish the coding task in the Experiment.
+        """
         exp = prev_out["direct_exp_gen"]
         for tasks in exp.pending_tasks_list:
             exp.sub_tasks = tasks
@@ -92,6 +98,9 @@ class DataScienceRDLoop(RDLoop):
         return exp
 
     def running(self, prev_out: dict[str, Any]):
+        """
+        Run the finished experiment task.
+        """
         exp: DSExperiment = prev_out["coding"]
         if exp.next_component_required() is None:
             new_exp = self.runner.develop(exp)
@@ -101,6 +110,9 @@ class DataScienceRDLoop(RDLoop):
             return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
+        """
+        Generate feedback for current developed experiment
+        """
         exp: DSExperiment = prev_out["running"]
         if exp.next_component_required() is None:
             feedback = self.summarizer.generate_feedback(exp, self.trace)
@@ -113,6 +125,9 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
+        """
+        Record related information in the loop.
+        """
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
@@ -135,7 +150,7 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
-def main(path=None, step_n=None, competition="bms-molecular-translation"):
+def main(path=None, step_n=None, loop_n=None, competition="bms-molecular-translation"):
     """
 
     Parameters
@@ -144,6 +159,8 @@ def main(path=None, step_n=None, competition="bms-molecular-translation"):
         path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop1
     step_n :
         How many steps to run; if None, it will run forever until error or KeyboardInterrupt
+    step_n :
+        How many loops to run(the first imcomplete loop is consider as the first loop); if None, it will run forever until error or KeyboardInterrupt
     competition :
 
 
@@ -153,6 +170,8 @@ def main(path=None, step_n=None, competition="bms-molecular-translation"):
         dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
         rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
     """
+    assert step_n is None or loop_n is None
+
     if competition is not None:
         DS_RD_SETTING.competition = competition
 
