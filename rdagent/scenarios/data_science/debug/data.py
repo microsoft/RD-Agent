@@ -4,6 +4,7 @@ import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -287,6 +288,7 @@ def create_debug_data(
 
             # Use a greedy strategy to select groups so that the total number of files is as close as possible to num_to_keep
             total_files = 0
+            np.random.shuffle(not_used_files)
             for nf in not_used_files:
                 if total_files > num_to_keep:
                     break
