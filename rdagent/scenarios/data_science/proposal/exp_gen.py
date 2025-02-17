@@ -195,7 +195,7 @@ class DSExpGen(ExpGen):
         """
         former_task_desc = (
             trace.hist[-1][0].pending_tasks_list[0][0].get_task_information()
-            if len(trace.hist) > 0 and trace.hist[-1] is not last_successful_exp
+            if len(trace.hist) > 0 and trace.hist[-1][0] is not last_successful_exp
             else None
         )
 
