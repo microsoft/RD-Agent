@@ -2,7 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 import random
 from rdagent.log.storage import Message, FileStorage
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from collections import defaultdict
@@ -20,7 +20,7 @@ from rdagent.log.ui.qlib_report_figure import report_figure
 
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)
 
 #%%
@@ -45,9 +45,29 @@ for dn, did in dir2id.items():
                         "concise_knowledge": "Knowledge⬇️ gained after practice",
                     },
                     "hypothesis": h.hypothesis,
+                    "reason": h.reason,
+                    "concise_reason": h.concise_reason,
                     "concise_justification": h.concise_justification,
                     "concise_observation": h.concise_observation,
                     "concise_knowledge": h.concise_knowledge,
+                }
+            })
+        elif 'r.pdf_image' in m.tag:
+            m.content.save(f"{app.static_folder}/{m.timestamp.timestamp()}.jpg")
+            msgs_for_frontend[did].append({
+                "tag": "research.pdf_image",
+                "timestamp": m.timestamp.isoformat(),
+                "content": {
+                    "image": f"{m.timestamp.timestamp()}.jpg"
+                }
+            })
+        elif 'load_pdf_screenshot' in m.tag:
+            m.content.save(f"{app.static_folder}/{m.timestamp.timestamp()}.jpg")
+            msgs_for_frontend[did].append({
+                "tag": "research.pdf_image",
+                "timestamp": m.timestamp.isoformat(),
+                "content": {
+                    "image": f"{m.timestamp.timestamp()}.jpg"
                 }
             })
         elif 'r.experiment generation' in m.tag or 'd.load_experiment' in m.tag:
@@ -131,7 +151,7 @@ for dn, did in dir2id.items():
                 "tag": "feedback.metric",
                 "timestamp": m.timestamp.isoformat(),
                 "content": {
-                    "result": m.content.result.iloc[0]
+                    "result": m.content.result.to_json(),
                 }
             })
         elif "ef.feedback" in m.tag:
@@ -215,6 +235,9 @@ def upload_file():
 def index():
     return 'Hello, World!'
 
+@app.route('/<path:fn>', methods=['GET'])
+def server_static_files(fn):
+    return send_from_directory(app.static_folder, fn)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=10009)
+    app.run(debug=True, host='0.0.0.0', port=10010)
