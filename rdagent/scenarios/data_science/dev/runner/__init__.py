@@ -90,7 +90,10 @@ class DSCoSTEERRunner(CoSTEER):
         )  # Please specify whether you agree running your eva in parallel or not
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        # In runner, we don't need very big loops, so we set max_loop to 3
+        super().__init__(
+            *args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, max_loop=3, **kwargs
+        )
 
     def develop(self, exp):
         bak_sub_tasks = exp.sub_tasks
