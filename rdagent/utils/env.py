@@ -414,7 +414,7 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         remove_timestamp: bool = True,
-    ):
+    ) -> str:
         for retry_index in range(self.conf.retry_count):
             try:
                 return self.__run(entry, local_path, env, running_extra_volume, remove_timestamp)
