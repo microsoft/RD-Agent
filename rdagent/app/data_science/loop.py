@@ -125,7 +125,7 @@ class DataScienceRDLoop(RDLoop):
             )
             if self.trace.sota_experiment() is None and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
                 # if {in inital/drafting stage} and {tried enough times}
-                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors:]:
+                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
                     if fb:
                         break  # any success will stop restarting.
                 else:  # otherwise restart it
