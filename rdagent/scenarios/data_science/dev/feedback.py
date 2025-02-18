@@ -52,13 +52,14 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # assumption:
         # The feedback should focus on experiment **improving**.
         # Assume that all the the sota exp is based on the previous sota experiment
-        cur_df = pd.DataFrame(exp.result)
-        sota_df = pd.DataFrame(sota_exp.result)
-
-        # Combine the dataframes on the Metric index
-        combined_df = pd.concat([cur_df, sota_df], axis=1, join='outer')
-        combined_df.columns = [f"{col}_current" if idx < len(cur_df.columns) else f"{col}_sota"
-            for idx, col in enumerate(combined_df.columns)]
+        cur_vs_sota_score = None
+        if sota_exp:
+            cur_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+            sota_score = pd.DataFrame(sota_exp.result).loc["ensemble"].iloc[0]
+            cur_vs_sota_score = (
+                f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
+                f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
+            )
 
         system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
@@ -66,6 +67,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             cur_exp=exp,
             diff_edition=diff_edition,
             feedback_desc=feedback_desc,
+            cur_vs_sota_score=cur_vs_sota_score,
         )
 
         resp_dict = json.loads(
