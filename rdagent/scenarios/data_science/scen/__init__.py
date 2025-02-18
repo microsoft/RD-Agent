@@ -179,7 +179,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
     # Print the folder and its contents
     for file_type, count in files_count.items():
-        if count > max_files and file_type not in ["csv", "md"]:
+        if count > max_files and file_type not in ["csv", "md", "txt"]:
             result.append(" " * indent + f"{count} {file_type}s:")
             for file, size, path in files_details[file_type]:
                 result.append(" " * (indent + 2) + f"- {file} ({size} bytes)")

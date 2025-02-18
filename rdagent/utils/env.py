@@ -150,6 +150,9 @@ class DockerConf(ExtendedBaseSettings):
 
     enable_cache: bool = True  # enable the cache mechanism
 
+    retry_count: int = 5  # retry count for the docker run
+    retry_wait_seconds: int = 10  # retry wait seconds for the docker run
+
 
 class QlibDockerConf(DockerConf):
     model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_DOCKER_")
@@ -404,6 +407,24 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
 
+    def __run_with_retry(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        running_extra_volume: dict | None = None,
+        remove_timestamp: bool = True,
+    ) -> str:
+        for retry_index in range(self.conf.retry_count):
+            try:
+                return self.__run(entry, local_path, env, running_extra_volume, remove_timestamp)
+            except Exception as e:
+                logger.warning(
+                    f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
+                )
+                time.sleep(self.conf.retry_wait_seconds)
+        raise RuntimeError("Error while running the container. Retry count exceeded.")
+
     def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
         """
         Zip a folder into a file, use zipfile instead of subprocess
@@ -468,7 +489,7 @@ class DockerEnv(Env[DockerConf]):
                 ret: str = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
@@ -491,7 +512,9 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.enable_cache:
             out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            out = self.__run(entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False)
+            out = self.__run_with_retry(
+                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
+            )
         end = time.time()
 
         if end - start + 1 >= self.conf.running_timeout_period:
