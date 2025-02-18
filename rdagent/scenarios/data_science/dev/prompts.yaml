@@ -51,10 +51,15 @@ exp_feedback:
     {% endfor %}
 
     ### Final results of the current solution
-    1. Pay close attention to the performance of ensemble, as it represents the final score for this iteration.
-    2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. If the final ensemble score surpasses the current SOTA, you may update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
+    1. Pay close attention to the performance of `ensemble`, as it represents the final score for this iteration.
+    2. If any individual model significantly outperforms the ensemble, this may indicate an issue in the ensemble method. But if the final `ensemble` score surpasses the current SOTA, you should update the SOTA record. However, it seems that there are noticeable issues in the ensemble component, be sure to highlight them explicitly.
     Below are the results for this experiment:
     {{ cur_exp.result }}
+
+    {% if cur_vs_sota_score is not none %}
+    Below is the comparison of the current `ensemble` performance with the SOTA result:
+    {{ cur_vs_sota_score }}
+    {% endif %}
     
     {% if cur_exp.format_check_result is not none %}
     ### Submission format check to current solution:

@@ -1,5 +1,7 @@
 import json
 
+import pandas as pd
+
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
 from rdagent.core.prompts import Prompts
@@ -51,6 +53,14 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # assumption:
         # The feedback should focus on experiment **improving**.
         # Assume that all the the sota exp is based on the previous sota experiment
+        cur_vs_sota_score = None
+        if sota_exp:
+            cur_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+            sota_score = pd.DataFrame(sota_exp.result).loc["ensemble"].iloc[0]
+            cur_vs_sota_score = (
+                f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
+                f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
+            )
 
         system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
@@ -58,6 +68,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
             cur_exp=exp,
             diff_edition=diff_edition,
             feedback_desc=feedback_desc,
+            cur_vs_sota_score=cur_vs_sota_score,
         )
 
         resp_dict = json.loads(
