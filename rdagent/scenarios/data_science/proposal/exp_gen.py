@@ -90,6 +90,21 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
         self.knowledge_base = knowledge_base
 
+    COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
+
+    def next_component_required(self) -> COMPONENT | None:
+        for c in self.COMPLETE_ORDER:
+            if not self.has_compponent(c):
+                return c
+        return None
+
+    def has_compponent(self, component: COMPONENT) -> bool:
+        for exp, fb in self.hist:
+            assert isinstance(exp.hypothesis, DSHypothesis), "Hypothesis should be DSHypothesis (and not None)"
+            if exp.hypothesis.component == component and fb:
+                return True
+        return False
+
     def sota_experiment(self, last_n: int = -1) -> DSExperiment | None:
         """
         Access the last experiment result.
@@ -108,7 +123,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         assert last_n < 0
         for exp, ef in self.hist[::-1]:
             # the sota exp should be accepted decision and all required components are completed.
-            if ef.decision and exp.next_component_required() is None:
+            if ef.decision and self.next_component_required() is None:
                 last_n += 1
                 if last_n == 0:
                     return exp
@@ -237,10 +252,7 @@ class DSExpGen(ExpGen):
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
-        if len(trace.hist) == 0 or last_successful_exp is None:
-            next_missing_component = "DataLoadSpec"
-        else:
-            next_missing_component = last_successful_exp.next_component_required()
+        next_missing_component = trace.next_component_required()
 
         init_component_config = {
             "DataLoadSpec": {"task_cls": DataLoaderTask, "spec_file": None, "component_prompt_key": "data_loader"},
