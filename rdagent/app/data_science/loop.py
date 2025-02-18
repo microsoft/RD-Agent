@@ -150,7 +150,9 @@ def main(path=None, step_n=None, loop_n=None, competition="bms-molecular-transla
     step_n :
         How many steps to run; if None, it will run forever until error or KeyboardInterrupt
     loop_n :
-        How many loops to run; if current loop is incomplete, it will be counted as the first loop for completion; if None, it will run forever until error or KeyboardInterrupt
+        How many loops to run; if None, it will run forever until error or KeyboardInterrupt
+        - if current loop is incomplete, it will be counted as the first loop for completion.
+        - if both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
 
 

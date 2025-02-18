@@ -148,7 +148,7 @@ class LoopBase:
                 if self.step_idx == 0:  # reset to step 0 in next round
                     self.loop_idx += 1
                     if loop_n is not None:
-                        loop_n -= 1 
+                        loop_n -= 1
                     self.loop_prev_out = {}
                     pbar.reset()  # reset the progress bar for the next loop
 
