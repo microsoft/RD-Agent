@@ -93,7 +93,7 @@ class DataScienceRDLoop(RDLoop):
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
-        if exp.next_component_required() is None:
+        if self.trace.next_component_required() is None:
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             return new_exp
@@ -102,7 +102,7 @@ class DataScienceRDLoop(RDLoop):
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
         exp: DSExperiment = prev_out["running"]
-        if exp.next_component_required() is None:
+        if self.trace.next_component_required() is None:
             feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
             feedback = ExperimentFeedback(
@@ -124,15 +124,11 @@ class DataScienceRDLoop(RDLoop):
                 )
             )
             if self.trace.sota_experiment() is None and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
-                trace_exp_next_component_list = [
-                    type(exp.pending_tasks_list[0][0])
-                    for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]
-                ]
-                last_successful_exp = self.trace.last_successful_exp()
-                if (
-                    last_successful_exp not in [exp for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]]
-                    and len(set(trace_exp_next_component_list)) == 1
-                ):
+                # if {in inital/drafting stage} and {tried enough times}
+                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                    if fb:
+                        break  # any success will stop restarting.
+                else:  # otherwise restart it
                     logger.error("Consecutive errors reached the limit. Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
