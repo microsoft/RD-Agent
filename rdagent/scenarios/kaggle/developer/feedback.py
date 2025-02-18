@@ -104,7 +104,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
         current_target_action = hypothesis.action
         current_sub_exps_to_code = {}
         if hypothesis.action == "Model tuning":
-            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].code
+            current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.sub_workspace_list[0].all_codes
         elif hypothesis.action == "Model feature selection":
             current_sub_exps_to_code[exp.sub_tasks[0].get_task_information()] = exp.experiment_workspace.file_dict[
                 KG_SELECT_MAPPING[exp.sub_tasks[0].model_type]
