@@ -5,8 +5,8 @@ from typing import Tuple
 import numpy as np
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEEREvaluator
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
-from rdagent.core.evaluation import Evaluator
 from rdagent.core.experiment import Task, Workspace
 from rdagent.core.prompts import Prompts
 from rdagent.oai.llm_conf import LLM_SETTINGS
@@ -53,7 +53,7 @@ def value_evaluator(
         )
 
 
-class ModelCodeEvaluator(Evaluator):
+class ModelCodeEvaluator(CoSTEEREvaluator):
     def evaluate(
         self,
         target_task: Task,
@@ -117,7 +117,7 @@ class ModelCodeEvaluator(Evaluator):
         return critic_response, None
 
 
-class ModelFinalEvaluator(Evaluator):
+class ModelFinalEvaluator(CoSTEEREvaluator):
     def evaluate(
         self,
         target_task: Task,
