@@ -76,6 +76,8 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_stdout=workflow_stdout,
         )
 
-        return build_cls_from_json_with_retry(
+        ef = build_cls_from_json_with_retry(
             DataLoaderEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
         )
+        ef.execution = f"data_loader_stdout:{stdout}" + (f"\n worflow_stdout:{workflow_stdout}" if workflow_stdout else "")
+        return ef
