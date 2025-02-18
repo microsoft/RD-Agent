@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 
 from rdagent.components.knowledge_management.graph import UndirectedNode
 from rdagent.core.experiment import Experiment
@@ -51,6 +52,13 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # assumption:
         # The feedback should focus on experiment **improving**.
         # Assume that all the the sota exp is based on the previous sota experiment
+        cur_df = pd.DataFrame(exp.result)
+        sota_df = pd.DataFrame(sota_exp.result)
+
+        # Combine the dataframes on the Metric index
+        combined_df = pd.concat([cur_df, sota_df], axis=1, join='outer')
+        combined_df.columns = [f"{col}_current" if idx < len(cur_df.columns) else f"{col}_sota"
+            for idx, col in enumerate(combined_df.columns)]
 
         system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
