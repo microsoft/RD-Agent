@@ -91,13 +91,16 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
-    def run(self, step_n: int | None = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None) -> None:
         """
 
         Parameters
         ----------
         step_n : int | None
             How many steps to run;
+            `None` indicates to run forever until error or KeyboardInterrupt
+        loop_n: int | None
+            How many steps to run; if current loop is incomplete, it will be counted as the first loop for completion
             `None` indicates to run forever until error or KeyboardInterrupt
         """
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
@@ -106,6 +109,9 @@ class LoopBase:
                     if step_n <= 0:
                         break
                     step_n -= 1
+                if loop_n is not None:
+                    if loop_n <= 0:
+                        break
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
@@ -141,6 +147,8 @@ class LoopBase:
                 self.step_idx = (self.step_idx + 1) % len(self.steps)
                 if self.step_idx == 0:  # reset to step 0 in next round
                     self.loop_idx += 1
+                    if loop_n is not None:
+                        loop_n -= 1
                     self.loop_prev_out = {}
                     pbar.reset()  # reset the progress bar for the next loop
 
