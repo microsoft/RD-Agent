@@ -93,18 +93,24 @@ class DataScienceRDLoop(RDLoop):
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
-        if self.trace.next_component_required() is None:
+        if exp.is_ready_to_run():
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             return new_exp
-        else:
-            return exp
+        return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
+        """
+        Assumption:
+        - If we come to feedback phase, the previous development steps are successful.
+        """
         exp: DSExperiment = prev_out["running"]
-        if self.trace.next_component_required() is None:
+        if self.trace.next_incomplete_component() is None:
+            # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
+            # So we need feedback for the proposal.
             feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
+            # Otherwise, it is on drafting stage, don't need complicated feedbacks.
             feedback = ExperimentFeedback(
                 reason=f"{exp.hypothesis.component} is completed.",
                 decision=True,
