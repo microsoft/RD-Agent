@@ -19,3 +19,10 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         self.experiment_workspace = FBWorkspace()
         self.pending_tasks_list = pending_tasks_list
         self.format_check_result = None
+
+    def is_ready_to_run(self) -> bool:
+        """
+        ready to run does not indicate the experiment is runnable
+        (so it is different from `trace.next_incomplete_component`.)
+        """
+        return self.experiment_workspace is not None and "main.py" in self.experiment_workspace.file_dict
