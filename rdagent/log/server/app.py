@@ -230,6 +230,9 @@ def upload_file():
         'id': id,
     }), 200
 
+# @app.route('/receive', methods=['POST'])
+# def receive_msgs(msg):
+    # msg -> msgs_for_frontend
 
 @app.route('/', methods=['GET'])
 def index():
