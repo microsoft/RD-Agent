@@ -66,6 +66,8 @@ coverage.xml
 # Django stuff:
 *.log
 /log/
+/log1/
+/log2/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -170,6 +172,6 @@ mlruns/
 
 # shell script
 *.out
-*.sh
+# *.sh
 .aider*
 rdagent/app/benchmark/factor/example.json
