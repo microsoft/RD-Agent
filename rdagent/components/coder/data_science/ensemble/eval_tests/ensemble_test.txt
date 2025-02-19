@@ -94,5 +94,6 @@ model_set_in_scores = set(score_df.index)
 assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
     f"The scores dataframe does not contain the correct model names.\ncorrect model names are: {{model_names}} + ['ensemble']\nscore_df is:\n{score_df}"
 )
+assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
 
 print("Ensemble test end.")
