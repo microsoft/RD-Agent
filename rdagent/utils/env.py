@@ -402,7 +402,9 @@ class DockerEnv(Env[DockerConf]):
             container.remove()
             end = time.time()
             if end - start >= self.conf.running_timeout_period:
-                print(f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]")
+                print(
+                    f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]"
+                )
                 log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output
