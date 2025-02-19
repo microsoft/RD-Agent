@@ -18,7 +18,8 @@ import uuid
 import zipfile
 from abc import abstractmethod
 from pathlib import Path
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Mapping, Optional, TypeVar
+from types import MappingProxyType
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -132,7 +133,7 @@ class LocalEnv(Env[LocalConf]):
             print("Data already exists. Download skipped.")
 
     def run_ret_code(
-        self, entry: str | None = None, local_path: str | None = None, env: dict | None = None
+        self, entry: str | None = None, local_path: str | None = None, env: dict | None = None, **kwargs: dict,
     ) -> tuple[str, int]:
         if env is None:
             env = {}
@@ -368,7 +369,7 @@ class DockerEnv(Env[DockerConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         if env is None:
@@ -385,9 +386,8 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
-        if running_extra_volume is not None:
-            for lp, rp in running_extra_volume.items():
-                volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+        for lp, rp in running_extra_volume.items():
+            volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         log_output = ""
 
@@ -446,7 +446,7 @@ class DockerEnv(Env[DockerConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         for retry_index in range(self.conf.retry_count):
@@ -485,7 +485,7 @@ class DockerEnv(Env[DockerConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         """
@@ -514,7 +514,7 @@ class DockerEnv(Env[DockerConf]):
                     for path in sorted(Path(local_path).rglob("*.py"))
                 ]
             )
-            + json.dumps({"entry": entry, "running_extra_volume": running_extra_volume})
+            + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})
             + json.dumps(data_key)
         )
@@ -534,8 +534,9 @@ class DockerEnv(Env[DockerConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        **kwargs: dict,
     ) -> tuple[str, int]:
+        running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
             entry = self.conf.default_entry
 
@@ -561,7 +562,7 @@ class DockerEnv(Env[DockerConf]):
         dump_file_names: list[str],
         local_path: str,
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         code_dump_file_py_name: Optional[str] = None,
     ) -> tuple[str, list]:
         """
@@ -571,7 +572,7 @@ class DockerEnv(Env[DockerConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=running_extra_volume)
+        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
