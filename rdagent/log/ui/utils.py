@@ -1,4 +1,5 @@
 import typing
+import requests
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,7 +26,13 @@ if typing.TYPE_CHECKING:
 msgs_for_frontend = defaultdict(list)
 
 
-def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
+def format_pkl(
+    obj: object,
+    tag: str = "",
+    log_trace_path: str = None,
+    url: str = "http://localhost:5000/receive",
+    headers: dict = {'Content-Type': 'application/json'},
+):
 
     ts = datetime.now(timezone.utc).isoformat()
     lp = extract_loopid_func_name(tag)
@@ -33,8 +40,9 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
 
     if "r.hypothesis generation" in tag:
         h: Hypothesis = obj
-        msgs_for_frontend[log_trace_path].append(
-            {
+        data = {
+            "id": log_trace_path,
+            "msg": {
                 "tag": "research.hypothesis",
                 "timestamp": ts,
                 "content": {
@@ -50,7 +58,8 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                     "concise_knowledge": h.concise_knowledge,
                 },
             }
-        )
+        }
+        response = requests.post(url, json=data, headers=headers)
 
     elif "r.experiment generation" in tag or "d.load_experiment" in tag:
         if "d.load_experiment" in tag:
@@ -59,8 +68,9 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
         else:
             tasks: list[FactorTask | ModelTask] = obj
         if isinstance(tasks[0], FactorTask):
-            msgs_for_frontend[log_trace_path].append(
-                {
+            data = {
+                "id": log_trace_path,
+                "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
                     "content": [
@@ -73,10 +83,11 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                         for t in tasks
                     ],
                 }
-            )
+            }
         elif isinstance(tasks[0], ModelTask):
-            msgs_for_frontend[log_trace_path].append(
-                {
+            data = {
+                "id": log_trace_path,
+                "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
                     "content": [
@@ -90,12 +101,14 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                         for t in tasks
                     ],
                 }
-            )
+            }
+        response = requests.post(url, json=data, headers=headers)
 
     elif f"evo_loop_{lp_id}.evolving code" in tag:
         ws: list[FactorFBWorkspace | ModelFBWorkspace] = [i for i in obj]
-        msgs_for_frontend[log_trace_path].append(
-            {
+        data = {
+            "id": log_trace_path,
+            "msg": {
                 "tag": "evolving.codes",
                 "timestamp": ts,
                 "content": [
@@ -109,12 +122,14 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                     if w
                 ],
             }
-        )
+        }
+        response = requests.post(url, json=data, headers=headers)
 
     elif f"evo_loop_{lp_id}.evolving feedback" in tag:
         fl: list[FactorSingleFeedback | CoSTEERSingleFeedbackDeprecated] = [i for i in obj]
-        msgs_for_frontend[log_trace_path].append(
-            {
+        data = {
+            "id": log_trace_path,
+            "msg": {
                 "tag": "evolving.feedbacks",
                 "timestamp": ts,
                 "content": [
@@ -136,32 +151,40 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                     if f
                 ],
             }
-        )
+        }
+        response = requests.post(url, json=data, headers=headers)
 
     elif "scenario" in tag:
-        msgs_for_frontend[log_trace_path].append(
-            {"tag": "feedback.config", "timestamp": ts, "content": {"config": obj.experiment_setting}}
-        )
+        data = {
+            "id": log_trace_path,
+            "msg": {"tag": "feedback.config", "timestamp": ts, "content": {"config": obj.experiment_setting}}
+        }
+        response = requests.post(url, json=data, headers=headers)
 
     elif "ef.Quantitative Backtesting Chart" in tag:
-        msgs_for_frontend[log_trace_path].append(
-            {
+        data = {
+            "id": log_trace_path,
+            "msg": {
                 "tag": "feedback.return_chart",
                 "timestamp": ts,
                 "content": {"chart_html": plotly.io.to_html(report_figure(obj))},
             }
-        )
+        }
+        response = requests.post(url, json=data, headers=headers)
 
     elif "model runner result" in tag or "factor runner result" in tag or "runner result" in tag:
         if isinstance(obj, Experiment):
-            msgs_for_frontend[log_trace_path].append(
-                {"tag": "feedback.metric", "timestamp": ts, "content": {"result": obj.result.iloc[0]}}
-            )
+            data = {
+                "id": log_trace_path,
+                "msg":     {"tag": "feedback.metric", "timestamp": ts, "content": {"result": obj.result.iloc[0]}}
+            }
+            response = requests.post(url, json=data, headers=headers)
 
     elif "ef.feedback" in tag:
         hf: HypothesisFeedback = obj
-        msgs_for_frontend[log_trace_path].append(
-            {
+        data = {
+            "id": log_trace_path,
+            "msg": {
                 "tag": "feedback.hypothesis_feedback",
                 "timestamp": ts,
                 "content": {
@@ -172,8 +195,7 @@ def format_pkl(obj: object, tag: str = "", log_trace_path: str = None):
                     "reason": hf.reason,
                 },
             }
-        )
-    for msgs in msgs_for_frontend.values():
-        msgs.append({"tag": "END", "timestamp": ts, "content": {}})
-
-    return msgs_for_frontend
+        }
+        response = requests.post(url, json=data, headers=headers)
+    # for msgs in msgs_for_frontend.values():
+    #     msgs.append({"tag": "END", "timestamp": ts, "content": {}})
