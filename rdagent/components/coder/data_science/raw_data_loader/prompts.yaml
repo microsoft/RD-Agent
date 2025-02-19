@@ -224,6 +224,7 @@ spec:
 
       4. Notes:
         - Align `DT` (data type) definitions with those used in model specifications.
+        - Implement cross-validation when training models to evaluate performance on different subsets of the data if you think it is necessary.
         - Ensure flexibility to handle multiple ensemble strategies based on competition requirements.
 
       {% if latest_spec %}
