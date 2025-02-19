@@ -1,5 +1,7 @@
 import time
 
+import numpy as np
+import pandas as pd
 from feature import feat_eng
 from load_data import load_data
 from model01 import model_workflow
@@ -9,8 +11,8 @@ from sklearn.model_selection import train_test_split
 def log_execution_results(start_time, val_pred, test_pred, hypers, execution_label):
     """Log the results of a single model execution."""
     feedback_str = f"{execution_label} end.\n"
-    feedback_str += f"Validation predictions shape: {val_pred.shape if val_pred is not None else 'None'}\n"
-    feedback_str += f"Test predictions shape: {test_pred.shape if test_pred is not None else 'None'}\n"
+    feedback_str += f"Validation predictions type: {type(val_pred)}. Validation predictions shape: {val_pred.shape if val_pred is not None else 'None'}\n"
+    feedback_str += f"Test predictions type: {type(test_pred)}.Test predictions shape: {test_pred.shape if test_pred is not None else 'None'}\n"
     feedback_str += f"Hyperparameters: {hypers if hypers is not None else 'None'}\n"
     feedback_str += f"Execution time: {time.time() - start_time:.2f} seconds.\n"
     print(feedback_str)
@@ -19,11 +21,26 @@ def log_execution_results(start_time, val_pred, test_pred, hypers, execution_lab
 # Load and preprocess data
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
-train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
-print(f"train_X.shape: {train_X.shape}")
-print(f"train_y.shape: {train_y.shape}" if not isinstance(train_y, list) else f"train_y(list)'s length: {len(train_y)}")
-print(f"val_X.shape: {val_X.shape}")
-print(f"val_y.shape: {val_y.shape}" if not isinstance(val_y, list) else f"val_y(list)'s length: {len(val_y)}")
+try:
+    train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
+except Exception as e:
+    print(f"sklearn.model_selection.train_test_split is not suitable, will use the whole dataset for training.")
+    train_X, val_X, train_y, val_y = X, X, y, y
+
+
+def get_shape(data):
+    if isinstance(data, (np.ndarray, pd.DataFrame)):
+        return data.shape
+    if isinstance(data, list):
+        return f"as list: {len(data)}"
+    if isinstance(data, dict):
+        return f"as dict: {len(data)}"
+
+
+print(f"train_X.shape: {get_shape(train_X)}")
+print(f"train_y.shape: {get_shape(train_y)}")
+print(f"val_X.shape: {get_shape(val_X)}")
+print(f"val_y.shape: {get_shape(val_y)}")
 
 # First execution
 print("The first execution begins.\n")

@@ -34,6 +34,9 @@ spec:
     ----------- Folder Description (All path are relative to the data folder) ---------
     - Ensure that all columns in sample_submission can be generated.
     {{ folder_spec }}
+    
+    Very important!
+    The type of data shifted between each component should consider submission format, if the submission is not sample based (For example, one sample might have multiple rows), you should refrain from merging all sample into a unified DT but to store them in a list or dict. The following components should treat each sample independently. Please add this information in each docstring to help the coder understand the requirement.
 
   user:
     data_loader: |-
@@ -67,7 +70,7 @@ spec:
         - Avoid using progress bars (e.g., `tqdm`) in the implementation.
 
       4. Notes:
-        - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
+        - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, 'list', 'dict', etc.
         - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
 
       {% if latest_spec %}
@@ -170,6 +173,7 @@ spec:
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
         - The device has GPU support, so you can use it for training if necessary to accelerate the process.
+        - Ensure model output types are consistent with the competition requirements.
 
       {% if latest_spec %}
       5. Former Specification:

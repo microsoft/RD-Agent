@@ -37,6 +37,7 @@ model_coder:
     {{ feature_code }}
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
     3. You can decide whether to use AutoML based on the characteristics of the task.
+    4. If the model can both be implemented by PyTorch and Tensorflow, please use pytorch for broader compatibility.
 
     ## Output Format
     {% if out_spec %}
