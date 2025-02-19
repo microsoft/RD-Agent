@@ -248,10 +248,13 @@ class FBWorkspace(Workspace):
         self.prepare()
         self.inject_files(**self.file_dict)
         stdout, return_code = env.run_ret_code(entry, str(self.workspace_path))
-        return shrink_text(
-            filter_progress_bar(stdout),
-            context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-        ), return_code
+        return (
+            shrink_text(
+                filter_progress_bar(stdout),
+                context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+            ),
+            return_code,
+        )
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (
