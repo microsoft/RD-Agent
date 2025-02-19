@@ -48,6 +48,7 @@ class Env(Generic[ASpecificBaseModel]):
     """
 
     conf: ASpecificBaseModel  # different env have different conf.
+
     # last_exit_code:  # TODO: get the more concrete information about the exit code.
 
     def __init__(self, conf: ASpecificBaseModel):
@@ -59,7 +60,7 @@ class Env(Generic[ASpecificBaseModel]):
         Prepare for the environment based on it's configure
         """
 
-    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None) -> str:
+    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
         """
         Run the folder under the environment.
 
@@ -80,11 +81,11 @@ class Env(Generic[ASpecificBaseModel]):
         -------
             the stdout
         """
-        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env)
+        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
         return stdout
 
     @abstractmethod
-    def run_ret_code(self, entry: str | None, local_path: str = ".", env: dict | None = None) -> tuple[str, int]:
+    def run_ret_code(self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> tuple[str, int]:
         """
         Run the folder under the environment and return both the stdout and the exit code.
 
@@ -122,13 +123,14 @@ class LocalEnv(Env[LocalConf]):
 
     def prepare(self) -> None:
         if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
-            self.run(
-                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
-            )
+            self.run(entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",)
         else:
             print("Data already exists. Download skipped.")
 
-    def run_ret_code(self, entry: str | None = None, local_path: Optional[str] = None, env: dict | None = None) -> tuple[str, int]:
+    def run_ret_code(self,
+                     entry: str | None = None,
+                     local_path: str | None = None,
+                     env: dict | None = None) -> tuple[str, int]:
         if env is None:
             env = {}
 
@@ -198,11 +200,9 @@ class DMDockerConf(DockerConf):
     default_entry: str = "python train.py"
     extra_volumes: dict = {
         str(
-            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-            .expanduser()
-            .resolve()
-            .absolute()
-        ): "/root/.data/"
+            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(
+            ).absolute()):
+            "/root/.data/"
     }
     shm_size: str | None = "16g"
 
@@ -269,15 +269,12 @@ class DockerEnv(Env[DockerConf]):
         Download image if it doesn't exist
         """
         client = docker.from_env()
-        if (
-            self.conf.build_from_dockerfile
-            and self.conf.dockerfile_folder_path is not None
-            and self.conf.dockerfile_folder_path.exists()
-        ):
+        if (self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path is not None and
+                self.conf.dockerfile_folder_path.exists()):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
-            resp_stream = client.api.build(
-                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
-            )
+            resp_stream = client.api.build(path=str(self.conf.dockerfile_folder_path),
+                                           tag=self.conf.image,
+                                           network_mode=self.conf.network)
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
             with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
@@ -335,9 +332,8 @@ class DockerEnv(Env[DockerConf]):
         if not self.conf.enable_gpu:
             return {}
         gpu_kwargs = {
-            "device_requests": (
-                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
-            ),
+            "device_requests":
+                ([docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None),
         }
 
         @wait_retry(5, 10)
@@ -443,7 +439,7 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         remove_timestamp: bool = True,
-    ) -> str:
+    ) -> tuple[str, int]:
         for retry_index in range(self.conf.retry_count):
             try:
                 return self.__run_ret_code(entry, local_path, env, running_extra_volume, remove_timestamp)
@@ -482,7 +478,7 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: dict | None = None,
         remove_timestamp: bool = True,
-    ) -> str:
+    ) -> tuple[str, int]:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -503,19 +499,14 @@ class DockerEnv(Env[DockerConf]):
         data_key = sorted(data_key)
 
         key = md5_hash(
-            json.dumps(
-                [
-                    [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(Path(local_path).rglob("*.py"))
-                ]
-            )
-            + json.dumps({"entry": entry, "running_extra_volume": running_extra_volume})
-            + json.dumps({"extra_volumes": self.conf.extra_volumes})
-            + json.dumps(data_key)
-        )
+            json.dumps([[str(path.relative_to(Path(local_path))),
+                         path.read_text()] for path in sorted(Path(local_path).rglob("*.py"))]) + json.dumps({
+                             "entry": entry,
+                             "running_extra_volume": running_extra_volume
+                         }) + json.dumps({"extra_volumes": self.conf.extra_volumes}) + json.dumps(data_key))
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: str = pickle.load(f)
+                ret: tuple[str, int] = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
             ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
@@ -530,21 +521,22 @@ class DockerEnv(Env[DockerConf]):
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: dict | None = None,
-    ) -> str:
+    ) -> tuple[str, int]:
         if entry is None:
             entry = self.conf.default_entry
         entry_add_timeout = (
-            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; chmod -R 777 {self.conf.mount_path}'"
-        )
+            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; chmod -R 777 {self.conf.mount_path}'")
 
         if self.conf.enable_cache:
-            out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            out = self.__run_ret_code_with_retry(
-                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
-            )
+            stdout, return_code = self.__run_ret_code_with_retry(entry_add_timeout,
+                                                                 local_path,
+                                                                 env,
+                                                                 running_extra_volume,
+                                                                 remove_timestamp=False)
 
-        return out
+        return stdout, return_code
 
     def dump_python_code_run_and_get_results(
         self,
@@ -609,8 +601,7 @@ class DMDockerEnv(DockerEnv):
         if not (Path(data_path)).exists():
             logger.info("We are downloading!")
             cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
-                username, password
-            )
+                username, password)
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")

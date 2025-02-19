@@ -53,6 +53,20 @@ class EnvUtils(unittest.TestCase):
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
 
+    def test_run_ret_code(self):
+        """Test the run_ret_code method of QTDockerEnv with both valid and invalid commands."""
+        qtde = QTDockerEnv()
+        qtde.prepare()
+
+        # Test with a valid command
+        result, return_code = qtde.run_ret_code(entry="echo 'Hello, World!'")
+        self.assertEqual(return_code, 0, f"Expected return code 0, but got {return_code}")
+        self.assertIn("Hello, World!", result, "Expected output not found in result")
+
+        # Test with an invalid command
+        result, return_code = qtde.run_ret_code(entry="invalid_command")
+        self.assertNotEqual(return_code, 0, "Expected non-zero return code for invalid command")
+
     def test_docker_mem(self):
         cmd = 'python -c \'print("start"); import numpy as np;  size_mb = 500; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); print("success")\''
 
