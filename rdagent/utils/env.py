@@ -366,6 +366,7 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
+            start = time.time()
             container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
                 image=self.conf.image,
                 command=entry,
@@ -396,10 +397,16 @@ class DockerEnv(Env[DockerConf]):
                 decoded_log = self.replace_time_info(decoded_log) if remove_timestamp else decoded_log
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
-            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             container.wait()
             container.stop()
             container.remove()
+            end = time.time()
+            if end - start >= self.conf.running_timeout_period:
+                print(
+                    f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]"
+                )
+                log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
+            print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
@@ -509,17 +516,12 @@ class DockerEnv(Env[DockerConf]):
             f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; chmod -R 777 {self.conf.mount_path}'"
         )
 
-        start = time.time()
         if self.conf.enable_cache:
             out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
             out = self.__run_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
-        end = time.time()
-
-        if end - start + 1 >= self.conf.running_timeout_period:
-            out += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
 
         return out
 
