@@ -63,7 +63,9 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=de, entry=f"python {fname}")
+
+        stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
@@ -81,6 +83,6 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             stdout=stdout,
             workflow_stdout=workflow_stdout,
         )
-        return build_cls_from_json_with_retry(
-            EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
-        )
+        efb = build_cls_from_json_with_retry(EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        efb.final_decision = efb.final_decision and ret_code == 0
+        return efb

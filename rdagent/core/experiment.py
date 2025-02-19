@@ -232,21 +232,29 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.file_dict = {}
 
-    def execute(self, env: Env | None = None, entry: str | None = None) -> object | None:
+    def execute(self, env: Env, entry: str) -> str:
         """
-        Before each execution, make sure to prepare and inject code
+        Before each execution, make sure to prepare and inject code.
+        """
+        stdout, _ = self.execute_ret_code(env, entry)
+        return stdout
+
+    def execute_ret_code(self, env: Env, entry: str) -> tuple[str, int]:
+        """
+        Execute the code in the environment and return both the stdout and the exit code.
+
+        Before each execution, make sure to prepare and inject code.
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        # TODO: env should be not None in new design (no code can run without environment)
-        if env is not None and entry is not None:
-            # We believe that removing the progress bar might resolve the issue.
-            # If needed, cutting off the information in the middle should be a backup plan.
-            return shrink_text(
-                filter_progress_bar(env.run(entry, str(self.workspace_path))),
+        stdout, return_code = env.run_ret_code(entry, str(self.workspace_path))
+        return (
+            shrink_text(
+                filter_progress_bar(stdout),
                 context_lines=RD_AGENT_SETTINGS.stdout_context_len,
-            )
-        return None
+            ),
+            return_code,
+        )
 
     def __str__(self) -> str:
         return f"Workspace[{self.workspace_path=}" + (

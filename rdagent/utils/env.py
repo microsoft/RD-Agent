@@ -18,7 +18,8 @@ import uuid
 import zipfile
 from abc import abstractmethod
 from pathlib import Path
-from typing import Generic, Optional, TypeVar
+from types import MappingProxyType
+from typing import Generic, Mapping, Optional, TypeVar
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -48,6 +49,7 @@ class Env(Generic[ASpecificBaseModel]):
     """
 
     conf: ASpecificBaseModel  # different env have different conf.
+
     # last_exit_code:  # TODO: get the more concrete information about the exit code.
 
     def __init__(self, conf: ASpecificBaseModel):
@@ -59,8 +61,7 @@ class Env(Generic[ASpecificBaseModel]):
         Prepare for the environment based on it's configure
         """
 
-    @abstractmethod
-    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None) -> str:
+    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
         """
         Run the folder under the environment.
 
@@ -80,6 +81,33 @@ class Env(Generic[ASpecificBaseModel]):
         Returns
         -------
             the stdout
+        """
+        stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
+        return stdout
+
+    @abstractmethod
+    def run_ret_code(
+        self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+    ) -> tuple[str, int]:
+        """
+        Run the folder under the environment and return both the stdout and the exit code.
+
+        Parameters
+        ----------
+        entry : str | None
+            We may we the entry point when we run it.
+            For example, we may have different entries when we run and summarize the project.
+        local_path : str | None
+            the local path (to project, mainly for code) will be mounted into the docker
+            Here are some examples for a None local path
+            - for example, run docker for updating the data in the extra_volumes.
+            - simply run the image. The results are produced by output or network
+        env : dict | None
+            Run the code with your specific environment.
+
+        Returns
+        -------
+            A tuple containing the stdout and the exit code
         """
 
 
@@ -104,7 +132,13 @@ class LocalEnv(Env[LocalConf]):
         else:
             print("Data already exists. Download skipped.")
 
-    def run(self, entry: str | None = None, local_path: Optional[str] = None, env: dict | None = None) -> str:
+    def run_ret_code(
+        self,
+        entry: str | None = None,
+        local_path: str | None = None,
+        env: dict | None = None,
+        **kwargs: dict,
+    ) -> tuple[str, int]:
         if env is None:
             env = {}
 
@@ -118,10 +152,7 @@ class LocalEnv(Env[LocalConf]):
             cwd = Path(local_path).resolve()
         result = subprocess.run(command, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True)
 
-        if result.returncode != 0:
-            raise RuntimeError(f"Error while running the command: {result.stderr}")
-
-        return result.stdout
+        return result.stdout, result.returncode
 
 
 ## Docker Environment -----
@@ -337,14 +368,14 @@ class DockerEnv(Env[DockerConf]):
         output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
         return output_string
 
-    def __run(
+    def __run_ret_code(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> str:
+    ) -> tuple[str, int]:
         if env is None:
             env = {}
         env["PYTHONWARNINGS"] = "ignore"
@@ -359,9 +390,8 @@ class DockerEnv(Env[DockerConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
-        if running_extra_volume is not None:
-            for lp, rp in running_extra_volume.items():
-                volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+        for lp, rp in running_extra_volume.items():
+            volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         log_output = ""
 
@@ -397,7 +427,7 @@ class DockerEnv(Env[DockerConf]):
                 decoded_log = self.replace_time_info(decoded_log) if remove_timestamp else decoded_log
                 Console().print(decoded_log, markup=False)
                 log_output += decoded_log + "\n"
-            container.wait()
+            exit_status = container.wait()["StatusCode"]
             container.stop()
             container.remove()
             end = time.time()
@@ -407,7 +437,7 @@ class DockerEnv(Env[DockerConf]):
                 )
                 log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
-            return log_output
+            return log_output, exit_status
         except docker.errors.ContainerError as e:
             raise RuntimeError(f"Error while running the container: {e}")
         except docker.errors.ImageNotFound:
@@ -415,17 +445,17 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
 
-    def __run_with_retry(
+    def __run_ret_code_with_retry(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> str:
+    ) -> tuple[str, int]:
         for retry_index in range(self.conf.retry_count):
             try:
-                return self.__run(entry, local_path, env, running_extra_volume, remove_timestamp)
+                return self.__run_ret_code(entry, local_path, env, running_extra_volume, remove_timestamp)
             except Exception as e:
                 logger.warning(
                     f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
@@ -459,9 +489,9 @@ class DockerEnv(Env[DockerConf]):
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
-    ) -> str:
+    ) -> tuple[str, int]:
         """
         Run the folder under the environment.
         Will cache the output and the folder diff for next round of running.
@@ -488,42 +518,47 @@ class DockerEnv(Env[DockerConf]):
                     for path in sorted(Path(local_path).rglob("*.py"))
                 ]
             )
-            + json.dumps({"entry": entry, "running_extra_volume": running_extra_volume})
+            + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
             + json.dumps({"extra_volumes": self.conf.extra_volumes})
             + json.dumps(data_key)
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: str = pickle.load(f)
+                ret: tuple[str, int] = pickle.load(f)
             self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
         else:
-            ret = self.__run_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
             with open(target_folder / f"{key}.pkl", "wb") as f:
                 pickle.dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
         return ret
 
-    def run(
+    def run_ret_code(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
-    ) -> str:
+        **kwargs: dict,
+    ) -> tuple[str, int]:
+        running_extra_volume = kwargs.get("running_extra_volume", {})
         if entry is None:
             entry = self.conf.default_entry
+
         entry_add_timeout = (
-            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; chmod -R 777 {self.conf.mount_path}'"
+            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; "
+            f"entry_exit_code=$?; "
+            f"chmod -R 777 {self.conf.mount_path}; "
+            f"exit $entry_exit_code'"
         )
 
         if self.conf.enable_cache:
-            out = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            out = self.__run_with_retry(
+            stdout, return_code = self.__run_ret_code_with_retry(
                 entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
             )
 
-        return out
+        return stdout, return_code
 
     def dump_python_code_run_and_get_results(
         self,
@@ -531,7 +566,7 @@ class DockerEnv(Env[DockerConf]):
         dump_file_names: list[str],
         local_path: str,
         env: dict | None = None,
-        running_extra_volume: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         code_dump_file_py_name: Optional[str] = None,
     ) -> tuple[str, list]:
         """
@@ -541,7 +576,7 @@ class DockerEnv(Env[DockerConf]):
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
         entry = f"python {random_file_name}"
-        log_output = self.run(entry, local_path, env, running_extra_volume=running_extra_volume)
+        log_output = self.run(entry, local_path, env, running_extra_volume=dict(running_extra_volume))
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
