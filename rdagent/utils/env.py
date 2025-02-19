@@ -18,8 +18,8 @@ import uuid
 import zipfile
 from abc import abstractmethod
 from pathlib import Path
-from typing import Generic, Mapping, Optional, TypeVar
 from types import MappingProxyType
+from typing import Generic, Mapping, Optional, TypeVar
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -133,7 +133,11 @@ class LocalEnv(Env[LocalConf]):
             print("Data already exists. Download skipped.")
 
     def run_ret_code(
-        self, entry: str | None = None, local_path: str | None = None, env: dict | None = None, **kwargs: dict,
+        self,
+        entry: str | None = None,
+        local_path: str | None = None,
+        env: dict | None = None,
+        **kwargs: dict,
     ) -> tuple[str, int]:
         if env is None:
             env = {}
