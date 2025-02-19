@@ -93,8 +93,13 @@ model_set_in_scores = set(score_df.index)
 for model in {{model_names}}:
     if model not in model_set_in_scores:
         print(f"\nModel {model} is not evaluated in the scores.csv.")
-print("Please check the format of the scores dataframe and ignore the magnitude of its values:")
+
+print("Please check the format of the scores dataframe:")
 print(score_df)
+
+if "ensemble" not in model_set_in_scores:
+    print("\nError: Ensemble results are missing or incorrectly saved in `scores.csv`. "
+          "Ensure that the ensemble's performance is recorded as 'ensemble' in the file.")
 
 print("Ensemble test end.")
 print(f"Final prediction shape: {final_pred.shape}")

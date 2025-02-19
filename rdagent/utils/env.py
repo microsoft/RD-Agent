@@ -349,6 +349,7 @@ class DockerEnv(Env[DockerConf]):
             env = {}
         env["PYTHONWARNINGS"] = "ignore"
         env["TF_CPP_MIN_LOG_LEVEL"] = "2"
+        env["PYTHONUNBUFFERED"] = "1"
         client = docker.from_env()
 
         volumns = {}

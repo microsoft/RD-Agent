@@ -93,18 +93,24 @@ class DataScienceRDLoop(RDLoop):
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
-        if exp.next_component_required() is None:
+        if exp.is_ready_to_run():
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             return new_exp
-        else:
-            return exp
+        return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
+        """
+        Assumption:
+        - If we come to feedback phase, the previous development steps are successful.
+        """
         exp: DSExperiment = prev_out["running"]
-        if exp.next_component_required() is None:
+        if self.trace.next_incomplete_component() is None:
+            # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
+            # So we need feedback for the proposal.
             feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
+            # Otherwise, it is on drafting stage, don't need complicated feedbacks.
             feedback = ExperimentFeedback(
                 reason=f"{exp.hypothesis.component} is completed.",
                 decision=True,
@@ -124,15 +130,11 @@ class DataScienceRDLoop(RDLoop):
                 )
             )
             if self.trace.sota_experiment() is None and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
-                trace_exp_next_component_list = [
-                    type(exp.pending_tasks_list[0][0])
-                    for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]
-                ]
-                last_successful_exp = self.trace.last_successful_exp()
-                if (
-                    last_successful_exp not in [exp for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]]
-                    and len(set(trace_exp_next_component_list)) == 1
-                ):
+                # if {in inital/drafting stage} and {tried enough times}
+                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                    if fb:
+                        break  # any success will stop restarting.
+                else:  # otherwise restart it
                     logger.error("Consecutive errors reached the limit. Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
