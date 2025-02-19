@@ -96,4 +96,3 @@ assert model_set_in_scores == set({{model_names}}) + {"ensemble"}, (
 )
 
 print("Ensemble test end.")
-print(f"Final prediction shape: {final_pred.shape}")
