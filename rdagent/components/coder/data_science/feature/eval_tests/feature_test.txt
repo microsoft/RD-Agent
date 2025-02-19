@@ -63,12 +63,14 @@ if isinstance(X, pd.DataFrame) and isinstance(X_test, pd.DataFrame):
 if isinstance(X, pd.DataFrame):
     X_dtypes_unique_sorted = sorted([str(dt) for dt in X.dtypes.unique()])
     X_loaded_dtypes_unique_sorted = sorted([str(dt) for dt in X_loaded.dtypes.unique()])
+
+    X_dtypes_unique_sorted_new = [
+        dt for dt in X_dtypes_unique_sorted if dt not in X_loaded_dtypes_unique_sorted and dt != "object"
+    ]
     assert (
-        len(X_loaded_dtypes_unique_sorted) == 1
-        and X_loaded_dtypes_unique_sorted[0] in {np.float64, np.float32}
-    ) or (
-        X_dtypes_unique_sorted == X_loaded_dtypes_unique_sorted
+        np.dtypes.ObjectDType in X_loaded_dtypes_unique_sorted or len(X_dtypes_unique_sorted_new) == 0
     ), f"feature engineering has produced new data types which is not allowed, data loader data types are {X_loaded_dtypes_unique_sorted} and feature engineering data types are {X_dtypes_unique_sorted}"
+
 
 print(
     "Feature Engineering test passed successfully. All checks including length, width, and data types have been validated."

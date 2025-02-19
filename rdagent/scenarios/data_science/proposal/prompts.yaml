@@ -213,24 +213,20 @@ direct_exp_gen:
     {% endif %}
 
   user: |-
-    # The detailed description of current best experiments
-    {{ sota_exp_desc }}
+    # All former successful experiments and their feedbacks, the current SOTA solution is the combination of the best solutions of these trials:
+    {{ sota_exp_and_feedback_list_desc }}
 
-    ## The according feedbacks for the best experiments
-    {{ exp_and_feedback_desc }}
-
-    {% if recent_trace_desc %}
+    {% if failed_exp_and_feedback_list_desc %}
     # Several trials after the best experiments
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
-    {{ recent_trace_desc }}
+    {{ failed_exp_and_feedback_list_desc }}
 
     {% if last_exp_diff %}
     # Here are the differences between the latest version of implementation and the current best version of implementation
     It is presented in diff format, highlighting changes from the best version to the latest version.
     {{ last_exp_diff }}
     {% endif %}
-
     {% endif %}
 
 
@@ -275,7 +271,11 @@ component_gen:
     {{ component_output_format }}
 
   user: |-
-    {{ exp_and_feedback_desc }}
+    Here's the former SOTA experiments and their feedbacks:
+    {{ sota_exp_and_feedback_list_desc }}
+
+    Also, here's the former failed experiments and their feedbacks:
+    {{ failed_exp_and_feedback_list_desc }}
 
 
 exp_and_feedback: |-
