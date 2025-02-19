@@ -90,16 +90,10 @@ if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tens
 assert Path("scores.csv").exists(), "scores.csv is not generated"
 score_df = pd.read_csv("scores.csv", index_col=0)
 model_set_in_scores = set(score_df.index)
-for model in {{model_names}}:
-    if model not in model_set_in_scores:
-        print(f"\nModel {model} is not evaluated in the scores.csv.")
 
-print("Please check the format of the scores dataframe:")
-print(score_df)
-
-if "ensemble" not in model_set_in_scores:
-    print("\nError: Ensemble results are missing or incorrectly saved in `scores.csv`. "
-          "Ensure that the ensemble's performance is recorded as 'ensemble' in the file.")
+assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
+    f"The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {{model_names}} + ['ensemble']\nscore_df is:\n{score_df}"
+)
+assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
 
 print("Ensemble test end.")
-print(f"Final prediction shape: {final_pred.shape}")
