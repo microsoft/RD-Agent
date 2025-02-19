@@ -91,7 +91,7 @@ assert Path("scores.csv").exists(), "scores.csv is not generated"
 score_df = pd.read_csv("scores.csv", index_col=0)
 model_set_in_scores = set(score_df.index)
 
-assert model_set_in_scores == set({{model_names}}) + {"ensemble"}, (
+assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
     f"The scores dataframe does not contain the correct model names.\ncorrect model names are: {{model_names}} + ['ensemble']\nscore_df is:\n{score_df}"
 )
 
