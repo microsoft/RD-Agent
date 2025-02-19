@@ -98,16 +98,29 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         - A component will be complete until get True decision feedback !!!
         """
         for c in self.COMPLETE_ORDER:
-            if not self.has_compponent(c):
+            if not self.has_component(c):
                 return c
         return None
 
-    def has_compponent(self, component: COMPONENT) -> bool:
+    def has_component(self, component: COMPONENT) -> bool:
         for exp, fb in self.hist:
             assert isinstance(exp.hypothesis, DSHypothesis), "Hypothesis should be DSHypothesis (and not None)"
             if exp.hypothesis.component == component and fb:
                 return True
         return False
+
+    def experiment_and_feedback_list_after_init(
+        self, return_success=True
+    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
+        final_component = self.COMPLETE_ORDER[-1]
+        has_final_component = False
+        exp_and_feedback_list = []
+        for exp, fb in self.hist:
+            if has_final_component and bool(fb) == return_success:
+                exp_and_feedback_list.append((exp, fb))
+            if exp.hypothesis.component == final_component and fb:
+                has_final_component = True
+        return exp_and_feedback_list
 
     def sota_experiment(self) -> DSExperiment | None:
         """
@@ -293,8 +306,19 @@ class DSExpGen(ExpGen):
                     sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
                 )
             )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
-            exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-                exp_and_feedback=exp_and_feedback
+
+            sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_success=True)
+            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_success=False)[
+                -self.max_trace_hist :
+            ]
+
+            sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+                exp_and_feedback_list=sota_exp_feedback_list,
+                success=True,
+            )
+            failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+                exp_and_feedback_list=failed_exp_feedback_list,
+                success=False,
             )
 
             # Generate component using template with proper context
@@ -306,7 +330,8 @@ class DSExpGen(ExpGen):
             )
 
             component_user_prompt = T(".prompts:component_gen.user").r(
-                exp_and_feedback_desc=exp_and_feedback_desc,
+                sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+                failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             )
 
             resp_dict_component: dict = json.loads(
@@ -316,6 +341,15 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
+            sota_exp_model_file_count = len(
+                [
+                    k
+                    for k in sota_exp.experiment_workspace.file_dict.keys()
+                    if k.endswith(".py") and "test" not in k and k.startswith("model")
+                ]
+            )
+            if sota_exp_model_file_count <= 1 and component == "Ensemble":
+                component = "Model"
 
             # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
@@ -336,21 +370,10 @@ class DSExpGen(ExpGen):
                     workflow_check=(not component == "Workflow"),
                 )
 
-                recent_trace_desc = []
-                for i in range(self.max_trace_hist):
-                    if i < len(trace.hist):
-                        eaf = trace.hist[-i - 1]
-                        if eaf[1].decision:
-                            # we only add failed direction incase of trying same invalid direction
-                            break
-                        recent_trace_desc.insert(
-                            0, T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=eaf)
-                        )
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                    sota_exp_desc=sota_exp_desc,
+                    sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+                    failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
                     last_exp_diff=last_exp_diff,
-                    recent_trace_desc="\n".join(recent_trace_desc),
                 )
 
                 def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:

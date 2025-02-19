@@ -71,25 +71,6 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += f"\n MLEBench submission check:"
             stdout += implementation.execute(env=mde, entry="python test/mle_submission_format_test.py")
 
-        # remove unused files
-        implementation.execute(env=de, entry="coverage json -o coverage.json")
-        if Path(implementation.workspace_path / "coverage.json").exists():
-            with open(implementation.workspace_path / "coverage.json") as f:
-                used_files = set(json.load(f)["files"].keys())
-                logger.info("All used scripts: {}".format(used_files))
-                all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
-                unused_files = [
-                    py_file
-                    for py_file in all_python_files
-                    if not (py_file.name in used_files or py_file.name.endswith("test.py"))
-                ]
-                if unused_files:
-                    logger.warning(f"Unused scripts: {unused_files}")
-                    implementation.inject_files(
-                        **{file_path.name: implementation.DEL_KEY for file_path in unused_files}
-                    )
-            os.remove(implementation.workspace_path / "coverage.json")
-
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
             task_desc=target_task.get_task_information(),
@@ -99,6 +80,28 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout=shrink_text(stdout),
         )
 
-        return build_cls_from_json_with_retry(
+        feedback = build_cls_from_json_with_retry(
             DSCoSTEEREvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
         )
+
+        if feedback:
+            # remove unused files
+            implementation.execute(env=de, entry="coverage json -o coverage.json")
+            if Path(implementation.workspace_path / "coverage.json").exists():
+                with open(implementation.workspace_path / "coverage.json") as f:
+                    used_files = set(json.load(f)["files"].keys())
+                    logger.info("All used scripts: {}".format(used_files))
+                    all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
+                    unused_files = [
+                        py_file
+                        for py_file in all_python_files
+                        if not (py_file.name in used_files or py_file.name.endswith("test.py"))
+                    ]
+                    if unused_files:
+                        logger.warning(f"Unused scripts: {unused_files}")
+                        implementation.inject_files(
+                            **{file_path.name: implementation.DEL_KEY for file_path in unused_files}
+                        )
+                os.remove(implementation.workspace_path / "coverage.json")
+
+        return feedback

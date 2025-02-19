@@ -40,3 +40,23 @@ describe: # some template to describe some object
     feedback decision: {{ exp_and_feedback[1].decision }}
     reason: {{ exp_and_feedback[1].reason }}
     {% endif %}
+
+  trace: |-
+    {% if exp_and_feedback_list|length == 0 %}
+    No previous {% if success %}successful{% else %}failed{% endif %} trial available.
+    {% else %}
+    {% if success %}
+    ## {{ heading | default('Trace of the successful trial') }}
+    {% else %}
+    ## {{ heading | default('Trace of the failed trial') }}
+    {% endif %}
+    Before current trial, several {% if success %}successful{% else %}failed{% endif %} trials are listed below. {% if success %}The current SOTA method is the combination of the best solutions of these trials.{% endif %} The trace order is from the earliest to the latest please focus more on the later trials.
+    {% for exp_and_feedback in exp_and_feedback_list %}
+    ### Experiment index: {{ loop.index }}
+    The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
+    ### Task of experiment
+    {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+    Experiment feedback decision: {{ exp_and_feedback[1].decision }}
+    Reason: {{ exp_and_feedback[1].reason }}
+    {% endfor %}
+    {% endif %}
