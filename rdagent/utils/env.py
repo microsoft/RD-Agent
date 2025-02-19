@@ -524,8 +524,13 @@ class DockerEnv(Env[DockerConf]):
     ) -> tuple[str, int]:
         if entry is None:
             entry = self.conf.default_entry
+
         entry_add_timeout = (
-            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; chmod -R 777 {self.conf.mount_path}'")
+            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; "
+            f"entry_exit_code=$?; "
+            f"chmod -R 777 {self.conf.mount_path}; "
+            f"exit $entry_exit_code'"
+        )
 
         if self.conf.enable_cache:
             stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
