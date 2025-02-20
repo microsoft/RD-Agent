@@ -396,7 +396,7 @@ data_loader_eval:
     Your response must follow this structured JSON format:
     ```json
     {
-        "execution": "Describe how well the data loader executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the data loader executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Evaluate the correctness and integrity of the loaded data. Check for issues like missing values, incorrect data types, outliers, or formatting inconsistencies.",
         "code": "Assess code quality, readability, and adherence to best practices. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for faster data loading.",
         "final_decision": <true/false>
