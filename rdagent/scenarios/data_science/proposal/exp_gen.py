@@ -147,13 +147,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 class DSExpGen(ExpGen):
     """Data Science Task Generator."""
 
-    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> None:
+    def __init__(self, scen: DataScienceScen, max_trace_hist: int = 3) -> None:
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
-        self._init_idea_pool(cache_path=idea_cache_path)
 
     def _init_idea_pool(self, cache_path: str) -> None:
-        self.idea_pool = Idea_Pool(cache_path=cache_path)
+        if not hasattr(self, 'idea_pool'):
+            self.idea_pool = Idea_Pool(cache_path=cache_path)
 
     def _init_task_gen(
         self,
@@ -248,7 +248,9 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
         return exp
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> DSExperiment:
+        self._init_idea_pool(cache_path=idea_cache_path)
+
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
