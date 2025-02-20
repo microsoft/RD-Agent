@@ -20,9 +20,7 @@ input_dir = Path("/kaggle/input")
 sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + \
                          list(input_dir.glob("*sampleSubmission*.csv"))
 
-if not sample_submission_files:
-    print("Error: No sample submission file found in /kaggle/input/")
-    exit(1)
+assert sample_submission_files, "Error: No sample submission file found in /kaggle/input/"
 
 # Use first matching file
 sample_submission_name = sample_submission_files[0].name
@@ -30,10 +28,10 @@ SAMPLE_SUBMISSION_PATH = str(sample_submission_files[0])
 print(f"Using sample submission file: {sample_submission_name}")
 
 # Check if the sample submission file exists
-if not Path(SAMPLE_SUBMISSION_PATH).exists():
-    print(f"Error: {sample_submission_name} not found at {SAMPLE_SUBMISSION_PATH}")
-    exit(0)
+assert Path(SAMPLE_SUBMISSION_PATH).exists(), f"Error: {sample_submission_name} not found at {SAMPLE_SUBMISSION_PATH}"
 
+# Check if our submission file exists
+assert Path('submission.csv').exists(), "Error: submission.csv not found"
 
 sample_submission = pd.read_csv(SAMPLE_SUBMISSION_PATH)
 our_submission = pd.read_csv('submission.csv')
