@@ -116,7 +116,7 @@ workflow_eval:
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe whether the main workflow executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
+        "execution": "Describe whether the main workflow executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission, checking the index, column names, and CSV content.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>
