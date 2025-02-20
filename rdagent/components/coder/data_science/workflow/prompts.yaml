@@ -38,9 +38,8 @@ workflow_coder:
       - Each functionality is in a separate Python file.
     2. Your task is only to integrate the existing processes of load_data, feature, model, and ensemble into a complete workflow. Do not edit or modify the existing Python files. The final step should output the predictions in the required format.
     3. The user may provide specific code organization rules and instructions. Ensure that the integration follows the given framework and structure.
-    4. Implement cross-validation when training models to evaluate performance on different subsets of the data if you think it is necessary.
-    5. After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
-    6. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    4. After predicting the output, print the shape and other information of the output to stdout to help the evaluator assess the code.
+    5. You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
     Please response the code in the following json format. Here is an example structure for the JSON output:
@@ -117,7 +116,7 @@ workflow_eval:
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe whether the main workflow executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and retain all error messages and traceback details.",
+        "execution": "Describe whether the main workflow executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission, checking the index, column names, and CSV content.",
         "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
         "final_decision": <true/false>

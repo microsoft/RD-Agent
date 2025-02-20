@@ -259,7 +259,7 @@ spec:
 
         3. Dataset Splitting
           - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
-          - Choose the splitting methods you deem useful and appropriate based on the `Competition Information`.
+          - Decide whether to use a **static train-test split** or **cross-validation**, based on what is most suitable given the `Competition Information`.
 
         4. Submission File:
           - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
@@ -396,7 +396,7 @@ data_loader_eval:
     Your response must follow this structured JSON format:
     ```json
     {
-        "execution": "Describe how well the data loader executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the data loader executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Evaluate the correctness and integrity of the loaded data. Check for issues like missing values, incorrect data types, outliers, or formatting inconsistencies.",
         "code": "Assess code quality, readability, and adherence to best practices. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for faster data loading.",
         "final_decision": <true/false>

@@ -123,7 +123,7 @@ model_eval:
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe how well the model building executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the model building executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Check the generated value, including whether the value is generated and comparing the shape of the model output with the requirement in spec.md. You also need to check whether the hyperparameters used for retraining are correctly returned during the test execution of the model.",
         "code": "Assess code quality, readability, and adherence to specifications. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for optimization.",
         "final_decision": <true/false>
