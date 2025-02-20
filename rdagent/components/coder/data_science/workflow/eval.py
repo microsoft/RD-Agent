@@ -100,19 +100,21 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
-        submission_stdout, submission_ret_code = implementation.execute_ret_code(env=de, entry="python test/submission_format_test.py")
+        submission_stdout, submission_ret_code = implementation.execute_ret_code(
+            env=de, entry="python test/submission_format_test.py"
+        )
         stdout += submission_stdout
 
-            # MLEBench Check
-            # !!! Since we are running on a sampled dataset, mlebench check is not required.
-            # mle_check_code = (
-            #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
-            #     .read_text()
-            #     .replace("<competition_id>", self.scen.competition)
-            # )
-            # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-            # stdout += "----Submission Check 2-----\n"
-            # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
+        # MLEBench Check
+        # !!! Since we are running on a sampled dataset, mlebench check is not required.
+        # mle_check_code = (
+        #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
+        #     .read_text()
+        #     .replace("<competition_id>", self.scen.competition)
+        # )
+        # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+        # stdout += "----Submission Check 2-----\n"
+        # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
