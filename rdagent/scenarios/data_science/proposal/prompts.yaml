@@ -277,6 +277,11 @@ component_gen:
     Also, here's the former failed experiments and their feedbacks:
     {{ failed_exp_and_feedback_list_desc }}
 
+    All former trials and their feedbacks are provided in pandas DataFrame format. The user has already made several hypothesis on this scenario and did several evaluation on them:
+    {{ component_and_feedback_df }}
+    
+    Please choose the most proper component to focus on based on the information above. Please balance the exploration and exploitation.
+
 
 exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
@@ -298,6 +303,7 @@ hypothesis_specification: |-
 output_format:
   component: |-
     {
+      "reason": "The reason why you choose this component. Based on the current status and former trials, why this component is the most promising one to focus on.",
       "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
     }
   hypothesis: |-
