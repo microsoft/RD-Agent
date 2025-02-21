@@ -407,6 +407,7 @@ class DSExpGen(ExpGen):
                 )
 
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
+                    targets=component_info["target_name"],
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
                     last_exp_diff=last_exp_diff,
