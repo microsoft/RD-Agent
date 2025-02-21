@@ -14,7 +14,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union, Callable, TypeVar, cast
+from typing import Any, Callable, Optional, TypeVar, Union, cast
 
 from tqdm.auto import tqdm
 
