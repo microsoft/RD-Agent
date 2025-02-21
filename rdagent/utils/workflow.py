@@ -13,6 +13,7 @@ import pickle
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import Optional, Union
 from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 
@@ -161,7 +162,7 @@ class LoopBase:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path, output_path: str | Path = None) -> "LoopBase":
+    def load(cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
