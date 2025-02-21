@@ -13,14 +13,12 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 class EnvUtils(unittest.TestCase):
     def setUp(self):
-        pass
+        self.test_workspace = DIRNAME / "test_workspace"
+        self.test_workspace.mkdir(exist_ok=True)
 
     def tearDown(self):
-        # NOTE: For a docker file, the output are generated with root permission.
-        # mlrun_p = DIRNAME / "env_tpl" / "mlruns"
-        # if mlrun_p.exists():
-        #     shutil.rmtree(mlrun_p)
-        ...
+        if self.test_workspace.exists():
+            shutil.rmtree(self.test_workspace)
 
     # NOTE: Since I don't know the exact environment in which it will be used, here's just an example.
     # NOTE: Because you need to download the data during the prepare process. So you need to have pyqlib in your environment.
@@ -52,6 +50,29 @@ class EnvUtils(unittest.TestCase):
         # read experiment
         result = qtde.run(local_path=str(DIRNAME / "env_tpl"), entry="python read_exp_res.py")
         print(result)
+
+    def test_run_ret_code(self):
+        """Test the run_ret_code method of QTDockerEnv with both valid and invalid commands."""
+        qtde = QTDockerEnv()
+        qtde.prepare()
+
+        # Test with a valid command
+        result, return_code = qtde.run_ret_code(entry='echo "Hello, World!"', local_path=str(self.test_workspace))
+        print(return_code)
+        assert return_code == 0, f"Expected return code 0, but got {return_code}"
+        assert "Hello, World!" in result, "Expected output not found in result"
+
+        # Test with an invalid command
+        _, return_code = qtde.run_ret_code(entry="invalid_command", local_path=str(self.test_workspace))
+        print(return_code)
+        assert return_code != 0, "Expected non-zero return code for invalid command"
+
+        dc = QlibDockerConf()
+        dc.running_timeout_period = 1
+        qtde = QTDockerEnv(dc)
+        result, return_code = qtde.run_ret_code(entry="sleep 2", local_path=str(self.test_workspace))
+        print(result)
+        assert return_code == 124, "Expected return code 124 for timeout"
 
     def test_docker_mem(self):
         cmd = 'python -c \'print("start"); import numpy as np;  size_mb = 500; size = size_mb * 1024 * 1024 // 8; array = np.random.randn(size).astype(np.float64); print("success")\''
