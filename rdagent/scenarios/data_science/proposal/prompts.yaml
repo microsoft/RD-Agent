@@ -68,7 +68,7 @@ hypothesis_and_feedback: |-
   Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
   {% endfor %}
 
-task_gen: # It is deprecated now, please refer to direct_exp_gen
+task_gen:
   system: |-
     {% if hypothesis is not none %}
     The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step. 
@@ -107,6 +107,9 @@ task_gen: # It is deprecated now, please refer to direct_exp_gen
     The user has made several task on this scenario but didn't get the expected result due to wrong implementation or just bad luck. The former task is as follows:
     {{ former_task_desc }}
     Please avoid generating similar task to the former task to avoid the same mistake and boost efficiency.
+    {% if targets == "Model" %}
+    If the previous failure was due to exceeding the time limit or memory constraints, you can try reducing the model size or opting for alternative algorithms with lower time or space complexity instead of using a neural network.
+    {% endif %}
     {% endif %}
 
     {% if hypothesis is not none %}
@@ -221,6 +224,9 @@ direct_exp_gen:
     The user has made several hypothesis on this scenario and did several evaluation on them.
     The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
     {{ failed_exp_and_feedback_list_desc }}
+    {% if targets == "Building model" %}
+    If the previous failure was due to exceeding the time limit or memory constraints, you can try reducing the model size or opting for alternative algorithms with lower time or space complexity instead of using a neural network.
+    {% endif %}
 
     {% if last_exp_diff %}
     # Here are the differences between the latest version of implementation and the current best version of implementation
