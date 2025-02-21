@@ -13,9 +13,8 @@ import pickle
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Union
 from pathlib import Path
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Optional, Union, Callable, TypeVar, cast
 
 from tqdm.auto import tqdm
 
