@@ -194,7 +194,7 @@ class ChatSession:
         history_message = SessionChatHistoryCache().message_get(self.conversation_id)
         messages = history_message
         if not messages:
-            messages.append({"role": "system", "content": self.system_prompt})
+            messages.append({"role": LLM_SETTINGS.system_prompt_role, "content": self.system_prompt})
         messages.append(
             {
                 "role": "user",
@@ -477,7 +477,7 @@ class DeprecBackend(APIBackend):
         system_prompt = LLM_SETTINGS.default_system_prompt if system_prompt is None else system_prompt
         messages = [
             {
-                "role": "system",
+                "role": LLM_SETTINGS.system_prompt_role,
                 "content": system_prompt,
             },
         ]
@@ -799,7 +799,8 @@ class DeprecBackend(APIBackend):
                 if add_json_in_prompt:
                     for message in messages[::-1]:
                         message["content"] = message["content"] + "\nPlease respond in json format."
-                        if message["role"] == "system":
+                        if message["role"] == LLM_SETTINGS.system_prompt_role:
+                            # NOTE: assumption: systemprompt is always the first message
                             break
                 call_kwargs["response_format"] = {"type": "json_object"}
             response = self.chat_client.chat.completions.create(**call_kwargs)
