@@ -1,4 +1,8 @@
-import json,re
+import json
+import re
+from typing import Literal
+
+import pandas as pd
 
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
@@ -112,14 +116,33 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return False
 
     def experiment_and_feedback_list_after_init(
-        self, return_success=True
+        self, return_type: Literal["sota", "failed", "all"]
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
+        """
+        Retrieve a list of experiments and feedbacks based on the return_type.
+
+        Parameters
+        ----------
+        return_type : str
+            One of "sota", "failed", "all".
+
+        Returns
+        -------
+        list[tuple[DSExperiment, ExperimentFeedback]]
+            List of experiments and feedbacks.
+        """
+
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = False
         exp_and_feedback_list = []
         for exp, fb in self.hist:
-            if has_final_component and bool(fb) == return_success:
-                exp_and_feedback_list.append((exp, fb))
+            if has_final_component:
+                if return_type == "all":
+                    exp_and_feedback_list.append((exp, fb))
+                elif return_type == "failed" and not fb.decision:
+                    exp_and_feedback_list.append((exp, fb))
+                elif return_type == "sota" and fb.decision:
+                    exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
         return exp_and_feedback_list
@@ -315,10 +338,18 @@ class DSExpGen(ExpGen):
                 )
             )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
-            sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_success=True)
-            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_success=False)[
+            sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
                 -self.max_trace_hist :
             ]
+            all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
+            trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+            for index, (exp, fb) in enumerate(all_exp_feedback_list):
+                trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
+                    exp.hypothesis.component,
+                    exp.hypothesis.hypothesis,
+                    fb.decision,
+                ]
 
             sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
                 exp_and_feedback_list=sota_exp_feedback_list,
@@ -372,6 +403,11 @@ class DSExpGen(ExpGen):
                 sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                 failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
                 idea=idea.format_text(),
+                component_and_feedback_df=(
+                    trace_component_to_feedback_df.to_string()
+                    if len(trace_component_to_feedback_df) > 0
+                    else "No experiment and feedback provided"
+                ),
             )
 
             resp_dict_component: dict = json.loads(
@@ -381,6 +417,7 @@ class DSExpGen(ExpGen):
             )
 
             component = resp_dict_component.get("component", "Component not provided")
+            component_reason = resp_dict_component.get("reason", "Reason not provided")
             sota_exp_model_file_count = len(
                 [
                     k
@@ -411,6 +448,7 @@ class DSExpGen(ExpGen):
                 )
 
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
+                    targets=component_info["target_name"],
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
                     idea=idea.format_text(),
@@ -437,7 +475,7 @@ class DSExpGen(ExpGen):
                     hypothesis = DSHypothesis(
                         component=component,
                         hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                        reason=hypothesis_proposal.get("reason", ""),
+                        reason=component_reason + "\n" + hypothesis_proposal.get("reason", ""),
                         concise_reason=hypothesis_proposal.get("concise_reason", ""),
                         concise_observation=hypothesis_proposal.get("concise_observation", ""),
                         concise_justification=hypothesis_proposal.get("concise_justification", ""),
