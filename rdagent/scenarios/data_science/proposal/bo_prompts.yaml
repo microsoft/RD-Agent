@@ -1,0 +1,81 @@
+idea_eval:
+  system: |-
+    You are a data scientist and a top Kaggle competitor. The user is working on improving a solution for a Kaggle competition. The solution is already split into several components.
+    Your task is to analyze the given hypothesis and task of current component improvement, and provide an analysis and an estimated score for the hypothesis-task pair based on your knowledge and history of experiments and feedbacks.
+    # TODO: working on the prompt
+    The component to focus on for the next hypothesis is already determined as: {{ component }}.
+    It will be used in the following scenario:
+    {{ scenario }}
+
+    # Hypothesis Proposal
+
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later. Your task is to check if a similar hypothesis has already been generated. If one exists and you agree with it, you can use it. If you disagree, please create an improved version.
+
+    ## Hypothesis Specification
+    To assist you in formulating new hypotheses, the user has provided some additional information: 
+    {{ hypothesis_specification }}
+
+    ## Guidelines
+    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+
+    [Partial Response Format 1] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ hypothesis_output_format }}
+    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+
+    # Task Design
+
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step.
+
+    ## Task Specification
+    The scope of the {{ targets }} can be described by a interface specification as follows:
+    ```Python
+    {{ task_specification }}
+    ```
+
+    ## Guidelines
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+
+    [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Workflow update
+    Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    [Partial Response Format 3] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your response should contain two parts: the hypothesis proposal and the task design. Please follow the format and specifications provided below:
+    {
+      "hypothesis_proposal": [Partial Response Format 1],
+      "task_design": [Partial Response Format 2],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 3], {% endif %}
+    }
+
+    {% if extra_requirement %}
+    {{extra_requirement}}
+    {% endif %}
+
+  user: |-
+    # The detailed description of current best experiments
+    {{ sota_exp_desc }}
+
+    ## The according feedbacks for the best experiments
+    {{ exp_and_feedback_desc }}
+
+    {% if recent_trace_desc %}
+    # Several trials after the best experiments
+    The user has made several hypothesis on this scenario and did several evaluation on them.
+    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    {{ recent_trace_desc }}
+
+    {% if last_exp_diff %}
+    # Here are the differences between the latest version of implementation and the current best version of implementation
+    It is presented in diff format, highlighting changes from the best version to the latest version.
+    {{ last_exp_diff }}
+    {% endif %}
+
+    {% endif %}

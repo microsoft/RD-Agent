@@ -242,7 +242,7 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
         return exp
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace, BO_mode: bool = False, BO_step: int = 5) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
@@ -257,6 +257,7 @@ class DSExpGen(ExpGen):
         }
 
         if next_missing_component in init_component_config:
+            
             # TODO: we may merge the if else logic in the future.
             # the current
             config = init_component_config[next_missing_component]
@@ -269,7 +270,9 @@ class DSExpGen(ExpGen):
                 trace=trace,
                 component_prompt_key=config.get("component_prompt_key"),
             )
-        else:  # propose new component by LLM
+        else:  # propose new component and polish it by LLM
+                    # polish the existing component's hypothesis & task
+        # BO_mode: whether to use BO mode to polish 
             # Guidelines:
             # System prompts: Shared condition you are facing
             # - scenario description: `scenario_desc`
@@ -324,76 +327,21 @@ class DSExpGen(ExpGen):
             component_info = COMPONENT_TASK_MAPPING.get(component)
 
             if component_info:
-                system_prompt = T(".prompts:direct_exp_gen.system").r(
-                    targets=component_info["target_name"],
-                    component=component,
-                    scenario=scenario_desc,
-                    hypothesis_specification=T(".prompts:hypothesis_specification").r(),
-                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
-                    task_output_format=component_info["task_output_format"],
-                    extra_requirement=component_info.get("extra_requirement"),
-                    workflow_check=(not component == "Workflow"),
-                )
+                if BO_mode:
+                    score_list = []
+                    candidate_list = []
+                    for i in range(BO_step):
+                        hypothesis, task, new_workflow_desc = self.idea_propose(trace, scenario_desc, )
+                        analysis, est_score = self.idea_evaluate(trace, hypothesis, task)
+                        score_list.append(est_score)
+                        candidate_list.append((hypothesis, task, new_workflow_desc))
+                    best_candidate = candidate_list[score_list.index(max(score_list))]
+                    hypothesis, task, new_workflow_desc = best_candidate
 
-                recent_trace_desc = []
-                for i in range(self.max_trace_hist):
-                    if i < len(trace.hist):
-                        eaf = trace.hist[-i - 1]
-                        if eaf[1].decision:
-                            # we only add failed direction incase of trying same invalid direction
-                            break
-                        recent_trace_desc.insert(
-                            0, T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=eaf)
-                        )
-                user_prompt = T(".prompts:direct_exp_gen.user").r(
-                    exp_and_feedback_desc=exp_and_feedback_desc,
-                    sota_exp_desc=sota_exp_desc,
-                    last_exp_diff=last_exp_diff,
-                    recent_trace_desc="\n".join(recent_trace_desc),
-                )
-
-                def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
-                    # Only modify the user_prompt on retries (i > 0)
-                    user_prompt = args[0]
-                    user_prompt += "\n\nretrying..."
-                    return (user_prompt,), kwargs
-
-                @wait_retry(retry_n=5, transform_args_fn=_append_retry)
-                def _f(user_prompt):
-                    resp_dict = json.loads(
-                        APIBackend().build_messages_and_create_chat_completion(
-                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
-                        )
-                    )
-                    assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
-                    assert "task_design" in resp_dict, "Task design not provided."
-                    task_class = component_info["task_class"]
-                    hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
-                    hypothesis = DSHypothesis(
-                        component=component,
-                        hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                        reason=hypothesis_proposal.get("reason", ""),
-                        concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                        concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                        concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                        concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-                    )
-
-                    task_design = resp_dict.get("task_design", {})
-                    task_name = task_design["model_name"] if component == "Model" else component
-                    description = task_design.get(
-                        "description", f"{component_info['target_name']} description not provided"
-                    )
-                    task = task_class(
-                        name=task_name,
-                        description=description,
-                        **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
-                    )
-                    new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
-                    return hypothesis, task, new_workflow_desc
-
-                hypothesis, task, new_workflow_desc = _f(user_prompt)
+                else:
+                    # regular mode: generate the hypothesis & task
+                    hypothesis, task, new_workflow_desc = self.idea_propose(trace, scenario_desc, )
+                    
 
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
                 exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
@@ -407,3 +355,124 @@ class DSExpGen(ExpGen):
                 return exp
             else:
                 raise ValueError(f"Unknown component: {component}")
+
+
+
+    def idea_propose(self, trace: DSTrace, component: str, component_info: dict, scenario_desc: str) -> DSExperiment:
+
+        sota_exp = trace.sota_experiment()
+        exp_and_feedback = trace.hist[-1]
+        last_exp = exp_and_feedback[0]
+
+        sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="Best of previous exploration of the scenario"
+        )
+        last_exp_diff = "\n".join(
+            generate_diff_from_dict(
+                sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
+            )
+        )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
+        exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
+            exp_and_feedback=exp_and_feedback
+
+        )
+
+        system_prompt = T(".prompts:direct_exp_gen.system").r(
+                        targets=component_info["target_name"],
+                        component=component,
+                        scenario=scenario_desc,
+                        hypothesis_specification=T(".prompts:hypothesis_specification").r(),
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                    task_output_format=component_info["task_output_format"],
+                    extra_requirement=component_info.get("extra_requirement"),
+                    workflow_check=(not component == "Workflow"),
+        )
+
+        recent_trace_desc = []
+        for i in range(self.max_trace_hist):
+            if i < len(trace.hist):
+                eaf = trace.hist[-i - 1]
+                if eaf[1].decision:
+                    # we only add failed direction incase of trying same invalid direction
+                    break
+                recent_trace_desc.insert(
+                    0, T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=eaf)
+                )
+        user_prompt = T(".prompts:direct_exp_gen.user").r(
+            exp_and_feedback_desc=exp_and_feedback_desc,
+            sota_exp_desc=sota_exp_desc,
+            last_exp_diff=last_exp_diff,
+            recent_trace_desc="\n".join(recent_trace_desc),
+        )
+
+        def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+            # Only modify the user_prompt on retries (i > 0)
+            user_prompt = args[0]
+            user_prompt += "\n\nretrying..."
+            return (user_prompt,), kwargs
+
+        @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+        def _f(user_prompt):
+            resp_dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                )
+            )
+            assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+            assert "task_design" in resp_dict, "Task design not provided."
+            task_class = component_info["task_class"]
+            hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+            hypothesis = DSHypothesis(
+                component=component,
+                hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                reason=hypothesis_proposal.get("reason", ""),
+                concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+            )
+
+            task_design = resp_dict.get("task_design", {})
+            task_name = task_design["model_name"] if component == "Model" else component
+            description = task_design.get(
+                "description", f"{component_info['target_name']} description not provided"
+            )
+            task = task_class(
+                name=task_name,
+                description=description,
+                **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+            )
+            new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+            return hypothesis, task, new_workflow_desc
+        
+        hypothesis, task, new_workflow_desc = _f(user_prompt)
+
+        return hypothesis, task, new_workflow_desc
+
+    def idea_evaluate(self, trace, hypothesis, task) -> DSExperiment:
+        # pass the idea (hypothesis, task) to LLM to get the analysis and est_score
+        # return the analysis and est_score
+
+        system_prompt = T(".prompts:direct_exp_gen.system").r(
+                targets=component_info["target_name"],
+                component=component,
+                scenario=scenario_desc,
+                hypothesis_specification=T(".prompts:hypothesis_specification").r(),
+            hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+            task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+            task_output_format=component_info["task_output_format"],
+            extra_requirement=component_info.get("extra_requirement"),
+            workflow_check=(not component == "Workflow"),
+        )
+
+
+        user_prompt = T(".prompts:direct_exp_gen.user").r(
+            exp_and_feedback_desc=exp_and_feedback_desc,
+            sota_exp_desc=sota_exp_desc,
+            last_exp_diff=last_exp_diff,
+            recent_trace_desc="\n".join(recent_trace_desc),
+        )
+
+
+
