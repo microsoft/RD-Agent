@@ -11,6 +11,9 @@ class LLMSettings(ExtendedBaseSettings):
     # backend
     backend: str = "rdagent.oai.backend.DeprecBackend"
 
+    # TODO: most of the settings are only used on deprec.DeprecBackend.
+    # So they should move the settings to that folder.
+
     log_llm_chat_content: bool = True
 
     use_azure: bool = Field(default=False, deprecated=True)
@@ -56,6 +59,9 @@ class LLMSettings(ExtendedBaseSettings):
         100000  # 100000 is the maximum limit of gpt4, which might increase in the future version of gpt
     )
     default_system_prompt: str = "You are an AI assistant who helps to answer user's questions."
+    system_prompt_role: str = "system"
+    """Some models (like o1) do not support the 'system' role.
+    Therefore, we make the system_prompt_role customizable to ensure successful calls."""
 
     # Embedding configs
     embedding_openai_api_key: str = ""
