@@ -229,7 +229,6 @@ class DataScienceScen(Scenario):
     def __init__(self, competition: str) -> None:
         self.competition = competition
         self.raw_description = self._get_description()
-        self.json_description = self._get_description_json()
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
         self.metric_direction = self._get_direction()
@@ -243,9 +242,6 @@ class DataScienceScen(Scenario):
             logger.error(
                 f"Cannot find {self.competition}.json in {DS_RD_SETTING.local_data_path}, please check the file."
             )
-
-    def _get_description_json(self):
-        return self.raw_description
 
     def _get_direction(self):
         return self.metric_direction_guess if hasattr(self, "metric_direction_guess") else True
@@ -266,9 +262,9 @@ class DataScienceScen(Scenario):
         response_json_analysis = json.loads(response_analysis)
         self.task_type = response_json_analysis.get("Task Type", "No type provided")
         self.data_type = response_json_analysis.get("Data Type", "No data type provided")
-        self.brief_description = self.json_description.get("Description", response_json_analysis.get("Brief Description", "No brief description provided"))
-        self.dataset_description = self.json_description.get("Data Description", response_json_analysis.get("Dataset Description", "No dataset description provided"))
-        self.target_description = self.json_description.get("Evaluation", response_json_analysis.get("Evaluation Description", "No target description provided"))
+        self.brief_description = response_json_analysis.get("Brief Description", "No brief description provided")
+        self.dataset_description = response_json_analysis.get("Dataset Description", "No dataset description provided")
+        self.target_description = response_json_analysis.get("Evaluation Description", "No target description provided")
         self.submission_specifications = response_json_analysis.get(
             "Submission Specifications", "No submission requirements provided"
         )
@@ -291,9 +287,7 @@ class DataScienceScen(Scenario):
         background_prompt = background_template.r(
             task_type=self.task_type,
             data_type=self.data_type,
-            brief_description=self.brief_description,
-            dataset_description=self.dataset_description,
-            target_description=self.target_description,
+            raw_description=self.raw_description,
         )
         return background_prompt
 
@@ -339,9 +333,6 @@ class KaggleScen(DataScienceScen):
 
     def _get_description(self):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)
-
-    def _get_description_json(self):
-        return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path, force=True)
 
     def _get_direction(self):
         if DS_RD_SETTING.if_using_mle_data:

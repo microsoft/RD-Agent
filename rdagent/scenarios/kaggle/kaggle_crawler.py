@@ -41,7 +41,7 @@ def crawl_descriptions(
         logger.info(f"Found {competition}/description.md, loading from it.")
         return fp.read_text()
 
-    if (fp := Path(f"{local_data_path}/{competition}.json")).exists():
+    if (fp := Path(f"{local_data_path}/{competition}.json")).exists() and not force:
         logger.info(f"Found {competition}.json, loading from local file.")
         with fp.open("r") as f:
             return json.load(f)

@@ -37,6 +37,9 @@ train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_st
 
 # Print the types of train_y and val_y
 print(f"train_y type: {type(train_y)}, val_y type: {type(val_y)}")
+if isinstance(val_y, pd.Series | pd.DataFrame):
+    print(f"val_y shape: {val_y.shape} and first few rows of val_y:")
+    print(val_y.head())
 
 test_preds_dict = {}
 val_preds_dict = {}
