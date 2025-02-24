@@ -247,7 +247,6 @@ class DSExpGen(ExpGen):
                     former_tasks_desc += former_task_desc
                 else:
                     break
-                
 
         resp_dict = self._init_task_gen(
             targets=component,
