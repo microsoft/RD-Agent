@@ -12,7 +12,6 @@ import plotly
 import typing
 
 
-from rdagent.log.ui.llm_st import extract_evoid, extract_loopid_func_name
 from rdagent.log.ui.qlib_report_figure import report_figure
 
 if typing.TYPE_CHECKING:
@@ -33,14 +32,16 @@ if typing.TYPE_CHECKING:
 from rdagent.log.storage import FileStorage
 
 
+#%%
+msgs_for_frontend = defaultdict(list)
+
 app = Flask(__name__, static_folder="./docs/_static")
 CORS(app)
 
 #%%
-base_path = Path('./demo_traces')
+base_path = Path('./log')
 dir2id = {dir_name.name: idx for idx, dir_name in enumerate(base_path.iterdir())}
-#%%
-msgs_for_frontend = defaultdict(list)
+
 
 '''
 for dn, did in dir2id.items():
@@ -250,7 +251,7 @@ def upload_file():
     }), 200
 
 @app.route('/receive', methods=['POST'])
-def receive_msgs(msg):
+def receive_msgs():
     try:
         data = request.get_json()
         if not data:
@@ -258,7 +259,9 @@ def receive_msgs(msg):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    msgs_for_frontend[data["id"]] = data["msg"]
+    msgs_for_frontend[data["id"]].append(data["msg"])
+
+    print(msgs_for_frontend)
     return jsonify({"status": "success", "received": data}), 200
 
 @app.route('/', methods=['GET'])

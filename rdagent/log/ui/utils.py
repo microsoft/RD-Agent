@@ -1,37 +1,22 @@
-import typing
-import requests
-from collections import defaultdict
+import re
 from datetime import datetime, timezone
-from pathlib import Path
 
 import plotly
-
-from rdagent.log.ui.llm_st import extract_evoid, extract_loopid_func_name
-from rdagent.log.ui.qlib_report_figure import report_figure
-
-if typing.TYPE_CHECKING:
-    from rdagent.components.coder.CoSTEER.evaluators import (
-        CoSTEERSingleFeedbackDeprecated,
-    )
-    from rdagent.components.coder.factor_coder.evaluators import FactorSingleFeedback
-    from rdagent.components.coder.factor_coder.factor import (
-        FactorFBWorkspace,
-        FactorTask,
-    )
-    from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
-    from rdagent.core.experiment import Experiment
-    from rdagent.core.proposal import Hypothesis, HypothesisFeedback
+import requests
 
 
-msgs_for_frontend = defaultdict(list)
+def extract_loopid_func_name(tag):
+    """提取 Loop ID 和函数名称"""
+    match = re.search(r"Loop_(\d+)\.(\w+)\.", tag)
+    return match.groups() if match else (None, None)
 
 
 def format_pkl(
     obj: object,
     tag: str = "",
     log_trace_path: str = None,
-    url: str = "http://localhost:5000/receive",
-    headers: dict = {'Content-Type': 'application/json'},
+    url: str = "http://localhost:19899/receive",
+    headers: dict = {"Content-Type": "application/json"},
 ):
 
     ts = datetime.now(timezone.utc).isoformat()
@@ -39,9 +24,11 @@ def format_pkl(
     lp_id = lp[0] if lp and lp[0] is not None else None
 
     if "r.hypothesis generation" in tag:
+        from rdagent.core.proposal import Hypothesis
+
         h: Hypothesis = obj
         data = {
-            "id": log_trace_path,
+            "id": str(log_trace_path),
             "msg": {
                 "tag": "research.hypothesis",
                 "timestamp": ts,
@@ -57,11 +44,16 @@ def format_pkl(
                     "concise_observation": h.concise_observation,
                     "concise_knowledge": h.concise_knowledge,
                 },
-            }
+            },
         }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif "r.experiment generation" in tag or "d.load_experiment" in tag:
+        from rdagent.components.coder.factor_coder.factor import FactorTask
+        from rdagent.components.coder.model_coder.model import ModelTask
+        from rdagent.core.experiment import Experiment
+
         if "d.load_experiment" in tag:
             if isinstance(obj, Experiment):
                 tasks: list[FactorTask | ModelTask] = obj.sub_tasks
@@ -69,7 +61,7 @@ def format_pkl(
             tasks: list[FactorTask | ModelTask] = obj
         if isinstance(tasks[0], FactorTask):
             data = {
-                "id": log_trace_path,
+                "id": str(log_trace_path),
                 "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
@@ -82,11 +74,11 @@ def format_pkl(
                         }
                         for t in tasks
                     ],
-                }
+                },
             }
         elif isinstance(tasks[0], ModelTask):
             data = {
-                "id": log_trace_path,
+                "id": str(log_trace_path),
                 "msg": {
                     "tag": "research.tasks",
                     "timestamp": ts,
@@ -100,90 +92,123 @@ def format_pkl(
                         }
                         for t in tasks
                     ],
-                }
+                },
             }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif f"evo_loop_{lp_id}.evolving code" in tag:
+        from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
+        from rdagent.components.coder.model_coder.model import (
+            ModelFBWorkspace,
+            ModelTask,
+        )
+        from rdagent.core.experiment import FBWorkspace
+
         ws: list[FactorFBWorkspace | ModelFBWorkspace] = [i for i in obj]
-        data = {
-            "id": log_trace_path,
-            "msg": {
-                "tag": "evolving.codes",
-                "timestamp": ts,
-                "content": [
-                    {
-                        "target_task_name": (
-                            w.target_task.name if isinstance(w.target_task, ModelTask) else w.target_task.factor_name
-                        ),
-                        "code": w.file_dict,
-                    }
-                    for w in ws
-                    if w
-                ],
+        if all(isinstance(item, FactorFBWorkspace) for item in ws) or all(
+            isinstance(item, ModelFBWorkspace) for item in ws
+        ):
+            data = {
+                "id": str(log_trace_path),
+                "msg": {
+                    "tag": "evolving.codes",
+                    "timestamp": ts,
+                    "content": [
+                        {
+                            "target_task_name": (
+                                w.target_task.name
+                                if isinstance(w.target_task, ModelTask)
+                                else w.target_task.factor_name
+                            ),
+                            "code": w.file_dict,
+                        }
+                        for w in ws
+                        if w
+                    ],
+                },
             }
-        }
+        elif isinstance(ws[0], FBWorkspace):
+            data = {
+                "id": str(log_trace_path),
+                "msg": {
+                    "tag": "evolving.codes",
+                    "timestamp": ts,
+                    "content": [
+                        ws[0].file_dict,
+                    ],
+                },
+            }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif f"evo_loop_{lp_id}.evolving feedback" in tag:
-        fl: list[FactorSingleFeedback | CoSTEERSingleFeedbackDeprecated] = [i for i in obj]
+        from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
+        from rdagent.components.coder.factor_coder.evaluators import (
+            FactorSingleFeedback,
+        )
+
+        fl: list[FactorSingleFeedback | CoSTEERSingleFeedback] = [i for i in obj]
         data = {
-            "id": log_trace_path,
+            "id": str(log_trace_path),
             "msg": {
                 "tag": "evolving.feedbacks",
                 "timestamp": ts,
                 "content": [
                     {
                         "final_decision": f.final_decision,
-                        "final_feedback": f.final_feedback,
-                        "execution_feedback": f.execution_feedback,
-                        "code_feedback": f.code_feedback,
-                        "value_feedback": (
-                            f.value_feedback
-                            if isinstance(f, CoSTEERSingleFeedbackDeprecated)
-                            else f.factor_value_feedback
-                        ),
-                        "model_shape_feedback": (
-                            f.shape_feedback if isinstance(f, CoSTEERSingleFeedbackDeprecated) else None
-                        ),
+                        # "final_feedback": f.final_feedback,
+                        "execution": f.execution,
+                        "code": f.code,
+                        "return_checking": f.return_checking,
                     }
                     for f in fl
                     if f
                 ],
-            }
+            },
         }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif "scenario" in tag:
         data = {
-            "id": log_trace_path,
-            "msg": {"tag": "feedback.config", "timestamp": ts, "content": {"config": obj.experiment_setting}}
+            "id": str(log_trace_path),
+            "msg": {"tag": "feedback.config", "timestamp": ts, "content": {"config": obj.experiment_setting}},
         }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif "ef.Quantitative Backtesting Chart" in tag:
+        from rdagent.log.ui.qlib_report_figure import report_figure
+
         data = {
-            "id": log_trace_path,
+            "id": str(log_trace_path),
             "msg": {
                 "tag": "feedback.return_chart",
                 "timestamp": ts,
                 "content": {"chart_html": plotly.io.to_html(report_figure(obj))},
-            }
+            },
         }
+
         response = requests.post(url, json=data, headers=headers)
 
     elif "model runner result" in tag or "factor runner result" in tag or "runner result" in tag:
+        from rdagent.core.experiment import Experiment
+
         if isinstance(obj, Experiment):
             data = {
-                "id": log_trace_path,
-                "msg":     {"tag": "feedback.metric", "timestamp": ts, "content": {"result": obj.result.iloc[0]}}
+                "id": str(log_trace_path),
+                "msg": {"tag": "feedback.metric", "timestamp": ts, "content": {"result": obj.result.iloc[0]}},
             }
+
             response = requests.post(url, json=data, headers=headers)
 
     elif "ef.feedback" in tag:
+        from rdagent.core.proposal import HypothesisFeedback
+
         hf: HypothesisFeedback = obj
         data = {
-            "id": log_trace_path,
+            "id": str(log_trace_path),
             "msg": {
                 "tag": "feedback.hypothesis_feedback",
                 "timestamp": ts,
@@ -194,8 +219,9 @@ def format_pkl(
                     "decision": hf.decision,
                     "reason": hf.reason,
                 },
-            }
+            },
         }
-        response = requests.post(url, json=data, headers=headers)
-    # for msgs in msgs_for_frontend.values():
-    #     msgs.append({"tag": "END", "timestamp": ts, "content": {}})
+
+        response = requests.post(url, json=data, headers=headers, timeout=0.1)
+
+    return

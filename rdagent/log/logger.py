@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+import requests
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -132,7 +133,14 @@ class RDAgentLog(SingletonBaseClass):
             return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")
-        format_pkl(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+        
+        try:
+            flask_url = "http://127.0.0.1:19899"
+            response = requests.get(flask_url, timeout=1)
+            if response.status_code == 200:
+                format_pkl(obj=obj, tag=tag, log_trace_path=self.log_trace_path)
+        except requests.ConnectionError:
+            pass
 
         file_handler_id = logger.add(
             self.log_trace_path / tag.replace(".", "/") / "common_logs.log", format=self.file_format
