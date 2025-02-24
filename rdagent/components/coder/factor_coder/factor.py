@@ -117,7 +117,7 @@ class FactorFBWorkspace(FBWorkspace):
         - The cached information will include a tuple with the following: (execution_feedback, executed_factor_value_dataframe, Optional[Exception])
 
         """
-        super().execute()
+        self.before_execute()
         if self.file_dict is None or "factor.py" not in self.file_dict:
             if self.raise_exception:
                 raise CodeFormatError(self.FB_CODE_NOT_SET)
