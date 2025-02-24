@@ -237,30 +237,23 @@ class DSExpGen(ExpGen):
             last_successful_exp: Last successful experiment or None
             spec_file: Path to specification file if needed
         """
-        former_task_desc = (
-            trace.hist[-1][0].pending_tasks_list[0][0].get_task_information()
-            if len(trace.hist) > 0 and trace.hist[-1][0] is not last_successful_exp
-            else None
-        )
 
-        exp_and_feedback = trace.hist[-1] if len(trace.hist) > 0 else None
-        if (
-            exp_and_feedback
-            and exp_and_feedback[1].exception is not None
-            and (
-                exp_and_feedback[0].pending_tasks_list[0][0].name == component
-                or exp_and_feedback[0].pending_tasks_list[0][0].name.startswith("model_")
-                and component == "Model"
-            )
-        ):  # Assumption: when completing missing component, using component name as task name
-            former_task_desc += f"\n\nYou have tried to implement the same component and got the following exception: \n{exp_and_feedback[1].exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+        former_tasks_desc = ""
+        if len(trace.hist) > 0:
+            for exp, fb in reversed(trace.hist):
+                if exp is not last_successful_exp:
+                    former_task_desc = exp.pending_tasks_list[0][0].get_task_information()
+                    former_task_desc += f"\n\nYou have tried to implement the same component and got the following exception: \n{fb.exception}\n Please try different methods to avoid the same errors and results in an infinite loop"
+                    former_tasks_desc += former_task_desc
+                else:
+                    break
 
         resp_dict = self._init_task_gen(
             targets=component,
             scenario_desc=scenario_desc,
             spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
             task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
-            former_task=former_task_desc,
+            former_task=former_tasks_desc if former_tasks_desc else None,
         )
 
         task = task_cls(
