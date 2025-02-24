@@ -259,7 +259,7 @@ spec:
 
         3. Dataset Splitting
           - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
-          - Decide whether to use a **static train-test split** or **cross-validation**, based on what is most suitable given the `Competition Information`.
+          - Use cross-validation if possible, as it provides a more robust evaluation of the model's performance.
 
         4. Submission File:
           - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
