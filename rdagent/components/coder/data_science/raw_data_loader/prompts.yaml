@@ -204,7 +204,7 @@ spec:
           - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
         - Metric Calculation and Storage:
-          - Calculate the metric for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
+          - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
             ```python
             scores = {}
             for model_name, val_pred in val_preds_dict.items():
@@ -259,7 +259,7 @@ spec:
 
         3. Dataset Splitting
           - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
-          - Decide whether to use a **static train-test split** or **cross-validation**, based on what is most suitable given the `Competition Information`.
+          - Use cross-validation if possible, as it provides a more robust evaluation of the model's performance.
 
         4. Submission File:
           - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
