@@ -35,7 +35,10 @@ ensemble_coder:
     {% endfor %}
     {% endif %}
 
-    You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    ## Guidelines
+    1. The function's code is associated with several other functions including a data loader, feature engineering, and model training. all codes are as follows:
+    {{ all_code }}
+    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
     Please response the code in the following json format. Here is an example structure for the JSON output:

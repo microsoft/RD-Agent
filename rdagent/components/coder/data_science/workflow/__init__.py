@@ -31,7 +31,6 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        # competition_info = self.scen.competition_descriptions
         workflow_information_str = target_task.get_task_information()
 
         # 1. query
@@ -57,7 +56,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
             task_desc=workflow_information_str,
-            competition_info=self.scen.get_competition_full_desc(),
+            competition_info=self.scen.get_scenario_all_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )

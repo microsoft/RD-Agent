@@ -74,6 +74,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=(
                 queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
             ),
+            all_code=workspace.all_codes,
         )
         user_prompt = T(".prompts:ensemble_coder.user").r(
             ensemble_spec=workspace.file_dict["spec/ensemble.md"],

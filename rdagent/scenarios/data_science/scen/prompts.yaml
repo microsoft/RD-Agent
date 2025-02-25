@@ -15,6 +15,10 @@ scenario_description: |-
   {% else %}The metric is better when it is smaller.
   {% endif %}
 
+  {% if eda_output is not none %}
+  {{ eda_output }}
+  {% endif %}
+
 competition_description_template:
   system: |-
     You are a data science assistant that extracts structured information from unstructured text.
