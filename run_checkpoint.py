@@ -53,12 +53,13 @@ def continue_checkpoint(loop_idx, src, dst, n_loops):
 def run_single_checkpoint(competition, path, output_path, n_loops):
     if competition.is_dir():
         src = f"{path}/{competition.name}"
-        dst = f"{output_path}/{competition.name.replace('baseline', 'researcher')}"
+        dst = f"{output_path}/{competition.name}"
 
         first_loop, last_loop = get_valid_submission(src)
         print(f"Competition: {competition.name} | First Loop: {first_loop} | Last Loop: {last_loop} | Output Path: {dst}")
         continue_checkpoint(first_loop, src, dst, n_loops)
         continue_checkpoint(last_loop, src, dst, n_loops)
+
 
 def main():
     args = arg_parser()

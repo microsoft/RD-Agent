@@ -35,7 +35,7 @@ mkdir -p log
 for competition_id in "${competition_ids[@]}"; do
     echo "Running for competition: $competition_id"
     # Run the command in the background
-    timeout $((3*60*60)) dotenv run -- env LOG_TRACE_PATH="log/${competition_id}_baseline" python rdagent/app/data_science/loop.py --competition "$competition_id" > "log/${competition_id}_baseline.log" 2>&1 &
+    timeout $((6*60*60)) dotenv run -- env LOG_TRACE_PATH="log1/${competition_id}" python rdagent/app/data_science/loop.py --competition "$competition_id" > "log1/${competition_id}.log" 2>&1 &
     
     # Increment the active jobs counter
     active_jobs=$((active_jobs + 1))

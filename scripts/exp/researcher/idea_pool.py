@@ -45,7 +45,7 @@ class Idea:
         return json.dumps(idea_dict)
 
     def format_text(self) -> str:
-        idea_text = f'''# Idea: {self.idea}
+        idea_text = f'''## Idea: {self.idea}
 **Overview of Idea**  
 In the context of {self.idea}, the idea uses {self.method} to address a specific challenge in the machine learning workflow.
 For example, an example scenario of incorporating this idea is that {self.context}
