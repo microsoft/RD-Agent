@@ -1,7 +1,13 @@
 hypothesis_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
   Hypothesis {{ loop.index }}: {{ experiment.hypothesis }}
-  Corresponding Code (that leads to the difference in performance): {{experiment.sub_workspace_list[0].file_dict.get("model.py")}}
+  
+  Corresponding Code (that leads to the difference in performance): 
+  {% for workspace in experiment.sub_workspace_list %}
+  {% if workspace is not none %}
+  Workspace {{loop.index}}:
+  {{workspace.all_codes}}{% endif %}{% endfor %}
+
   Observation on the result with the hypothesis: {{ feedback.observations }}
   Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
   New Feedback for Context (For you to agree or improve upon):  {{ feedback.new_hypothesis }}

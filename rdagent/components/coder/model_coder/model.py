@@ -97,7 +97,7 @@ class ModelFBWorkspace(FBWorkspace):
         input_value: float = 1.0,
         param_init_value: float = 1.0,
     ):
-        super().execute()
+        self.before_execute()
         try:
             qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
             qtde.prepare()

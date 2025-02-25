@@ -48,16 +48,9 @@ class RunnerError(Exception):
     # NOTE: it corresponds to the error of whole **project**
 
 
-class FactorEmptyError(Exception):
-    """
-    Exceptions raised when no factor is generated correctly
-    """
+FactorEmptyError = CoderError  # Exceptions raised when no factor is generated correctly
 
-
-class ModelEmptyError(Exception):
-    """
-    Exceptions raised when no model is generated correctly
-    """
+ModelEmptyError = CoderError  # Exceptions raised when no model is generated correctly
 
 
 class KaggleError(Exception):
