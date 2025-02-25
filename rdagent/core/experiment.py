@@ -232,6 +232,13 @@ class FBWorkspace(Workspace):
         shutil.rmtree(self.workspace_path, ignore_errors=True)
         self.file_dict = {}
 
+    def before_execute(self) -> None:
+        """
+        Before executing the code, we need to prepare the workspace and inject code into the workspace.
+        """
+        self.prepare()
+        self.inject_files(**self.file_dict)
+
     def execute(self, env: Env, entry: str) -> str:
         """
         Before each execution, make sure to prepare and inject code.
