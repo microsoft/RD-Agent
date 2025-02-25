@@ -213,7 +213,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     with open(path, "r", encoding="utf-8") as f:
                         for i, line in enumerate(f):
-                            if i < 2:
+                            if i < 4:
                                 result.append(
                                     " " * (indent + 4) + line.strip()[:100] + ("..." if len(line.strip()) > 100 else "")
                                 )
@@ -287,9 +287,7 @@ class DataScienceScen(Scenario):
         background_prompt = background_template.r(
             task_type=self.task_type,
             data_type=self.data_type,
-            brief_description=self.brief_description,
-            dataset_description=self.dataset_description,
-            target_description=self.target_description,
+            raw_description=self.raw_description,
         )
         return background_prompt
 
