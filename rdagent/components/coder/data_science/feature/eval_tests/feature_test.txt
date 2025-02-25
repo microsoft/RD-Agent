@@ -61,8 +61,11 @@ if isinstance(X, pd.DataFrame) and isinstance(X_test, pd.DataFrame):
     assert get_column_list(X) == get_column_list(X_test), "Mismatch in column names of training and test data."
 
 if isinstance(X, pd.DataFrame):
-    X_dtypes_unique_sorted = sorted([str(dt) for dt in X.dtypes.unique()])
-    X_loaded_dtypes_unique_sorted = sorted([str(dt) for dt in X_loaded.dtypes.unique()])
+    def normalize_dtype(dtype):
+        return "numeric" if np.issubdtype(dtype, np.number) else str(dtype)
+
+    X_dtypes_unique_sorted = sorted(set(normalize_dtype(dt) for dt in X.dtypes.unique()))
+    X_loaded_dtypes_unique_sorted = sorted(set(normalize_dtype(dt) for dt in X_loaded.dtypes.unique()))
 
     X_dtypes_unique_sorted_new = [
         dt for dt in X_dtypes_unique_sorted if dt not in X_loaded_dtypes_unique_sorted and dt != "object"
