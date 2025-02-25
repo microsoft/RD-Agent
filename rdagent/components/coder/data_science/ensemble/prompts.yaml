@@ -35,6 +35,7 @@ ensemble_coder:
     {% endfor %}
     {% endif %}
 
+    Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
     You should avoid using logging module to output information in your generated code, and instead use the print() function.
 
     ## Output Format
