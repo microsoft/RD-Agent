@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -43,6 +44,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         # execute workflow
         stdout = implementation.execute(env=de, entry="coverage run main.py")
+        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         score_fp = implementation.workspace_path / "scores.csv"
         if not score_fp.exists():

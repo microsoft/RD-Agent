@@ -70,10 +70,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # mde.prepare()
 
         # Clean the scores.csv & submission.csv.
-        stdout = implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
+        implementation.execute(env=de, entry=f"rm submission.csv scores.csv")
 
-        fname = "main.py"
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout = implementation.execute(env=de, entry=f"python main.py")
+        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"

@@ -232,6 +232,7 @@ class DataScienceScen(Scenario):
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
         self.metric_direction = self._get_direction()
+        self.eda_output = None
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
@@ -306,6 +307,7 @@ class DataScienceScen(Scenario):
             submission_specifications=self.submission_specifications,
             evaluation=self.target_description,
             metric_direction=self.metric_direction,
+            eda_output=self.eda_output,
         )
 
     def get_runtime_environment(self) -> str:
