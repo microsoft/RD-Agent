@@ -28,7 +28,7 @@ spec:
     
     Your specifications should include only the function definition and docstring, without any code implementation or inline comments.
 
-    ----------- Competition Information -----------
+    ## Competition Information for This Task
     {{ competition_info }}
 
     ----------- Folder Description (All path are relative to the data folder) ---------
@@ -69,9 +69,15 @@ spec:
       4. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
         - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
+        - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
+      
+      5. Exploratory Data Analysis (EDA) part(Required):
+        - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
+        - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
+        - An evaluation agent will help to check whether the EDA part is added correctly.
 
       {% if latest_spec %}
-      5. Former Specification:
+      6. Former Specification:
         {{ latest_spec }}
         You should follow the provided specifications to improve this task.
       {% endif %}
@@ -123,6 +129,7 @@ spec:
         - Extend or adjust domain-specific transformations based on competition requirements.
         - The device has GPU support, so you can use it for feature engineering if necessary to accelerate the process.
         - Multi processing or parallel processing can be used to speed up the feature engineering process.
+        - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
       
       {% if latest_spec %}
       5. Former Specification:
@@ -229,6 +236,7 @@ spec:
       4. Notes:
         - Align `DT` (data type) definitions with those used in model specifications.
         - Ensure flexibility to handle multiple ensemble strategies based on competition requirements.
+        - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
 
       {% if latest_spec %}
       5. Former Specification:
@@ -334,7 +342,25 @@ data_loader_coder:
 
     ## Guidelines
     1. Ensure that the dataset is loaded strictly from `/kaggle/input/`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
-    3. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    
+    ## Exploratory Data Analysis (EDA) part(Required):
+    - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
+    - The EDA part should include but not limited in the following information in plain text:
+      - The shape of the data.
+      - The first 5 rows of the data.
+      - The data types of each column.
+      - The number of missing values in each column.
+      - The number of unique values in each column.
+      - The distribution of the target variable.
+      - Any other information that you think is important for the following steps.
+    - The EDA part should be drafted in plain text sending to standard output with command print or other similar functions with no more than ten thousand characters in the following schema: 
+      === Start of EDA part ===
+      { You EDA output content }
+      === End of EDA part ===
+      User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
+    - An evaluation agent will help to check whether the EDA part is added correctly.
+    - During the EDA part, you should try to avoid any irrelevant information sending to the standard output.
 
     ## Output Format
     Please response the code in the following json format. Here is an example structure for the JSON output:
@@ -398,6 +424,23 @@ data_loader_eval:
     
     ## Evaluation Criteria
     You will be given the standard output (`stdout`) from the data loader test and, if applicable, the workflow test.
+
+    ## Exploratory Data Analysis (EDA) Part evaluation
+    - The code has also generated some EDA output to help understand the data better. 
+    - The EDA part should be drafted in plain text sending to standard output with command print or other similar functions with no more than ten thousand characters in the following schema: 
+      === Start of EDA part ===
+      { You EDA output content }
+      === End of EDA part ===
+      User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
+    - The EDA part should include but not limited in the following information in plain text:
+      - The shape of the data.
+      - The first 5 rows of the data.
+      - The data types of each column.
+      - The number of missing values in each column.
+      - The number of unique values in each column.
+      - The distribution of the target variable.
+      - Any other information that you think is important for the following steps.
+     You will be given the EDA output, your job is to check whether the output contains the required and sufficient information. If no EDA output is provided, you should consider it as a failure. Put this evaluation result in the return_checking part.
     
     Your response must follow this structured JSON format:
     ```json
@@ -412,6 +455,12 @@ data_loader_eval:
   user: |-
     --------- Data loader test stdout ---------
     {{ stdout }}   
+    --------- Data loader EDA stdout ---------
+    {% if eda_output is not none %}
+    {{ eda_output }}
+    {% else %}
+    No EDA output is provided.
+    {% endif %}
     {% if workflow_stdout is not none %}
     --------- Whole workflow test stdout ---------
     {{ workflow_stdout }}
