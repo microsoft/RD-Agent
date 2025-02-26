@@ -35,5 +35,7 @@ class CoSTEERSettings(ExtendedBaseSettings):
 
     select_threshold: int = 10
 
+    max_seconds: int = 10**6
+
 
 CoSTEER_SETTINGS = CoSTEERSettings()
