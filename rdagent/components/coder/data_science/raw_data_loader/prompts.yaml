@@ -262,8 +262,9 @@ spec:
           - It should be called before dataset splitting.
 
         3. Dataset Splitting
-          - The dataset returned by `load_data` is not split into training and testing sets, so the dataset splitting should happen after calling `feat_eng`.
-          - Use cross-validation if possible, as it provides a more robust evaluation of the model's performance.
+          - The dataset returned by `load_data` is not pre-split. After calling `feat_eng`, split the data into training and test sets.
+          - If feasible, apply cross-validation on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
+          - Keep the test set (`X_test_transformed`) unchanged, as it is only used for generating the final predictions.
 
         4. Submission File:
           - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
