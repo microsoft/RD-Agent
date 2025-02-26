@@ -8,6 +8,7 @@ DIR="$(
 )"
 
 deploy() {
+  # NOTE: you should correctly configure .env
   FROM_ENV_PATH=~/repos/RD-Agent/.env
 
   latest_commit=$(git ls-remote git@github.com:microsoft/RD-Agent.git HEAD | awk '{print substr($1, 1, 10)}')
@@ -28,6 +29,10 @@ deploy() {
   cd $REPO_FOLDER
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
   unzip kaggle_data.zip -d ./kaggle_data
+
+  wget https://github.com/SunsetWolf/rdagent_resource/releases/download/reports/all_reports.zip
+  unzip all_reports.zip -d git_ignore_folder/reports
+  # rdagent fin_factor_report --report_folder=git_ignore_folder/reports
 }
 
 batch_test() {
@@ -39,11 +44,8 @@ script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commi
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent med_model" ../stdout/med_model
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent fin_factor_report --report_folder=git_ignore_folder/reports" ../stdout/fin_factor_report
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent general_model 'https://arxiv.org/pdf/2210.09789'" ../stdout/general_model
-script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition covid19-global-forecasting-week-1" ../stdout/covid19-global-forecasting-week-1
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition digit-recognizer" ../stdout/digit-recognizer
-script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition feedback-prize-english-language-learning" ../stdout/feedback-prize-english-language-learning
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition forest-cover-type-prediction" ../stdout/forest-cover-type-prediction
-script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition optiver-realized-volatility-prediction" ../stdout/optiver-realized-volatility-prediction
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition playground-series-s3e11" ../stdout/playground-series-s3e11
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition playground-series-s3e14" ../stdout/playground-series-s3e14
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition playground-series-s3e16" ../stdout/playground-series-s3e16
@@ -53,7 +55,6 @@ script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commi
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition playground-series-s4e9" ../stdout/playground-series-s4e9
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition sf-crime" ../stdout/sf-crime
 script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition spaceship-titanic" ../stdout/spaceship-titanic
-script -c ". $CONDA_PREFIX/etc/profile.d/conda.sh && conda activate latest_commit && which python && rdagent kaggle --competition statoil-iceberg-classifier-challenge" ../stdout/statoil-iceberg-classifier-challenge
 EOF
   # start the commands parallelly with  `cat cmds | tmuxr -p 20 -s rdagent-test`
 }
