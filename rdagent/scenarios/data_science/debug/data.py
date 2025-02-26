@@ -117,9 +117,10 @@ class UniqueIDDataReducer(DataReducer):
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         if not len(df):
             return df
-        
+
         if not isinstance(df, pd.DataFrame):
             return self.random_reducer.reduce(df)
+
         def is_valid_label(column):
             if not isinstance(column.iloc[0], (int, float, str, tuple, frozenset, bytes, complex, type(None))):
                 return False
@@ -132,9 +133,9 @@ class UniqueIDDataReducer(DataReducer):
 
             return True
 
-        label_col = df.iloc[:, -1]  
+        label_col = df.iloc[:, -1]
         if not is_valid_label(label_col) and df.shape[1] > 2:
-            label_col = df.iloc[:, 1]  
+            label_col = df.iloc[:, 1]
 
         if not is_valid_label(label_col):
             return self.random_reducer.reduce(df)
