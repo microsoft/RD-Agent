@@ -219,6 +219,13 @@ class FBWorkspace(Workspace):
                 relative_path = file_path.relative_to(folder_path)
                 self.inject_files(**{str(relative_path): file_path.read_text()})
 
+    def inject_code_from_file_dict(self, workspace: FBWorkspace) -> None:
+        """
+        Load the workspace from the file_dict
+        """
+        for name, code in workspace.file_dict.items():
+            self.inject_files(**{name: code})
+        
     def copy(self) -> FBWorkspace:
         """
         copy the workspace from the original one
