@@ -242,7 +242,7 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
         return exp
 
-    def gen(self, trace: DSTrace, BO_mode: bool = False, BO_step: int = 5) -> DSExperiment:
+    def gen(self, trace: DSTrace, BO_mode: bool = True, BO_step: int = 5) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
@@ -331,16 +331,23 @@ class DSExpGen(ExpGen):
                     score_list = []
                     candidate_list = []
                     for i in range(BO_step):
-                        hypothesis, task, new_workflow_desc = self.idea_propose(trace, scenario_desc, )
-                        analysis, est_score = self.idea_evaluate(trace, hypothesis, task)
+                        hypothesis, task, new_workflow_desc = self.idea_propose(trace, component, component_info, scenario_desc)
+                        analysis, est_score = self.idea_evaluate(trace, hypothesis, task, component, component_info,scenario_desc)
                         score_list.append(est_score)
                         candidate_list.append((hypothesis, task, new_workflow_desc))
-                    best_candidate = candidate_list[score_list.index(max(score_list))]
+
+                    # based on evaluation_metric_direction, select the best candidate
+                    # if trace.scen.evaluation_metric_direction:
+                    #     best_candidate = candidate_list[score_list.index(max(score_list))]
+                    # else:
+
+                    # TODO: min is only for current case, we need to change it to max when the evaluation_metric_direction is min
+                    best_candidate = candidate_list[score_list.index(min(score_list))]
                     hypothesis, task, new_workflow_desc = best_candidate
 
                 else:
                     # regular mode: generate the hypothesis & task
-                    hypothesis, task, new_workflow_desc = self.idea_propose(trace, scenario_desc, )
+                    hypothesis, task, new_workflow_desc = self.idea_propose(trace, component, component_info, scenario_desc)
                     
 
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
@@ -450,29 +457,103 @@ class DSExpGen(ExpGen):
 
         return hypothesis, task, new_workflow_desc
 
-    def idea_evaluate(self, trace, hypothesis, task) -> DSExperiment:
-        # pass the idea (hypothesis, task) to LLM to get the analysis and est_score
+    def idea_evaluate(self, trace, hypothesis, task, component, component_info,scenario_desc) -> DSExperiment:
+        # pass the proposal (hypothesis, task) to LLM to get the analysis and est_score
         # return the analysis and est_score
+        historical_attempts = []
 
-        system_prompt = T(".prompts:direct_exp_gen.system").r(
-                targets=component_info["target_name"],
-                component=component,
-                scenario=scenario_desc,
-                hypothesis_specification=T(".prompts:hypothesis_specification").r(),
-            hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-            task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
-            task_output_format=component_info["task_output_format"],
-            extra_requirement=component_info.get("extra_requirement"),
-            workflow_check=(not component == "Workflow"),
+        for exp, feedback in trace.hist:
+            if not exp.hypothesis:
+                continue
+
+                # 基本信息
+            attempt_info = {
+                "component": exp.hypothesis.component,
+                "hypothesis": exp.hypothesis.hypothesis,
+                "task_description": exp.pending_tasks_list[0][0].get_task_information() if exp.pending_tasks_list else "No task info",
+            }
+
+            score_path = exp.experiment_workspace.workspace_path / "scores.csv"
+
+            if score_path.exists():
+                try:
+                    import pandas as pd
+                    scores_df = pd.read_csv(score_path)
+                    attempt_info.update({
+                        "evaluation_scores": scores_df.to_dict()
+                    })
+                    
+                except Exception as e:
+                    print(f"Error reading scores: {str(e)}")
+                    continue
+            else:
+                continue
+
+            # Feedback 信息
+            attempt_info.update({
+                "feedback": {
+                    "observations": getattr(feedback, "observations", "No observations"),
+                    "hypothesis_evaluation": getattr(feedback, "hypothesis_evaluation", "No evaluation"),
+                    "reason": getattr(feedback, "reason", "No reason provided")
+                }
+            })
+            
+            historical_attempts.append(attempt_info)
+
+        # 生成分析提示
+        analysis_prompt = "Historical proposal-evaluation analysis:\n\n"
+        for i, attempt in enumerate(historical_attempts, 1):
+            analysis_prompt += f"""Attempt {i}:
+                    Component: {attempt['component']}
+                    Hypothesis: {attempt['hypothesis']}
+                    Task: {attempt['task_description']}
+                    Observations: {attempt['feedback']['observations']}
+                    Evaluation: {attempt['feedback']['hypothesis_evaluation']}
+                    Reason: {attempt['feedback']['reason']}
+                    Scores: {attempt['evaluation_scores']}\n\n"""
+
+
+    # 添加当前提案
+        analysis_prompt += f"""Current Proposal:
+            Component: {component}
+            Hypothesis: {hypothesis.hypothesis if hasattr(hypothesis, 'hypothesis') else str(hypothesis)}
+            Task Description: {task.get_task_information()}\n\n"""
+
+        # 获取LLM分析
+        system_prompt = T(".bo_prompts:idea_eval.system").r(
+            targets=component_info["target_name"],
+            component=component,
+            scenario=scenario_desc,
         )
 
-
-        user_prompt = T(".prompts:direct_exp_gen.user").r(
-            exp_and_feedback_desc=exp_and_feedback_desc,
-            sota_exp_desc=sota_exp_desc,
-            last_exp_diff=last_exp_diff,
-            recent_trace_desc="\n".join(recent_trace_desc),
+        user_prompt = T(".bo_prompts:idea_eval.user").r(
+            recent_trace_desc=analysis_prompt,
+            hypothesis=hypothesis.hypothesis,
+            task=task.get_task_information(),
         )
 
+        def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+            # Only modify the user_prompt on retries (i > 0)
+            user_prompt = args[0]
+            user_prompt += "\n\nretrying..."
+            return (user_prompt,), kwargs
 
+        @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+        def _f(user_prompt):
 
+            response = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True
+                )
+            )
+
+            return response
+
+        response = _f(user_prompt)
+
+        analysis = response.get("analysis", "No analysis provided")
+        estimated_score = float(response.get("estimated_score", 0.0))
+
+        return analysis, estimated_score
