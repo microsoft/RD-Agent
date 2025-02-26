@@ -61,7 +61,7 @@ class Env(Generic[ASpecificBaseModel]):
         Prepare for the environment based on it's configure
         """
 
-    def run(self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
+    def run(self, entry: str | None = None, local_path: str = ".", env: dict | None = None, **kwargs: dict) -> str:
         """
         Run the folder under the environment.
 
