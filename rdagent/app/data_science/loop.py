@@ -142,13 +142,15 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
-def main(path=None, step_n=None, loop_n=None, competition="bms-molecular-translation"):
+def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation"):
     """
 
     Parameters
     ----------
     path :
         path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop1
+    output_path :
+        path like `$LOG_PATH`. It indicates that where we want to save our session and log information.
     step_n :
         How many steps to run; if None, it will run forever until error or KeyboardInterrupt
     loop_n :
@@ -179,7 +181,7 @@ def main(path=None, step_n=None, loop_n=None, competition="bms-molecular-transla
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path)
+        kaggle_loop = DataScienceRDLoop.load(path, output_path)
     kaggle_loop.run(step_n=step_n, loop_n=loop_n)
 
 

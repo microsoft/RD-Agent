@@ -77,8 +77,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
+        score_ret_code = 0
         if not score_fp.exists():
-            stdout += "\nMetrics file (scores.csv) is not generated."
+            stdout += "\n[Error] Metrics file (scores.csv) is not generated!"
+            score_ret_code = 1
         else:
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
@@ -89,29 +91,30 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 for model in model_set_in_folder:
                     if model not in model_set_in_scores:
                         stdout += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
+                        score_ret_code = 1
             except Exception as e:
                 stdout += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_ret_code = 1
 
         # Check submission file
-        submission_fp = implementation.workspace_path / "submission.csv"
-        if not submission_fp.exists():
-            stdout += "\nSubmission file (submission.csv) is not generated."
-        else:
-            base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
-            implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
-            # stdout += "----Submission Check 1-----\n"
-            stdout += implementation.execute(env=de, entry="python test/submission_format_test.py")
+        base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
+        implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
+        # stdout += "----Submission Check 1-----\n"
+        submission_stdout, submission_ret_code = implementation.execute_ret_code(
+            env=de, entry="python test/submission_format_test.py"
+        )
+        stdout += submission_stdout
 
-            # MLEBench Check
-            # !!! Since we are running on a sampled dataset, mlebench check is not required.
-            # mle_check_code = (
-            #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
-            #     .read_text()
-            #     .replace("<competition_id>", self.scen.competition)
-            # )
-            # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-            # stdout += "----Submission Check 2-----\n"
-            # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
+        # MLEBench Check
+        # !!! Since we are running on a sampled dataset, mlebench check is not required.
+        # mle_check_code = (
+        #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
+        #     .read_text()
+        #     .replace("<competition_id>", self.scen.competition)
+        # )
+        # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+        # stdout += "----Submission Check 2-----\n"
+        # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -122,6 +125,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
-        return build_cls_from_json_with_retry(
+        wfb = build_cls_from_json_with_retry(
             WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
         )
+        wfb.final_decision = wfb.final_decision and submission_ret_code == 0 and score_ret_code == 0
+        return wfb

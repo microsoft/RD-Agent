@@ -98,7 +98,7 @@ feature_eval:
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe how well the feature engineering executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the feature engineering executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Evaluate the correctness and integrity of processed data, checking for missing values, incorrect transformations, and data consistency.",
         "code": "Assess code quality, readability, and adherence to specifications. Consider efficiency, including whether the code utilizes multi-threading or GPU acceleration for optimization.",
         "final_decision": <true/false>

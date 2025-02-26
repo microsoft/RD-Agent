@@ -90,12 +90,13 @@ ensemble_eval:
     {% endif %}
 
     ## Evaluation Criteria
-    You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.
+    - You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.
+    - Code should have no try-except blocks because they can hide errors.
     
     Please respond with your feedback in the following JSON format and order
     ```json
     {
-        "execution": "Describe how well the ensemble executed, including any errors or issues encountered. Retain all error messages and traceback details.",
+        "execution": "Describe how well the ensemble executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Detail the checks performed on the ensemble results, including shape and value validation.",
         "code": "Assess code quality, readability, and adherence to specifications.",
         "final_decision": <true/false>

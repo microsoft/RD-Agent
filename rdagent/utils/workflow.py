@@ -14,7 +14,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, Optional, TypeVar, Union, cast
 
 from tqdm.auto import tqdm
 
@@ -161,10 +161,18 @@ class LoopBase:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "LoopBase":
+    def load(cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
+
+        # set session folder
+        if output_path:
+            output_path = Path(output_path)
+            output_path.mkdir(parents=True, exist_ok=True)
+            session.session_folder = output_path / "__session__"
+
+        # set trace path
         logger.set_trace_path(session.session_folder.parent)
 
         max_loop = max(session.loop_trace.keys())
