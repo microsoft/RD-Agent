@@ -204,14 +204,18 @@ spec:
           - Verify that `val_label` is provided and matches the length of `val_preds_dict` predictions.
           - Handle empty or invalid inputs gracefully with appropriate error messages.
         - Metric Calculation and Storage:
-          - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy, and save the results in `scores.csv`, e.g.:
+          - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`, e.g.:
             ```python
             scores = {}
             for model_name, val_pred in val_preds_dict.items():
                 scores[model_name] = calculate_metric(val_label, val_pred)
             
-            # ... some code about ensemble strategy ...
-            ensemble_score = calculate_metric(val_label, ensemble_pred)
+            ...
+            some code about ensemble strategy
+            ...
+            ensemble_val_pred = ...
+
+            ensemble_score = calculate_metric(val_label, ensemble_val_pred)
             scores["ensemble"] = ensemble_score  # Ensure "ensemble" is explicitly stored
             
             scores_df = pd.DataFrame(scores.items(), columns=["Model", <metric_name>])
