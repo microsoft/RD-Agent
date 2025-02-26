@@ -1,6 +1,7 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
 import json
+import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -58,9 +59,15 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
         stdout = implementation.execute(env=de, entry=f"python {fname}")
+        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
+        stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
+        stdout = stdout_part_1 + stdout_part_2
+        if eda_output is not None and len(eda_output.split(" ")) > 10000:
+            eda_output += "Length of EDA output is too long, truncated. Please reject this implementation and motivate it to reduce the length of EDA output."
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
 
@@ -73,6 +80,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         )
         user_prompt = T(".prompts:data_loader_eval.user").r(
             stdout=stdout,
+            eda_output=eda_output,
             workflow_stdout=workflow_stdout,
         )
 

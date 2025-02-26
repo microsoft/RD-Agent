@@ -5,6 +5,9 @@ model_coder:
 
     ## Task Description
     {{ task_desc }}
+    
+    ## Competition Information for This Task
+    {{ competition_info }}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     ## Relevant Information for This Task
