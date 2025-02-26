@@ -1,4 +1,5 @@
 import pickle
+from datetime import datetime
 from pathlib import Path
 
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
@@ -35,6 +36,7 @@ class CoSTEER(Developer[Experiment]):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.max_loop = settings.max_loop if max_loop is None else max_loop
+        self.max_seconds = settings.max_seconds
         self.knowledge_base_path = (
             Path(settings.knowledge_base_path) if settings.knowledge_base_path is not None else None
         )
@@ -96,11 +98,14 @@ class CoSTEER(Developer[Experiment]):
             knowledge_self_gen=self.knowledge_self_gen,
         )
 
+        start_datetime = datetime.now()
         for evo_exp in self.evolve_agent.multistep_evolve(evo_exp, self.evaluator):
             assert isinstance(evo_exp, Experiment)  # multiple inheritance
             logger.log_object(evo_exp.sub_workspace_list, tag="evolving code")
             for sw in evo_exp.sub_workspace_list:
                 logger.info(f"evolving code workspace: {sw}")
+            if (datetime.now() - start_datetime).seconds > self.max_seconds:
+                break
 
         if self.with_feedback and self.filter_final_evo:
             evo_exp = self._exp_postprocess_by_feedback(evo_exp, self.evolve_agent.evolving_trace[-1].feedback)

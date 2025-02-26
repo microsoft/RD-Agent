@@ -85,7 +85,6 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                     evolving_trace=self.evolving_trace,
                     queried_knowledge=queried_knowledge,
                 )
-                yield evo  # yield the control to caller for process control and logging.
 
                 # 4. Pack evolve results
                 es = EvoStep(evo, queried_knowledge)
@@ -99,6 +98,8 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
 
                 # 6. update trace
                 self.evolving_trace.append(es)
+
+                yield evo  # yield the control to caller for process control and logging.
 
                 # 7. check if all tasks are completed
                 if self.with_feedback and es.feedback:

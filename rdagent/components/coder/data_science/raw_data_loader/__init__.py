@@ -25,7 +25,6 @@ File structure
 import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -35,8 +34,8 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
-    CoSTEERQueriedKnowledgeV2,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -187,9 +186,10 @@ class DataLoaderCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
             DataLoaderCoSTEEREvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = DataLoaderMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+        es = DataLoaderMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)

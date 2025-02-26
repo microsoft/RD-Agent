@@ -1,10 +1,4 @@
-import json
-from pathlib import Path
-
-from jinja2 import Environment, StrictUndefined
-
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -15,6 +9,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.model.eval import (
     ModelGeneralCaseSpecEvaluator,
 )
@@ -133,10 +128,11 @@ class ModelCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
             ModelGeneralCaseSpecEvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         # eva = ModelGeneralCaseSpecEvaluator(scen=scen)
-        es = ModelMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+        es = ModelMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
