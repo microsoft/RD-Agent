@@ -66,6 +66,7 @@ coverage.xml
 # Django stuff:
 *.log
 /log/
+/log_checkpoint/
 /log_baseline/
 /log_researcher/
 local_settings.py
