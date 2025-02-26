@@ -267,7 +267,8 @@ class DSExpGen(ExpGen):
 
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(component))
         if last_successful_exp:
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
+            # exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
 
     def gen(self, trace: DSTrace) -> DSExperiment:
@@ -449,7 +450,8 @@ class DSExpGen(ExpGen):
                 hypothesis, task, new_workflow_desc = _f(user_prompt)
 
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
                 if new_workflow_desc != "No update needed":
                     workflow_task = WorkflowTask(
