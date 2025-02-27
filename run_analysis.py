@@ -4,11 +4,20 @@ import re
 import pandas as pd
 from rdagent.app.data_science.loop import DataScienceRDLoop
 
+
+def arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root_path", type=str, required=True, help="Root path that containing log_checkpoint, log_baseline, log_researcher.")
+    parser.add_argument("--output_path", type=str, required=True, help="Path to save the final results.")
+    return parser.parse_args()
+
+
 def group_result_table(result_table, priority):
     df = pd.DataFrame(result_table)
     df = df.groupby(priority, as_index=False).agg({"Score": "mean"})
     df = df.sort_values(by=priority, ascending=[True] * len(priority))
     return df
+
 
 def get_last_step(session_path):
     steps = os.listdir(session_path)
@@ -20,11 +29,13 @@ def get_last_step(session_path):
             step = s
     return step
 
+
 def get_mle_score(session_path):
     kaggle_loop = DataScienceRDLoop.load(session_path)
     if kaggle_loop.trace.hist:
         return kaggle_loop.trace.hist[-1][0].result
     return None
+
 
 def analyze_single_competition(competition_path, loop_idx):
     session_path = f"{competition_path}/__session__/{loop_idx}"
@@ -35,6 +46,7 @@ def analyze_single_competition(competition_path, loop_idx):
     except:
         mle_score = None
     return {"Loop Index": loop_idx, "Score": mle_score}
+
 
 def analyze_single_folder(log_path):
     result_table = []
@@ -61,6 +73,7 @@ def analyze_single_folder(log_path):
             result_table.append(comp_result)
     return result_table
 
+
 def filter_checkpoint_rows(df):
     df = df.copy()
     df['Loop Index'] = df['Loop Index'].astype(int)
@@ -79,6 +92,7 @@ def filter_checkpoint_rows(df):
             return row['Loop Index'] in valid_set
         return False
     return df[df.apply(keep_row, axis=1)]
+
 
 def aggregate_results(df):
     grouped = df.groupby(["Competition", "Loop Index", "Type"], as_index=False)
@@ -102,31 +116,30 @@ def aggregate_results(df):
     agg_df = agg_df[["Competition", "Loop Index", "Type", "average_score", "score increment", "success_rate"]]
     return agg_df
 
-def arg_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log_path", type=str, default="/data/userdata/v-xuminrui/RD-Agent", help="Path containing log_checkpoint, log_baseline, log_researcher.")
-    return parser.parse_args()
 
 def main():
     args = arg_parser()
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     result_table = []
     log_dict = {"checkpoint": [], "baseline": [], "researcher": []}
-    for f in os.scandir(args.log_path):
+    for f in os.scandir(args.root_path):
         if f.is_dir():
             for key in log_dict:
                 if key in f.name:
                     log_dict[key].append(f.name)
     for key in log_dict:
         for name in log_dict[key]:
-            log_path = f"{args.log_path}/{name}"
+            log_path = f"{args.root_path}/{name}"
             print(f"Processing {log_path}")
             result_table.extend(analyze_single_folder(log_path))
     result_df = group_result_table(result_table, ["Competition", "Loop Index", "Type", "Index"])
-    result_df.to_excel("results.xlsx", index=False)
+    result_df.to_csv(f"{args.output_path}/results.csv", index=False)
     filtered_df = filter_checkpoint_rows(result_df)
-    filtered_df.to_excel("results_filtered.xlsx", index=False)
+    filtered_df.to_csv(f"{args.output_path}/results_filtered.csv", index=False)
     agg_df = aggregate_results(filtered_df)
-    agg_df.to_excel("aggregated_results.xlsx", index=False)
+    agg_df.to_csv(f"{args.output_path}/aggregated_results.csv", index=False)
+
 
 if __name__ == "__main__":
     main()
