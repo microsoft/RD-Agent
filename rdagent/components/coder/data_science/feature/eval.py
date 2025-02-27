@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -60,6 +61,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
 

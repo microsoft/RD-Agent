@@ -14,7 +14,6 @@ File structure
 import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -25,6 +24,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.ensemble.eval import EnsembleCoSTEEREvaluator
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.core.exception import CoderError
@@ -74,6 +74,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=(
                 queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
             ),
+            all_code=workspace.all_codes,
         )
         user_prompt = T(".prompts:ensemble_coder.user").r(
             ensemble_spec=workspace.file_dict["spec/ensemble.md"],
@@ -122,7 +123,8 @@ class EnsembleCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(EnsembleCoSTEEREvaluator(scen=scen), scen=scen)
-        es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+        es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
