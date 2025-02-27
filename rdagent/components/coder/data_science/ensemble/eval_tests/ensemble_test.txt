@@ -68,6 +68,8 @@ for key in val_preds_dict.keys():
     else:
         print(f"Model {key} test predictions (test_preds_dict[key]) shape: {test_preds_dict[key].shape}")
 
+print(f"val_y.shape: {val_y.shape}" if not isinstance(val_y, list) else f"val_y(list)'s length: {len(val_y)}")
+
 # Run ensemble
 final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
 
