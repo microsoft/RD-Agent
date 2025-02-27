@@ -64,7 +64,6 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
 module = "llama"
-follow_imports=skip
 
 [tool.pytest.ini_options]
 addopts = "-l -s --durations=0"
