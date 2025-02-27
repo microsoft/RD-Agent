@@ -18,7 +18,7 @@ from rdagent.utils import filter_progress_bar
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
-    from rdagent.core.proposal import ExperimentFeedback, Hypothesis
+    from rdagent.core.proposal import Hypothesis
     from rdagent.utils.env import Env
 
 """
@@ -225,7 +225,7 @@ class FBWorkspace(Workspace):
         """
         for name, code in workspace.file_dict.items():
             self.inject_files(**{name: code})
-        
+
     def copy(self) -> FBWorkspace:
         """
         copy the workspace from the original one

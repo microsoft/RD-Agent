@@ -273,7 +273,7 @@ class APIBackend(ABC):
         logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
         return resp
 
-    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[Any] | Any:  # type: ignore[no-untyped-def]
+    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[list[float]]:  # type: ignore[no-untyped-def]
         input_content_list = [input_content] if isinstance(input_content, str) else input_content
         resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             input_content_list=input_content_list,
@@ -281,9 +281,7 @@ class APIBackend(ABC):
             *args,
             **kwargs,
         )
-        if isinstance(input_content, str):
-            return resp[0]
-        return resp
+        return resp  # type: ignore[return-value]
 
     def build_messages_and_calculate_token(
         self,
@@ -307,7 +305,7 @@ class APIBackend(ABC):
         embedding: bool = False,
         *args,
         **kwargs,
-    ) -> str | list[float]:
+    ) -> str | list[list[float]]:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         for i in range(max_retry):
@@ -338,8 +336,8 @@ class APIBackend(ABC):
         messages: list[dict[str, Any]],
         add_json_in_prompt: bool = False,
         json_mode: bool = False,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[str, str | None]:
         """
         add json related content in the prompt if add_json_in_prompt is True
@@ -350,7 +348,7 @@ class APIBackend(ABC):
                 if message["role"] == LLM_SETTINGS.system_prompt_role:
                     # NOTE: assumption: systemprompt is always the first message
                     break
-        return self._create_chat_completion_inner_function(messages=messages, json_mode=json_mode, *args, **kwargs)
+        return self._create_chat_completion_inner_function(messages=messages, json_mode=json_mode, *args, **kwargs)  # type: ignore[misc]
 
     def _create_chat_completion_auto_continue(
         self,
@@ -403,7 +401,9 @@ class APIBackend(ABC):
             new_messages.append({"role": "assistant", "content": response})
         raise RuntimeError("Failed to continue the conversation after 3 retries.")
 
-    def _create_embedding_with_cache(self, input_content_list: list[str], *args, **kwargs):
+    def _create_embedding_with_cache(
+        self, input_content_list: list[str], *args: Any, **kwargs: Any
+    ) -> list[list[float]]:
         content_to_embedding_dict = {}
         filtered_input_content_list = []
         if self.use_embedding_cache:
@@ -422,7 +422,7 @@ class APIBackend(ABC):
                 content_to_embedding_dict[filtered_input_content_list[index]] = data
             if self.dump_embedding_cache:
                 self.cache.embedding_set(content_to_embedding_dict)
-        return [content_to_embedding_dict[content] for content in input_content_list]
+        return [content_to_embedding_dict[content] for content in input_content_list]  # type: ignore[misc]
 
     @abstractmethod
     def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
@@ -434,7 +434,7 @@ class APIBackend(ABC):
     @abstractmethod
     def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
         self, input_content_list: list[str], *args, **kwargs
-    ) -> list[Any]:  # noqa: ARG002
+    ) -> list[list[float]]:  # noqa: ARG002
         """
         Call the embedding function
         """

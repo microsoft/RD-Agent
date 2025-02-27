@@ -40,17 +40,12 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
-        self, input_content_list: list[str], *args, **kwargs
-    ) -> list[Any]:  # noqa: ARG002
+    def _create_embedding_inner_function(
+        self, input_content_list: list[str], *args: Any, **kwargs: Any
+    ) -> list[list[float]]:  # noqa: ARG002
         """
         Call the embedding function
         """
-
-        single_input = False
-        if isinstance(input_content_list, str):
-            input_content_list = [input_content_list]
-            single_input = True
         response_list = []
         for input_content_iter in input_content_list:
             model_name = LITELLM_SETTINGS.embedding_model or "azure/text-embedding-3-small"
@@ -61,11 +56,10 @@ class LiteLLMAPIBackend(APIBackend):
             response = embedding(
                 model=model_name,
                 input=input_content_iter,
+                *args,
                 **kwargs,
             )
             response_list.append(response.data[0]["embedding"])
-        if single_input:
-            return response_list[0]
         return response_list
 
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
@@ -101,4 +95,4 @@ class LiteLLMAPIBackend(APIBackend):
             f"{LogColors.BLUE}assistant:{LogColors.END} {str(response.choices[0].message.content)}", tag="debug_llm"
         )
 
-        return str(response.choices[0].message.content)
+        return str(response.choices[0].message.content), None

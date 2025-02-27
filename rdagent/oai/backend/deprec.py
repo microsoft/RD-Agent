@@ -153,7 +153,7 @@ class DeprecBackend(APIBackend):
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
-            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
+            self.chat_model = LLM_SETTINGS.chat_model
             self.encoder = None
         elif LLM_SETTINGS.chat_use_azure_deepseek:
             self.client = ChatCompletionsClient(
@@ -262,7 +262,7 @@ class DeprecBackend(APIBackend):
 
     def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
         self, input_content_list: list[str], *args, **kwargs
-    ) -> list[Any]:  # noqa: ARG002
+    ) -> list[list[float]]:  # noqa: ARG002
         content_to_embedding_dict = {}
         for sliced_filtered_input_content_list in [
             input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
