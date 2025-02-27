@@ -60,11 +60,11 @@ enable_error_code = [
 explicit_package_bases = true
 warn_return_any = true
 warn_unused_ignores = true
-follow_imports=skip
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
 module = "llama"
+follow_imports=skip
 
 [tool.pytest.ini_options]
 addopts = "-l -s --durations=0"
