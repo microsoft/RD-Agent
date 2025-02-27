@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from rdagent.core.evaluation import EvaluableObj
 from rdagent.core.knowledge_base import KnowledgeBase
 
 if TYPE_CHECKING:
@@ -28,14 +29,11 @@ class EvolvingKnowledgeBase(KnowledgeBase):
         raise NotImplementedError
 
 
-class EvolvableSubjects:
+class EvolvableSubjects(EvaluableObj):
     """The target object to be evolved"""
 
     def clone(self) -> EvolvableSubjects:
         return copy.deepcopy(self)
-
-
-class QlibEvolvableSubjects(EvolvableSubjects): ...
 
 
 @dataclass
@@ -52,7 +50,7 @@ class EvoStep:
 
     evolvable_subjects: EvolvableSubjects
     queried_knowledge: QueriedKnowledge | None = None
-    feedback: Feedback | list[Feedback] | None = None
+    feedback: Feedback | None = None
 
 
 class EvolvingStrategy(ABC):

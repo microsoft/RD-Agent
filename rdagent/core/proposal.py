@@ -58,12 +58,15 @@ class Hypothesis:
 class ExperimentFeedback(Feedback):
     def __init__(
         self,
-        decision: bool,
         reason: str,
+        *,
+        decision: bool,
         exception: Exception | None = None,
     ) -> None:
         self.decision = decision
         self.reason = reason
+        # Exception is not None means failing to generate runnable experiments due to exception.
+        # Runable reuslts are not always good.
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )
@@ -89,9 +92,10 @@ class HypothesisFeedback(ExperimentFeedback):
         hypothesis_evaluation: str,
         new_hypothesis: str,
         reason: str,
+        *,
         decision: bool,
     ) -> None:
-        super().__init__(decision, reason)
+        super().__init__(reason, decision=decision)
         self.observations = observations
         self.hypothesis_evaluation = hypothesis_evaluation
         self.new_hypothesis = new_hypothesis

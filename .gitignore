@@ -66,6 +66,7 @@ coverage.xml
 # Django stuff:
 *.log
 /log/
+log*/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -111,7 +112,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.env*
 .venv
 ^env/
 venv/
@@ -172,3 +173,4 @@ mlruns/
 *.out
 *.sh
 .aider*
+rdagent/app/benchmark/factor/example.json

@@ -5,6 +5,7 @@ from rdagent.components.coder.factor_coder.evaluators import FactorEvaluatorForC
 from rdagent.components.coder.factor_coder.evolving_strategy import (
     FactorMultiProcessEvolvingStrategy,
 )
+from rdagent.core.experiment import Experiment
 from rdagent.core.scenario import Scenario
 
 
@@ -20,3 +21,11 @@ class FactorCoSTEER(CoSTEER):
         es = FactorMultiProcessEvolvingStrategy(scen=scen, settings=FACTOR_COSTEER_SETTINGS)
 
         super().__init__(*args, settings=setting, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+
+    def develop(self, exp: Experiment) -> Experiment:
+        try:
+            exp = super().develop(exp)
+        finally:
+            es = self.evolve_agent.evolving_trace[-1]
+            exp.prop_dev_feedback = es.feedback
+        return exp

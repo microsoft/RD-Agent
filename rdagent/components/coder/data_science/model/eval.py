@@ -62,7 +62,7 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        fname = "model_test.py"
+        fname = "test/model_test.py"
         test_code = (
             (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
         )  # only check the model changed this time
@@ -76,12 +76,14 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
 
         system_prompt = T(".prompts:model_eval.system").r(
             task_desc=target_task.get_task_information(),
             test_code=test_code,
+            code=implementation.file_dict[f"{target_task.name}.py"],
             scenario=self.scen.get_scenario_all_desc(),
             spec=implementation.file_dict["spec/model.md"],
             workflow_stdout=workflow_stdout,
@@ -89,7 +91,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         user_prompt = T(".prompts:model_eval.user").r(
             stdout=stdout,
-            code=implementation.file_dict[f"{target_task.name}.py"],
             workflow_stdout=workflow_stdout,
         )
         return build_cls_from_json_with_retry(ModelSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt)

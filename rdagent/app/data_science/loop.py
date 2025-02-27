@@ -5,19 +5,24 @@ import fire
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble import EnsembleCoSTEER
+from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature import FeatureCoSTEER
+from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model import ModelCoSTEER
+from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
+from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
-from rdagent.core.proposal import ExperimentFeedback, HypothesisFeedback
+from rdagent.core.proposal import ExperimentFeedback
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
-from rdagent.scenarios.data_science.dev.runner import DSRunner
+from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
@@ -49,7 +54,7 @@ class DataScienceRDLoop(RDLoop):
         self.ensemble_coder = EnsembleCoSTEER(scen)
         self.workflow_coder = WorkflowCoSTEER(scen)
 
-        self.runner = DSRunner(scen)
+        self.runner = DSCoSTEERRunner(scen)
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
@@ -70,15 +75,15 @@ class DataScienceRDLoop(RDLoop):
         exp = prev_out["direct_exp_gen"]
         for tasks in exp.pending_tasks_list:
             exp.sub_tasks = tasks
-            if exp.hypothesis.component == "DataLoadSpec":
+            if isinstance(exp.sub_tasks[0], DataLoaderTask):
                 exp = self.data_loader_coder.develop(exp)
-            elif exp.hypothesis.component == "FeatureEng":
+            elif isinstance(exp.sub_tasks[0], FeatureTask):
                 exp = self.feature_coder.develop(exp)
-            elif exp.hypothesis.component == "Model":
+            elif isinstance(exp.sub_tasks[0], ModelTask):
                 exp = self.model_coder.develop(exp)
-            elif exp.hypothesis.component == "Ensemble":
+            elif isinstance(exp.sub_tasks[0], EnsembleTask):
                 exp = self.ensemble_coder.develop(exp)
-            elif exp.hypothesis.component == "Workflow":
+            elif isinstance(exp.sub_tasks[0], WorkflowTask):
                 exp = self.workflow_coder.develop(exp)
             else:
                 raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
@@ -88,18 +93,24 @@ class DataScienceRDLoop(RDLoop):
 
     def running(self, prev_out: dict[str, Any]):
         exp: DSExperiment = prev_out["coding"]
-        if exp.next_component_required() is None:
+        if exp.is_ready_to_run():
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             return new_exp
-        else:
-            return exp
+        return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
+        """
+        Assumption:
+        - If we come to feedback phase, the previous development steps are successful.
+        """
         exp: DSExperiment = prev_out["running"]
-        if exp.next_component_required() is None:
+        if self.trace.next_incomplete_component() is None:
+            # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
+            # So we need feedback for the proposal.
             feedback = self.summarizer.generate_feedback(exp, self.trace)
         else:
+            # Otherwise, it is on drafting stage, don't need complicated feedbacks.
             feedback = ExperimentFeedback(
                 reason=f"{exp.hypothesis.component} is completed.",
                 decision=True,
@@ -118,11 +129,12 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
-                trace_exp_next_component_list = [
-                    exp.next_component_required() for exp, _ in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]
-                ]
-                if None not in trace_exp_next_component_list and len(set(trace_exp_next_component_list)) == 1:
+            if self.trace.sota_experiment() is None and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+                # if {in inital/drafting stage} and {tried enough times}
+                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                    if fb:
+                        break  # any success will stop restarting.
+                else:  # otherwise restart it
                     logger.error("Consecutive errors reached the limit. Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
@@ -130,15 +142,21 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
-def main(path=None, step_n=None, competition="bms-molecular-translation"):
+def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation"):
     """
 
     Parameters
     ----------
     path :
         path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop1
+    output_path :
+        path like `$LOG_PATH`. It indicates that where we want to save our session and log information.
     step_n :
         How many steps to run; if None, it will run forever until error or KeyboardInterrupt
+    loop_n :
+        How many loops to run; if None, it will run forever until error or KeyboardInterrupt
+        - if current loop is incomplete, it will be counted as the first loop for completion.
+        - if both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
 
 
@@ -163,8 +181,8 @@ def main(path=None, step_n=None, competition="bms-molecular-translation"):
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path)
-    kaggle_loop.run(step_n=step_n)
+        kaggle_loop = DataScienceRDLoop.load(path, output_path)
+    kaggle_loop.run(step_n=step_n, loop_n=loop_n)
 
 
 if __name__ == "__main__":

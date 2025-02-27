@@ -7,6 +7,8 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.experiment import FBWorkspace
+from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
@@ -19,7 +21,7 @@ de = DockerEnv(conf=mle_de_conf)
 de.prepare()
 
 
-def extract_mle_json(log_content):
+def extract_mle_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
     if match:
         return json.loads(match.group(0))
@@ -40,9 +42,13 @@ def save_grade_info(log_trace_path: Path):
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
 
 
+def is_valid_session(p: Path) -> bool:
+    return p.is_dir() and p.joinpath("__session__").exists()
+
+
 def save_all_grade_info(log_folder):
     for log_trace_path in log_folder.iterdir():
-        if log_trace_path.is_dir():
+        if is_valid_session(log_trace_path):
             save_grade_info(log_trace_path)
 
 
@@ -50,19 +56,44 @@ def summarize_folder(log_folder: Path):
     log_folder = Path(log_folder)
     stat = defaultdict(dict)
     for log_trace_path in log_folder.iterdir():  # One log trace
-        if not log_trace_path.is_dir():
+        if not is_valid_session(log_trace_path):
             continue
         loop_num = 0
         made_submission_num = 0
+        valid_submission_num = 0
+        above_median_num = 0
+        get_medal_num = 0
+        bronze_num = 0
+        silver_num = 0
+        gold_num = 0
         test_scores = {}
         valid_scores = {}
-        medal = "None"
+        bronze_threshold = 0.0
+        silver_threshold = 0.0
+        gold_threshold = 0.0
+        median_threshold = 0.0
         success_loop_num = 0
 
+        sota_exp_stat = ""
+        sota_exp_score = None
+        grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
                     stat[log_trace_path.name]["competition"] = msg.content
+
+                    # get threshold scores
+                    workflowexp = FBWorkspace()
+                    stdout = workflowexp.execute(
+                        env=de,
+                        entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
+                    )
+                    grade_output = extract_mle_json(stdout)
+                    if grade_output:
+                        bronze_threshold = grade_output["bronze_threshold"]
+                        silver_threshold = grade_output["silver_threshold"]
+                        gold_threshold = grade_output["gold_threshold"]
+                        median_threshold = grade_output["median_threshold"]
 
                 if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
                     loop_num += 1
@@ -80,27 +111,61 @@ def summarize_folder(log_folder: Path):
                                     f"mle_score.txt in {grade_output_path} not found, genarate it first!"
                                 )
                             grade_output = extract_mle_json(grade_output_path.read_text())
-                            if grade_output and grade_output["score"] is not None:
-                                test_scores[loop_num - 1] = grade_output["score"]
+                            if grade_output:
+                                if grade_output["score"] is not None:
+                                    test_scores[loop_num - 1] = grade_output["score"]
+                                if grade_output["valid_submission"]:
+                                    valid_submission_num += 1
+                                if grade_output["above_median"]:
+                                    above_median_num += 1
                                 if grade_output["any_medal"]:
-                                    medal = (
-                                        "gold"
-                                        if grade_output["gold_medal"]
-                                        else "silver" if grade_output["silver_medal"] else "bronze"
-                                    )
+                                    get_medal_num += 1
+                                if grade_output["bronze_medal"]:
+                                    bronze_num += 1
+                                if grade_output["silver_medal"]:
+                                    silver_num += 1
+                                if grade_output["gold_medal"]:
+                                    gold_num += 1
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
-                    if bool(msg.content):
+                    if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
                         success_loop_num += 1
+
+                        if grade_output:  # sota exp's grade output
+                            if grade_output["gold_medal"]:
+                                sota_exp_stat = "gold"
+                            elif grade_output["silver_medal"]:
+                                sota_exp_stat = "silver"
+                            elif grade_output["bronze_medal"]:
+                                sota_exp_stat = "bronze"
+                            elif grade_output["above_median"]:
+                                sota_exp_stat = "above_median"
+                            elif grade_output["valid_submission"]:
+                                sota_exp_stat = "valid_submission"
+                            elif grade_output["submission_exists"]:
+                                sota_exp_stat = "made_submission"
+                            if grade_output["score"] is not None:
+                                sota_exp_score = grade_output["score"]
 
         stat[log_trace_path.name].update(
             {
                 "loop_num": loop_num,
                 "made_submission_num": made_submission_num,
+                "valid_submission_num": valid_submission_num,
+                "above_median_num": above_median_num,
+                "get_medal_num": get_medal_num,
+                "bronze_num": bronze_num,
+                "silver_num": silver_num,
+                "gold_num": gold_num,
                 "test_scores": test_scores,
                 "valid_scores": valid_scores,
-                "medal": medal,
                 "success_loop_num": success_loop_num,
+                "sota_exp_stat": sota_exp_stat,
+                "sota_exp_score": sota_exp_score,
+                "bronze_threshold": bronze_threshold,
+                "silver_threshold": silver_threshold,
+                "gold_threshold": gold_threshold,
+                "median_threshold": median_threshold,
             }
         )
     if (log_folder / "summary.pkl").exists():

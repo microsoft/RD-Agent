@@ -38,6 +38,10 @@ def get_column_list(data):
     return data.columns.tolist() if isinstance(data, pd.DataFrame) else None
 
 
+assert X is not None, "The feature engineering function returned None for X."
+assert y is not None, "The feature engineering function returned None for y."
+assert X_test is not None, "The feature engineering function returned None for X_test."
+
 assert get_length(X_test) == get_length(
     test_ids
 ), f"Mismatch in length of test images and test IDs: X_test ({get_length(X_test)}) and test_ids ({get_length(test_ids)})"
@@ -57,14 +61,19 @@ if isinstance(X, pd.DataFrame) and isinstance(X_test, pd.DataFrame):
     assert get_column_list(X) == get_column_list(X_test), "Mismatch in column names of training and test data."
 
 if isinstance(X, pd.DataFrame):
-    X_dtypes_unique_sorted = sorted(X.dtypes.unique().tolist())
-    X_loaded_dtypes_unique_sorted = sorted(X_loaded.dtypes.unique().tolist())
+    def normalize_dtype(dtype):
+        return "numeric" if np.issubdtype(dtype, np.number) else str(dtype)
+
+    X_dtypes_unique_sorted = sorted(set(normalize_dtype(dt) for dt in X.dtypes.unique()))
+    X_loaded_dtypes_unique_sorted = sorted(set(normalize_dtype(dt) for dt in X_loaded.dtypes.unique()))
+
+    X_dtypes_unique_sorted_new = [
+        dt for dt in X_dtypes_unique_sorted if dt not in X_loaded_dtypes_unique_sorted and dt != "object"
+    ]
     assert (
-        len(X_loaded_dtypes_unique_sorted) == 1
-        and (X_loaded_dtypes_unique_sorted[0] == np.float64 or X_loaded_dtypes_unique_sorted[0] == np.float32)
-    ) or (
-        X_dtypes_unique_sorted == X_loaded_dtypes_unique_sorted
+        np.dtypes.ObjectDType in X_loaded_dtypes_unique_sorted or len(X_dtypes_unique_sorted_new) == 0
     ), f"feature engineering has produced new data types which is not allowed, data loader data types are {X_loaded_dtypes_unique_sorted} and feature engineering data types are {X_dtypes_unique_sorted}"
+
 
 print(
     "Feature Engineering test passed successfully. All checks including length, width, and data types have been validated."

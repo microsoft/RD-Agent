@@ -16,9 +16,27 @@ from load_data import load_data
 from feature import feat_eng
 from ensemble import ensemble_workflow
 
+def print_preds_info(model_name, data_type, preds):
+    if preds is None:
+        print(f"Model {model_name} {data_type} predictions: None")
+    else:
+        print(f"Model {model_name} {data_type} predictions shape: {preds.shape}")
+
+        if isinstance(preds, pd.DataFrame):
+            print(preds.head())
+        elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
+            print(pd.DataFrame(preds).head())
+        elif isinstance(preds, list):
+            print(pd.DataFrame(preds[:5]))
+        else:
+            print(f"Unknown prediction type: {type(preds)}")
+
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Print the types of train_y and val_y
+print(f"train_y type: {type(train_y)}, val_y type: {type(val_y)}")
 
 test_preds_dict = {}
 val_preds_dict = {}
@@ -31,6 +49,8 @@ val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
     val_y=val_y,
     test_X=test_X
 )
+
+print_preds_info("{{mn}}", "test", test_preds_dict["{{mn}}"])
 {% endfor %}
 
 for key in val_preds_dict.keys():
@@ -48,8 +68,12 @@ for key in val_preds_dict.keys():
     else:
         print(f"Model {key} test predictions (test_preds_dict[key]) shape: {test_preds_dict[key].shape}")
 
+print(f"val_y.shape: {val_y.shape}" if not isinstance(val_y, list) else f"val_y(list)'s length: {len(val_y)}")
+
 # Run ensemble
 final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
+
+print_preds_info("ensemble", "test", final_pred)
 
 # Check type
 pred_type = type(next(iter(test_preds_dict.values())))
@@ -64,8 +88,15 @@ if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tens
         f"vs. len(test_X)={len(test_X)}"
     )
 
-# check if scores.csv is generated
+# check scores.csv
 assert Path("scores.csv").exists(), "scores.csv is not generated"
+score_df = pd.read_csv("scores.csv", index_col=0)
+model_set_in_scores = set(score_df.index)
 
-print("Ensemble test passed successfully.")
-print(f"Output shape: {final_pred.shape}")
+assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
+    f"The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {{model_names}} + ['ensemble']\nscore_df is:\n{score_df}"
+)
+assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
+assert len(score_df.columns) == 1, f"The scores dataframe should have exactly one column for the scores of the evaluation indicator, but has these columns: {score_df.columns.tolist()}"
+
+print("Ensemble test end.")

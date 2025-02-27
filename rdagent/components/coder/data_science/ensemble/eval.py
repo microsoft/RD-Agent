@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
@@ -50,7 +51,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         }
         de = DockerEnv(conf=ds_docker_conf)
 
-        fname = "ensemble_test.txt"
+        fname = "test/ensemble_test.txt"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()
         test_code = (
             Environment(undefined=StrictUndefined)
@@ -63,10 +64,13 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=de, entry=f"python {fname}")
+
+        stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
 
@@ -81,6 +85,6 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             stdout=stdout,
             workflow_stdout=workflow_stdout,
         )
-        return build_cls_from_json_with_retry(
-            EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
-        )
+        efb = build_cls_from_json_with_retry(EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        efb.final_decision = efb.final_decision and ret_code == 0
+        return efb

@@ -23,17 +23,21 @@ File structure
 """
 
 import json
+import re
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
-    CoSTEERQueriedKnowledgeV2,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -43,6 +47,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.env import DockerEnv, DSDockerConf
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -51,6 +56,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: DataLoaderTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
@@ -69,21 +75,14 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-        latest_code_feedback = [
-            knowledge.feedback
-            for knowledge in queried_former_failed_knowledge[0]
-            if knowledge.implementation.file_dict.get("load_data.py") is not None
-            and knowledge.implementation.file_dict.get("load_data.py") == workspace.file_dict.get("load_data.py")
-        ]
-        if len(latest_code_feedback) > 0:
-            queried_former_failed_knowledge = (
-                [
-                    knowledge
-                    for knowledge in queried_former_failed_knowledge[0]
-                    if knowledge.implementation.file_dict.get("load_data.py") != workspace.file_dict.get("load_data.py")
-                ],
-                queried_former_failed_knowledge[1],
-            )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("load_data.py") != workspace.file_dict.get("load_data.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # 1. specifications
         # TODO: We may move spec into a separated COSTEER task
@@ -141,7 +140,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             data_loader_spec=data_loader_spec,
             folder_spec=data_folder_info,
             latest_code=workspace.file_dict.get("load_data.py"),
-            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
+            latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
@@ -190,9 +189,22 @@ class DataLoaderCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
             DataLoaderCoSTEEREvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = DataLoaderMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
+        es = DataLoaderMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+
+    def develop(self, exp):
+        new_exp = super().develop(exp)
+
+        ds_docker_conf = DSDockerConf()
+        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+        de = DockerEnv(conf=ds_docker_conf)
+        stdout = new_exp.experiment_workspace.execute(env=de, entry=f"python test/data_loader_test.py")
+        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
+        eda_output = match.groups()[1] if match else None
+        self.scen.eda_output = eda_output
+        return new_exp

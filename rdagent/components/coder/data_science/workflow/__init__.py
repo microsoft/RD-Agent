@@ -1,14 +1,17 @@
 import json
 
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
-from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
+from rdagent.components.coder.CoSTEER.evaluators import (
+    CoSTEERMultiEvaluator,
+    CoSTEERSingleFeedback,
+)
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )
@@ -26,8 +29,8 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: WorkflowTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        # competition_info = self.scen.competition_descriptions
         workflow_information_str = target_task.get_task_information()
 
         # 1. query
@@ -41,26 +44,19 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if queried_knowledge is not None
             else []
         )
-        latest_code_feedback = [
-            knowledge.feedback
-            for knowledge in queried_former_failed_knowledge[0]
-            if knowledge.implementation.file_dict.get("main.py") is not None
-            and knowledge.implementation.file_dict.get("main.py") == workspace.file_dict.get("main.py")
-        ]
-        if len(latest_code_feedback) > 0:
-            queried_former_failed_knowledge = (
-                [
-                    knowledge
-                    for knowledge in queried_former_failed_knowledge[0]
-                    if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
-                ],
-                queried_former_failed_knowledge[1],
-            )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
 
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
             task_desc=workflow_information_str,
-            competition_info=self.scen.get_competition_full_desc(),
+            competition_info=self.scen.get_scenario_all_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
@@ -71,7 +67,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
             workflow_spec=workspace.file_dict["spec/workflow.md"],
-            latest_code_feedback=latest_code_feedback[0] if len(latest_code_feedback) > 0 else None,
+            latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
@@ -113,8 +109,9 @@ class WorkflowCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
             WorkflowGeneralCaseSpecEvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)

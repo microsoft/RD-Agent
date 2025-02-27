@@ -4,6 +4,7 @@ from pathlib import Path
 from jinja2 import Environment, StrictUndefined
 
 from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
+from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
 from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
@@ -30,6 +31,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         target_task: ModelTask,
         queried_knowledge: CoSTEERQueriedKnowledge = None,
         workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> str:
         model_information_str = target_task.get_task_information()
 

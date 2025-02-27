@@ -1,10 +1,8 @@
-import typing
+"""
+It is expected to be shared among different frameworks.
+"""
+
 from abc import ABC, abstractmethod
-
-from rdagent.core.scenario import Scenario
-
-if typing.TYPE_CHECKING:
-    from rdagent.core.experiment import Task, Workspace
 
 
 class Feedback:
@@ -18,28 +16,28 @@ class Feedback:
         return True
 
 
+class EvaluableObj:
+    """
+    A set of information that is evaluable. Following things can be included.
+    - Task
+    - Solution
+    - Ground Truth
+    """
+
+
 class Evaluator(ABC):
     """
     Design Principle:
 
         It should cover the building process of feedback from raw information.
-            Typically the buiilding of feedback will be two phases.
-            1. raw information including stdout & workspace  (feeedback itself will handle this)
-            2. advanced/summaried feedback information. (evaluate will handle this)
+            Typically the building of feedback will be two phases.
+            1. raw information including stdout & workspace  (feedback itself will handle this)
+            2. advanced/summarized feedback information. (evaluate will handle this)
     """
-
-    def __init__(
-        self,
-        scen: Scenario,
-    ) -> None:
-        self.scen = scen
 
     @abstractmethod
     def evaluate(
         self,
-        target_task: "Task",
-        implementation: "Workspace",
-        gt_implementation: "Workspace",
-        **kwargs: object,
+        eo: EvaluableObj,
     ) -> Feedback:
         raise NotImplementedError

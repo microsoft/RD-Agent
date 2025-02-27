@@ -82,5 +82,9 @@ class RDAgentSettings(ExtendedBaseSettings):
         # executing the function multiple times
     )
 
+    # misc
+    """The limitation of context stdout"""
+    stdout_context_len: int = 400
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()

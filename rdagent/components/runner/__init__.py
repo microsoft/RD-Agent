@@ -1,8 +1,3 @@
-import pickle
-import shutil
-from pathlib import Path
-from typing import Any, Tuple
-
 from rdagent.core.developer import Developer
 from rdagent.core.experiment import ASpecificExp, Experiment
 from rdagent.oai.llm_utils import md5_hash

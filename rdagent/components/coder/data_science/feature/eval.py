@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -52,7 +53,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         de = DockerEnv(conf=ds_docker_conf)
 
         # TODO: do we need to clean the generated temporary content?
-        fname = "feature_test.py"
+        fname = "test/feature_test.py"
         test_code = (DIRNAME / "eval_tests" / "feature_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
 
@@ -60,6 +61,7 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
 

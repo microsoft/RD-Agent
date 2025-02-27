@@ -95,9 +95,9 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
     for root, dirs, files in os.walk(folder_path):
         dirs.sort()
+        files.sort()
         if not dirs:
             for file in files:
-                print(file)
                 file_path = os.path.join(root, file)
                 file_type = os.path.splitext(file)[1][1:]
                 file_size = os.path.getsize(file_path)
@@ -179,21 +179,23 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
     # Print the folder and its contents
     for file_type, count in files_count.items():
-        if count > max_files and file_type not in ["csv", "md"]:
+        if count > max_files and file_type not in ["csv", "md", "txt"]:
             result.append(" " * indent + f"{count} {file_type}s:")
             for file, size, path in files_details[file_type]:
                 result.append(" " * (indent + 2) + f"- {file} ({size} bytes)")
             result.append(" " * (indent + 2) + "... (file limit reached)")
         else:
             for file, size, path in files_details[file_type]:
-                result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "csv":
+                    df = pd.read_csv(path)
+                    result.append(
+                        " " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)"
+                    )
                     result.append(" " * (indent + 2) + f"- Head of {file}:")
                     csv_head = read_csv_head(path, indent + 4)
-                    # if len(csv_head) > 300:
-                    #     csv_head = " ".join(csv_head.strip().split())
-                    #     csv_head = csv_head[:300] + "\n" + " " * (indent + 4) + "... (truncated)"
                     result.append(csv_head)
+                    continue
+                result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "md":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     if file == "description.md":
@@ -207,7 +209,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                         for tag, value in img.tag_v2.items():
                             tag_name = TiffTags.TAGS_V2.get(tag, f"Unknown Tag {tag}")
                             result.append(" " * (indent + 4) + f"{tag_name}: {value}")
-                if file_type == "json":
+                if file_type in ["json", "txt"]:
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     with open(path, "r", encoding="utf-8") as f:
                         for i, line in enumerate(f):
@@ -230,6 +232,7 @@ class DataScienceScen(Scenario):
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
         self.metric_direction = self._get_direction()
+        self.eda_output = None
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
@@ -304,6 +307,7 @@ class DataScienceScen(Scenario):
             submission_specifications=self.submission_specifications,
             evaluation=self.target_description,
             metric_direction=self.metric_direction,
+            eda_output=self.eda_output,
         )
 
     def get_runtime_environment(self) -> str:
