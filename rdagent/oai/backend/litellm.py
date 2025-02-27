@@ -40,8 +40,9 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(self, input_content_list: list[str], *args: Any,
-                                         **kwargs: Any) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(
+        self, input_content_list: list[str], *args: Any, **kwargs: Any
+    ) -> list[list[float]]:  # noqa: ARG002
         """
         Call the embedding function
         """
@@ -83,8 +84,9 @@ class LiteLLMAPIBackend(APIBackend):
             max_tokens=LITELLM_SETTINGS.chat_max_tokens,
             **kwargs,
         )
-        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}",
-                    tag="llm_messages")
+        logger.info(
+            f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
+        )
 
         if LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
@@ -94,7 +96,9 @@ class LiteLLMAPIBackend(APIBackend):
                 if message["choices"][0]["finish_reason"]:
                     finish_reason = message["choices"][0]["finish_reason"]
                 if "content" in message["choices"][0]["delta"]:
-                    chunk = message["choices"][0]["delta"]["content"] or "" # when finish_reason is "stop", content is None
+                    chunk = (
+                        message["choices"][0]["delta"]["content"] or ""
+                    )  # when finish_reason is "stop", content is None
                     content += chunk
                     logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
 
