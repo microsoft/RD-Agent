@@ -60,6 +60,7 @@ enable_error_code = [
 explicit_package_bases = true
 warn_return_any = true
 warn_unused_ignores = true
+follow_imports=skip
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
