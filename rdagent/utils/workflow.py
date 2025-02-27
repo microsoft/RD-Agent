@@ -140,7 +140,7 @@ class LoopBase:
                         # Update tqdm progress bar directly to step_idx
                         pbar.n = si + 1
                         pbar.set_postfix(
-                            loop_index=li, step_index=si + 1, step_name=name
+                            loop_index=li, step_index=si + 1, step_name=name, loop_num=loop_n
                         )  # step_name indicate  last finished step_name
 
                 # index increase and save session

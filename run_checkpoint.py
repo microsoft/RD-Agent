@@ -49,7 +49,7 @@ def run_single_checkpoint(competition, path, output_path, n_loops):
         dst = f"{output_path}/{competition.name}"
 
         es_loop, ls_loop = get_loop_idx(src)
-        print(f"Competition: {competition.name} | Early Stage: {es_loop} | Late Stage: {ls_loop} | Output Path: {dst}")
+        print(f"Competition: {competition.name} | Early Stage: {es_loop} | Late Stage: {ls_loop}")
         continue_checkpoint(es_loop, src, dst, n_loops, "early")
         if es_loop != ls_loop: 
             continue_checkpoint(ls_loop, src, dst, n_loops, "late")
@@ -60,13 +60,18 @@ def main():
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
+    competitions = [entry for entry in sorted(os.scandir(args.path), key=lambda e: e.name) if entry.is_dir()]
+    if args.max_num:
+        competitions = competitions[:args.max_num]
+
     with ThreadPoolExecutor(max_workers=args.n_process) as executor:
-        futures = [executor.submit(run_single_checkpoint, f, args.path, args.output_path, args.n_loops) for f in os.scandir(args.path)]
+        futures = [executor.submit(run_single_checkpoint, f, args.path, args.output_path, args.n_loops) for f in competitions]
         for future in as_completed(futures):
             try:
                 future.result()
             except Exception as e:
                 print(f"**Fail** | {e}")
+
 
 def arg_parser():
     parser = argparse.ArgumentParser()
@@ -74,6 +79,7 @@ def arg_parser():
     parser.add_argument("--output_path", type=str, default="./log_researcher", help="The output path that save the logs and sessions.")
     parser.add_argument("--n_process", type=int, default=4, help="Number of jobs to run in parallel.")
     parser.add_argument("--n_loops", type=int, default=2, help="Number of loops to continue.")
+    parser.add_argument("--max_num", type=int, default=None, help="Number of competitions to run in total.")
     args = parser.parse_args()
     return args
 
