@@ -46,7 +46,9 @@ def get_last_step(session_path):
 
 def get_mle_score(session_path):
     kaggle_loop = DataScienceRDLoop.load(session_path)
-    return kaggle_loop.trace.hist[-1][0].result
+    if kaggle_loop.trace.hist:
+        return kaggle_loop.trace.hist[-1][0].result
+    return None
 
 
 def analyze_single_competition(competition_path, loop_idx):
@@ -63,6 +65,7 @@ def analyze_single_competition(competition_path, loop_idx):
 def analyze_single_folder(log_path):
     result_table = []
     pattern = r"log_([^_]+)_(\d+)"
+    ckpt_type, exp_idx = "checkpoint", 0
     match = re.search(pattern, log_path)
     if match:
         ckpt_type = match.group(1)
@@ -73,16 +76,16 @@ def analyze_single_folder(log_path):
         competition_path = f"{log_path}/{c.name}"
         try: 
             loop_list = os.listdir(f"{competition_path}/__session__")
-            for loop_idx in loop_list:
-                competition_result = {
-                    "Competition": competition_path.split("/")[-1], 
-                    "Index": exp_idx,
-                    "Type": ckpt_type
-                }
-                competition_result.update(analyze_single_competition(competition_path, loop_idx))
-                result_table.append(competition_result)
         except:
             continue
+        for loop_idx in loop_list:
+            competition_result = {
+                "Competition": competition_path.split("/")[-1], 
+                "Index": exp_idx,
+                "Type": ckpt_type
+            }
+            competition_result.update(analyze_single_competition(competition_path, loop_idx))
+            result_table.append(competition_result)
     
     return result_table
 
