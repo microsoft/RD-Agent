@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Dict, List
 
 from jinja2 import Environment, StrictUndefined
 
@@ -58,7 +59,10 @@ class KGModelFeatureSelectionCoder(Developer[KGModelExperiment]):
 
             chosen_index = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=Dict[str, List[int]],
                 )
             ).get("Selected Group Index", [i + 1 for i in range(len(exp.experiment_workspace.data_description))])
             chosen_index_to_list_index = [i - 1 for i in chosen_index]

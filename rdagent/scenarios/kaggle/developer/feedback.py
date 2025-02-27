@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
@@ -145,9 +146,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=usr_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
+            user_prompt=usr_prompt, system_prompt=sys_prompt, json_mode=True, json_target_type=Dict[str, str]
         )
 
         response_json = json.loads(response)

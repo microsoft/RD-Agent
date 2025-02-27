@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 from PIL import Image, TiffTags
@@ -255,9 +256,7 @@ class DataScienceScen(Scenario):
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
+            user_prompt=user_prompt, system_prompt=sys_prompt, json_mode=True, json_target_type=Dict[str, str]
         )
 
         response_json_analysis = json.loads(response_analysis)

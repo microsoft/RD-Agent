@@ -317,12 +317,12 @@ class APIBackend(ABC):
                 if chat_completion:
                     return self._create_chat_completion_auto_continue(*args, **kwargs)
             except Exception as e:  # noqa: BLE001
-                if (
+                if hasattr(e, "message") and (
                     "'messages' must contain the word 'json' in some form" in e.message
                     or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
                 ):
                     kwargs["add_json_in_prompt"] = True
-                elif embedding and "maximum context length" in e.message:
+                elif hasattr(e, "message") and embedding and "maximum context length" in e.message:
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
@@ -359,7 +359,7 @@ class APIBackend(ABC):
         json_mode: bool = False,
         chat_cache_prefix: str = "",
         seed: Optional[int] = None,
-        type_valid_target: Optional[str] = None,
+        json_target_type: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
         """
@@ -395,8 +395,8 @@ class APIBackend(ABC):
                         match = re.search(r"```json(.*?)```", all_response, re.DOTALL)
                         all_response = match.groups()[0] if match else all_response
                         json.loads(all_response)
-                if type_valid_target is not None:
-                    TypeAdapter(type_valid_target).validate_json(all_response)
+                if json_target_type is not None:
+                    TypeAdapter(json_target_type).validate_json(all_response)
                 if self.dump_chat_cache:
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response

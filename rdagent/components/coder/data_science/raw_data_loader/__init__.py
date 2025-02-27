@@ -24,6 +24,7 @@ File structure
 
 import json
 import re
+from typing import Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
@@ -108,20 +109,30 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
             data_loader_spec = json.loads(
-                spec_session.build_chat_completion(user_prompt=data_loader_prompt, json_mode=True)
+                spec_session.build_chat_completion(
+                    user_prompt=data_loader_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
             )["spec"]
-            feature_spec = json.loads(spec_session.build_chat_completion(user_prompt=feature_prompt, json_mode=True))[
-                "spec"
-            ]
-            model_spec = json.loads(spec_session.build_chat_completion(user_prompt=model_prompt, json_mode=True))[
-                "spec"
-            ]
-            ensemble_spec = json.loads(spec_session.build_chat_completion(user_prompt=ensemble_prompt, json_mode=True))[
-                "spec"
-            ]
-            workflow_spec = json.loads(spec_session.build_chat_completion(user_prompt=workflow_prompt, json_mode=True))[
-                "spec"
-            ]
+            feature_spec = json.loads(
+                spec_session.build_chat_completion(
+                    user_prompt=feature_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
+            )["spec"]
+            model_spec = json.loads(
+                spec_session.build_chat_completion(
+                    user_prompt=model_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
+            )["spec"]
+            ensemble_spec = json.loads(
+                spec_session.build_chat_completion(
+                    user_prompt=ensemble_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
+            )["spec"]
+            workflow_spec = json.loads(
+                spec_session.build_chat_completion(
+                    user_prompt=workflow_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
+            )["spec"]
         else:
             data_loader_spec = workspace.file_dict["spec/data_loader.md"]
             feature_spec = workspace.file_dict["spec/feature.md"]
@@ -146,7 +157,10 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         for _ in range(5):
             data_loader_code = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=Dict[str, str],
                 )
             )["code"]
             if data_loader_code != workspace.file_dict.get("load_data.py"):

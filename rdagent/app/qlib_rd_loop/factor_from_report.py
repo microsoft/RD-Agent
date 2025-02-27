@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
 import fire
 from jinja2 import Environment, StrictUndefined
@@ -49,6 +49,7 @@ def generate_hypothesis(factor_result: dict, report_content: str) -> str:
         user_prompt=user_prompt,
         system_prompt=system_prompt,
         json_mode=True,
+        json_target_type=Dict[str, str],
     )
 
     response_json = json.loads(response)
