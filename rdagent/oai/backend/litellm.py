@@ -40,9 +40,8 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
         return num_tokens
 
-    def _create_embedding_inner_function(
-        self, input_content_list: list[str], *args: Any, **kwargs: Any
-    ) -> list[list[float]]:  # noqa: ARG002
+    def _create_embedding_inner_function(self, input_content_list: list[str], *args: Any,
+                                         **kwargs: Any) -> list[list[float]]:  # noqa: ARG002
         """
         Call the embedding function
         """
@@ -72,6 +71,9 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+
         # Call LiteLLM completion
         response = completion(
             model=LITELLM_SETTINGS.chat_model,
@@ -81,18 +83,25 @@ class LiteLLMAPIBackend(APIBackend):
             max_tokens=LITELLM_SETTINGS.chat_max_tokens,
             **kwargs,
         )
-        logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}",
-            tag="debug_llm",
-        )
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}",
+                    tag="llm_messages")
 
-        for message in response:
-            if message["role"] == "system":
-                logger.info(f"{LogColors.RED}system:{LogColors.END} {message['content']}", tag="debug_llm")
-            elif message["role"] == "user":
-                logger.info(f"{LogColors.CYAN}user:{LogColors.END} {message['content']}", tag="debug_llm")
-        logger.info(
-            f"{LogColors.BLUE}assistant:{LogColors.END} {str(response.choices[0].message.content)}", tag="debug_llm"
-        )
+        if LITELLM_SETTINGS.chat_stream:
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
+            content = ""
+            finish_reason = None
+            for message in response:
+                if message["choices"][0]["finish_reason"]:
+                    finish_reason = message["choices"][0]["finish_reason"]
+                if "content" in message["choices"][0]["delta"]:
+                    chunk = message["choices"][0]["delta"]["content"] or "" # when finish_reason is "stop", content is None
+                    content += chunk
+                    logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
 
-        return str(response.choices[0].message.content), None
+            logger.info("\n", raw=True, tag="llm_messages")
+        else:
+            content = str(response.choices[0].message.content)
+            finish_reason = response.choices[0].finish_reason
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {content}", tag="llm_messages")
+
+        return content, finish_reason
