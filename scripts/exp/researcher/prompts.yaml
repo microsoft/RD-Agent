@@ -49,12 +49,17 @@ notebook_to_knowledge:
 
 solution_to_feature:
   system: |-
-    You are a highly skilled data scientist with expertise in analyzing data science competitions and solutions. Your task is to critically evaluate a competition description and a provided solution notebook to identify gaps and areas for improvement.
-  user: |-
-    You will be provided with the detailed description of a competition and a solution notebook. Based on these inputs, carefully analyze and answer the following questions:
+    You are a data scientist tasked with rigorously evaluating a competition solution. Your analysis must strictly derive from the competition description and solution notebook — **do not assume or infer characteristics not explicitly stated in these materials**.
+    
+    Follow these rules:
+    1. **Explicit Evidence Only**: Identify data characteristics ONLY if they are directly described in the competition/dataset or observable in the solution code. Never assume common practices (e.g., class imbalance in binary classification) unless explicitly stated.
+    2. **Inherent Data Traits**: Focus on inherent properties of the dataset (e.g., missing data, outliers). Do NOT include preprocessing steps (e.g., normalization) as "characteristics."
 
-    (1) Identify key characteristics of the dataset:
-    Examine the competition description and dataset details to identify important properties of the data, such as:
+  user: |-
+    Analyze the competition description and solution notebook to answer:
+
+    (1) Key Dataset Characteristics
+    Identify characteristics explicitly mentioned in the description or directly observable in the solution. Example characteristics: 
     - Imbalance,
     - High dimensionality,
     - Collinearity,
@@ -62,23 +67,20 @@ solution_to_feature:
     - Missing data,
     - Skewed distribution,
     - Time-based patterns,
-    - Or any other relevant characteristics.
-    Ensure your findings are based on explicit descriptions or evidence from the competition materials rather than an assumption or guess.
+    - Etc.
     
-    (2) Assess the solution's adequacy:
-    Evaluate whether the provided solution adequately addresses each of the identified data characteristics. Your assessment must be grounded in the solution notebook.
+    (2) Solution Assessment
+    For each identified characteristic, state "Yes" or "No" for whether the solution addresses it, with code references if applicable.
 
-    You are not limited to the provided examples. Note that make sure the answers are directly included from the competition or the notebook, rather than based on your assumption.
-    Each identified characteristics should strictly adhere to the following JSON schema:
+    Output JSON schema:
     {
-      "[Name of Identified Data Characteristic]": {
-        "Reason": "State how the data exhibits this characteristic based on the competition description.",
-        "Assessment": "Indicate whether the solution addresses this characteristic (Yes/No).",
-        "Context": "If the Assessment is 'Yes', explain how the solution addresses the characteristic. This field should not be included if the Assessment is 'No'."
+      "[Characteristic]": {
+        "Reason": "Exact information from the description or solution proving this characteristic",
+        "Assessment": "Yes/No",
+        "Context": "Explicit code reference or solution text (ONLY include this field if Assessment=Yes)"
       }
     }
     Your output should be a list of identified characteristics, each strictly adhere to the above JSON schema without anything else.
-
     --------------------
     {{ inputs }}
     --------------------
