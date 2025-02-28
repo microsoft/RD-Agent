@@ -1,6 +1,13 @@
 from pathlib import Path
 import pandas as pd
+import hashlib
 
+def calculate_md5(file_path):
+    with open(file_path, "rb") as f:
+        file_hash = hashlib.md5(f.read()).hexdigest()
+    return file_hash
+
+file_md5 = calculate_md5("scores.csv")
 
 """
 find . | grep -i sample | grep -i submission | grep -v sample_submission.csv | grep -v zip_files  | grep -v 'sample/'
@@ -66,4 +73,5 @@ def print_first_rows(file_path, file_name, num_rows=5):
 print_first_rows(SAMPLE_SUBMISSION_PATH, sample_submission_name)
 print_first_rows('submission.csv', 'submission.csv')
 
+assert calculate_md5("scores.csv") == file_md5, "scores.csv should not be rewritten"
 print(f"\nPlease Checked the content of the submission file(submission.csv should align with {sample_submission_name}). ")
