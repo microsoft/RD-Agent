@@ -93,153 +93,6 @@ class ConvManager:
         # TODO: reseve line breaks to make it more convient to edit file directly.
 
 
-class SQliteLazyCache(SingletonBaseClass):
-    def __init__(self, cache_location: str) -> None:
-        super().__init__()
-        self.cache_location = cache_location
-        db_file_exist = Path(cache_location).exists()
-        # TODO: sqlite3 does not support multiprocessing.
-        self.conn = sqlite3.connect(cache_location, timeout=20)
-        self.c = self.conn.cursor()
-        if not db_file_exist:
-            self.c.execute(
-                """
-                CREATE TABLE chat_cache (
-                    md5_key TEXT PRIMARY KEY,
-                    chat TEXT
-                )
-                """,
-            )
-            self.c.execute(
-                """
-                CREATE TABLE embedding_cache (
-                    md5_key TEXT PRIMARY KEY,
-                    embedding TEXT
-                )
-                """,
-            )
-            self.c.execute(
-                """
-                CREATE TABLE message_cache (
-                    conversation_id TEXT PRIMARY KEY,
-                    message TEXT
-                )
-                """,
-            )
-            self.conn.commit()
-
-    def chat_get(self, key: str) -> str | None:
-        md5_key = md5_hash(key)
-        self.c.execute("SELECT chat FROM chat_cache WHERE md5_key=?", (md5_key,))
-        result = self.c.fetchone()
-        return None if result is None else result[0]
-
-    def embedding_get(self, key: str) -> list | dict | str | None:
-        md5_key = md5_hash(key)
-        self.c.execute("SELECT embedding FROM embedding_cache WHERE md5_key=?", (md5_key,))
-        result = self.c.fetchone()
-        return None if result is None else json.loads(result[0])
-
-    def chat_set(self, key: str, value: str) -> None:
-        md5_key = md5_hash(key)
-        self.c.execute(
-            "INSERT OR REPLACE INTO chat_cache (md5_key, chat) VALUES (?, ?)",
-            (md5_key, value),
-        )
-        self.conn.commit()
-        return None
-
-    def embedding_set(self, content_to_embedding_dict: dict) -> None:
-        for key, value in content_to_embedding_dict.items():
-            md5_key = md5_hash(key)
-            self.c.execute(
-                "INSERT OR REPLACE INTO embedding_cache (md5_key, embedding) VALUES (?, ?)",
-                (md5_key, json.dumps(value)),
-            )
-        self.conn.commit()
-
-    def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
-        self.c.execute("SELECT message FROM message_cache WHERE conversation_id=?", (conversation_id,))
-        result = self.c.fetchone()
-        return [] if result is None else cast(list[dict[str, Any]], json.loads(result[0]))
-
-    def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
-        self.c.execute(
-            "INSERT OR REPLACE INTO message_cache (conversation_id, message) VALUES (?, ?)",
-            (conversation_id, json.dumps(message_value)),
-        )
-        self.conn.commit()
-        return None
-
-
-class SessionChatHistoryCache(SingletonBaseClass):
-    def __init__(self) -> None:
-        """load all history conversation json file from self.session_cache_location"""
-        self.cache = SQliteLazyCache(cache_location=LLM_SETTINGS.prompt_cache_path)
-
-    def message_get(self, conversation_id: str) -> list[dict[str, Any]]:
-        return self.cache.message_get(conversation_id)
-
-    def message_set(self, conversation_id: str, message_value: list[dict[str, Any]]) -> None:
-        self.cache.message_set(conversation_id, message_value)
-
-
-class ChatSession:
-    def __init__(self, api_backend: Any, conversation_id: str | None = None, system_prompt: str | None = None) -> None:
-        self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
-        self.system_prompt = system_prompt if system_prompt is not None else LLM_SETTINGS.default_system_prompt
-        self.api_backend = api_backend
-
-    def build_chat_completion_message(self, user_prompt: str) -> list[dict[str, Any]]:
-        history_message = SessionChatHistoryCache().message_get(self.conversation_id)
-        messages = history_message
-        if not messages:
-            messages.append({"role": LLM_SETTINGS.system_prompt_role, "content": self.system_prompt})
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt,
-            },
-        )
-        return messages
-
-    def build_chat_completion_message_and_calculate_token(self, user_prompt: str) -> Any:
-        messages = self.build_chat_completion_message(user_prompt)
-        return self.api_backend._calculate_token_from_messages(messages)
-
-    def build_chat_completion(self, user_prompt: str, *args, **kwargs) -> str:  # type: ignore[no-untyped-def]
-        """
-        this function is to build the session messages
-        user prompt should always be provided
-        """
-        messages = self.build_chat_completion_message(user_prompt)
-
-        with logger.tag(f"session_{self.conversation_id}"):
-            response: str = self.api_backend._try_create_chat_completion_or_embedding(  # noqa: SLF001
-                *args,
-                messages=messages,
-                chat_completion=True,
-                **kwargs,
-            )
-            logger.log_object({"user": user_prompt, "resp": response}, tag="debug_llm")
-
-        messages.append(
-            {
-                "role": "assistant",
-                "content": response,
-            },
-        )
-        SessionChatHistoryCache().message_set(self.conversation_id, messages)
-        return response
-
-    def get_conversation_id(self) -> str:
-        return self.conversation_id
-
-    def display_history(self) -> None:
-        # TODO: Realize a beautiful presentation format for history messages
-        pass
-
-
 class DeprecBackend(APIBackend):
     """
     This is a unified interface for different backends.
@@ -252,20 +105,10 @@ class DeprecBackend(APIBackend):
     # Instead, we can use LLM_SETTINGS directly. If it's difficult to support different backend settings, we can split them into multiple BaseSettings.
     def __init__(  # noqa: C901, PLR0912, PLR0915
         self,
-        *,
-        chat_api_key: str | None = None,
-        chat_model: str | None = None,
-        chat_api_base: str | None = None,
-        chat_api_version: str | None = None,
-        embedding_api_key: str | None = None,
-        embedding_model: str | None = None,
-        embedding_api_base: str | None = None,
-        embedding_api_version: str | None = None,
-        use_chat_cache: bool | None = None,
-        dump_chat_cache: bool | None = None,
-        use_embedding_cache: bool | None = None,
-        dump_embedding_cache: bool | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
+        super().__init__(*args, **kwargs)
         if LLM_SETTINGS.use_llama2:
             self.generator = Llama.build(
                 ckpt_dir=LLM_SETTINGS.llama2_ckpt_dir,
@@ -310,7 +153,7 @@ class DeprecBackend(APIBackend):
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
-            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
+            self.chat_model = LLM_SETTINGS.chat_model
             self.encoder = None
         elif LLM_SETTINGS.chat_use_azure_deepseek:
             self.client = ChatCompletionsClient(
@@ -331,37 +174,25 @@ class DeprecBackend(APIBackend):
             # Priority: chat_api_key/embedding_api_key > openai_api_key > os.environ.get("OPENAI_API_KEY")
             # TODO: Simplify the key design. Consider Pandatic's field alias & priority.
             self.chat_api_key = (
-                chat_api_key
-                or LLM_SETTINGS.chat_openai_api_key
-                or LLM_SETTINGS.openai_api_key
-                or os.environ.get("OPENAI_API_KEY")
+                LLM_SETTINGS.chat_openai_api_key or LLM_SETTINGS.openai_api_key or os.environ.get("OPENAI_API_KEY")
             )
             self.embedding_api_key = (
-                embedding_api_key
-                or LLM_SETTINGS.embedding_openai_api_key
-                or LLM_SETTINGS.openai_api_key
-                or os.environ.get("OPENAI_API_KEY")
+                LLM_SETTINGS.embedding_openai_api_key or LLM_SETTINGS.openai_api_key or os.environ.get("OPENAI_API_KEY")
             )
 
-            self.chat_model = LLM_SETTINGS.chat_model if chat_model is None else chat_model
+            self.chat_model = LLM_SETTINGS.chat_model
             self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
             self.encoder = self._get_encoder()
             self.chat_openai_base_url = LLM_SETTINGS.chat_openai_base_url
             self.embedding_openai_base_url = LLM_SETTINGS.embedding_openai_base_url
-            self.chat_api_base = LLM_SETTINGS.chat_azure_api_base if chat_api_base is None else chat_api_base
-            self.chat_api_version = (
-                LLM_SETTINGS.chat_azure_api_version if chat_api_version is None else chat_api_version
-            )
+            self.chat_api_base = LLM_SETTINGS.chat_azure_api_base
+            self.chat_api_version = LLM_SETTINGS.chat_azure_api_version
             self.chat_stream = LLM_SETTINGS.chat_stream
             self.chat_seed = LLM_SETTINGS.chat_seed
 
-            self.embedding_model = LLM_SETTINGS.embedding_model if embedding_model is None else embedding_model
-            self.embedding_api_base = (
-                LLM_SETTINGS.embedding_azure_api_base if embedding_api_base is None else embedding_api_base
-            )
-            self.embedding_api_version = (
-                LLM_SETTINGS.embedding_azure_api_version if embedding_api_version is None else embedding_api_version
-            )
+            self.embedding_model = LLM_SETTINGS.embedding_model
+            self.embedding_api_base = LLM_SETTINGS.embedding_azure_api_base
+            self.embedding_api_version = LLM_SETTINGS.embedding_azure_api_version
 
             if (self.chat_use_azure or self.embedding_use_azure) and (
                 self.chat_use_azure_token_provider or self.embedding_use_azure_token_provider
@@ -396,23 +227,10 @@ class DeprecBackend(APIBackend):
                 else openai.OpenAI(api_key=self.embedding_api_key, base_url=self.embedding_openai_base_url)
             )
 
-        self.dump_chat_cache = LLM_SETTINGS.dump_chat_cache if dump_chat_cache is None else dump_chat_cache
-        self.use_chat_cache = LLM_SETTINGS.use_chat_cache if use_chat_cache is None else use_chat_cache
-        self.dump_embedding_cache = (
-            LLM_SETTINGS.dump_embedding_cache if dump_embedding_cache is None else dump_embedding_cache
-        )
-        self.use_embedding_cache = (
-            LLM_SETTINGS.use_embedding_cache if use_embedding_cache is None else use_embedding_cache
-        )
-        if self.dump_chat_cache or self.use_chat_cache or self.dump_embedding_cache or self.use_embedding_cache:
-            self.cache_file_location = LLM_SETTINGS.prompt_cache_path
-            self.cache = SQliteLazyCache(cache_location=self.cache_file_location)
-
         # transfer the config to the class if the config is not supposed to change during the runtime
         self.use_llama2 = LLM_SETTINGS.use_llama2
         self.use_gcr_endpoint = LLM_SETTINGS.use_gcr_endpoint
         self.chat_use_azure_deepseek = LLM_SETTINGS.chat_use_azure_deepseek
-        self.retry_wait_seconds = LLM_SETTINGS.retry_wait_seconds
 
     def _get_encoder(self) -> tiktoken.Encoding:
         """
@@ -442,222 +260,27 @@ class DeprecBackend(APIBackend):
                     raise
         return encoding
 
-    def build_chat_session(
-        self,
-        conversation_id: str | None = None,
-        session_system_prompt: str | None = None,
-    ) -> ChatSession:
-        """
-        conversation_id is a 256-bit string created by uuid.uuid4() and is also
-        the file name under session_cache_folder/ for each conversation
-        """
-        return ChatSession(self, conversation_id, session_system_prompt)
-
-    def _build_messages(
-        self,
-        user_prompt: str,
-        system_prompt: str | None = None,
-        former_messages: list[dict[str, Any]] | None = None,
-        *,
-        shrink_multiple_break: bool = False,
-    ) -> list[dict[str, Any]]:
-        """
-        build the messages to avoid implementing several redundant lines of code
-
-        """
-        if former_messages is None:
-            former_messages = []
-        # shrink multiple break will recursively remove multiple breaks(more than 2)
-        if shrink_multiple_break:
-            while "\n\n\n" in user_prompt:
-                user_prompt = user_prompt.replace("\n\n\n", "\n\n")
-            if system_prompt is not None:
-                while "\n\n\n" in system_prompt:
-                    system_prompt = system_prompt.replace("\n\n\n", "\n\n")
-        system_prompt = LLM_SETTINGS.default_system_prompt if system_prompt is None else system_prompt
-        messages = [
-            {
-                "role": LLM_SETTINGS.system_prompt_role,
-                "content": system_prompt,
-            },
-        ]
-        messages.extend(former_messages[-1 * LLM_SETTINGS.max_past_message_include :])
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt,
-            },
-        )
-        return messages
-
-    def build_messages_and_create_chat_completion(  # type: ignore[no-untyped-def]
-        self,
-        user_prompt: str,
-        system_prompt: str | None = None,
-        former_messages: list | None = None,
-        chat_cache_prefix: str = "",
-        shrink_multiple_break: bool = False,
-        *args,
-        **kwargs,
-    ) -> str:
-        if former_messages is None:
-            former_messages = []
-        messages = self._build_messages(
-            user_prompt,
-            system_prompt,
-            former_messages,
-            shrink_multiple_break=shrink_multiple_break,
-        )
-
-        resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
-            *args,
-            messages=messages,
-            chat_completion=True,
-            chat_cache_prefix=chat_cache_prefix,
-            **kwargs,
-        )
-        if isinstance(resp, list):
-            raise ValueError("The response of _try_create_chat_completion_or_embedding should be a string.")
-        logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
-        return resp
-
-    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[Any] | Any:  # type: ignore[no-untyped-def]
-        input_content_list = [input_content] if isinstance(input_content, str) else input_content
-        resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
-            input_content_list=input_content_list,
-            embedding=True,
-            *args,
-            **kwargs,
-        )
-        if isinstance(input_content, str):
-            return resp[0]
-        return resp
-
-    def _create_chat_completion_auto_continue(
-        self,
-        messages: list[dict[str, Any]],
-        *args: Any,
-        json_mode: bool = False,
-        chat_cache_prefix: str = "",
-        seed: Optional[int] = None,
-        **kwargs: Any,
-    ) -> str:
-        """
-        Call the chat completion function and automatically continue the conversation if the finish_reason is length.
-        """
-        if seed is None and LLM_SETTINGS.use_auto_chat_cache_seed_gen:
-            seed = LLM_CACHE_SEED_GEN.get_next_seed()
-        input_content_json = json.dumps(messages)
-        input_content_json = (
-            chat_cache_prefix + input_content_json + f"<seed={seed}/>"
-        )  # FIXME this is a hack to make sure the cache represents the round index
-        if self.use_chat_cache:
-            cache_result = self.cache.chat_get(input_content_json)
-            if cache_result is not None:
-                if LLM_SETTINGS.log_llm_chat_content:
-                    logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
-                return cache_result
-
-        all_response = ""
-        new_messages = deepcopy(messages)
-        for _ in range(3):
-            if "json_mode" in kwargs:
-                del kwargs["json_mode"]
-            response, finish_reason = self._create_chat_completion_inner_function(
-                new_messages, json_mode=json_mode, *args, **kwargs
-            )  # type: ignore[misc]
-            all_response += response
-            if finish_reason is None or finish_reason != "length":
-                if self.chat_use_azure_deepseek:
-                    match = re.search(r"<think>(.*?)</think>(.*)", all_response, re.DOTALL)
-                    think_part, all_response = match.groups() if match else ("", all_response)
-                    if LLM_SETTINGS.log_llm_chat_content:
-                        logger.info(f"{LogColors.CYAN}Think:{think_part}{LogColors.END}", tag="llm_messages")
-                        logger.info(f"{LogColors.CYAN}Response:{all_response}{LogColors.END}", tag="llm_messages")
-
-                if json_mode:
-                    try:
-                        json.loads(all_response)
-                    except:
-                        match = re.search(r"```json(.*?)```", all_response, re.DOTALL)
-                        all_response = match.groups()[0] if match else all_response
-                        json.loads(all_response)
-                if self.dump_chat_cache:
-                    self.cache.chat_set(input_content_json, all_response)
-                return all_response
-            new_messages.append({"role": "assistant", "content": response})
-        raise RuntimeError("Failed to continue the conversation after 3 retries.")
-
-    def _try_create_chat_completion_or_embedding(  # type: ignore[no-untyped-def]
-        self,
-        max_retry: int = 10,
-        chat_completion: bool = False,
-        embedding: bool = False,
-        *args,
-        **kwargs,
-    ) -> str | list[float]:
-        assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
-        max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
-        for i in range(max_retry):
-            try:
-                if embedding:
-                    return self._create_embedding_inner_function(*args, **kwargs)
-                if chat_completion:
-                    return self._create_chat_completion_auto_continue(*args, **kwargs)
-            except openai.BadRequestError as e:  # noqa: PERF203
-                logger.warning(str(e))
-                logger.warning(f"Retrying {i+1}th time...")
-                if (
-                    "'messages' must contain the word 'json' in some form" in e.message
-                    or "\\'messages\\' must contain the word \\'json\\' in some form" in e.message
-                ):
-                    kwargs["add_json_in_prompt"] = True
-                elif embedding and "maximum context length" in e.message:
-                    kwargs["input_content_list"] = [
-                        content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
-                    ]
-            except Exception as e:  # noqa: BLE001
-                logger.warning(str(e))
-                logger.warning(f"Retrying {i+1}th time...")
-                time.sleep(self.retry_wait_seconds)
-        error_message = f"Failed to create chat completion after {max_retry} retries."
-        raise RuntimeError(error_message)
-
     def _create_embedding_inner_function(  # type: ignore[no-untyped-def]
         self, input_content_list: list[str], *args, **kwargs
-    ) -> list[Any]:  # noqa: ARG002
+    ) -> list[list[float]]:  # noqa: ARG002
         content_to_embedding_dict = {}
-        filtered_input_content_list = []
-        if self.use_embedding_cache:
-            for content in input_content_list:
-                cache_result = self.cache.embedding_get(content)
-                if cache_result is not None:
-                    content_to_embedding_dict[content] = cache_result
-                else:
-                    filtered_input_content_list.append(content)
-        else:
-            filtered_input_content_list = input_content_list
+        for sliced_filtered_input_content_list in [
+            input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
+            for i in range(0, len(input_content_list), LLM_SETTINGS.embedding_max_str_num)
+        ]:
+            if self.embedding_use_azure:
+                response = self.embedding_client.embeddings.create(
+                    model=self.embedding_model,
+                    input=sliced_filtered_input_content_list,
+                )
+            else:
+                response = self.embedding_client.embeddings.create(
+                    model=self.embedding_model,
+                    input=sliced_filtered_input_content_list,
+                )
+            for index, data in enumerate(response.data):
+                content_to_embedding_dict[sliced_filtered_input_content_list[index]] = data.embedding
 
-        if len(filtered_input_content_list) > 0:
-            for sliced_filtered_input_content_list in [
-                filtered_input_content_list[i : i + LLM_SETTINGS.embedding_max_str_num]
-                for i in range(0, len(filtered_input_content_list), LLM_SETTINGS.embedding_max_str_num)
-            ]:
-                if self.embedding_use_azure:
-                    response = self.embedding_client.embeddings.create(
-                        model=self.embedding_model,
-                        input=sliced_filtered_input_content_list,
-                    )
-                else:
-                    response = self.embedding_client.embeddings.create(
-                        model=self.embedding_model,
-                        input=sliced_filtered_input_content_list,
-                    )
-                for index, data in enumerate(response.data):
-                    content_to_embedding_dict[sliced_filtered_input_content_list[index]] = data.embedding
-
-                if self.dump_embedding_cache:
-                    self.cache.embedding_set(content_to_embedding_dict)
         return [content_to_embedding_dict[content] for content in input_content_list]
 
     def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
@@ -674,10 +297,6 @@ class DeprecBackend(APIBackend):
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        frequency_penalty: float | None = None,
-        presence_penalty: float | None = None,
         json_mode: bool = False,
         add_json_in_prompt: bool = False,
         *args,
@@ -695,14 +314,10 @@ class DeprecBackend(APIBackend):
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
 
-        if temperature is None:
-            temperature = LLM_SETTINGS.chat_temperature
-        if max_tokens is None:
-            max_tokens = LLM_SETTINGS.chat_max_tokens
-        if frequency_penalty is None:
-            frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
-        if presence_penalty is None:
-            presence_penalty = LLM_SETTINGS.chat_presence_penalty
+        temperature = LLM_SETTINGS.chat_temperature
+        max_tokens = LLM_SETTINGS.chat_max_tokens
+        frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
+        presence_penalty = LLM_SETTINGS.chat_presence_penalty
 
         # Use index 4 to skip the current function and intermediate calls,
         # and get the locals of the caller's frame.
@@ -784,6 +399,11 @@ class DeprecBackend(APIBackend):
                 finish_reason = response.choices[0].finish_reason
                 if LLM_SETTINGS.log_llm_chat_content:
                     logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
+            match = re.search(r"<think>(.*?)</think>(.*)", resp, re.DOTALL)
+            think_part, resp = match.groups() if match else ("", resp)
+            if LLM_SETTINGS.log_llm_chat_content:
+                logger.info(f"{LogColors.CYAN}Think:{think_part}{LogColors.END}", tag="llm_messages")
+                logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
             call_kwargs = dict(
                 model=model,
@@ -869,18 +489,3 @@ class DeprecBackend(APIBackend):
                     num_tokens += tokens_per_name
         num_tokens += 3  # every reply is primed with <start>assistant<message>
         return num_tokens
-
-    def build_messages_and_calculate_token(
-        self,
-        user_prompt: str,
-        system_prompt: str | None,
-        former_messages: list[dict[str, Any]] | None = None,
-        *,
-        shrink_multiple_break: bool = False,
-    ) -> int:
-        if former_messages is None:
-            former_messages = []
-        messages = self._build_messages(
-            user_prompt, system_prompt, former_messages, shrink_multiple_break=shrink_multiple_break
-        )
-        return self._calculate_token_from_messages(messages)
