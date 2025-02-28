@@ -1,5 +1,5 @@
 import json
-from typing import Literal
+from typing import Dict, Literal
 
 import pandas as pd
 
@@ -213,7 +213,7 @@ class DSExpGen(ExpGen):
 
         resp_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, json_target_type=dict
             )
         )
 
@@ -268,7 +268,8 @@ class DSExpGen(ExpGen):
 
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(component))
         if last_successful_exp:
-            exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
+            # exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
+            exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
 
     def gen(self, trace: DSTrace, BO_mode: bool = True, BO_step: int = 5) -> DSExperiment:
@@ -376,7 +377,7 @@ class DSExpGen(ExpGen):
 
             resp_dict_component: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    component_user_prompt, component_sys_prompt, json_mode=True
+                    component_user_prompt, component_sys_prompt, json_mode=True, json_target_type=Dict[str, str]
                 )
             )
 
@@ -500,6 +501,29 @@ class DSExpGen(ExpGen):
             user_prompt += "\n\nretrying..."
             return (user_prompt,), kwargs
 
+                @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+                def _f(user_prompt):
+                    resp_dict = json.loads(
+                        APIBackend().build_messages_and_create_chat_completion(
+                            user_prompt=user_prompt,
+                            system_prompt=system_prompt,
+                            json_mode=True,
+                            direct_exp_gen=Dict[str, Dict[str, str]],
+                        )
+                    )
+                    assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+                    assert "task_design" in resp_dict, "Task design not provided."
+                    task_class = component_info["task_class"]
+                    hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+                    hypothesis = DSHypothesis(
+                        component=component,
+                        hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                        reason=component_reason + "\n" + hypothesis_proposal.get("reason", ""),
+                        concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                        concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                        concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                        concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                    )
         @wait_retry(retry_n=5, transform_args_fn=_append_retry)
         def _f(user_prompt):
             resp_dict = json.loads(

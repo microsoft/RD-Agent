@@ -5,6 +5,9 @@ feature_coder:
 
     ## Task Description
     {{ task_desc }}
+    
+    ## Competition Information for This Task
+    {{ competition_info }}
 
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     ## Relevant Information for This Task
@@ -31,7 +34,8 @@ feature_coder:
 
     ## Guidelines
     1. If feature engineering is unnecessary or should be combined with model training, you may skip this step.
-    2. The function input is the output of the following data loader:
+    2. Be cautious of any column drop in the code. Dropping a column easily without any more attempts, it may not be a good practice.
+    3. The function input is the output of the following data loader:
     ```python
     {{ data_loader_code }}
     ```

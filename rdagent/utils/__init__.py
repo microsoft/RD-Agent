@@ -120,7 +120,10 @@ def filter_progress_bar(stdout: str) -> str:
 
         response = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=True,
+                json_target_type=dict,
             )
         )
         needs_sub = response.get("needs_sub", True)

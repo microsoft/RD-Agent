@@ -117,24 +117,34 @@ class UniqueIDDataReducer(DataReducer):
     def reduce(self, df: pd.DataFrame) -> pd.DataFrame:
         if not len(df):
             return df
-        if (
-            not isinstance(df, pd.DataFrame)
-            or not isinstance(df.iloc[0, -1], (int, float, str, tuple, frozenset, bytes, complex, type(None)))
-            or df.iloc[:, -1].unique().shape[0] == 0
-            or df.iloc[:, -1].unique().shape[0] >= df.shape[0] * 0.5
-        ):
+
+        if not isinstance(df, pd.DataFrame):
             return self.random_reducer.reduce(df)
-        unique_labels = df.iloc[:, -1].unique()
-        unique_labels = unique_labels[~pd.isna(unique_labels)]
-        unique_count = unique_labels.shape[0]
-        print("Unique labels:", unique_count / df.shape[0])
 
-        labels = df.iloc[:, -1]
-        unique_labels = labels.dropna().unique()
+        def is_valid_label(column):
+            if not isinstance(column.iloc[0], (int, float, str, tuple, frozenset, bytes, complex, type(None))):
+                return False
+
+            if not (0 < column.nunique() < df.shape[0] * 0.5):
+                return False
+
+            if pd.api.types.is_numeric_dtype(column) and all(isinstance(x, float) for x in column.dropna()):
+                return False
+
+            return True
+
+        label_col = df.iloc[:, -1]
+        if not is_valid_label(label_col) and df.shape[1] > 2:
+            label_col = df.iloc[:, 1]
+
+        if not is_valid_label(label_col):
+            return self.random_reducer.reduce(df)
+
+        unique_labels = label_col.unique()
         unique_count = len(unique_labels)
+        print(f"Unique labels: {unique_count} / {df.shape[0]}")
 
-        sampled_rows = df.groupby(labels, group_keys=False).apply(lambda x: x.sample(n=1, random_state=1))
-
+        sampled_rows = df.groupby(label_col, group_keys=False).apply(lambda x: x.sample(n=1, random_state=1))
         frac = max(self.min_frac, self.min_num / len(df))
 
         if int(len(df) * frac) < unique_count:

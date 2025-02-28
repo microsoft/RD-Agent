@@ -1,7 +1,7 @@
 import json
+from typing import Dict
 
 from rdagent.components.coder.CoSTEER import CoSTEER
-from rdagent.components.coder.CoSTEER.config import CoSTEER_SETTINGS
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
     CoSTEERSingleFeedback,
@@ -12,6 +12,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.components.coder.data_science.workflow.eval import (
     WorkflowGeneralCaseSpecEvaluator,
 )
@@ -31,7 +32,6 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        # competition_info = self.scen.competition_descriptions
         workflow_information_str = target_task.get_task_information()
 
         # 1. query
@@ -57,7 +57,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
             task_desc=workflow_information_str,
-            competition_info=self.scen.get_competition_full_desc(),
+            competition_info=self.scen.get_scenario_all_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
         )
@@ -74,7 +74,10 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         for _ in range(5):
             workflow_code = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=Dict[str, str],
                 )
             )["code"]
             if workflow_code != workspace.file_dict.get("main.py"):
@@ -110,8 +113,9 @@ class WorkflowCoSTEER(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+        settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
             WorkflowGeneralCaseSpecEvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
-        super().__init__(*args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        es = WorkflowMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
