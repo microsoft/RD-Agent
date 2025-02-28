@@ -78,8 +78,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
+        score_check_text = ""
         if not score_fp.exists():
-            stdout += "\n[Error] Metrics file (scores.csv) is not generated!"
+            score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
         else:
             try:
@@ -90,20 +91,20 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 )
                 for model in model_set_in_folder:
                     if model not in model_set_in_scores:
-                        stdout += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
+                        score_check_text += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
                         score_ret_code = 1
             except Exception as e:
-                stdout += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
         # Check submission file
         base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
-        submission_stdout, submission_ret_code = implementation.execute_ret_code(
+        submission_check_out, submission_ret_code = implementation.execute_ret_code(
             env=de, entry="python test/submission_format_test.py"
         )
-        stdout += submission_stdout
+        stdout += "\n" + submission_check_out
 
         # MLEBench Check
         # !!! Since we are running on a sampled dataset, mlebench check is not required.
@@ -128,5 +129,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         wfb = build_cls_from_json_with_retry(
             WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
         )
-        wfb.final_decision = wfb.final_decision and submission_ret_code == 0 and score_ret_code == 0
+        if score_ret_code != 0:
+            wfb.final_decision = False
+            wfb.execution += "\n" + score_check_text
+        if submission_ret_code != 0:
+            wfb.final_decision = False
+            wfb.execution += "\nSubmission file check failed."
         return wfb
