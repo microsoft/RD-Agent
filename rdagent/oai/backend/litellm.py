@@ -14,10 +14,7 @@ class LiteLLMSettings(LLMSettings):
         env_prefix = "LITELLM_"
         """Use `LITELLM_` as prefix for environment variables"""
 
-    # LiteLLM backend related config
-    chat_model: str = "openai/gpt-4o"
-    # LiteLLM embedding related config
-    embedding_model: str = "openai/text-embedding-3-small"
+    # Placeholder for LiteLLM specific settings, so far it's empty
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
