@@ -177,7 +177,7 @@ class ModelFinalEvaluator(CoSTEEREvaluator):
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=True,
-                json_target_type=Dict[str, str],
+                json_target_type=Dict[str, str | bool | int],
             ),
         )
         if isinstance(final_evaluation_dict["final_decision"], str) and final_evaluation_dict[

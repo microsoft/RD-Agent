@@ -146,7 +146,10 @@ class KGExperiment2Feedback(Experiment2Feedback):
         )
 
         response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=usr_prompt, system_prompt=sys_prompt, json_mode=True, json_target_type=Dict[str, str]
+            user_prompt=usr_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | bool | int],
         )
 
         response_json = json.loads(response)

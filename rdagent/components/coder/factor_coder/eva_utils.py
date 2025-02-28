@@ -215,7 +215,7 @@ class FactorOutputFormatEvaluator(FactorEvaluator):
                     user_prompt=gen_df_info_str,
                     system_prompt=system_prompt,
                     json_mode=True,
-                    json_target_type=Dict[str, str],
+                    json_target_type=Dict[str, str | bool | int],
                 )
                 resp_dict = json.loads(resp)
                 resp_dict["output_format_decision"] = str(resp_dict["output_format_decision"]).lower() in ["true", "1"]
@@ -559,7 +559,7 @@ class FactorFinalDecisionEvaluator(FactorEvaluator):
                         system_prompt=system_prompt,
                         json_mode=True,
                         seed=attempts,  # in case of useless retrying when cache enabled.
-                        json_target_type=Dict[str, str],
+                        json_target_type=Dict[str, str | bool | int],
                     ),
                 )
                 final_decision = final_evaluation_dict["final_decision"]

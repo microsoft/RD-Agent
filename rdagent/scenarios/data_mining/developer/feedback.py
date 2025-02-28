@@ -60,7 +60,7 @@ class DMModelExperiment2Feedback(Experiment2Feedback):
             user_prompt=user_prompt,
             system_prompt=system_prompt,
             json_mode=True,
-            json_target_type=Dict[str, str],
+            json_target_type=Dict[str, str | bool | int],
         )
 
         # Parse the JSON response to extract the feedback

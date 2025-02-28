@@ -256,7 +256,10 @@ class DataScienceScen(Scenario):
         )
 
         response_analysis = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=sys_prompt, json_mode=True, json_target_type=Dict[str, str]
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | int | bool],
         )
 
         response_json_analysis = json.loads(response_analysis)
