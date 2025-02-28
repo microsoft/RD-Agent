@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 
@@ -54,6 +55,7 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=BatchEditOut.json_mode,
+                json_target_type=Dict[str, str],
             )
         )
 

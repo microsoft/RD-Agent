@@ -1,3 +1,5 @@
+from typing import Dict
+
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -83,6 +85,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                     json_mode=BatchEditOut.json_mode,
+                    json_target_type=Dict[str, str],
                 )
             )
 
