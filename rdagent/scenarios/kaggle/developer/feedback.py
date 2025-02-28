@@ -164,7 +164,7 @@ class KGExperiment2Feedback(Experiment2Feedback):
 
         # if self.scen.evaluation_metric_direction:
         #     insert_position = bisect.bisect_right([-score for score in sorted_scores], -current_score)
-        # else:
+        # else: 
         #     insert_position = bisect.bisect_left(sorted_scores, current_score, lo=0, hi=len(sorted_scores))
         # percentile_ranking = (insert_position) / (len(sorted_scores)) * 100
 

@@ -16,6 +16,7 @@ from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
+from rdagent.app.data_science.conf import DS_RD_SETTING
 
 
 class DSHypothesis(Hypothesis):
@@ -271,6 +272,14 @@ class DSExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, BO_mode: bool = True, BO_step: int = 5) -> DSExperiment:
+
+        idea_bo_mode = DS_RD_SETTING.idea_bo_mode
+        component_bo_mode = DS_RD_SETTING.component_bo_mode
+        batch_bo_eval = DS_RD_SETTING.batch_bo_eval
+        idea_bo_step = DS_RD_SETTING.idea_bo_step
+        component_bo_step = DS_RD_SETTING.component_bo_step
+
+
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
@@ -431,6 +440,7 @@ class DSExpGen(ExpGen):
     def idea_propose(self, trace: DSTrace, component: str, component_info: dict, scenario_desc: str) -> DSExperiment:
 
         sota_exp = trace.sota_experiment()
+        assert sota_exp is not None, "SOTA experiment is not provided."
         exp_and_feedback = trace.hist[-1]
         last_exp = exp_and_feedback[0]
 
@@ -442,9 +452,27 @@ class DSExpGen(ExpGen):
                 sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
             )
         )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
-        exp_and_feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=exp_and_feedback
 
+        sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            -self.max_trace_hist :
+        ]
+        all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
+        trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+        for index, (exp, fb) in enumerate(all_exp_feedback_list):
+            trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
+                exp.hypothesis.component,
+                exp.hypothesis.hypothesis,
+                fb.decision,
+            ]
+
+        sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=sota_exp_feedback_list,
+            success=True,
+        )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=failed_exp_feedback_list,
+            success=False,
         )
 
         system_prompt = T(".prompts:direct_exp_gen.system").r(
@@ -459,21 +487,11 @@ class DSExpGen(ExpGen):
                     workflow_check=(not component == "Workflow"),
         )
 
-        recent_trace_desc = []
-        for i in range(self.max_trace_hist):
-            if i < len(trace.hist):
-                eaf = trace.hist[-i - 1]
-                if eaf[1].decision:
-                    # we only add failed direction incase of trying same invalid direction
-                    break
-                recent_trace_desc.insert(
-                    0, T("scenarios.data_science.share:describe.feedback").r(exp_and_feedback=eaf)
-                )
         user_prompt = T(".prompts:direct_exp_gen.user").r(
-            exp_and_feedback_desc=exp_and_feedback_desc,
-            sota_exp_desc=sota_exp_desc,
+            targets=component_info["target_name"],
+            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             last_exp_diff=last_exp_diff,
-            recent_trace_desc="\n".join(recent_trace_desc),
         )
 
         def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
