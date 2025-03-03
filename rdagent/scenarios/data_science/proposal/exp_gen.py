@@ -310,6 +310,12 @@ class DSExpGen(ExpGen):
             )
         else:  # propose new component and polish it by LLM
                     # polish the existing component's hypothesis & task
+            idea_bo_mode = DS_RD_SETTING.idea_bo_mode
+            component_bo_mode = DS_RD_SETTING.component_bo_mode
+            batch_bo_eval = DS_RD_SETTING.batch_bo_eval
+            idea_bo_step = DS_RD_SETTING.idea_bo_step
+            component_bo_step = DS_RD_SETTING.component_bo_step
+
         # BO_mode: whether to use BO mode to polish 
             # Guidelines:
             # System prompts: Shared condition you are facing
@@ -424,7 +430,7 @@ class DSExpGen(ExpGen):
                     
 
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace)
 
                 if new_workflow_desc != "No update needed":
                     workflow_task = WorkflowTask(
@@ -501,34 +507,15 @@ class DSExpGen(ExpGen):
             user_prompt += "\n\nretrying..."
             return (user_prompt,), kwargs
 
-                @wait_retry(retry_n=5, transform_args_fn=_append_retry)
-                def _f(user_prompt):
-                    resp_dict = json.loads(
-                        APIBackend().build_messages_and_create_chat_completion(
-                            user_prompt=user_prompt,
-                            system_prompt=system_prompt,
-                            json_mode=True,
-                            direct_exp_gen=Dict[str, Dict[str, str]],
-                        )
-                    )
-                    assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
-                    assert "task_design" in resp_dict, "Task design not provided."
-                    task_class = component_info["task_class"]
-                    hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
-                    hypothesis = DSHypothesis(
-                        component=component,
-                        hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                        reason=component_reason + "\n" + hypothesis_proposal.get("reason", ""),
-                        concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                        concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                        concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                        concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-                    )
+
         @wait_retry(retry_n=5, transform_args_fn=_append_retry)
         def _f(user_prompt):
             resp_dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    user_prompt=user_prompt, 
+                    system_prompt=system_prompt, 
+                    json_mode=True,
+                    direct_exp_gen=Dict[str, Dict[str, str]],
                 )
             )
             assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
