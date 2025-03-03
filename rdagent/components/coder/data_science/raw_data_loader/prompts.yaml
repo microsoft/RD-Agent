@@ -271,7 +271,7 @@ spec:
 
         3. Dataset Splitting
           - The dataset returned by `load_data` is not pre-split. After calling `feat_eng`, split the data into training and test sets.
-          - [Notice] Apply cross-validation on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
+          - [Notice] Apply cross-validation (e.g. KFold) on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
           - Keep the test set (`X_test_transformed`) unchanged, as it is only used for generating the final predictions.
 
         4. Submission File:
