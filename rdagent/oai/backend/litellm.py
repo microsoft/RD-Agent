@@ -1,30 +1,20 @@
-import os
-import uuid
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-from litellm import acompletion, completion
-from litellm import encode as encode_litellm
-from litellm import token_counter
+from litellm import completion, embedding, token_counter
 
-from rdagent.core.conf import ExtendedBaseSettings
-from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass, import_class
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
-from rdagent.oai.llm_conf import LLM_SETTINGS
+from rdagent.oai.llm_conf import LLMSettings
 
 
-class LiteLLMSettings(ExtendedBaseSettings):
+class LiteLLMSettings(LLMSettings):
 
     class Config:
         env_prefix = "LITELLM_"
         """Use `LITELLM_` as prefix for environment variables"""
 
-    # LiteLLM backend related config
-    chat_model: str = "openai/gpt-4o"
-    # LiteLLM embedding related config
-    embedding_model: str = "openai/text-embedding-3-small"
+    # Placeholder for LiteLLM specific settings, so far it's empty
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
@@ -33,81 +23,28 @@ LITELLM_SETTINGS = LiteLLMSettings()
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
 
-    def __init__(self, litellm_model_name: str = "", litellm_api_key: str = "", *args: Any, **kwargs: Any) -> None:
-        super().__init__()
-        if len(args) > 0 or len(kwargs) > 0:
-            logger.warning("LiteLLM backend does not support any additional arguments")
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
-    def build_chat_session(
-        self, conversation_id: Optional[str] = None, session_system_prompt: Optional[str] = None
-    ) -> Any:
-        """Create a new chat session using LiteLLM"""
-        # return {
-        #     "conversation_id": conversation_id or str(uuid.uuid4()),
-        #     "system_prompt": session_system_prompt,
-        #     "messages": []
-        # }
-        raise NotImplementedError("LiteLLM backend does not support chat session creation")
-        # TODO: Implement the chat session creation logic , with ChatSession class
-
-    def build_messages_and_create_chat_completion(
-        self,
-        user_prompt: str,
-        system_prompt: Optional[str] = None,
-        former_messages: Optional[List[Any]] = None,
-        chat_cache_prefix: str = "",
-        shrink_multiple_break: bool = False,
-        *args: Any,
-        **kwargs: Any,
-    ) -> str:
-        """Build messages and get LiteLLM chat completion"""
-        messages = []
-
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-
-        if former_messages:
-            messages.extend(former_messages)
-
-        messages.append({"role": "user", "content": user_prompt})
-        model_name = LITELLM_SETTINGS.chat_model
-        # Call LiteLLM completion
-        response = completion(
-            model=model_name,
+    def _calculate_token_from_messages(self, messages: list[dict[str, Any]]) -> int:
+        """
+        Calculate the token count from messages
+        """
+        num_tokens = token_counter(
+            model=LITELLM_SETTINGS.chat_model,
             messages=messages,
-            stream=kwargs.get("stream", False),
-            temperature=kwargs.get("temperature", 0.7),
-            max_tokens=kwargs.get("max_tokens", 1000),
-            **kwargs,
         )
-        logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {model_name}",
-            tag="debug_llm",
-        )
+        logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
+        return num_tokens
 
-        if system_prompt:
-            logger.info(f"{LogColors.RED}system:{LogColors.END} {system_prompt}", tag="debug_llm")
-        if former_messages:
-            for message in former_messages:
-                logger.info(f"{LogColors.CYAN}{message['role']}:{LogColors.END} {message['content']}", tag="debug_llm")
-        else:
-            logger.info(
-                f"{LogColors.RED}user:{LogColors.END} {user_prompt}\n{LogColors.BLUE}resp(next row):\n{LogColors.END} {response.choices[0].message.content}",
-                tag="debug_llm",
-            )
-
-        return str(response.choices[0].message.content)
-
-    def create_embedding(self, input_content: str | list[str], *args: Any, **kwargs: Any) -> list[Any] | Any:
-        """Create embeddings using LiteLLM"""
-        from litellm import embedding
-
-        single_input = False
-        if isinstance(input_content, str):
-            input_content = [input_content]
-            single_input = True
+    def _create_embedding_inner_function(
+        self, input_content_list: list[str], *args: Any, **kwargs: Any
+    ) -> list[list[float]]:  # noqa: ARG002
+        """
+        Call the embedding function
+        """
         response_list = []
-        for input_content_iter in input_content:
+        for input_content_iter in input_content_list:
             model_name = LITELLM_SETTINGS.embedding_model or "azure/text-embedding-3-small"
             logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
             logger.info(f"Creating embedding for: {input_content_iter}", tag="debug_litellm_emb")
@@ -116,34 +53,56 @@ class LiteLLMAPIBackend(APIBackend):
             response = embedding(
                 model=model_name,
                 input=input_content_iter,
+                *args,
                 **kwargs,
             )
             response_list.append(response.data[0]["embedding"])
-        if single_input:
-            return response_list[0]
         return response_list
 
-    def build_messages_and_calculate_token(
+    def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
-        user_prompt: str,
-        system_prompt: Optional[str],
-        former_messages: Optional[List[Dict[str, Any]]] = None,
-        shrink_multiple_break: bool = False,
-    ) -> int:
-        """Build messages and calculate their token count using LiteLLM"""
-        messages = []
+        messages: list[dict[str, Any]],
+        json_mode: bool = False,
+        *args,
+        **kwargs,
+    ) -> tuple[str, str | None]:
+        """
+        Call the chat completion function
+        """
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
 
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-
-        if former_messages:
-            messages.extend(former_messages)
-
-        messages.append({"role": "user", "content": user_prompt})
-
-        num_tokens = token_counter(
+        # Call LiteLLM completion
+        response = completion(
             model=LITELLM_SETTINGS.chat_model,
             messages=messages,
+            stream=LITELLM_SETTINGS.chat_stream,
+            temperature=LITELLM_SETTINGS.chat_temperature,
+            max_tokens=LITELLM_SETTINGS.chat_max_tokens,
+            **kwargs,
         )
-        logger.info(f"{LogColors.CYAN}Token count: {LogColors.END} {num_tokens}", tag="debug_litellm_token")
-        return num_tokens
+        logger.info(
+            f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
+        )
+
+        if LITELLM_SETTINGS.chat_stream:
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
+            content = ""
+            finish_reason = None
+            for message in response:
+                if message["choices"][0]["finish_reason"]:
+                    finish_reason = message["choices"][0]["finish_reason"]
+                if "content" in message["choices"][0]["delta"]:
+                    chunk = (
+                        message["choices"][0]["delta"]["content"] or ""
+                    )  # when finish_reason is "stop", content is None
+                    content += chunk
+                    logger.info(LogColors.CYAN + chunk + LogColors.END, raw=True, tag="llm_messages")
+
+            logger.info("\n", raw=True, tag="llm_messages")
+        else:
+            content = str(response.choices[0].message.content)
+            finish_reason = response.choices[0].finish_reason
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {content}", tag="llm_messages")
+
+        return content, finish_reason

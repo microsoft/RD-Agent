@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Literal
+from typing import Dict, Literal
 
 import pandas as pd
 
@@ -219,7 +219,7 @@ class DSExpGen(ExpGen):
 
         resp_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
-                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, json_target_type=dict
             )
         )
 
@@ -406,7 +406,7 @@ class DSExpGen(ExpGen):
 
             resp_dict_component: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    component_user_prompt, component_sys_prompt, json_mode=True
+                    component_user_prompt, component_sys_prompt, json_mode=True, json_target_type=Dict[str, str]
                 )
             )
 
@@ -459,7 +459,10 @@ class DSExpGen(ExpGen):
                 def _f(user_prompt):
                     resp_dict = json.loads(
                         APIBackend().build_messages_and_create_chat_completion(
-                            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                            user_prompt=user_prompt,
+                            system_prompt=system_prompt,
+                            json_mode=True,
+                            direct_exp_gen=Dict[str, Dict[str, str]],
                         )
                     )
                     assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."

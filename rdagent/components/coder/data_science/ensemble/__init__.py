@@ -12,6 +12,7 @@ File structure
 """
 
 import json
+from typing import Dict
 
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -85,7 +86,10 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         for _ in range(5):
             ensemble_code = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=Dict[str, str],
                 )
             )["code"]
             if ensemble_code != workspace.file_dict.get("ensemble.py"):

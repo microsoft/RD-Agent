@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Dict
 
 from jinja2 import Environment, StrictUndefined
 
@@ -96,6 +97,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=True,
+                json_target_type=Dict[str, str],
             ),
         )["code"]
         return code

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 from jinja2 import Environment, StrictUndefined
@@ -102,6 +103,7 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
             user_prompt=usr_prompt,
             system_prompt=sys_prompt,
             json_mode=True,
+            json_target_type=Dict[str, str | bool | int],
         )
 
         # Parse the JSON response to extract the feedback
@@ -159,6 +161,7 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
             user_prompt=user_prompt,
             system_prompt=system_prompt,
             json_mode=True,
+            json_target_type=Dict[str, str | bool | int],
         )
 
         # Parse the JSON response to extract the feedback

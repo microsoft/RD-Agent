@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Dict
 
 from jinja2 import Environment, StrictUndefined
 
@@ -168,7 +169,10 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                     APIBackend(
                         use_chat_cache=FACTOR_COSTEER_SETTINGS.coder_use_cache
                     ).build_messages_and_create_chat_completion(
-                        user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True
+                        user_prompt=user_prompt,
+                        system_prompt=system_prompt,
+                        json_mode=True,
+                        json_target_type=Dict[str, str],
                     )
                 )["code"]
                 return code
