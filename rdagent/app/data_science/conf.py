@@ -19,20 +19,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The timeout limit for running on full data"""
 
     # BO related
+    bo_mode: bool = True
 
-    idea_bo_mode: bool = True
-    """Whether to use BO mode for idea generation (with given component, just for idea generation)"""
-
-    component_bo_mode: bool = True
-    """Whether to use BO mode for component selection ([component,idea] pair evaluation)"""
-
-    batch_bo_eval: bool = False
-    """Whether to use batch evaluation in BO (i.e. evaluate multiple proposals at once)"""
-
-    idea_bo_step: int = 5
+    idea_bo_step: int = 2
     """The step size for idea generation BO"""
 
-    component_bo_step: int = 5
+    component_bo_step: int = 3
     """The step size for component selection BO"""
 
 

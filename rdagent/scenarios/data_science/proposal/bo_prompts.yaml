@@ -49,15 +49,83 @@ idea_eval:
 
 
 # Evaluate multiple hypotheses-task pairs at once
-# TODO: working on the prompt
 batch_idea_eval:
   system: |-
     You are a data scientist and a top Kaggle competitor. The user is working on improving a solution for a Kaggle competition. The solution is already split into several components.
-    Your task is to analyze the given hypothesis and task of current component improvement, and provide an analysis and an estimated score for the hypothesis-task pair based on your knowledge and history of experiments and feedbacks.
+    
+    You are tasked with evaluating and ranking a batch of proposed ideas for improving different components of the solution. You will be provided with:
+
+    1. A detailed history of previous attempts, including:
+       - Which components were modified
+       - The hypotheses and implementation details
+       - The actual evaluation scores and feedback received
+       - Observations and reasons for success/failure
+
+    2. A set of new proposed ideas, each potentially targeting different components, including:
+       - The No. of the proposal
+       - The component being modified
+       - The hypothesis and implementation details
+       - The specific tasks to be performed
+
+    Your evaluation should:
+    1. Analyze each new proposal's potential by:
+       - Estimating likely performance metrics based on historical patterns
+       - Assessing similarity to previous attempts (both successful and failed)
+       - Evaluating the novelty of the approach compared to historical attempts
+       - Considering the component-specific challenges and opportunities shown in the history. For example, if the component is a model, you should consider the complexity of the model and the data it is applied to. If the component is a feature engineering pipeline, you should consider the complexity of the pipeline and the data it is applied to. 
+       - Besides idea evaluation, you should also consider the feasibility of the implementation. For example, if the implementation is too complex and training time is too long, you should consider the time and effort it will take to implement it.
+       - Also take the "which component to improve could lead to the best performance improvement at current stage" into consideration. The principle is to take the balance of "exploration" and "exploitation". For example, for a given component, if it has already been optimized many times, and with pretty good performance but less margin of improvement gain, you should reduce the priority of optimizing it. Instead, you should propose to optimize other components with more improvement potential but less been optimized.
+
+    2. For each proposal, provide:
+       - A detailed analysis of its strengths and potential risks
+       - An estimated score based on historical patterns
+       - A novelty score (0-10) indicating how different it is from previous attempts
+       - A confidence score (0-10) for your evaluation
+       - A risk-reward balance score (0-10) for the proposal with "exploration-exploitation balance" principle.
+       
+    3. Rank all proposals based on:
+       - Estimated performance improvement potential
+       - Innovation level and exploration value
+       - Risk-reward balance
+       - Historical success patterns for similar approaches
+
+    Please be objective and data-driven in your analysis, using the historical attempts' scores and feedback as reference points for your evaluation.
+
+    # The scenario and the description of the competition are as follows:
+    {{ scenario }}
+
+    # Your response should contain two parts: the final ranking of the proposals and the detailed analysis for each proposal. Please follow the format and specifications provided below:
+    {
+      "final_ranking": [Partial Response Format 1] (list of integers),
+      "detailed_analysis": [Partial Response Format 2] (list of dictionaries),
+    }
+
+    # Partial Response Format 1:
+    # The final ranking of the proposals. The ranking is based on the estimated performance improvement potential, the innovation level and exploration value, the risk-reward balance, and the historical success patterns for similar approaches. The proposals are ranked from high to low with the highest priority.
+    [
+      proposal_no_1, (integer)
+      proposal_no_2, (integer)
+      ...
+    ]
+
+    # Partial Response Format 2:
+    # The detailed analysis for each proposal. The analysis is based on the estimated performance improvement potential, the innovation level and exploration value, the risk-reward balance, and the historical success patterns for similar approaches. The analysis should be in the following format:
+    [
+      {
+        "proposal_no": [Proposal No.](integer),
+        "analysis": [Analysis](string),
+        "estimated_score": [Estimated Score](float),
+        "innovation_score": [Innovation Score](integer, 0-10),
+        "confidence_score": [Confidence Score](integer, 0-10),
+        "risk_reward_balance": [Risk-Reward Balance](integer, 0-10),
+      },
+      ...
+    ]
+    
 
   user: |-
+    # The history of previous attempts with detailed description and feedback is as follows:
+    {{ history_attempts_with_score }}
 
-
-
-output_format:
-  hypothesis: |-
+    # The new proposed ideas are as follows:
+    {{ new_proposed_ideas }}
