@@ -2,6 +2,7 @@ from typing import Any
 
 from litellm import completion, embedding, token_counter
 
+from rdagent.core.conf import ExtendedSettingsConfigDict
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
@@ -9,11 +10,7 @@ from rdagent.oai.llm_conf import LLMSettings
 
 
 class LiteLLMSettings(LLMSettings):
-
-    class Config:
-        env_prefix = "LITELLM_"
-        """Use `LITELLM_` as prefix for environment variables"""
-
+    model_config = ExtendedSettingsConfigDict(env_prefix="LITELLM_")
     # Placeholder for LiteLLM specific settings, so far it's empty
 
 

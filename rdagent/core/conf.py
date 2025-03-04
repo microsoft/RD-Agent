@@ -88,3 +88,4 @@ class RDAgentSettings(ExtendedBaseSettings):
 
 
 RD_AGENT_SETTINGS = RDAgentSettings()
+print(RD_AGENT_SETTINGS)

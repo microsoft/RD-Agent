@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Sequence
 
 from rdagent.components.coder.factor_coder.factor import FactorTask
-from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
-from rdagent.core.experiment import Loader, WsLoader
+from rdagent.components.coder.model_coder.model import ModelTask
+from rdagent.core.experiment import FBWorkspace, Loader, WsLoader
 
 
 class FactorTaskLoader(Loader[FactorTask]):
@@ -82,13 +82,13 @@ class ModelTaskLoaderJson(ModelTaskLoader):
         return model_impl_task_list
 
 
-class ModelWsLoader(WsLoader[ModelTask, ModelFBWorkspace]):
+class ModelWsLoader(WsLoader[ModelTask, FBWorkspace]):
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
 
-    def load(self, task: ModelTask) -> ModelFBWorkspace:
+    def load(self, task: ModelTask) -> FBWorkspace:
         assert task.name is not None
-        mti = ModelFBWorkspace(task)
+        mti = FBWorkspace(target_task=task)
         mti.prepare()
         with open(self.path / f"{task.name}.py", "r") as f:
             code = f.read()

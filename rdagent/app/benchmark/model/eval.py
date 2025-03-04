@@ -21,8 +21,8 @@ if __name__ == "__main__":
     task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
 
     model_experiment = QlibModelExperiment(sub_tasks=task_l)
-    # mtg = ModelCodeWriter(scen=QlibModelScenario())
-    mtg = ModelCoSTEER(scen=QlibModelScenario())
+    mtg = ModelCodeWriter(scen=QlibModelScenario())
+    # mtg = ModelCoSTEER(scen=QlibModelScenario())
 
     model_experiment = mtg.develop(model_experiment)
 

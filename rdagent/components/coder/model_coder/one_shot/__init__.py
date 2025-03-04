@@ -27,6 +27,7 @@ class ModelCodeWriter(Developer[ModelExperiment]):
                 description=t.description,
                 formulation=t.formulation,
                 variables=t.variables,
+                test_code=(DIRNAME.parent / "eval_tests" / "model.py").open().read()
             )
             system_prompt = sys_prompt_tpl.render()
 

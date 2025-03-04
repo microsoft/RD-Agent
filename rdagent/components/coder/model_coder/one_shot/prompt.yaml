@@ -23,5 +23,10 @@ code_implement_user: |-
           ...
       model_cls = XXXLayer
       ```
-  - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
+  - initialize the model by initializing it
   - And then verify the model by comparing the output tensors by feeding specific input tensor.
+  
+  Based on the type of your model, we'll test it with the following script
+  ```python
+  {{test_code}}
+  ```

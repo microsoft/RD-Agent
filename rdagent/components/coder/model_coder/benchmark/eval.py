@@ -1,10 +1,15 @@
-# TODO: inherent from the benchmark base class
-import torch
-
+import pandas as pd
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace
+from rdagent.core.experiment import FBWorkspace
+from rdagent.utils.env import DSDockerConf, DockerEnv, KGDockerConf, QlibDockerConf
+
+from pathlib import Path
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 def get_data_conf(init_val):
+    # TODO: inherent from the benchmark base class
+    import torch
     # TODO: design this step in the workflow
     in_dim = 1000
     in_channels = 128
@@ -32,40 +37,24 @@ class ModelImpValEval:
     For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
-    def evaluate(self, gt: ModelFBWorkspace, gen: ModelFBWorkspace):
-        round_n = 10
+    def evaluate(self, gt: FBWorkspace, gen: FBWorkspace):
+        env = DockerEnv(KGDockerConf())
 
-        eval_pairs: list[tuple] = []
+        # __import__('ipdb').set_trace()
+        # from IPython import embed; embed()
+        gt.file_dict.keys()
+        gen.file_dict.keys()
 
-        # run different input value
-        for _ in range(round_n):
-            # run different model initial parameters.
-            for init_val in [-0.2, -0.1, 0.1, 0.2]:
-                _, gt_res = gt.execute(input_value=init_val, param_init_value=init_val)
-                _, res = gen.execute(input_value=init_val, param_init_value=init_val)
-                eval_pairs.append((res, gt_res))
-
-        # flat and concat the output
-        res_batch, gt_res_batch = [], []
-        for res, gt_res in eval_pairs:
-            res_batch.append(res.reshape(-1))
-            gt_res_batch.append(gt_res.reshape(-1))
-        res_batch = torch.stack(res_batch)
-        gt_res_batch = torch.stack(gt_res_batch)
-
-        res_batch = res_batch.detach().numpy()
-        gt_res_batch = gt_res_batch.detach().numpy()
-
-        # pearson correlation of each hidden output
-        def norm(x):
-            return (x - x.mean(axis=0)) / x.std(axis=0)
-
-        dim_corr = (norm(res_batch) * norm(gt_res_batch)).mean(axis=0)  # the correlation of each hidden output
-
-        # aggregate all the correlation
-        avr_corr = dim_corr.mean()
-        # FIXME:
-        # It is too high(e.g. 0.944) .
-        # Check if it is not a good evaluation!!
-        # Maybe all the same initial params will results in extreamly high correlation without regard to the model structure.
-        return avr_corr
+        test_ws = FBWorkspace()  # create a workspace for test
+        test_ws.prepare()
+        test_ws.inject_files(
+            **{
+                "gt_model.py": gt.file_dict["model.py"],
+                "gen_model.py": gen.file_dict["model.py"],
+                "test_model.py": (DIRNAME.parent / "eval_tests" / "model.py").open().read()
+            })
+        test_ws.execute(env=env, entry="python test_model.py")
+        # print((test_ws.workspace_path / "result.csv").read_text())
+        # print(type(res), res)
+        res = pd.read_csv(test_ws.workspace_path / "result.csv", index_col=0).squeeze()
+        return res
