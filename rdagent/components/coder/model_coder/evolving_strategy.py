@@ -18,6 +18,8 @@ from rdagent.components.coder.model_coder.model import (
 )
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.prompts import Prompts
+from rdagent.log import LogColors
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.oai.llm_utils import APIBackend
 
@@ -88,14 +90,15 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_former_failed_knowledge_to_render = queried_former_failed_knowledge_to_render[1:]
             elif len(queried_similar_successful_knowledge_to_render) > 1:
                 queried_similar_successful_knowledge_to_render = queried_similar_successful_knowledge_to_render[1:]
-
-        code = json.loads(
-            APIBackend(use_chat_cache=CoSTEER_SETTINGS.coder_use_cache).build_messages_and_create_chat_completion(
-                user_prompt=user_prompt,
-                system_prompt=system_prompt,
-                json_mode=True,
-            ),
-        )["code"]
+        from rdagent.utils.agent.ret import PythonAgentOut
+        code =  PythonAgentOut().extract_output(
+            APIBackend(
+                use_chat_cache=CoSTEER_SETTINGS.coder_use_cache
+            ).build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt
+            )
+        )
+        logger.info(f"{LogColors.BOLD}extracted code(next row):\n{code}{LogColors.END}", tag="debug_factor_code")
         return code
 
     def assign_code_list_to_evo(self, code_list, evo):

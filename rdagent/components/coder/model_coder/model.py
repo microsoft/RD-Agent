@@ -90,9 +90,9 @@ class ModelFBWorkspace(FBWorkspace):
     @cache_with_pickle(hash_func)
     def execute(
         self,
-        batch_size: int = 8,
-        num_features: int = 10,
-        num_timesteps: int = 4,
+        batch_size: int = 32,
+        num_features: int = 32,
+        num_timesteps: int = 32,
         num_edges: int = 20,
         input_value: float = 1.0,
         param_init_value: float = 1.0,

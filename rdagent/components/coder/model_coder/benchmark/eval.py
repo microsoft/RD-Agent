@@ -1,6 +1,5 @@
 # TODO: inherent from the benchmark base class
 import torch
-
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace
 
 
@@ -33,21 +32,24 @@ class ModelImpValEval:
     """
 
     def evaluate(self, gt: ModelFBWorkspace, gen: ModelFBWorkspace):
-        round_n = 10
-
+        
         eval_pairs: list[tuple] = []
 
         # run different input value
-        for _ in range(round_n):
+        for input_val in [1]: # FIXME: only one input value
             # run different model initial parameters.
             for init_val in [-0.2, -0.1, 0.1, 0.2]:
+                print("Evaluating gt with input value: ", input_val, " and init value: ", init_val)
                 _, gt_res = gt.execute(input_value=init_val, param_init_value=init_val)
+                print("Evaluating gen with input value: ", input_val, " and init value: ", init_val)
                 _, res = gen.execute(input_value=init_val, param_init_value=init_val)
-                eval_pairs.append((res, gt_res))
+                eval_pairs.append((torch.Tensor(res), torch.Tensor(gt_res)))
 
         # flat and concat the output
         res_batch, gt_res_batch = [], []
         for res, gt_res in eval_pairs:
+            print(res)
+            print(gt_res)
             res_batch.append(res.reshape(-1))
             gt_res_batch.append(gt_res.reshape(-1))
         res_batch = torch.stack(res_batch)
@@ -59,6 +61,11 @@ class ModelImpValEval:
         # pearson correlation of each hidden output
         def norm(x):
             return (x - x.mean(axis=0)) / x.std(axis=0)
+        print ('\n\n\n\n')
+        print (res_batch)
+        print ('\n\n\n\n')
+        print (gt_res_batch)
+
 
         dim_corr = (norm(res_batch) * norm(gt_res_batch)).mean(axis=0)  # the correlation of each hidden output
 

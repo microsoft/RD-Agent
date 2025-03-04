@@ -111,7 +111,6 @@ class ModelCodeEvaluator(Evaluator):
         critic_response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
-            json_mode=False,
         )
 
         return critic_response, None
@@ -171,7 +170,6 @@ class ModelFinalEvaluator(Evaluator):
                 execution_feedback_to_render = execution_feedback_to_render[len(execution_feedback_to_render) // 2 :]
             else:
                 break
-
         final_evaluation_dict = json.loads(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
