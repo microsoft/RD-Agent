@@ -161,7 +161,9 @@ class LoopBase:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None) -> "LoopBase":
+    def load(
+        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = True
+    ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
@@ -175,8 +177,10 @@ class LoopBase:
         # set trace path
         logger.set_trace_path(session.session_folder.parent)
 
-        max_loop = max(session.loop_trace.keys())
-        logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+        # truncate future message
+        if do_truncate:
+            max_loop = max(session.loop_trace.keys())
+            logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
         return session
 
 
