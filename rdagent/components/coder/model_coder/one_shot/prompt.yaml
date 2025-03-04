@@ -2,7 +2,7 @@
 
 code_implement_sys: |-
   You are an assistant whose job is to answer user's question.
-code_implement_user: |-
+code_implement_user_old: |-
   With the following given information, write a python code using pytorch and torch_geometric to implement the model.
   This model is in the graph learning field, only have one layer.
   The input will be node_feature [num_nodes, dim_feature] and edge_index [2, num_edges]  (It would be the input of the forward model)
@@ -11,7 +11,8 @@ code_implement_user: |-
   1. model name:{{name}}
   2. model description:{{description}}
   3. model formulation:{{formulation}}
-  4. model variables:{{variables}}.
+  4. model variables:{{variables}}
+  5. model type:{{type}}
   You must complete the forward function as far as you can do.
   Execution Your implemented code will be executed in the follow way:
   The the implemented code will be placed in a file like [uuid]/model.py
@@ -23,5 +24,52 @@ code_implement_user: |-
           ...
       model_cls = XXXLayer
       ```
-  - initialize the model by initializing it `model_cls(input_dim=INPUT_DIM)`
+  - initialize the model by initializing it.
+    - `model_cls(num_features=NUM_FEATURES)` (if model type is `Graph` or `Tabular`)
+    - `model_cls(num_features=NUM_FEATURES, num_timesteps=NUM_TIMESTEPS)` (if model type is `TimeSeries`)
   - And then verify the model by comparing the output tensors by feeding specific input tensor.
+code_implement_user: |-
+  请根据以下信息，使用PyTorch和torch_geometric实现一个图神经网络模型。要求如下：
+
+  1. 模型信息：
+     - 名称：{{name}}
+     - 描述：{{description}}
+     - 数学公式：{{formulation}}
+     - 变量说明：{{variables}}
+     - 模型类型：{{type}}
+
+  2. 实现要求：
+     - 必须继承torch.nn.Module
+     - 模型必须包含完整的__init__和forward方法
+
+  3. 输入格式：
+     - node_features: torch.Tensor[num_nodes, num_features]
+     - edge_index: torch.Tensor[2, num_edges]
+     - 不需要处理边特征(edge_features)和边权重(edge_weights)
+
+  4. 实现注意事项：
+     - 所有线性变换层(Linear)的输入输出维度必须与节点特征维度(num_features)一致
+     - 必须正确处理节点特征和边索引的形状
+     - 必须包含适当的类型提示(type hints)
+     - 确保所有张量运算的维度匹配
+
+  5. 代码结构要求：
+     ```python
+     class ModelName(torch.nn.Module):
+         def __init__(self, num_features: int):
+             super().__init__()
+             # 初始化层和参数
+     model_cls = ModelName  # 必须导出模型类
+     ```
+     请直接给出代码的结果，不需要在后面增加测试代码的用例，我们会自动化提取你输出的最后一份python代码测试。
+
+  6. 测试用例：
+      - 加载后的模型将被验证，确保模型能够正确处理特定输入张量
+     ```python
+     # 测试代码将按如下方式执行
+     m = model_cls(num_features=10)
+     初始化node_features和edge_index的代码（省略）,node个数为32
+     out = m(node_features=node_features,edge_index=edge_index)
+     ```
+
+  请确保代码完整可执行，并与数学公式保持一致。代码将被保存为model.py并进行自动化测试。

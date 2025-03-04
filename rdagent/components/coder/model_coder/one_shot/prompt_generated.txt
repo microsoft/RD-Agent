@@ -1,0 +1,45 @@
+You are an assistant whose job is to answer user's question.
+请根据以下信息，使用PyTorch和torch_geometric实现一个图神经网络模型。要求如下：
+
+1. 模型信息：
+   - 名称：A-DGN
+   - 描述：A framework for stable and non-dissipative DGN design, conceived through the lens of ordinary differential equations (ODEs). It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.
+   - 数学公式：\frac{\partial x_u(t)}{\partial t} = \sigma(W^T x_u(t) + \Phi(X(t), N_u) + b)
+   - 变量说明：{'x_u(t)': 'The state of node u at time t', '\\frac{\\partial x_u(t)}{\\partial t}': 'The rate of change of the state of node u at time t', '\\sigma': 'A monotonically non-decreasing activation function', 'W': 'A weight matrix', 'b': 'A bias vector', '\\Phi(X(t), N_u)': 'The aggregation function for the states of the nodes in the neighborhood of u', 'X(t)': 'The node feature matrix of the whole graph at time t', 'N_u': 'The set of neighboring nodes of u'}
+   - 模型类型：Graph
+
+2. 实现要求：
+   - 必须继承torch.nn.Module
+   - 模型必须包含完整的__init__和forward方法
+
+3. 输入格式：
+   - node_features: torch.Tensor[num_nodes, num_features]
+   - edge_index: torch.Tensor[2, num_edges]
+   - 不需要处理边特征(edge_features)和边权重(edge_weights)
+
+4. 实现注意事项：
+   - 所有线性变换层(Linear)的输入输出维度必须与节点特征维度(num_features)一致
+   - 必须正确处理节点特征和边索引的形状
+   - 必须包含适当的类型提示(type hints)
+   - 确保所有张量运算的维度匹配
+
+5. 代码结构要求：
+   ```python
+   class ModelName(torch.nn.Module):
+       def __init__(self, num_features: int):
+           super().__init__()
+           # 初始化层和参数
+   model_cls = ModelName  # 必须导出模型类
+   ```
+   请直接给出代码的结果，不需要在后面增加测试代码的用例，我们会自动化提取你输出的最后一份python代码测试。
+
+6. 测试用例：
+    - 加载后的模型将被验证，确保模型能够正确处理特定输入张量
+   ```python
+   # 测试代码将按如下方式执行
+   m = model_cls(num_features=10)
+   初始化node_features和edge_index的代码（省略）
+   out = m(node_features=node_features,edge_index=edge_index)
+   ```
+
+请确保代码完整可执行，并与数学公式保持一致。代码将被保存为model.py并进行自动化测试。
