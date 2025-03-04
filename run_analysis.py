@@ -66,7 +66,7 @@ def evaluate_trace(competition_path: str, loop_idx: int):
     session_path = f"{competition_path}/__session__/{loop_idx}"
     session_path = f"{session_path}/{get_last_step(session_path)}"
 
-    kaggle_loop = DataScienceRDLoop.load(session_path)
+    kaggle_loop = DataScienceRDLoop.load(path=session_path, do_trucate=False)
     try: 
         exp, feedback = kaggle_loop.trace.hist[loop_idx]
         return {"Loop Index": loop_idx, 
