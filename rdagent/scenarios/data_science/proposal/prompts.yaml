@@ -274,7 +274,7 @@ component_gen:
 
     You will be provided the feedback for the latest implementation.
 
-    Please select the component you are going to improve the latest implementation or sota implementation.
+    Please select the component you are going to improve the latest implementation or sota implementation. 
 
     Please generate the output in JSON format following the format below:
     {{ component_output_format }}
@@ -290,6 +290,7 @@ component_gen:
     {{ component_and_feedback_df }}
     
     Please choose the most proper component to focus on based on the information above. Please balance the exploration and exploitation.
+    Avoid selecting the same component more than 5 times in a row to ensure that the chosen component is not overly repetitive.
 
 
 exp_and_feedback: |-
