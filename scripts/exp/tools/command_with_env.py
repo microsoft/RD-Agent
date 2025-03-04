@@ -6,7 +6,7 @@ import sys
 from concurrent.futures import ProcessPoolExecutor
 from dotenv import load_dotenv
 
-num_of_workers = 3
+num_of_workers = 1
 env_dir = '../envs'
 command = ['/data/userdata/v-yihuachen/anaconda3/envs/rdagent-dev/bin/python',
           '/data/userdata/v-yihuachen/repo/RD-Agent/rdagent/app/benchmark/factor/eval.py']

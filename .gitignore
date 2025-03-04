@@ -174,3 +174,4 @@ mlruns/
 *.sh
 .aider*
 rdagent/app/benchmark/factor/example.json
+result.txt

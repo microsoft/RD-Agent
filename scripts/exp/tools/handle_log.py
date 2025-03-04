@@ -27,8 +27,9 @@ def analysis_log_to_result(log_name,pkl_path):
 model_list = read_model_list('model_list')
 # model_list = model_list[:10]
 # model_list = model_list[10:]
+model_list = ['DeepSeek-R1',"DeepSeek-V3"]
 for model_name in model_list:
-    model_name =  f"{model_name}-16k"
+    # model_name =  f"{model_name}-16k"
     log_name = f"{model_name}.log"
     log_backup_path =  f'./logs_backup/{model_name}.log'
     # shutil.copy(log_name,log_backup_path)    # 备份log，不需要每次运行
