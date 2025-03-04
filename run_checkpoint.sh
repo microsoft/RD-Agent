@@ -5,4 +5,4 @@ python run_checkpoint.py \
     --output_path log/log_researcher \
     --n_process 5 \
     --n_loop 2 \
-    --n_round 10
+    --n_round 5

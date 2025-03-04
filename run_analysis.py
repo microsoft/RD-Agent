@@ -12,11 +12,43 @@ def arg_parser():
     return parser.parse_args()
 
 
-def group_result_table(result_table, priority):
-    df = pd.DataFrame(result_table)
-    df = df.groupby(priority, as_index=False).agg({"Score": "mean"})
-    df = df.sort_values(by=priority, ascending=[True] * len(priority))
-    return df
+def extract_exp_path(root_path):
+    '''
+    Args:
+        root_path (str): The path to the root directory containing the `log_<key>` subdirectories.
+
+    Returns:
+        log_dict: A dictionary where keys are categories (e.g., `checkpoint`, `baseline`) and values are lists of paths to
+              `<competition_name>` directories, formatted appropriately.
+    log
+    - log_checkpoint
+        - <competition_name>
+    - log_baseline
+        - round_0
+            - <competition_name>
+    - log_researcher
+        - round_0
+            - <competition_name>
+    '''
+    log_dict = {}
+    for f in os.scandir(root_path):
+        if f.is_dir():
+            match = re.match(r"log_(.+)", f.name) # such as log_checkpoint, log_baseline, log_researcher
+            if match:
+                ckpt_type = match.group(1) # checkpoint, baseline, researcher
+                if ckpt_type not in log_dict:
+                    log_dict[ckpt_type] = []
+
+                for subdir in os.scandir(f.path):
+                    if subdir.is_dir():
+                        round_match = re.match(r"round_(\d+)", subdir.name) # such as round_0, round_1
+                        if round_match:
+                            for competition_dir in os.scandir(subdir.path):
+                                if competition_dir.is_dir():
+                                    log_dict[ckpt_type].append(f"{subdir.name}/{competition_dir.name}")
+                        else:
+                            log_dict[ckpt_type].append(subdir.name)
+    return log_dict
 
 
 def get_last_step(session_path):
@@ -30,48 +62,56 @@ def get_last_step(session_path):
     return step
 
 
-def get_mle_score(session_path):
-    kaggle_loop = DataScienceRDLoop.load(session_path)
-    if kaggle_loop.trace.hist:
-        return kaggle_loop.trace.hist[-1][0].result
-    return None
-
-
-def analyze_single_competition(competition_path, loop_idx):
+def evaluate_trace(competition_path: str, loop_idx: int):
     session_path = f"{competition_path}/__session__/{loop_idx}"
     session_path = f"{session_path}/{get_last_step(session_path)}"
-    mle_score = get_mle_score(session_path)
-    try:
-        mle_score = mle_score.iloc[:, 0].mean()
+
+    kaggle_loop = DataScienceRDLoop.load(session_path)
+    try: 
+        exp, feedback = kaggle_loop.trace.hist[loop_idx]
+        return {"Loop Index": loop_idx, 
+                "Score": exp.result.loc['ensemble'].iloc[0] if exp.result is not None else None, 
+                "Metric": exp.result.columns[0] if exp.result is not None else None, 
+                "Hypothesis": str(exp.hypothesis), 
+                "Feedback": str(feedback)}
     except:
-        mle_score = None
-    return {"Loop Index": loop_idx, "Score": mle_score}
+        return {"Loop Index": loop_idx, 
+                "Score": None, 
+                "Metric": None, 
+                "Hypothesis": None, 
+                "Feedback": None}
 
 
-def analyze_single_folder(log_path):
+def analyze_single_loop(competition_path: str, loop_idx: int):
+    loop_result_dict = {}
+    loop_result_dict.update(evaluate_trace(competition_path, int(loop_idx)))
+    
+    return loop_result_dict
+
+
+def analyze_single_competition(ckpt_type, competition_path):
     result_table = []
-    pattern = r"log_([^_]+)_(\d+)"
-    ckpt_type, exp_idx = "checkpoint", 0
-    match = re.search(pattern, log_path)
+    pattern = r"round_(\d+)"
+    exp_idx = 0
+    match = re.search(pattern, competition_path)
     if match:
-        ckpt_type = match.group(1)
-        exp_idx = match.group(2)
-    competitions = [entry for entry in sorted(os.scandir(log_path), key=lambda e: e.name) if entry.is_dir()]
-    for c in competitions:
-        competition_path = f"{log_path}/{c.name}"
-        try:
-            loop_list = os.listdir(f"{competition_path}/__session__")
-        except:
-            continue
-        for loop_idx in loop_list:
-            comp_result = {
-                "Competition": competition_path.split("/")[-1],
-                "Index": exp_idx,
-                "Type": ckpt_type
-            }
-            comp_result.update(analyze_single_competition(competition_path, loop_idx))
-            result_table.append(comp_result)
+        exp_idx = int(match.group(1))
+    loop_list = os.listdir(f"{competition_path}/__session__")
+    for loop_idx in loop_list:
+        comp_result = {
+            "Competition": competition_path.split("/")[-1],
+            "Exp Index": exp_idx,
+            "Type": ckpt_type
+        }
+        comp_result.update(analyze_single_loop(competition_path, loop_idx))
+        result_table.append(comp_result)
     return result_table
+
+
+def group_result_table(result_table, priority):
+    df = pd.DataFrame(result_table)
+    df = df.groupby(priority).first().reset_index()
+    return df
 
 
 def filter_checkpoint_rows(df):
@@ -121,22 +161,22 @@ def main():
     args = arg_parser()
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
+    
+    log_dict = extract_exp_path(args.root_path)
     result_table = []
-    log_dict = {"checkpoint": [], "baseline": [], "researcher": []}
-    for f in os.scandir(args.root_path):
-        if f.is_dir():
-            for key in log_dict:
-                if key in f.name:
-                    log_dict[key].append(f.name)
+
     for key in log_dict:
-        for name in log_dict[key]:
-            log_path = f"{args.root_path}/{name}"
+        for path in log_dict[key]:
+            log_path = f"{args.root_path}/log_{key}/{path}"
             print(f"Processing {log_path}")
-            result_table.extend(analyze_single_folder(log_path))
-    result_df = group_result_table(result_table, ["Competition", "Loop Index", "Type", "Index"])
+            result_table.extend(analyze_single_competition(key, log_path))
+
+    result_df = group_result_table(result_table, ["Competition", "Loop Index", "Type", "Exp Index"])
     result_df.to_csv(f"{args.output_path}/results.csv", index=False)
+
     filtered_df = filter_checkpoint_rows(result_df)
     filtered_df.to_csv(f"{args.output_path}/results_filtered.csv", index=False)
+
     agg_df = aggregate_results(filtered_df)
     agg_df.to_csv(f"{args.output_path}/aggregated_results.csv", index=False)
 

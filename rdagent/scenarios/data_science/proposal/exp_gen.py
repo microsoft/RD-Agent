@@ -31,11 +31,13 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
+        idea: Idea = None, 
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
+        self.idea = idea
 
     def __str__(self) -> str:
         if self.hypothesis == "":
@@ -477,6 +479,7 @@ class DSExpGen(ExpGen):
                         concise_observation=hypothesis_proposal.get("concise_observation", ""),
                         concise_justification=hypothesis_proposal.get("concise_justification", ""),
                         concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                        idea=idea
                     )
 
                     task_design = resp_dict.get("task_design", {})

@@ -1,3 +1,3 @@
 python run_analysis.py \
-    --root_path /data/userdata/v-xuminrui/RD-Agent \
+    --root_path log \
     --output_path output_dir
