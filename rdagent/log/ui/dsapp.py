@@ -357,7 +357,7 @@ def all_summarize_win():
     )
 
     # Read baseline results
-    baseline_result_path = ""
+    baseline_result_path = "/home/v-yuanteli/RD-Agent/git_ignore_folder/aide(OpenAI)_gpt_4o.csv"
     if Path(baseline_result_path).exists():
         baseline_df = pd.read_csv(baseline_result_path)
 

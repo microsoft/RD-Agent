@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Advanced Text Encoding",
+        "method": "Utilize the Longformer model for encoding long text sequences, allowing for better context capture across long essays by setting max length to 4096 tokens.",
+        "context": "The notebook uses the Longformer model to process large text sequences, capturing detailed context for better classification of discourse elements.",
+        "hypothesis": {
+            "problem": "The problem involves segmenting and classifying long essays which require retaining extensive context.",
+            "data": "The data consists of long essays with potentially important context spread across long spans of text.",
+            "method": "Longformer can handle longer sequences than typical transformers, providing better context retention.",
+            "reason": "The scenario involves long text documents where capturing context across multiple paragraphs is crucial for correct segmentation and classification."
+        }
+    },
+    {
+        "idea": "Dynamic Padding and Truncation",
+        "method": "Implement dynamic padding and truncation strategy during training and inference to handle varying text lengths efficiently.",
+        "context": "The notebook dynamically pads or truncates input sequences during batch preparation to ensure consistent input sizes for the model.",
+        "hypothesis": {
+            "problem": "The problem requires processing text inputs of varying lengths efficiently.",
+            "data": "The text data varies significantly in length, necessitating a flexible approach to handling input sizes.",
+            "method": "Dynamic padding/truncation ensures that each input batch is optimized in size without losing critical information.",
+            "reason": "The scenario involves handling sequences of varying lengths efficiently to maintain performance without unnecessary computation."
+        }
+    },
+    {
+        "idea": "Two-Stage Prediction and Post-Processing",
+        "method": "Use a two-stage prediction approach with a Longformer model followed by LSTM-based refinement and post-processing using LightGBM.",
+        "context": "Initial predictions are made using the Longformer model, followed by a second-stage refinement using LSTM and LightGBM to improve segmentation accuracy.",
+        "hypothesis": {
+            "problem": "The problem requires highly accurate segmentation and classification of text elements.",
+            "data": "Initial predictions may contain noise or inaccuracies that need refinement.",
+            "method": "Combining Longformer with LSTM and LightGBM allows for capturing both contextual information and sequence-based refinements.",
+            "reason": "The scenario benefits from initial broad context capture followed by detailed refinement, improving the precision of predictions."
+        }
+    },
+    {
+        "idea": "Cosine Annealing Learning Rate Schedule",
+        "method": "Employ a cosine annealing learning rate schedule with warm restarts to optimize model training dynamics.",
+        "context": "The notebook applies cosine annealing with warm restarts to adjust learning rates dynamically during training, enhancing convergence.",
+        "hypothesis": {
+            "problem": "The problem involves training a complex model which can benefit from dynamic learning rate adjustments.",
+            "data": "The learning dynamics can be improved through scheduled learning rate changes.",
+            "method": "Cosine annealing helps in escaping local minima and potentially achieving better convergence by periodically resetting the learning rate.",
+            "reason": "The scenario involves training on large and complex data where scheduled learning rate adjustments can lead to improved model performance."
+        }
+    },
+    {
+        "idea": "Adversarial Weight Perturbation",
+        "method": "Incorporate Adversarial Weight Perturbation (AWP) in the training process to enhance model robustness against small perturbations in input data.",
+        "context": "The notebook implements AWP during training to make the model more robust against adversarial examples and improve generalization.",
+        "hypothesis": {
+            "problem": "The problem may involve noisy or adversarial data that could impact model performance.",
+            "data": "The training data may contain adversarial characteristics that require robust handling.",
+            "method": "AWP introduces controlled noise in weights to make the model more robust against similar perturbations in inputs.",
+            "reason": "The scenario benefits from enhanced robustness against adversarial noise, leading to improved generalization and stability."
+        }
+    },
+    {
+        "idea": "Feature Engineering with PCA",
+        "method": "Apply PCA to extract and incorporate features from token-level predictions to enhance downstream classification tasks.",
+        "context": "PCA is used on token-level prediction features to reduce dimensionality and enhance signal for subsequent LightGBM classification.",
+        "hypothesis": {
+            "problem": "The problem involves handling high-dimensional features from token predictions efficiently.",
+            "data": "Token predictions are high-dimensional and need compression without losing critical information.",
+            "method": "PCA reduces dimensionality while retaining most variance, improving computational efficiency and model performance.",
+            "reason": "The scenario requires efficient feature representation for downstream models, benefiting from reduced noise and enhanced signal."
+        }
+    }
+]

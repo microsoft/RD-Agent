@@ -1,0 +1,17 @@
+Hey kagglers 👋!!
+
+My first attempt in open Kaggle competition is end with great results!
+I  trust 98% my cross validation (CV) and I took the 5th place, and If I trust it 100% I would take the 3rd place, but this should be a lesson for me! **DON'T TRUST THE PUBLIC LEADERBOARD**!!
+
+**My solution notebook is here:** 
+
+## Things that worked 🔥
+* **Remove outliers** - Run IQR for each column and remove the rows with the outliers (just 20 records). The outlier removal was not so important for the final model performance but it was important for the CV, because the RMSE metric is very sensitive to outliers and can lead to missleading results.
+* **Piece-Wise model** (I like the terminology from @PRASAD)- Split the models based on different periods (based on made column). The best score was by spliting the data in 4 periods.
+* **Multi-StratifiedKFold** - Run StratifiedKFold many times with different SEEDS. This give me the confidence to have good statistics about model performance (MeanScore +/- SD). The second key point is the selection of the "Statified" CV. Due to "Piece-Wise model" approach I had to stratify the data based on the "made" column in order to have consistent results.
+* **Ensemble Model** - From CV I observed that different models (e.g Random Forest, XGBoost) had case that were good and others are not, so an ensemble model created a more stable solution.
+* **Low number of estimators** - I used few estimators because with more estimators the models were overfitting in data noise
+* **Use all the features (except CityCode)** - The most dominant feature was the size of the house (squareMeters column). It was the only feature with significan correlation (~ =53%) with the target and feature importance (~ =99%), all the others were look to be noise. But the CV show me that the other features were play some role and maybe in edge cases were helping the model to take the right decision, so I keep them!
+* **No extra features** - After searching for artificial features that would probably help the model performance, I couldn;t find features which improve the CV score, so I didn't use any extra features.
+* **Include original data** - The original data were looked different (based on Adversarial validation) but If we keep only the squareMeters columns the dataset were approximately the same, so I tried to include them in the training dataset and the results were better.
+

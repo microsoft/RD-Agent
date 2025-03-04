@@ -1,0 +1,72 @@
+(1) The overall design of the code is to train and evaluate two models: a LightGBM model and a neural network model. The code first loads the necessary data from CSV files and preprocesses it using the DataPrep class. Then, it splits the data into training and validation sets using cross-validation. The LightGBM model is trained on the training set and used to make predictions on the validation set. The neural network model is also trained on the training set and used to make predictions on the validation set. Finally, the predictions from both models are combined to generate the final submission.
+
+(2) The overall model architecture consists of two models: a LightGBM model and a neural network model.
+
+The LightGBM model is implemented using the LGBClassModel1 class. It uses the LightGBM library to train a gradient boosting model with multiclass classification objective. The model has 87 classes (corresponding to the target values) and uses the specified hyperparameters for training. The features used for training are specified in the "features" list.
+
+The neural network model is implemented using the NNRegModel1 class. It uses a custom neural network architecture implemented in the Net class. The neural network consists of a series of fully connected layers with leaky ReLU activation functions. The number of hidden layers and the number of hidden units per layer are specified in the configuration. The model is trained using the specified hyperparameters and bagging is used to generate multiple predictions for each sample. The bagged predictions are aggregated using the specified aggregation function (mean, median, or max) to generate the final prediction.
+
+(3) The important hyperparameters in this code are:
+
+- LightGBM model hyperparameters:
+  - boosting_type: The type of boosting algorithm to use (gbdt).
+  - objective: The objective function to optimize (multiclass).
+  - num_class: The number of classes in the target variable (87).
+  - n_estimators: The number of boosting iterations (300).
+  - learning_rate: The learning rate for gradient boosting (0.019673004699536346).
+  - num_leaves: The maximum number of leaves in each tree (208).
+  - max_depth: The maximum depth of each tree (14).
+  - min_data_in_leaf: The minimum number of samples required to form a leaf (850).
+  - feature_fraction: The fraction of features to consider for each tree (0.5190632906197453).
+  - lambda_l1: The L1 regularization term (7.405660751699475e-08).
+  - lambda_l2: The L2 regularization term (0.14583961675675494).
+  - max_bin: The maximum number of bins to use for feature discretization (240).
+  - verbose: Verbosity level (-1).
+  - force_col_wise: Whether to use column-wise training (True).
+  - n_jobs: The number of parallel threads to use (-1).
+
+- Neural network model hyperparameters:
+  - tr_collate_fn: The collate function to use for training data (None).
+  - val_collate_fn: The collate function to use for validation data (None).
+  - target_column: The name of the target column in the dataset ("target_norm").
+  - output_dir: The directory to save the model outputs ("results/nn_temp").
+  - seed: The random seed for reproducibility (-1).
+  - eval_epochs: The number of epochs between each evaluation (1).
+  - mixed_precision: Whether to use mixed precision training (False).
+  - device: The device to use for training ("cpu").
+  - n_classes: The number of classes in the target variable (1).
+  - batch_size: The batch size for training (128).
+  - batch_size_val: The batch size for validation (256).
+  - n_hidden: The number of hidden units in each layer of the neural network (64).
+  - n_layers: The number of hidden layers in the neural network (2).
+  - num_workers: The number of worker processes for data loading (0).
+  - drop_last: Whether to drop the last incomplete batch (False).
+  - gradient_clip: The maximum gradient norm for gradient clipping (1.0).
+  - bag_size: The number of models to train in the bagging ensemble (1).
+  - bag_agg_function: The aggregation function to use for bagged predictions (mean).
+  - lr: The learning rate for neural network training (2e-3).
+  - warmup: The number of warmup steps for learning rate scheduling (0).
+  - epochs: The number of training epochs (10).
+  - features: The list of features to use for training.
+
+(4) The optimization objective is to minimize the symmetric mean absolute percentage error (SMAPE) between the predicted and actual target values. The SMAPE is calculated using the smape1p function, which takes the predicted and actual values as inputs and returns the SMAPE score.
+
+(5) The advanced machine learning technique used in this code is gradient boosting with LightGBM. Gradient boosting is an ensemble learning method that combines multiple weak models (decision trees) to create a strong predictive model. LightGBM is a gradient boosting framework that uses a tree-based learning algorithm and is optimized for efficiency and speed.
+
+(6) Some important tricks that play a role in achieving high performance in this code include:
+
+- Feature engineering: The DataPrep class is used to create additional features from the raw data. These features capture information about the patient's previous visits, the target horizon, and other relevant variables. These engineered features provide additional information to the models and help improve their predictive performance.
+
+- Cross-validation: The code uses cross-validation to evaluate the performance of the models. This helps to assess the generalization performance of the models and avoid overfitting.
+
+- Bagging: The neural network model is trained multiple times with different random seeds to create an ensemble of models. This helps to reduce the variance of the predictions and improve the overall performance.
+
+- Learning rate scheduling: The learning rate for the neural network model is scheduled using a cosine annealing schedule with warmup. This helps to improve the convergence of the model during training and prevent it from getting stuck in local minima.
+
+- Gradient clipping: The gradients of the neural network model are clipped to a maximum norm of 1.0. This helps to prevent exploding gradients and stabilize the training process.
+
+- Mixed precision training: The code supports mixed precision training, which uses lower precision (e.g., float16) for some computations to speed up training and reduce memory usage. This can help to train larger models or use larger batch sizes without running out of memory.
+
+- Parallel processing: The code uses parallel processing to speed up data loading and model training. This can help to reduce the overall training time and improve efficiency.
+
+- Model selection: The code trains and evaluates multiple models (LightGBM and neural network) and combines their predictions to generate the final submission. This ensemble approach helps to leverage the strengths of different models and improve the overall predictive performance.

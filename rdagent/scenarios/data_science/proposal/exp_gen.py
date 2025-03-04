@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Dict, Literal
 
 import pandas as pd
@@ -14,6 +15,8 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
+from scripts.exp.researcher.idea_pool import Idea, Idea_Pool
+from scripts.exp.researcher.kaggle_crawler import solution_to_feature
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
@@ -28,11 +31,13 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
+        idea: Idea = None, 
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
+        self.idea = idea
 
     def __str__(self) -> str:
         if self.hypothesis == "":
@@ -184,6 +189,10 @@ class DSExpGen(ExpGen):
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
 
+    def _init_idea_pool(self, cache_path: str) -> None:
+        if not hasattr(self, 'idea_pool'):
+            self.idea_pool = Idea_Pool(cache_path=cache_path)
+
     def _init_task_gen(
         self,
         targets: str,
@@ -271,7 +280,9 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> DSExperiment:
+        self._init_idea_pool(cache_path=idea_cache_path)
+
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
@@ -345,6 +356,37 @@ class DSExpGen(ExpGen):
                 success=False,
             )
 
+            # Retrieve the best idea
+            solution = f'''## Competition Scenario
+{scenario_desc}
+
+## Solution Notebook
+{sota_exp.experiment_workspace.all_codes}
+'''
+            solution_feature = solution_to_feature(solution)
+            try: 
+                features = json.loads(solution_feature)
+            except: 
+                match = re.search(r'\[(?:[^\[\]]|\[.*\])*\]', solution_feature)
+                features = json.loads(match.group(0)) if match else None
+
+            if features is None: 
+                idea, sim = self.idea_pool.sample(solution_feature, k=1)
+            else: 
+                extracted_features = []   
+                for feat in features:
+                    characteristic, contents = next(iter(feat.items()))
+                    if contents['Assessment'].lower() == 'no':
+                        temp = f"The characteristic of the data is {characteristic}.\nThis is because {contents['Reason']}"
+                        extracted_features.append(temp)
+                idea, sim = self.idea_pool.sample(extracted_features, k=1)
+            
+            # Todo (minrui): make the if else logic more compact
+            if len(idea) > 0:
+                idea = idea[0]
+            else:
+                idea = self.idea_pool.random_sample(1)[0]
+
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
                 scenario=scenario_desc,
@@ -356,6 +398,7 @@ class DSExpGen(ExpGen):
             component_user_prompt = T(".prompts:component_gen.user").r(
                 sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                 failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+                idea=idea.format_text(),
                 component_and_feedback_df=(
                     trace_component_to_feedback_df.to_string()
                     if len(trace_component_to_feedback_df) > 0
@@ -404,6 +447,7 @@ class DSExpGen(ExpGen):
                     targets=component_info["target_name"],
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+                    idea=idea.format_text(),
                     last_exp_diff=last_exp_diff,
                 )
 
@@ -435,6 +479,7 @@ class DSExpGen(ExpGen):
                         concise_observation=hypothesis_proposal.get("concise_observation", ""),
                         concise_justification=hypothesis_proposal.get("concise_justification", ""),
                         concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                        idea=idea
                     )
 
                     task_design = resp_dict.get("task_design", {})

@@ -1,0 +1,47 @@
+When I selected my two final submissions a few hours ago, I decided for
+- one model which uses only the month data for the predictions (no peptides and proteins) and has a public lb score of 54.7.
+- another model, which additionally uses the peptides and proteins, has a better cv but a bad public lb score (55.3).
+
+It turned out that the public leaderboard was the better indicator than the cv, and the peptide/protein feature engineering was useless.
+
+# Recognizing the control group
+
+If we plot the median updrs scores for every month, we see that the months which are multiples of 12 (the cyan markers on the gridlines) are usually lower than the non-multiples of 12 (the magenta markers between the gridlines). This cannot be a coincidence.
+
+![b1](
+
+A scatterplot of the 248 patients versus the months of their updrs assessments reveals that there are three groups of patients:
+
+The patients of the green group had their first visits in months 0, 3, 6, 9, 12.
+The patients of the orange group had their first visits in months 0, 6, 12, 18, 24 and the last visit in month 60.
+The patients of the red group had their first visits in months 0, 12, 24.
+
+![b2](
+
+If we plot the updrs scores over time of every patient, we see differences among the groups. The red group in particular has the lowest updrs scores, which means that these are the healthiest people, and updrs_4 has rarely been measured for them.
+
+We can hypothesize that the red group is the control group (a group of people without Parkinson's disease), and the experimenters decided to test the control group only once a year and to skip the updrs_4 test for this group. The real patients (green and orange groups) were tested more often and with all four updrs tests.
+
+![b3](
+
+Conclusion: We can distinguish the control group from the real patients according to their first non-zero visit_month: If the first non-zero visit_month is <12, we have a real patient; if the first non-zero visit_month equals 12, the person belongs to the healthy control group. This distinction has high predictive value for the updrs scores.
+
+# The model
+
+The model has only two features:
+- the group to which a patient belongs
+- the month of the prediction
+
+Depending on the group, it predicts a linear or isotonic regression:
+
+![b4](
+
+# Lessons learned
+- A thorough EDA is important, and the EDA must be adapted to the dataset. Automated EDA tools don't find the hidden information.
+- Unusual metrics (smape plus one) require unusual methods.
+- If the training dataset is small, simple models turn out best.
+- Medical data is scarce and expensive. If we haven't been able to prove a connection between proteins and Parkinson symptoms, this doesn't mean there is none. It only means that another thousand patients must be convinced to participate in a five-year study, and we might see a follow-up competition in 2028...
+- In biology and medicine, we usually search for very weak effects: Protein measurements are imprecise and updrs scores depend on the mood of the patient and the doctor. If anybody was expecting SMAPE scores far below 50, this expectation was unrealistic.
+
+Source code is [here](
+

@@ -1,0 +1,109 @@
+Hi Kagglers!
+
+first of all I would like to thank Prof. Makridakis, Evangelos Spiliotis, the organizing team, the generous sponsors and everyone else involved for hosting this interesting competition.
+
+Also I want to thank all the great public kernel contributors that built the basis for my solution and final rank. Without your great work this would not have been possible! (Please see credits at the end of the summary)
+
+### 1. Before we start...
+The overall approach consists of two separate modelling streams on top and bottom of the grouping hierarchy that are aligned to get a result.
+It should be reproducible for any given time-frame as well as automatable and therefore valuable for any complex grouped/hierarchical time series problems.
+
+### 2. The starting point
+As a quick reminder what our baseline was [a quick look at this notebook]( is helpful.
+Pretty clear that if we cannot beat 0.75 significantly we are on the wrong track.
+
+### 3. The bottom level lgb model - "Probability" of single item being bought:
+
+The bottom level is based on the lgb models that many participants used. ( @kyakovlev  - thank you for your great inputs in this challenge )
+One really important aspect is that I did not use any historic sales data as features (no rollings, no lags, no last buy etc.).
+My hypothesis is that the drivers for a peppermint candy bar being bought in the WI_1 shop are not whether or not this candy bar was bought once yesterday and twice on Monday but only price, date-time, SNAP, etc.
+
+The lgb model learns a "probability" for each item(-quantity) being bought in a given shop on a given day based on the external drivers.
+( By the way - [sorry to all the statisticians reading my crazy ideas here]( )
+
+It will be a major next step to dig into the understanding of this bottom level models. 
+For example: Why do errors cancel out so nicely when aggregating? (I have a theory too embarrassing to write about yet - will follow up after some testing)  
+
+Maybe my hypotheses turn out completely wrong but empirically they did hold for this given data set.
+As a sidenote: lr 0.2, 3600 iterations ... pretty basic settings on this one. Trained by store.
+
+### 4.) The problem with the correct level
+
+When following this bottom level approach we run into one problem. *The resulting models do not incorporate any trend or seasonalities.* (See comments for discussion - this point is not correct)
+We cannot (or at least I cannot) "de-trend" the underlying signals due to their intermittent nature.
+
+Maybe incorporating some kind of rolling/lag data might work - but I didn't see how to do this in a stable way that I understand or at least believe to understand (sometimes not the same :-) ) and am able to control.
+
+A lot of people in this competition chose to tackle this issue with "magic multipliers".
+
+What I used to shift the level up or down was [one of the custom loss functions discussed in the forums]( 
+
+```
+def custom_asymmetric_train(ypred, ytrue):
+y_true = y_true.get_label()
+residual = (y_true - y_pred).astype("float")
+grad = np.where(residual &lt; 0, -2 * residual, -2 * residual * multiplier)
+hess = np.where(residual &lt; 0, 2, 2 * multiplier)
+return grad, hess
+```
+
+With a multiplier &gt;1 we can train the model to "overshoot" the ground-truth with a multiplier &lt;1 we train the model to "undershoot" the ground truth.
+I think the loss approach will work better than shifting the result with a multiplier but did not compare the two approaches.
+
+Top level aggregations for a good fit and an overshot fit look like this:
+
+![](
+
+![](
+
+### So how do we find the right level if we do not want to guess? (i.e. "play the lottery")
+
+### 5.) Aligning with an independent top-level prediction
+
+What we need to find the right level is a top level prediction for which we are confident that trends and seasonalities are learned very well. 
+The approach I used was to use N-Beats for the top 5 levels. 
+
+The resulting predictions are very good and a great alignment basis as you can see for example in this top level (lvl1) validation result:
+
+![](
+
+Now I trained 15 different bottom level lgb solutions with different loss multipliers. 
+Those bottom level predictions were aggregated and aligned with the N-Beats predictions for levels 1-5.
+Selection of the best fit was basically done when the mean error between N-Beats and aggregated bottom level predictions "flipped" from positive to negative or vice versa. 
+
+![](
+
+After selecting the best fitting bottom level solution I built an ensemble consisting of this solution and the 2 solutions above as well as the 2 solutions below. 
+( In my earlier experiments I saw that this had a quite beneficial effect for hitting the optimal level - my intuition was that we get a better "loss surface" with the ensemble - but again ... a lot of "intuition" here given that there was no time to analyze all ideas I had and given that I am not the best programmer. )
+
+The final alignment for Level1 of my submission looked like this:
+
+![](
+
+### 6. ) What did not work
+
+In the beginning I played around with DeepAR and some other ideas.
+Later on I tried to reconcile the different prediction levels with the R/hts implementation. 
+After renting out a 128Gig instance on AWS and a sleepless night I came to the conclusion that this will not work for me :-) - I am pretty sure I messed up the residual calculation for MinT but my feeling is that it will not work anyway given that we have &gt;30k bottom level signals and just over 100 top level signals .... OLS/WLS did not work for me either.
+
+### 7. ) What I would love to see
+
+Solutions that did not use lgb at all. Just saw the 3rd place writeup a minute ago - looking forward to reading more on this one.
+
+### 8. ) Credits
+
+The kernel I used for all my features is: [
+From the same author the starting point of my lgbm exploration was (many of you may have seen it already): [
+Another input to my lgbm exploration was: [
+
+The kernel that put me in touch with GluonTS (great framework!!) was this one: [
+Even though I did not end up having success with DeepAR getting to know GluonTS was key to my final path.
+
+The kernel that allowed me to rapidely test hypothesis and give me visual insight to the results was this one (really love this one!!): [ 
+
+My aggregation code was copied from this kernel: [
+
+You see that a lot of community input was used - thank you everyone also for the great discussions on the kernels.
+
+Thank you all for this amazing competition.
+

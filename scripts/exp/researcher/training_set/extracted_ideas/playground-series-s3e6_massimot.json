@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Selection",
+        "method": "Use SelectKBest with f_regression to select a subset of features.",
+        "context": "The notebook uses SelectKBest to choose the top features based on univariate linear regression tests, optimizing the number of features through GridSearchCV.",
+        "hypothesis": {
+            "problem": "Regression task to predict housing prices.",
+            "data": "Synthetic dataset generated from Paris housing price data.",
+            "method": "SelectKBest with f_regression is used for feature selection.",
+            "reason": "The dataset might include irrelevant or redundant features that do not contribute to the predictive power of the model."
+        }
+    },
+    {
+        "idea": "Model Stacking",
+        "method": "Implement a stacking regressor combining multiple models with XGBoost as the final estimator.",
+        "context": "The solution uses a stacking regressor that combines decision tree, XGBoost, gradient boosting, random forest, and AdaBoost regressors.",
+        "hypothesis": {
+            "problem": "Regression task to predict housing prices.",
+            "data": "Synthetic dataset with potentially complex relationships among features.",
+            "method": "Ensemble learning through stacking to leverage strengths of various regressors.",
+            "reason": "The dataset is complex with multiple interacting features, making ensemble methods effective for capturing diverse patterns."
+        }
+    },
+    {
+        "idea": "Outlier Handling",
+        "method": "Use RobustScaler on columns identified as having outliers.",
+        "context": "The notebook identifies columns with outliers and applies RobustScaler, which uses the median and interquartile range for scaling.",
+        "hypothesis": {
+            "problem": "Regression task potentially affected by outliers in feature columns.",
+            "data": "Presence of outliers in certain columns as observed in exploratory data analysis.",
+            "method": "RobustScaler is effective in handling outliers by scaling based on median and IQR.",
+            "reason": "There are significant outliers that can skew traditional scaling methods like StandardScaler."
+        }
+    },
+    {
+        "idea": "Hyperparameter Tuning",
+        "method": "Utilize GridSearchCV to optimize hyperparameters for models using cross-validation.",
+        "context": "Various models such as AdaBoost, Decision Tree, and XGBoost have their hyperparameters tuned using GridSearchCV with neg_mean_squared_error as the scoring metric.",
+        "hypothesis": {
+            "problem": "Optimizing model performance for predicting housing prices.",
+            "data": "Synthetic dataset with complex feature interactions requires careful hyperparameter tuning.",
+            "method": "GridSearchCV allows for systematic tuning of models to improve predictive accuracy.",
+            "reason": "The dataset's complexity necessitates fine-tuning of model parameters to achieve better generalization."
+        }
+    },
+    {
+        "idea": "Standardization and Transformation",
+        "method": "Apply StandardScaler and PowerTransformer to preprocess features.",
+        "context": "Normal and binary type features are standardized using StandardScaler, while PowerTransformer is used to stabilize variance and minimize skewness in data distribution.",
+        "hypothesis": {
+            "problem": "Regression task requiring normalized input features for better model convergence.",
+            "data": "Dataset features show varying scales and distributions.",
+            "method": "StandardScaler ensures zero mean and unit variance, while PowerTransformer handles skewness.",
+            "reason": "The dataset contains features with different scales and skewed distributions that can affect model training."
+        }
+    },
+    {
+        "idea": "Ensemble Voting Regressor",
+        "method": "Combine multiple regressors using VotingRegressor for prediction aggregation.",
+        "context": "The solution employs VotingRegressor with estimators like decision tree, XGBoost, gradient boosting, random forest, and AdaBoost to aggregate predictions.",
+        "hypothesis": {
+            "problem": "Regression task aiming to improve prediction robustness and accuracy.",
+            "data": "Synthetic dataset where no single model may capture all underlying patterns effectively.",
+            "method": "VotingRegressor aggregates predictions from multiple models to enhance predictive performance.",
+            "reason": "The scenario involves complex patterns where aggregating predictions from diverse models can lead to better generalization."
+        }
+    }
+]

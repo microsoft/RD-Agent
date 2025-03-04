@@ -1,0 +1,24 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Extract domain names from image URLs and use them as a feature.",
+        "context": "The notebook extracts the source website from the image URLs and adds it as a feature in the training and test datasets.",
+        "hypothesis": {
+            "problem": "The objective is to retrieve images depicting the same landmarks as a query image.",
+            "data": "Image URLs are available, which include domain names that indicate the source website.",
+            "method": "Extracting domain names from URLs can provide useful metadata about the image source.",
+            "reason": "Different websites may host images of varying quality or characteristics, potentially correlating with certain landmarks or image retrieval patterns."
+        }
+    },
+    {
+        "idea": "Data Exploration",
+        "method": "Visualize the distribution of a feature using bar plots.",
+        "context": "The notebook visualizes the distribution of images across different source websites using a bar plot.",
+        "hypothesis": {
+            "problem": "Understanding data distribution is crucial for identifying biases or patterns.",
+            "data": "The dataset contains multiple images from various websites.",
+            "method": "Visualizing data can reveal imbalances or predominant patterns in feature distributions.",
+            "reason": "Identifying the dominant sources of images can help in understanding the dataset's structure and guide further preprocessing or modeling steps."
+        }
+    }
+]

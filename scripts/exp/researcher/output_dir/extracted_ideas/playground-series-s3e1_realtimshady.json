@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Data Augmentation",
+        "method": "Merge original California Housing dataset with the generated training data to improve model performance.",
+        "context": "The notebook augments the training data by merging it with the original California Housing dataset, which is expected to enhance the model's ability to generalize better.",
+        "hypothesis": {
+            "problem": "The objective is to predict house values from the provided features.",
+            "data": "The competition dataset is synthetically generated and may lack certain variabilities or patterns present in real-world data.",
+            "method": "Merging with real-world data can introduce more realistic patterns and variabilities.",
+            "reason": "The synthetic data may not capture all the nuances of real-world housing data, so incorporating the original dataset helps in reducing bias and improving model generalization."
+        }
+    },
+    {
+        "idea": "Coordinate Feature Engineering",
+        "method": "Perform feature engineering on latitude and longitude using trigonometric transformations and encoding tricks.",
+        "context": "The notebook applies trigonometric transformations and encoding tricks on latitude and longitude to create new features that capture spatial patterns more effectively.",
+        "hypothesis": {
+            "problem": "Predicting house values based on geographic location features (latitude, longitude).",
+            "data": "Geospatial data often contains complex patterns that are not captured by simple linear relationships.",
+            "method": "Trigonometric transformations can capture periodicity and complex spatial relationships.",
+            "reason": "Latitude and longitude are continuous variables that can benefit from transformations that capture cyclic patterns and interactions in the data."
+        }
+    },
+    {
+        "idea": "Dimensionality Reduction",
+        "method": "Apply PCA and UMAP on latitude and longitude to derive new features that capture essential spatial information.",
+        "context": "The notebook uses PCA and UMAP to transform latitude and longitude into new features that summarize spatial information.",
+        "hypothesis": {
+            "problem": "The goal is to reduce RMSE in predicting house values using geographical features.",
+            "data": "Original latitude and longitude may be redundant or noisy when used directly.",
+            "method": "PCA captures linear relationships while UMAP captures non-linear structures in high-dimensional data.",
+            "reason": "Dimensionality reduction can help distill the most informative components of the spatial data, reducing noise and improving model performance."
+        }
+    },
+    {
+        "idea": "Augmenting Feature Set with External Information",
+        "method": "Use reverse geocoding to categorize data points by county and calculate distances to major cities and coastline.",
+        "context": "The notebook enriches the dataset with categorical labels of counties using reverse geocoding and computes distances to major cities and coastlines as features.",
+        "hypothesis": {
+            "problem": "House prices are influenced by location-specific attributes like proximity to cities or coastlines.",
+            "data": "Geographic coordinates alone do not capture all the locality-specific information.",
+            "method": "Reverse geocoding provides categorical labels that can be used as features, while distance measures quantify proximity effects.",
+            "reason": "Location-specific factors, such as proximity to urban centers or coastal areas, significantly impact housing prices and are better captured through these features."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Blend predictions from LGBM, CatBoost, and XGBoost models to improve prediction accuracy.",
+        "context": "The notebook combines predictions from three different models (LGBM, CatBoost, XGBoost) with specific weights to create a final blended prediction.",
+        "hypothesis": {
+            "problem": "The task is to minimize prediction error for house value estimation.",
+            "data": "The dataset is complex, with multiple features affecting the target variable in different ways.",
+            "method": "Ensemble methods leverage the strengths of different algorithms to improve overall prediction performance.",
+            "reason": "By combining models, we can reduce overfitting, increase robustness, and capture diverse aspects of the data pattern that individual models might miss."
+        }
+    },
+    {
+        "idea": "Feature Generation through Cartesian Rotation",
+        "method": "Generate additional features by rotating Cartesian coordinates of latitude and longitude to exploit spatial characteristics.",
+        "context": "The notebook creates new features by rotating latitude and longitude at various angles to capture spatial relationships more effectively.",
+        "hypothesis": {
+            "problem": "Predicting house values based on geographic location involves understanding spatial relationships.",
+            "data": "Geographic coordinates might have intricate spatial dependencies that simple linear models can't capture effectively.",
+            "method": "Rotating coordinate systems can reveal hidden relationships or patterns in spatial data.",
+            "reason": "Rotated coordinates can expose interactions between latitude and longitude that align with underlying geographical trends affecting house prices."
+        }
+    }
+]

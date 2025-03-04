@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Wavelet Transform for Frequency Band Power",
+        "context": "The notebook computes wavelet power for each accelerometer axis and sums power across specified frequency bands to create frequency domain features.",
+        "hypothesis": {
+            "problem": "Detection of freezing of gait (FOG) events using wearable sensor data.",
+            "data": "3D accelerometer data with high sampling rates (100Hz or 128Hz).",
+            "method": "Wavelet transform is used to capture frequency domain characteristics.",
+            "reason": "FOG events are likely associated with specific frequency patterns in the accelerometer data, making frequency domain features useful for detection."
+        }
+    },
+    {
+        "idea": "Model Architecture",
+        "method": "Conv1dBlockPreprocessedSE with Squeeze-and-Excitation",
+        "context": "The model architecture includes Conv1dBlockPreprocessedSE layers that incorporate squeeze-and-excitation mechanisms to enhance feature representation.",
+        "hypothesis": {
+            "problem": "Detection of temporal patterns in multivariate time-series data.",
+            "data": "Complex temporal dependencies and noise in the accelerometer signals.",
+            "method": "Deep learning model with attention mechanisms to focus on important features.",
+            "reason": "Squeeze-and-excitation layers can dynamically recalibrate channel-wise feature responses, improving model performance by focusing on informative features."
+        }
+    },
+    {
+        "idea": "Data Augmentation",
+        "method": "Signal Inversion during Inference",
+        "context": "During inference, the model predictions are averaged for the original and inverted (negated) sensor signals.",
+        "hypothesis": {
+            "problem": "Limited labeled data for training robust models.",
+            "data": "Variability in sensor signal orientation and amplitude.",
+            "method": "Data augmentation techniques to enhance model robustness.",
+            "reason": "Inverting signals can help the model learn invariant features and improve generalization by simulating different signal orientations."
+        }
+    },
+    {
+        "idea": "Dropout Regularization",
+        "method": "Multiple Dropout Layers in Model",
+        "context": "Dropout is applied at various stages in the model to prevent overfitting.",
+        "hypothesis": {
+            "problem": "High dimensionality and risk of overfitting in deep learning models.",
+            "data": "Relatively small dataset size compared to the complexity of the task.",
+            "method": "Regularization techniques in neural networks.",
+            "reason": "Dropout helps in preventing overfitting by randomly dropping units during training, thus improving model generalization."
+        }
+    },
+    {
+        "idea": "Multi-Model Ensemble",
+        "method": "Ensemble of Models with Averaging Predictions",
+        "context": "The final predictions are obtained by averaging the outputs from multiple trained models.",
+        "hypothesis": {
+            "problem": "Achieving high precision in classification tasks with imbalanced classes.",
+            "data": "Noisy and complex time-series data from wearable sensors.",
+            "method": "Combining multiple models to improve prediction accuracy and robustness.",
+            "reason": "Ensembling helps in reducing variance and capturing different aspects of the data, leading to better performance on challenging datasets."
+        }
+    },
+    {
+        "idea": "Adaptive Pooling Layers",
+        "method": "AdaptiveAvgPool1d for Squeeze Operations",
+        "context": "Adaptive average pooling is used in the squeeze part of squeeze-and-excitation blocks to handle variable input lengths.",
+        "hypothesis": {
+            "problem": "Handling variable-length sequences in time-series data processing.",
+            "data": "Variable sequence lengths due to different activity durations.",
+            "method": "Adaptive pooling operations in deep learning architectures.",
+            "reason": "Adaptive pooling allows the model to handle variable input sizes by producing a fixed-size output, making it suitable for sequences of varying lengths."
+        }
+    }
+]

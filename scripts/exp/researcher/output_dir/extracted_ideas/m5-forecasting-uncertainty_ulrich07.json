@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Memory Optimization",
+        "method": "Reduce memory usage by downcasting numerical data types to the smallest possible size using a custom function (e.g., converting int64 to int8 when appropriate).",
+        "context": "The notebook uses a function `reduce_mem_usage` to optimize the memory consumption of the dataframes by downcasting numerical columns.",
+        "hypothesis": {
+            "problem": "Handling large datasets in memory-constrained environments.",
+            "data": "Large-scale datasets with numerous numerical columns.",
+            "method": "Data type downcasting can significantly reduce memory footprint.",
+            "reason": "The dataset is large, and reducing memory usage helps in efficient processing and faster computations without running into memory issues."
+        }
+    },
+    {
+        "idea": "Feature Engineering with Lags",
+        "method": "Create lag-based features for time-series forecasting by shifting the target variable by multiple periods (e.g., 28, 35, 42 days).",
+        "context": "The notebook creates lag features based on past sales data for various time intervals to capture temporal dependencies.",
+        "hypothesis": {
+            "problem": "Forecasting future values based on historical patterns.",
+            "data": "Time-series data with temporal dependencies.",
+            "method": "Lag features help capture temporal patterns which are crucial in time-series forecasting.",
+            "reason": "The scenario involves temporal sales data where past values influence future trends, making lag features valuable."
+        }
+    },
+    {
+        "idea": "Categorical Feature Embedding",
+        "method": "Use embedding layers for categorical variables in neural network models to capture complex relationships.",
+        "context": "The notebook employs embedding layers for categorical features like 'item_id', 'dept_id', 'store_id', etc., in the neural network model.",
+        "hypothesis": {
+            "problem": "Capturing complex relationships between categorical variables and the target variable.",
+            "data": "Categorical data with potentially high cardinality.",
+            "method": "Embeddings can efficiently encode categorical information into a continuous space.",
+            "reason": "The model needs to leverage high-cardinality categorical features to improve prediction accuracy without manual feature engineering."
+        }
+    },
+    {
+        "idea": "Custom Quantile Loss Function",
+        "method": "Implement a custom quantile loss function for training the model to predict different quantiles (e.g., 0.005, 0.025).",
+        "context": "The notebook defines a custom `qloss` function for computing pinball loss across multiple quantiles to handle uncertainty estimation.",
+        "hypothesis": {
+            "problem": "Estimating prediction intervals and uncertainty in forecasts.",
+            "data": "Data where understanding variability and uncertainty is crucial.",
+            "method": "Quantile loss functions are suitable for training models that need to predict intervals rather than point estimates.",
+            "reason": "The task requires predicting different quantiles of future sales, which makes quantile loss functions appropriate for capturing the range of possible outcomes."
+        }
+    },
+    {
+        "idea": "Weighted Scaled Pinball Loss",
+        "method": "Use weighted scaled pinball loss tailored for hierarchical time-series forecasting as an evaluation metric.",
+        "context": "The notebook evaluates model performance using weighted scaled pinball loss, aligning with the competition's requirement to handle hierarchical data.",
+        "hypothesis": {
+            "problem": "Accurately evaluating forecasts in a hierarchical time-series setting.",
+            "data": "Hierarchical time-series data with varying scales across levels.",
+            "method": "This loss function appropriately scales errors based on hierarchical structure and different levels' importance.",
+            "reason": "The competition involves hierarchical data where different aggregation levels require careful calibration of prediction accuracy."
+        }
+    },
+    {
+        "idea": "GRU-based Neural Network Model",
+        "method": "Utilize a Gated Recurrent Unit (GRU) based architecture for modeling sequential dependencies in time-series data.",
+        "context": "The notebook builds a GRU-based model to capture sequential patterns in the sales data, leveraging its ability to handle sequences effectively.",
+        "hypothesis": {
+            "problem": "Modeling sequential dependencies in time-series forecasting tasks.",
+            "data": "Sequential or time-series data where temporal patterns are significant.",
+            "method": "GRUs are suited for capturing long-term dependencies and temporal sequences efficiently.",
+            "reason": "The data contains sequential patterns that are crucial for accurate forecasts, making GRUs a natural choice for handling such temporal dependencies."
+        }
+    }
+]

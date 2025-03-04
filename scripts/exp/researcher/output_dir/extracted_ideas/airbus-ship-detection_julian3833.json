@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine ResNet34 classifier with U-net image segmentation model to improve accuracy.",
+        "context": "The notebook stacks a ResNet34 model for ship detection with a U-net model for image segmentation, achieving a 0.889 score.",
+        "hypothesis": {
+            "problem": "The task requires both detecting the presence of ships and accurately segmenting them in images.",
+            "data": "Images contain ships with significant class imbalance and require both classification and segmentation.",
+            "method": "Ensemble learning enhances performance by leveraging strengths of different models.",
+            "reason": "The scenario involves multiple tasks (detection and segmentation) that can benefit from specialized models working together."
+        }
+    },
+    {
+        "idea": "Transfer Learning",
+        "method": "Fine-tune a pre-trained ResNet34 model for ship detection using transfer learning.",
+        "context": "The notebook fine-tunes ResNet34 on ship detection, focusing on specific layers with learning rate annealing.",
+        "hypothesis": {
+            "problem": "Identifying whether ships are present in images (binary classification).",
+            "data": "Images have varying resolutions, and the task benefits from pre-learned features.",
+            "method": "Transfer learning allows leveraging pre-trained networks for similar tasks.",
+            "reason": "The scenario involves limited labeled data for the specific task, but access to a large pre-trained model."
+        }
+    },
+    {
+        "idea": "Class Imbalance Handling",
+        "method": "Train the U-net segmentation model only on images containing ships to address class imbalance.",
+        "context": "The U-net model is trained using only images with ships, dropping 80% of the dataset without ships.",
+        "hypothesis": {
+            "problem": "Segmenting ships in images with a high class imbalance (many images without ships).",
+            "data": "The dataset has a significant imbalance with many non-ship images.",
+            "method": "Balancing the dataset by focusing on positive samples improves model performance.",
+            "reason": "The scenario involves a heavy imbalance that could bias training if not addressed."
+        }
+    },
+    {
+        "idea": "Loss Function Engineering",
+        "method": "Use Dice loss and Focal loss for training the U-net model to improve segmentation accuracy.",
+        "context": "The U-net model uses Dice loss and Focal loss, which are designed to handle class imbalance in segmentation tasks.",
+        "hypothesis": {
+            "problem": "Accurately segment ships in images where ship pixels are a minority.",
+            "data": "The segmentation task has imbalanced positive and negative classes (few ship pixels).",
+            "method": "Dice and Focal loss functions are designed to handle class imbalance effectively.",
+            "reason": "The scenario involves a class imbalance that traditional loss functions may not handle well."
+        }
+    },
+    {
+        "idea": "Image Data Augmentation",
+        "method": "Apply data augmentation techniques to increase the diversity of training data for better generalization.",
+        "context": "Transfer learning model uses Keras' ImageDataGenerator for data augmentation to enhance training.",
+        "hypothesis": {
+            "problem": "Improve model generalization and robustness to diverse ship appearances.",
+            "data": "Limited variability in training data may lead to overfitting.",
+            "method": "Augmentation increases data diversity, helping models generalize better.",
+            "reason": "The scenario involves a small training set that could benefit from synthetic diversity."
+        }
+    },
+    {
+        "idea": "Model Fine-tuning",
+        "method": "Use learning rate annealing during model fine-tuning to improve convergence and performance.",
+        "context": "During fine-tuning of ResNet34, learning rate annealing is used to focus on specific layers.",
+        "hypothesis": {
+            "problem": "Optimizing model training for object detection performance.",
+            "data": "Adjusting learning rates can prevent overfitting and underfitting during fine-tuning.",
+            "method": "Learning rate annealing helps in adapting pre-trained models to new tasks efficiently.",
+            "reason": "The scenario involves pre-trained models needing adjustments for new, specific tasks."
+        }
+    }
+]

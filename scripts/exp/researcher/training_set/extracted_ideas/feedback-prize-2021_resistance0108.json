@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine multiple models like DeBERTa-large, Longformer, and LED-large by averaging their predictions for the final output.",
+        "context": "The notebook uses multiple models such as DeBERTa-large, Longformer, and LED-large with different configurations to predict discourse elements. The predictions from these models are averaged to improve performance.",
+        "hypothesis": {
+            "problem": "Segmenting and classifying discourse elements in essays.",
+            "data": "Large dataset with diverse writing styles and content.",
+            "method": "Combines diverse model strengths.",
+            "reason": "The dataset is diverse, with different essays potentially benefiting from different model features. Ensembles can capture these nuances better than individual models."
+        }
+    },
+    {
+        "idea": "Fine-tuning Transformers with LSTM",
+        "method": "Enhance transformer models by integrating an LSTM layer for capturing sequential dependencies.",
+        "context": "The notebook defines models like FeedbackModelWithLSTM and FeedbackModelWithLSTMTwoHead that integrate LSTM layers with transformer models to capture sequential dependencies in text.",
+        "hypothesis": {
+            "problem": "Need to capture sequential dependencies in text for better discourse element classification.",
+            "data": "Text data with potential sequential patterns.",
+            "method": "Enhances transformer capabilities.",
+            "reason": "Sequential patterns in the data could be better captured with an LSTM, improving classification of discourse elements."
+        }
+    },
+    {
+        "idea": "Preprocessing with Tokenization",
+        "method": "Use AutoTokenizer to preprocess text data into tokens suitable for transformer models.",
+        "context": "The notebook applies AutoTokenizer from model-specific configurations (like DeBERTa and Longformer) for tokenizing the input essays before feeding them into the model.",
+        "hypothesis": {
+            "problem": "Need to convert raw text into a format suitable for model input.",
+            "data": "Raw text data from student essays.",
+            "method": "Prepares data for model input.",
+            "reason": "Tokenization is essential for breaking down text into manageable pieces that transformer models can process effectively."
+        }
+    },
+    {
+        "idea": "Post-Processing with Thresholding",
+        "method": "Apply probability and token length thresholds to filter out low-confidence predictions.",
+        "context": "In the post-processing step, the notebook uses specific probability thresholds for each class to filter predictions. Additionally, it uses a minimum token threshold to ensure robustness of predictions.",
+        "hypothesis": {
+            "problem": "Remove noise and improve reliability of predictions.",
+            "data": "Predictions can have noise or low confidence levels.",
+            "method": "Filters out unreliable predictions.",
+            "reason": "By applying thresholds, only predictions with sufficient confidence and length are retained, reducing noise."
+        }
+    },
+    {
+        "idea": "Probability Aggregation for Ensemble",
+        "method": "Aggregate prediction probabilities across different models to form a consensus prediction.",
+        "context": "The notebook aggregates probabilities from various ensemble models to calculate mean, max, and min probabilities, which are then used in decision making.",
+        "hypothesis": {
+            "problem": "Combine outputs from multiple models to make a robust prediction.",
+            "data": "Output from multiple models predicting the same problem space.",
+            "method": "Strengthens decision-making process.",
+            "reason": "Aggregating probabilities can help in forming a consensus that reduces variance and increases prediction stability."
+        }
+    },
+    {
+        "idea": "Linking Predictions",
+        "method": "Implement a linking mechanism to connect related predictions based on proximity and context within the text.",
+        "context": "The notebook uses functions like link_class to connect related discourse elements based on proximity constraints specific to each class (e.g., Evidence, Counterclaim).",
+        "hypothesis": {
+            "problem": "Disjoint predictions for discourse elements should be connected logically.",
+            "data": "Text data where related elements might not be contiguous.",
+            "method": "Improves contextual coherence of predictions.",
+            "reason": "By linking predictions, the model accounts for context and continuity, which is crucial in text where elements are related but not contiguous."
+        }
+    }
+]

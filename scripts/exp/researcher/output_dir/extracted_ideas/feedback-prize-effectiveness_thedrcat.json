@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Preprocessing - Encoding and Normalization",
+        "method": "Resolve character encoding issues by normalizing text with UTF-8 and CP1252 encodings using unidecode.",
+        "context": "The notebook uses a function `resolve_encodings_and_normalize` to handle different character encodings in the text data.",
+        "hypothesis": {
+            "problem": "The task is to classify argumentative elements in student writing, which involves processing text data with varied encodings.",
+            "data": "The dataset contains text data in different encodings, potentially leading to misinterpretations if not handled correctly.",
+            "method": "The method normalizes text to a consistent encoding, making it easier to process and analyze text data.",
+            "reason": "Character encoding issues can introduce noise and errors in text data processing, affecting model performance. Normalizing encodings ensures consistent text input."
+        }
+    },
+    {
+        "idea": "Tokenization with Special Tokens",
+        "method": "Add special tokens for different discourse types to aid token classification in the tokenizer.",
+        "context": "The notebook utilizes a tokenizer with added special tokens like [CLS_CLAIM], [END_CLAIM], etc., for each discourse type.",
+        "hypothesis": {
+            "problem": "The objective is to classify different discourse elements based on their effectiveness.",
+            "data": "The data contains various discourse types that need to be distinguished during tokenization.",
+            "method": "Including special tokens helps the model identify and focus on relevant discourse elements.",
+            "reason": "Special tokens highlight the start and end of discourse elements, enabling the model to better understand the structure and context of the text."
+        }
+    },
+    {
+        "idea": "Model Training with Gradient Checkpointing",
+        "method": "Use gradient checkpointing to reduce memory usage during training of large models.",
+        "context": "The notebook enables `gradient_checkpointing` in training arguments to optimize memory usage.",
+        "hypothesis": {
+            "problem": "The task involves training large transformer models which are memory-intensive.",
+            "data": "Text data converted into large input sequences due to special tokens and long texts.",
+            "method": "Gradient checkpointing allows storing fewer activations, reducing memory footprint.",
+            "reason": "This method is effective when training very large models or datasets with limited memory resources."
+        }
+    },
+    {
+        "idea": "Ensemble Predictions",
+        "method": "Average predictions from multiple model folds to improve robustness and accuracy.",
+        "context": "The notebook averages predictions from multiple fold models to produce a final submission.",
+        "hypothesis": {
+            "problem": "The challenge is to accurately classify argumentative elements into three categories.",
+            "data": "The dataset has variability that can be captured by different models trained on different folds.",
+            "method": "Averaging predictions from multiple folds reduces variance and improves generalization.",
+            "reason": "Ensembling helps in scenarios where individual model predictions are unstable or have high variance."
+        }
+    },
+    {
+        "idea": "Softmax Transformation for Output Probabilities",
+        "method": "Apply softmax to model outputs for each discourse element before submission.",
+        "context": "The notebook applies softmax to the logits of each discourse element's prediction before assigning probabilities for the final output.",
+        "hypothesis": {
+            "problem": "The task requires outputting probabilities for each class of discourse element effectiveness.",
+            "data": "The model outputs logits which need to be converted into probabilities for submission.",
+            "method": "Softmax ensures that the output probabilities sum up to 1 for each discourse element.",
+            "reason": "Converting logits to probabilities is essential for multi-class classification tasks where predicted class likelihoods are required."
+        }
+    },
+    {
+        "idea": "Data Collation Strategy",
+        "method": "Use DataCollatorForTokenClassification with padding to multiple of 8 for efficient batch processing.",
+        "context": "The notebook uses a data collator that pads sequences to a multiple of 8, optimizing batch processing for token classification tasks.",
+        "hypothesis": {
+            "problem": "Efficient batch processing is needed for handling variable length sequences in token classification tasks.",
+            "data": "Text data sequences vary in length, requiring a consistent batch size during training.",
+            "method": "Padding sequences to a multiple of 8 improves computational efficiency on GPUs with tensor core usage.",
+            "reason": "Padding to specific multiples aligns with hardware optimizations, reducing processing time and improving throughput."
+        }
+    }
+]

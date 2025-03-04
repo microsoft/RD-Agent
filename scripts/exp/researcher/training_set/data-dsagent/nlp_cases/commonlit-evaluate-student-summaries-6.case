@@ -1,0 +1,36 @@
+First of all, thanks to competition organizers for hosting this interesting competition and my teamate @emiria. I learn a lot from emiria's ideas and code. Congrats for emiria's fourth gold medal, a new GM is on the way. And this is my first gold medal of nlp competition.
+
+The **key points** of our strategy:
+- Add "prompt_text" for inputs (0.03 boost on cv)
+- Freezing layers (0.01 boost on cv)
+- Different inputs for blending(0.01 boost on cv)
+- Blending with result of lightgbm(0.005 boost on cv)
+- Focus on local cv (LB only has 13% of data)
+
+**Did not work** for us:
+- AWP
+- SWA
+- Text preprocess
+- MLM
+
+### Models 
+Here's the discription of our models we used for finall submissions. We use groupkfold with "prompt_id" for local validation, and used all prompts for training when inference.
+| id| backbone | inputs | maxlen| loss | cv |
+| --- | --- |
+| model1 | deberta-v3-large | text+sep+prompt_text+sep+prompt_question| 1280 | mseloss | 0.500|
+| model2 | deberta-v3-large | text+sep+prompt_title+sep+prompt_question+sep+prompt_text| 1280 | mseloss | 0.489|
+| model3 | deberta-v3-large | prompt_title+sep+prompt_question+sep+text+sep+prompt_text| 1280 | mseloss | 0.506|
+| model4 | deberta-v3-large+lgb | prompt_question+sep+text| 512 | mseloss | 0.520|
+| model5 | deberta-v3-large | text+sep+prompt_title+sep+prompt_question+sep+prompt_text| 768 | mseloss | -|
+| model6 | deberta-v3-large | text+sep+prompt_title+sep+prompt_question+sep+prompt_text| 768 | logloss | -|
+| model7 | deberta-large | text+sep+prompt_title+sep+prompt_question+sep+prompt_text| 1024 | mseloss | -|
+
+
+### Results
+And here's our models with best scores:
+Each model is average of 2 seeds, except the "model4"(with lightgbm).
+| PB | LB | Picked | models |
+| --- | --- | ---
+| 0.456 | 0.427 | Yes | 0.32\*model1+0.32\*model2+0.16\*model3+0.2\*model7 |
+| 0.453 | 0.428 | No | 0.32\*model1+0.32\*model2+0.16\*model4+0.1\*model5+0.1\*model6|
+

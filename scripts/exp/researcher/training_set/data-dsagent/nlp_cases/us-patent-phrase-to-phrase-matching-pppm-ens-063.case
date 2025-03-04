@@ -1,0 +1,29 @@
+(1) The overall design of the code is to make predictions on a test dataset using multiple pre-trained models. The code loads the test dataset, creates a tokenizer, and defines the model architecture. It then loads the trained models, makes predictions on the test dataset using each model, and calculates the average prediction across all models. Finally, it saves the predictions to a CSV file.
+
+(2) The overall model architecture is a combination of pre-trained transformer models and a linear regression layer. The code uses different pre-trained models such as Electra, Deberta, and BERT to extract features from the input text. These models are fine-tuned on a specific task, which is to predict the similarity score between two phrases. The output of the pre-trained models is passed through a linear regression layer to obtain the final prediction.
+
+(3) The important hyperparameters in this code are:
+- exp_id: The experiment ID used to identify the trained models and the output predictions.
+- input_path: The path to the input data files.
+- cpc_path: The path to the pre-processed CPC texts.
+- model_path: The path to the pre-trained transformer models.
+- trained_models: The path to the trained models.
+- drop_folds: A list of fold numbers to skip during training.
+- seed: The random seed for reproducibility.
+- max_len: The maximum length of the input text.
+- num_classes: The number of output classes.
+- num_fold: The number of folds used for cross-validation.
+- batch_size: The batch size for training and inference.
+- device: The device to use for training and inference (CPU or GPU).
+
+(4) The optimization objective is to minimize the mean squared error between the predicted similarity scores and the true similarity scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code utilizes pre-trained transformer models that have been trained on large-scale language modeling tasks. These models are fine-tuned on the specific task of predicting similarity scores between phrases.
+
+(6) Some important tricks that play a role in high performance include:
+- Using multiple pre-trained models and averaging their predictions to reduce overfitting and improve generalization.
+- Using attention mechanisms to capture important information from the input text.
+- Using dropout layers to prevent overfitting and improve model robustness.
+- Using softmax activation and label scaling to convert model outputs into similarity scores.
+- Using a learning rate schedule to adjust the learning rate during training.
+- Using k-fold cross-validation to evaluate the model performance and select the best models.

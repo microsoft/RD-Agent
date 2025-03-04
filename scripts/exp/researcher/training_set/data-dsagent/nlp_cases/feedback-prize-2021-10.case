@@ -1,0 +1,45 @@
+First of all, much thanks to the competition hosts and Kaggle administrators for holding such an interesting competition!
+Here is the our 10th solution:
+
+**Token classification (NER)**
+We created 6 deberta-large models and 1 deberta-xlarge model then took weighted average of probability of each token (the weight is according to LB).
+Points are following:
+
+- Various versions of deberta-large models with these modifications:
+- Tagging of tokens (begin, inside, outside / begin, inside, end, outside / begin, inside, end, begin-of-outside, inside-of-outside, end-of-outside).
+- Pretrain with MLM (Masked Language Model) method.
+- Replace tokens with masked tokens randomly when training.
+- Add LSTM before classification head.
+- Higher and lower learning rate.
+- Multi-task learning of ordinary NER and NER focused on specific discourses.
+Additional loss with higher weight on begin tokens.
+- Train deberta-xlarge
+- Deberta-xlarge often failed to converge. To make it converged, we used warm-up scheduler and tried several patterns of learning rate.
+- Ensemble
+- We tried various backbones like Bigbird etc., but found ensemble of deberta-large models achieves the highest score.
+- Especially ensemble of models with different tokenizers lowered score when decomposing tokens to char-level to take weighted average of probability.
+- Maybe ensemble of models with shared tokenizer is desirable.
+- Credit
+- Architectures of models are based on @Abhishek's code.
+- Experiment results of deberta etc. from @hengck23 were very helpful.
+- Thanks to @Abhiskek and @hengck23, we could focus on try-and-error instead of spending time on building architectures of models.
+
+**Postprocessing with LGBM**
+Points are following:
+
+- First, generate predictionstrings from results of token classification (it's same with public notebooks' "create_submission" function).
+- Second, create a LGBM model that predicts whether generated predictionstrings are TP or not, then outputs the probability of TP.
+- Features are mainly come from aggregation of probability of token classification results.
+75 aggregation features are generated from each material of ensemble (5 types of aggregation (min, max, mean, 20 percentile, 80 percentile) * 15 types of tokens (Beginning, Inside * 7 discourses + Outside))
+- Other feats are about 15, length of prediction strings, length of essays etc.
+- Finally, filter predictionstrings with probability of TP.
+- Without this postprocessing: Public: 0.716 Private 0.724, With this postprocessing Public: 0.719 Private 0.727
+
+**Other postprocessing**
+Followed by the filtering written in previous section , these postprocessing methods are applied.
+
+- Define the starts of predictionstrings as these patterns: begin token or a token that differs from the previous class (exp. I-Claim, B-Claim <-).
+- Calculate mean probability (begin + inside) of predictionstrings then filter predictionstrings by it and length of predictionstrings.
+- If multiple Lead, Position and Concluding Statement are found, keep only one with the highest mean probability.
+- Apply [link evidence]( on Evidence, Counterclaim and Rebuttal (much thanks to @kaggleqrdl!).
+

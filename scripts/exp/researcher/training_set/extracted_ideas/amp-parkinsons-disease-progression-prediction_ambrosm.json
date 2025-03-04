@@ -1,0 +1,57 @@
+[
+    {
+        "idea": "Grouping Patients Based on Visit Frequency",
+        "method": "Identify control groups by analyzing the frequency and scheduling of patient visits, assuming control patients are examined less frequently.",
+        "context": "The notebook distinguishes between control and affected groups by observing that control group patients have visits annually, while others have more frequent visits.",
+        "hypothesis": {
+            "problem": "Predicting Parkinson's disease progression requires distinguishing between healthy controls and affected patients.",
+            "data": "Patient visit data includes varying frequencies of assessments.",
+            "method": "The approach relies on the assumption that control group visits are less frequent.",
+            "reason": "Control groups typically have less frequent visits, making visit frequency a potential indicator for grouping."
+        }
+    },
+    {
+        "idea": "Isotonic Regression for Control Group Modeling",
+        "method": "Use isotonic regression to model the progression of symptoms for the control group, enforcing a non-decreasing constraint on predictions.",
+        "context": "The notebook applies isotonic regression for patients identified as healthy controls, ensuring predictions do not decrease over time.",
+        "hypothesis": {
+            "problem": "Modeling symptom progression in Parkinson's disease over time.",
+            "data": "The data for control groups should show non-decreasing trend in symptoms as they age.",
+            "method": "Isotonic regression effectively models monotonic trends.",
+            "reason": "The control group symptoms should logically not improve over time, due to aging."
+        }
+    },
+    {
+        "idea": "Custom SMAPE Optimization",
+        "method": "Design a custom optimization routine to find the best constant prediction to optimize SMAPE for unknown groups.",
+        "context": "The notebook uses a custom routine to find the optimal constant predictions for patients whose group status is unknown.",
+        "hypothesis": {
+            "problem": "Achieving low SMAPE scores requires optimal predictions even when patient group is unclear.",
+            "data": "Some patient data lacks clear group categorization.",
+            "method": "Custom optimization can directly target the evaluation metric.",
+            "reason": "Directly optimizing SMAPE ensures predictions are tailored to minimize this specific error metric."
+        }
+    },
+    {
+        "idea": "Linear Regression for Disease Progression",
+        "method": "Utilize linear regression to predict symptom progression for identified patient groups, capturing the increasing trend of symptoms over time.",
+        "context": "Linear regression is applied to predict UPDRS scores for patients identified as having Parkinson's disease (non-control groups).",
+        "hypothesis": {
+            "problem": "Modeling the progression of Parkinson's disease requires capturing trends over time.",
+            "data": "Patients' symptom scores increase over time, reflecting disease progression.",
+            "method": "Linear regression can capture trends and is simple to implement.",
+            "reason": "In Parkinson's disease, symptoms tend to worsen over time, making linear models suitable."
+        }
+    },
+    {
+        "idea": "Cross-validation with GroupKFold",
+        "method": "Employ GroupKFold cross-validation to ensure that all data from a single patient is either in the training or validation set, avoiding data leakage.",
+        "context": "The notebook uses GroupKFold cross-validation to evaluate model performance while considering patient-specific data grouping.",
+        "hypothesis": {
+            "problem": "Avoiding data leakage in time-series and grouped datasets during model validation.",
+            "data": "Patient data is grouped by individual, affecting cross-validation setup.",
+            "method": "GroupKFold prevents data leakage by keeping group integrity intact during splits.",
+            "reason": "Ensures that predictions are not biased by seeing parts of the same patient's data in both training and validation sets."
+        }
+    }
+]

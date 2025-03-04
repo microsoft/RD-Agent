@@ -1,0 +1,11 @@
+(1) The overall design of this code is to optimize the weights of different base models in order to create an ensemble model that performs well in a Kaggle competition. The code reads in the predictions from multiple base models, merges them together, and then applies a weighted average to generate the final submission.
+
+(2) The overall model architecture is an ensemble model that combines the predictions from multiple base models. The code reads in the predictions from five base models: LSTM, XGBoost, LGBM, Prophet, and SARIMAX. It then merges these predictions together using a weighted average approach. The weights for the average are optimized using a custom minimization function. The optimized weights are then used to calculate the final submission.
+
+(3) The important hyper-parameters in this code are the initial weights for the base models (x0), the step size for the optimization process (stepsize), and the maximum number of iterations for the optimization process (maxiter). These hyper-parameters are set in the `minimize` function call.
+
+(4) The optimization objective is to minimize the WRMSSE (Weighted Root Mean Squared Scaled Error) score. The `WRMSSEEvaluator` class is used to calculate the WRMSSE score for a given set of predictions. The `function` function is defined to calculate the WRMSSE score for a given set of weights and predictions. The `minimize` function is then used to find the set of weights that minimizes the WRMSSE score.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The code combines the predictions from multiple base models using a weighted average approach. This allows the ensemble model to benefit from the strengths of each individual base model and improve overall performance.
+
+(6) One important trick that plays a role in high performance is the use of the `WRMSSEEvaluator` class to calculate the WRMSSE score. This allows the code to evaluate the performance of the ensemble model and optimize the weights of the base models accordingly. Additionally, the use of the custom minimization function helps to find the optimal set of weights that minimizes the WRMSSE score.

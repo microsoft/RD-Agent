@@ -1,0 +1,22 @@
+(1) The overall design of the code is to preprocess the data, read the data, perform feature engineering, make predictions using a combination of constant values and slope coefficients, and then output the predictions.
+
+(2) The overall model architecture is as follows:
+- Preprocessing: The code includes functions for missing value completion and data interpolation.
+- Reading Data: The code reads the training data from multiple CSV files and concatenates them into a single dataframe.
+- Feature Engineering: The code creates new features based on the protein and peptide data, including rank normalization, variance, mean, cumulative mean, and cumulative count.
+- Prediction (Const): The code sets initial constant values for each target variable and updates them based on specific conditions.
+- Prediction (Slope): The code calculates slope coefficients for each target variable based on specific conditions and adds them to the constant values.
+- CV Score: The code calculates the SMAPE score for cross-validation.
+- Time Series API: The code uses the Time Series API to iterate over the test data, preprocess it, perform feature engineering, make predictions, and output the results.
+
+(3) The important hyperparameters in this code are the initial constant values (const_init1, const_init2, const_init3, const_init4) and the lists of increment values (list_const_increment1, list_const_increment2, list_const_increment3, list_const_increment4) used to update the constant values. These hyperparameters can be modified to improve the performance of the model.
+
+(4) The optimization objective of this code is to minimize the Symmetric Mean Absolute Percentage Error (SMAPE) between the predicted values and the true values of the target variables.
+
+(5) The advanced machine learning technique used in this code is the combination of constant values and slope coefficients to make predictions. The constant values provide a baseline estimate, while the slope coefficients capture the rate of change over time.
+
+(6) Some important tricks that play a role in high performance include:
+- Rank normalization of the protein and peptide data to handle outliers and improve comparability.
+- Creating new features based on the protein and peptide data, such as variance, mean, cumulative mean, and cumulative count, to capture different aspects of the data.
+- Using specific conditions and rules to update the constant values and calculate the slope coefficients, taking into account the visit month, visit month cumulative minimum, and other features.
+- Using the Symmetric Mean Absolute Percentage Error (SMAPE) as the evaluation metric to optimize the model's performance.

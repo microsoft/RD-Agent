@@ -1,0 +1,11 @@
+(1) The overall design of this code is to combine the predictions from multiple models and create an ensemble model. The code reads the predictions from six different CSV files, averages the predictions for each day, and saves the final ensemble predictions in a new CSV file called "submission.csv".
+
+(2) The overall model architecture is not explicitly mentioned in the code. However, based on the information provided in the comments, it can be inferred that the code uses a combination of different models to make predictions. The code imports predictions from six different CSV files, which suggests that each file corresponds to a different model. The predictions from these models are then averaged to create the final ensemble predictions.
+
+(3) The code does not explicitly mention the hyperparameters used in the models. However, based on the information provided in the comments, it can be inferred that the hyperparameters were set by the contributors of the project. The code does not include any hyperparameter tuning or optimization process.
+
+(4) The optimization objective of this code is to improve the forecasting accuracy for daily sales. The code combines predictions from multiple models to create an ensemble model, which is expected to provide more accurate and robust predictions compared to individual models.
+
+(5) The advanced machine learning technique used in this code is ensemble learning. The code combines predictions from multiple models to create an ensemble model. Ensemble learning is a technique where multiple models are trained independently and their predictions are combined to make a final prediction. This technique often leads to improved performance and robustness compared to individual models.
+
+(6) One important trick that plays a role in high performance is model averaging. The code averages the predictions from multiple models to create the final ensemble predictions. Model averaging helps to reduce the impact of individual model biases and errors, leading to more accurate and robust predictions. Additionally, the code mentions that the contributors used existing kernels to improve their models, suggesting that they leveraged existing knowledge and techniques to enhance their performance.

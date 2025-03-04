@@ -171,6 +171,6 @@ mlruns/
 
 # shell script
 *.out
-*.sh
+# *.sh
 .aider*
 rdagent/app/benchmark/factor/example.json

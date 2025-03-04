@@ -1,0 +1,40 @@
+(1) The overall design of the code is to train a high-performing model for a Kaggle competition on Parkinson's freezing gait prediction. It uses various machine learning techniques and signal processing methods to preprocess the data and build a convolutional neural network (CNN) model for prediction.
+
+(2) The overall model architecture is a CNN model with three parallel convolutional branches. Each branch takes a different kernel size (4, 8, and 16) and applies convolutional layers with batch normalization and ReLU activation. The outputs of the three branches are concatenated and flattened, followed by a dropout layer and a dense layer with sigmoid activation. The input to the model is a 3D tensor of shape (window_size, n_features), where window_size is the size of the input window and n_features is the number of input features.
+
+(3) The important hyperparameters in this code are:
+- `cfg.train_sub_dirs`: A list of directories containing the training data.
+- `cfg.metadata_paths`: A list of paths to metadata files.
+- `cfg.splits`: The number of splits for cross-validation.
+- `cfg.batch_size`: The batch size for training.
+- `cfg.defog_window_size`: The size of the input window for the "defog" module.
+- `cfg.defog_window_future`: The number of future steps to predict for the "defog" module.
+- `cfg.defog_window_past`: The number of past steps to consider for the "defog" module.
+- `cfg.tdcsfog_window_size`: The size of the input window for the "tdcsfog" module.
+- `cfg.tdcsfog_window_future`: The number of future steps to predict for the "tdcsfog" module.
+- `cfg.tdcsfog_window_past`: The number of past steps to consider for the "tdcsfog" module.
+- `cfg.wx`: The downsampling factor for the input data.
+- `cfg.model_dropout`: The dropout rate for the model.
+- `cfg.model_hidden`: The number of hidden units in the convolutional layers.
+- `cfg.model_nblocks`: The number of convolutional blocks in the model.
+- `cfg.lr`: The learning rate for the optimizer.
+- `cfg.num_epochs`: The number of training epochs.
+- `cfg.feature_list`: A list of feature names used for training.
+- `cfg.label_list`: A list of label names used for training.
+- `cfg.n_features`: The number of input features.
+- `cfg.n_labels`: The number of output labels.
+
+(4) The optimization objective is to minimize the binary cross-entropy loss between the predicted labels and the true labels.
+
+(5) The advanced machine learning technique used in this code is the convolutional neural network (CNN) model. CNNs are well-suited for analyzing sequential data such as time series, and they can capture local patterns and dependencies in the data.
+
+(6) Some important tricks that play a role in high performance include:
+- Wavelet denoising: The code applies wavelet denoising techniques to preprocess the input signals and remove noise.
+- Standardization: The code standardizes the input signals by subtracting the mean and dividing by the standard deviation.
+- Downsampling: The code downsamples the input signals by a factor of `cfg.wx` to reduce the computational complexity.
+- Regularization: The code applies L2 regularization to the convolutional layers to prevent overfitting.
+- Batch normalization: The code applies batch normalization after each convolutional layer to improve the stability and convergence of the model.
+- Dropout: The code applies dropout regularization to the fully connected layer to prevent overfitting.
+- Sigmoid activation: The code uses sigmoid activation in the output layer to obtain probabilities for each class.
+- Adam optimizer: The code uses the Adam optimizer with a learning rate of `cfg.lr` for training the model.
+- Cross-validation: The code performs cross-validation with `cfg.splits` splits to evaluate the model's performance on different subsets of the data.

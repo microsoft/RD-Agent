@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Data Preprocessing",
+        "method": "Reduce memory usage by downcasting numerical columns",
+        "context": "The notebook implements a function 'reduce_mem_usage' to convert numerical columns to the smallest appropriate data types.",
+        "hypothesis": {
+            "problem": "The need to handle large datasets efficiently.",
+            "data": "Large dataset with numerous rows and columns containing numerical data.",
+            "method": "Downcasting numerical columns to smaller data types.",
+            "reason": "Reduces memory usage significantly, making it feasible to handle and process large datasets on limited computational resources."
+        }
+    },
+    {
+        "idea": "Feature Engineering",
+        "method": "Create lag features for time series data",
+        "context": "The notebook generates lag features for sales data using the 'shift' method grouped by item ID.",
+        "hypothesis": {
+            "problem": "Time series forecasting where past values influence future predictions.",
+            "data": "Time series data where past sales patterns are indicative of future sales.",
+            "method": "Lag features capture temporal dependencies in the data.",
+            "reason": "The sales time series likely contains patterns that repeat or have dependencies over specific lag periods, which are crucial for accurate forecasting."
+        }
+    },
+    {
+        "idea": "Feature Transformation",
+        "method": "Normalize demand by a scaling factor",
+        "context": "The notebook normalizes the 'demand' feature by dividing it by 'scale1'.",
+        "hypothesis": {
+            "problem": "Need for consistent feature scales for model training.",
+            "data": "Data includes features with varying ranges and distributions.",
+            "method": "Normalization ensures consistent scales across features.",
+            "reason": "Ensures that the model training is not biased by features with larger numerical ranges, leading to more stable and accurate predictions."
+        }
+    },
+    {
+        "idea": "Model Architecture",
+        "method": "Use GRU layers in a sequential model for time series prediction",
+        "context": "The notebook builds a neural network model using GRU layers to process sequential input data.",
+        "hypothesis": {
+            "problem": "Sequential prediction task with dependencies over time.",
+            "data": "Sequential time series data where past observations influence future values.",
+            "method": "GRUs are well-suited for capturing dependencies in sequential data.",
+            "reason": "GRU layers efficiently capture temporal patterns and dependencies in time series data, improving prediction accuracy."
+        }
+    },
+    {
+        "idea": "Model Training",
+        "method": "Use early stopping and learning rate reduction callbacks",
+        "context": "The notebook applies EarlyStopping and ReduceLROnPlateau callbacks during model training.",
+        "hypothesis": {
+            "problem": "Risk of overfitting and suboptimal convergence during model training.",
+            "data": "Large dataset with potential noise and variability in the validation loss.",
+            "method": "Callbacks to monitor validation loss and adjust training accordingly.",
+            "reason": "Prevents overfitting by stopping training when performance stagnates and helps the model converge by adjusting learning rates based on validation performance."
+        }
+    },
+    {
+        "idea": "Evaluation Metric",
+        "method": "Use of pinball loss for quantile forecasts",
+        "context": "The notebook implements custom loss functions computing pinball loss for multiple quantiles.",
+        "hypothesis": {
+            "problem": "Need to generate probabilistic forecasts with uncertainty estimates.",
+            "data": "Time series data where it's important to estimate the uncertainty of predictions.",
+            "method": "Pinball loss evaluates the performance of quantile predictions.",
+            "reason": "Provides a robust evaluation metric for assessing how well the forecasting model predicts different quantiles, capturing uncertainty in predictions."
+        }
+    }
+]

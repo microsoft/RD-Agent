@@ -1,0 +1,109 @@
+# 9th Place Solution
+
+First and foremost, I'd like to extend my gratitude to the host for organizing this competition. Congratulations to the winners as well! I'd like to present a brief overview of my solution that secured the 9th position.
+
+## Cross-Validation
+The wording of prompt_id 814d6b stood out, being notably different from other prompt_ids. When cross-validating with groupkfold using the prompt_id, predicting for this particular prompt_id didn't correlate with scores from other prompt_ids. Hypothetically, if there were any test ids with a distribution similar to 814d6b, having 814d6b in the training data might produce decent accuracy. However, there was no way to validate this. For this competition, I employed two methods of cross-validation and submitted for both:
+Cross-validation 1: groupkfold (group = prompt_id), excluding 814d6b from evaluation.
+Cross-validation 2: groupkfold (group = prompt_id), Including 814d6b in the evaluation.
+The final private score was better for the model from cross-validation 2, so I'll delve into the details of that model. 
+Given that changing the seed alone resulted in variable CV scores, I performed cross-validation using three different seeds and evaluated the model based on their ensemble. The final submission was based on the predictions of models trained on all the data using three different seeds.
+
+## Training
+I tokenized the text as follows:
+text1:  summary_text
+text2: prompt_question + [SEP] + prompt_text
+```
+
+inputs = self.tokenizer.encode_plus(text1,
+text2,
+add_special_tokens=True,
+max_length=self.max_len,
+padding='max_length',
+truncation=True,
+return_token_type_ids=True)
+```
+
+Model: Consisted of two deberta-v3-large and one LSTM as described below:
+- The first deberta-v3-large was trained using the entire input text.
+- The second deberta-v3-large and LSTM were trained solely on the summary_text.
+
+```
+
+model_path = "microsoft/deberta-v3-large"
+class CustomModel(nn.Module):
+def __init__(self):
+super(CustomModel, self).__init__()
+self.model = AutoModel.from_pretrained(model_path)
+config = AutoConfig.from_pretrained(
+model_path, output_hidden_states=True)
+config.num_hidden_layers = 6
+self.model2 = DebertaV2Encoder(config)
+self.lstm = nn.LSTM(input_size=1024, hidden_size=1024,
+num_layers=1, batch_first=True,
+bidirectional=True)
+self.linear1 = nn.Sequential(
+nn.Linear(1024*2, 512),
+nn.LayerNorm(512),
+nn.ReLU(),
+nn.Dropout(0.2),
+nn.Linear(512, 2))
+
+self.pool = MeanPooling()
+
+def forward(self, ids, mask, token_type_ids,
+s_mask):
+out = self.model(ids, attention_mask=mask,
+token_type_ids=token_type_ids)[
+'last_hidden_state']
+s_mask_len = s_mask.shape[1]
+out = out[:, :s_mask_len, :]
+out = out.contiguous()
+out = self.model2(out, s_mask)[
+'last_hidden_state']
+out_list = []
+for s in range(len(s_mask)):
+s_mask_ = s_mask[s]
+s_mask_len = torch.sum(s_mask_)
+emb = out[[s], :s_mask_len, :]
+s_mask_ = s_mask_[:s_mask_len].unsqueeze(0)
+emb, _ = self.lstm(emb)
+emb = self.pool(emb, s_mask_)
+out_list.append(emb)
+out_concat = torch.cat(out_list,
+axis=0)
+out_concat = self.linear1(out_concat)
+return out_concat
+
+```
+
+Training settings:
+
+- token_len: 1680
+- epochs: 3
+- Loss: SmoothL1Loss
+- lr: 8e-6
+- optimizer: AdamW
+- weight_decay: 0.01
+- beta: (0.9, 0.98)
+- scheduler: get_linear_schedule_with_warmup
+- num_warmup_steps: 10% of total training steps
+- EMA (Exponential Moving Average)
+- ema_decay: 0.995
+- Using EMA helped stabilize the training.
+
+## Inference
+token_len: 4200
+
+## Scores
+- CV: 0.495 (ensemble of 3 seeds)
+- 814d6b: 0.604982
+- ebad26: 0.431438
+- 3b9047: 0.49692
+- 39c16e: 0.483208
+- Public Score: 0.456
+- Private Score: 0.457
+
+## Inference Code
+
+

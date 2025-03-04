@@ -1,0 +1,101 @@
+Thanks a lot to the hosts and Kaggle for hosting this interesting competition, we had great fun working on both the accuracy and efficiency tracks. Also congratulations to all other competitors for the great solutions and results. Our solution is the result of perfect teamwork.
+
+# Summary
+
+Our solution is based on a two-stage approach ensembling multiple transformer-based models with different techniques and adding second level models on top. We additionally employ multiple rounds of pseudo tagging and add pseudo labels with different techniques to our models.
+
+# Cross validation
+
+Throughout this competition we had near perfect correlation between CV and LB. Whenever we saw some improvement on CV, we saw it reflected in a similar manner on the LB with very small random range. For splitting the folds, we just used an efficiency-stratified split on essays.
+
+As the data is small to medium size and the metric is log loss, the scores can vary between different runs. This is typical for deep learning models as they are quite dependent on the seed at hand that influences weight initializations, batching, or augmentations. Yet, this means one should not judge model performance on single seeds, and it is better to always evaluate on multiple seeds.
+
+Given that model training was quite fast, we thus only relied on checking blends of 3 seeds for each model. Also, single model scores did not correlate well here with their ability to blend into larger ensembles. So a better individual model could have quite a worse performance in the blend, diversity really mattered here. Consequently, we also always checked models in the blend, even if they did not seem too promising on an individual basis. Similar to how we checked CV, we then always subbed a blend of 3 seeds of models trained on the full data.
+
+Our correlation looked like follows:
+<img src=" width="500">
+
+# Modeling
+
+Our final solution is a combination of different modeling approaches. Most of them are based on the idea of training on all discourses from a single essay at the same time. This not only made training and inference much faster, but also improved accuracy significantly. In the following we want to describe our main approaches in more detail. For backbones, we could only get deberta-(v3)-large to work. Other backbones did not improve the ensemble.
+
+#### Essay group model
+
+The main idea of this approach is to feed a full essay into the model, and pool each discourse separately and then feed it through the final linear layer for prediction. The main approach here is similar to what others shared, but there are some peculiarities and different sub-approaches. 
+
+Our main version has an input as follows:
+
+```
+Lead Position Claim Evidence Counterclaim Rebuttal Evidence Counterclaim Concluding Statement [SEP]  [START] Hi, i'm Isaac, i'm going to be writing about how this face on Mars is a natural landform or if there is life on Mars that made it. The story is about how NASA took a picture of Mars and a face was seen on the planet. NASA doesn't know if the landform was created by life on Mars, or if it is just a natural landform. [END]   [START] On my perspective, I think that the face is a natural landform because I dont think that there is any life on Mars. In these next few paragraphs, I'll be talking about how I think that is is a natural landform [END] … more text follows here
+```
+
+As mentioned, one sample includes one essay. We start by adding a list of all types of the discourses in the essay with a SEP token and then we mark the individual discourses with custom START and END tokens. We then run this sample through the backbone, and pool between START and END tokens for each discourse. The input batch size is always 1, and this gets transformed to a batch size that depends on the number of discourses within the essay. These pooled embeddings then run through a final linear layer predicting the class.
+
+You can see that in this example we do not specifically add the type to each discourse, but we use an additional auxiliary loss to predict the type of each one. This helped with regularizing the model and allowed for a bit longer training.
+
+An additional sub-approach does not have this auxiliary loss and trains a model based on the following input:
+
+```
+Lead Position Claim Evidence Counterclaim Rebuttal Evidence Counterclaim Concluding Statement [SEP]  [START_Lead]  Hi, i'm Isaac, i'm going to be writing about how this face on Mars is a natural landform or if there is life on Mars that made it. The story is about how NASA took a picture of Mars and a face was seen on the planet. NASA doesn't know if the landform was created by life on Mars, or if it is just a natural landform. [END_Lead]   [START_Position]  On my perspective, I think that the face is a natural landform because I dont think that there is any life on Mars. In these next few paragraphs, I'll be talking about how I think that is is a natural landform [END_Position]  … more text follows here
+```
+
+While the latter approach was better individually on CV, the former approach blended significantly better in our large ensemble.
+
+
+#### Token classification
+
+In this approach the chunks of the essays are treated as separate tokens. Individual chunks either get the efficiency label or “O” label if they are outside of the annotated essay text. And the subsequent process is similar to the idea above: pass the whole essay through the backbone, apply local average poolings for each chunk and add a dense classification layer on top. The input essay didn’t have any extra special tokens apart from discourse type in front of all the chunks.
+
+#### Further models
+
+For diversity, we added the following models with minor impact to our solution:
+
+* Simple Deberta classification on Discourse input only
+* Bag-of-words LightGBM model 
+
+# Regularization and hyperparameter tuning
+
+We spent significant efforts on hyperparameter tuning and playing with various regularization techniques. We implemented quite a few augmentation techniques, but as always they were not really helpful for NLP finetuning. Only mask augmentations worked with decent results as it was bringing some diversity for the ensemble. Hyperparameter tuning was very important though, and it was time well spent.
+
+# Adjustment, ensembling & 2nd level models
+
+The log loss metric is always only optimal if the mean prediction per column matches the mean of the target columns for that label. Our different models (specifically if trained in batch-wise manner on essays) do not always reflect this mean very well, which is why we added an additional optimization after each model to adjust to the train mean. This additionally makes the scores more reliable and comparable. We then also employ these learned scaling factors on LB.
+
+For ensembling different models we resorted to directly optimizing the blending weights between the models. Interestingly, we also had several models with negative weights, but this worked for us both on CV as well as LB.
+
+We additionally trained several 2nd level models to further improve our predictions.
+
+#### LightGBMs
+
+For the 2nd level LightGBM model we took the weighted ensemble prediction, together with individual models predictions, and generated some aggregate features based on the whole essay. We trained 2 LightGBM versions with different features and parameters.
+
+#### Neural networks
+
+We tuned two types of neural networks here. The first takes the weighted ensemble prediction, as well as an average across the essay and across the type within an essay for each of the three target columns as input and trains a three-layer DNN. The second one takes the same features, but on an individual model basis and then uses a three-layer Conv1d with average pooling afterwards.
+
+All together, 2nd level models were consistently bringing us about 0.003-0.005 points on CV and the leaderboard throughout the competition.
+
+# Pseudo labels
+
+Another major part of our solution is pseudo labeling. We applied 3 stages of pseudo labeling on the extra data from the previous Feedback competition. It was done in a leak-free manner for the individual folds and additionally for our models trained on all the data (6 versions of pseudo labels in total). The process consisted of the following steps:
+
+
+1. Train an ensemble of models only on the given train data
+2. Run predictions on the previous Feedback competition data using our full 2-stage pipeline
+3. Use soft pseudo labels from this extra dataset and apply it to modeling in two different ways:
+* Concatenate pseudo labels with the actual labels in the given train data, and train simultaneously on all this data
+* Pre-train models on the pseudo labels and finetune it only on the given train data afterwards. Similar to: 
+4. Repeat steps 1-3 three times using an ensemble of models trained on pseudo labels now
+
+Apart from using previous Feedback competition data for pseudo labels, it was also used in some models as a pre-training dataset. The model was warmed up on the old data predicting the type of the chunk and further finetuned on the given train data.
+
+# Efficiency solution
+
+* Please refer to [this]( post to read about our efficiency solution.
+* And [here]( you can find our most efficient kernel that gets 0.557 Private LB scores in 5 minutes and 40 seconds!
+
+### Extra links
+
+* [Here]( you can find our final inference kernel
+* [Here]( you can find our code to train the models
+

@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering with Latitude and Longitude",
+        "method": "Apply transformations and generate new features including radial distance, angular coordinate, and distance to key locations using latitude and longitude.",
+        "context": "The notebook transformed Latitude and Longitude into radial distance ('r') and angular coordinate ('theta'), calculated distances to specific cities using haversine distance, and computed distances to the coastline.",
+        "hypothesis": {
+            "problem": "Predicting house values based on location data.",
+            "data": "The dataset contains geographical coordinates, which are essential for understanding location-related patterns.",
+            "method": "Using mathematical transformations to capture spatial relationships.",
+            "reason": "The geographical position is crucial in housing price prediction as proximity to certain locations (like cities or coastlines) significantly influences property values."
+        }
+    },
+    {
+        "idea": "Ensemble Learning",
+        "method": "Combine predictions from CatBoost, XGBoost, and LightGBM using weighted averaging to improve predictive performance.",
+        "context": "The notebook trained CatBoost, XGBoost, and LightGBM models separately and combined their predictions with weights 0.4, 0.2, and 0.4 respectively to make the final prediction.",
+        "hypothesis": {
+            "problem": "Regression task with potentially complex patterns.",
+            "data": "The data may have nonlinear dependencies which benefit from diverse model structures.",
+            "method": "Combining strengths of different algorithms to leverage their individual advantages.",
+            "reason": "Ensembling helps mitigate overfitting and improve generalization by capturing different aspects of the data through various models."
+        }
+    },
+    {
+        "idea": "Geographical Encoding",
+        "method": "Use harmonic encoding for Latitude and Longitude to enhance feature representation.",
+        "context": "The notebook encoded Latitude and Longitude using trigonometric transformations (cosine and sine) after scaling by exponential frequency.",
+        "hypothesis": {
+            "problem": "Geospatial data modeling for prediction tasks.",
+            "data": "Involves continuous geographical coordinates which are periodic in nature.",
+            "method": "Encoding provides a richer feature space for models to learn complex patterns.",
+            "reason": "Harmonic encoding captures cyclical patterns in geographical data which are useful in spatial prediction tasks."
+        }
+    },
+    {
+        "idea": "Dimensionality Reduction with UMAP",
+        "method": "Apply UMAP for dimensional reduction on Latitude and Longitude to extract meaningful projections.",
+        "context": "The notebook utilized UMAP to reduce the dimensionality of Latitude and Longitude into two components ('umap_lat', 'umap_lon').",
+        "hypothesis": {
+            "problem": "Reducing data complexity while preserving structure.",
+            "data": "High-dimensional spatial data with potential local structures.",
+            "method": "UMAP focuses on preserving local distances and capturing latent structures.",
+            "reason": "UMAP efficiently captures neighborhood structures which are important for understanding spatial relationships in the data."
+        }
+    },
+    {
+        "idea": "Feature Augmentation with PCA",
+        "method": "Perform PCA on Latitude and Longitude to generate principal components as new features.",
+        "context": "The notebook applied PCA on the coordinate data resulting in two principal component features ('pca_x', 'pca_y').",
+        "hypothesis": {
+            "problem": "Feature extraction from geospatial data for regression tasks.",
+            "data": "Spatial data where principal components might capture significant variance.",
+            "method": "PCA reduces dimensionality while retaining variance which can improve model efficacy.",
+            "reason": "PCA helps in capturing the most important directions of variance which might correlate with house prices."
+        }
+    },
+    {
+        "idea": "Feature Engineering with Rotational Transformations",
+        "method": "Generate features based on rotated coordinates at various angles from latitude and longitude.",
+        "context": "The notebook created features like 'rot_15_x', 'rot_15_y', 'rot_30_x', etc., by rotating the original coordinates by specified angles.",
+        "hypothesis": {
+            "problem": "Enhancing spatial feature set for better predictive modeling.",
+            "data": "Geospatial data where rotational symmetry could reveal hidden patterns.",
+            "method": "Rotational transformations capture orientation-invariant patterns in the data.",
+            "reason": "Rotating coordinates can help reveal directional dependencies that are not captured by original features."
+        }
+    }
+]

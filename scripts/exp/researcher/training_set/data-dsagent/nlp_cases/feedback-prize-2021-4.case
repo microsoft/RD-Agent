@@ -1,0 +1,104 @@
+[Here is a source code in github!](
+
+Hi kagglers! Congrats to the winners and everyone who enjoyed this competition! I saw many people were tired, and me as well... But I've got my very first solo gold medal 🎖️ and I'm now really happy to become a Kaggle master!
+
+To be honest, I participated this competition about 3 weeks ago. Thanks to the community, I can accelerate my experiments and improve the score quickly. If I had more time, maybe I could get more chances... 🤔🤔
+
+I think some tricks and techniques are important in this competition. [The lightgbm postprocessing]( is really cool and I've never thought about that idea. I focused on some technical processing and I managed to get a high score.
+
+
+## Resolve Encoding Error
+As you can see, there are some abnormal characters in the documents. Let's see `0D1493FDAAD3`:
+```
+...
+Another reason to talk to multiple people when making a purchase is to learn from their successes. ÃÅf you saw a group of people successfully do what you are trying now, learn what they did to overcome the obstacle.
+...
+```
+
+There are nonrecognizable characters `ÃÅ` and you may see this frequently in other documents. After some tries, I found this is a problem about `cp1252` and `utf8` encodings, and the below code can clean the documents.
+![](
+The result is as follows:
+```
+...
+Another reason to talk to multiple people when making a purchase is to learn from their successes. If you saw a group of people successfully do what you are trying now, learn what they did to overcome the obstacle.
+...
+```
+Actually, It doesn't seem to improve the final scores significantly, but I just applied this to make sure.
+And because it reduces the characters in the documents, we have to adjust the `discourse_start` and `discourse_end` offsets. To correct the offsets, I use `difflib.SequenceMatcher` to compare the differences of the characters. The details are in my code.
+
+
+## `word_ids` vs `offset_mapping`?
+Because many NER examples use `word_ids` with `is_split_into_words=True` parameter, I also tried to use this for labeling BIO-named subword tags. However, I got 0.595 public LB with a single-fold bigbird base model. So I tried another way from the community, `offset_mapping` with `return_offsets_mapping=True` parameter to make subword NER tags, and I could get 0.630 public LB score.
+| model name | public lb score | private lb score |
+|:--:|:--:|:--:|
+| bigbird-roberta-base (single fold, `word_ids`) | 0.595 | 0.609 |
+| bigbird-roberta-base (single fold) | 0.630 | 0.644 |
+| bigbird-roberta-base (5 folds) | 0.659| 0.677 |
+
+Why is this happened? What is the difference between `word_ids` and `offset_mapping` approach? After trying some experiences, I found that `word_ids` needs to split the text into words using `.split()`, and it prunes the line-break information `\n`. Since this task is for recognizing the structure of the document, **it would be necessary to use the line-break characters.** Remember this because I will mention this fact in the later section.
+
+
+## Beam-Search Decoding
+BIO-naming rule is quite complex, so the greedy decoding (i.e. argmax from the token predictions) cannot perform well. I observed many cases like:
+| sorted candidate tags | sorted corresponding probs |
+|:--:|:--:|
+| `B-Claim` ... | 1.0 ... |
+| `I-Claim` ... | 0.99  ... |
+| `I-Claim` ... | 0.99 ... |
+| `I-Claim` `B-Evidence` ... | 0.49 0.43 ... |
+| `I-Evidence` `I-Claim` ... | 0.99 0.01 ... |
+| `I-Evidence` `I-Claim` ... | 0.99 0.01 ... |
+
+According to the greedy decoding, the prediction result would be `B-Claim I-Claim I-Claim I-Claim I-Evidence I-Evidence`. The entities should be started with B-tags, so the Evidence entity will be dropped even it has high confidence. Therefore I implement beam search decoding algorithm for NER tagging:
+![](
+I wrote this code on PyTorch and GPU-capable for parallelization. I use `beam_size=4` for all both evaluation and prediction.
+
+
+## Entity-Level Post-Ensemble
+The above multi-fold predictions are from averaged token probabilities. However, if the architectures are different and the subword tokenizers are different as well, it is impossible to combine the subword token predictions (probabilities). Some people tried to ensemble with character-level probabilities, but it did not work for me. Hence I created entity-level post ensemble algorithm.
+
+The main idea is from the metric of this competition. This compeition treats more than 50% matched entities as the same group. So I group at least 50% overlapped entities which have same class. After that, I average the ranges in each group. I tested the longest, shortest, union and intersection ways, but they were all worse than the average method.
+![](
+It indeed showed significant improvements by ensembling several models! It can be even applied to the folds (I mean, it is useful for the same tokenizer and same subwords as well) and I can get about +0.002 lb score.
+
+| model name | cv | public lb score | private lb score |
+|:--:|:--:|:--:|:--:|
+| deberta-large (5folds) | 0.6938 | 0.705 | 0.713 |
+| deberta-large (5folds, entity-level ensemble) | 0.6938 | 0.707 | 0.714 |
+| deberta-large + deberta-xlarge | 0.718 | 0.712 | 0.722 |
+| deberta-v3-large-v2 + deberta-v2-xlarge-v2 | 0.7251 | 0.719 | 0.731 |
+
+
+## `DebertaV2TokenizerFast`?
+Unfortunately, deberta-v2 does not have fast-version of its tokenizer. The slow-version does not support `offset_mapping`, so we need the fast one. Fortunately, [the code]( is already written and I could train deberta-v2 and deberta-v3 without tokenization errors. But the problem was the performance of models. CV scores were around ~0.68, even worse than longformers. After some experiments, I observed that **the deberta-v2 tokenizer removes line-break `\n` characters.** As I mentioned above, including `\n` characters is necessary, so I changed the code as below:
+![](
+Finally I can get the correct scores from deberta-v2 and deberta-v3 models.
+| model name | cv | public lb score | private lb score|
+|:--:|:--:|:--:|:--:|
+| deberta-v2-xlarge | 0.7019 | 0.705 | 0.714 |
+| deberta-v3-large | 0.7038 | 0.707 | 0.719 |
+
+I also tried larger models (e.g. deberta-v2-xxlarge) but they are all worse than the above models. Thus I only used up to deberta-xlarge scale.
+
+
+## Hyperparameters
+I know many people used small batch size like 2 or 4, but I use 8 to activate tensor-cores on A100 😁 I had to train the model faster because I had no time. All models are trained for 5k/7k steps with 500/700 warmup steps. The learning rate is basically 3e-5, but depends on the scale. The detailed configurations are in my code as well. The learning rate is decayed linearly. I applied gradient clipping with `1.0` and gradient checkpointing to reduce the memory usage. AdamW optimizer is used, and I evaluate 20 times per epoch to save the best-scored model. Note that I use exactly same evaluation metric (overlap-based f1 score) to avoid the score mismatch from validation to lb score.
+
+
+## Conclusion
+I tried many combinations of the models to submit because there is a time limit. The belows are my last three submissions🥲
+![](
+And these are my final selections:
+![](
+| model name | public lb score | private lb score |
+|:--:|:--:|:--:|
+| deberta-v3-large (10 folds) + deberta-xlarge (3/5) + deberta-v2-xlarge (4/5) | 0.721 | 0.735 |
+| deberta-large + deberta-v3-large + deberta-v3-large + deberta-xlarge (3/5) + deberta-v2-xlarge (3/5) | 0.724 | 0.735 |
+
+Since deberta-xlarge and deberta-v2-xlarge are too heavy to run all, I only use some of them.
+
+~~I am currently cleaning up my code and preparing to upload the repository to my github. If all works are done, I'll add a link for the code.~~
+[Here is a source code in github!](
+
+P.S. I also tried pseudo-labeling for wikipedia talk corpus (150k), it did not work. Maybe more data is required...?
+

@@ -1,0 +1,69 @@
+First of all, many thanks to the Kaggle team and Feedback Prize team for hosting this competition, and congrats to all winners ! Thanks to my teammates too, namely @amedprof and @crodoc for their hard work and commitment during all those 3 laborious months.
+
+## At the  beginning
+We struggle a lot during this comp’. We spent almost 2 months far from the bronze zone because our strategy was the exploration one. In fact, a great kernel was published by Abishek at the early beginning of the comp’ and one could just stick to it and keep tuning its hyperparameters to get a decent score (silver zone). But, we didn’t go that way and we kept exploring many ideas.
+
+
+## Solution approach
+It seems like the go-to approach here is NER. We didn’t reinvent the wheel, we went that way as well since it seems straightfull and answers the problem quite correctly. In fact, we tested some QA approaches but not only were they too slow (training and much more inference) but they had slightly lower scores than our NER approaches. 
+
+
+**Setup 1:**  *siblings NER & Span Segmentation*
+We use a multitask approach to output the segmentation scores (multiclass classification on 3 different values: 0 for background, 1 when inside any entity and 2 for beginning) and the entity scores (15 classes). We still use 15 classes for the NER as well but before computing the class, we convert B-eginning tokens into I-nside.
+
+**Backbone:** 5 folds Deberta-v1 Large + 5 folds Deberta-v1 xLarge  (maxlen = 1024, stride during inference, positinon_biased_inputs=False), trained 5 epochs
+**Scheduler:** Cosine Annealing with no warmup
+**Optimizer:** AdamW
+**Loss:**  Cross-Entropy with dynamic cosine-based class weights. In fact we overweight rare classes (Rebuttal and Counterclaim) by starting with high values and converge to 1 on final epochs.
+
+**Setup 2:**  *Pure NER over 15 classes*, alternatively over 10 classes by removing the B target for non-overlapping classes.
+**Backbone:** 5 folds Deberta Large + 5 folds Deberta xLarge  (maxlen = 1024, stride during inference,  positinon_biased_inputs=False), trained 5 epochs
+**Scheduler:** Polynomial decay  with 10% warmup
+**Optimizer:** AdamW
+**Loss:**  Cross-Entropy (no weights over classes)
+
+
+## Validation strategy
+We used same validation strategy as the one shared by Abishek we also use an enhanced version of the clustesr made by cdeotte to make our MultilabelStratifiedKFold.
+These folds were really stable and CV to LB correlation was great.
+
+## Post-processing and ensembling models & boxes
+As cdeotte’s team, we make use of WBF on our final solutions. WBF was very effective and was the main ingredient behind our spectacular jump in the final days of the competition. Take a look on this tab for further details about CV / LB.
+
+![cv/lb before and after wbf](
+
+
+## What works
+* Filtering on num_tokens and score
+* Smart boxe ensembling (WBF)
+* Random Masking
+* Random  start (if not striding during training)
+* Small batch size
+* Small learning rates
+
+## What doesn’t work
+* Training on longer sequences
+* Training long text aware models : LongFormer, Funnel and BigBird wasn’t better than deberta-v1 for us.
+* More epochs, higher batch size
+* Training on cleaned data
+* Using better word splitter than python split
+* QA instead of NER
+* Simply bagging models by averaging word level scores
+
+
+## Final thoughts
+
+* **Training on 10 labels**
+We saw in [this kernel]( markov transition matrix that some *discourse_types* never overlap so we decide to use B-I-O only on Claim and Evidence and binary target for others.
+
+* **positinon_biased_inputs = False**
+The HuggingFace Debrta-v1 version has positinon_biased_inputs parameter set to False by default, so Deberta-v1 is not using global position information by default. We manage to turn global position ON but the perfs are not much better than the vanilla one. Furthermore, turning positinon_biased_inputs OFF allows to use maxlen above 512 without the need to resize the embedding layers.
+
+
+Thanks for reading our solution.
+
+
+### Edit
+* **Setup 1 source code**: 
+* **Setup 2 source code**: 
+

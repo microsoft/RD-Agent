@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Wavelet Denoising",
+        "method": "Apply wavelet denoising to the accelerometer signals using discrete wavelet transform (DWT) with a specified wavelet and thresholding strategy.",
+        "context": "The notebook applies three different wavelet denoising strategies to the AccV, AccML, and AccAP signals using the 'db4' wavelet and hard thresholding.",
+        "hypothesis": {
+            "problem": "Detecting freezing of gait episodes from accelerometer data.",
+            "data": "Accelerometer signals that are likely noisy due to movement artifacts.",
+            "method": "Wavelet denoising assumes that the signal can be decomposed into a combination of wavelets.",
+            "reason": "The data is very noisy, and wavelet denoising helps in reducing noise while preserving the important features of the accelerometer signals."
+        }
+    },
+    {
+        "idea": "Feature Engineering",
+        "method": "Create additional features by calculating differences between existing accelerometer axes to capture dynamic relationships between them.",
+        "context": "The notebook creates V_ML, V_AP, and ML_AP features by calculating differences between AccV, AccML, and AccAP.",
+        "hypothesis": {
+            "problem": "Detecting patterns associated with gait events.",
+            "data": "Multidimensional time-series data from accelerometer axes.",
+            "method": "Assumes that relative movements between axes provide additional insights.",
+            "reason": "There are redundant columns in the data, and combining them can yield more informative features for detecting specific gait events."
+        }
+    },
+    {
+        "idea": "Normalization",
+        "method": "Standardize each accelerometer axis independently by subtracting the mean and dividing by the standard deviation.",
+        "context": "The notebook normalizes AccV, AccML, AccAP, V_ML, V_AP, ML_AP features using their respective means and standard deviations.",
+        "hypothesis": {
+            "problem": "Handling variations in sensor readings across samples.",
+            "data": "Continuous accelerometer readings with varying magnitudes.",
+            "method": "Assumes that normalized data improves model training by reducing bias due to scale differences.",
+            "reason": "The data is expected to have different scales or units which could bias the model training if not normalized."
+        }
+    },
+    {
+        "idea": "CNN Model Architecture",
+        "method": "Use a multi-branch CNN architecture with Conv1D layers having different kernel sizes to capture features at multiple temporal resolutions.",
+        "context": "The notebook implements a model with three Conv1D branches having kernel sizes of 4, 8, and 16 respectively, followed by batch normalization and concatenation.",
+        "hypothesis": {
+            "problem": "Time-series classification of gait events from accelerometer data.",
+            "data": "Multivariate time-series data where patterns might occur at different scales.",
+            "method": "Assumes that different temporal resolutions capture diverse patterns relevant for classification.",
+            "reason": "The data contains patterns in the time-series that vary in duration, requiring different kernel sizes to capture effectively."
+        }
+    },
+    {
+        "idea": "Ensemble Averaging",
+        "method": "Average predictions from multiple trained models to improve generalization and robustness of predictions.",
+        "context": "The notebook averages predictions from multiple saved models for both 'defog' and 'tdcsfog' datasets to produce final predictions.",
+        "hypothesis": {
+            "problem": "Robust prediction of gait events from noisy sensor data.",
+            "data": "Noisy and possibly overfitting-prone model outputs due to small datasets.",
+            "method": "Assumes that combining predictions reduces variance and improves stability.",
+            "reason": "The data is very noisy, and using only one model tends to overfit these noisy patterns. Averaging multiple models helps in achieving better generalization."
+        }
+    },
+    {
+        "idea": "Stratified Group K-Fold",
+        "method": "Use StratifiedGroupKFold to split the dataset ensuring balanced class distribution across folds while keeping data from the same group together.",
+        "context": "The notebook utilizes StratifiedGroupKFold for dividing the dataset into training and validation sets while preserving the distribution of labels and grouping by subjects.",
+        "hypothesis": {
+            "problem": "Ensuring reliable evaluation of model performance on small datasets with potential subject-wise biases.",
+            "data": "Data with class imbalance and subject-wise grouping.",
+            "method": "Assumes that stratification and grouping improve model evaluation by covering variability without leaking subject data across folds.",
+            "reason": "The number of data samples is small, and maintaining class distribution along with subject grouping ensures that the validation set is representative of real-world scenarios."
+        }
+    }
+]

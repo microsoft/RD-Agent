@@ -1,0 +1,29 @@
+Thanks for the Hosts organized this competation and all the teammates who equally shared the contribution to this competation.
+
+I'd like to share our solution, it is an easy and effective solution
+
+1. As like other top teams, the data preprcess is the key for this compettion. In the data,  we added element type before the element text, using the [SEP] token as a separator, then we integrate all the elements in an article into one big long sentence, and then predict the classification label for each sentence. the follwing is the sample of input data
+
+[SEP]Lead. *Discourse_00*[SEP]Position. *Discourse_01*[SEP]Claim. *Discourse_02* .......
+
+2. And then we used the deberta-base as the back-bone to test different model architecture, we used multi-drop out in the final output layer 
+
+
+3. we chose the **DeBERTa series model**, specifically using **"microsoft/deberta-large "**, **"microsoft/deberta-v3-large "** from the HuggingFace library.
+
+4. AWP was also added in the training stage which was proven effective
+
+5. we also labeled the previous feedback1 training data as external data source which can also improved the cv & pl
+
+6. Final CV-5Fold and simple weighted fusion.
+
+
+following are LB result 
+1. deberta-base Baseline 5Fold，Public LB : 0.608；
+2. used the whole easay as the input ，Public LB : 0.589；
+3. used deberta-v3-large，Public LB : 0.577；
+4. introduced Pseudo Label，Public LB : 0.572；
+5. introduced AWP training，Public LB : 0.570；
+6. more fintune lr and awp arguments，Public LB : 0.568；
+7. simple average weight ensemble，(deberta-v3-large, deberta-large, deberta-xlarge)Public LB : 0.560；
+

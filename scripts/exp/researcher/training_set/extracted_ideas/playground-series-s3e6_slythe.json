@@ -1,0 +1,68 @@
+[
+    {
+        "idea": "Feature Engineering",
+        "method": "Remove highly correlated features using PCA to reduce dimensionality and prevent overfitting",
+        "context": "The notebook uses PCA to combine highly correlated features like 'sym_1' and 'squareMeters' into a single component to reduce correlation.",
+        "hypothesis": {
+            "problem": "The objective is to predict housing prices with a dataset that may contain correlated features.",
+            "data": "The dataset contains features that are potentially highly correlated, increasing the risk of multicollinearity.",
+            "method": "PCA is used here to reduce dimensionality by transforming correlated features into uncorrelated components.",
+            "reason": "The dataset has highly correlated features, which can cause overfitting. PCA reduces dimensionality and correlation, thus helping improve model generalization."
+        }
+    },
+    {
+        "idea": "Outlier Detection and Removal",
+        "method": "Use IQR method to detect and remove outliers from training data",
+        "context": "The notebook implements a function to calculate outliers based on IQR and removes them from the 'made' feature in the training dataset.",
+        "hypothesis": {
+            "problem": "The problem involves predicting prices, where outliers might skew the model's predictions.",
+            "data": "The dataset contains potential outliers in numerical features that can affect model performance.",
+            "method": "Outlier detection using IQR is a common technique to identify and mitigate the impact of extreme values.",
+            "reason": "Outliers might distort the prediction accuracy. Removing them could lead to a more robust model."
+        }
+    },
+    {
+        "idea": "Cross-validation with Repeated K-Fold",
+        "method": "Implement RepeatedKFold cross-validation to assess model performance",
+        "context": "The notebook uses RepeatedKFold with 5 splits and 3 repeats to validate models and assess performance variability.",
+        "hypothesis": {
+            "problem": "Reliable estimation of model performance is crucial due to synthetic data variability.",
+            "data": "The dataset size is substantial, allowing for repeated partitioning without loss of data representativeness.",
+            "method": "RepeatedKFold provides a robust estimate by using different validation sets multiple times, reducing variance in performance estimation.",
+            "reason": "Using RepeatedKFold allows for more reliable performance estimation across different data splits, which is important given possible synthetic data bias."
+        }
+    },
+    {
+        "idea": "Ensemble Learning with Weighted Averaging",
+        "method": "Combine model predictions using weighted averaging based on validation scores",
+        "context": "The notebook combines predictions from multiple models by weighting them according to their validation scores to create a stronger ensemble.",
+        "hypothesis": {
+            "problem": "Single model predictions may not be robust given the dataset complexity.",
+            "data": "The data's complexity might benefit from diverse model perspectives captured in an ensemble.",
+            "method": "Weighted averaging of predictions based on validation performance leverages the strengths of different models to improve final predictions.",
+            "reason": "Ensemble methods can handle noisy data better by combining predictions, especially when models have variable strengths across different data aspects."
+        }
+    },
+    {
+        "idea": "Hyperparameter Tuning with Optuna",
+        "method": "Use Optuna for hyperparameter optimization with XGBoost",
+        "context": "The notebook employs Optuna to optimize hyperparameters such as 'lambda', 'alpha', 'colsample_bytree', and 'max_depth' for XGBoost.",
+        "hypothesis": {
+            "problem": "The objective is to minimize RMSE by optimizing model parameters for better fit.",
+            "data": "The synthetic nature of the dataset may have underlying complexities that require careful tuning of model parameters.",
+            "method": "Optuna's efficient search algorithm helps identify optimal hyperparameters quickly, enhancing model performance.",
+            "reason": "The dataset's complexity necessitates fine-tuning of hyperparameters to capture intricate patterns and improve prediction accuracy."
+        }
+    },
+    {
+        "idea": "Feature Importance Analysis",
+        "method": "Analyze feature importance using tree-based models to guide feature selection",
+        "context": "The notebook calculates feature importances from models like LightGBM to understand which features contribute most to predictions.",
+        "hypothesis": {
+            "problem": "Identifying key features can simplify the model and prevent overfitting.",
+            "data": "The data probably contains a mix of relevant and redundant features affecting model interpretability and performance.",
+            "method": "Tree-based models inherently provide feature importance metrics, useful for selecting impactful features.",
+            "reason": "Understanding feature importance helps in selecting relevant features, reducing dimensionality without significant information loss."
+        }
+    }
+]

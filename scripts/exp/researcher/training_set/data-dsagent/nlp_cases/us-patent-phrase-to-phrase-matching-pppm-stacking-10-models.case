@@ -1,0 +1,20 @@
+(1) The overall design of the code is to load pre-trained models (DEBERTA-V3-LARGE and ELECTRA-LARGE) and use them to make predictions on the test dataset. The code also includes data loading, tokenization, model architecture, and inference functions.
+
+(2) The overall model architecture consists of a pre-trained DEBERTA-V3-LARGE model or ELECTRA-LARGE model, followed by a linear regression layer. The input to the model is a concatenation of the anchor phrase, target phrase, anchor-target pairs, and context text. The model uses attention mechanisms to capture the relevant information from the input and predicts a score for each input.
+
+(3) The important hyperparameters in this code are:
+- `batch_size`: The batch size used during training and inference.
+- `max_len`: The maximum length of the input sequences.
+- `dropout`: The dropout rate used in the model.
+- `num_workers`: The number of workers used for data loading.
+- `seed`: The random seed used for reproducibility.
+
+(4) The optimization objective is to minimize the mean squared error (MSE) between the predicted scores and the true scores.
+
+(5) The advanced machine learning technique used in this code is transfer learning. The code loads pre-trained DEBERTA-V3-LARGE and ELECTRA-LARGE models and fine-tunes them on the specific task of phrase-to-phrase matching.
+
+(6) Some important tricks that play a role in high performance include:
+- Data shuffling: The anchor-target pairs are randomly shuffled to introduce more diversity in the training data.
+- Attention mechanisms: The model uses attention mechanisms to focus on relevant parts of the input sequences.
+- Dropout regularization: The model uses dropout to prevent overfitting and improve generalization.
+- Ensembling: The code combines predictions from multiple models trained on different folds of the training data to improve performance.

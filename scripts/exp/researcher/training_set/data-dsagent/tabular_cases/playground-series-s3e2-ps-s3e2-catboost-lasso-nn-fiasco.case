@@ -1,0 +1,39 @@
+(1) The overall design of this code is to train and evaluate different machine learning models for a Kaggle competition on stroke prediction. It includes data preprocessing, exploratory data analysis, feature engineering, model training, and blending of predictions.
+
+(2) The overall model architecture consists of three different models: CatBoost, Lasso Regression, and a Neural Network (NN). 
+
+- CatBoost: It is a gradient boosting algorithm that uses decision trees. The hyperparameters for CatBoost are set in the `cb_params` dictionary. The model is trained using Stratified K-Fold cross-validation with 10 folds. The predictions from each fold are averaged to obtain the final predictions.
+
+- Lasso Regression: The code uses pre-trained Lasso Regression predictions from a separate file. The predictions are normalized to a range of 0 to 1.
+
+- Neural Network (NN): The NN model architecture consists of three dense layers with dropout regularization. The model is compiled with the Adam optimizer and a custom loss function (Sigmoid Focal Cross Entropy) and trained using Stratified K-Fold cross-validation with 10 folds. The predictions from each fold are averaged to obtain the final predictions.
+
+(3) The important hyperparameters in this code are:
+
+- CatBoost hyperparameters: `depth`, `learning_rate`, `rsm`, `subsample`, `l2_leaf_reg`, `min_data_in_leaf`, `random_strength`, `random_seed`, `use_best_model`, `task_type`, `bootstrap_type`, `grow_policy`, `loss_function`, `eval_metric`.
+
+- Neural Network hyperparameters: `BATCH_SIZE`, `epochs`, `class_weight`, `optimizer`, `loss function`, `metrics`.
+
+(4) The optimization objective is to maximize the area under the ROC curve (AUC) for the stroke prediction task. The AUC is used as the evaluation metric for both CatBoost and the Neural Network models.
+
+(5) The advanced machine learning technique used in this code is gradient boosting with CatBoost. CatBoost is a state-of-the-art gradient boosting algorithm that handles categorical features and provides good performance out of the box.
+
+(6) Some important tricks that play a role in achieving high performance include:
+
+- Handling missing values: The code uses K-Nearest Neighbors (KNN) regression to impute missing values for the 'bmi' feature.
+
+- Feature engineering: The code performs feature engineering by encoding categorical features using LabelEncoder and one-hot encoding. It also creates additional features based on the original dataset.
+
+- Outlier removal: The code removes outliers from the CatBoost training data to improve model performance.
+
+- Model blending: The code blends the predictions from CatBoost, Lasso Regression, and the Neural Network models to obtain the final predictions. The blending weights are manually set.
+
+- Model evaluation: The code uses Stratified K-Fold cross-validation to evaluate the models and calculate the mean AUC score.
+
+- Standardization: The code standardizes numerical features using StandardScaler before training the Neural Network model.
+
+- Early stopping and learning rate reduction: The code uses early stopping and learning rate reduction callbacks in the Neural Network training to prevent overfitting and improve convergence.
+
+- Feature importance analysis: The code calculates and visualizes the feature importances for the CatBoost model.
+
+- Visualization: The code uses various visualization techniques, such as bar plots, heatmaps, scatter plots, and histograms, to analyze the data and model predictions.

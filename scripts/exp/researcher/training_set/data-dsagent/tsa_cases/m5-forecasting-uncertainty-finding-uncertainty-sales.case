@@ -1,0 +1,23 @@
+(1) The overall design of this code is to train a high-performing model for a Kaggle competition. It involves preprocessing the sales and calendar data, creating a dataset, defining the model architecture, training the model, and generating predictions for validation and evaluation.
+
+(2) The overall model architecture consists of multiple input features, including numerical features (e.g., "num"), categorical features (e.g., "snap_CA", "snap_TX", "snap_WI", "wday", "month", "year", "event", "nday", "item", "dept", "cat", "store", "state"), and lagged features (e.g., "x_28", "x_35", "x_42", "x_49", "x_56", "x_63"). These features are passed through embedding layers for categorical features and concatenated with the numerical features. The concatenated features are then passed through multiple dense layers with dropout regularization. The final output layer predicts 9 quantiles of the target variable. The model is compiled with a custom quantile loss function and optimized using the Adam optimizer.
+
+(3) The important hyperparameters in this code are:
+- CATEGORIZE: A boolean variable indicating whether to categorize the categorical features.
+- START: An integer indicating the starting day for the sales data.
+- UPPER: An integer indicating the upper limit day for the sales data.
+- LAGS: A list of integers indicating the lagged features to be used.
+- FEATS: A list of strings indicating the lagged feature names.
+- batch_size: An integer indicating the batch size for training the model.
+- epochs: An integer indicating the number of epochs for training the model.
+
+(4) The optimization objective is to minimize the quantile loss function, which is a custom loss function defined as the pinball loss for multiple quantiles. The quantiles used in this code are [0.005, 0.025, 0.165, 0.250, 0.500, 0.750, 0.835, 0.975, 0.995].
+
+(5) The advanced machine learning technique used in this code is the use of embedding layers for categorical features. Embedding layers are a way to represent categorical variables as continuous vectors, allowing the model to learn meaningful representations of the categorical variables.
+
+(6) Other important tricks that play a role in high performance include:
+- Lagged features: The use of lagged features helps capture temporal dependencies in the data and improve the model's ability to make accurate predictions.
+- Dropout regularization: The use of dropout regularization helps prevent overfitting by randomly dropping out a fraction of the neurons during training, forcing the model to learn more robust representations.
+- ReduceLROnPlateau callback: This callback reduces the learning rate when the validation loss plateaus, allowing the model to fine-tune its parameters and potentially improve performance.
+- EarlyStopping callback: This callback stops training early if the validation loss does not improve for a certain number of epochs, preventing overfitting and saving computational resources.
+- ModelCheckpoint callback: This callback saves the weights of the best-performing model during training, allowing the model to be loaded and used for predictions later.

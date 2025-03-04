@@ -1,0 +1,62 @@
+Congrats all and thank you Georgia State University, Kaggle and all the organizers for hosting such an amazing competition. We were unfortunate to finish just short of a prize in both tracks of the competition, but will take the learnings with us!
+### TL;DR
+Our solution is based on deberta-v3, mlm, pseudo labeling and stacking with LGB. We found the combination of a number of NLP improvements added up to a solid score. 
+
+### Pre/Data processing
+The core of our solution was to combine, in order, all discourse ids, and then start and finish them with discourse typeids and special tokens. 
+A cls_position was used as start or end of the discourse. In python, see below, 
+```
+input_ids = []
+essay_df = = trndf.loc[essay_id]
+for i in range(len(essay_df)):
+text = f'{discourse_types[i]}: {discourse_texts[i]} {self.tokenizer.sep_token} :{discourse_types[i]}'
+i_ids = self.tokenizer.encode(text, add_special_tokens=False)
+input_ids += i_ids
+cls_pos += [0] * (len(i_ids) - 1) + [1]
+```
+
+An example of the output can be seen below. 
+```
+Lead: Computers can do many things for us. The idea that a computer can read your emotions is amazing  [SEP] :Lead Position: I do not belive it is true. I will believe it when I see it.  [SEP] :Position Evidence: In paragraph 8 it says " But in a false smile, the mouth is stretched sideways ising the zygomatic major and different muscle, the risorius." however this may be true for most people; there has to be someone out there in our world of 7 billion that smiles there smiles with their zygomatic muscle or their risorius muscle  [SEP] :Evidence Claim: Everyone has diffrent emotions and everyone shows them diffrently  [SEP] :Claim Counterclaim: The muscles in our face does say a lot about the emotions we are feeling.  [SEP] :Counterclaim Concluding Statement: This is why I believe computures can not read your emotions  [SEP] :Concluding Statement
+```
+
+Auxiliary labels such as ranking (Ineffective -> Adequate -> Effective) and essay topic cluster were also used. 
+We also added the essay text, which was not in annotated discourses to the end, and sometimes positioned in order between discourses. 
+Replacing line breaks with special tokens and cleaning text in some models was found to increase diversity significantly in the overall blend. 
+
+### Level1 Models
+We used three different model pipelines, with some smaller changes in data preprocessing, along with different auxiliary labels and model heads. We only used `deberta-v3` as the backbone. Other backbones did not help our blend in CV. 
+
+###### Model1, 
+- Non discourse essay text moved to the back of input, and text cleaned with line breaks added.  
+- Used auxiliary targets of rank (rmse loss) and essay topic. Lowered auxiliary weight, from 0.4 to 0.01, as model trained. 
+- Linear head extracting the first token of each discourse in the input, with categorical crossentropy loss.  
+###### Model2, 
+- Non discourse essay text between discourses. No cleaning or line breaks
+- Used auxiliary targets of rank (rmse loss). Weight of auxiliary loss ~0.2. 
+- Linear head extracting the last token of each discourse in the input, with categorical crossentropy loss.  
+###### Model3, 
+- Non discourse essay text between discourses. No cleaning or line breaks
+- Used auxiliary targets of rank (rmse loss).  Weight of auxiliary loss ~0.2. 
+- This was actually two models - one with an rnn head applied to the mean pooling of the tokens belonging to each discourse; and one with an attention head on the same input.
+
+It is important to remove deberta hidden layer dropout on all models. We also found it helpful to pretrain the weights on the earlier feedback competition essays for around 20 epochs (low lr, large batchsize). 
+All models were trained with 2-3 epochs, with backbone set to lr ~2e-5 and the model head was set to ~1e-4. 
+### Level2 Models
+We created meta pseudo labels on the essays from the first feedback competition (excl. current comp essays). In-fold predictions from all models were used to create an averaged in-fold prediction, which can be used as a leak-free pseudo label.
+
+Each model was then retrained on the hard labels from current competition and the soft pseudo labels. Hard labels from current competition were upweighted in the loss function. 
+### Stacking
+All level2 model predictions were averaged and used in a lightgbm stacking model. This was trained at discourse level, along with meta features from the respective essay, such as word count, sentence count, position in essay-topic and lead & lag features.
+
+No special postprocessing was applied after that. 
+### What did not help
+- Other backbones such as deberta-v1, deberta-v2, t5, facebook-opt, distilled-bloom
+- 2nd or third round pseudo labelling. 
+- Training models for a more epochs (this overfit, should have tried AWP)
+- The character decoding/encoding used in the public scripts.
+- Model soup
+- Test time augmentation
+- Token dropout
+- etc. etc.
+
