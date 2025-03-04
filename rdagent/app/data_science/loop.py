@@ -142,7 +142,9 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
-def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation", do_truncate=True):
+def main(
+    path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation", do_truncate=True
+):
     """
 
     Parameters
