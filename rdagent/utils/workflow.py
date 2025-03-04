@@ -161,9 +161,9 @@ class LoopBase:
             pickle.dump(self, f)
 
     @classmethod
-     def load(
+    def load(
         cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = True
-     ) -> "LoopBase":
+    ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
             session = cast(LoopBase, pickle.load(f))
