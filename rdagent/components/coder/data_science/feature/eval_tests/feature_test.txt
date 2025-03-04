@@ -23,7 +23,26 @@ print(f"test_ids length: {len(test_ids)}")
 X_loaded = deepcopy(X)
 y_loaded = deepcopy(y)
 X_test_loaded = deepcopy(X_test)
-X, y, X_test = feat_eng(X, y, X_test)
+
+import sys
+def debug_info_print(func):
+    def wrapper(*args, **kwargs):
+        def local_trace(frame, event, arg):
+            if event == "return" and frame.f_code == func.__code__:
+                print("\n" + "="*20 + "Debug info begin" + "="*20)
+                for k, v in frame.f_locals.items():
+                    printed = repr(v)
+                    print(f"{k}:\n {printed[:150]}...") if len(printed) > 150 else print(f"{k}:\n {printed}")
+                print("="*20 + "Debug info end" + "="*20)
+            return local_trace
+        
+        sys.settrace(local_trace)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            sys.settrace(None)
+    return wrapper
+X, y, X_test = debug_info_print(feat_eng)(X, y, X_test)
 
 
 def get_length(data):

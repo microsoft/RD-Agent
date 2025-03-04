@@ -70,8 +70,28 @@ for key in val_preds_dict.keys():
 
 print(f"val_y.shape: {val_y.shape}" if not isinstance(val_y, list) else f"val_y(list)'s length: {len(val_y)}")
 
+import sys
+def debug_info_print(func):
+    def wrapper(*args, **kwargs):
+        def local_trace(frame, event, arg):
+            if event == "return" and frame.f_code == func.__code__:
+                print("\n" + "="*20 + "Debug info begin" + "="*20)
+                for k, v in frame.f_locals.items():
+                    printed = repr(v)
+                    print(f"{k}:\n {printed[:150]}...") if len(printed) > 150 else print(f"{k}:\n {printed}")
+                print("="*20 + "Debug info end" + "="*20)
+            return local_trace
+        
+        sys.settrace(local_trace)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            sys.settrace(None)
+    return wrapper
+
+
 # Run ensemble
-final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
+final_pred = debug_info_print(ensemble_workflow)(test_preds_dict, val_preds_dict, val_y)
 
 print_preds_info("ensemble", "test", final_pred)
 
