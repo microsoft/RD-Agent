@@ -176,7 +176,7 @@ class LoopBase:
         logger.set_trace_path(session.session_folder.parent)
 
         # truncate future message
-        if do_truncate is True: 
+        if do_truncate:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
         return session
