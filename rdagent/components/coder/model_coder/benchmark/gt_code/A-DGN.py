@@ -53,7 +53,7 @@ class AntiSymmetricConv(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels: int,
+        num_features: int,
         phi: Optional[MessagePassing] = None,
         num_iters: int = 1,
         epsilon: float = 0.1,
@@ -64,21 +64,21 @@ class AntiSymmetricConv(torch.nn.Module):
     ):
         super().__init__()
 
-        self.in_channels = in_channels
+        self.in_channels = num_features
         self.num_iters = num_iters
         self.gamma = gamma
         self.epsilon = epsilon
         self.act = activation_resolver(act, **(act_kwargs or {}))
 
         if phi is None:
-            phi = GCNConv(in_channels, in_channels, bias=False)
+            phi = GCNConv(num_features, num_features, bias=False)
 
-        self.W = Parameter(torch.empty(in_channels, in_channels))
-        self.register_buffer("eye", torch.eye(in_channels))
+        self.W = Parameter(torch.empty(num_features, num_features))
+        self.register_buffer("eye", torch.eye(num_features))
         self.phi = phi
 
         if bias:
-            self.bias = Parameter(torch.empty(in_channels))
+            self.bias = Parameter(torch.empty(num_features))
         else:
             self.register_parameter("bias", None)
 
@@ -90,13 +90,13 @@ class AntiSymmetricConv(torch.nn.Module):
         self.phi.reset_parameters()
         zeros(self.bias)
 
-    def forward(self, x: Tensor, edge_index: Adj, *args, **kwargs) -> Tensor:
+    def forward(self, node_features: Tensor, edge_index: Adj, *args, **kwargs) -> Tensor:
         r"""Runs the forward pass of the module."""
         antisymmetric_W = self.W - self.W.t() - self.gamma * self.eye
 
         for _ in range(self.num_iters):
-            h = self.phi(x, edge_index, *args, **kwargs)
-            h = x @ antisymmetric_W.t() + h
+            h = self.phi(node_features, edge_index, *args, **kwargs)
+            h = node_features @ antisymmetric_W.t() + h
 
             if self.bias is not None:
                 h += self.bias
@@ -104,9 +104,9 @@ class AntiSymmetricConv(torch.nn.Module):
             if self.act is not None:
                 h = self.act(h)
 
-            x = x + self.epsilon * h
+            node_features = node_features + self.epsilon * h
 
-        return x
+        return node_features
 
     def __repr__(self) -> str:
         return (
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     edge_index = torch.load("edge_index.pt")
 
     # Model instantiation and forward pass
-    model = AntiSymmetricConv(in_channels=node_features.size(-1))
+    model = AntiSymmetricConv(num_features=node_features.size(-1))
     output = model(node_features, edge_index)
 
     # Save output to a file

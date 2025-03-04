@@ -58,7 +58,7 @@ class GPSConv(torch.nn.Module):
 
     def __init__(
         self,
-        channels: int,
+        num_features: int,
         conv: Optional[MessagePassing],
         heads: int = 1,
         dropout: float = 0.0,
@@ -71,7 +71,7 @@ class GPSConv(torch.nn.Module):
     ):
         super().__init__()
 
-        self.channels = channels
+        self.channels = num_features
         self.conv = conv
         self.heads = heads
         self.dropout = dropout
@@ -80,14 +80,14 @@ class GPSConv(torch.nn.Module):
         attn_kwargs = attn_kwargs or {}
         if attn_type == "multihead":
             self.attn = torch.nn.MultiheadAttention(
-                channels,
+                num_features,
                 heads,
                 batch_first=True,
                 **attn_kwargs,
             )
         elif attn_type == "performer":
             self.attn = PerformerAttention(
-                channels=channels,
+                channels=num_features,
                 heads=heads,
                 **attn_kwargs,
             )
@@ -96,17 +96,17 @@ class GPSConv(torch.nn.Module):
             raise ValueError(f"{attn_type} is not supported")
 
         self.mlp = Sequential(
-            Linear(channels, channels * 2),
+            Linear(num_features, num_features * 2),
             activation_resolver(act, **(act_kwargs or {})),
             Dropout(dropout),
-            Linear(channels * 2, channels),
+            Linear(num_features * 2, num_features),
             Dropout(dropout),
         )
 
         norm_kwargs = norm_kwargs or {}
-        self.norm1 = normalization_resolver(norm, channels, **norm_kwargs)
-        self.norm2 = normalization_resolver(norm, channels, **norm_kwargs)
-        self.norm3 = normalization_resolver(norm, channels, **norm_kwargs)
+        self.norm1 = normalization_resolver(norm, num_features, **norm_kwargs)
+        self.norm2 = normalization_resolver(norm, num_features, **norm_kwargs)
+        self.norm3 = normalization_resolver(norm, num_features, **norm_kwargs)
 
         self.norm_with_batch = False
         if self.norm1 is not None:
@@ -128,7 +128,7 @@ class GPSConv(torch.nn.Module):
 
     def forward(
         self,
-        x: Tensor,
+        node_features: Tensor,
         edge_index: Adj,
         batch: Optional[torch.Tensor] = None,
         **kwargs,
@@ -136,9 +136,9 @@ class GPSConv(torch.nn.Module):
         r"""Runs the forward pass of the module."""
         hs = []
         if self.conv is not None:  # Local MPNN.
-            h = self.conv(x, edge_index, **kwargs)
+            h = self.conv(node_features, edge_index, **kwargs)
             h = F.dropout(h, p=self.dropout, training=self.training)
-            h = h + x
+            h = h + node_features
             if self.norm1 is not None:
                 if self.norm_with_batch:
                     h = self.norm1(h, batch=batch)
@@ -147,7 +147,7 @@ class GPSConv(torch.nn.Module):
             hs.append(h)
 
         # Global attention transformer-style model.
-        h, mask = to_dense_batch(x, batch)
+        h, mask = to_dense_batch(node_features, batch)
 
         if isinstance(self.attn, torch.nn.MultiheadAttention):
             h, _ = self.attn(h, h, h, key_padding_mask=~mask, need_weights=False)
@@ -156,7 +156,7 @@ class GPSConv(torch.nn.Module):
 
         h = h[mask]
         h = F.dropout(h, p=self.dropout, training=self.training)
-        h = h + x  # Residual connection.
+        h = h + node_features  # Residual connection.
         if self.norm2 is not None:
             if self.norm_with_batch:
                 h = self.norm2(h, batch=batch)
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     edge_index = torch.load("edge_index.pt")
 
     # Model instantiation and forward pass
-    model = GPSConv(channels=node_features.size(-1), conv=MessagePassing())
+    model = GPSConv(num_features=node_features.size(-1), conv=MessagePassing())
     output = model(node_features, edge_index)
 
     # Save output to a file

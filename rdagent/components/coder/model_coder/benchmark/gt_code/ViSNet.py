@@ -1076,6 +1076,7 @@ class ViSNet(torch.nn.Module):
 
     def __init__(
         self,
+        num_features ,
         lmax: int = 1,
         vecnorm_type: Optional[str] = None,
         trainable_vecnorm: bool = False,

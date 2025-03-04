@@ -87,11 +87,11 @@ class LINKX(torch.nn.Module):
 
     def __init__(
         self,
-        num_nodes: int,
-        in_channels: int,
-        hidden_channels: int,
-        out_channels: int,
-        num_layers: int,
+        node_features: int,
+        hidden_channels: int = 32,
+        out_channels: int = 32,
+        num_layers: int = 1,
+        num_nodes: int = 32,
         num_edge_layers: int = 1,
         num_node_layers: int = 1,
         dropout: float = 0.0,
@@ -99,7 +99,7 @@ class LINKX(torch.nn.Module):
         super().__init__()
 
         self.num_nodes = num_nodes
-        self.in_channels = in_channels
+        self.in_channels = node_features
         self.out_channels = out_channels
         self.num_edge_layers = num_edge_layers
 
@@ -113,7 +113,7 @@ class LINKX(torch.nn.Module):
             self.edge_norm = None
             self.edge_mlp = None
 
-        channels = [in_channels] + [hidden_channels] * num_node_layers
+        channels = [node_features] + [hidden_channels] * num_node_layers
         self.node_mlp = MLP(channels, dropout=0.0, act_first=True)
 
         self.cat_lin1 = torch.nn.Linear(hidden_channels, hidden_channels)
@@ -138,7 +138,7 @@ class LINKX(torch.nn.Module):
 
     def forward(
         self,
-        x: OptTensor,
+        node_features: OptTensor,
         edge_index: Adj,
         edge_weight: OptTensor = None,
     ) -> Tensor:
@@ -152,10 +152,10 @@ class LINKX(torch.nn.Module):
 
         out = out + self.cat_lin1(out)
 
-        if x is not None:
-            x = self.node_mlp(x)
-            out = out + x
-            out = out + self.cat_lin2(x)
+        if node_features is not None:
+            node_features = self.node_mlp(node_features)
+            out = out + node_features
+            out = out + self.cat_lin2(node_features)
 
         return self.final_mlp(out.relu_())
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # Model instantiation and forward pass
     model = LINKX(
         num_nodes=node_features.size(0),
-        in_channels=node_features.size(1),
+        node_features=node_features.size(1),
         hidden_channels=node_features.size(1),
         out_channels=node_features.size(1),
         num_layers=1,

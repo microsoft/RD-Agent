@@ -29,17 +29,17 @@ class PMLP(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels: int,
-        hidden_channels: int,
-        out_channels: int,
-        num_layers: int,
+        num_features: int,
+        hidden_channels: int = 32,
+        out_channels: int = 32,
+        num_layers: int = 1,
         dropout: float = 0.0,
         norm: bool = True,
         bias: bool = True,
     ):
         super().__init__()
 
-        self.in_channels = in_channels
+        self.in_channels = num_features
         self.hidden_channels = hidden_channels
         self.out_channels = out_channels
         self.num_layers = num_layers
@@ -47,7 +47,7 @@ class PMLP(torch.nn.Module):
         self.bias = bias
 
         self.lins = torch.nn.ModuleList()
-        self.lins.append(Linear(in_channels, hidden_channels, self.bias))
+        self.lins.append(Linear(num_features, hidden_channels, self.bias))
         for _ in range(self.num_layers - 2):
             lin = Linear(hidden_channels, hidden_channels, self.bias)
             self.lins.append(lin)
@@ -74,7 +74,7 @@ class PMLP(torch.nn.Module):
 
     def forward(
         self,
-        x: torch.Tensor,
+        node_features: torch.Tensor,
         edge_index: Optional[Tensor] = None,
     ) -> torch.Tensor:
         """"""  # noqa: D419
@@ -82,18 +82,18 @@ class PMLP(torch.nn.Module):
             raise ValueError(f"'edge_index' needs to be present during " f"inference in '{self.__class__.__name__}'")
 
         for i in range(self.num_layers):
-            x = x @ self.lins[i].weight.t()
+            node_features = node_features @ self.lins[i].weight.t()
             if not self.training:
-                x = self.conv(x, edge_index)
+                node_features = self.conv(node_features, edge_index)
             if self.bias:
-                x = x + self.lins[i].bias
+                node_features = node_features + self.lins[i].bias
             if i != self.num_layers - 1:
                 if self.norm is not None:
-                    x = self.norm(x)
-                x = x.relu()
-                x = F.dropout(x, p=self.dropout, training=self.training)
+                    node_features = self.norm(node_features)
+                node_features = node_features.relu()
+                node_features = F.dropout(node_features, p=self.dropout, training=self.training)
 
-        return x
+        return node_features
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.in_channels}, " f"{self.out_channels}, num_layers={self.num_layers})"
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
     # Model instantiation and forward pass
     model = PMLP(
-        in_channels=node_features.size(-1),
+        num_features=node_features.size(-1),
         hidden_channels=node_features.size(-1),
         out_channels=node_features.size(-1),
         num_layers=1,

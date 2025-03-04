@@ -10,7 +10,7 @@
             "N_u": "The set of neighbored nodes centered at node u"
         },
         "key": "pmlp",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     },
     "LINKX": {
         "description": "A scalable model for node classification that separately embeds adjacency and node features, combines them with MLPs, and applies simple transformations.",
@@ -24,7 +24,7 @@
             "MLP_f": "Final multilayer perceptron for prediction"
         },
         "key": "linkx",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     },
     "GPSConv": {
         "description": "A scalable and powerful graph transformer with linear complexity, capable of handling large graphs with state-of-the-art results across diverse benchmarks.",
@@ -37,7 +37,7 @@
             "GlobalAttn^{(l)}": "The global attention function at layer l"
         },
         "key": "gpsconv",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     },
     "ViSNet": {
         "description": "ViSNet is an equivariant geometry-enhanced graph neural network designed for efficient molecular modeling[^1^][1][^2^][2]. It utilizes a Vector-Scalar interactive message passing mechanism to extract and utilize geometric features with low computational costs, achieving state-of-the-art performance on multiple molecular dynamics benchmarks.",
@@ -48,7 +48,7 @@
             "\\mathbf{v}_u": "Direction unit vector for atom u"
         },
         "key": "visnet",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     },
     "Dir-GNN": {
         "description": "A framework for deep learning on directed graphs that extends MPNNs to incorporate edge directionality.",
@@ -59,7 +59,7 @@
             "m^{(k)}_{i,\\rightarrow}": "The aggregated outgoing messages from node i at layer k"
         },
         "key": "dirgnn",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     },
     "A-DGN": {
         "description": "A framework for stable and non-dissipative DGN design, conceived through the lens of ordinary differential equations (ODEs). It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
@@ -75,6 +75,6 @@
             "N_u": "The set of neighboring nodes of u"
         },
         "key": "A-DGN",
-        "model_type": "TimeSeries"
+        "model_type": "Graph"
     }
 }

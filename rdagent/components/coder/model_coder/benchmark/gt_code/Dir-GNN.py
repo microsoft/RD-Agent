@@ -25,6 +25,7 @@ class DirGNNConv(torch.nn.Module):
 
     def __init__(
         self,
+        num_features,
         conv: MessagePassing,
         alpha: float = 0.5,
         root_weight: bool = True,
@@ -58,15 +59,15 @@ class DirGNNConv(torch.nn.Module):
         if self.lin is not None:
             self.lin.reset_parameters()
 
-    def forward(self, x: Tensor, edge_index: Tensor) -> Tensor:
+    def forward(self, node_features: Tensor, edge_index: Tensor) -> Tensor:
         """"""  # noqa: D419
-        x_in = self.conv_in(x, edge_index)
-        x_out = self.conv_out(x, edge_index.flip([0]))
+        x_in = self.conv_in(node_features, edge_index)
+        x_out = self.conv_out(node_features, edge_index.flip([0]))
 
         out = self.alpha * x_out + (1 - self.alpha) * x_in
 
         if self.root_weight:
-            out = out + self.lin(x)
+            out = out + self.lin(node_features)
 
         return out
 
