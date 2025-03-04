@@ -205,7 +205,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
             if score_path.exists():
                 try:
-                    import pandas as pd
                     scores_df = pd.read_csv(score_path)
                     attempt_info.update({
                         "evaluation_scores": scores_df.to_dict()
@@ -391,7 +390,7 @@ class DSExpGen(ExpGen):
                 
                 # Create experiment
                 exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
-                exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace)
+                exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
                 
                 if new_workflow_desc != "No update needed":
                     workflow_task = WorkflowTask(
@@ -562,7 +561,7 @@ class DSExpGen(ExpGen):
                 component, hypothesis, task, new_workflow_desc = best_candidate
         # Create experiment
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
-        exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace)
+        exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
         
         if new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
@@ -581,7 +580,7 @@ class DSExpGen(ExpGen):
         historical_attempts_with_scores_desc = "Historical proposal-evaluation analysis:\n\n"
 
         for i, attempt in enumerate(context["historical_attempts_with_scores"], 1):
-            historical_attempts_with_scores_desc += f"""Attempt {i+1}:
+            historical_attempts_with_scores_desc += f"""Attempt {i}:
                     Component: {attempt['component']}
                     Hypothesis: {attempt['hypothesis']}
                     Task: {attempt['task_description']}
@@ -594,7 +593,7 @@ class DSExpGen(ExpGen):
         current_proposal_desc = "Current Proposals:\n\n"
         for i, candidate in enumerate(all_candidates, 1):
             component, hypothesis, task, new_workflow_desc = candidate
-            current_proposal_desc += f"""No.{i}:
+            current_proposal_desc += f"""Proposal No.{i}:
                     Component: {component}
                     Hypothesis: {hypothesis.hypothesis if hasattr(hypothesis, 'hypothesis') else str(hypothesis)}
                     Task: {task.get_task_information()}
@@ -654,110 +653,110 @@ class DSExpGen(ExpGen):
 
 
 
-    # def _idea_propose(self, trace: DSTrace, component: str, component_info: dict, scenario_desc: str) -> DSExperiment:
+    def _idea_propose(self, trace: DSTrace, component: str, component_info: dict, scenario_desc: str) -> DSExperiment:
 
-    #     sota_exp = trace.sota_experiment()
-    #     assert sota_exp is not None, "SOTA experiment is not provided."
-    #     exp_and_feedback = trace.hist[-1]
-    #     last_exp = exp_and_feedback[0]
+        sota_exp = trace.sota_experiment()
+        assert sota_exp is not None, "SOTA experiment is not provided."
+        exp_and_feedback = trace.hist[-1]
+        last_exp = exp_and_feedback[0]
 
-    #     sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
-    #         exp=sota_exp, heading="Best of previous exploration of the scenario"
-    #     )
-    #     last_exp_diff = "\n".join(
-    #         generate_diff_from_dict(
-    #             sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
-    #         )
-    #     )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
+        sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="Best of previous exploration of the scenario"
+        )
+        last_exp_diff = "\n".join(
+            generate_diff_from_dict(
+                sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
+            )
+        )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
-    #     sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-    #     failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
-    #         -self.max_trace_hist :
-    #     ]
-    #     all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
-    #     trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
-    #     for index, (exp, fb) in enumerate(all_exp_feedback_list):
-    #         trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
-    #             exp.hypothesis.component,
-    #             exp.hypothesis.hypothesis,
-    #             fb.decision,
-    #         ]
+        sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            -self.max_trace_hist :
+        ]
+        all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
+        trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+        for index, (exp, fb) in enumerate(all_exp_feedback_list):
+            trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
+                exp.hypothesis.component,
+                exp.hypothesis.hypothesis,
+                fb.decision,
+            ]
 
-    #     sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-    #         exp_and_feedback_list=sota_exp_feedback_list,
-    #         success=True,
-    #     )
-    #     failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-    #         exp_and_feedback_list=failed_exp_feedback_list,
-    #         success=False,
-    #     )
+        sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=sota_exp_feedback_list,
+            success=True,
+        )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=failed_exp_feedback_list,
+            success=False,
+        )
 
-    #     system_prompt = T(".prompts:direct_exp_gen.system").r(
-    #                     targets=component_info["target_name"],
-    #                     component=component,
-    #                     scenario=scenario_desc,
-    #                     hypothesis_specification=T(".prompts:hypothesis_specification").r(),
-    #                 hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-    #                 task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
-    #                 task_output_format=component_info["task_output_format"],
-    #                 extra_requirement=component_info.get("extra_requirement"),
-    #                 workflow_check=(not component == "Workflow"),
-    #     )
+        system_prompt = T(".prompts:direct_exp_gen.system").r(
+                        targets=component_info["target_name"],
+                        component=component,
+                        scenario=scenario_desc,
+                        hypothesis_specification=T(".prompts:hypothesis_specification").r(),
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                    task_output_format=component_info["task_output_format"],
+                    extra_requirement=component_info.get("extra_requirement"),
+                    workflow_check=(not component == "Workflow"),
+        )
 
-    #     user_prompt = T(".prompts:direct_exp_gen.user").r(
-    #         targets=component_info["target_name"],
-    #         sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-    #         failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-    #         last_exp_diff=last_exp_diff,
-    #     )
+        user_prompt = T(".prompts:direct_exp_gen.user").r(
+            targets=component_info["target_name"],
+            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            last_exp_diff=last_exp_diff,
+        )
 
-    #     def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
-    #         # Only modify the user_prompt on retries (i > 0)
-    #         user_prompt = args[0]
-    #         user_prompt += "\n\nretrying..."
-    #         return (user_prompt,), kwargs
+        def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+            # Only modify the user_prompt on retries (i > 0)
+            user_prompt = args[0]
+            user_prompt += "\n\nretrying..."
+            return (user_prompt,), kwargs
 
 
-    #     @wait_retry(retry_n=5, transform_args_fn=_append_retry)
-    #     def _f(user_prompt):
-    #         resp_dict = json.loads(
-    #             APIBackend().build_messages_and_create_chat_completion(
-    #                 user_prompt=user_prompt, 
-    #                 system_prompt=system_prompt, 
-    #                 json_mode=True,
-    #                 direct_exp_gen=Dict[str, Dict[str, str]],
-    #             )
-    #         )
-    #         assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
-    #         assert "task_design" in resp_dict, "Task design not provided."
-    #         task_class = component_info["task_class"]
-    #         hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
-    #         hypothesis = DSHypothesis(
-    #             component=component,
-    #             hypothesis=hypothesis_proposal.get("hypothesis", ""),
-    #             reason=hypothesis_proposal.get("reason", ""),
-    #             concise_reason=hypothesis_proposal.get("concise_reason", ""),
-    #             concise_observation=hypothesis_proposal.get("concise_observation", ""),
-    #             concise_justification=hypothesis_proposal.get("concise_justification", ""),
-    #             concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-    #         )
+        @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+        def _f(user_prompt):
+            resp_dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt, 
+                    system_prompt=system_prompt, 
+                    json_mode=True,
+                    direct_exp_gen=Dict[str, Dict[str, str]],
+                )
+            )
+            assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+            assert "task_design" in resp_dict, "Task design not provided."
+            task_class = component_info["task_class"]
+            hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+            hypothesis = DSHypothesis(
+                component=component,
+                hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                reason=hypothesis_proposal.get("reason", ""),
+                concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+            )
 
-    #         task_design = resp_dict.get("task_design", {})
-    #         task_name = task_design["model_name"] if component == "Model" else component
-    #         description = task_design.get(
-    #             "description", f"{component_info['target_name']} description not provided"
-    #         )
-    #         task = task_class(
-    #             name=task_name,
-    #             description=description,
-    #             **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
-    #         )
-    #         new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
-    #         return hypothesis, task, new_workflow_desc
+            task_design = resp_dict.get("task_design", {})
+            task_name = task_design["model_name"] if component == "Model" else component
+            description = task_design.get(
+                "description", f"{component_info['target_name']} description not provided"
+            )
+            task = task_class(
+                name=task_name,
+                description=description,
+                **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+            )
+            new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+            return hypothesis, task, new_workflow_desc
         
-    #     hypothesis, task, new_workflow_desc = _f(user_prompt)
+        hypothesis, task, new_workflow_desc = _f(user_prompt)
 
-    #     return hypothesis, task, new_workflow_desc
+        return hypothesis, task, new_workflow_desc
 
     # def idea_evaluate(self, trace, hypothesis, task, component, component_info,scenario_desc) -> DSExperiment:
     #     # pass the proposal (hypothesis, task) to LLM to get the analysis and est_score
