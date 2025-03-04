@@ -160,7 +160,7 @@ def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms
     competition :
     do_truncate :
         If set to True, the logger will truncate the future log messages by calling `logger.storage.truncate`.
- 
+
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
     You can continue running session by
