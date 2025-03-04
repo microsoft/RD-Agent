@@ -142,13 +142,15 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
 
-def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation"):
+def main(
+    path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation", do_truncate=True
+):
     """
 
     Parameters
     ----------
     path :
-        path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop1
+        path like `$LOG_PATH/__session__/1/0_propose`. It indicates that we restore the state that after finish the step 0 in loop 1
     output_path :
         path like `$LOG_PATH`. It indicates that where we want to save our session and log information.
     step_n :
@@ -158,6 +160,8 @@ def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms
         - if current loop is incomplete, it will be counted as the first loop for completion.
         - if both step_n and loop_n are provided, the process will stop as soon as either condition is met.
     competition :
+    do_truncate :
+        If set to True, the logger will truncate the future log messages by calling `logger.storage.truncate`.
 
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
@@ -181,7 +185,7 @@ def main(path=None, output_path=None, step_n=None, loop_n=None, competition="bms
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path, output_path)
+        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate)
     kaggle_loop.run(step_n=step_n, loop_n=loop_n)
 
 
