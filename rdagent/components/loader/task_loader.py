@@ -77,6 +77,7 @@ class ModelTaskLoaderJson(ModelTaskLoader):
                 model_type=model_data["model_type"],
                 architecture="",
                 hyperparameters="",
+                key=model_data["key"]
             )
             model_impl_task_list.append(model_impl_task)
         return model_impl_task_list
@@ -90,7 +91,7 @@ class ModelWsLoader(WsLoader[ModelTask, FBWorkspace]):
         assert task.name is not None
         mti = FBWorkspace(target_task=task)
         mti.prepare()
-        with open(self.path / f"{task.name}.py", "r") as f:
+        with open(self.path / f"{task.key}.py", "r") as f:
             code = f.read()
         mti.inject_files(**{"model.py": code})
         return mti

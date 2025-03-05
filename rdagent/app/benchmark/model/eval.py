@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     task_l = mtl.load()
 
-    task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
+    # task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
 
     model_experiment = QlibModelExperiment(sub_tasks=task_l)
     mtg = ModelCodeWriter(scen=QlibModelScenario())
@@ -34,9 +34,12 @@ if __name__ == "__main__":
     mie = ModelImpValEval()
     # Evaluation:
     eval_l = []
+    eval_d = {}
     for impl in model_experiment.sub_workspace_list:
         print(impl.target_task)
         gt_impl = mil.load(impl.target_task)
         eval_l.append(mie.evaluate(gt_impl, impl))
+        eval_d[impl.target_task.name] = eval_l[-1]
 
     print(eval_l)
+    print(eval_d)
