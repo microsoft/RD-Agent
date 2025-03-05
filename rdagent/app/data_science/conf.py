@@ -1,9 +1,10 @@
+from pydantic_settings import SettingsConfigDict
+
 from rdagent.app.kaggle.conf import KaggleBasePropSetting
-from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class DataScienceBasePropSetting(KaggleBasePropSetting):
-    model_config = ExtendedSettingsConfigDict(env_prefix="DS_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="DS_", protected_namespaces=())
 
     # Main components
     ## Scen

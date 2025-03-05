@@ -2,39 +2,13 @@ from __future__ import annotations
 
 # TODO: use pydantic for other modules in Qlib
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from pydantic.fields import FieldInfo
+from typing import cast
 
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,
     PydanticBaseSettingsSource,
-    SettingsConfigDict,
 )
-
-
-class ExtendedEnvSettingsSource(EnvSettingsSource):
-    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
-        # Dynamically gather prefixes from the current and parent classes
-        prefixes = [self.config.get("env_prefix", "")]
-        if hasattr(self.settings_cls, "__bases__"):
-            for base in self.settings_cls.__bases__:
-                if hasattr(base, "model_config"):
-                    parent_prefix = base.model_config.get("env_prefix")
-                    if parent_prefix and parent_prefix not in prefixes:
-                        prefixes.append(parent_prefix)
-        for prefix in prefixes:
-            self.env_prefix = prefix
-            env_val, field_key, value_is_complex = super().get_field_value(field, field_name)
-            if env_val is not None:
-                return env_val, field_key, value_is_complex
-
-        return super().get_field_value(field, field_name)
-
-
-class ExtendedSettingsConfigDict(SettingsConfigDict, total=False): ...
 
 
 class ExtendedBaseSettings(BaseSettings):
@@ -43,12 +17,31 @@ class ExtendedBaseSettings(BaseSettings):
     def settings_customise_sources(
         cls,
         settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,  # noqa
-        env_settings: PydanticBaseSettingsSource,  # noqa
-        dotenv_settings: PydanticBaseSettingsSource,  # noqa
-        file_secret_settings: PydanticBaseSettingsSource,  # noqa
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        return (ExtendedEnvSettingsSource(settings_cls),)
+        # 1) walk from base class
+        def base_iter(settings_cls: type[ExtendedBaseSettings]) -> list[type[ExtendedBaseSettings]]:
+            bases = []
+            for cl in settings_cls.__bases__:
+                if issubclass(cl, ExtendedBaseSettings) and cl is not ExtendedBaseSettings:
+                    bases.append(cl)
+                    bases.extend(base_iter(cl))
+            return bases
+
+        # 2) Build EnvSettingsSource from base classes, so we can add parent Env Sources
+        parent_env_settings = [
+            EnvSettingsSource(
+                base_cls,
+                case_sensitive=base_cls.model_config.get("case_sensitive"),
+                env_prefix=base_cls.model_config.get("env_prefix"),
+                env_nested_delimiter=base_cls.model_config.get("env_nested_delimiter"),
+            )
+            for base_cls in base_iter(cast(type[ExtendedBaseSettings], settings_cls))
+        ]
+        return init_settings, env_settings, *parent_env_settings, dotenv_settings, file_secret_settings
 
 
 class RDAgentSettings(ExtendedBaseSettings):

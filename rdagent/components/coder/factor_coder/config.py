@@ -1,9 +1,10 @@
+from pydantic_settings import SettingsConfigDict
+
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
-from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class FactorCoSTEERSettings(CoSTEERSettings):
-    model_config = ExtendedSettingsConfigDict(env_prefix="FACTOR_CoSTEER_")
+    model_config = SettingsConfigDict(env_prefix="FACTOR_CoSTEER_")
 
     data_folder: str = "git_ignore_folder/factor_implementation_source_data"
     """Path to the folder containing financial data (default is fundamental data in Qlib)"""
