@@ -3,13 +3,11 @@ from __future__ import annotations
 # TODO: use pydantic for other modules in Qlib
 from pathlib import Path
 
-
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,
     PydanticBaseSettingsSource,
 )
-
 
 
 class ExtendedBaseSettings(BaseSettings):
@@ -25,20 +23,23 @@ class ExtendedBaseSettings(BaseSettings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         # 1) walk from base class
         parent_env_settings = []
+
         def base_iter(settings_cls):
             for cl in settings_cls.__bases__:
                 if issubclass(cl, ExtendedBaseSettings) and cl is not ExtendedBaseSettings:
                     yield cl
                     yield from base_iter(cl)
+
         # 2) Build EnvSettingsSource from base classes, so we can add parent Env Sources
         for base_cls in base_iter(settings_cls):
             parent_env_settings.append(
                 EnvSettingsSource(
                     base_cls,
-                    case_sensitive=base_cls.model_config.get('case_sensitive'),
-                    env_prefix=base_cls.model_config.get('env_prefix'),
-                    env_nested_delimiter=base_cls.model_config.get('env_nested_delimiter'),
-                ))
+                    case_sensitive=base_cls.model_config.get("case_sensitive"),
+                    env_prefix=base_cls.model_config.get("env_prefix"),
+                    env_nested_delimiter=base_cls.model_config.get("env_nested_delimiter"),
+                )
+            )
         return init_settings, env_settings, *parent_env_settings, dotenv_settings, file_secret_settings
 
 
