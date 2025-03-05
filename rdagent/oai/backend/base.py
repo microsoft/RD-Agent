@@ -378,7 +378,7 @@ class APIBackend(ABC):
 
         all_response = ""
         new_messages = deepcopy(messages)
-        for _ in range(3):
+        for _ in range(6):  # for some long code, 3 times may not enough for reasoning models
             if "json_mode" in kwargs:
                 del kwargs["json_mode"]
             response, finish_reason = self._create_chat_completion_add_json_in_prompt(
