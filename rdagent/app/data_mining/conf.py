@@ -1,11 +1,12 @@
 from pathlib import Path
 
+from pydantic_settings import SettingsConfigDict
+
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class MedBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(env_prefix="DM_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="DM_", protected_namespaces=())
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.data_mining.experiment.model_experiment.DMModelScenario"

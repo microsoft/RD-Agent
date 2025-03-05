@@ -1,9 +1,10 @@
+from pydantic_settings import SettingsConfigDict
+
 from rdagent.components.workflow.conf import BasePropSetting
-from rdagent.core.conf import ExtendedSettingsConfigDict
 
 
 class ModelBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_MODEL_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="QLIB_MODEL_", protected_namespaces=())
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.model_experiment.QlibModelScenario"
@@ -29,7 +30,7 @@ class ModelBasePropSetting(BasePropSetting):
 
 
 class FactorBasePropSetting(BasePropSetting):
-    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_FACTOR_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="QLIB_FACTOR_", protected_namespaces=())
 
     # 1) override base settings
     scen: str = "rdagent.scenarios.qlib.experiment.factor_experiment.QlibFactorScenario"
