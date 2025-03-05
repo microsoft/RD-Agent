@@ -420,7 +420,7 @@ class DSExpGen(ExpGen):
                             user_prompt=user_prompt,
                             system_prompt=system_prompt,
                             json_mode=True,
-                            direct_exp_gen=Dict[str, Dict[str, str]],
+                            json_target_type=Dict[str, Dict[str, str]],
                         )
                     )
                     assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
