@@ -724,7 +724,10 @@ class DSExpGen(ExpGen):
                     user_prompt=user_prompt, 
                     system_prompt=system_prompt, 
                     json_mode=True,
-                    direct_exp_gen=Dict[str, Dict[str, str]],
+                    # NOTE: corner cases.
+                    # workflow_update may be a string
+                    # model could have 2 level nested dict.
+                    json_target_type=dict[str, dict[str, str | dict] | str],
                 )
             )
             assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
