@@ -12,6 +12,7 @@ from streamlit import session_state as state
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
+from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils import remove_ansi_codes
 
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
@@ -344,6 +345,7 @@ def all_summarize_win():
             "Silver",
             "Gold",
             "Any Medal",
+            "Rank",
             "SOTA Exp",
             "Ours - Base",
             "SOTA Exp Score",
@@ -400,6 +402,9 @@ def all_summarize_win():
                 and not pd.isna(v.get("sota_exp_score", None))
             ):
                 base_df.loc[k, "Ours - Base"] = v.get("sota_exp_score", 0.0) - baseline_score
+            if v.get("sota_exp_score", None) is not None:
+                _, sota_rank = score_rank(v["competition"], v.get("sota_exp_score", None))
+                base_df.loc[k, "Rank"] = sota_rank
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
             base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
