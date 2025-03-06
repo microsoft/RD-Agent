@@ -28,3 +28,23 @@ def get_last_step(session_path):
             idx = cur_idx
             step = s
     return step
+
+
+from pathlib import Path
+import pickle
+class Saver:
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+    
+    def dump(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path):
+        path = Path(path)
+        with path.open("rb") as f:
+            return pickle.load(f)

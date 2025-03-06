@@ -104,7 +104,7 @@ def main():
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    competitions = [entry for entry in sorted(os.scandir(args.path), key=lambda e: e.name) if entry.is_dir()]
+    competitions = [entry for entry in sorted(os.scandir(args.path), key=lambda e: e.name) if entry.is_dir()][:2]
     n_competitions = len(competitions)
     competitions = competitions * args.n_round
     if args.max_num:

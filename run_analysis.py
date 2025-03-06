@@ -64,22 +64,24 @@ def get_last_step(session_path):
 
 def evaluate_trace(competition_path: str, loop_idx: int):
     session_path = f"{competition_path}/__session__/{loop_idx}"
-    session_path = f"{session_path}/{get_last_step(session_path)}"
-
-    kaggle_loop = DataScienceRDLoop.load(path=session_path, do_trucate=False)
-    try: 
-        exp, feedback = kaggle_loop.trace.hist[loop_idx]
-        return {"Loop Index": loop_idx, 
-                "Score": exp.result.loc['ensemble'].iloc[0] if exp.result is not None else None, 
-                "Metric": exp.result.columns[0] if exp.result is not None else None, 
-                "Hypothesis": str(exp.hypothesis), 
-                "Feedback": str(feedback)}
-    except:
-        return {"Loop Index": loop_idx, 
-                "Score": None, 
-                "Metric": None, 
-                "Hypothesis": None, 
-                "Feedback": None}
+    last_step = get_last_step(session_path)
+    session_path = f"{session_path}/{last_step}"
+    if last_step == "4_record": 
+        kaggle_loop = DataScienceRDLoop.load(path=session_path, do_truncate=False)
+        if kaggle_loop.trace.hist: 
+            exp, feedback = kaggle_loop.trace.hist[-1]
+            return {"Loop Index": loop_idx, 
+                    "Score": exp.result.loc['ensemble'].iloc[0] if exp.result is not None else None, 
+                    "Metric": exp.result.columns[0] if exp.result is not None else None, 
+                    "Hypothesis": str(exp.hypothesis), 
+                    "Idea": exp.hypothesis.idea.format_text() if hasattr(exp.hypothesis, 'idea') else None,
+                    "Feedback": str(feedback)}
+    return {"Loop Index": loop_idx, 
+            "Score": None, 
+            "Metric": None, 
+            "Hypothesis": None, 
+            "Idea": None,
+            "Feedback": None}
 
 
 def analyze_single_loop(competition_path: str, loop_idx: int):
