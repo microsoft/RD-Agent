@@ -26,13 +26,14 @@ import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
 from pydantic import BaseModel
+from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
 
-from rdagent.core.conf import ExtendedBaseSettings, ExtendedSettingsConfigDict
+from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
@@ -186,7 +187,7 @@ class DockerConf(ExtendedBaseSettings):
 
 
 class QlibDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(env_prefix="QLIB_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="QLIB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "qlib" / "docker"
@@ -199,7 +200,7 @@ class QlibDockerConf(DockerConf):
 
 
 class DMDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(env_prefix="DM_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="DM_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "data_mining" / "docker"
@@ -218,7 +219,7 @@ class DMDockerConf(DockerConf):
 
 
 class KGDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(env_prefix="KG_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="KG_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "kaggle_docker"
@@ -238,7 +239,7 @@ class KGDockerConf(DockerConf):
 
 
 class DSDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(env_prefix="DS_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="DS_DOCKER_")
 
     build_from_dockerfile: bool = False
     image: str = "gcr.io/kaggle-gpu-images/python:latest"
@@ -252,7 +253,7 @@ class DSDockerConf(DockerConf):
 
 
 class MLEBDockerConf(DockerConf):
-    model_config = ExtendedSettingsConfigDict(env_prefix="MLEB_DOCKER_")
+    model_config = SettingsConfigDict(env_prefix="MLEB_DOCKER_")
 
     build_from_dockerfile: bool = True
     dockerfile_folder_path: Path = Path(__file__).parent.parent / "scenarios" / "kaggle" / "docker" / "mle_bench_docker"

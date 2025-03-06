@@ -12,7 +12,29 @@ import pickle
 import pandas as pd
 from load_data import load_data
 
-X, y, X_test, test_ids = load_data()
+import sys
+import reprlib
+def debug_info_print(func):
+    aRepr = reprlib.Repr()
+    aRepr.maxother=300
+    def wrapper(*args, **kwargs):
+        def local_trace(frame, event, arg):
+            if event == "return" and frame.f_code == func.__code__:
+                print("\n" + "="*20 + "Running data_load code, local variable values:" + "="*20)
+                for k, v in frame.f_locals.items():
+                    printed = aRepr.repr(v)
+                    print(f"{k}:\n {printed}")
+                print("="*20 + "Local variable values end" + "="*20)
+            return local_trace
+        
+        sys.settrace(local_trace)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            sys.settrace(None)
+    return wrapper
+
+X, y, X_test, test_ids = debug_info_print(load_data)()
 
 
 def get_length(data):
