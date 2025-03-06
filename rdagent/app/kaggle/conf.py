@@ -1,8 +1,10 @@
-from rdagent.core.conf import ExtendedBaseSettings, ExtendedSettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from rdagent.core.conf import ExtendedBaseSettings
 
 
 class KaggleBasePropSetting(ExtendedBaseSettings):
-    model_config = ExtendedSettingsConfigDict(env_prefix="KG_", protected_namespaces=())
+    model_config = SettingsConfigDict(env_prefix="KG_", protected_namespaces=())
 
     # 1) overriding the default
     scen: str = "rdagent.scenarios.kaggle.experiment.scenario.KGScenario"
