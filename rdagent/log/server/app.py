@@ -1,49 +1,27 @@
+import os
+import random
+import signal
+import subprocess
+import sys
 from collections import defaultdict
 from pathlib import Path
-import random
-from rdagent.log.storage import Message, FileStorage
-from flask import Flask, request, jsonify, send_from_directory
+
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-from collections import defaultdict
-from datetime import datetime, timezone
-from pathlib import Path
-import plotly
-import typing
-
-
-from rdagent.log.ui.qlib_report_figure import report_figure
-
-if typing.TYPE_CHECKING:
-    from rdagent.components.coder.CoSTEER.evaluators import (
-        CoSTEERSingleFeedbackDeprecated,
-    )
-    from rdagent.components.coder.factor_coder.evaluators import FactorSingleFeedback
-    from rdagent.components.coder.factor_coder.factor import (
-        FactorFBWorkspace,
-        FactorTask,
-    )
-    from rdagent.components.coder.model_coder.model import ModelFBWorkspace, ModelTask
-    from rdagent.core.experiment import Experiment
-    from rdagent.core.proposal import Hypothesis, HypothesisFeedback
-
-
-
-from rdagent.log.storage import FileStorage
-
-
-#%%
+# %%
 msgs_for_frontend = defaultdict(list)
 
 app = Flask(__name__, static_folder="./docs/_static")
 CORS(app)
 
-#%%
-base_path = Path('./log')
+# %%
+base_path = Path("./log")
 dir2id = {dir_name.name: idx for idx, dir_name in enumerate(base_path.iterdir())}
 
+fin_factor_report_proc = None
 
-'''
+"""
 for dn, did in dir2id.items():
     fs = FileStorage(base_path / dn)
     for m in fs.iter_msg():
@@ -190,67 +168,105 @@ for msgs in msgs_for_frontend.values():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "content": {}
     })
-'''
+"""
 
-@app.route('/favicon.ico')
+
+@app.route("/favicon.ico")
 def favicon():
-    return send_from_directory("./docs/_static", 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    return send_from_directory("./docs/_static", "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
-#%%
-pointers = {
-    id: 0 for id in msgs_for_frontend.keys()
-}
 
-@app.route('/trace', methods=['POST'])
+# %%
+pointers = {id: 0 for id in msgs_for_frontend.keys()}
+
+
+@app.route("/trace", methods=["POST"])
 def update_trace():
     data = request.get_json()
     trace_id = data.get("id")
     return_all = data.get("all")
     reset = data.get("reset")
     msg_num = random.randint(1, 10)
-    
+
     if reset:
         pointers[trace_id] = 0
-    
+
     end_pointer = pointers[trace_id] + msg_num
     if end_pointer > len(msgs_for_frontend[trace_id]) or return_all:
         end_pointer = len(msgs_for_frontend[trace_id])
 
     print(f"trace_id: {trace_id}, start_pointer: {pointers[trace_id]}, end_pointer: {end_pointer}")
-    returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id]:end_pointer]
-    
-    pointers[trace_id] = end_pointer
-    return jsonify(returned_msgs) if len(returned_msgs) > 0 else jsonify([{ "tag": "END", "content": {} }]), 200
+    returned_msgs = msgs_for_frontend[trace_id][pointers[trace_id] : end_pointer]
 
-@app.route('/upload', methods=['POST'])
+    pointers[trace_id] = end_pointer
+    return jsonify(returned_msgs) if len(returned_msgs) > 0 else jsonify([{"tag": "END", "content": {}}]), 200
+
+
+@app.route("/upload", methods=["GET"])
 def upload_file():
     # 获取请求体中的字段
-    scenario = request.form.get('scenario')
-    files = request.files.getlist('files')
-    competition = request.form.get('competition')
+    global fin_factor_report_proc
+    if fin_factor_report_proc is not None:
+        return jsonify({"error": "fin_factor_report is already running"}), 400
+    # scenario = request.form.get('scenario')
+    # files = request.files.getlist('files')
+    # competition = request.form.get('competition')
+
+    scenario = "Data Science Loop"
 
     # 检查必要字段
     if not scenario:
-        return jsonify({'id': -1, "success": False}), 400
+        return jsonify({"id": -1, "success": False}), 400
+
+    if scenario == "Finance Data Building":
+        cmds = ["rdagent", "fin_factor"]
+        # fin_factor()
+        # cmds.append("fin_factor")
+    if scenario == "Finance Data Building (Reports)":
+        # fin_factor_report(report_folder="git_ignore_folder/reports")
+        cmds = ["rdagent", "fin_factor_report", "--report_folder=git_ignore_folder/reports"]
+    if scenario == "Finance Model Implementation":
+        # fin_model()
+        cmds = ["rdagent", "fin_model"]
+    if scenario == "General Model Implementation":
+        # general_model("https://arxiv.org/pdf/2210.09789")
+        cmds = ["rdagent", "general_model", "'https://arxiv.org/pdf/2210.09789'"]
+    if scenario == "Medical Model Implementation":
+        # med_model()
+        cmds = ["rdagent", "med_model"]
+    if scenario == "Data Science Loop":
+        cmds = ["rdagent", "ds_loop", "--competition", "aerial-cactus-identification"]
+
+    # subprocess.run(cmds)
+    fin_factor_report_proc = subprocess.Popen(
+        cmds,
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+
+    return jsonify({"status": "success"}), 200
 
     # if scenario == 'kaggle' and not competition:
     #     return jsonify({'error': 'competition is required for kaggle scenario'}), 400
 
     # 处理文件上传
-    for file in files:
-        if file:
-            p = Path(f'./uploads/{scenario}')
-            if not p.exists():
-                p.mkdir(parents=True, exist_ok=True)
-            file.save(f'./uploads/{scenario}/{file.filename}')
+    # for file in files:
+    #     if file:
+    #         p = Path(f'./uploads/{scenario}')
+    #         if not p.exists():
+    #             p.mkdir(parents=True, exist_ok=True)
+    #         file.save(f'./uploads/{scenario}/{file.filename}')
 
-    id = dir2id[scenario]
+    # id = dir2id[scenario]
 
-    return jsonify({
-        'id': id,
-    }), 200
+    # return jsonify({
+    #     'id': id,
+    # }), 200
 
-@app.route('/receive', methods=['POST'])
+
+@app.route("/receive", methods=["POST"])
 def receive_msgs():
     try:
         data = request.get_json()
@@ -264,14 +280,67 @@ def receive_msgs():
     print(msgs_for_frontend)
     return jsonify({"status": "success", "received": data}), 200
 
-@app.route('/', methods=['GET'])
+
+@app.route("/pause", methods=["GET"])
+def pause_process():
+    global fin_factor_report_proc
+    if fin_factor_report_proc is None:
+        return jsonify({"error": "No running process to pause"}), 400
+
+    if fin_factor_report_proc.poll() is not None:
+        return jsonify({"error": "Process is not running"}), 400
+
+    try:
+        os.kill(fin_factor_report_proc.pid, signal.SIGSTOP)
+        return jsonify({"status": "paused"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/resume", methods=["GET"])
+def resume_process():
+    global fin_factor_report_proc
+    if fin_factor_report_proc is None:
+        return jsonify({"error": "No running process to pause"}), 400
+
+    if fin_factor_report_proc.poll() is not None:
+        return jsonify({"error": "Process is not running"}), 400
+
+    try:
+        os.kill(fin_factor_report_proc.pid, signal.SIGCONT)
+        return jsonify({"status": "paused"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/stop", methods=["GET"])
+def stop_process():
+    global fin_factor_report_proc
+    if fin_factor_report_proc is None:
+        return jsonify({"error": "No running process to pause"}), 400
+
+    if fin_factor_report_proc.poll() is not None:
+        return jsonify({"error": "Process is not running"}), 400
+
+    try:
+        fin_factor_report_proc.terminate()
+        fin_factor_report_proc.wait()
+        fin_factor_report_proc = None
+        return jsonify({"status": "stopped"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/", methods=["GET"])
 def index():
     # return 'Hello, World!'
     return msgs_for_frontend
 
-@app.route('/<path:fn>', methods=['GET'])
+
+@app.route("/<path:fn>", methods=["GET"])
 def server_static_files(fn):
     return send_from_directory(app.static_folder, fn)
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=19899)
+
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0", port=19899)

@@ -5,10 +5,16 @@ import plotly
 import requests
 
 
-def extract_loopid_func_name(tag):
+def extract_loopid(tag):
     """提取 Loop ID 和函数名称"""
     match = re.search(r"Loop_(\d+)\.(\w+)\.", tag)
     return match.groups() if match else (None, None)
+
+
+def extract_evoid(tag):
+    """提取 EVO ID"""
+    match = re.search(r"\.evo_loop_(\d+)\.", tag)
+    return match.group(1) if match else None
 
 
 def format_pkl(
@@ -20,8 +26,10 @@ def format_pkl(
 ):
 
     ts = datetime.now(timezone.utc).isoformat()
-    lp = extract_loopid_func_name(tag)
+    lp = extract_loopid(tag)
     lp_id = lp[0] if lp and lp[0] is not None else None
+    evo = extract_evoid(tag)
+    evo_id = evo[0] if evo and evo[0] is not None else None
 
     if "r.hypothesis generation" in tag:
         from rdagent.core.proposal import Hypothesis
@@ -97,7 +105,7 @@ def format_pkl(
 
         response = requests.post(url, json=data, headers=headers)
 
-    elif f"evo_loop_{lp_id}.evolving code" in tag:
+    elif f"evo_loop_{evo_id}.evolving code" in tag:
         from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace
         from rdagent.components.coder.model_coder.model import (
             ModelFBWorkspace,
@@ -142,7 +150,7 @@ def format_pkl(
 
         response = requests.post(url, json=data, headers=headers)
 
-    elif f"evo_loop_{lp_id}.evolving feedback" in tag:
+    elif f"evo_loop_{evo_id}.evolving feedback" in tag:
         from rdagent.components.coder.CoSTEER.evaluators import CoSTEERSingleFeedback
         from rdagent.components.coder.factor_coder.evaluators import (
             FactorSingleFeedback,
@@ -222,6 +230,6 @@ def format_pkl(
             },
         }
 
-        response = requests.post(url, json=data, headers=headers, timeout=0.1)
+        response = requests.post(url, json=data, headers=headers)
 
     return
