@@ -9,6 +9,8 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
+from .. import rdagent_logger as logger
+
 # %%
 msgs_for_frontend = defaultdict(list)
 
@@ -272,7 +274,8 @@ def receive_msgs():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Internal Server Error {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
     msgs_for_frontend[data["id"]].append(data["msg"])
@@ -294,30 +297,32 @@ def pause_process():
         os.kill(fin_factor_report_proc.pid, signal.SIGSTOP)
         return jsonify({"status": "paused"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.warning(f"Failed to pause process {e}")
+        return jsonify({"error": "Failed to pause process"}), 500
 
 
 @app.route("/resume", methods=["GET"])
 def resume_process():
     global fin_factor_report_proc
     if fin_factor_report_proc is None:
-        return jsonify({"error": "No running process to pause"}), 400
+        return jsonify({"error": "No running process to resume"}), 400
 
     if fin_factor_report_proc.poll() is not None:
         return jsonify({"error": "Process is not running"}), 400
 
     try:
         os.kill(fin_factor_report_proc.pid, signal.SIGCONT)
-        return jsonify({"status": "paused"}), 200
+        return jsonify({"status": "resumed"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.warning(f"Failed to resume process {e}")
+        return jsonify({"error": "Failed to resume process"}), 500
 
 
 @app.route("/stop", methods=["GET"])
 def stop_process():
     global fin_factor_report_proc
     if fin_factor_report_proc is None:
-        return jsonify({"error": "No running process to pause"}), 400
+        return jsonify({"error": "No running process to stop"}), 400
 
     if fin_factor_report_proc.poll() is not None:
         return jsonify({"error": "Process is not running"}), 400
@@ -326,9 +331,10 @@ def stop_process():
         fin_factor_report_proc.terminate()
         fin_factor_report_proc.wait()
         fin_factor_report_proc = None
-        return jsonify({"status": "stopped"}), 200
+        return jsonify({"status": "stoped"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.warning(f"Failed to stop process {e}")
+        return jsonify({"error": "Failed to stop process"}), 500
 
 
 @app.route("/", methods=["GET"])
