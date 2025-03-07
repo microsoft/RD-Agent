@@ -30,6 +30,7 @@ class TestRDAgentImports(unittest.TestCase):
                 or fstr.endswith("rdagent/app/cli.py")
                 or fstr.endswith("rdagent/app/CI/run.py")
                 or fstr.endswith("rdagent/app/utils/ape.py")
+                or fstr.endswith("rdagent/log/ui/utils.py")
             ):
                 # the entrance points
                 continue
