@@ -2,6 +2,9 @@ scenario_description: |-
   ------Background of the scenario------
   {{background}}
 
+  ------ Guidelines for participating in the competition ----
+  Before submitting your results, we have numerous tests ready to check your code. Please ensure your submission is genuine and do not manipulate data or return values just to pass the tests, as this will not lead to successful final results.
+
   ------The expected output & submission format specifications------
   {{submission_specifications}}
 

@@ -1,20 +1,17 @@
 import json
+from typing import Dict
 
 import pandas as pd
 
-from rdagent.components.knowledge_management.graph import UndirectedNode
-from rdagent.core.experiment import Experiment
-from rdagent.core.prompts import Prompts
 from rdagent.core.proposal import (
     Experiment2Feedback,
     ExperimentFeedback,
     HypothesisFeedback,
 )
-from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
-from rdagent.utils import convert2bool, remove_path_info_from_str
+from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
@@ -76,6 +73,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
                 json_mode=True,
+                json_target_type=Dict[str, str | bool | int],
             )
         )
 
