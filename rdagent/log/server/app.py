@@ -272,8 +272,8 @@ def receive_msgs():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Internal Server Error"}), 500
 
     msgs_for_frontend[data["id"]].append(data["msg"])
 
