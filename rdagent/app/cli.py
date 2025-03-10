@@ -18,6 +18,7 @@ from importlib.resources import path as rpath
 import fire
 
 from rdagent.app.data_mining.model import main as med_model
+from rdagent.app.data_science.loop import main as ds_loop
 from rdagent.app.general_model.general_model import (
     extract_models_and_implement as general_model,
 )
@@ -56,5 +57,7 @@ def app():
             "health_check": health_check,
             "collect_info": collect_info,
             "kaggle": kaggle_main,
+            "start_flask_server": subprocess.run(["python", "rdagent/log/server/app.py"]),
+            "ds_loop": ds_loop,
         }
     )
