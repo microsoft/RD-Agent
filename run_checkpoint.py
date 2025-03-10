@@ -5,7 +5,6 @@ import subprocess
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from scripts.exp.researcher.utils import get_last_step, get_loop_idx
 from rdagent.app.data_science.loop import DataScienceRDLoop
 
 
@@ -104,7 +103,7 @@ def main():
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    competitions = [entry for entry in sorted(os.scandir(args.path), key=lambda e: e.name) if entry.is_dir()][:2]
+    competitions = [entry for entry in sorted(os.scandir(args.path), key=lambda e: e.name) if entry.is_dir()]
     n_competitions = len(competitions)
     competitions = competitions * args.n_round
     if args.max_num:
