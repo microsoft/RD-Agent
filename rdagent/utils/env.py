@@ -56,6 +56,27 @@ class Env(Generic[ASpecificBaseModel]):
     def __init__(self, conf: ASpecificBaseModel):
         self.conf = conf
 
+    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
+        """
+        Zip a folder into a file, use zipfile instead of subprocess
+        """
+        with zipfile.ZipFile(zip_file_path, "w") as z:
+            for root, _, files in os.walk(folder_path):
+                for file in files:
+                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
+
+    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
+        """
+        Unzip a file into a folder, use zipfile instead of subprocess
+        """
+        # Clear folder_path before extracting
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        os.makedirs(folder_path)
+
+        with zipfile.ZipFile(zip_file_path, "r") as z:
+            z.extractall(folder_path)
+
     @abstractmethod
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
@@ -156,9 +177,106 @@ class LocalEnv(Env[LocalConf]):
         return result.stdout, result.returncode
 
 
+class CondaConf(BaseModel):
+    default_entry: str
+    conda_env_name: str
+    running_timeout_period: int = 600  # 10 minutes
+
+
+class CondaEnv(Env[CondaConf]):
+    
+    def __run_ret_code(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+    ) -> tuple[str, int]:
+        
+
+    def __run_ret_code_with_retry(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+    ) -> tuple[str, int]:
+        for retry_index in range(self.conf.retry_count):
+            try:
+                return self.__run_ret_code(entry, local_path, env)
+            except Exception as e:
+                logger.warning(
+                    f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
+                )
+                time.sleep(self.conf.retry_wait_seconds)
+        raise RuntimeError("Error while running the container. Retry count exceeded.")
+
+    def cached_run(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+    ) -> tuple[str, int]:
+        """
+        Run the folder under the environment.
+        Will cache the output and the folder diff for next round of running.
+        Use the python codes and the parameters(entry, running_extra_volume) as key to hash the input.
+        """
+        target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
+        target_folder.mkdir(parents=True, exist_ok=True)
+
+        # we must add the information of data (beyound code) into the key.
+        # Otherwise, all commands operating on data will become invalue (e.g. rm -r submission.csv)
+        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
+        data_key = []
+        for path in Path(local_path).rglob("*"):
+            p = str(path.relative_to(Path(local_path)))
+            if p.startswith("__pycache__"):
+                continue
+            data_key.append(p)
+        data_key = sorted(data_key)
+
+        key = md5_hash(
+            json.dumps(
+                [
+                    [str(path.relative_to(Path(local_path))), path.read_text()]
+                    for path in sorted(Path(local_path).rglob("*.py"))
+                ]
+            )
+            + json.dumps(
+                {
+                    "entry": entry,
+                }
+            )
+            + json.dumps(data_key)
+        )
+        if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
+            with open(target_folder / f"{key}.pkl", "rb") as f:
+                ret: tuple[str, int] = pickle.load(f)
+            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
+        else:
+            ret = self.__run_ret_code_with_retry(entry, local_path, env)
+            with open(target_folder / f"{key}.pkl", "wb") as f:
+                pickle.dump(ret, f)
+            self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
+        return ret
+
+    def run_ret_code(
+        self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+    ) -> tuple[str, int]:
+        entry_add_timeout = (
+            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} conda run -n {self.conf.conda_env_name} {entry}'"
+        )
+
+        if self.conf.enable_cache:
+            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env)
+        else:
+            stdout, return_code = self.__run_ret_code_with_retry(
+                entry_add_timeout, local_path, env, remove_timestamp=False
+            )
+
+        return stdout, return_code
+
+
 ## Docker Environment -----
-
-
 class DockerConf(ExtendedBaseSettings):
     build_from_dockerfile: bool = False
     dockerfile_folder_path: Optional[Path] = (
@@ -463,27 +581,6 @@ class DockerEnv(Env[DockerConf]):
                 )
                 time.sleep(self.conf.retry_wait_seconds)
         raise RuntimeError("Error while running the container. Retry count exceeded.")
-
-    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
-        """
-        Zip a folder into a file, use zipfile instead of subprocess
-        """
-        with zipfile.ZipFile(zip_file_path, "w") as z:
-            for root, _, files in os.walk(folder_path):
-                for file in files:
-                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
-
-    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
-        """
-        Unzip a file into a folder, use zipfile instead of subprocess
-        """
-        # Clear folder_path before extracting
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        os.makedirs(folder_path)
-
-        with zipfile.ZipFile(zip_file_path, "r") as z:
-            z.extractall(folder_path)
 
     def cached_run(
         self,
