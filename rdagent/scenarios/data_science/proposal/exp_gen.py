@@ -333,6 +333,8 @@ class DSExpGen(ExpGen):
         idea_bo_step = DS_RD_SETTING.idea_bo_step
         component_bo_step = DS_RD_SETTING.component_bo_step
 
+        bo_idea_polish = DS_RD_SETTING.bo_idea_polish
+
 
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
@@ -374,7 +376,7 @@ class DSExpGen(ExpGen):
             if bo_mode and idea_bo_step > 0 and component_bo_step > 0:
                 
                 return self._multi_level_bo_generation(
-                    trace, context, component_bo_step, idea_bo_step, sota_exp
+                    trace, context, component_bo_step, idea_bo_step, sota_exp, bo_idea_polish
                 )
             # Regular mode - single component, single idea
             else:
@@ -515,7 +517,7 @@ class DSExpGen(ExpGen):
 
     def _multi_level_bo_generation(self, trace: DSTrace, context: dict, 
                                 component_bo_step: int, idea_bo_step: int, 
-                                sota_exp: DSExperiment) -> DSExperiment:
+                                sota_exp: DSExperiment, bo_idea_polish: bool) -> DSExperiment:
         """Allow to generate multiple components and multiple ideas once, evaluate all, and select best."""
         all_candidates = []
         
@@ -546,7 +548,7 @@ class DSExpGen(ExpGen):
             )
         else:
             # batch BO evaluation on all candidates via LLM
-            best_candidate = self._batch_bo_evaluation(trace, context, all_candidates)
+            best_candidate= self._batch_bo_evaluation(trace, context, all_candidates, bo_idea_polish)
 
             if best_candidate is None:
                 # no valid candidate
@@ -557,6 +559,7 @@ class DSExpGen(ExpGen):
                 hypothesis, task, new_workflow_desc = self._idea_propose(
                     trace, component, component_info, context["scenario_desc"]
                 )
+
             else:
                 component, hypothesis, task, new_workflow_desc = best_candidate
         # Create experiment
@@ -572,11 +575,10 @@ class DSExpGen(ExpGen):
         return exp
 
 
-    def _batch_bo_evaluation(self, trace: DSTrace, context: dict, all_candidates: list) -> tuple[str, DSExperiment]:
+    def _batch_bo_evaluation(self, trace: DSTrace, context: dict, all_candidates: list, bo_idea_polish: bool):
         """Batch BO evaluation on all candidates via LLM."""
 
         
-
         historical_attempts_with_scores_desc = "Historical proposal-evaluation analysis:\n\n"
 
         for i, attempt in enumerate(context["historical_attempts_with_scores"], 1):
@@ -635,8 +637,6 @@ class DSExpGen(ExpGen):
         # TODO: logging and save the detailed analysis and final ranking
         detailed_analysis_bo = response.get("detailed_analysis", [])
 
-        
-
         # select the best candidate based on the final ranking
         if final_ranking[0] == 0:
             # no valid candidate
@@ -645,10 +645,11 @@ class DSExpGen(ExpGen):
             best_candidate_id = int(final_ranking[0]) - 1
             best_candidate = all_candidates[best_candidate_id]
 
+            if bo_idea_polish:
+
+                best_candidate = self._idea_polish(trace, context, best_candidate, best_candidate_id, current_proposal_desc, detailed_analysis_bo,historical_attempts_with_scores_desc)
+
         return best_candidate
-
-
-
 
 
 
@@ -761,103 +762,99 @@ class DSExpGen(ExpGen):
 
         return hypothesis, task, new_workflow_desc
 
-    # def idea_evaluate(self, trace, hypothesis, task, component, component_info,scenario_desc) -> DSExperiment:
-    #     # pass the proposal (hypothesis, task) to LLM to get the analysis and est_score
-    #     # return the analysis and est_score
-    #     historical_attempts = []
 
-    #     for exp, feedback in trace.hist:
-    #         if not exp.hypothesis:
-    #             continue
-
-    #             # 基本信息
-    #         attempt_info = {
-    #             "component": exp.hypothesis.component,
-    #             "hypothesis": exp.hypothesis.hypothesis,
-    #             "task_description": exp.pending_tasks_list[0][0].get_task_information() if exp.pending_tasks_list else "No task info",
-    #         }
-
-    #         score_path = exp.experiment_workspace.workspace_path / "scores.csv"
-
-    #         if score_path.exists():
-    #             try:
-    #                 import pandas as pd
-    #                 scores_df = pd.read_csv(score_path)
-    #                 attempt_info.update({
-    #                     "evaluation_scores": scores_df.to_dict()
-    #                 })
-                    
-    #             except Exception as e:
-    #                 print(f"Error reading scores: {str(e)}")
-    #                 continue
-    #         else:
-    #             continue
-
-    #         # Feedback 信息
-    #         attempt_info.update({
-    #             "feedback": {
-    #                 "observations": getattr(feedback, "observations", "No observations"),
-    #                 "hypothesis_evaluation": getattr(feedback, "hypothesis_evaluation", "No evaluation"),
-    #                 "reason": getattr(feedback, "reason", "No reason provided")
-    #             }
-    #         })
+    def _idea_polish(self, trace: DSTrace, context: dict, best_candidate: tuple, best_candidate_id: int, current_proposal_desc: str, detailed_analysis_bo: dict, historical_attempts_with_feedback_desc: str) -> tuple:
+        """Polish the idea based on the detailed analysis from BO evaluation.
+        
+        Args:
+            trace: The trace containing experiment history
+            context: Context dict with scenario info and experiment history
+            best_candidate: The best candidate from BO evaluation (component, hypothesis, task, workflow)
+            best_candidate_id: The id of the best candidate
+            current_proposal_desc: The description of the current proposals
+            detailed_analysis_bo: Detailed analysis from BO evaluation
             
-    #         historical_attempts.append(attempt_info)
+        Returns: polished best candidate
+            Tuple of (component, polished hypothesis, polished task, polished workflow)
+        """
+        sota_exp = trace.sota_experiment()
+        assert sota_exp is not None, "SOTA experiment is not provided."
 
-    #     # 生成分析提示
-    #     analysis_prompt = "Historical proposal-evaluation analysis:\n\n"
-    #     for i, attempt in enumerate(historical_attempts, 1):
-    #         analysis_prompt += f"""Attempt {i}:
-    #                 Component: {attempt['component']}
-    #                 Hypothesis: {attempt['hypothesis']}
-    #                 Task: {attempt['task_description']}
-    #                 Observations: {attempt['feedback']['observations']}
-    #                 Evaluation: {attempt['feedback']['hypothesis_evaluation']}
-    #                 Reason: {attempt['feedback']['reason']}
-    #                 Scores: {attempt['evaluation_scores']}\n\n"""
+        component, hypothesis, task, new_workflow_desc = best_candidate
+        
+        component_info = COMPONENT_TASK_MAPPING[component]
+
+        component, hypothesis, task, new_workflow_desc = best_candidate
 
 
-    # # 添加当前提案
-    #     analysis_prompt += f"""Current Proposal:
-    #         Component: {component}
-    #         Hypothesis: {hypothesis.hypothesis if hasattr(hypothesis, 'hypothesis') else str(hypothesis)}
-    #         Task Description: {task.get_task_information()}\n\n"""
+        best_candidate_desc = f"""
+        Proposal No.{best_candidate_id+1}:
+        Component: {component}
+        Hypothesis: {hypothesis.hypothesis if hasattr(hypothesis, 'hypothesis') else str(hypothesis)}
+        Task: {task.get_task_information()}
+        New Workflow Description: {new_workflow_desc}\n\n"""
 
-    #     # 获取LLM分析
-    #     system_prompt = T(".bo_prompts:idea_eval.system").r(
-    #         targets=component_info["target_name"],
-    #         component=component,
-    #         scenario=scenario_desc,
-    #     )
+        
+        # Prepare prompt with BO analysis and historical context
+        system_prompt = T(".prompts:bo_prompts.idea_polish.system").r(
+                        targets=component_info["target_name"],
+                        component=component,
+                        scenario=context["scenario_desc"],
+                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                    task_output_format=component_info["task_output_format"],
+                    workflow_check=(not component == "Workflow"),
 
-    #     user_prompt = T(".bo_prompts:idea_eval.user").r(
-    #         recent_trace_desc=analysis_prompt,
-    #         hypothesis=hypothesis.hypothesis,
-    #         task=task.get_task_information(),
-    #     )
+        )
+        user_prompt = T(".prompts:bo_prompts.idea_polish.user").r(
+                        best_candidate_desc=best_candidate_desc,
+                        current_proposal_desc=current_proposal_desc,
+                        detailed_analysis_bo=detailed_analysis_bo,
+                        historical_attempts_with_feedback=historical_attempts_with_feedback_desc,
+        )
 
-    #     def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
-    #         # Only modify the user_prompt on retries (i > 0)
-    #         user_prompt = args[0]
-    #         user_prompt += "\n\nretrying..."
-    #         return (user_prompt,), kwargs
+        @wait_retry(retry_n=5, transform_args_fn=lambda *args, **kwargs: (args[0] + "\n\nretrying...", kwargs))
+        def _f(user_prompt):
+            resp_dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    json_mode=True,
+                    json_target_type=dict[str, dict[str, str | dict] | str],
+                )
+            )
+            
+            assert "polished_hypothesis" in resp_dict, "Polished hypothesis not provided"
+            assert "polished_task" in resp_dict, "Polished task not provided"
+            
+            # Create polished hypothesis
+            hypothesis_dict = resp_dict["polished_hypothesis"]
+            polished_hypothesis = DSHypothesis(
+                component=component,
+                hypothesis=hypothesis_dict.get("hypothesis", ""),
+                reason=hypothesis_dict.get("reason", ""),
+                concise_reason=hypothesis_dict.get("concise_reason", ""),
+                concise_observation=hypothesis_dict.get("concise_observation", ""),
+                concise_justification=hypothesis_dict.get("concise_justification", ""),
+                concise_knowledge=hypothesis_dict.get("concise_knowledge", ""),
+            )
+            
+            # Create polished task
+            task_dict = resp_dict["polished_task"]
+            task_name = task_dict["model_name"] if component == "Model" else component
+            description = task_dict.get("description", f"{component} description not provided")
+            component_info = COMPONENT_TASK_MAPPING[component]
+            polished_task = component_info["task_class"](
+                name=task_name,
+                description=description,
+                **{k: task_dict.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+            )
+            
+            # Get workflow updates
+            polished_workflow = resp_dict.get("workflow_update", "No update needed")
+            
+            return polished_hypothesis, polished_task, polished_workflow
+        
+        polished_hypothesis, polished_task, polished_workflow = _f(user_prompt)
 
-    #     @wait_retry(retry_n=5, transform_args_fn=_append_retry)
-    #     def _f(user_prompt):
-
-    #         response = json.loads(
-    #             APIBackend().build_messages_and_create_chat_completion(
-    #                 user_prompt=user_prompt,
-    #                 system_prompt=system_prompt,
-    #                 json_mode=True
-    #             )
-    #         )
-
-    #         return response
-
-    #     response = _f(user_prompt)
-
-    #     analysis = response.get("analysis", "No analysis provided")
-    #     estimated_score = float(response.get("estimated_score", 0.0))
-
-    #     return analysis, estimated_score
+        return component, polished_hypothesis, polished_task, polished_workflow

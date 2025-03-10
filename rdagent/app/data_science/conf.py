@@ -28,6 +28,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     component_bo_step: int = 3
     """The step size for component selection BO"""
 
+    bo_idea_polish: bool = True
+    """Whether to polish the idea after BO evaluation"""
+
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

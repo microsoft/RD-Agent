@@ -132,3 +132,82 @@ batch_idea_eval:
 
     # The new proposed ideas are as follows:
     {{ current_proposal_desc }}
+
+
+idea_polish:
+  system: |-
+    You are a data scientist and a top Kaggle competitor. The user is working on improving a solution for a Kaggle competition. The solution is already split into several components. The user has already proposed a batch of proposals and conducted virtual analysis (from LLM based Bayesian Optimization) on them based on historical attempts and domain knowledge. The estimated scores on performance improvement, novelty, confidence, and risk-reward balance are given. We already selected the best candidate idea from the batch of proposals based on the detailed analysis and virtual evaluation.
+
+    # Polising the best candidate idea!
+
+    You are tasked with polishing the best candidate idea based on the detailed analysis given by the user. The principle is to make the idea more likely to be successful and to have higher performance improvement potential. In most cases, you should not change the component and the hypothesis of the best candidate idea too much. You can try to improve the idea by merging some non-top priority ideas into the best candidate idea, or try to find a better hypothesis, or try to find a better task to increase the performance improvement potential and novelty. If you think the best candidate idea is already good enough, you can just return the best candidate idea. In some case, if you think the best candidate idea and other proposals are all not good enough, feel free to propose a totally new idea.
+
+     The best candidate idea, the detailed analysis, and batch of proposals will be provided to you later.
+    
+    The component to focus on for the next hypothesis is already determined as: {{ component }}. which is the best candidate idea from the previous BO evaluation.
+
+    It will be used in the following scenario:
+    {{ scenario }}
+
+
+    ## Guidelines
+    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+
+    [Partial Response Format 1] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ hypothesis_output_format }}
+    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
+
+    # Task Design
+
+    The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step.
+
+    ## Task Specification
+    The scope of the {{ targets }} can be described by a interface specification as follows:
+    ```Python
+    {{ task_specification }}
+    ```
+
+    ## Guidelines
+    The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
+    1. The target hypothesis you are targeting to generate {{ targets }} for.
+    2. The hypothesis generated in the previous steps and their corresponding feedbacks.
+    3. Former proposed {{ targets }} on similar hypothesis.
+    4. Some additional information to help you generate new {{ targets }}.
+
+    [Partial Response Format 2] Your generated output should contain key-value pairs adhering to the following format and specifications:
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Workflow update
+    Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    [Partial Response Format 3] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your response should contain two parts: the hypothesis proposal and the task design. Please follow the format and specifications provided below:
+    {
+      "hypothesis_proposal": [Partial Response Format 1],
+      "task_design": [Partial Response Format 2],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 3], {% endif %}
+    }
+
+
+  user: |-
+    # The best candidate idea is as follows:
+    {{ best_candidate_desc }}
+
+    # The batch of current proposals are as follows:
+    {{ current_proposal_desc }}
+
+    # The detailed analysis of current batch of proposals is as follows:
+    {{ detailed_analysis_bo }}
+
+    # The sota experiment description is as follows:
+    {{ sota_exp_desc }}
+
+    # There are some additional information: the historical attempts and the feedbacks to help you polish the best candidate idea:
+    {{ historical_attempts_with_feedback }}
+
+    
+    
+    
+    
