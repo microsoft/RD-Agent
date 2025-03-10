@@ -28,4 +28,4 @@ RUN cd /workspace/mle-bench && conda run -n mlebench pip install -e .
 COPY ./kaggle_environment.yaml /workspace
 RUN cd /workspace & conda env create -f /workspace/kaggle_environment.yaml
 
-WORKDIR /workspace/RD-Agent
+WORKDIR /workspace/RD-Agent/
