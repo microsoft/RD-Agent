@@ -11,8 +11,8 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.utils.env import DockerEnv, MLEBDockerConf
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
+from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
 mle_de_conf = MLEBDockerConf()
 mle_de_conf.extra_volumes = {
@@ -117,7 +117,9 @@ def summarize_folder(log_folder: Path):
                             if grade_output:
                                 if grade_output["score"] is not None:
                                     test_scores[loop_num - 1] = grade_output["score"]
-                                    _, test_rank[loop_num - 1] = score_rank(stat[log_trace_path.name]["competition"], grade_output["score"])
+                                    _, test_rank[loop_num - 1] = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
                                 if grade_output["valid_submission"]:
                                     valid_submission_num += 1
                                 if grade_output["above_median"]:
@@ -150,7 +152,9 @@ def summarize_folder(log_folder: Path):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
-                                _, sota_exp_rank = score_rank(stat[log_trace_path.name]["competition"], grade_output["score"])
+                                _, sota_exp_rank = score_rank(
+                                    stat[log_trace_path.name]["competition"], grade_output["score"]
+                                )
 
         stat[log_trace_path.name].update(
             {
