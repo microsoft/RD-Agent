@@ -48,7 +48,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils.env import CondaConf, DockerEnv, DSDockerConf, LocalEnv
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -214,10 +214,20 @@ class DataLoaderCoSTEER(CoSTEER):
     def develop(self, exp):
         new_exp = super().develop(exp)
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
-        de = DockerEnv(conf=ds_docker_conf)
-        stdout = new_exp.experiment_workspace.execute(env=de, entry=f"python test/data_loader_test.py")
+        
+        if DSCoderCoSTEERSettings().env_type == "docker":
+            ds_docker_conf = DSDockerConf()
+            ds_docker_conf.extra_volumes = {
+                f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"
+            }
+            env = DockerEnv(conf=ds_docker_conf)
+        elif DSCoderCoSTEERSettings().env_type == "conda":
+            ds_conda_conf = CondaConf(conda_env_name="kaggle")
+            env = LocalEnv(ds_conda_conf)
+        else:
+            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
+        
+        stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
         self.scen.eda_output = eda_output

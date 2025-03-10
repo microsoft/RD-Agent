@@ -9,12 +9,13 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils.env import CondaConf, DockerEnv, DSDockerConf, LocalEnv
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -45,11 +46,17 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        if DSCoderCoSTEERSettings().env_type == "docker":
+            ds_docker_conf = DSDockerConf()
+            ds_docker_conf.extra_volumes = {
+                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
+            }
+            env = DockerEnv(conf=ds_docker_conf)
+        elif DSCoderCoSTEERSettings().env_type == "conda":
+            ds_conda_conf = CondaConf(conda_env_name="kaggle")
+            env = LocalEnv(ds_conda_conf)
+        else:
+            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
 
         fname = "test/ensemble_test.txt"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()
@@ -64,7 +71,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout, ret_code = implementation.execute_ret_code(env=de, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
 
         stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 

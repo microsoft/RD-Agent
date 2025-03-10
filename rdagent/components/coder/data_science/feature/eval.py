@@ -7,12 +7,13 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
+from rdagent.utils.env import CondaConf, DockerEnv, DSDockerConf, LocalEnv
 from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -45,19 +46,24 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        # TODO: we should /= 20 for the timeout period on debug component
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        if DSCoderCoSTEERSettings().env_type == "docker":
+            ds_docker_conf = DSDockerConf()
+            ds_docker_conf.extra_volumes = {
+                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
+            }
+            env = DockerEnv(conf=ds_docker_conf)
+        elif DSCoderCoSTEERSettings().env_type == "conda":
+            ds_conda_conf = CondaConf(conda_env_name="kaggle")
+            env = LocalEnv(ds_conda_conf)
+        else:
+            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/feature_test.py"
         test_code = (DIRNAME / "eval_tests" / "feature_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
 
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout = implementation.execute(env=env, entry=f"python {fname}")
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=de, entry="python main.py")
