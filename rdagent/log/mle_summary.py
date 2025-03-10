@@ -11,6 +11,7 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
 mle_de_conf = MLEBDockerConf()
@@ -67,6 +68,7 @@ def summarize_folder(log_folder: Path):
         silver_num = 0
         gold_num = 0
         test_scores = {}
+        test_ranks = {}
         valid_scores = {}
         bronze_threshold = 0.0
         silver_threshold = 0.0
@@ -76,6 +78,7 @@ def summarize_folder(log_folder: Path):
 
         sota_exp_stat = ""
         sota_exp_score = None
+        sota_exp_rank = None
         grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
@@ -114,6 +117,9 @@ def summarize_folder(log_folder: Path):
                             if grade_output:
                                 if grade_output["score"] is not None:
                                     test_scores[loop_num - 1] = grade_output["score"]
+                                    _, test_ranks[loop_num - 1] = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
                                 if grade_output["valid_submission"]:
                                     valid_submission_num += 1
                                 if grade_output["above_median"]:
@@ -146,6 +152,9 @@ def summarize_folder(log_folder: Path):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
+                                _, sota_exp_rank = score_rank(
+                                    stat[log_trace_path.name]["competition"], grade_output["score"]
+                                )
 
         stat[log_trace_path.name].update(
             {
@@ -158,10 +167,12 @@ def summarize_folder(log_folder: Path):
                 "silver_num": silver_num,
                 "gold_num": gold_num,
                 "test_scores": test_scores,
+                "test_ranks": test_ranks,
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
                 "sota_exp_stat": sota_exp_stat,
                 "sota_exp_score": sota_exp_score,
+                "sota_exp_rank": sota_exp_rank,
                 "bronze_threshold": bronze_threshold,
                 "silver_threshold": silver_threshold,
                 "gold_threshold": gold_threshold,
