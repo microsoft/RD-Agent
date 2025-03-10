@@ -37,7 +37,7 @@ class ModelImpValEval:
     For each hidden output, we can calculate a correlation. The average correlation will be the metrics.
     """
 
-    def evaluate(self, gt: FBWorkspace, gen: FBWorkspace):
+    def evaluate(self, gt: FBWorkspace, gen: FBWorkspace,task_name:str):
         env = DockerEnv(KGDockerConf())
 
         # __import__('ipdb').set_trace()
@@ -51,9 +51,13 @@ class ModelImpValEval:
             **{
                 "gt_model.py": gt.file_dict["model.py"],
                 "gen_model.py": gen.file_dict["model.py"],
-                "test_model.py": (DIRNAME.parent / "eval_tests" / "model.py").open().read()
-            })
+                "test_model.py": f'MODEL_NAME = "{task_name}"\n' +(DIRNAME.parent / "eval_tests" / "model.py").open().read()
+            }) # TODO: change init way by model name
+        print (f'MODEL_NAME = "{task_name}"\n' +(DIRNAME.parent / "eval_tests" / "model.py").open().read())
+        print ("start")
+        
         test_ws.execute(env=env, entry="python test_model.py")
+        print ("end")
         # print((test_ws.workspace_path / "result.csv").read_text())
         # print(type(res), res)
         res = pd.read_csv(test_ws.workspace_path / "result.csv", index_col=0).squeeze()

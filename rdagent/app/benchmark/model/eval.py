@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rdagent.components.coder.model_coder import ModelCoSTEER
 from rdagent.components.loader.task_loader import ModelTaskLoaderJson, ModelWsLoader
+from torch_geometric.nn.conv import MessagePassing
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     task_l = mtl.load()
 
     # task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
-
+    # task_l = [t for t in task_l if t.name == "PMLP"]  
     model_experiment = QlibModelExperiment(sub_tasks=task_l)
     mtg = ModelCodeWriter(scen=QlibModelScenario())
     # mtg = ModelCoSTEER(scen=QlibModelScenario())
@@ -36,10 +37,12 @@ if __name__ == "__main__":
     eval_l = []
     eval_d = {}
     for impl in model_experiment.sub_workspace_list:
-        print(impl.target_task)
-        gt_impl = mil.load(impl.target_task)
-        eval_l.append(mie.evaluate(gt_impl, impl))
-        eval_d[impl.target_task.name] = eval_l[-1]
-
+        print(impl.target_task.name)
+        try:
+            gt_impl = mil.load(impl.target_task)
+            eval_l.append(mie.evaluate(gt_impl, impl, impl.target_task.name))
+            eval_d[impl.target_task.name] = eval_l[-1]
+        except Exception as e:
+            print(f"Error in {impl.target_task.name}: {e}")
     print(eval_l)
     print(eval_d)

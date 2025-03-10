@@ -4,8 +4,8 @@ NUM_FEATURES = 10
 NUM_TIMESTEPS = 4
 NUM_EDGES = 20
 INPUT_VALUE = 1.0
-
 import torch
+from torch_geometric.nn.conv import MessagePassing
 
 from gt_model import model_cls as gt_model_cls
 from gen_model import model_cls as gen_model_cls
@@ -22,8 +22,34 @@ def run_model(model_cls, param_init_value=1.0):
         data = torch.full(input_shape, INPUT_VALUE)
     elif MODEL_TYPE == "Graph":
         node_feature = torch.randn(BATCH_SIZE, NUM_FEATURES)
+        node_features = node_feature
         edge_index = torch.randint(0, BATCH_SIZE, (2, NUM_EDGES))
-        m = model_cls(in_channels=NUM_FEATURES)
+        # TODO : Find beter way to handle different model types (e.g. use **kwargs list)
+        if MODEL_NAME == "A-DGN":
+            m = model_cls(in_channels=NUM_FEATURES)
+        elif MODEL_NAME == "DirGNNConv":
+            m = model_cls(MessagePassing())
+        elif MODEL_NAME == "GPSConv":
+            m = model_cls(channels=node_features.size(-1), conv=MessagePassing())
+        elif MODEL_NAME == "LINKX":
+            m = model_cls(
+                num_nodes=node_features.size(0),
+                in_channels=node_features.size(1),
+                hidden_channels=node_features.size(1),
+                out_channels=node_features.size(1),
+                num_layers=1,
+            )
+        elif MODEL_NAME == "PMLP":
+            m = model_cls(
+                in_channels=node_features.size(1),
+                hidden_channels=node_features.size(1),
+                out_channels=node_features.size(1),
+                num_layers=1,
+            )
+        elif MODEL_NAME == "ViSNet":
+            m = model_cls()
+ 
+
         data = (node_feature, edge_index)
     else:
         raise ValueError(f"Unsupported model type: {MODEL_TYPE}")
