@@ -4,7 +4,10 @@ set -x
 DIR="$( cd "$(dirname "$(readlink -f "$0")")" || exit ; pwd -P )"
 
 sudo mkdir -p /mle/ /kaggle/
-sudo chown -R $USER:$USER /workspace/ /mle/ /kaggle/
+
+CURRENT_USER=$(id -un)
+sudo chown -R $CURRENT_USER:$CURRENT_USER /workspace/ /mle/ /kaggle/
+
 ls -lat /
 
 cd $DIR/../RD-Agent
