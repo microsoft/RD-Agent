@@ -36,8 +36,7 @@ RUN cd RD-Agent && git fetch && git checkout xuyang1/add_condaenv && git reset e
 
 # litellm
 RUN cd /workspace && mkdir -p litellm-srv
-RUN cd litellm-srv
-RUN curl https://raw.githubusercontent.com/you-n-g/deploy/refs/heads/master/configs/python/litellm.trapi.yaml -o litellm.trapi.yaml
+RUN cd /workspace/litellm-srv && curl https://raw.githubusercontent.com/you-n-g/deploy/refs/heads/master/configs/python/litellm.trapi.yaml -o litellm.trapi.yaml
 RUN pip install 'litellm[proxy]'
 RUN pip install git+https://github.com/you-n-g/litellm@add_mi_cred_pr
 
