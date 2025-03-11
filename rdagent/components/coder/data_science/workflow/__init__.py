@@ -21,6 +21,7 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -60,6 +61,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             competition_info=self.scen.get_scenario_all_desc(),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
         )
         user_prompt = T(".prompts:workflow_coder.user").r(
             load_data_code=workspace.file_dict["load_data.py"],
@@ -72,14 +74,12 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         for _ in range(5):
-            workflow_code = json.loads(
+            workflow_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str],
                 )
-            )["code"]
+            )
             if workflow_code != workspace.file_dict.get("main.py"):
                 break
             else:
