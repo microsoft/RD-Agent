@@ -103,6 +103,7 @@ class LiteLLMAPIBackend(APIBackend):
         else:
             content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {content}", tag="llm_messages")
+            finish_reason_str = f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})" if finish_reason and finish_reason != "stop" else ""
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         return content, finish_reason
