@@ -352,7 +352,7 @@ class CondaConf(LocalConf):
         return self
 
 
-class MLECondaConf(LocalConf):
+class MLECondaConf(CondaConf):
     enable_cache: bool = False  # aligning with the docker settings.
 
 

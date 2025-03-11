@@ -89,7 +89,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         if feedback:
             # remove unused files
-            implementation.execute(env=de, entry="coverage json -o coverage.json")
+            implementation.execute(env=env, entry="coverage json -o coverage.json")
             if Path(implementation.workspace_path / "coverage.json").exists():
                 with open(implementation.workspace_path / "coverage.json") as f:
                     used_files = set(json.load(f)["files"].keys())
