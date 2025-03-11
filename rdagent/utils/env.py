@@ -19,7 +19,7 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Generic, Mapping, Optional, TypeVar
+from typing import Any, Generic, Mapping, Optional, TypeVar
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
@@ -125,6 +125,7 @@ class Env(Generic[ASpecificEnvConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
     ) -> tuple[str, int]:
+        # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
                 return self._run_ret_code(
@@ -137,6 +138,7 @@ class Env(Generic[ASpecificEnvConf]):
                     f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
                 )
                 time.sleep(self.conf.retry_wait_seconds)
+        raise RuntimeError  # for passing CI
 
     def run_ret_code(
         self,
@@ -236,7 +238,12 @@ class Env(Generic[ASpecificEnvConf]):
 
     @abstractmethod
     def _run_ret_code(
-        self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+        self,
+        entry: str | None,
+        local_path: str = ".",
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        **kwargs: Any,
     ) -> tuple[str, int]:
         """
         Execute the specified entry point within the given environment and local path.
@@ -342,7 +349,7 @@ class CondaConf(LocalConf):
     default_entry: str = "python main.py"
 
     @model_validator(mode="after")
-    def change_bin_path(self, **data):
+    def change_bin_path(self, **data: Any) -> "CondaConf":
         conda_path_result = subprocess.run(
             f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
             capture_output=True,
@@ -575,6 +582,7 @@ class DockerEnv(Env[DockerConf]):
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
+        **kwargs: Any,
     ) -> tuple[str, int]:
         if env is None:
             env = {}
