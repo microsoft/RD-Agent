@@ -46,6 +46,7 @@ class EnvUtils(unittest.TestCase):
     def test_local_simple(self):
         local_conf = LocalConf(bin_path="/home/xiaoyang/miniconda3/bin/", default_entry="which python")
         le = LocalEnv(conf=local_conf)
+        print(local_conf)
         le.prepare()
         code_path = (DIRNAME / "tmp_code")
         code_path.mkdir(exist_ok=True)

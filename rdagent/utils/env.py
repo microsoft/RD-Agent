@@ -25,7 +25,7 @@ import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
@@ -306,15 +306,16 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
 class CondaConf(LocalConf):
     conda_env_name: str
+    default_entry: str = "python main.py"
 
-    @property
-    def bin_path(self) -> str:
+    @model_validator(mode="after")
+    def change_bin_path(self, **data):
         conda_path_result = subprocess.run(
-            f"conda run -n {self.conf.conda_env_name} --no-capture-output env | grep '^PATH='",
+            f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
             capture_output=True, text=True, shell=True
         )
-        return conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
-
+        self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
+        return self
 
 ## Docker Environment -----
 class DockerConf(EnvConf, ExtendedBaseSettings):
