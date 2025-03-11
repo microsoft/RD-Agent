@@ -32,6 +32,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
+from rich.pretty import Pretty
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
@@ -117,16 +118,20 @@ class Env(Generic[ASpecificEnvConf]):
         return stdout
 
     def __run_ret_code_with_retry(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
+            self,
+            entry: str | None = None,
+            local_path: str = ".",
+            env: dict | None = None,
+            running_extra_volume: Mapping = MappingProxyType({}),
+            remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         for retry_index in range(self.conf.retry_count + 1):
             try:
-                return self._run_ret_code(entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp)
+                return self._run_ret_code(entry,
+                                          local_path,
+                                          env,
+                                          running_extra_volume=running_extra_volume,
+                                          remove_timestamp=remove_timestamp)
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -166,29 +171,29 @@ class Env(Generic[ASpecificEnvConf]):
         if entry is None:
             entry = self.conf.default_entry
 
-        entry_add_timeout = (
-            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; " +
-            "entry_exit_code=$?; " +
-            (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "") +
-            "exit $entry_exit_code'"
-        )
+        entry_add_timeout = (f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; " +
+                             "entry_exit_code=$?; " +
+                             (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "") +
+                             "exit $entry_exit_code'")
 
         if self.conf.enable_cache:
             stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
         else:
-            stdout, return_code = self.__run_ret_code_with_retry(
-                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
-            )
+            stdout, return_code = self.__run_ret_code_with_retry(entry_add_timeout,
+                                                                 local_path,
+                                                                 env,
+                                                                 running_extra_volume,
+                                                                 remove_timestamp=False)
 
         return stdout, return_code
 
     def cached_run(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
+            self,
+            entry: str | None = None,
+            local_path: str = ".",
+            env: dict | None = None,
+            running_extra_volume: Mapping = MappingProxyType({}),
+            remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         """
         Run the folder under the environment.
@@ -210,16 +215,11 @@ class Env(Generic[ASpecificEnvConf]):
         data_key = sorted(data_key)
 
         key = md5_hash(
-            json.dumps(
-                [
-                    [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(Path(local_path).rglob("*.py"))
-                ]
-            )
-            + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
-            + json.dumps({"extra_volumes": self.conf.extra_volumes})
-            + json.dumps(data_key)
-        )
+            json.dumps([[str(path.relative_to(Path(local_path))),
+                         path.read_text()] for path in sorted(Path(local_path).rglob("*.py"))]) + json.dumps({
+                             "entry": entry,
+                             "running_extra_volume": dict(running_extra_volume)
+                         }) + json.dumps({"extra_volumes": self.conf.extra_volumes}) + json.dumps(data_key))
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
             with open(target_folder / f"{key}.pkl", "rb") as f:
                 ret: tuple[str, int] = pickle.load(f)
@@ -232,9 +232,11 @@ class Env(Generic[ASpecificEnvConf]):
         return ret
 
     @abstractmethod
-    def _run_ret_code(
-        self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict
-    ) -> tuple[str, int]:
+    def _run_ret_code(self,
+                      entry: str | None,
+                      local_path: str = ".",
+                      env: dict | None = None,
+                      **kwargs: dict) -> tuple[str, int]:
         """
         Execute the specified entry point within the given environment and local path.
 
@@ -255,6 +257,7 @@ class Env(Generic[ASpecificEnvConf]):
             A tuple containing the standard output and the exit code of the execution.
         """
         pass
+
 
 # class EnvWithCache
 #
@@ -281,12 +284,31 @@ class LocalEnv(Env[ASpecificLocalConf]):
         ...
 
     def _run_ret_code(
-        self,
-        entry: str | None = None,
-        local_path: str | None = None,
-        env: dict | None = None,
-        **kwargs: dict,
+            self,
+            entry: str | None = None,
+            local_path: str | None = None,
+            env: dict | None = None,
+            running_extra_volume: Mapping = MappingProxyType({}),
+            **kwargs: dict,
     ) -> tuple[str, int]:
+
+        # mocking the volumns
+        volumns = {}
+        if self.conf.extra_volumes is not None:
+            for lp, rp in self.conf.extra_volumes.items():
+                volumns[lp] = rp
+        for lp, rp in running_extra_volume.items():
+            volumns[lp] = rp
+
+        for lp, rp in volumns.items():
+            link_path = Path(lp)
+            real_path = Path(rp)
+            if not link_path.parent.exists():
+                link_path.parent.mkdir(parents=True, exist_ok=True)
+            if link_path.exists() or link_path.is_symlink():
+                link_path.unlink()
+            link_path.symlink_to(real_path)
+
         if env is None:
             env = {}
 
@@ -296,12 +318,23 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if entry is None:
             entry = self.conf.default_entry
 
+        summary = {
+            "entry": entry,
+            "local_path": local_path,
+            "env": env,
+            "volumes": volumns,
+        }
+        print(Pretty(summary))
+
         cwd = None
         if local_path:
             cwd = Path(local_path).resolve()
-        result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
 
-        return result.stdout, result.returncode
+        result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
+        combined_output = result.stderr + result.stdout  # Combine stdout and stderr
+        print(combined_output)  # Display the combined output in the console
+
+        return combined_output, result.returncode
 
 
 class CondaConf(LocalConf):
@@ -312,10 +345,12 @@ class CondaConf(LocalConf):
     def change_bin_path(self, **data):
         conda_path_result = subprocess.run(
             f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
-            capture_output=True, text=True, shell=True
-        )
+            capture_output=True,
+            text=True,
+            shell=True)
         self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
         return self
+
 
 ## Docker Environment -----
 class DockerConf(EnvConf, ExtendedBaseSettings):
@@ -368,11 +403,9 @@ class DMDockerConf(DockerConf):
     default_entry: str = "python train.py"
     extra_volumes: dict = {
         str(
-            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/")
-            .expanduser()
-            .resolve()
-            .absolute()
-        ): "/root/.data/"
+            Path("~/.rdagent/.data/physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/FIDDLE_mimic3/").expanduser().resolve(
+            ).absolute()):
+            "/root/.data/"
     }
     shm_size: str | None = "16g"
 
@@ -439,15 +472,12 @@ class DockerEnv(Env[DockerConf]):
         Download image if it doesn't exist
         """
         client = docker.from_env()
-        if (
-            self.conf.build_from_dockerfile
-            and self.conf.dockerfile_folder_path is not None
-            and self.conf.dockerfile_folder_path.exists()
-        ):
+        if (self.conf.build_from_dockerfile and self.conf.dockerfile_folder_path is not None and
+                self.conf.dockerfile_folder_path.exists()):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
-            resp_stream = client.api.build(
-                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network
-            )
+            resp_stream = client.api.build(path=str(self.conf.dockerfile_folder_path),
+                                           tag=self.conf.image,
+                                           network_mode=self.conf.network)
             if isinstance(resp_stream, str):
                 logger.info(resp_stream)
             with Progress(SpinnerColumn(), TextColumn("{task.description}")) as p:
@@ -505,9 +535,8 @@ class DockerEnv(Env[DockerConf]):
         if not self.conf.enable_gpu:
             return {}
         gpu_kwargs = {
-            "device_requests": (
-                [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None
-            ),
+            "device_requests":
+                ([docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] if self.conf.enable_gpu else None),
         }
 
         @wait_retry(5, 10)
@@ -529,12 +558,12 @@ class DockerEnv(Env[DockerConf]):
         return output_string
 
     def _run_ret_code(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
+            self,
+            entry: str | None = None,
+            local_path: str = ".",
+            env: dict | None = None,
+            running_extra_volume: Mapping = MappingProxyType({}),
+            remove_timestamp: bool = True,
     ) -> tuple[str, int]:
         if env is None:
             env = {}
@@ -605,7 +634,6 @@ class DockerEnv(Env[DockerConf]):
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
 
-
     def dump_python_code_run_and_get_results(
         self,
         code: str,
@@ -669,8 +697,7 @@ class DMDockerEnv(DockerEnv):
         if not (Path(data_path)).exists():
             logger.info("We are downloading!")
             cmd = "wget -r -N -c -np --user={} --password={} -P ~/.rdagent/.data/ https://physionet.org/files/mimic-eicu-fiddle-feature/1.0.0/".format(
-                username, password
-            )
+                username, password)
             os.system(cmd)
         else:
             logger.info("Data already exists. Download skipped.")
