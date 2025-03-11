@@ -1,9 +1,11 @@
 #!/bin/sh
+set -x
 
 DIR="$( cd "$(dirname "$(readlink -f "$0")")" || exit ; pwd -P )"
 
 sudo mkdir -p /mle/ /kaggle/
 sudo chown -R $USER:$USER /workspace/ /mle/ /kaggle/
+ls -lat /
 
 cd $DIR/../litellm-srv/
 
