@@ -69,7 +69,7 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
-        if json_mode:
+        if json_mode and LITELLM_SETTINGS.chat_model != "o1-preview":
             kwargs["response_format"] = {"type": "json_object"}
 
         # Call LiteLLM completion
