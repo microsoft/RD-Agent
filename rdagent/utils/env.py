@@ -300,7 +300,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         for lp, rp in running_extra_volume.items():
             volumns[lp] = rp
 
-        for lp, rp in volumns.items():
+        for rp, lp in volumns.items():
             link_path = Path(lp)
             real_path = Path(rp)
             if not link_path.parent.exists():
@@ -350,6 +350,10 @@ class CondaConf(LocalConf):
             shell=True)
         self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
         return self
+
+
+class MLECondaConf(LocalConf):
+    enable_cache: bool = False  # aligning with the docker settings.
 
 
 ## Docker Environment -----

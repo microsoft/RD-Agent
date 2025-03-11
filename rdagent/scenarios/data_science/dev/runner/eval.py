@@ -8,7 +8,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
+from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings, get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -16,10 +16,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.env import (
-    CondaConf,
     DockerEnv,
-    DSDockerConf,
-    LocalEnv,
     MLEBDockerConf,
 )
 from rdagent.utils.fmt import shrink_text
@@ -40,15 +37,8 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
 
-        if DSCoderCoSTEERSettings().env_type == "docker":
-            ds_docker_conf = DSDockerConf()
-            ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
-            env = DockerEnv(conf=ds_docker_conf)
-        elif DSCoderCoSTEERSettings().env_type == "conda":
-            ds_conda_conf = CondaConf(conda_env_name="kaggle")
-            env = LocalEnv(ds_conda_conf)
-        else:
-            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
 
         stdout = implementation.execute(
             env=env, entry=f"rm submission.csv scores.csv"
@@ -69,11 +59,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             stdout += "\n Submission file (submission.csv) is not generated!"
         else:
             # DockerEnv for MLEBench submission validation
-            mle_de_conf = MLEBDockerConf()
-            mle_de_conf.extra_volumes = {
+            mde = get_ds_env("mlebench")
+            mde.conf.extra_volumes = {
                 f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
             }
-            mde = DockerEnv(conf=mle_de_conf)
             mde.prepare()
             # MLEBench Check
             mle_check_code = (

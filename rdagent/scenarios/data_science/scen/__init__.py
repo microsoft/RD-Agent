@@ -7,7 +7,7 @@ import pandas as pd
 from PIL import Image, TiffTags
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -17,7 +17,6 @@ from rdagent.scenarios.kaggle.kaggle_crawler import (
     leaderboard_scores,
 )
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.env import CondaConf, DockerEnv, DSDockerConf, LocalEnv
 
 
 def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
@@ -315,15 +314,7 @@ class DataScienceScen(Scenario):
 
     def get_runtime_environment(self) -> str:
         # TODO:  add it into base class.  Environment should(i.e. `DSDockerConf`) should be part of the scenario class.
-        if DSCoderCoSTEERSettings().env_type == "docker":
-            ds_docker_conf = DSDockerConf()
-            env = DockerEnv(conf=ds_docker_conf)
-        elif DSCoderCoSTEERSettings().env_type == "conda":
-            ds_conda_conf = CondaConf(conda_env_name="kaggle")
-            env = LocalEnv(ds_conda_conf)
-        else:
-            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
-
+        env = get_ds_env()
         implementation = FBWorkspace()
         fname = "temp.py"
         implementation.inject_files(

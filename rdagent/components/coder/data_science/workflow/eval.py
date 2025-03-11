@@ -10,13 +10,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import CondaConf, DockerEnv, DSDockerConf, LocalEnv, MLEBDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -55,17 +53,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        if DSCoderCoSTEERSettings().env_type == "docker":
-            ds_docker_conf = DSDockerConf()
-            ds_docker_conf.extra_volumes = {
-                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-            }
-            env = DockerEnv(conf=ds_docker_conf)
-        elif DSCoderCoSTEERSettings().env_type == "conda":
-            ds_conda_conf = CondaConf(conda_env_name="kaggle")
-            env = LocalEnv(ds_conda_conf)
-        else:
-            raise ValueError(f"Unknown env type: {DSCoderCoSTEERSettings().env_type}")
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
         # # DockerEnv for MLEBench submission validation
         # mle_de_conf = MLEBDockerConf()
@@ -108,7 +97,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=de, entry="python test/submission_format_test.py"
+            env=env, entry="python test/submission_format_test.py"
         )
         stdout += "\n" + submission_check_out
 
