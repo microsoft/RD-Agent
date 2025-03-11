@@ -1,6 +1,15 @@
 from typing import Literal
+
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
-from rdagent.utils.env import CondaConf, DSDockerConf, Env, LocalEnv, DockerEnv, MLEBDockerConf, MLECondaConf
+from rdagent.utils.env import (
+    CondaConf,
+    DockerEnv,
+    DSDockerConf,
+    Env,
+    LocalEnv,
+    MLEBDockerConf,
+    MLECondaConf,
+)
 
 
 class DSCoderCoSTEERSettings(CoSTEERSettings):
@@ -31,8 +40,11 @@ def get_ds_env(conf_type: Literal["kaggle", "mlebench"] = "kaggle") -> Env:
         env_conf = DSDockerConf() if conf_type == "kaggle" else MLEBDockerConf()
         env = DockerEnv(conf=env_conf)
     elif conf.env_type == "conda":
-        env = LocalEnv(conf=CondaConf(conda_env_name=conf_type) if conf_type == "kaggle" else MLECondaConf(
-            conda_env_name=conf_type))
+        env = LocalEnv(
+            conf=(
+                CondaConf(conda_env_name=conf_type) if conf_type == "kaggle" else MLECondaConf(conda_env_name=conf_type)
+            )
+        )
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
     return env

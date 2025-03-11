@@ -7,12 +7,12 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
-from rdagent.components.coder.data_science.conf import get_ds_env
 
 de = get_ds_env("mlebench")
 de.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}

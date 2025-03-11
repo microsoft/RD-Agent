@@ -6,9 +6,16 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 import shutil
 
-from rdagent.utils.env import CondaConf, LocalConf, LocalEnv, QlibDockerConf, QTDockerEnv
+from rdagent.utils.env import (
+    CondaConf,
+    LocalConf,
+    LocalEnv,
+    QlibDockerConf,
+    QTDockerEnv,
+)
 
 DIRNAME = Path(__file__).absolute().resolve().parent
+
 
 class QlibLocalEnv(LocalEnv):
     def prepare(self) -> None:
@@ -48,7 +55,7 @@ class EnvUtils(unittest.TestCase):
         le = LocalEnv(conf=local_conf)
         print(local_conf)
         le.prepare()
-        code_path = (DIRNAME / "tmp_code")
+        code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
         res, code = le.run_ret_code(local_path=str(code_path))
         print(res, code)
@@ -57,7 +64,7 @@ class EnvUtils(unittest.TestCase):
         conda_conf = CondaConf(default_entry="which python", conda_env_name="MLE")
         le = LocalEnv(conf=conda_conf)
         le.prepare()
-        code_path = (DIRNAME / "tmp_code")
+        code_path = DIRNAME / "tmp_code"
         code_path.mkdir(exist_ok=True)
         res, code = le.run_ret_code(local_path=str(code_path))
         print(res, code)
