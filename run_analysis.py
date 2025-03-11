@@ -71,16 +71,18 @@ def evaluate_trace(competition_path: str, loop_idx: int):
         if kaggle_loop.trace.hist: 
             exp, feedback = kaggle_loop.trace.hist[-1]
             return {"Loop Index": loop_idx, 
-                    "Score": exp.result.loc['ensemble'].iloc[0] if exp.result is not None else None, 
+                    "Score": float(exp.result.loc['ensemble'].iloc[0]) if exp.result is not None else None, 
                     "Metric": exp.result.columns[0] if exp.result is not None else None, 
                     "Hypothesis": str(exp.hypothesis), 
-                    "Idea": exp.hypothesis.idea.format_text() if hasattr(exp.hypothesis, 'idea') else None,
+                    "Idea": exp.hypothesis.ideas if hasattr(exp.hypothesis, 'ideas') else None,
+                    "Feature": exp.hypothesis.features if hasattr(exp.hypothesis, 'features') else None,
                     "Feedback": str(feedback)}
     return {"Loop Index": loop_idx, 
             "Score": None, 
             "Metric": None, 
             "Hypothesis": None, 
             "Idea": None,
+            "Feature": None,
             "Feedback": None}
 
 
@@ -175,6 +177,7 @@ def main():
 
     result_df = group_result_table(result_table, ["Competition", "Loop Index", "Type", "Exp Index"])
     result_df.to_csv(f"{args.output_path}/results.csv", index=False)
+    result_df.to_markdown(f"{args.output_path}/results.md", index=False)
 
     filtered_df = filter_checkpoint_rows(result_df)
     filtered_df.to_csv(f"{args.output_path}/results_filtered.csv", index=False)

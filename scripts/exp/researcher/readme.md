@@ -9,6 +9,8 @@ dotenv run -- python rdagent/app/data_science/loop.py --competition tabular-play
 
 dotenv run -- streamlit run rdagent/log/ui/llm_st.py --server.port=10885 -- --log_dir ./log
 
+dotenv run -- python scripts/exp/researcher/idea_pool.py
+
 dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder=./log
 
 dotenv run -- python scripts/exp/researcher/utils.py check --log_trace_path=$dir

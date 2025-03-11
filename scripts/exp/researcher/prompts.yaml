@@ -47,16 +47,11 @@ notebook_to_knowledge:
     --------------------
 
 
-solution_to_feature:
+solution_to_data:
   system: |-
-    You are a data scientist tasked with rigorously evaluating a competition solution. Your analysis must strictly derive from the competition description and solution notebook — **do not assume or infer characteristics not explicitly stated in these materials**.
-    
-    Follow these rules:
-    1. **Explicit Evidence Only**: Identify data characteristics ONLY if they are directly described in the competition/dataset or observable in the solution code. Never assume common practices (e.g., class imbalance in binary classification) unless explicitly stated.
-    2. **Inherent Data Traits**: Focus on inherent properties of the dataset (e.g., missing data, outliers). Do NOT include preprocessing steps (e.g., normalization) as "characteristics."
-
-  user: |-
-    Analyze the competition description and solution notebook to answer:
+    You are a data scientist tasked with rigorously evaluating a competition solution.
+    You will be provided with a competition description and a solution notebook.
+    Your task is to analyze the given information and answer the following questions: 
 
     (1) Key Dataset Characteristics
     Identify characteristics explicitly mentioned in the description or directly observable in the solution. Example characteristics: 
@@ -70,20 +65,89 @@ solution_to_feature:
     - Etc.
     
     (2) Solution Assessment
-    For each identified characteristic, state "Yes" or "No" for whether the solution addresses it, with code references if applicable.
+    For each identified characteristic, state "Yes" or "No" for whether the solution addresses it, with code references or text explanation if applicable.
 
+    Rules to follow:
+    1. **Explicit Evidence Only**: Identify data characteristics ONLY if they are directly described in the competition/dataset or observable in the solution code. Never assume common practices (e.g., class imbalance in binary classification is usual) unless explicitly stated.
+    2. **Inherent Data Traits**: Focus on inherent properties of the dataset (e.g., missing data, outliers). Do NOT include preprocessing steps (e.g., normalization) as "characteristics."
+    3. **JSON Output Schema**: For each of the identified characteristics, please strictly adhere to the following JSON schema without anything else.
+    {
+      "Characteristic": "Name of the identified data characteristic."
+      "Reason": "Exact information from the description or solution proving this characteristic",
+      "Assessment": "Yes/No",
+      "Context": "Explicit code reference or text explanation (ONLY include this field if Assessment=Yes)"
+    }
+    Your final output must be **a list of** identified characteristics, each strictly adhere to the above JSON schema without anything else.
+
+  user: |-
+    # Competition Description
+    {{ competition_description }}
+
+    # Solution Notebook
+    {{ solution }}
+
+    Please extract the data characteristics and evaluate the current solution. 
+    Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
+
+
+solution_to_problem:
+  system: |-
+    You are a data scientist tasked with rigorously evaluating a competition solution.
+    You will be provided with a competition description, a solution notebook, and the corresponding feedbacks. Your task is to analyze the given information and extract the **low-level problems** that the current solution is facing.
+
+    ## Low-Level Problems
+    ### Definition
+    Low-level problems are specific, technical, or methodological issues within one of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the solution.
+    1. Component-Specific: The problem is tied to a specific component of the solution.
+    2. Technical or Methodological: The problem is related to the implementation, design, or methodology of the component instead of debugging such as AttributeError.
+    3. Explicit or Reasonable: The problem is either explicitly mentioned in the feedback or can be reasonably inferred from the provided materials.
+    4. Actionable: The problem can be addressed with a clear, actionable improvement.
+
+    ### Output Format
     Output JSON schema:
     {
-      "[Characteristic]": {
-        "Reason": "Exact information from the description or solution proving this characteristic",
-        "Assessment": "Yes/No",
-        "Context": "Explicit code reference or solution text (ONLY include this field if Assessment=Yes)"
-      }
+      "Component": "The specific component the problem related to. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+      "Problem": "A concise description of the specific issue.",
+      "Reason": "Brief explanation of why this is a problem, based on the feedback or provided materials."
     }
-    Your output should be a list of identified characteristics, each strictly adhere to the above JSON schema without anything else.
-    --------------------
-    {{ inputs }}
-    --------------------
+    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
+
+    ### Example
+    [
+      {
+        "Component": "FeatureEng",
+        "Problem": "Redundant features are created, increasing dimensionality without improving model performance.",
+        "Reason": "The feedback highlights that several features are highly correlated, indicating redundancy."
+      },
+      {
+        "Component": "Ensemble",
+        "Problem": "The ensemble weights are not optimized, leading to suboptimal performance.",
+        "Reason": "The solution notebook uses equal weights for all models in the ensemble, despite some models performing significantly better than others."
+      },
+      {
+        "Component": "Model",
+        "Problem": "The model's hyperparameters are not optimally tuned, leading to suboptimal performance.",
+        "Reason": "The solution notebook does not include any hyperparameter tuning steps, and the default values are used, which may not be optimal for this dataset."
+      },
+      {
+        "Component": "FeatureEng",
+        "Problem": "Feature scaling is inconsistent, with some features normalized and others left unscaled.",
+        "Reason": "The feedback notes that features A and B are normalized, while features C and D remain in their original scale, leading to skewed model performance."
+      }
+    ]
+
+  user: |-
+    # Competition Description
+    {{ competition_description }}
+
+    # Solution Notebook
+    {{ solution }}
+
+    # Solution Feedbacks
+    {{ feedback }}
+
+    Please extract the low-level problems that the current solution is facing.
+    Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
 
 
 idea_merg:

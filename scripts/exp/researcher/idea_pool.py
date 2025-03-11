@@ -1,8 +1,9 @@
 import json
 import random
 import re
+from tqdm import tqdm
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, cast
 
 import numpy as np
 from jinja2 import Environment, StrictUndefined
@@ -13,21 +14,26 @@ from rdagent.oai.llm_utils import (
     APIBackend,
     calculate_embedding_distance_between_str_list,
 )
+import pickle
+from rdagent.components.knowledge_management.graph import (
+    UndirectedGraph,
+    UndirectedNode,
+)
 
 
 class Idea:
     def __init__(self, raw_knowledge: Dict) -> None:
         """
         {
-            "idea": "A concise label summarizing the core concept of this idea.",
-            "method": "A specific method used in this idea.",
-            "code": "A simplified pseudocode or code snippet to represent coding steps needed to implement the method. Your generated code should inspire other data scientists to easily apply the idea.",
-            "hypothesis": {
-                "problem": "The nature of the problem.",
-                "data": "The nature of the data.",
-                "method": "The characteristics of the method.",
-                "reason": "A comprehensive analysis of why this method works well in this case."
-            }
+        "idea": "A concise label summarizing the core concept of this idea (e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection).",
+        "method": "A specific method used in this idea (e.g., apply Synthetic Minority Oversampling Technique (SMOTE) to handle imbalanced datasets).The target component to implement the idea can be identified(e.g., feature engineering, hyperparameter tuning, dimensionality reduction, ensemble learning, feature selection). It should be unambiguously implemented in code level(e.g. ensemble with linear regression on validation data with MSE loss). ",
+        "context": "An example of how the notebook incorporate  this idea in their solution (e.g. the notebook combines prediction from XGBoost and Randomforest to improve the performance).",
+        "component": "An specific component of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'] that this idea focus on.",
+        "hypothesis": {
+            "problem": "The nature of the problem (e.g., definition, objective, constraints).",
+            "data": "The nature of the data (e.g., size, quality, distribution).",
+            "method": "The characteristics of the method (e.g., dependencies, assumptions, strengths).",
+            "reason": "A comprehensive analysis of why this method works well in this scenario. You can list multiple  requirements about the scenarios. Here are some examples, the scenario contains patterns in the time-series; there are a lot of outliers in the data; the number of data sample is small; the data is very noisy",
         }
         """
         self.idea = raw_knowledge["idea"]
@@ -35,15 +41,15 @@ class Idea:
         self.context = raw_knowledge["context"]
         self.hypothesis = raw_knowledge["hypothesis"].copy()
         self.knowledge = self.knowledge()
-        self.status = True  # indicate whether this idea has been retrieved before
-        self.target_component = raw_knowledge.get("target_component", None)
+        self.status = True # indicate whether this idea has been retrieved before
+        self.component = raw_knowledge.get("component", None)
 
     def format_JSON(self) -> str:
         idea_dict = {
             "idea": self.idea,
             "method": self.method,
             "context": self.context,
-            "target_component": self.target_component,
+            "component": self.component,
             "hypothesis": {
                 "problem": self.hypothesis["problem"],
                 "data": self.hypothesis["data"],
@@ -53,8 +59,8 @@ class Idea:
         }
         return json.dumps(idea_dict)
 
-    def format_text(self) -> str:
-        idea_text = f"""## Idea: {self.idea}
+    def format_text(self, idx) -> str:
+        idea_text = f"""## Idea {idx}: {self.idea}
 **Overview of Idea**  
 In the context of {self.idea}, the idea uses {self.method} to address a specific challenge in the machine learning workflow.
 For example, an example scenario of incorporating this idea is that {self.context}
@@ -108,8 +114,7 @@ class Idea_Pool:
     def load_from_cache(self, cache_path) -> None:
         with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        self.idea_pool = [Idea(raw_knowledge=idea) for idea in data]
-        print(f"Build Idea Pool with {len(self.idea_pool)} Ideas")
+        self.idea_pool = [Idea(raw_knowledge=idea) for idea in tqdm(data, desc="Building Idea Pool from Ideas")]
 
     def save_to_cache(self, cache_path) -> None:
         with open(cache_path, "w", encoding="utf-8") as f:
@@ -219,7 +224,8 @@ class Idea_Pool:
             raise ValueError("Idea pool is empty. Add ideas before sampling.")
 
         unused_idea_pool = [idea for idea in self.idea_pool if idea.status]  # only consider the unused ideas
-        source = [idea.knowledge for idea in unused_idea_pool]  # [s]
+        # source = [idea.knowledge for idea in unused_idea_pool]  # [s]
+        source = [f"The characteristic of the data is {idea.hypothesis['data']}.\nThis is because {idea.hypothesis['reason']}" for idea in unused_idea_pool]
         target = [solution] if isinstance(solution, str) else solution  # [t]
         sim_matrix = self.calculate_sim_matrix(source, target)  # [s*t]
 
@@ -235,3 +241,32 @@ class Idea_Pool:
             top_ideas.append(unused_idea_pool[map_idx])
             unused_idea_pool[map_idx].status = False
         return top_ideas, max_values
+
+
+class IdeaKnowledgeGraph(UndirectedGraph):
+    def __init__(self, path=None, idea_pool: Idea_Pool = None) -> None:
+        super().__init__(path)
+        self.build_from_idea_pool(idea_pool)
+
+    def build_from_idea_pool(self, idea_pool: Idea_Pool):
+        if idea_pool is not None: 
+            for i, idea in tqdm(enumerate(idea_pool.idea_pool), desc="Building Knowledge Graph from Idea Pool"):
+                try: 
+                    data = idea.hypothesis["data"]
+                    problem = idea.hypothesis["problem"]
+                    reason = idea.hypothesis["reason"]
+                    idea = f"Idea: {idea.idea}\nMethod: {idea.method}\nContext: {idea.context}"
+
+                    data_node = UndirectedNode(data, "DATA")
+                    problem_node = UndirectedNode(problem, "PROBLEM")
+                    reason_node = UndirectedNode(reason, "METHOD")
+                    idea_node = UndirectedNode(idea, "IDEA")
+                    self.add_nodes(idea_node, [data_node, problem_node, reason_node])
+                except Exception as e:
+                    print(f"Fail to add idea {i} to knowledge base due to error: {e}")
+
+
+if __name__ == "__main__":
+    idea_pool = Idea_Pool(cache_path="scripts/exp/researcher/output_dir/idea_pool/test.json")
+    kg = IdeaKnowledgeGraph(path="git_ignore_folder/ds_graph_idea_pool_v1.pkl", idea_pool=idea_pool)
+    kg.dump()

@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Literal
+from typing import Dict, Literal, List
 
 import pandas as pd
 
@@ -9,14 +9,14 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.components.knowledge_management.idea_pool import Idea, DSKnowledgeGraph
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
-from scripts.exp.researcher.idea_pool import Idea, Idea_Pool
-from scripts.exp.researcher.kaggle_crawler import solution_to_feature
+from scripts.exp.researcher.utils import solution_to_data, solution_to_problem, extract_features, Saver
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
@@ -31,13 +31,15 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
-        idea: Idea = None, 
+        features: List[str] = [], 
+        ideas: str = "", 
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
-        self.idea = idea
+        self.features = features
+        self.ideas = ideas
 
     def __str__(self) -> str:
         if self.hypothesis == "":
@@ -189,9 +191,10 @@ class DSExpGen(ExpGen):
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
 
-    def _init_idea_pool(self, cache_path: str) -> None:
-        if not hasattr(self, 'idea_pool'):
-            self.idea_pool = Idea_Pool(cache_path=cache_path)
+
+    def _init_knowledge_base(self, cache_path: str) -> None:
+        if not hasattr(self, 'knowledge_base'): 
+            self.knowledge_base = DSKnowledgeGraph(path=cache_path)
 
     def _init_task_gen(
         self,
@@ -280,8 +283,8 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
 
-    def gen(self, trace: DSTrace, idea_cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/test.json") -> DSExperiment:
-        self._init_idea_pool(cache_path=idea_cache_path)
+    def gen(self, trace: DSTrace, cache_path: str = "git_ignore_folder/ds_graph_idea_pool_v2.pkl") -> DSExperiment:
+        self._init_knowledge_base(cache_path)
 
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
@@ -357,35 +360,28 @@ class DSExpGen(ExpGen):
             )
 
             # Retrieve the best idea
-            solution = f'''## Competition Scenario
-{scenario_desc}
+            # Todo: semantic search with constraint
+            # Todo: semantic search without repetition
+            raw_data_features = solution_to_data(scenario_desc, sota_exp.experiment_workspace.all_codes)
+            raw_problem_features = solution_to_problem(scenario_desc, sota_exp_desc, sota_exp_feedback_list_desc)
 
-## Solution Notebook
-{sota_exp.experiment_workspace.all_codes}
-'''
-            solution_feature = solution_to_feature(solution)
-            try: 
-                features = json.loads(solution_feature)
-            except: 
-                match = re.search(r'\[(?:[^\[\]]|\[.*\])*\]', solution_feature)
-                features = json.loads(match.group(0)) if match else None
+            data_features = extract_features(raw_data_features, ftype="data")
+            problem_features = extract_features(raw_problem_features, ftype="problem")
+            features = data_features + problem_features
 
-            if features is None: 
-                idea, sim = self.idea_pool.sample(solution_feature, k=1)
-            else: 
-                extracted_features = []   
-                for feat in features:
-                    characteristic, contents = next(iter(feat.items()))
-                    if contents['Assessment'].lower() == 'no':
-                        temp = f"The characteristic of the data is {characteristic}.\nThis is because {contents['Reason']}"
-                        extracted_features.append(temp)
-                idea, sim = self.idea_pool.sample(extracted_features, k=1)
-            
-            # Todo (minrui): make the if else logic more compact
-            if len(idea) > 0:
-                idea = idea[0]
-            else:
-                idea = self.idea_pool.random_sample(1)[0]
+            suggested_ideas = ""
+            previous_ideas = []
+            idx = 0
+            for feat in features:
+                sampled_nodes = self.knowledge_base.semantic_search(node=feat['feature'], topk_k=1)
+                for node in sampled_nodes:
+                    if node.label == feat['label']: 
+                        idea = self.knowledge_base.get_nodes_within_steps(start_node=node, steps=1, constraint_labels='IDEA')[0]
+                        if idea.id not in previous_ideas:
+                            suggested_ideas += f"## Idea {idx}\n"
+                            suggested_ideas += f"{idea.content}\n\n"
+                            idx += 1
+                            previous_ideas.append(idea.id)
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
@@ -398,7 +394,7 @@ class DSExpGen(ExpGen):
             component_user_prompt = T(".prompts:component_gen.user").r(
                 sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                 failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                idea=idea.format_text(),
+                idea=suggested_ideas,
                 component_and_feedback_df=(
                     trace_component_to_feedback_df.to_string()
                     if len(trace_component_to_feedback_df) > 0
@@ -447,7 +443,7 @@ class DSExpGen(ExpGen):
                     targets=component_info["target_name"],
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                    idea=idea.format_text(),
+                    idea=suggested_ideas,
                     last_exp_diff=last_exp_diff,
                 )
 
@@ -482,7 +478,8 @@ class DSExpGen(ExpGen):
                         concise_observation=hypothesis_proposal.get("concise_observation", ""),
                         concise_justification=hypothesis_proposal.get("concise_justification", ""),
                         concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-                        idea=idea
+                        features=features, 
+                        ideas=suggested_ideas
                     )
 
                     task_design = resp_dict.get("task_design", {})

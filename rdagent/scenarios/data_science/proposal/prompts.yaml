@@ -165,12 +165,14 @@ direct_exp_gen:
     It will be used in the following scenario:
     {{ scenario }}
 
-    # Suggested Idea
-    The user has already proposed a potential idea to improve the solution. This information will be provided to you later.
+    # Suggested Ideas
+    The user has already proposed potential ideas to improve the solution. This information will be provided to you later.
 
     # Hypothesis Proposal
     The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later.
-    Your task is to refer to the proposed hypotheses and then propose a new hypothesis that represent and incorporate the idea.
+    Your task is to analyze the proposed hypotheses, leveraging their evaluations for context, and focus on the suggested ideas.
+    Selecting only the most valuable and reasonable ones to craft a better hypothesis for improving the implementation. 
+    If no suitable ideas exist, you may propose a new hypothesis independently.
 
     ## Hypothesis Specification
     To assist you in formulating new hypotheses, the user has provided some additional information: 
@@ -346,9 +348,9 @@ component_gen:
     {{ last_exp_diff }}
     {% endif %}
 
-    You will be provided the feedback for the latest implementation and a suggested idea to improve the implementation
-    The goal is to integrate the suggested idea into the latest implementation or sota implementation.
-    Please select the component you are going to improve the latest implementation or sota implementation based on the suggested idea.
+    You will be provided the feedback for the latest implementation and some suggested ideas to improve the implementation.
+    The goal is to refer to the suggested ideas and try to improve the latest or sota implementation.
+    Please select the component you are going to improve the latest implementation or sota implementation based on the suggested ideas.
 
     Please generate the output in JSON format following the format below:
     {{ component_output_format }}
@@ -360,7 +362,7 @@ component_gen:
     Also, here's the former failed experiments and their feedbacks:
     {{ failed_exp_and_feedback_list_desc }}
 
-    # Here is the suggested idea for you to integrate:
+    # Here are the suggested ideas for you to reference:
     {{ idea }}
   
     All former trials and their feedbacks are provided in pandas DataFrame format. The user has already made several hypothesis on this scenario and did several evaluation on them:
