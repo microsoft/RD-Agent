@@ -18,6 +18,7 @@ sleep 10  # wait for litellm to start
 
 
 cd $DIR/../RD-Agent
+mkdir -p log/
 git fetch
 git checkout ${RD_COMMIT:-ee8d97c52062607cac778b8aeb10769b075a8d11}
 script -c "timeout ${RD_TIMEOUT:-24h} python rdagent/app/data_science/loop.py" log/stdout.${DS_COMPETITION}.log
