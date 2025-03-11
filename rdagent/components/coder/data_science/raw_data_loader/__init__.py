@@ -47,6 +47,7 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, DSDockerConf
 
@@ -94,45 +95,19 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 competition_info=competition_info,
                 folder_spec=data_folder_info,
             )
-            data_loader_prompt = T(".prompts:spec.user.data_loader").r(
-                latest_spec=workspace.file_dict.get("spec/data_loader.md")
-            )
+            data_loader_prompt = T(".prompts:spec.user.data_loader").r(latest_spec=workspace.file_dict.get("spec/data_loader.md"))
             feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
             model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
-            ensemble_prompt = T(".prompts:spec.user.ensemble").r(
-                latest_spec=workspace.file_dict.get("spec/ensemble.md")
-            )
-            workflow_prompt = T(".prompts:spec.user.workflow").r(
-                latest_spec=workspace.file_dict.get("spec/workflow.md")
-            )
+            ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.file_dict.get("spec/ensemble.md"))
+            workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.file_dict.get("spec/workflow.md"))
 
             spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
-            data_loader_spec = json.loads(
-                spec_session.build_chat_completion(
-                    user_prompt=data_loader_prompt, json_mode=True, json_target_type=Dict[str, str]
-                )
-            )["spec"]
-            feature_spec = json.loads(
-                spec_session.build_chat_completion(
-                    user_prompt=feature_prompt, json_mode=True, json_target_type=Dict[str, str]
-                )
-            )["spec"]
-            model_spec = json.loads(
-                spec_session.build_chat_completion(
-                    user_prompt=model_prompt, json_mode=True, json_target_type=Dict[str, str]
-                )
-            )["spec"]
-            ensemble_spec = json.loads(
-                spec_session.build_chat_completion(
-                    user_prompt=ensemble_prompt, json_mode=True, json_target_type=Dict[str, str]
-                )
-            )["spec"]
-            workflow_spec = json.loads(
-                spec_session.build_chat_completion(
-                    user_prompt=workflow_prompt, json_mode=True, json_target_type=Dict[str, str]
-                )
-            )["spec"]
+            data_loader_spec = spec_session.build_chat_completion(user_prompt=data_loader_prompt)
+            feature_spec = spec_session.build_chat_completion(user_prompt=feature_prompt)
+            model_spec = spec_session.build_chat_completion(user_prompt=model_prompt)
+            ensemble_spec = spec_session.build_chat_completion(user_prompt=ensemble_prompt)
+            workflow_spec = spec_session.build_chat_completion(user_prompt=workflow_prompt)
         else:
             data_loader_spec = workspace.file_dict["spec/data_loader.md"]
             feature_spec = workspace.file_dict["spec/feature.md"]
@@ -145,6 +120,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             task_desc=data_loader_task_info,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
         )
         user_prompt = T(".prompts:data_loader_coder.user").r(
             competition_info=competition_info,
@@ -155,14 +131,12 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         for _ in range(5):
-            data_loader_code = json.loads(
+            data_loader_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=True,
-                    json_target_type=Dict[str, str],
                 )
-            )["code"]
+            )
             if data_loader_code != workspace.file_dict.get("load_data.py"):
                 break
             else:
