@@ -31,7 +31,7 @@ RUN cd /workspace && conda env create -f /workspace/kaggle_environment.yaml
 
 # RD-Agent
 RUN cd /workspace && git clone https://github.com/microsoft/RD-Agent
-RUN cd RD-Agent && git fetch && git checkout xuyang1/add_condaenv && git reset ee8d97c52062607cac778b8aeb10769b075a8d11 && make dev
+RUN cd RD-Agent && git fetch && git checkout xuyang1/add_condaenv && make dev
 
 
 # litellm
