@@ -114,7 +114,7 @@ def extract_features(raw_features, ftype):
                     extracted_features.append({"label": "DATA", "feature": feature})
             # problem features
             elif ftype == "problem":
-                feature = f"Problem: {feat['Problem']}"
+                feature = f"{feat['Problem']}"
                 extracted_features.append({"label": "PROBLEM", "feature": feature})
             elif ftype == "reason":
                 pass

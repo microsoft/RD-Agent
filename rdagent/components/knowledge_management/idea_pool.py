@@ -57,17 +57,6 @@ class DSKnowledgeGraph(UndirectedGraph):
                 print(f"Fail to add idea {i} to knowledge base due to error: {e}")
 
     
-    def semantic_search_with_constraint(
-        self,
-        node: UndirectedNode | str,
-        similarity_threshold: float = 0.0,
-        topk_k: int = 5,
-        constraint_labels: list[str] | None = None,
-    ) -> list[UndirectedNode]:
-        if isinstance(node, str):
-            node = UndirectedNode(content=node)
-
-
 if __name__ == "__main__":
     output_path = "git_ignore_folder/ds_graph_idea_pool_v2.pkl"
     cache_path = "scripts/exp/researcher/output_dir/idea_pool/test.json"

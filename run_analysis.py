@@ -2,7 +2,20 @@ import argparse
 import os
 import re
 import pandas as pd
+
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.core.proposal import HypothesisFeedback
+from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.utils.env import DockerEnv, MLEBDockerConf
+from scripts.exp.researcher.utils import extract_JSON
+
+mle_de_conf = MLEBDockerConf()
+mle_de_conf.extra_volumes = {
+    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+}
+de = DockerEnv(conf=mle_de_conf)
+de.prepare()
 
 
 def arg_parser():
@@ -13,7 +26,7 @@ def arg_parser():
 
 
 def extract_exp_path(root_path):
-    '''
+    """
     Args:
         root_path (str): The path to the root directory containing the `log_<key>` subdirectories.
 
@@ -29,7 +42,7 @@ def extract_exp_path(root_path):
     - log_researcher
         - round_0
             - <competition_name>
-    '''
+    """
     log_dict = {}
     for f in os.scandir(root_path):
         if f.is_dir():
@@ -62,33 +75,79 @@ def get_last_step(session_path):
     return step
 
 
-def evaluate_trace(competition_path: str, loop_idx: int):
+def get_session_path(competition_path: str, loop_idx: str):
     session_path = f"{competition_path}/__session__/{loop_idx}"
     last_step = get_last_step(session_path)
     session_path = f"{session_path}/{last_step}"
-    if last_step == "4_record": 
-        kaggle_loop = DataScienceRDLoop.load(path=session_path, do_truncate=False)
-        if kaggle_loop.trace.hist: 
-            exp, feedback = kaggle_loop.trace.hist[-1]
-            return {"Loop Index": loop_idx, 
-                    "Score": float(exp.result.loc['ensemble'].iloc[0]) if exp.result is not None else None, 
-                    "Metric": exp.result.columns[0] if exp.result is not None else None, 
-                    "Hypothesis": str(exp.hypothesis), 
-                    "Idea": exp.hypothesis.ideas if hasattr(exp.hypothesis, 'ideas') else None,
-                    "Feature": exp.hypothesis.features if hasattr(exp.hypothesis, 'features') else None,
-                    "Feedback": str(feedback)}
-    return {"Loop Index": loop_idx, 
-            "Score": None, 
-            "Metric": None, 
-            "Hypothesis": None, 
-            "Idea": None,
-            "Feature": None,
-            "Feedback": None}
+    return session_path, last_step
+
+
+def get_score(competition: str, exp: DSExperiment):
+    metric, validation_score, test_score = None, None, None
+    # get validation score
+    if exp.result is not None: 
+        metric = exp.result.columns[0] if exp.result is not None else None
+        validation_score = float(exp.result.loc['ensemble'].iloc[0]) if exp.result is not None else None
+
+    # get test score
+    submission_path = exp.experiment_workspace.workspace_path / "submission.csv"
+    test_score_path = exp.experiment_workspace.workspace_path / "mle_score.txt"
+    if submission_path.exists():
+        if not test_score_path.exists():
+            exp.experiment_workspace.execute(
+                                env=de,
+                                entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data > mle_score.txt 2>&1",
+                            )
+            exp.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
+        test_score = extract_JSON(test_score_path.read_text())[0]['score']
+    return metric, validation_score, test_score
+
+
+def get_analysis(exp: DSExperiment, fb: HypothesisFeedback):
+    idea, feature = None, None
+    try: 
+        idea = exp.hypothesis.ideas
+        feature = ""
+        features = exp.hypothesis.features
+        for i, feat in enumerate(features):
+            feature += f"{feat['label']} {i}: {feat['feature']}"
+    except:
+        pass
+    hypothesis = str(exp.hypothesis)
+    feedback = str(fb)
+    decision = fb.decision
+
+    return idea, feature, hypothesis, feedback, decision
 
 
 def analyze_single_loop(competition_path: str, loop_idx: int):
-    loop_result_dict = {}
-    loop_result_dict.update(evaluate_trace(competition_path, int(loop_idx)))
+    # load loop from session
+    loop_result_dict = {"Loop Index": int(loop_idx), 
+                        "Metric": None, 
+                        "Validation Score": None, 
+                        "Test Score": None, 
+                        "Hypothesis": None, 
+                        "Idea": None, 
+                        "Feature": None, 
+                        "Feedback": None, 
+                        "Decision": None}
+    session_path, last_step = get_session_path(competition_path, loop_idx)
+    if last_step == "4_record": 
+        ds_loop = DataScienceRDLoop.load(path=session_path, do_truncate=False)
+        competition = ds_loop.trace.scen.competition
+        exp, fb = ds_loop.trace.hist[-1]
+
+        metric, validation_score, test_score = get_score(competition, exp)
+        loop_result_dict['Metric'] = metric
+        loop_result_dict['Validation Score'] = validation_score
+        loop_result_dict['Test Score'] = test_score
+
+        idea, feature, hypothesis, feedback, decision = get_analysis(exp, fb)
+        loop_result_dict['Idea'] = idea
+        loop_result_dict['Feature'] = feature
+        loop_result_dict['Hypothesis'] = hypothesis
+        loop_result_dict['Feedback']= feedback
+        loop_result_dict['Decision'] = decision
     
     return loop_result_dict
 
@@ -139,25 +198,14 @@ def filter_checkpoint_rows(df):
 
 
 def aggregate_results(df):
-    grouped = df.groupby(["Competition", "Loop Index", "Type"], as_index=False)
-    agg_df = grouped['Score'].agg(
-        average_score=lambda x: x.dropna().mean(),
-        success_rate=lambda x: x.notna().sum() / len(x)
+    grouped = df.groupby(["Competition", "Loop Index", "Type", "Metric"], as_index=False)
+    agg_df = grouped.agg(
+        Validation_Score=('Validation Score', lambda x: x.dropna().mean()),
+        Test_Score=('Test Score', lambda x: x.dropna().mean()),
+        Success_Rate=('Test Score', lambda x: x.notna().sum() / len(x))
     )
-    agg_df['Loop Index'] = agg_df['Loop Index'].astype(int)
-    # Build a mapping for checkpoint rows: key = (Competition, Loop Index)
-    checkpoint_map = agg_df[agg_df['Type'] == 'checkpoint'].set_index(['Competition', 'Loop Index'])['average_score'].to_dict()
-    def calc_increment(row):
-        if row['Type'] in ['baseline', 'researcher']:
-            comp = row['Competition']
-            li = row['Loop Index']
-            ref = checkpoint_map.get((comp, li - 1))
-            if ref is not None:
-                return row['average_score'] - ref
-        return None
-    agg_df['score increment'] = agg_df.apply(calc_increment, axis=1)
-    # Reorder columns as: Competition, Loop Index, Type, average_score, score increment, success_rate
-    agg_df = agg_df[["Competition", "Loop Index", "Type", "average_score", "score increment", "success_rate"]]
+
+    agg_df = agg_df[["Competition", "Loop Index", "Type", "Validation_Score", "Test_Score", "Success_Rate"]]
     return agg_df
 
 
