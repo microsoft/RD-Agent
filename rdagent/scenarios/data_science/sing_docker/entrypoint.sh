@@ -36,9 +36,10 @@ python rdagent/log/mle_summary.py grade_summary --log_folder=./log/
 
 tar cf log.tar log
 
-RD_OUTPUT_DIR=${RD_OUTPUT_DIR:-/data/rdagent}/
-mkdir -p $RD_OUTPUT_DIR
-cp -r log.tar $RD_OUTPUT_DIR/${RD_RES_NAME:-log.tar}
+# NOTE: when we have $AMLT_OUTPUT_DIR, maybe we don't have to copy file actively to azure blob now.
+# RD_OUTPUT_DIR=${RD_OUTPUT_DIR:-/data/rdagent}/
+# mkdir -p $RD_OUTPUT_DIR
+# cp -r log.tar $RD_OUTPUT_DIR/${RD_RES_NAME:-log.tar}
 
 cp -r log.tar $AMLT_OUTPUT_DIR/${RD_RES_NAME:-log.tar}
 
