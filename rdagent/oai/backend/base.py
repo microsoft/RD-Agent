@@ -282,7 +282,7 @@ class APIBackend(ABC):
             **kwargs,
         )
         if isinstance(input_content, str):
-            return resp[0] # type: ignore[return-value]
+            return resp[0]  # type: ignore[return-value]
         return resp  # type: ignore[return-value]
 
     def build_messages_and_calculate_token(
