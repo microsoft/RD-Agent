@@ -9,12 +9,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -45,11 +44,8 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
         fname = "test/ensemble_test.txt"
         test_code = (DIRNAME / "eval_tests" / "ensemble_test.txt").read_text()
@@ -64,12 +60,12 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         implementation.inject_files(**{fname: test_code})
-        stdout, ret_code = implementation.execute_ret_code(env=de, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
 
         stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 
         if "main.py" in implementation.file_dict:
-            workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None

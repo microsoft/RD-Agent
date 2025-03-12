@@ -273,7 +273,7 @@ class APIBackend(ABC):
         logger.log_object({"system": system_prompt, "user": user_prompt, "resp": resp}, tag="debug_llm")
         return resp
 
-    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[list[float]]:  # type: ignore[no-untyped-def]
+    def create_embedding(self, input_content: str | list[str], *args, **kwargs) -> list[float] | list[list[float]]:  # type: ignore[no-untyped-def]
         input_content_list = [input_content] if isinstance(input_content, str) else input_content
         resp = self._try_create_chat_completion_or_embedding(  # type: ignore[misc]
             input_content_list=input_content_list,
@@ -281,6 +281,8 @@ class APIBackend(ABC):
             *args,
             **kwargs,
         )
+        if isinstance(input_content, str):
+            return resp[0]  # type: ignore[return-value]
         return resp  # type: ignore[return-value]
 
     def build_messages_and_calculate_token(
