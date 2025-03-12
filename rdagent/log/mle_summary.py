@@ -28,17 +28,19 @@ def extract_mle_json(log_content: str) -> dict | None:
 
 
 def save_grade_info(log_trace_path: Path):
-    for msg in FileStorage(log_trace_path).iter_msg():
+    trace_storage = FileStorage(log_trace_path)
+    for msg in trace_storage.iter_msg():
         if "competition" in msg.tag:
             competition = msg.content
 
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
-                msg.content.experiment_workspace.execute(
+                mle_score_str = msg.content.experiment_workspace.execute(
                     env=de,
-                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data > mle_score.txt 2>&1",
+                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
                 )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
+                trace_storage.log(mle_score_str, name=f"{msg.tag}.mle_score")
 
 
 def is_valid_session(p: Path) -> bool:
@@ -106,30 +108,26 @@ def summarize_folder(log_folder: Path):
                             made_submission_num += 1
                             scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
                             valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
-                            grade_output_path = msg.content.experiment_workspace.workspace_path / "mle_score.txt"
-                            if not grade_output_path.exists():
-                                raise FileNotFoundError(
-                                    f"mle_score.txt in {grade_output_path} not found, genarate it first!"
+                    elif "mle_score" in msg.tag:
+                        grade_output = extract_mle_json(msg.content)
+                        if grade_output:
+                            if grade_output["score"] is not None:
+                                test_scores[loop_num - 1] = grade_output["score"]
+                                _, test_ranks[loop_num - 1] = score_rank(
+                                    stat[log_trace_path.name]["competition"], grade_output["score"]
                                 )
-                            grade_output = extract_mle_json(grade_output_path.read_text())
-                            if grade_output:
-                                if grade_output["score"] is not None:
-                                    test_scores[loop_num - 1] = grade_output["score"]
-                                    _, test_ranks[loop_num - 1] = score_rank(
-                                        stat[log_trace_path.name]["competition"], grade_output["score"]
-                                    )
-                                if grade_output["valid_submission"]:
-                                    valid_submission_num += 1
-                                if grade_output["above_median"]:
-                                    above_median_num += 1
-                                if grade_output["any_medal"]:
-                                    get_medal_num += 1
-                                if grade_output["bronze_medal"]:
-                                    bronze_num += 1
-                                if grade_output["silver_medal"]:
-                                    silver_num += 1
-                                if grade_output["gold_medal"]:
-                                    gold_num += 1
+                            if grade_output["valid_submission"]:
+                                valid_submission_num += 1
+                            if grade_output["above_median"]:
+                                above_median_num += 1
+                            if grade_output["any_medal"]:
+                                get_medal_num += 1
+                            if grade_output["bronze_medal"]:
+                                bronze_num += 1
+                            if grade_output["silver_medal"]:
+                                silver_num += 1
+                            if grade_output["gold_medal"]:
+                                gold_num += 1
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
