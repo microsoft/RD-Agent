@@ -281,6 +281,8 @@ class APIBackend(ABC):
             *args,
             **kwargs,
         )
+        if isinstance(input_content, str):
+            return resp[0]
         return resp  # type: ignore[return-value]
 
     def build_messages_and_calculate_token(
