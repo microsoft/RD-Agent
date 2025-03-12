@@ -162,7 +162,7 @@ class LoopBase:
 
     @classmethod
     def load(
-        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = True
+        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
     ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
