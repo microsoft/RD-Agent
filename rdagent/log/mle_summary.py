@@ -26,10 +26,12 @@ def extract_mle_json(log_content: str) -> dict | None:
         return json.loads(match.group(0))
     return None
 
+
 def extract_loopid_func_name(tag):
     """提取 Loop ID 和函数名称"""
     match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
     return match.groups() if match else (None, None)
+
 
 def save_grade_info(log_trace_path: Path):
     trace_storage = FileStorage(log_trace_path)
