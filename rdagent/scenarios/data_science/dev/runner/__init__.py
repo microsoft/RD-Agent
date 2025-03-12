@@ -17,6 +17,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
     MultiProcessEvolvingStrategy,
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -115,11 +116,8 @@ class DSCoSTEERRunner(CoSTEER):
         exp.result = pd.read_csv(score_fp, index_col=0)
 
         # DockerEnv for MLEBench submission validation
-        mle_de_conf = MLEBDockerConf()
-        mle_de_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-        }
-        mde = DockerEnv(conf=mle_de_conf)
+        mde = get_ds_env(conf_type="mlebench")
+        mde.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
         mde.prepare()
         # MLEBench Check
         mle_check_code = (

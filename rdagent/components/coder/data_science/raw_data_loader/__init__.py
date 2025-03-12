@@ -38,7 +38,10 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
+from rdagent.components.coder.data_science.conf import (
+    DSCoderCoSTEERSettings,
+    get_ds_env,
+)
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -48,7 +51,6 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from rdagent.utils.env import DockerEnv, DSDockerConf
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -214,10 +216,10 @@ class DataLoaderCoSTEER(CoSTEER):
     def develop(self, exp):
         new_exp = super().develop(exp)
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
-        de = DockerEnv(conf=ds_docker_conf)
-        stdout = new_exp.experiment_workspace.execute(env=de, entry=f"python test/data_loader_test.py")
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+
+        stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
         self.scen.eda_output = eda_output
