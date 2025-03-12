@@ -27,6 +27,12 @@ def extract_mle_json(log_content: str) -> dict | None:
     return None
 
 
+def extract_loopid_func_name(tag):
+    """提取 Loop ID 和函数名称"""
+    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
+    return match.groups() if match else (None, None)
+
+
 def save_grade_info(log_trace_path: Path):
     trace_storage = FileStorage(log_trace_path)
     for msg in trace_storage.iter_msg():
@@ -40,7 +46,7 @@ def save_grade_info(log_trace_path: Path):
                     entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
                 )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
-                trace_storage.log(mle_score_str, name=f"{msg.tag}.mle_score")
+                trace_storage.log(mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl")
 
 
 def is_valid_session(p: Path) -> bool:
@@ -109,11 +115,13 @@ def summarize_folder(log_folder: Path):
                             scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
                             valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
                     elif "mle_score" in msg.tag:
+                        loop_id, _ = extract_loopid_func_name(msg.tag)
+                        loop_id = int(loop_id)
                         grade_output = extract_mle_json(msg.content)
                         if grade_output:
                             if grade_output["score"] is not None:
-                                test_scores[loop_num - 1] = grade_output["score"]
-                                _, test_ranks[loop_num - 1] = score_rank(
+                                test_scores[loop_id + 1] = grade_output["score"]
+                                _, test_ranks[loop_id + 1] = score_rank(
                                     stat[log_trace_path.name]["competition"], grade_output["score"]
                                 )
                             if grade_output["valid_submission"]:
