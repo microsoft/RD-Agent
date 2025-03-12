@@ -32,6 +32,7 @@ sleep 10  # wait for litellm to start
 cd $DIR/../RD-Agent
 script -c "timeout ${RD_TIMEOUT:-24h} python rdagent/app/data_science/loop.py --competition $DS_COMPETITION" log/stdout.${DS_COMPETITION}.log
 
+unset LOG_TRACE_PATH  # avoid make the original log dirty.
 python rdagent/log/mle_summary.py grade_summary --log_folder=./log/
 
 tar cf log.tar log
