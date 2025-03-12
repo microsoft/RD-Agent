@@ -12,11 +12,10 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
@@ -48,17 +47,14 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout = implementation.execute(env=env, entry=f"python {fname}")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
         stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
         stdout = stdout_part_1 + stdout_part_2
@@ -66,7 +62,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output += "Length of EDA output is too long, truncated. Please reject this implementation and motivate it to reduce the length of EDA output."
 
         if "main.py" in implementation.file_dict:
-            workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None
