@@ -84,10 +84,9 @@ class LiteLLMAPIBackend(APIBackend):
         logger.info(
             f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
         )
-
-        logger.info(f"{LogColors.YELLOW}Prompt messages:{LogColors.END} {messages}", tag="llm_messages")
         
         if LITELLM_SETTINGS.chat_stream:
+            logger.info(f"{LogColors.YELLOW}Prompt messages:{LogColors.END} {messages}", tag="llm_messages")
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""
             finish_reason = None
