@@ -46,7 +46,9 @@ def save_grade_info(log_trace_path: Path):
                     entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
                 )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
-                trace_storage.log(mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl")
+                trace_storage.log(
+                    mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
+                )
 
 
 def is_valid_session(p: Path) -> bool:
