@@ -283,17 +283,6 @@ class DeprecBackend(APIBackend):
 
         return [content_to_embedding_dict[content] for content in input_content_list]
 
-    def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
-        log_messages = ""
-        for m in messages:
-            log_messages += (
-                f"\n{LogColors.MAGENTA}{LogColors.BOLD}Role:{LogColors.END}"
-                f"{LogColors.CYAN}{m['role']}{LogColors.END}\n"
-                f"{LogColors.MAGENTA}{LogColors.BOLD}Content:{LogColors.END} "
-                f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
-            )
-        return log_messages
-
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
         self,
         messages: list[dict[str, Any]],
