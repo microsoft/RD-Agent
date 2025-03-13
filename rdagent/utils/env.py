@@ -128,9 +128,17 @@ class Env(Generic[ASpecificEnvConf]):
         # TODO: remove_timestamp can be implemented in a shallower way...
         for retry_index in range(self.conf.retry_count + 1):
             try:
-                return self._run_ret_code(
+                start = time.time()
+                log_output, return_code = self._run_ret_code(
                     entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
                 )
+                end = time.time()
+                if end - start >= self.conf.running_timeout_period:
+                    print(
+                        f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]"
+                    )
+                    log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
+                return log_output, return_code
             except Exception as e:
                 if retry_index == self.conf.retry_count:
                     raise
@@ -331,6 +339,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
             "env": env,
             "volumes": volumns,
         }
+        print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
         print(Pretty(summary))
 
         cwd = None
@@ -340,6 +349,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
         result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
         combined_output = result.stderr + result.stdout  # Combine stdout and stderr
         print(combined_output)  # Display the combined output in the console
+        print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
 
         return combined_output, result.returncode
 
@@ -604,7 +614,6 @@ class DockerEnv(Env[DockerConf]):
         log_output = ""
 
         try:
-            start = time.time()
             container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
                 image=self.conf.image,
                 command=entry,
@@ -638,12 +647,6 @@ class DockerEnv(Env[DockerConf]):
             exit_status = container.wait()["StatusCode"]
             container.stop()
             container.remove()
-            end = time.time()
-            if end - start >= self.conf.running_timeout_period:
-                print(
-                    f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]"
-                )
-                log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
             print(Rule("[bold green]Docker Logs End[/bold green]", style="dark_orange"))
             return log_output, exit_status
         except docker.errors.ContainerError as e:

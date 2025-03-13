@@ -242,6 +242,17 @@ class APIBackend(ABC):
         )
         return messages
 
+    def _build_log_messages(self, messages: list[dict[str, Any]]) -> str:
+        log_messages = ""
+        for m in messages:
+            log_messages += (
+                f"\n{LogColors.MAGENTA}{LogColors.BOLD}Role:{LogColors.END}"
+                f"{LogColors.CYAN}{m['role']}{LogColors.END}\n"
+                f"{LogColors.MAGENTA}{LogColors.BOLD}Content:{LogColors.END} "
+                f"{LogColors.CYAN}{m['content']}{LogColors.END}\n"
+            )
+        return log_messages
+
     def build_messages_and_create_chat_completion(  # type: ignore[no-untyped-def]
         self,
         user_prompt: str,
