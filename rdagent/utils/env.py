@@ -41,7 +41,7 @@ from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
 
 
-class EnvConf(BaseModel):
+class EnvConf(ExtendedBaseSettings):
     default_entry: str
     extra_volumes: dict = {}
     running_timeout_period: int = 600  # 10 minutes
@@ -365,7 +365,7 @@ class MLECondaConf(CondaConf):
 
 
 ## Docker Environment -----
-class DockerConf(EnvConf, ExtendedBaseSettings):
+class DockerConf(EnvConf):
     build_from_dockerfile: bool = False
     dockerfile_folder_path: Optional[Path] = (
         None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
