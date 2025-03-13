@@ -796,7 +796,7 @@ class DSExpGen(ExpGen):
 
         
         # Prepare prompt with BO analysis and historical context
-        system_prompt = T(".prompts:bo_prompts.idea_polish.system").r(
+        system_prompt = T(".bo_prompts:idea_polish.system").r(
                         targets=component_info["target_name"],
                         component=component,
                         scenario=context["scenario_desc"],
@@ -806,54 +806,58 @@ class DSExpGen(ExpGen):
                     workflow_check=(not component == "Workflow"),
 
         )
-        user_prompt = T(".prompts:bo_prompts.idea_polish.user").r(
+        user_prompt = T(".bo_prompts:idea_polish.user").r(
                         best_candidate_desc=best_candidate_desc,
                         current_proposal_desc=current_proposal_desc,
                         detailed_analysis_bo=detailed_analysis_bo,
                         historical_attempts_with_feedback=historical_attempts_with_feedback_desc,
         )
+        def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+            # Only modify the user_prompt on retries (i > 0)
+            user_prompt = args[0]
+            user_prompt += "\n\nretrying..."
+            return (user_prompt,), kwargs
 
-        @wait_retry(retry_n=5, transform_args_fn=lambda *args, **kwargs: (args[0] + "\n\nretrying...", kwargs))
+
+        @wait_retry(retry_n=5, transform_args_fn=_append_retry)
         def _f(user_prompt):
             resp_dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt,
-                    system_prompt=system_prompt,
+                    user_prompt=user_prompt, 
+                    system_prompt=system_prompt, 
                     json_mode=True,
+                    # NOTE: corner cases.
+                    # workflow_update may be a string
+                    # model could have 2 level nested dict.
                     json_target_type=dict[str, dict[str, str | dict] | str],
                 )
             )
-            
-            assert "polished_hypothesis" in resp_dict, "Polished hypothesis not provided"
-            assert "polished_task" in resp_dict, "Polished task not provided"
-            
-            # Create polished hypothesis
-            hypothesis_dict = resp_dict["polished_hypothesis"]
-            polished_hypothesis = DSHypothesis(
+            assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+            assert "task_design" in resp_dict, "Task design not provided."
+            task_class = component_info["task_class"]
+            hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+            hypothesis = DSHypothesis(
                 component=component,
-                hypothesis=hypothesis_dict.get("hypothesis", ""),
-                reason=hypothesis_dict.get("reason", ""),
-                concise_reason=hypothesis_dict.get("concise_reason", ""),
-                concise_observation=hypothesis_dict.get("concise_observation", ""),
-                concise_justification=hypothesis_dict.get("concise_justification", ""),
-                concise_knowledge=hypothesis_dict.get("concise_knowledge", ""),
+                hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                reason=hypothesis_proposal.get("reason", ""),
+                concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
             )
-            
-            # Create polished task
-            task_dict = resp_dict["polished_task"]
-            task_name = task_dict["model_name"] if component == "Model" else component
-            description = task_dict.get("description", f"{component} description not provided")
-            component_info = COMPONENT_TASK_MAPPING[component]
-            polished_task = component_info["task_class"](
+
+            task_design = resp_dict.get("task_design", {})
+            task_name = task_design["model_name"] if component == "Model" else component
+            description = task_design.get(
+                "description", f"{component_info['target_name']} description not provided"
+            )
+            task = task_class(
                 name=task_name,
                 description=description,
-                **{k: task_dict.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+                **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
             )
-            
-            # Get workflow updates
-            polished_workflow = resp_dict.get("workflow_update", "No update needed")
-            
-            return polished_hypothesis, polished_task, polished_workflow
+            new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+            return hypothesis, task, new_workflow_desc
         
         polished_hypothesis, polished_task, polished_workflow = _f(user_prompt)
 

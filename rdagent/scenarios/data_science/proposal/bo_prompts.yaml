@@ -201,9 +201,6 @@ idea_polish:
     # The detailed analysis of current batch of proposals is as follows:
     {{ detailed_analysis_bo }}
 
-    # The sota experiment description is as follows:
-    {{ sota_exp_desc }}
-
     # There are some additional information: the historical attempts and the feedbacks to help you polish the best candidate idea:
     {{ historical_attempts_with_feedback }}
 
