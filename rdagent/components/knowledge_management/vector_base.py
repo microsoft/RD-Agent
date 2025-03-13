@@ -173,7 +173,7 @@ class PDVectorBase(VectorBase):
         document = Document(content=content)
         document.create_embedding()
         similarities = self.vector_df["embedding"].apply(
-            lambda x: 1 - cosine(x[0], document.embedding[0])
+            lambda x: 1 - cosine(x, document.embedding)
         )  # cosine is cosine distance, 1-similarity
         searched_similarities = similarities[similarities > similarity_threshold].nlargest(topk_k)
         most_similar_docs = self.vector_df.loc[searched_similarities.index]

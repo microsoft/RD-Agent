@@ -19,16 +19,17 @@ import zipfile
 from abc import abstractmethod
 from pathlib import Path
 from types import MappingProxyType
-from typing import Generic, Mapping, Optional, TypeVar
+from typing import Any, Generic, Mapping, Optional, TypeVar
 
 import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
+from rich.pretty import Pretty
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
@@ -39,22 +40,52 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
 
-ASpecificBaseModel = TypeVar("ASpecificBaseModel", bound=BaseModel)
+
+class EnvConf(BaseModel):
+    default_entry: str
+    extra_volumes: dict = {}
+    running_timeout_period: int = 600  # 10 minutes
+    # helper settings to support transparent;
+    enable_cache: bool = True
+    retry_count: int = 5  # retry count for the docker run
+    retry_wait_seconds: int = 10  # retry wait seconds for the docker run
 
 
-class Env(Generic[ASpecificBaseModel]):
+ASpecificEnvConf = TypeVar("ASpecificEnvConf", bound=EnvConf)
+
+
+class Env(Generic[ASpecificEnvConf]):
     """
     We use BaseModel as the setting due to the features it provides
     - It provides base typing and checking features.
     - loading and dumping the information will be easier: for example, we can use package like `pydantic-yaml`
     """
 
-    conf: ASpecificBaseModel  # different env have different conf.
+    conf: ASpecificEnvConf  # different env have different conf.
 
-    # last_exit_code:  # TODO: get the more concrete information about the exit code.
-
-    def __init__(self, conf: ASpecificBaseModel):
+    def __init__(self, conf: ASpecificEnvConf):
         self.conf = conf
+
+    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
+        """
+        Zip a folder into a file, use zipfile instead of subprocess
+        """
+        with zipfile.ZipFile(zip_file_path, "w") as z:
+            for root, _, files in os.walk(folder_path):
+                for file in files:
+                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
+
+    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
+        """
+        Unzip a file into a folder, use zipfile instead of subprocess
+        """
+        # Clear folder_path before extracting
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        os.makedirs(folder_path)
+
+        with zipfile.ZipFile(zip_file_path, "r") as z:
+            z.extractall(folder_path)
 
     @abstractmethod
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
@@ -86,9 +117,35 @@ class Env(Generic[ASpecificBaseModel]):
         stdout, _ = self.run_ret_code(entry=entry, local_path=local_path, env=env, **kwargs)
         return stdout
 
-    @abstractmethod
+    def __run_ret_code_with_retry(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        remove_timestamp: bool = True,
+    ) -> tuple[str, int]:
+        # TODO: remove_timestamp can be implemented in a shallower way...
+        for retry_index in range(self.conf.retry_count + 1):
+            try:
+                return self._run_ret_code(
+                    entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
+                )
+            except Exception as e:
+                if retry_index == self.conf.retry_count:
+                    raise
+                logger.warning(
+                    f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
+                )
+                time.sleep(self.conf.retry_wait_seconds)
+        raise RuntimeError  # for passing CI
+
     def run_ret_code(
-        self, entry: str | None, local_path: str = ".", env: dict | None = None, **kwargs: dict
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        **kwargs: dict,
     ) -> tuple[str, int]:
         """
         Run the folder under the environment and return both the stdout and the exit code.
@@ -110,56 +167,205 @@ class Env(Generic[ASpecificBaseModel]):
         -------
             A tuple containing the stdout and the exit code
         """
+        running_extra_volume = kwargs.get("running_extra_volume", {})
+        if entry is None:
+            entry = self.conf.default_entry
 
+        entry_add_timeout = (
+            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; "
+            + "entry_exit_code=$?; "
+            + (f"chmod -R 777 {self.conf.mount_path}; " if hasattr(self.conf, "mount_path") else "")
+            + "exit $entry_exit_code'"
+        )
+
+        if self.conf.enable_cache:
+            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
+        else:
+            stdout, return_code = self.__run_ret_code_with_retry(
+                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
+            )
+
+        return stdout, return_code
+
+    def cached_run(
+        self,
+        entry: str | None = None,
+        local_path: str = ".",
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        remove_timestamp: bool = True,
+    ) -> tuple[str, int]:
+        """
+        Run the folder under the environment.
+        Will cache the output and the folder diff for next round of running.
+        Use the python codes and the parameters(entry, running_extra_volume) as key to hash the input.
+        """
+        target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
+        target_folder.mkdir(parents=True, exist_ok=True)
+
+        # we must add the information of data (beyound code) into the key.
+        # Otherwise, all commands operating on data will become invalue (e.g. rm -r submission.csv)
+        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
+        data_key = []
+        for path in Path(local_path).rglob("*"):
+            p = str(path.relative_to(Path(local_path)))
+            if p.startswith("__pycache__"):
+                continue
+            data_key.append(p)
+        data_key = sorted(data_key)
+
+        key = md5_hash(
+            json.dumps(
+                [
+                    [str(path.relative_to(Path(local_path))), path.read_text()]
+                    for path in sorted(Path(local_path).rglob("*.py"))
+                ]
+            )
+            + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
+            + json.dumps({"extra_volumes": self.conf.extra_volumes})
+            + json.dumps(data_key)
+        )
+        if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
+            with open(target_folder / f"{key}.pkl", "rb") as f:
+                ret: tuple[str, int] = pickle.load(f)
+            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
+        else:
+            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
+            with open(target_folder / f"{key}.pkl", "wb") as f:
+                pickle.dump(ret, f)
+            self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
+        return ret
+
+    @abstractmethod
+    def _run_ret_code(
+        self,
+        entry: str | None,
+        local_path: str = ".",
+        env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> tuple[str, int]:
+        """
+        Execute the specified entry point within the given environment and local path.
+
+        Parameters
+        ----------
+        entry : str | None
+            The entry point to execute. If None, defaults to the configured entry.
+        local_path : str
+            The local directory path where the execution should occur.
+        env : dict | None
+            Environment variables to set during execution.
+        kwargs : dict
+            Additional keyword arguments for execution customization.
+
+        Returns
+        -------
+        tuple[str, int]
+            A tuple containing the standard output and the exit code of the execution.
+        """
+        pass
+
+
+# class EnvWithCache
+#
 
 ## Local Environment -----
 
 
-class LocalConf(BaseModel):
-    py_bin: str
-    default_entry: str
+class LocalConf(EnvConf):
+    bin_path: str = ""
+    """path like <path1>:<path2>:<path3>, which will be prepend to bin path."""
+
+    retry_count: int = 0  # retry count for; run `retry_count + 1` times
 
 
-class LocalEnv(Env[LocalConf]):
+ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
+
+
+class LocalEnv(Env[ASpecificLocalConf]):
     """
     Sometimes local environment may be more convinient for testing
     """
 
-    def prepare(self) -> None:
-        if not (Path("~/.qlib/qlib_data/cn_data").expanduser().resolve().exists()):
-            self.run(
-                entry="python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn",
-            )
-        else:
-            print("Data already exists. Download skipped.")
+    def prepare(self) -> None: ...
 
-    def run_ret_code(
+    def _run_ret_code(
         self,
         entry: str | None = None,
         local_path: str | None = None,
         env: dict | None = None,
+        running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
+
+        # mocking the volumns
+        volumns = {}
+        if self.conf.extra_volumes is not None:
+            for lp, rp in self.conf.extra_volumes.items():
+                volumns[lp] = rp
+        for lp, rp in running_extra_volume.items():
+            volumns[lp] = rp
+
+        for rp, lp in volumns.items():
+            link_path = Path(lp)
+            real_path = Path(rp)
+            if not link_path.parent.exists():
+                link_path.parent.mkdir(parents=True, exist_ok=True)
+            if link_path.exists() or link_path.is_symlink():
+                link_path.unlink()
+            link_path.symlink_to(real_path)
+
         if env is None:
             env = {}
+
+        path = [*self.conf.bin_path.split(":"), "/bin/", "/usr/bin/", *env.get("PATH", "").split(":")]
+        env["PATH"] = ":".join(path)
 
         if entry is None:
             entry = self.conf.default_entry
 
-        command = str(Path(self.conf.py_bin).joinpath(entry)).split(" ")
+        summary = {
+            "entry": entry,
+            "local_path": local_path,
+            "env": env,
+            "volumes": volumns,
+        }
+        print(Pretty(summary))
 
         cwd = None
         if local_path:
             cwd = Path(local_path).resolve()
-        result = subprocess.run(command, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True)
 
-        return result.stdout, result.returncode
+        result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
+        combined_output = result.stderr + result.stdout  # Combine stdout and stderr
+        print(combined_output)  # Display the combined output in the console
+
+        return combined_output, result.returncode
+
+
+class CondaConf(LocalConf):
+    conda_env_name: str
+    default_entry: str = "python main.py"
+
+    @model_validator(mode="after")
+    def change_bin_path(self, **data: Any) -> "CondaConf":
+        conda_path_result = subprocess.run(
+            f"conda run -n {self.conda_env_name} --no-capture-output env | grep '^PATH='",
+            capture_output=True,
+            text=True,
+            shell=True,
+        )
+        self.bin_path = conda_path_result.stdout.strip().split("=")[1] if conda_path_result.returncode == 0 else ""
+        return self
+
+
+class MLECondaConf(CondaConf):
+    enable_cache: bool = False  # aligning with the docker settings.
 
 
 ## Docker Environment -----
-
-
-class DockerConf(ExtendedBaseSettings):
+class DockerConf(EnvConf, ExtendedBaseSettings):
     build_from_dockerfile: bool = False
     dockerfile_folder_path: Optional[Path] = (
         None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
@@ -369,13 +575,14 @@ class DockerEnv(Env[DockerConf]):
         output_string = re.sub(datetime_pattern, "[DATETIME]", input_string)
         return output_string
 
-    def __run_ret_code(
+    def _run_ret_code(
         self,
         entry: str | None = None,
         local_path: str = ".",
         env: dict | None = None,
         running_extra_volume: Mapping = MappingProxyType({}),
         remove_timestamp: bool = True,
+        **kwargs: Any,
     ) -> tuple[str, int]:
         if env is None:
             env = {}
@@ -445,121 +652,6 @@ class DockerEnv(Env[DockerConf]):
             raise RuntimeError("Docker image not found.")
         except docker.errors.APIError as e:
             raise RuntimeError(f"Error while running the container: {e}")
-
-    def __run_ret_code_with_retry(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
-        for retry_index in range(self.conf.retry_count):
-            try:
-                return self.__run_ret_code(entry, local_path, env, running_extra_volume, remove_timestamp)
-            except Exception as e:
-                logger.warning(
-                    f"Error while running the container: {e}, current try index: {retry_index + 1}, {self.conf.retry_count - retry_index - 1} retries left."
-                )
-                time.sleep(self.conf.retry_wait_seconds)
-        raise RuntimeError("Error while running the container. Retry count exceeded.")
-
-    def zip_a_folder_into_a_file(self, folder_path: str, zip_file_path: str) -> None:
-        """
-        Zip a folder into a file, use zipfile instead of subprocess
-        """
-        with zipfile.ZipFile(zip_file_path, "w") as z:
-            for root, _, files in os.walk(folder_path):
-                for file in files:
-                    z.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), folder_path))
-
-    def unzip_a_file_into_a_folder(self, zip_file_path: str, folder_path: str) -> None:
-        """
-        Unzip a file into a folder, use zipfile instead of subprocess
-        """
-        # Clear folder_path before extracting
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        os.makedirs(folder_path)
-
-        with zipfile.ZipFile(zip_file_path, "r") as z:
-            z.extractall(folder_path)
-
-    def cached_run(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        running_extra_volume: Mapping = MappingProxyType({}),
-        remove_timestamp: bool = True,
-    ) -> tuple[str, int]:
-        """
-        Run the folder under the environment.
-        Will cache the output and the folder diff for next round of running.
-        Use the python codes and the parameters(entry, running_extra_volume) as key to hash the input.
-        """
-        target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
-        target_folder.mkdir(parents=True, exist_ok=True)
-
-        # we must add the information of data (beyound code) into the key.
-        # Otherwise, all commands operating on data will become invalue (e.g. rm -r submission.csv)
-        # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
-        data_key = []
-        for path in Path(local_path).rglob("*"):
-            p = str(path.relative_to(Path(local_path)))
-            if p.startswith("__pycache__"):
-                continue
-            data_key.append(p)
-        data_key = sorted(data_key)
-
-        key = md5_hash(
-            json.dumps(
-                [
-                    [str(path.relative_to(Path(local_path))), path.read_text()]
-                    for path in sorted(Path(local_path).rglob("*.py"))
-                ]
-            )
-            + json.dumps({"entry": entry, "running_extra_volume": dict(running_extra_volume)})
-            + json.dumps({"extra_volumes": self.conf.extra_volumes})
-            + json.dumps(data_key)
-        )
-        if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
-            with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret: tuple[str, int] = pickle.load(f)
-            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path)
-        else:
-            ret = self.__run_ret_code_with_retry(entry, local_path, env, running_extra_volume, remove_timestamp)
-            with open(target_folder / f"{key}.pkl", "wb") as f:
-                pickle.dump(ret, f)
-            self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
-        return ret
-
-    def run_ret_code(
-        self,
-        entry: str | None = None,
-        local_path: str = ".",
-        env: dict | None = None,
-        **kwargs: dict,
-    ) -> tuple[str, int]:
-        running_extra_volume = kwargs.get("running_extra_volume", {})
-        if entry is None:
-            entry = self.conf.default_entry
-
-        entry_add_timeout = (
-            f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; "
-            f"entry_exit_code=$?; "
-            f"chmod -R 777 {self.conf.mount_path}; "
-            f"exit $entry_exit_code'"
-        )
-
-        if self.conf.enable_cache:
-            stdout, return_code = self.cached_run(entry_add_timeout, local_path, env, running_extra_volume)
-        else:
-            stdout, return_code = self.__run_ret_code_with_retry(
-                entry_add_timeout, local_path, env, running_extra_volume, remove_timestamp=False
-            )
-
-        return stdout, return_code
 
     def dump_python_code_run_and_get_results(
         self,

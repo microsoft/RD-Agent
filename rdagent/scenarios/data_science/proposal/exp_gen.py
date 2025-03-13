@@ -9,7 +9,7 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.components.knowledge_management.idea_pool import Idea, DSKnowledgeGraph
+from rdagent.components.knowledge_management.idea_pool import DSKnowledgeGraph
 from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
@@ -31,15 +31,15 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
-        features: List[str] = [], 
-        ideas: str = "", 
+        feature: List[str] = [], 
+        idea: str = "", 
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
-        self.features = features
-        self.ideas = ideas
+        self.feature = feature
+        self.idea = idea
 
     def __str__(self) -> str:
         if self.hypothesis == "":
@@ -369,19 +369,23 @@ class DSExpGen(ExpGen):
             problem_features = extract_features(raw_problem_features, ftype="problem")
             features = data_features + problem_features
 
-            suggested_ideas = ""
-            previous_ideas = []
-            idx = 0
+            idea_ids, ideas = [], []
             for feat in features:
                 sampled_nodes = self.knowledge_base.semantic_search(node=feat['feature'], topk_k=1)
                 for node in sampled_nodes:
                     if node.label == feat['label']: 
                         idea = self.knowledge_base.get_nodes_within_steps(start_node=node, steps=1, constraint_labels='IDEA')[0]
-                        if idea.id not in previous_ideas:
-                            suggested_ideas += f"## Idea {idx}\n"
-                            suggested_ideas += f"{idea.content}\n\n"
-                            idx += 1
-                            previous_ideas.append(idea.id)
+                        if idea.id not in idea_ids:
+                            idea_ids.append(idea.id)
+                            ideas.append(self.knowledge_base.idea_pool[idea.id])
+
+            def format_idea(ideas, component=None):
+                suggested_ideas = ""
+                for i, idea in enumerate(ideas):
+                    if component is None or idea.component == component:
+                        suggested_ideas += f"## Idea {i}\n"
+                        suggested_ideas += f"{idea.knowledge()}\n\n"
+                return suggested_ideas
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
@@ -394,7 +398,7 @@ class DSExpGen(ExpGen):
             component_user_prompt = T(".prompts:component_gen.user").r(
                 sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                 failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                idea=suggested_ideas,
+                idea=format_idea(ideas, None),
                 component_and_feedback_df=(
                     trace_component_to_feedback_df.to_string()
                     if len(trace_component_to_feedback_df) > 0
@@ -443,7 +447,7 @@ class DSExpGen(ExpGen):
                     targets=component_info["target_name"],
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                    idea=suggested_ideas,
+                    idea=format_idea(ideas, component),
                     last_exp_diff=last_exp_diff,
                 )
 
@@ -478,8 +482,8 @@ class DSExpGen(ExpGen):
                         concise_observation=hypothesis_proposal.get("concise_observation", ""),
                         concise_justification=hypothesis_proposal.get("concise_justification", ""),
                         concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
-                        features=features, 
-                        ideas=suggested_ideas
+                        feature=features, 
+                        idea=format_idea(ideas, None)
                     )
 
                     task_design = resp_dict.get("task_design", {})

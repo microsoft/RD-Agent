@@ -1,11 +1,14 @@
 ```
 export PYTHONPATH=$(pwd):PYTHONPATH
 
+# Build idea pool
+dotenv -- run python rdagent/components/knowledge_management/idea_pool.py
+
+
+
 dotenv run -- python rdagent/app/data_science/loop.py --competition tabular-playground-series-dec-2021
 
-# aerial-cactus-identification
-# spooky-author-identification 
-# tabular-playground-series-dec-2021
+
 
 dotenv run -- streamlit run rdagent/log/ui/llm_st.py --server.port=10885 -- --log_dir ./log
 

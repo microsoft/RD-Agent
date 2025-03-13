@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoST
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.components.knowledge_management.idea_pool import Idea
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
