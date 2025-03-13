@@ -7,12 +7,11 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, DSDockerConf
 from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -45,22 +44,18 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        ds_docker_conf = DSDockerConf()
-        # TODO: we should /= 20 for the timeout period on debug component
-        ds_docker_conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"
-        }
-        de = DockerEnv(conf=ds_docker_conf)
+        env = get_ds_env()
+        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/feature_test.py"
         test_code = (DIRNAME / "eval_tests" / "feature_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
 
-        stdout = implementation.execute(env=de, entry=f"python {fname}")
+        stdout = implementation.execute(env=env, entry=f"python {fname}")
 
         if "main.py" in implementation.file_dict:
-            workflow_stdout = implementation.execute(env=de, entry="python main.py")
+            workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
             workflow_stdout = None

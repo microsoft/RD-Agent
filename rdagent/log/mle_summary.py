@@ -7,17 +7,16 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
-mle_de_conf = MLEBDockerConf()
-mle_de_conf.extra_volumes = {
-    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-}
-de = DockerEnv(conf=mle_de_conf)
+de = get_ds_env("mlebench")
+de.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
 de.prepare()
 
 
@@ -28,18 +27,26 @@ def extract_mle_json(log_content: str) -> dict | None:
     return None
 
 
+def extract_loopid_func_name(tag):
+    """提取 Loop ID 和函数名称"""
+    match = re.search(r"Loop_(\d+)\.([^.]+)", tag)
+    return match.groups() if match else (None, None)
+
+
 def save_grade_info(log_trace_path: Path):
-    for msg in FileStorage(log_trace_path).iter_msg():
+    trace_storage = FileStorage(log_trace_path)
+    for msg in trace_storage.iter_msg():
         if "competition" in msg.tag:
             competition = msg.content
 
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
-                msg.content.experiment_workspace.execute(
+                mle_score_str = msg.content.experiment_workspace.execute(
                     env=de,
-                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data > mle_score.txt 2>&1",
+                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
                 )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
+                trace_storage.log(mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl")
 
 
 def is_valid_session(p: Path) -> bool:
@@ -67,6 +74,7 @@ def summarize_folder(log_folder: Path):
         silver_num = 0
         gold_num = 0
         test_scores = {}
+        test_ranks = {}
         valid_scores = {}
         bronze_threshold = 0.0
         silver_threshold = 0.0
@@ -76,6 +84,7 @@ def summarize_folder(log_folder: Path):
 
         sota_exp_stat = ""
         sota_exp_score = None
+        sota_exp_rank = None
         grade_output = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
@@ -105,27 +114,28 @@ def summarize_folder(log_folder: Path):
                             made_submission_num += 1
                             scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
                             valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
-                            grade_output_path = msg.content.experiment_workspace.workspace_path / "mle_score.txt"
-                            if not grade_output_path.exists():
-                                raise FileNotFoundError(
-                                    f"mle_score.txt in {grade_output_path} not found, genarate it first!"
+                    elif "mle_score" in msg.tag:
+                        loop_id, _ = extract_loopid_func_name(msg.tag)
+                        loop_id = int(loop_id)
+                        grade_output = extract_mle_json(msg.content)
+                        if grade_output:
+                            if grade_output["score"] is not None:
+                                test_scores[loop_id + 1] = grade_output["score"]
+                                _, test_ranks[loop_id + 1] = score_rank(
+                                    stat[log_trace_path.name]["competition"], grade_output["score"]
                                 )
-                            grade_output = extract_mle_json(grade_output_path.read_text())
-                            if grade_output:
-                                if grade_output["score"] is not None:
-                                    test_scores[loop_num - 1] = grade_output["score"]
-                                if grade_output["valid_submission"]:
-                                    valid_submission_num += 1
-                                if grade_output["above_median"]:
-                                    above_median_num += 1
-                                if grade_output["any_medal"]:
-                                    get_medal_num += 1
-                                if grade_output["bronze_medal"]:
-                                    bronze_num += 1
-                                if grade_output["silver_medal"]:
-                                    silver_num += 1
-                                if grade_output["gold_medal"]:
-                                    gold_num += 1
+                            if grade_output["valid_submission"]:
+                                valid_submission_num += 1
+                            if grade_output["above_median"]:
+                                above_median_num += 1
+                            if grade_output["any_medal"]:
+                                get_medal_num += 1
+                            if grade_output["bronze_medal"]:
+                                bronze_num += 1
+                            if grade_output["silver_medal"]:
+                                silver_num += 1
+                            if grade_output["gold_medal"]:
+                                gold_num += 1
 
                 if "feedback" in msg.tag and "evolving" not in msg.tag:
                     if isinstance(msg.content, ExperimentFeedback) and bool(msg.content):
@@ -146,6 +156,9 @@ def summarize_folder(log_folder: Path):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
+                                _, sota_exp_rank = score_rank(
+                                    stat[log_trace_path.name]["competition"], grade_output["score"]
+                                )
 
         stat[log_trace_path.name].update(
             {
@@ -158,10 +171,12 @@ def summarize_folder(log_folder: Path):
                 "silver_num": silver_num,
                 "gold_num": gold_num,
                 "test_scores": test_scores,
+                "test_ranks": test_ranks,
                 "valid_scores": valid_scores,
                 "success_loop_num": success_loop_num,
                 "sota_exp_stat": sota_exp_stat,
                 "sota_exp_score": sota_exp_score,
+                "sota_exp_rank": sota_exp_rank,
                 "bronze_threshold": bronze_threshold,
                 "silver_threshold": silver_threshold,
                 "gold_threshold": gold_threshold,
