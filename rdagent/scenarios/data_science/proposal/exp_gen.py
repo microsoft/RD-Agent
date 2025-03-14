@@ -341,7 +341,12 @@ class DSExpGen(ExpGen):
                 scenario=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 last_exp_diff=last_exp_diff,
-                component_desc="\n".join([f"[{key}] {value}" for key, value in T("scenarios.data_science.share:component_description").template.items()]),
+                component_desc="\n".join(
+                    [
+                        f"[{key}] {value}"
+                        for key, value in T("scenarios.data_science.share:component_description").template.items()
+                    ]
+                ),
                 component_output_format=T(".prompts:output_format.component").r(),
             )
 
