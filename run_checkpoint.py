@@ -28,7 +28,7 @@ def get_loop_idx(log_trace_path):
         loop_idx = int(loop)
         session = f"{session_path}/{loop}"
         session = f"{session}/{get_last_step(session)}"
-        kaggle_loop = DataScienceRDLoop.load(path=session)
+        kaggle_loop = DataScienceRDLoop.load(path=session, do_truncate=False)
         if kaggle_loop.trace.next_incomplete_component() is None: # all component are complete
             if loop_idx < es_loop or es_loop == -1:
                 es_loop = loop_idx

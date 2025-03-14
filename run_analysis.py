@@ -227,10 +227,10 @@ def main():
     result_df.to_csv(f"{args.output_path}/results.csv", index=False)
     result_df.to_markdown(f"{args.output_path}/results.md", index=False)
 
-    filtered_df = filter_checkpoint_rows(result_df)
-    filtered_df.to_csv(f"{args.output_path}/results_filtered.csv", index=False)
+    # filtered_df = filter_checkpoint_rows(result_df)
+    # filtered_df.to_csv(f"{args.output_path}/results_filtered.csv", index=False)
 
-    agg_df = aggregate_results(filtered_df)
+    agg_df = aggregate_results(result_df)
     agg_df.to_csv(f"{args.output_path}/aggregated_results.csv", index=False)
 
 
