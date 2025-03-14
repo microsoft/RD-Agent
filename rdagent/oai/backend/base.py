@@ -403,7 +403,7 @@ class APIBackend(ABC):
                     try:
                         json.loads(all_response)
                     except:
-                        match = re.search(r"```json(.*?)```", all_response, re.DOTALL)
+                        match = re.search(r"```json(.*)```", all_response, re.DOTALL)
                         all_response = match.groups()[0] if match else all_response
                         json.loads(all_response)
                 if json_target_type is not None:

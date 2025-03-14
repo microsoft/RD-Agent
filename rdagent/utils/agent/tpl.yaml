@@ -19,3 +19,29 @@ BatchEditOut: |-
       <file name2>(optional): "<code>"  // indicate writing <code> into <file name2> (create new file or replace existing file)
       {% endif %}
   }
+
+PythonBatchEditOut: |-
+  You should return a edition that applies to multiple files in a workspace.
+  Except for the model file, other files should not be renamed.
+  Files that do not need to be modified do not need to be included in the returned text.
+
+  Response format should be like:
+  ```<file name 1>
+  <code>
+  ```
+  ```<file name 2>
+  <code>
+  ```
+  {% if with_del %}
+  ```<file name 3>
+  __DEL__
+  ```
+  {% endif %}
+  ...
+
+  NOTE:
+  - The file name should always contain the suffix.
+  - The file names should be unique to avoid delete or replace conflicts.
+  {% if with_del %}
+  - If you want to remove a file, use only `__DEL__` in code block.
+  {% endif %}

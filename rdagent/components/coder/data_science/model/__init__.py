@@ -20,7 +20,7 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.agent.ret import BatchEditOut
+from rdagent.utils.agent.ret import PythonBatchEditOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -63,7 +63,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             feature_code=workspace.file_dict["feature.py"],
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-            out_spec=BatchEditOut.get_spec(),
+            out_spec=PythonBatchEditOut.get_spec(),
         )
         # user_prompt = T(".prompts:model_coder.user").r(
         #     model_spec=workspace.file_dict["spec/model.md"],
@@ -80,12 +80,10 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         for _ in range(5):
-            batch_edit = BatchEditOut.extract_output(
+            batch_edit = PythonBatchEditOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=BatchEditOut.json_mode,
-                    json_target_type=Dict[str, str],
                 )
             )
 

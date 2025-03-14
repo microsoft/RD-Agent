@@ -5,7 +5,6 @@ filter_progress_bar:
     Note: About the training log message, if the log message contains useful information like loss or accuracy and it is reported in each epoch, it should not be removed. If the log message is not useful, for example, reporting nan in each iteration or just reporting the iteration number, please remove them.
 
     Respond in the following JSON format and order:
-    ```json
     {
         "needs_sub": <true/false>, 
         "regex_patterns": ["regex pattern 1", "regex pattern 2", ...]
