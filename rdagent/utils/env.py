@@ -307,15 +307,15 @@ class LocalEnv(Env[ASpecificLocalConf]):
         **kwargs: dict,
     ) -> tuple[str, int]:
 
-        # mocking the volumns
-        volumns = {}
+        # mocking the volumes
+        volumes = {}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumns[lp] = rp
+                volumes[lp] = rp
         for lp, rp in running_extra_volume.items():
-            volumns[lp] = rp
+            volumes[lp] = rp
 
-        for rp, lp in volumns.items():
+        for rp, lp in volumes.items():
             link_path = Path(lp)
             real_path = Path(rp)
             if not link_path.parent.exists():
@@ -333,14 +333,15 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if entry is None:
             entry = self.conf.default_entry
 
-        summary = {
-            "entry": entry,
-            "local_path": local_path,
-            "env": env,
-            "volumes": volumns,
-        }
         print(Rule("[bold green]LocalEnv Logs Begin[/bold green]", style="dark_orange"))
-        print(Pretty(summary))
+        table = Table(title="Run Info", show_header=False)
+        table.add_column("Key", style="bold cyan")
+        table.add_column("Value", style="bold magenta")
+        table.add_row("Entry", entry)
+        table.add_row("Local Path", local_path)
+        table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
+        table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
+        print(table)
 
         cwd = None
         if local_path:
@@ -601,15 +602,15 @@ class DockerEnv(Env[DockerConf]):
         env["PYTHONUNBUFFERED"] = "1"
         client = docker.from_env()
 
-        volumns = {}
+        volumes = {}
         if local_path is not None:
             local_path = os.path.abspath(local_path)
-            volumns[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
+            volumes[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
-                volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+                volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
         for lp, rp in running_extra_volume.items():
-            volumns[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
         log_output = ""
 
@@ -617,7 +618,7 @@ class DockerEnv(Env[DockerConf]):
             container: docker.models.containers.Container = client.containers.run(  # type: ignore[no-any-unimported]
                 image=self.conf.image,
                 command=entry,
-                volumes=volumns,
+                volumes=volumes,
                 environment=env,
                 detach=True,
                 working_dir=self.conf.mount_path,
@@ -637,7 +638,7 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Container Name", container.name)
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
-            table.add_row("Volumns", "\n".join(f"{k}:{v}" for k, v in volumns.items()))
+            table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
