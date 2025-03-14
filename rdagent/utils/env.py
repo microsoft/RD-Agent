@@ -29,7 +29,6 @@ from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
 from rich.console import Console
-from rich.pretty import Pretty
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
