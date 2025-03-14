@@ -301,7 +301,7 @@ class UndirectedGraph(Graph):
             content=node.content,
             topk_k=topk_k,
             similarity_threshold=similarity_threshold,
-            constraint_labels=constraint_labels
+            constraint_labels=constraint_labels,
         )
         return [self.get_node(doc.id) for doc in docs]
 
