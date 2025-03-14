@@ -138,7 +138,7 @@ dmypy.json
 .pyre/
 
 # all pkl files
-*.pkl
+# *.pkl
 
 # all h5 files
 *.h5

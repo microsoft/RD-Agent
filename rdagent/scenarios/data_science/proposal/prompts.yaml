@@ -225,7 +225,7 @@ direct_exp_gen:
     # All former successful experiments and their feedbacks, the current SOTA solution is the combination of the best solutions of these trials:
     {{ sota_exp_and_feedback_list_desc }}
 
-    # The suggested idea for you to integrate
+    # The suggested idea for your reference
     {{ idea }}
 
     {% if failed_exp_and_feedback_list_desc %}

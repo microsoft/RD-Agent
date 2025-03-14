@@ -65,7 +65,7 @@ class DSKnowledgeGraph(UndirectedGraph):
 
     
 if __name__ == "__main__":
-    output_path = "git_ignore_folder/ds_graph_idea_pool_v2.pkl"
-    cache_path = "scripts/exp/researcher/output_dir/idea_pool/test2.json"
+    output_path = "git_ignore_folder/ds_graph_idea_pool_v1.pkl"
+    cache_path = "scripts/exp/researcher/output_dir/idea_pool/test.json"
     idea_pool = DSKnowledgeGraph(path=output_path, idea_cache_path=cache_path)
     idea_pool.dump()
