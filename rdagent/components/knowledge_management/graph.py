@@ -271,27 +271,37 @@ class UndirectedGraph(Graph):
         node: UndirectedNode | str,
         similarity_threshold: float = 0.0,
         topk_k: int = 5,
+        constraint_labels: list[str] | None = None,
     ) -> list[UndirectedNode]:
         """
-        semantic search by node's embedding
+        Semantic search by node's embedding.
 
         Parameters
         ----------
-        topk_k
-        node
-        similarity_threshold: Returns nodes whose distance score from the input
-            node is greater than similarity_threshold
+        node : UndirectedNode | str
+            The node to search for.
+        similarity_threshold : float, optional
+            The minimum similarity score for a node to be included in the results.
+            Nodes with a similarity score less than or equal to this threshold will be excluded.
+        topk_k : int, optional
+            The maximum number of similar nodes to return.
+        constraint_labels : list[str], optional
+            If provided, only nodes with matching labels will be considered.
 
         Returns
         -------
-
+        list[UndirectedNode]
+            A list of `topk_k` nodes that are semantically similar to the input node, sorted by similarity score.
+            All nodes shall meet the `similarity_threshold` and `constraint_labels` criteria.
         """
+        # Question: why do we need to convert to Node object first?
         if isinstance(node, str):
             node = UndirectedNode(content=node)
         docs, scores = self.vector_base.search(
             content=node.content,
             topk_k=topk_k,
             similarity_threshold=similarity_threshold,
+            constraint_labels=constraint_labels,
         )
         return [self.get_node(doc.id) for doc in docs]
 
