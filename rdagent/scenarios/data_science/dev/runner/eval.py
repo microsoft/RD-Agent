@@ -39,6 +39,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         env = get_ds_env()
         env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+        env.conf.running_timeout_period = DS_RD_SETTING.full_timeout
 
         stdout = implementation.execute(
             env=env, entry=f"rm submission.csv scores.csv"
