@@ -156,8 +156,13 @@ class PDVectorBase(VectorBase):
                 self.add(document=doc)
 
     def search(
-            self, content: str, topk_k: int = 5, similarity_threshold: float = 0, constraint_labels: list[str] | None = None
-        ) -> Tuple[List[Document], List]:
+        self,
+        content: str,
+        topk_k: int = 5,
+        similarity_threshold:
+        float = 0,
+        constraint_labels: list[str] | None = None
+    ) -> Tuple[List[Document], List]:
         """
         Search vector by node's embedding.
 
@@ -180,7 +185,7 @@ class PDVectorBase(VectorBase):
         """
         if not self.vector_df.shape[0]:
             return [], []
-        
+
         document = Document(content=content)
         document.create_embedding()
 
@@ -198,5 +203,5 @@ class PDVectorBase(VectorBase):
         docs = []
         for _, similar_docs in most_similar_docs.iterrows():
             docs.append(Document().from_dict(similar_docs.to_dict()))
-            
+
         return docs, searched_similarities.to_list()
