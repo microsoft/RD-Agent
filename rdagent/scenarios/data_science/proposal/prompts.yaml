@@ -213,10 +213,6 @@ direct_exp_gen:
       {% if workflow_check %}"workflow_update": [Partial Response Format 3], {% endif %}
     }
 
-    {% if extra_requirement %}
-    {{ extra_requirement }}
-    {% endif %}
-
   user: |-
     # All former successful experiments and their feedbacks, the current SOTA solution is the combination of the best solutions of these trials:
     {{ sota_exp_and_feedback_list_desc }}
@@ -226,8 +222,23 @@ direct_exp_gen:
     The user has made several hypothesis on this scenario and did several evaluation on them.
     {{ failed_exp_and_feedback_list_desc }}
     
-    {% if targets == "Building model" %}
+    {% if targets == "Model" %}
     Based on the feedback from previous experiment failures, if the failure was due to exceeding the time limit or memory constraints, start with the smallest model size or choose alternative algorithms or methods with significantly lower time or space complexity instead of using a neural network. You can then iteratively refine and optimize the model in later stages.
+
+    Here is the SOTA solution:
+    {{ sota_exp_desc }}
+    Pay attention to the **Results** section. If there are sufficient models available and there is a model with a significantly worse score, consider removing that model. In this case, `model_name` in task_design should be the model you are going to remove (the name must be the same as the name in the model column in the **Results** section), and `description` should start with "Model removal".
+    Otherwise, if the number of available models is insufficient. Your task is to first decide whether to:
+      - Tune an existing model: Select one of the current models for further tuning and improvement.
+      - Add a new model: Introduce a new model to expand the hypothesis space.
+
+      The information of the model is described by the code of workspace.
+
+      Make a decision and proceed accordingly:
+      - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
+      - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
+
+      When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
     {% endif %}
     
     {% endif %}
@@ -258,13 +269,12 @@ component_gen:
   system: |-
     You are a Kaggle Grander Master. You are going to provide a solution for a kaggle competition.
 
-    Here is the description of the competition scenario:
-    ```
+    # Here is the description of the competition scenario:
     {{ scenario }}
-    ```
 
     # Here is the current best version of implementation:
     {{ sota_exp_desc }}
+    [Notice] Pay attention to the **Results** section. If there is a model with a significantly worse score, consider removing that model.
 
     {% if last_exp_diff %}
     # Here are the differences between the latest version of implementation and the current best version of implementation
@@ -274,7 +284,9 @@ component_gen:
 
     You will be provided the feedback for the latest implementation.
 
-    Please select the component you are going to improve the latest implementation or sota implementation. 
+    Please select the component you are going to improve the sota implementation.
+    # Here is the brief description of the components you can select:
+    {{ component_desc }}
 
     Please generate the output in JSON format following the format below:
     {{ component_output_format }}
@@ -346,17 +358,7 @@ output_format:
     The output should follow JSON format. The schema is as follows: 
     {
         "model_name": "model name, must start with 'model_' and only contain letters, numbers, and underscores",
-        "description": "A precise and comprehensive description of the model",
-        "extra_params":
-        {
-          "model_type": "The type of the model, e.g., neural network, tree-based model, etc.",
-          "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
-          "hyperparameters": {
-            "hyperparameter_name_1": "value of hyperparameter 1",
-            "hyperparameter_name_2": "value of hyperparameter 2",
-            "hyperparameter_name_3": "value of hyperparameter 3"
-          },
-        },
+        "description": "A precise and comprehensive description of the model. Start with [Model building/tuning] or [Model removal].",
     }
   ensemble: |-
     Design a specific and detailed ensemble task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.

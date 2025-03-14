@@ -1,21 +1,21 @@
 scenario_description: |-
   ------Background of the scenario------
-  {{background}}
+  {{ background }}
 
   ------ Guidelines for participating in the competition ----
   Before submitting your results, we have numerous tests ready to check your code. Please ensure your submission is genuine and do not manipulate data or return values just to pass the tests, as this will not lead to successful final results.
 
   ------The expected output & submission format specifications------
-  {{submission_specifications}}
+  {{ submission_specifications }}
 
   {% if evaluation is not none %}
   ------Evaluation------
-  {{evaluation}}
+  {{ evaluation }}
   {% endif %}
 
   The evaluation metrics used is directed as:
-  {% if metric_direction %}The metric is better when it is bigger. 
-  {% else %}The metric is better when it is smaller.
+  {% if metric_direction %} The metric is better when it is bigger. 
+  {% else %} The metric is better when it is smaller.
   {% endif %}
 
   {% if eda_output is not none %}
@@ -57,7 +57,7 @@ competition_background: |-
   The data type used in this competition is {{ data_type }}.
   Briefly, the competition involves: {{ brief_description }}.
   The dataset used in this competition is: {{ dataset_description }}.
-  Your goal in this competition is to: {{target_description }}.
+  Your goal in this competition is to: {{ target_description }}.
 
 rich_style_description: |-
   ### {{ name }} Agent: Automated Feature Engineering & Model Tuning Evolution
