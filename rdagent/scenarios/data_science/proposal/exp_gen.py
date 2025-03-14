@@ -360,8 +360,6 @@ class DSExpGen(ExpGen):
             )
 
             # Retrieve the best idea
-            # Todo: semantic search with constraint
-            # Todo: semantic search without repetition
             raw_data_features = solution_to_data(scenario_desc, sota_exp.experiment_workspace.all_codes)
             raw_problem_features = solution_to_problem(scenario_desc, sota_exp_desc, sota_exp_feedback_list_desc)
 
@@ -371,13 +369,12 @@ class DSExpGen(ExpGen):
 
             idea_ids, ideas = [], []
             for feat in features:
-                sampled_nodes = self.knowledge_base.semantic_search(node=feat['feature'], topk_k=1)
+                sampled_nodes = self.knowledge_base.semantic_search(node=feat['feature'], topk_k=1, constraint_labels=[feat['label']])
                 for node in sampled_nodes:
-                    if node.label == feat['label']: 
-                        idea = self.knowledge_base.get_nodes_within_steps(start_node=node, steps=1, constraint_labels='IDEA')[0]
-                        if idea.id not in idea_ids:
-                            idea_ids.append(idea.id)
-                            ideas.append(self.knowledge_base.idea_pool[idea.id])
+                    idea = self.knowledge_base.get_nodes_within_steps(start_node=node, steps=1, constraint_labels='IDEA')[0]
+                    if idea.id not in idea_ids:
+                        idea_ids.append(idea.id)
+                        ideas.append(self.knowledge_base.idea_pool[idea.id])
 
             def format_idea(ideas, component=None):
                 suggested_ideas = ""
