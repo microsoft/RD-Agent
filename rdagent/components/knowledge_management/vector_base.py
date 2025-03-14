@@ -156,12 +156,7 @@ class PDVectorBase(VectorBase):
                 self.add(document=doc)
 
     def search(
-        self,
-        content: str,
-        topk_k: int = 5,
-        similarity_threshold:
-        float = 0,
-        constraint_labels: list[str] | None = None
+        self, content: str, topk_k: int = 5, similarity_threshold: float = 0, constraint_labels: list[str] | None = None
     ) -> Tuple[List[Document], List]:
         """
         Search vector by node's embedding.
