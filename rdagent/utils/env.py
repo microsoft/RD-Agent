@@ -348,7 +348,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
 
         result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
         combined_output = result.stderr + result.stdout  # Combine stdout and stderr
-        print(combined_output)  # Display the combined output in the console
+        Console().print(combined_output, markup=False)
         print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
 
         return combined_output, result.returncode
