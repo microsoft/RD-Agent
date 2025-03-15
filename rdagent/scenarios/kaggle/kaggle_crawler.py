@@ -18,7 +18,7 @@ from selenium.webdriver.common.by import By
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
-from rdagent.core.prompts import Prompts
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
@@ -186,6 +186,7 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
         zip_ref.extractall(unzip_target_path)
 
 
+@cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
     from kaggle.api.kaggle_api_extended import KaggleApi
 
