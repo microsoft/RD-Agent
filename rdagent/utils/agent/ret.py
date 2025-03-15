@@ -35,6 +35,7 @@ class PythonAgentOut(AgentOut):
         if match:
             code = match.group(1)
             return code
+        return resp
 
 
 class BatchEditOut(AgentOut):
