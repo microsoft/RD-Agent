@@ -76,7 +76,7 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         Assign the code list to the evolving item.
 
         Due to the implement_one_task take `workspace` as input and output the `modification`.
-        We should apply implmentation to evo
+        We should apply implementation to evo
 
         The code list is aligned with the evolving item's sub-tasks.
         If a task is not implemented, put a None in the list.
