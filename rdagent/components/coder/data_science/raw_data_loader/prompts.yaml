@@ -294,8 +294,8 @@ spec:
             val_y=val_y,
             test_X=X_test_transformed
           )
-          val_preds_dict[model_name] = val_pred
-          test_preds_dict[model_name] = test_pred
+          val_preds_dict[model_module] = val_pred
+          test_preds_dict[model_module] = test_pred
           {% endfor %}
           final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
           {% endraw %}
