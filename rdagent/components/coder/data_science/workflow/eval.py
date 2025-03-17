@@ -81,6 +81,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
+                # We assume that model names in `score_df` are stored without the '.py' file extension.
                 model_set_in_folder = set(
                     f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
