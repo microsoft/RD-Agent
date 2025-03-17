@@ -1,5 +1,4 @@
 import json
-import os
 import re
 from pathlib import Path
 
@@ -56,6 +55,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         score_ret_code = 0
         score_check_text = ""
         if not score_fp.exists():
+            logger.warning("Metrics file (scores.csv) is not generated!")
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
         else:
@@ -69,6 +69,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
                     score_ret_code = 1
             except Exception as e:
+                logger.error(f"Error in checking the scores.csv file: {e}")
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
@@ -109,27 +110,46 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if feedback:
             # remove unused files
             implementation.execute(env=env, entry="coverage json -o coverage.json")
-            if Path(implementation.workspace_path / "coverage.json").exists():
-                with open(implementation.workspace_path / "coverage.json") as f:
-                    used_files = set(json.load(f)["files"].keys())
-                    logger.info("All used scripts: {}".format(used_files))
-                    all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
-                    unused_files = [
-                        py_file
-                        for py_file in all_python_files
-                        if not (py_file.name in used_files or py_file.name.endswith("test.py"))
-                    ]
-                    if unused_files:
-                        logger.warning(f"Unused scripts: {unused_files}")
-                        implementation.inject_files(
-                            **{file_path.name: implementation.DEL_KEY for file_path in unused_files}
-                        )
-                os.remove(implementation.workspace_path / "coverage.json")
+            coverage_report_path = implementation.workspace_path / "coverage.json"
+            if coverage_report_path.exists():
+                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
+                coverage_report_path.unlink()
+                logger.info(f"All used scripts: {used_files}")
+
+                use_one_model = False
+                for f in used_files:
+                    if f.startswith("model_") and "test" not in f:
+                        use_one_model = True
+                        break
+
+                if not use_one_model:
+                    feedback.final_decision = False
+                    logger.warning("No model script is used in `main.py`.")
+                    feedback.code += "\n[Error] No model script is used in `main.py`."
+
+                all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
+                must_have_files = ["load_data.py", "feature.py", "ensemble.py"]
+
+                unused_files = [
+                    py_file.name
+                    for py_file in all_python_files
+                    if not (py_file.name in used_files or py_file.name.endswith("test.py"))
+                ]
+                if unused_files:
+                    logger.warning(f"Unused scripts: {unused_files}")
+                    error_files = set(unused_files).intersection(set(must_have_files))
+                    if error_files:
+                        feedback.final_decision = False
+                        logger.warning(f"{error_files} must be used in `main.py`.")
+                        feedback.code += f"\n[Error] {error_files} must be used in `main.py`."
+                    elif use_one_model:
+                        logger.info("Remove unused scripts.")
+                        implementation.inject_files(**{file: implementation.DEL_KEY for file in unused_files})
 
         if score_ret_code != 0:
             feedback.final_decision = False
-            feedback.execution += "\n" + score_check_text
+            feedback.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
             feedback.final_decision = False
-            feedback.execution += "\nSubmission file check failed."
+            feedback.return_checking += "\nSubmission file check failed."
         return feedback
