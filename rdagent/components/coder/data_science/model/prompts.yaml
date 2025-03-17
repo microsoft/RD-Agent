@@ -65,7 +65,6 @@ model_coder:
     --------- Feedback to former code ---------
     {{ latest_code_feedback }}
     {% endif %}
-    The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     {% endif %}
 
 model_eval:
