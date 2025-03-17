@@ -85,7 +85,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         feedback = build_cls_from_json_with_retry(
-            DSCoSTEEREvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            DSCoSTEEREvalFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=DSCoSTEEREvalFeedback.val_and_update_init_dict,
         )
 
         if feedback:

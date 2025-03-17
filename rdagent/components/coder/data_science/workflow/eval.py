@@ -121,7 +121,10 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
-            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            WorkflowSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=WorkflowSingleFeedback.val_and_update_init_dict,
         )
         if score_ret_code != 0:
             wfb.final_decision = False

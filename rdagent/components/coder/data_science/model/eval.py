@@ -90,4 +90,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             stdout=stdout,
             workflow_stdout=workflow_stdout,
         )
-        return build_cls_from_json_with_retry(ModelSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        return build_cls_from_json_with_retry(
+            ModelSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=ModelSingleFeedback.val_and_update_init_dict,
+        )
