@@ -3,6 +3,8 @@ import os
 import re
 from pathlib import Path
 
+import pandas as pd
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -49,31 +51,44 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=env, entry="coverage run main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
+        # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
+        score_ret_code = 0
+        score_check_text = ""
         if not score_fp.exists():
-            stdout += "\n Metrics file (scores.csv) is not generated!"
+            score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
+            score_ret_code = 1
         else:
-            stdout += "\n Metrics file (scores.csv) is generated."
+            try:
+                score_df = pd.read_csv(score_fp, index_col=0)
+                model_set_in_scores = set(score_df.index)
+                model_set_in_folder = set(
+                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
+                )
+                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                    score_ret_code = 1
+            except Exception as e:
+                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_ret_code = 1
 
-        submission_fp = implementation.workspace_path / "submission.csv"
-        if not submission_fp.exists():
-            stdout += "\n Submission file (submission.csv) is not generated!"
-        else:
-            # DockerEnv for MLEBench submission validation
-            mde = get_ds_env("mlebench")
-            mde.conf.extra_volumes = {
-                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-            }
-            mde.prepare()
-            # MLEBench Check
-            mle_check_code = (
-                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-                .read_text()
-                .replace("<competition_id>", self.scen.competition)
-            )
-            implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-            stdout += f"\n MLEBench submission check:"
-            stdout += implementation.execute(env=mde, entry="python test/mle_submission_format_test.py")
+        # DockerEnv for MLEBench submission validation
+        mde = get_ds_env("mlebench")
+        mde.conf.extra_volumes = {
+            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+        }
+        mde.prepare()
+        # MLEBench Check
+        mle_check_code = (
+            (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
+            .read_text()
+            .replace("<competition_id>", self.scen.competition)
+        )
+        implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+        submission_check_out, submission_ret_code = implementation.execute_ret_code(
+            env=mde, entry="python test/mle_submission_format_test.py"
+        )
+        stdout += f"\nMLEBench submission check:\n{submission_check_out}"
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -111,4 +126,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                         )
                 os.remove(implementation.workspace_path / "coverage.json")
 
+        if score_ret_code != 0:
+            feedback.final_decision = False
+            feedback.execution += "\n" + score_check_text
+        if submission_ret_code != 0:
+            feedback.final_decision = False
+            feedback.execution += "\nSubmission file check failed."
         return feedback
