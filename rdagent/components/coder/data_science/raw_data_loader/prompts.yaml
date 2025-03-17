@@ -282,18 +282,20 @@ spec:
           - Do not use progress bars (e.g., tqdm) in the code.
 
         6. Ensemble Strategy:
-          Put all the model's return into a dict, using the model file name as key, and the return as value.
+          Consolidate all model outputs into a dictionary, where each key is the model's filename (excluding the .py extension) and its corresponding value is the model's output.
           Sample code:
           {% raw %}
-          {% for mn in model_names %}
-          from {{mn}} import model_workflow as {{mn}}_workflow
-          val_preds_dict["{{mn}}"], test_preds_dict["{{mn}}"], _ = {{mn}}_workflow(
-              X=train_X,
-              y=train_y,
-              val_X=val_X,
-              val_y=val_y,
-              test_X=test_X
+          {% for model_name in model_names %}
+          model_module = __import__(model_name.replace('.py', ''))
+          val_pred, test_pred, _ = model_module.model_workflow(
+            X=train_X,
+            y=train_y,
+            val_X=val_X,
+            val_y=val_y,
+            test_X=X_test_transformed
           )
+          val_preds_dict[model_name] = val_pred
+          test_preds_dict[model_name] = test_pred
           {% endfor %}
           final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
           {% endraw %}
