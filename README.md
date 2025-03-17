@@ -112,7 +112,7 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   CHAT_MODEL=gpt-4-turbo
   EOF
   ```
-- However, not every API services support these features by devault. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
+- However, not every API services support these features by default. For example: `AZURE OpenAI`, you have to configure your GPT model in the `.env` file like this.
   ```bash
   cat << EOF  > .env
   USE_AZURE=True
