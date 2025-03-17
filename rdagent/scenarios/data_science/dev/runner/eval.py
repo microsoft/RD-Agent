@@ -1,7 +1,8 @@
 import json
-import os
 import re
 from pathlib import Path
+
+import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
@@ -49,31 +50,46 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=env, entry="coverage run main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
+        # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
+        score_ret_code = 0
+        score_check_text = ""
         if not score_fp.exists():
-            stdout += "\n Metrics file (scores.csv) is not generated!"
+            logger.warning("Metrics file (scores.csv) is not generated!")
+            score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
+            score_ret_code = 1
         else:
-            stdout += "\n Metrics file (scores.csv) is generated."
+            try:
+                score_df = pd.read_csv(score_fp, index_col=0)
+                model_set_in_scores = set(score_df.index)
+                model_set_in_folder = set(
+                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
+                )
+                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                    score_ret_code = 1
+            except Exception as e:
+                logger.error(f"Error in checking the scores.csv file: {e}")
+                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_ret_code = 1
 
-        submission_fp = implementation.workspace_path / "submission.csv"
-        if not submission_fp.exists():
-            stdout += "\n Submission file (submission.csv) is not generated!"
-        else:
-            # DockerEnv for MLEBench submission validation
-            mde = get_ds_env("mlebench")
-            mde.conf.extra_volumes = {
-                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-            }
-            mde.prepare()
-            # MLEBench Check
-            mle_check_code = (
-                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-                .read_text()
-                .replace("<competition_id>", self.scen.competition)
-            )
-            implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-            stdout += f"\n MLEBench submission check:"
-            stdout += implementation.execute(env=mde, entry="python test/mle_submission_format_test.py")
+        # DockerEnv for MLEBench submission validation
+        mde = get_ds_env("mlebench")
+        mde.conf.extra_volumes = {
+            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+        }
+        mde.prepare()
+        # MLEBench Check
+        mle_check_code = (
+            (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
+            .read_text()
+            .replace("<competition_id>", self.scen.competition)
+        )
+        implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+        submission_check_out, submission_ret_code = implementation.execute_ret_code(
+            env=mde, entry="python test/mle_submission_format_test.py"
+        )
+        stdout += f"\nMLEBench submission check:\n{submission_check_out}"
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -94,21 +110,46 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if feedback:
             # remove unused files
             implementation.execute(env=env, entry="coverage json -o coverage.json")
-            if Path(implementation.workspace_path / "coverage.json").exists():
-                with open(implementation.workspace_path / "coverage.json") as f:
-                    used_files = set(json.load(f)["files"].keys())
-                    logger.info("All used scripts: {}".format(used_files))
-                    all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
-                    unused_files = [
-                        py_file
-                        for py_file in all_python_files
-                        if not (py_file.name in used_files or py_file.name.endswith("test.py"))
-                    ]
-                    if unused_files:
-                        logger.warning(f"Unused scripts: {unused_files}")
-                        implementation.inject_files(
-                            **{file_path.name: implementation.DEL_KEY for file_path in unused_files}
-                        )
-                os.remove(implementation.workspace_path / "coverage.json")
+            coverage_report_path = implementation.workspace_path / "coverage.json"
+            if coverage_report_path.exists():
+                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
+                coverage_report_path.unlink()
+                logger.info(f"All used scripts: {used_files}")
 
+                use_one_model = False
+                for f in used_files:
+                    if f.startswith("model_") and "test" not in f:
+                        use_one_model = True
+                        break
+
+                if not use_one_model:
+                    feedback.final_decision = False
+                    logger.warning("No model script is used in `main.py`.")
+                    feedback.code += "\n[Error] No model script is used in `main.py`."
+
+                all_python_files = set(Path(implementation.workspace_path).rglob("*.py"))
+                must_have_files = ["load_data.py", "feature.py", "ensemble.py"]
+
+                unused_files = [
+                    py_file.name
+                    for py_file in all_python_files
+                    if not (py_file.name in used_files or py_file.name.endswith("test.py"))
+                ]
+                if unused_files:
+                    logger.warning(f"Unused scripts: {unused_files}")
+                    error_files = set(unused_files).intersection(set(must_have_files))
+                    if error_files:
+                        feedback.final_decision = False
+                        logger.warning(f"{error_files} must be used in `main.py`.")
+                        feedback.code += f"\n[Error] {error_files} must be used in `main.py`."
+                    elif use_one_model:
+                        logger.info("Remove unused scripts.")
+                        implementation.inject_files(**{file: implementation.DEL_KEY for file in unused_files})
+
+        if score_ret_code != 0:
+            feedback.final_decision = False
+            feedback.return_checking += "\n" + score_check_text
+        if submission_ret_code != 0:
+            feedback.final_decision = False
+            feedback.return_checking += "\nSubmission file check failed."
         return feedback

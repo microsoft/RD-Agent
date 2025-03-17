@@ -129,8 +129,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         if score_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\n" + score_check_text
+            wfb.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\nSubmission file check failed."
+            wfb.return_checking += "\nSubmission file check failed."
         return wfb
