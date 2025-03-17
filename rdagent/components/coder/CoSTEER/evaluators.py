@@ -43,6 +43,34 @@ class CoSTEERSingleFeedback(Feedback):
     code: str
     final_decision: bool
 
+    @staticmethod
+    def val_and_update_init_dict(data: dict) -> dict:
+        # TODO: (bowen) use a more general method to validate and update the data dictionary before init, like pydantic
+        """
+        Validates and converts the 'final_decision' field in the given data dictionary.
+
+        Args:
+            data (dict): The data dictionary containing the 'final_decision' field.
+
+        Returns:
+            dict: The updated data dictionary with 'final_decision' as a boolean.
+
+        Raises:
+            ValueError: If 'final_decision' is not present or not a boolean.
+        """
+        if "final_decision" not in data:
+            raise ValueError("'final_decision' is required")
+
+        if isinstance(data["final_decision"], str):
+            if data["final_decision"] == "false" or data["final_decision"] == "False":
+                data["final_decision"] = False
+            elif data["final_decision"] == "true" or data["final_decision"] == "True":
+                data["final_decision"] = True
+
+        if not isinstance(data["final_decision"], bool):
+            raise ValueError(f"'final_decision' must be a boolean, not {type(data['final_decision'])}")
+        return data
+
     def __str__(self) -> str:
         return f"""------------------Execution------------------
 {self.execution}

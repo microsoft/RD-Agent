@@ -81,6 +81,11 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             stdout=stdout,
             workflow_stdout=workflow_stdout,
         )
-        efb = build_cls_from_json_with_retry(EnsembleEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt)
+        efb = build_cls_from_json_with_retry(
+            EnsembleEvalFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=EnsembleEvalFeedback.val_and_update_init_dict,
+        )
         efb.final_decision = efb.final_decision and ret_code == 0
         return efb

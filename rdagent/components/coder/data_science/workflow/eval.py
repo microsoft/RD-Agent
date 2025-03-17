@@ -81,6 +81,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
+                # We assume that model names in `score_df` are stored without the '.py' file extension.
                 model_set_in_folder = set(
                     f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
@@ -121,12 +122,15 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
-            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            WorkflowSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=WorkflowSingleFeedback.val_and_update_init_dict,
         )
         if score_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\n" + score_check_text
+            wfb.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\nSubmission file check failed."
+            wfb.return_checking += "\nSubmission file check failed."
         return wfb
