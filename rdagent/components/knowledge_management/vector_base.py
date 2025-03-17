@@ -155,29 +155,48 @@ class PDVectorBase(VectorBase):
             for doc in document:
                 self.add(document=doc)
 
-    def search(self, content: str, topk_k: int = 5, similarity_threshold: float = 0) -> Tuple[List[Document], List]:
+    def search(
+        self, content: str, topk_k: int = 5, similarity_threshold: float = 0, constraint_labels: list[str] | None = None
+    ) -> Tuple[List[Document], List]:
         """
-        search vector by node
+        Search vector by node's embedding.
+
         Parameters
         ----------
-        similarity_threshold
-        content
-        topk_k: return topk_k nearest vector
+        content : str
+            The content to search for.
+        topk_k : int, optional
+            The number of nearest vectors to return.
+        similarity_threshold : float, optional
+            The minimum similarity score for a vector to be considered.
+        constraint_labels : List[str], optional
+            If provided, only nodes with matching labels will be considered.
 
         Returns
         -------
-
+        Tuple[List[Document], List]
+            A list of `topk_k` nodes that are semantically similar to the input node, sorted by similarity score.
+            All nodes shall meet the `similarity_threshold` and `constraint_labels` criteria.
         """
         if not self.vector_df.shape[0]:
             return [], []
+
         document = Document(content=content)
         document.create_embedding()
-        similarities = self.vector_df["embedding"].apply(
+
+        filtered_df = self.vector_df
+        if constraint_labels is not None:
+            filtered_df = self.vector_df[self.vector_df["label"].isin(constraint_labels)]
+
+        similarities = filtered_df["embedding"].apply(
             lambda x: 1 - cosine(x, document.embedding)
         )  # cosine is cosine distance, 1-similarity
+
         searched_similarities = similarities[similarities > similarity_threshold].nlargest(topk_k)
-        most_similar_docs = self.vector_df.loc[searched_similarities.index]
+        most_similar_docs = filtered_df.loc[searched_similarities.index]
+
         docs = []
         for _, similar_docs in most_similar_docs.iterrows():
             docs.append(Document().from_dict(similar_docs.to_dict()))
+
         return docs, searched_similarities.to_list()
