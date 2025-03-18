@@ -100,7 +100,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             # TODO: besides same code problem, we should also consider other problems lead to retry.
             if f"{target_task.name}.py" not in batch_edit:
                 continue
-            
+
             if batch_edit and max(len(i.encode("utf-8")) for i in batch_edit.keys()) > 255:
                 continue
 
