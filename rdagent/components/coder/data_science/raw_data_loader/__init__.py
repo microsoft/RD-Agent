@@ -97,11 +97,17 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 competition_info=competition_info,
                 folder_spec=data_folder_info,
             )
-            data_loader_prompt = T(".prompts:spec.user.data_loader").r(latest_spec=workspace.file_dict.get("spec/data_loader.md"))
+            data_loader_prompt = T(".prompts:spec.user.data_loader").r(
+                latest_spec=workspace.file_dict.get("spec/data_loader.md")
+            )
             feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
             model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
-            ensemble_prompt = T(".prompts:spec.user.ensemble").r(latest_spec=workspace.file_dict.get("spec/ensemble.md"))
-            workflow_prompt = T(".prompts:spec.user.workflow").r(latest_spec=workspace.file_dict.get("spec/workflow.md"))
+            ensemble_prompt = T(".prompts:spec.user.ensemble").r(
+                latest_spec=workspace.file_dict.get("spec/ensemble.md")
+            )
+            workflow_prompt = T(".prompts:spec.user.workflow").r(
+                latest_spec=workspace.file_dict.get("spec/workflow.md")
+            )
 
             spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 

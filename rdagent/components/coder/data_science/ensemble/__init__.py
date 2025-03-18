@@ -32,8 +32,9 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.ret import PythonAgentOut
+from rdagent.utils.agent.tpl import T
+
 
 class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
@@ -76,7 +77,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 queried_former_failed_knowledge[0] if queried_former_failed_knowledge else None
             ),
             all_code=workspace.all_codes,
-            out_spec=PythonAgentOut.get_spec()
+            out_spec=PythonAgentOut.get_spec(),
         )
         user_prompt = T(".prompts:ensemble_coder.user").r(
             ensemble_spec=workspace.file_dict["spec/ensemble.md"],
