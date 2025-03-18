@@ -107,13 +107,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors.columns = new_columns
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
-            # so we changed the file type of `combined_factors_df` from pkl to h5,
-            # and reset the index before dumping. The index will be restored when loading the data.
-            combined_factors_reset = combined_factors.reset_index()
+            # so we changed the file type of `combined_factors_df` from pkl to parquet.
+            target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.parquet"
 
             # Save the combined factors to the workspace
-            target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.h5"
-            combined_factors_reset.to_hdf(target_path, key="data", format="table", mode="w")
+            combined_factors.to_parquet(target_path, engine="pyarrow")
 
         result = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
