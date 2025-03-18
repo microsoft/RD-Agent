@@ -113,6 +113,7 @@ workflow_eval:
     [Note] 
     1. The individual components (data loading, feature engineering, model tuning, etc.) have already been evaluated by the user. You should only evaluate and improve the workflow code, unless there are critical issues in the components.
     2. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
+    3. As long as the execution does not exceed the time limit, ensure that the code uses cross-validation to split the training data and train the model. If cross-validation is not used, mention it in the execution section and set `final_decision` to `false`.
 
     ## Evaluation Criteria
     You will be given the workflow execution output (`stdout`) to determine correctness.  
