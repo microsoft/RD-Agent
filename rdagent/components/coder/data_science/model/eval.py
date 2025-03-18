@@ -59,17 +59,23 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         env = get_ds_env()
         env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
-        fname = "test/model_test.py"
-        test_code = (
-            (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
-        )  # only check the model changed this time
-        implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=env, entry=f"python {fname}")
+        if_model_removed = False
 
-        if stdout is None:
-            raise CoderError(
-                "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
-            )
+        if f"{target_task.name}.py" in implementation.file_dict:
+            fname = "test/model_test.py"
+            test_code = (
+                (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
+            )  # only check the model changed this time
+            implementation.inject_files(**{fname: test_code})
+            stdout = implementation.execute(env=env, entry=f"python {fname}")
+
+            if stdout is None:
+                raise CoderError(
+                    "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
+                )
+        else:
+            if_model_removed = True
+            stdout = f"Model {target_task.name} removal succeeded."
 
         if "main.py" in implementation.file_dict:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
@@ -77,19 +83,31 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         else:
             workflow_stdout = None
 
-        system_prompt = T(".prompts:model_eval.system").r(
-            task_desc=target_task.get_task_information(),
-            test_code=test_code,
-            code=implementation.file_dict[f"{target_task.name}.py"],
-            scenario=self.scen.get_scenario_all_desc(),
-            spec=implementation.file_dict["spec/model.md"],
-            workflow_stdout=workflow_stdout,
-            workflow_code=implementation.all_codes,
-        )
-        user_prompt = T(".prompts:model_eval.user").r(
-            stdout=stdout,
-            workflow_stdout=workflow_stdout,
-        )
+        if if_model_removed:
+            system_prompt = T(".prompts:model_eval_rm.system").r(
+                task_desc=target_task.get_task_information(),
+                workflow_stdout=workflow_stdout,
+                workflow_code=implementation.all_codes,
+            )
+            user_prompt = T(".prompts:model_eval_rm.user").r(
+                stdout=stdout,
+                workflow_stdout=workflow_stdout,
+            )
+        else:
+            system_prompt = T(".prompts:model_eval.system").r(
+                task_desc=target_task.get_task_information(),
+                test_code=test_code,
+                code=implementation.file_dict[f"{target_task.name}.py"],
+                scenario=self.scen.get_scenario_all_desc(),
+                spec=implementation.file_dict["spec/model.md"],
+                workflow_stdout=workflow_stdout,
+                workflow_code=implementation.all_codes,
+            )
+            user_prompt = T(".prompts:model_eval.user").r(
+                stdout=stdout,
+                workflow_stdout=workflow_stdout,
+            )
+
         return build_cls_from_json_with_retry(
             ModelSingleFeedback,
             system_prompt=system_prompt,
