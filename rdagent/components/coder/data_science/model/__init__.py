@@ -104,7 +104,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             ] != workspace.file_dict.get(f"{target_task.name}.py"):
                 break
 
-            # model removal logic
+            # If the task involves model removal, assume it can only process one model at a time.
             if len(batch_edit) == 1 and batch_edit[f"{target_task.name}.py"] == "__DEL__":
                 break
         else:

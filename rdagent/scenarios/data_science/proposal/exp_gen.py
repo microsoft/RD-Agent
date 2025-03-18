@@ -65,7 +65,6 @@ COMPONENT_TASK_MAPPING = {
         "spec_file": "spec/model.md",
         "task_output_format": T(".prompts:output_format.model").r(),
         "task_class": ModelTask,
-        # "extra_requirement": T(".prompts:extra_requirement.model").r(),
     },
     "Ensemble": {
         "target_name": "Ensemble",
@@ -393,7 +392,6 @@ class DSExpGen(ExpGen):
                     hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                     task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
                     task_output_format=component_info["task_output_format"],
-                    # extra_requirement=component_info.get("extra_requirement"),
                     workflow_check=(not component == "Workflow"),
                 )
 

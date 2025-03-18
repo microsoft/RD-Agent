@@ -5,8 +5,6 @@ model_coder:
 
     ## Task Description
     {{ task_desc }}
-
-    If the task is to remove a model, you don't need to write any code. Simply follow the Output Format to process the deleted model file.
     
     ## Competition Information for This Task
     {{ competition_info }}
