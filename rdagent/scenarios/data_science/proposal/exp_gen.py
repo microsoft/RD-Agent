@@ -61,16 +61,10 @@ COMPONENT_TASK_MAPPING = {
         "task_class": FeatureTask,
     },
     "Model": {
-        "target_name": "Building model",
+        "target_name": "Model",
         "spec_file": "spec/model.md",
         "task_output_format": T(".prompts:output_format.model").r(),
         "task_class": ModelTask,
-        "extra_params": {
-            "model_type": "Model type not provided",
-            "architecture": "Model architecture not provided",
-            "hyperparameters": "Model hyperparameters not provided",
-        },
-        "extra_requirement": T(".prompts:extra_requirement.model").r(),
     },
     "Ensemble": {
         "target_name": "Ensemble",
@@ -259,10 +253,6 @@ class DSExpGen(ExpGen):
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
             description=resp_dict.get("description", f"{component} description not provided"),
-            **{
-                k: resp_dict.get("extra_params", {}).get(k, v)
-                for k, v in COMPONENT_TASK_MAPPING[component].get("extra_params", {}).items()
-            },
         )
 
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(component))
@@ -350,6 +340,12 @@ class DSExpGen(ExpGen):
                 scenario=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
                 last_exp_diff=last_exp_diff,
+                component_desc="\n".join(
+                    [
+                        f"[{key}] {value}"
+                        for key, value in T("scenarios.data_science.share:component_description").template.items()
+                    ]
+                ),
                 component_output_format=T(".prompts:output_format.component").r(),
             )
 
@@ -396,12 +392,12 @@ class DSExpGen(ExpGen):
                     hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                     task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
                     task_output_format=component_info["task_output_format"],
-                    extra_requirement=component_info.get("extra_requirement"),
                     workflow_check=(not component == "Workflow"),
                 )
 
                 user_prompt = T(".prompts:direct_exp_gen.user").r(
                     targets=component_info["target_name"],
+                    sota_exp_desc=sota_exp_desc,
                     sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
                     failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
                     last_exp_diff=last_exp_diff,
