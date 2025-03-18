@@ -1,7 +1,6 @@
 from typing import Any
 
-from litellm import completion, embedding, token_counter
-
+from litellm import completion, embedding, token_counter, supports_response_schema
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.backend.base import APIBackend
@@ -69,7 +68,7 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
-        if json_mode and LITELLM_SETTINGS.chat_model != "o1-preview":
+        if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
 
         # Call LiteLLM completion
