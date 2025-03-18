@@ -90,12 +90,17 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             )
 
             # 3. post process to align file name to the task name
+            # we assumpt batch_edit only contains one model file update.
             batch_edit = {
                 (f"{target_task.name}.py" if value != "__DEL__" and key != f"{target_task.name}.py" else key): value
                 for key, value in batch_edit.items()
             }
 
             user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+            # TODO: besides same code problem, we should also consider other problems lead to retry.
+            if f"{target_task.name}.py" not in batch_edit:
+                continue
+
             if batch_edit and max(len(i.encode("utf-8")) for i in batch_edit.keys()) > 255:
                 continue
 
