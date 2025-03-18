@@ -159,28 +159,30 @@ task_gen_model: # It is deprecated now, please refer to direct_exp_gen
 
 direct_exp_gen:
   system: |-
-    You are a data scientist and a top Kaggle competitor. The user is working on creating a solution for a Kaggle competition. Your task is to first suggest a hypothesis and then design a task to enhance the current best solution based on that hypothesis.
+    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science, and also a grandmaster in Kaggle competitions.
+    Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
+    
+    The user is working on creating a solution for a Kaggle competition. Your task is to first suggest a hypothesis and then design a task to enhance the current best solution based on that hypothesis.
 
     The component to focus on for the next hypothesis is already determined as: {{ component }}.
     It will be used in the following scenario:
     {{ scenario }}
 
-    # Hypothesis Proposal
-
-    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later. Your task is to check if a similar hypothesis has already been generated. If one exists and you agree with it, you can use it. If you disagree, please create an improved version.
+    # Step1: Hypothesis Proposal
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later.
 
     ## Hypothesis Specification
     To assist you in formulating new hypotheses, the user has provided some additional information: 
     {{ hypothesis_specification }}
 
     ## Guidelines
-    Important: If the hypothesis_specification outlines the next steps you need to follow, ensure you adhere to those instructions.
+    Important: If the Hypothesis Specification outlines the next steps you need to follow, ensure you adhere to those instructions.
 
     [Partial Response Format 1] Your generated output should contain key-value pairs adhering to the following format and specifications:
     {{ hypothesis_output_format }}
     Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 
-    # Task Design
+    # Step2: Task Design
 
     The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step.
 
@@ -201,7 +203,7 @@ direct_exp_gen:
     {{ task_output_format }}
 
     {% if workflow_check %}
-    # Workflow update
+    # Step3: Workflow update
     Since components have dependencies, the workflow should be updated to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
     [Partial Response Format 3] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
     {% endif %}
@@ -214,12 +216,13 @@ direct_exp_gen:
     }
 
   user: |-
-    # All former successful experiments and their feedbacks, the current SOTA solution is the combination of the best solutions of these trials:
+    # All former successful experiments and their feedbacks
+    Below are all the experiments that surpassed the previous SOTA solutions along with their feedback. The current SOTA solution is the latest among these successful trials:
     {{ sota_exp_and_feedback_list_desc }}
 
     {% if failed_exp_and_feedback_list_desc %}
-    # Several trials after the best experiments
-    The user has made several hypothesis on this scenario and did several evaluation on them.
+    # Several latest failed experiments and their feedbacks
+    The user has conducted several recent experiments on this scenario, but they either encountered execution errors or failed to surpass the SOTA performance. The details of these failed experiments and their results are as follows:
     {{ failed_exp_and_feedback_list_desc }}
     
     {% if targets == "Model" %}
@@ -228,17 +231,18 @@ direct_exp_gen:
     Here is the SOTA solution:
     {{ sota_exp_desc }}
     Pay attention to the **Results** section. If there are sufficient models available and there is a model with a significantly worse score, consider removing that model. In this case, `model_name` in task_design should be the model you are going to remove (the name must be the same as the name in the model column in the **Results** section), and `description` should start with "Model removal".
+    
     Otherwise, if the number of available models is insufficient. Your task is to first decide whether to:
-      - Tune an existing model: Select one of the current models for further tuning and improvement.
-      - Add a new model: Introduce a new model to expand the hypothesis space.
+      a. Tune an existing model: Select one of the current models for further tuning and improvement.
+      b. Add a new model: Introduce a new model to expand the hypothesis space.
 
-      The information of the model is described by the code of workspace.
+    The information of the model is described by the code of workspace.
 
-      Make a decision and proceed accordingly:
-      - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
-      - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
+    Then, based on your decision, proceed with the corresponding actions accordingly:
+      a. If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
+      b. If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
 
-      When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
+    When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
     {% endif %}
     
     {% endif %}
@@ -248,22 +252,6 @@ direct_exp_gen:
     It is presented in diff format, highlighting changes from the best version to the latest version.
     {{ last_exp_diff }}
     {% endif %}
-
-extra_requirement:
-  model: |-
-    If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
-
-    If the number of available models is insufficient. Your task is to first decide whether to:
-    - Tune an existing model: Select one of the current models for further tuning and improvement.
-    - Add a new model: Introduce a new model to expand the hypothesis space.
-
-    The information of the model is described by the code of workspace.
-
-    Make a decision and proceed accordingly:
-    - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
-    - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
-
-    When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
 
 component_gen:
   system: |-
