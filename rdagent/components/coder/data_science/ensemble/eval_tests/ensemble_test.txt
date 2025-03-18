@@ -22,7 +22,7 @@ def print_preds_info(model_name, data_type, preds):
     else:
         print(f"Model {model_name} {data_type} predictions shape: {preds.shape}")
 
-        if isinstance(preds, pd.DataFrame):
+        if isinstance(preds, (pd.DataFrame, pd.Series)):
             print(preds.head())
         elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
             print(pd.DataFrame(preds).head())

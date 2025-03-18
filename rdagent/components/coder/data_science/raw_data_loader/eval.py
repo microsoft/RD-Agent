@@ -81,5 +81,8 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         return build_cls_from_json_with_retry(
-            DataLoaderEvalFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            DataLoaderEvalFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=DataLoaderEvalFeedback.val_and_update_init_dict,
         )

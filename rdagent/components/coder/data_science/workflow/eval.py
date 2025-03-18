@@ -81,15 +81,15 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
+                # We assume that model names in `score_df` are stored without the '.py' file extension.
                 model_set_in_folder = set(
                     f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
-                for model in model_set_in_folder:
-                    if model not in model_set_in_scores:
-                        score_check_text += f"\nModel {model} is not evaluated in the scores.csv. The scores.csv has {model_set_in_scores}."
-                        score_ret_code = 1
+                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                    score_ret_code = 1
             except Exception as e:
-                score_check_text += f"\nError in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
         # Check submission file
@@ -122,12 +122,15 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
-            WorkflowSingleFeedback, system_prompt=system_prompt, user_prompt=user_prompt
+            WorkflowSingleFeedback,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            init_kwargs_update_func=WorkflowSingleFeedback.val_and_update_init_dict,
         )
         if score_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\n" + score_check_text
+            wfb.return_checking += "\n" + score_check_text
         if submission_ret_code != 0:
             wfb.final_decision = False
-            wfb.execution += "\nSubmission file check failed."
+            wfb.return_checking += "\nSubmission file check failed."
         return wfb
