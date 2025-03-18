@@ -253,22 +253,6 @@ direct_exp_gen:
     {{ last_exp_diff }}
     {% endif %}
 
-extra_requirement:  # It is deprecated now, please refer to direct_exp_gen.user
-  model: |-
-    If there are sufficient models available. Your task is to choose one of the existing models for further tuning or optimization. Based on the model's information:
-
-    If the number of available models is insufficient. Your task is to first decide whether to:
-    - Tune an existing model: Select one of the current models for further tuning and improvement.
-    - Add a new model: Introduce a new model to expand the hypothesis space.
-
-    The information of the model is described by the code of workspace.
-
-    Make a decision and proceed accordingly:
-    - If you decide to tune an existing model, select the existing model file and generate a new hypothesis.
-    - If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
-
-    When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
-
 component_gen:
   system: |-
     You are a Kaggle Grander Master. You are going to provide a solution for a kaggle competition.
