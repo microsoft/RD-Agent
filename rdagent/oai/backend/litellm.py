@@ -1,6 +1,6 @@
 from typing import Any
 
-from litellm import completion, embedding, token_counter
+from litellm import completion, embedding, supports_response_schema, token_counter
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -69,7 +69,7 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the chat completion function
         """
-        if json_mode:
+        if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
 
         # Call LiteLLM completion
@@ -104,6 +104,11 @@ class LiteLLMAPIBackend(APIBackend):
         else:
             content = str(response.choices[0].message.content)
             finish_reason = response.choices[0].finish_reason
-            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {content}", tag="llm_messages")
+            finish_reason_str = (
+                f"({LogColors.RED}Finish reason: {finish_reason}{LogColors.END})"
+                if finish_reason and finish_reason != "stop"
+                else ""
+            )
+            logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         return content, finish_reason
