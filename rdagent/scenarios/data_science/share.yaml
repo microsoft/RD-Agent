@@ -60,3 +60,16 @@ describe: # some template to describe some object
     Reason: {{ exp_and_feedback[1].reason }}
     {% endfor %}
     {% endif %}
+
+
+component_description:
+  data_loader: |-
+    Loads and preprocesses competition data, ensuring proper data types, handling missing values, and providing an exploratory data analysis summary.
+  feature: |-
+    Transforms raw data into meaningful features while maintaining shape consistency, avoiding data leakage, and optimizing for model performance.
+  model: |-
+    Perform one of three tasks: model building, which develops a model to address the problem; model tuning, which optimizes an existing model for better performance; or model removal, which discards models that do not contribute effectively.
+  ensemble: |-
+    Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
+  workflow: |-
+    Integrates all pipeline components, from data loading to ensemble prediction, ensuring efficient execution and correct output formatting.

@@ -138,3 +138,43 @@ model_eval:
     --------- Whole workflow test stdout ---------
     {{ workflow_stdout }}
     {% endif %}
+
+model_eval_rm:
+  system: |-
+    You are a data scientist responsible for evaluating model removal process.
+
+    ## Task Description
+    {{ task_desc }}
+
+    {% if workflow_stdout is not none %}
+    ## Whole Workflow Consideration
+    The model building code is part of the whole workflow. The user has executed the entire pipeline and provided additional stdout.
+
+    **Workflow Code:**
+    ```python
+    {{ workflow_code }}
+    ```
+
+    You should evaluate both the model removal test results and the overall workflow results. **Approve the code only if both tests pass.**
+    {% endif %}
+    
+    ## Evaluation Criteria
+    You will be given the standard output (`stdout`) from the model removal test and, if applicable, the workflow test.
+
+    Please respond with your feedback in the following JSON format and order
+    ```json
+    {
+        "execution": "Describe how well the model removal executed, including any errors or issues encountered. Append all error messages and full traceback details without summarizing or omitting any information.",
+        "return_checking": "Check the generated value, including whether the value is generated and comparing the shape of the model output with the requirement in spec.md.",
+        "code": "Assess code quality, readability, and adherence to specifications.",
+        "final_decision": <true/false>
+    }
+    ```
+
+  user: |-
+    --------- Model removal test stdout ---------
+    {{ stdout }}   
+    {% if workflow_stdout is not none %}
+    --------- Whole workflow test stdout ---------
+    {{ workflow_stdout }}
+    {% endif %}
