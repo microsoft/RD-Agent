@@ -5,7 +5,7 @@ PythonAgentOut: |-
   ```
   
 BatchEditOut: |-
-  You should return a edition that applies to multiple files in a workspace in JSON.
+  You should return an edition that applies to multiple files in a workspace in JSON.
   Except for the model file, other files should not be renamed.
   Files that do not need to be modified do not need to be included in the returned dict.
 
@@ -21,7 +21,7 @@ BatchEditOut: |-
   }
 
 PythonBatchEditOut: |-
-  You should return a edition that applies to multiple files in a workspace.
+  You should return an edition that applies to multiple files in a workspace.
   Except for the model file, other files should not be renamed.
   Files that do not need to be modified do not need to be included in the returned text.
 
