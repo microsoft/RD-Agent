@@ -87,6 +87,10 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 )
             )
 
+            if not all(i.startswith("model_") for i in batch_edit.keys()):
+                user_prompt += "\nYou should only update model codes!"
+                continue
+
             # 3. post process to align file name to the task name
             # we assumpt batch_edit only contains one model file update.
             batch_edit = {
