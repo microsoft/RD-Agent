@@ -12,8 +12,52 @@ Installation
 
 **Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 
-LiteLLM Backend
+LiteLLM Backend Configuration
 =======
+
+Please create a `.env` file in the root directory of the project and add environment variables.
+
+Here is a standard configuration for using OpenAI via LiteLLM.
+
+   .. code-block:: Properties
+
+      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+      LITELLM_CHAT_MODEL=gpt-4o
+      LITELLM_EMBEDDING_MODEL=text-embedding-3-small
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+
+Necessary Parameters:
+
+- `BACKEND`: The backend to use. The default is `rdagent.oai.backend.DeprecBackend`. To use the LiteLLM backend, set it to `rdagent.oai.backend.LiteLLMAPIBackend`.
+
+- `LITELLM_CHAT_MODEL`: The model name of the chat model. 
+
+- `LITELLM_EMBEDDING_MODEL`: The model name of the embedding model.
+
+The `LITELLM_CHAT_MODEL` and `LITELLM_EMBEDDING_MODEL` should match the model names used when calling LiteLLM. For example, if you are using the DeepSeek-R1 model, you should set it as follows:
+
+   .. code-block:: Properties
+
+      LITELLM_CHAT_MODEL=deepseek/deepseek-reasoner
+
+Additional Parameters:
+
+You should configure other necessary parameters based on the model you are using. The variable names must align with those required by LiteLLM. 
+
+For example, if you are using an OpenAI model, you need to set the `OPENAI_API_KEY`:
+
+   .. code-block:: Properties
+
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+
+Similarly, if you are using a DeepSeek model, you need to set the `DEEPSEEK_API_KEY`:
+
+   .. code-block:: Properties
+
+      DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
+
+For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
+
 
 Configuration(deprecated)
 =============
