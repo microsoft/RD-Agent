@@ -45,7 +45,7 @@ class LiteLLMAPIBackend(APIBackend):
         """
         response_list = []
         for input_content_iter in input_content_list:
-            model_name = LITELLM_SETTINGS.embedding_model or "azure/text-embedding-3-small"
+            model_name = LITELLM_SETTINGS.embedding_model
             logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
             logger.info(f"Creating embedding for: {input_content_iter}", tag="debug_litellm_emb")
             if not isinstance(input_content_iter, str):
