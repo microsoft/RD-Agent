@@ -42,7 +42,7 @@ PythonBatchEditOut: |-
   NOTE:
   - The file name should always contain the suffix.
   - The file name should be unique to prevent conflicts during removal or replacement.
-  - To indicate writing code into a file, provide the corresponding <code> within the code block (creating a new file or updating an existing one).
+  - To indicate writing code into a file, provide the corresponding code to replace "<code>" (creating a new file or updating an existing one).
   {% if with_del %}
   - To explicitly remove a file, provide only `__DEL__` within the code block for that file.
   - To replace a file with a new one, first provide ` __DEL__` for the original file, then include a separate entry with new file name and the new code.
