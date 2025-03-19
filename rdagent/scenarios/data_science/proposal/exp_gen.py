@@ -374,12 +374,15 @@ class DSExpGen(ExpGen):
             
             # Multi-level Bayesian Optimization
             if bo_mode and idea_bo_step > 0 and component_bo_step > 0:
+
+                print("Multi-level BO-based idea generation mode")
                 
                 return self._multi_level_bo_generation(
                     trace, context, component_bo_step, idea_bo_step, sota_exp, bo_idea_polish
                 )
             # Regular mode - single component, single idea
             else:
+                print("Regular idea generation mode")
                 component = self._component_propose(trace, context)
                 component_info = COMPONENT_TASK_MAPPING.get(component)
                 if not component_info:

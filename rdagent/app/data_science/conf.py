@@ -20,7 +20,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The timeout limit for running on full data"""
 
     # BO related
-    bo_mode: bool = True
+    # bo_mode: bool = True
+    bo_mode: bool = False
 
     idea_bo_step: int = 3
     """The step size for idea generation BO"""
