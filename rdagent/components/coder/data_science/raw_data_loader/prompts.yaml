@@ -263,8 +263,24 @@ spec:
 
       3. Dataset Splitting
         - The dataset returned by `load_data` is not pre-split. After calling `feat_eng`, split the data into training and test sets.
-        - If feasible, apply cross-validation on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
+        - [Notice] If feasible, apply cross-validation (e.g. KFold) on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
         - Keep the test set (`X_test_transformed`) unchanged, as it is only used for generating the final predictions.
+        - Pseudocode logic for reference:
+          ```
+          Set number of splits and initialize KFold cross-validator.
+          Create dictionaries for validation and test predictions.
+          For each model file:
+              Import the model dynamically.
+              Initialize arrays for out-of-fold (OOF) and test predictions.
+              For each fold in KFold:
+                  Split data into training and validation sets.
+                  Run model workflow to get validation and test predictions.
+                  Validate shapes.
+                  Store validation and test predictions.
+              Compute average test predictions across folds.
+              Save OOF and averaged test predictions.
+          Ensemble predictions from all models and print the final shape.
+          ```
 
       4. Submission File:
         - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
