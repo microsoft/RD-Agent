@@ -368,10 +368,12 @@ class DSExpGen(ExpGen):
 
             def format_idea(ideas, component=None):
                 suggested_ideas = ""
-                for i, idea in enumerate(ideas):
+                idx = 1
+                for idea in ideas:
                     if component is None or idea.component == component:
-                        suggested_ideas += f"## Idea {i}\n"
+                        suggested_ideas += f"## Idea {idx}\n"
                         suggested_ideas += f"{idea.knowledge()}\n\n"
+                        idx += 1
                 return suggested_ideas
 
             # Generate component using template with proper context
