@@ -21,7 +21,7 @@ data_handler_config: &data_handler_config
                             - ["LABEL0"]
                 - class: qlib.data.dataset.loader.StaticDataLoader
                   kwargs:
-                    config: "combined_factors_df.pkl"
+                    config: "combined_factors_df.parquet"
 
     learn_processors:
         - class: DropnaLabel

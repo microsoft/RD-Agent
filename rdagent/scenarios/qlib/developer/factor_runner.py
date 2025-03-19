@@ -105,10 +105,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
+            # Due to the rdagent and qlib docker image in the numpy version of the difference,
+            # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
+            # so we changed the file type of `combined_factors_df` from pkl to parquet.
+            target_path = exp.experiment_workspace.workspace_path / "combined_factors_df.parquet"
 
             # Save the combined factors to the workspace
-            with open(exp.experiment_workspace.workspace_path / "combined_factors_df.pkl", "wb") as f:
-                pickle.dump(combined_factors, f)
+            combined_factors.to_parquet(target_path, engine="pyarrow")
 
         result = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"

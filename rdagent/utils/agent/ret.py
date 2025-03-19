@@ -48,3 +48,22 @@ class BatchEditOut(AgentOut):
     @classmethod
     def extract_output(cls, resp: str):
         return json.loads(resp)
+
+
+class PythonBatchEditOut(AgentOut):
+
+    @classmethod
+    def get_spec(cls, with_del=True):
+        return T(".tpl:PythonBatchEditOut").r(with_del=with_del)
+
+    @classmethod
+    def extract_output(cls, resp: str):
+        code_blocks = {}
+        pattern = re.compile(r"```(.*?)\n(.*?)\n```", re.DOTALL)
+        matches = pattern.findall(resp)
+
+        for match in matches:
+            file_name, code = match
+            code_blocks[file_name.strip()] = code.strip()
+
+        return code_blocks
