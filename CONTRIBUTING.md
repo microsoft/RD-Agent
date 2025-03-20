@@ -29,7 +29,8 @@ grep -r "TODO:"
    ```sh
    git push origin feature/your-feature-name
    ```
-7. **Create a Pull Request**: Create a pull request from your forked repository to the main repository.
+7. **Ensure CI Passes**: Make sure your code passes the automatic CI checks on GitHub.
+8. **Create a Pull Request**: Create a pull request from your forked repository to the main repository.
 
 ## Code of Conduct
 
