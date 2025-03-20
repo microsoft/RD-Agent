@@ -14,7 +14,7 @@ from typing import Any, Generic, TypeVar
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evaluation import Feedback
-from rdagent.utils import filter_progress_bar
+from rdagent.utils import filter_redundant_text
 from rdagent.utils.fmt import shrink_text
 
 if typing.TYPE_CHECKING:
@@ -264,7 +264,7 @@ class FBWorkspace(Workspace):
         stdout, return_code = env.run_ret_code(entry, str(self.workspace_path))
         return (
             shrink_text(
-                filter_progress_bar(stdout),
+                filter_redundant_text(stdout),
                 context_lines=RD_AGENT_SETTINGS.stdout_context_len,
             ),
             return_code,
