@@ -22,10 +22,11 @@ def print_preds_info(model_name, data_type, preds):
     else:
         print(f"Model {model_name} {data_type} predictions shape: {preds.shape}")
 
+        print("Showing a preview of the predictions (first few entries only):")
         if isinstance(preds, (pd.DataFrame, pd.Series)):
             print(preds.head())
         elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
-            print(pd.DataFrame(preds).head())
+            print(preds[:2])
         elif isinstance(preds, list):
             print(pd.DataFrame(preds[:5]))
         else:
