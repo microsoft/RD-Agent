@@ -75,18 +75,19 @@ class DataScienceRDLoop(RDLoop):
         exp = prev_out["direct_exp_gen"]
         for tasks in exp.pending_tasks_list:
             exp.sub_tasks = tasks
-            if isinstance(exp.sub_tasks[0], DataLoaderTask):
-                exp = self.data_loader_coder.develop(exp)
-            elif isinstance(exp.sub_tasks[0], FeatureTask):
-                exp = self.feature_coder.develop(exp)
-            elif isinstance(exp.sub_tasks[0], ModelTask):
-                exp = self.model_coder.develop(exp)
-            elif isinstance(exp.sub_tasks[0], EnsembleTask):
-                exp = self.ensemble_coder.develop(exp)
-            elif isinstance(exp.sub_tasks[0], WorkflowTask):
-                exp = self.workflow_coder.develop(exp)
-            else:
-                raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
+            with logger.tag(f"{exp.sub_tasks[0].__class__.__name__}"):
+                if isinstance(exp.sub_tasks[0], DataLoaderTask):
+                    exp = self.data_loader_coder.develop(exp)
+                elif isinstance(exp.sub_tasks[0], FeatureTask):
+                    exp = self.feature_coder.develop(exp)
+                elif isinstance(exp.sub_tasks[0], ModelTask):
+                    exp = self.model_coder.develop(exp)
+                elif isinstance(exp.sub_tasks[0], EnsembleTask):
+                    exp = self.ensemble_coder.develop(exp)
+                elif isinstance(exp.sub_tasks[0], WorkflowTask):
+                    exp = self.workflow_coder.develop(exp)
+                else:
+                    raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
             exp.sub_tasks = []
         logger.log_object(exp)
         return exp
