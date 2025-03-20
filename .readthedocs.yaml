@@ -18,8 +18,6 @@ build:
     - python -m pip install --upgrade --upgrade-strategy only-if-needed --no-cache-dir . 
     - git fetch --tags --unshallow || true
     - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - cd docs && pwd
-    - cd docs && ls
     - python -m sphinx -T -b html -d _build/doctrees -D language=en ./docs $READTHEDOCS_OUTPUT/html
 
 # Build documentation in the docs/ directory with Sphinx
