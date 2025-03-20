@@ -1,8 +1,10 @@
-filter_progress_bar:
+filter_redundant_text:
   system: |
-    You are an assistant helping to analyze and filter training log messages and a progress bar output from a given text. Evaluate the text to determine if training log messages and a progress bar output patterns are present and, if so, generate a list of regex patterns to remove them. 
-    Additionally, indicate whether substitution is needed. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
-    Note: About the training log message, if the log message contains useful information like loss or accuracy and it is reported in each epoch, it should not be removed. If the log message is not useful, for example, reporting nan in each iteration or just reporting the iteration number, please remove them.
+    You are an assistant designed to analyze and filter text containing training log messages, repeated warning messages, and progress bar outputs. Your task is to examine the text and determine whether these patterns are present. 
+    1. Training log messages should be evaluated based on their usefulness—logs that contain meaningful training metrics such as loss or accuracy reported at each epoch should be retained, while redundant messages, such as those repeatedly reporting NaN values or iteration numbers without valuable information, should be removed. 
+    2. For warning messages, **only one occurrence of each unique message should be kept**, eliminating any duplicates.
+    3. Additionally, any visual progress indicators, such as ASCII-based progress bars or dynamic percentage updates, should be removed. Once these patterns are identified, you should generate appropriate regex expressions to filter them out.
+    4. Lastly, indicate whether substitution is needed. If the input exceeds a token limit, the system will provide only a shortened portion of the text.
 
     Respond in the following JSON format and order:
     {
@@ -14,4 +16,4 @@ filter_progress_bar:
 
     {{ stdout }}
 
-    Check if the text contains training log messages and progress bar patterns. If patterns are found, provide a list of regex patterns to filter them. Otherwise, indicate that substitution is not needed.
+    Check if the text contains training log messages, repeated warning messages, and progress bar patterns. If patterns are found, provide a list of regex patterns to filter them. Otherwise, indicate that substitution is not needed.

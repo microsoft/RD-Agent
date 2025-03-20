@@ -74,7 +74,7 @@ def remove_ansi_codes(s: str) -> str:
     return ansi_escape.sub("", s)
 
 
-def filter_progress_bar(stdout: str) -> str:
+def filter_redundant_text(stdout: str) -> str:
     """
     Filter out progress bars from stdout using regex.
     """
@@ -99,10 +99,10 @@ def filter_progress_bar(stdout: str) -> str:
     # Attempt further filtering up to 5 times
     for _ in range(5):
         filtered_stdout_shortened = filtered_stdout
-        system_prompt = T(".prompts:filter_progress_bar.system").r()
+        system_prompt = T(".prompts:filter_redundant_text.system").r()
 
         for __ in range(10):
-            user_prompt = T(".prompts:filter_progress_bar.user").r(
+            user_prompt = T(".prompts:filter_redundant_text.user").r(
                 stdout=filtered_stdout_shortened,
             )
             stdout_token_size = APIBackend().build_messages_and_calculate_token(
@@ -112,9 +112,10 @@ def filter_progress_bar(stdout: str) -> str:
             if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
                 return filtered_stdout_shortened
             elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
-                filtered_stdout_shortened = filtered_stdout_shortened[
-                    len(filtered_stdout_shortened) // 4 : len(filtered_stdout_shortened) * 3 // 4
-                ]
+                filtered_stdout_shortened = (
+                    filtered_stdout_shortened[: int(LLM_SETTINGS.chat_token_limit * 0.3)]
+                    + filtered_stdout_shortened[-int(LLM_SETTINGS.chat_token_limit * 0.3) :]
+                )
             else:
                 break
 
