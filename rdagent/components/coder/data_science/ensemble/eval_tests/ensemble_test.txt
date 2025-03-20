@@ -25,11 +25,7 @@ def print_preds_info(model_name, data_type, preds):
         if isinstance(preds, (pd.DataFrame, pd.Series)):
             print(preds.head())
         elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
-            print(f"Predictions shape: {preds.shape}")
-            if len(preds.shape) > 2:
-                print(preds[:5])
-            else:
-                print(pd.DataFrame(preds).head())
+            print(preds[:5])
         elif isinstance(preds, list):
             print(pd.DataFrame(preds[:5]))
         else:
