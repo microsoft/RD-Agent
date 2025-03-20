@@ -22,38 +22,29 @@ Here is a standard configuration for using OpenAI via LiteLLM.
    .. code-block:: Properties
 
       BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-      LITELLM_CHAT_MODEL=gpt-4o
-      LITELLM_EMBEDDING_MODEL=text-embedding-3-small
+      CHAT_MODEL=gpt-4o
+      EMBEDDING_MODEL=text-embedding-3-small
+      # The backend api_key fully follows the convention of litellm.
       OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
-Necessary Parameters:
+Necessary parameters include:
 
 - `BACKEND`: The backend to use. The default is `rdagent.oai.backend.DeprecBackend`. To use the LiteLLM backend, set it to `rdagent.oai.backend.LiteLLMAPIBackend`.
 
-- `LITELLM_CHAT_MODEL`: The model name of the chat model. 
+- `CHAT_MODEL`: The model name of the chat model. 
 
-- `LITELLM_EMBEDDING_MODEL`: The model name of the embedding model.
+- `EMBEDDING_MODEL`: The model name of the embedding model.
 
-The `LITELLM_CHAT_MODEL` and `LITELLM_EMBEDDING_MODEL` should match the model names used when calling LiteLLM. For example, if you are using the DeepSeek-R1 model, you should set it as follows:
+The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. Therefore, the model names must match those allowed by LiteLLM.
 
-   .. code-block:: Properties
+Additionally, you need to set up the the additional parameters for the respective model provider, and the parameter names must align with those required by LiteLLM.
 
-      LITELLM_CHAT_MODEL=deepseek/deepseek-reasoner
-
-Additional Parameters:
-
-You should configure other necessary parameters based on the model you are using. The variable names must align with those required by LiteLLM. 
-
-For example, if you are using an OpenAI model, you need to set the `OPENAI_API_KEY`:
+For example, if you are using a DeepSeek model, you need to set as follows:
 
    .. code-block:: Properties
 
-      OPENAI_API_KEY=<replace_with_your_openai_api_key>
-
-Similarly, if you are using a DeepSeek model, you need to set the `DEEPSEEK_API_KEY`:
-
-   .. code-block:: Properties
-
+      # For some models LiteLLM requires a prefix to the model name.
+      CHAT_MODEL=deepseek/deepseek-chat
       DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
 
 For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.

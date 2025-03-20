@@ -132,8 +132,9 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   ```bash
   cat << EOF  > .env
   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
-  LITELLM_CHAT_MODEL=gpt-4o
-  LITELLM_EMBEDDING_MODEL=text-embedding-3-small
+  CHAT_MODEL=gpt-4o
+  EMBEDDING_MODEL=text-embedding-3-small
+  # The backend api_key fully follow the convention of litellm.
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
   
