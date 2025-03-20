@@ -112,9 +112,7 @@ def filter_progress_bar(stdout: str) -> str:
             if stdout_token_size < LLM_SETTINGS.chat_token_limit * 0.1:
                 return filtered_stdout_shortened
             elif stdout_token_size > LLM_SETTINGS.chat_token_limit * 0.6:
-                filtered_stdout_shortened = filtered_stdout_shortened[
-                    len(filtered_stdout_shortened) // 4 : len(filtered_stdout_shortened) * 3 // 4
-                ]
+                filtered_stdout_shortened = filtered_stdout_shortened[:int(LLM_SETTINGS.chat_token_limit * 0.3)] + filtered_stdout_shortened[-int(LLM_SETTINGS.chat_token_limit * 0.3):]
             else:
                 break
 
