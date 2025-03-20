@@ -266,6 +266,7 @@ class FBWorkspace(Workspace):
             shrink_text(
                 filter_redundant_text(stdout),
                 context_lines=RD_AGENT_SETTINGS.stdout_context_len,
+                line_len=RD_AGENT_SETTINGS.stdout_line_len,
             ),
             return_code,
         )
