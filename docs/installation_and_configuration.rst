@@ -13,7 +13,7 @@ Installation
 **Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 
 LiteLLM Backend Configuration
-=======
+=============
 
 Please create a `.env` file in the root directory of the project and add environment variables.
 
