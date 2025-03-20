@@ -17,11 +17,12 @@ LiteLLM Backend Configuration
 
 Please create a `.env` file in the root directory of the project and add environment variables.
 
-Here is a standard configuration for using OpenAI via LiteLLM.
+Here is a sample configuration for using OpenAI's gpt-4o via LiteLLM. 
 
    .. code-block:: Properties
 
       BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+      # It can be modified to any model supported by LiteLLM.
       CHAT_MODEL=gpt-4o
       EMBEDDING_MODEL=text-embedding-3-small
       # The backend api_key fully follows the convention of litellm.
@@ -35,7 +36,9 @@ Necessary parameters include:
 
 - `EMBEDDING_MODEL`: The model name of the embedding model.
 
-The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. Therefore, the model names must match those allowed by LiteLLM.
+The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. 
+
+Therefore, when utilizing models provided by different providers, first review the interface configuration of LiteLLM. The model names must match those allowed by LiteLLM.
 
 Additionally, you need to set up the the additional parameters for the respective model provider, and the parameter names must align with those required by LiteLLM.
 

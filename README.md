@@ -128,10 +128,11 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   EOF
   ```
 
-- If you use LiteLLM Backend to use models, you can configure as follows:
+- We now support LiteLLM as a backend for integration with multiple LLM providers. If you use LiteLLM Backend to use models, you can configure as follows:
   ```bash
   cat << EOF  > .env
   BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+  # It can be modified to any model supported by LiteLLM.
   CHAT_MODEL=gpt-4o
   EMBEDDING_MODEL=text-embedding-3-small
   # The backend api_key fully follow the convention of litellm.
