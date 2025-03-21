@@ -331,6 +331,10 @@ For more detail, please refer to our **[🖥️ Live Demo page](https://rdagent.
 
 # 🤝 Contributing
 
+We welcome contributions and suggestions to improve RD-Agent. Please refer to the [Contributing Guide](CONTRIBUTING.md) for more details on how to contribute.
+
+Before submitting a pull request, ensure that your code passes the automatic CI checks.
+
 ## 📝 Guidelines
 This project welcomes contributions and suggestions.
 Contributing to this project is straightforward and rewarding. Whether it's solving an issue, addressing a bug, enhancing documentation, or even correcting a typo, every contribution is valuable and helps improve RDAgent.
