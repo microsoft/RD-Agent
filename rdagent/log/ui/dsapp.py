@@ -452,7 +452,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     )
 
     # Read baseline results
-    baseline_result_path = "/home/v-yuanteli/RD-Agent/git_ignore_folder/aide(OpenAI)_gpt_4o.csv"
+    baseline_result_path = UI_SETTING.baseline_result_path
     if Path(baseline_result_path).exists():
         baseline_df = pd.read_csv(baseline_result_path)
 

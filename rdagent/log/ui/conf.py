@@ -7,6 +7,8 @@ class UIBasePropSetting(ExtendedBaseSettings):
     model_config = SettingsConfigDict(env_prefix="UI_", protected_namespaces=())
 
     default_log_folders: list[str] = ["./log"]
+    
+    baseline_result_path: str = "./baseline.csv"
 
 
 UI_SETTING = UIBasePropSetting()
