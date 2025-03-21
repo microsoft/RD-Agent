@@ -30,6 +30,7 @@ https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+| Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
 | More General Data Science Agent | 🚀Coming soon! |
 | Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
 | Official WeChat group release  | We created a WeChat group, welcome to join! (🗪[QR Code](docs/WeChat_QR_code.jpg)) |
@@ -126,6 +127,18 @@ Users must ensure Docker is installed before attempting most scenarios. Please r
   CHAT_MODEL=<replace_it_with_the_name_of_your_azure_chat_model>
   EOF
   ```
+
+- We now support LiteLLM as a backend for integration with multiple LLM providers. If you use LiteLLM Backend to use models, you can configure as follows:
+  ```bash
+  cat << EOF  > .env
+  BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+  # It can be modified to any model supported by LiteLLM.
+  CHAT_MODEL=gpt-4o
+  EMBEDDING_MODEL=text-embedding-3-small
+  # The backend api_key fully follow the convention of litellm.
+  OPENAI_API_KEY=<replace_with_your_openai_api_key>
+  ```
+  
 - For more configuration information, please refer to the [documentation](https://rdagent.readthedocs.io/en/latest/installation_and_configuration.html).
 
 ### 🚀 Run the Application
