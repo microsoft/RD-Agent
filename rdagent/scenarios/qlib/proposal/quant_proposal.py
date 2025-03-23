@@ -58,6 +58,7 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         )
 
         action = random.choice(["factor", "model"])
+        self.targets = action
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,

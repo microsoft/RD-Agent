@@ -15,6 +15,7 @@ from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
@@ -79,7 +80,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         """
         if exp.based_experiments and exp.based_experiments[-1].result is None:
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
-
+        # result = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml")
         if exp.based_experiments:
             SOTA_factor = None
             if len(exp.based_experiments) > 1:
@@ -106,7 +107,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
             # TODO: calculate the factor numbers
-            # num_features = xxx
+            num_features = len(combined_factors.columns)
 
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
@@ -117,21 +118,30 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors.to_parquet(target_path, engine="pyarrow")
 
         # If all previous experiments are about writing factors
-        result = exp.experiment_workspace.execute(
+        # result = exp.experiment_workspace.execute(
+        #     qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+        # )
+        # If model exp exists in the previous experiment
+        exist_sota_model_exp = False
+        for base_exp in reversed(exp.based_experiments):
+            if isinstance(base_exp, QlibModelExperiment):
+                sota_model_exp = base_exp
+                exist_sota_model_exp = True
+                break
+        if exist_sota_model_exp:  
+            env_to_use = {"PYTHONPATH": "./"}
+            # TODO: Check the model_type from the SOTA experiment
+            sota_model_type = sota_model_exp.sub_tasks[0].model_type
+            if sota_model_type == "TimeSeries":
+                env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
+            elif sota_model_type == "Tabular":
+                env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
+
+            result = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+        else:
+            result = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
         )
-        # If model exp exists in the previous experiment
-        """
-        env_to_use = {"PYTHONPATH": "./"}
-        TODO: Check the model_type from the SOTA experiment
-        sota_model_type = xxx
-        if sota_model_type == "TimeSeries":
-            env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
-        elif sota_model_type == "Tabular":
-            env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
-
-        result = exp.experiment_workspace.execute(qlib_config_name="rdagent/scenarios/qlib/experiment/quant_template/conf_combined_with_model.yaml.yaml", run_env=env_to_use)
-        """
 
         exp.result = result
 
@@ -153,25 +163,26 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
         # Collect all exp's dataframes
         for exp in exp_or_list:
-            if len(exp.sub_tasks) > 0:
-                # if it has no sub_tasks, the experiment is results from template project.
-                # otherwise, it is developed with designed task. So it should have feedback.
-                assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
-                # Iterate over sub-implementations and execute them to get each factor data
-                message_and_df_list = multiprocessing_wrapper(
-                    [
-                        (implementation.execute, ("All",))
-                        for implementation, fb in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
-                        if implementation and fb
-                    ],  # only execute successfully feedback
-                    n=RD_AGENT_SETTINGS.multi_proc_n,
-                )
-                for message, df in message_and_df_list:
-                    # Check if factor generation was successful
-                    if df is not None and "datetime" in df.index.names:
-                        time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
-                        if pd.Timedelta(minutes=1) not in time_diff:
-                            factor_dfs.append(df)
+            if isinstance(exp, QlibFactorExperiment):
+                if len(exp.sub_tasks) > 0:
+                    # if it has no sub_tasks, the experiment is results from template project.
+                    # otherwise, it is developed with designed task. So it should have feedback.
+                    assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
+                    # Iterate over sub-implementations and execute them to get each factor data
+                    message_and_df_list = multiprocessing_wrapper(
+                        [
+                            (implementation.execute, ("All",))
+                            for implementation, fb in zip(exp.sub_workspace_list, exp.prop_dev_feedback)
+                            if implementation and fb
+                        ],  # only execute successfully feedback
+                        n=RD_AGENT_SETTINGS.multi_proc_n,
+                    )
+                    for message, df in message_and_df_list:
+                        # Check if factor generation was successful
+                        if df is not None and "datetime" in df.index.names:
+                            time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
+                            if pd.Timedelta(minutes=1) not in time_diff:
+                                factor_dfs.append(df)
 
         # Combine all successful factor data
         if factor_dfs:

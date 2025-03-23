@@ -37,7 +37,7 @@ class LLMHypothesisGen(HypothesisGen):
             .from_string(prompt_dict["hypothesis_gen"]["system_prompt"])
             .render(
                 targets=self.targets,
-                scenario=self.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment"),
+                scenario=self.scen.get_scenario_all_desc(filtered_tag=self.targets),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
                 hypothesis_specification=context_dict["hypothesis_specification"],
             )
