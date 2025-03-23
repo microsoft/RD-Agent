@@ -105,6 +105,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
+            # TODO: calculate the factor numbers
+            # num_features = xxx
+
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
             # so we changed the file type of `combined_factors_df` from pkl to parquet.
@@ -113,9 +116,22 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             # Save the combined factors to the workspace
             combined_factors.to_parquet(target_path, engine="pyarrow")
 
+        # If all previous experiments are about writing factors
         result = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
         )
+        # If model exp exists in the previous experiment
+        """
+        env_to_use = {"PYTHONPATH": "./"}
+        TODO: Check the model_type from the SOTA experiment
+        sota_model_type = xxx
+        if sota_model_type == "TimeSeries":
+            env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
+        elif sota_model_type == "Tabular":
+            env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
+
+        result = exp.experiment_workspace.execute(qlib_config_name="rdagent/scenarios/qlib/experiment/quant_template/conf_combined_with_model.yaml.yaml", run_env=env_to_use)
+        """
 
         exp.result = result
 
