@@ -686,46 +686,46 @@ class DSExpGen(ExpGen):
         )
 
             # Generate component using template with proper context
-            component_sys_prompt = T(".prompts:component_gen.system").r(
-                scenario=scenario_desc,
-                sota_exp_desc=sota_exp_desc,
-                last_exp_diff=last_exp_diff,
-                component_desc="\n".join(
-                    [
-                        f"[{key}] {value}"
-                        for key, value in T("scenarios.data_science.share:component_description").template.items()
-                    ]
-                ),
-                component_output_format=T(".prompts:output_format.component").r(),
-            )
+        component_sys_prompt = T(".prompts:component_gen.system").r(
+            scenario=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            last_exp_diff=last_exp_diff,
+            component_desc="\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            ),
+            component_output_format=T(".prompts:output_format.component").r(),
+        )
 
-            component_user_prompt = T(".prompts:component_gen.user").r(
-                sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-                failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                component_and_feedback_df=(
-                    trace_component_to_feedback_df.to_string()
-                    if len(trace_component_to_feedback_df) > 0
-                    else "No experiment and feedback provided"
-                ),
-            )
+        component_user_prompt = T(".prompts:component_gen.user").r(
+            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            component_and_feedback_df=(
+                trace_component_to_feedback_df.to_string()
+                if len(trace_component_to_feedback_df) > 0
+                else "No experiment and feedback provided"
+            ),
+        )
 
-            resp_dict_component: dict = json.loads(
+        resp_dict_component: dict = json.loads(
                 APIBackend().build_messages_and_create_chat_completion(
                     component_user_prompt, component_sys_prompt, json_mode=True, json_target_type=Dict[str, str]
                 )
             )
 
-            component = resp_dict_component.get("component", "Component not provided")
-            component_reason = resp_dict_component.get("reason", "Reason not provided")
-            sota_exp_model_file_count = len(
-                [
-                    k
-                    for k in sota_exp.experiment_workspace.file_dict.keys()
-                    if k.endswith(".py") and "test" not in k and k.startswith("model")
-                ]
-            )
-            if sota_exp_model_file_count <= 1 and component == "Ensemble":
-                component = "Model"
+        component = resp_dict_component.get("component", "Component not provided")
+        component_reason = resp_dict_component.get("reason", "Reason not provided")
+        sota_exp_model_file_count = len(
+            [
+                k
+                for k in sota_exp.experiment_workspace.file_dict.keys()
+                if k.endswith(".py") and "test" not in k and k.startswith("model")
+            ]
+        )
+        if sota_exp_model_file_count <= 1 and component == "Ensemble":
+            component = "Model"
 
             # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
