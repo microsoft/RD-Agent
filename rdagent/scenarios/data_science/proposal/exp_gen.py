@@ -273,7 +273,7 @@ class DSExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
 
-    def gen(self, trace: DSTrace, cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/ds_graph_idea_pool_v1.pkl") -> DSExperiment:
+    def gen(self, trace: DSTrace, cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/ds_graph_idea_pool_v2.pkl") -> DSExperiment:
         self._init_knowledge_base(cache_path)
 
         scenario_desc = trace.scen.get_scenario_all_desc()
