@@ -53,6 +53,8 @@ def extract_JSON(text):
     except json.JSONDecodeError:
         pass
 
+    return []
+
 
 from jinja2 import Environment, StrictUndefined
 from rdagent.core.prompts import Prompts
@@ -167,11 +169,11 @@ def notebook_to_text(notebook, markdown):
     return body
 
 
-def prepare_notebooks(competitions, notebook_path, idea_path):
+def prepare_notebooks(competitions, notebook_path, idea_path, max_num=5):
     # download descriptions and notebooks
     # for competition in tqdm(competitions, desc="Downloading descriptions and competitions."):
-    #     crawl_descriptions(competition, notebook_path)
-    #     download_notebooks(competition, notebook_path, 10)
+        # crawl_descriptions(competition, notebook_path)
+        # download_notebooks(competition, notebook_path, max_num)
     
     # extract ideas from notebooks
     all_ideas = []
@@ -256,4 +258,4 @@ if __name__ == "__main__":
     all_cs = mini_case_cs + other_cs
     prepare_notebooks(competitions=all_cs, 
                       notebook_path="/data/userdata/v-xuminrui/Notebook",
-                      idea_path="/data/userdata/v-xuminrui/RD-Agent/scripts/exp/researcher/output_dir/idea_pool/idea_v2.json")
+                      idea_path="/data/userdata/v-xuminrui/RD-Agent/scripts/exp/researcher/output_dir/idea_pool/idea_v3.json")

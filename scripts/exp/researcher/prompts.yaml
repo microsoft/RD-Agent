@@ -1,8 +1,7 @@
 solution_to_idea:
   system: |-
     You are a proficient data scientist skilled at extracting structured ideas from detailed descriptions of data science competitions and high-performing solution notebooks.
-    Given a detailed competition description and a solution notebook, extract and rank the most impactful ideas from the notebook.
-    Each idea must adhere to a specific JSON schema and focus on one of the five data science components: DataLoadSpec, FeatureEng, Model, Ensemble, or Workflow.
+    Given a detailed competition description and a solution notebook, your task is to extract and rank the most impactful 3 ideas from the notebook.
     
     ## Idea Definition
     An idea is a specific technique or approach applied within one of the five data science components that contributes to the success of the solution.
@@ -11,21 +10,20 @@ solution_to_idea:
     Each idea must strictly adhere to the following JSON schema:
     {
       "idea": "A concise label summarizing the core concept of this idea.",
-      "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning specific models or dataset-specific details.",
+      "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning specific models or dataset-specific details to ensure better generalization",
       "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
       "component": "The component of the solution that the idea focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
       "hypothesis": {
         "problem": "The nature of problem the idea addresses, described without referencing the method itself (e.g., 'a classification problem with complex decision boundaries').",
-        "data": "The characteristics of the data (e.g., imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based pattern, etc.) that justify the use of this method. ",
-        "reason": "A comprehensive analysis of why this method works well in this scenario, focusing on the characteristics of the scenario itself rather than the method (e.g., 'the data exhibits multiple distinct patterns that are best captured by different modeling approaches')."
+        "data": "The characteristics of the data (e.g., imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based pattern, etc.) that justify the use of this method.",
       }
     }
     
     ### Idea Requirements
     1. **Transferable**: Avoid trivial details (such as dataset-specific details like column names) to ensure the idea can be applied to other similar scenarios.
     2. **Specific**: Include enough detail to distinguish the idea from generic or vague concepts (e.g., instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships").
-    3. **Reproducible**: Offer actionable insights or steps to reproduce the idea's impact. Include implementation methods (e.g., how optimal weights for ensembling were determined, the criteria used for hyperparameter tuning, or the specific algorithm used for feature selection).
-    4. **Impactful**: Prioritize ideas that demonstrate a significant contribution to improving model performance or solution effectiveness. Avoid trivial and useless steps such as "special handles for multiple submissions" and "use `glob` to handle file operations". 
+    3. **Reproducible**: In the `context` field, offer actionable insights or steps to reproduce the idea's impact. Include implementation methods (e.g., how optimal weights for ensembling were determined, the criteria used for hyperparameter tuning, or the specific algorithm used for feature selection).
+    4. **Impactful**: Prioritize ideas that demonstrate a significant contribution to improving model performance. Avoid trivial and useless steps such as "special handles for multiple submissions" and "use `glob` to handle file operations". 
   
     ### Idea Examples:
     [
@@ -35,20 +33,18 @@ solution_to_idea:
         "context": "The notebook implemented stacking by training XGBoost, Random Forest, and LightGBM as base models on the training set. Their predictions on the validation set were then used as input features for a logistic regression meta-model, which learned to combine their outputs effectively.",
         "component": "Ensemble",
         "hypothesis": {
-          "problem": "The task involves a classification problem with complex decision boundaries that are difficult for a single model to capture accurately.",
-          "data": "The dataset contains high-dimensional features with diverse patterns and noisy observations, making it prone to overfitting when using a single model.",
-          "reason": "The data exhibits multiple distinct patterns that are best captured by different modeling approaches. Using a single model tends to overfit to specific patterns or noise, while stacking leverages the complementary strengths of multiple models to improve generalization."
+          "problem": "Classification problem with complex decision boundaries.",
+          "data": "High-dimensional features with diverse patterns and noisy observations."
         }
       },
       {
         "idea": "Polynomial feature transformation for non-linear relationships",
         "method": "Applied polynomial feature transformation to capture non-linear relationships between features.",
-        "context": "The notebook generated polynomial features up to degree 3 for numerical features, which improved the model's ability to capture complex patterns.",
+        "context": "The notebook applied polynomial feature transformation to numerical features, generating interactions and powers up to degree 3. This was implemented using sklearn.preprocessing.PolynomialFeatures, with include_bias=False to avoid redundancy. The transformed features were scaled using StandardScaler to ensure consistent model training, resulting in a 5% improvement in validation RMSE compared to using raw features.",
         "component": "FeatureEng",
         "hypothesis": {
-          "problem": "The task involves predicting a continuous target variable where the relationship between features and the target is non-linear and complex.",
-          "data": "Numerical features with potential non-linear relationships.",
-          "reason": "The data exhibited non-linear patterns that simple linear models could not capture. Polynomial features helped the model better fit the underlying relationships."
+          "problem": "Predicting a continuous target variable where the relationship between features and the target is non-linear and complex.",
+          "data": "Numerical features with potential non-linear relationships."
         }
       }
     ]
@@ -61,7 +57,7 @@ solution_to_idea:
     {{ solution }}
 
     Please extract the ideas from the solution notebook.
-    Your final output must be a list of at most 5 impactful extracted ideas, each strictly adhere to the given JSON schema without anything else and ranked by the impact.
+    Your final output must be a list of at most 3 impactful extracted ideas, each strictly adhere to the given JSON schema without anything else and ranked by the impact.
 
 
 solution_to_data:
