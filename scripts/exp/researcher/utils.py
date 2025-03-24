@@ -140,8 +140,8 @@ def solution_to_idea(competition_desc, solution) -> str:
     return response
 
 
-import nbformat
-from nbconvert import MarkdownExporter
+# import nbformat
+# from nbconvert import MarkdownExporter
 from rdagent.scenarios.kaggle.kaggle_crawler import crawl_descriptions, download_notebooks
 def load_description(desc_path):
     with open(desc_path, "r") as f:
@@ -157,16 +157,17 @@ def load_description(desc_path):
 
 
 def notebook_to_text(notebook, markdown):
-    with open(notebook, "r", encoding="utf-8") as f:
-        notebook = nbformat.read(f, as_version=4)
+    # with open(notebook, "r", encoding="utf-8") as f:
+    #     notebook = nbformat.read(f, as_version=4)
 
-    exporter = MarkdownExporter()
-    (body, resources) = exporter.from_notebook_node(notebook)
+    # exporter = MarkdownExporter()
+    # (body, resources) = exporter.from_notebook_node(notebook)
 
-    with open(markdown, "w", encoding="utf-8") as f:
-        f.write(body)
+    # with open(markdown, "w", encoding="utf-8") as f:
+    #     f.write(body)
     
-    return body
+    # return body
+    pass
 
 
 def prepare_notebooks(competitions, notebook_path, idea_path, max_num=5):
