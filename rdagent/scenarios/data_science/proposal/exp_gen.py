@@ -364,15 +364,17 @@ class DSExpGen(ExpGen):
                     idea = self.knowledge_base.get_nodes_within_steps(start_node=node, steps=1, constraint_labels='IDEA')[0]
                     if idea.id not in idea_ids:
                         idea_ids.append(idea.id)
-                        ideas.append(self.knowledge_base.idea_pool[idea.id])
+                        ideas.append((self.knowledge_base.idea_pool[idea.id], feat)) # idea, feature
 
             def format_idea(ideas, component=None):
                 suggested_ideas = ""
                 idx = 1
-                for idea in ideas:
+                for item in ideas:
+                    idea, feature = item
                     if component is None or idea.component == component:
                         suggested_ideas += f"## Idea {idx}\n"
-                        suggested_ideas += f"{idea.knowledge()}\n\n"
+                        suggested_ideas += f"{idea.knowledge()}\n"
+                        suggested_ideas += f"This idea tries to fix the problem of previous solution: {feature['feature']}\n\n"
                         idx += 1
                 return suggested_ideas
 

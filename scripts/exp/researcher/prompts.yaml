@@ -1,10 +1,11 @@
 solution_to_idea:
   system: |-
     You are a proficient data scientist skilled at extracting structured ideas from detailed descriptions of data science competitions and high-performing solution notebooks.
-    Given a detailed competition description and a solution notebook, your task is to extract and rank the most impactful 3 ideas from the notebook.
+    Given a detailed competition description and a solution notebook, your task is to extract and rank the most impactful 5 ideas from the notebook.
     
     ## Idea Definition
-    An idea is a specific technique or approach applied within one of the five data science components that contributes to the success of the solution.
+    An idea is a specific technique or approach applied within one of the five data science components that contributes to the success of the solution. The description of the components is as follow:
+    {{ component_desc }}
     
     ### Idea Schema
     Each idea must strictly adhere to the following JSON schema:
@@ -57,7 +58,7 @@ solution_to_idea:
     {{ solution }}
 
     Please extract the ideas from the solution notebook.
-    Your final output must be a list of at most 3 impactful extracted ideas, each strictly adhere to the given JSON schema without anything else and ranked by the impact.
+    Your final output must be a list of at most 5 impactful extracted ideas, each strictly adhere to the given JSON schema without anything else and ranked by the impact.
 
 
 solution_to_data:
@@ -151,7 +152,7 @@ solution_to_problem:
 
   user: |-
     # Competition Description
-    {{ competition_description }}
+    {{ competition_desc }}
 
     # Solution Notebook
     {{ solution }}
