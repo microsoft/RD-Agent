@@ -40,6 +40,8 @@ model_coder:
     {{ feature_code }}
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
     3. If the model can both be implemented by PyTorch and Tensorflow, please use pytorch for broader compatibility.
+    4. The hyperparameters should be set optimally to ensure the model can be trained successfully. Avoid setting minimal parameters just to pass the initial run, as there will be limited opportunities to adjust them in the future.
+    5. If you consider the feature code is insufficient, you may add necessary features during the process.
 
     ## Output Format
     {% if out_spec %}
