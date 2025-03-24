@@ -23,7 +23,7 @@ from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.dev.runner.eval import DSCoSTEERCoSTEEREvaluator
-from rdagent.utils.agent.ret import BatchEditOut
+from rdagent.utils.agent.ret import PythonBatchEditOut
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
@@ -44,19 +44,17 @@ class DSRunnerMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 1. code
         system_prompt = T(".prompts:DSCoSTEER_debugger.system").r(
             task_desc=task_information_str,
-            out_spec=BatchEditOut.get_spec(with_del=False),
+            out_spec=PythonBatchEditOut.get_spec(with_del=False),
         )
         user_prompt = T(".prompts:DSCoSTEER_debugger.user").r(
             code=workspace.all_codes,
             feedback=prev_task_feedback,
         )
 
-        batch_edit = BatchEditOut.extract_output(
+        batch_edit = PythonBatchEditOut.extract_output(
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
-                json_mode=BatchEditOut.json_mode,
-                json_target_type=Dict[str, str],
             )
         )
 

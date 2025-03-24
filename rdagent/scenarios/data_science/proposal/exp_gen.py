@@ -62,16 +62,10 @@ COMPONENT_TASK_MAPPING = {
         "task_class": FeatureTask,
     },
     "Model": {
-        "target_name": "Building model",
+        "target_name": "Model",
         "spec_file": "spec/model.md",
         "task_output_format": T(".prompts:output_format.model").r(),
         "task_class": ModelTask,
-        "extra_params": {
-            "model_type": "Model type not provided",
-            "architecture": "Model architecture not provided",
-            "hyperparameters": "Model hyperparameters not provided",
-        },
-        "extra_requirement": T(".prompts:extra_requirement.model").r(),
     },
     "Ensemble": {
         "target_name": "Ensemble",
@@ -315,10 +309,6 @@ class DSExpGen(ExpGen):
         task = task_cls(
             name=component if component != "Model" else resp_dict.pop("model_name"),
             description=resp_dict.get("description", f"{component} description not provided"),
-            **{
-                k: resp_dict.get("extra_params", {}).get(k, v)
-                for k, v in COMPONENT_TASK_MAPPING[component].get("extra_params", {}).items()
-            },
         )
 
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(component))
@@ -695,24 +685,73 @@ class DSExpGen(ExpGen):
             success=False,
         )
 
-        system_prompt = T(".prompts:direct_exp_gen.system").r(
-                        targets=component_info["target_name"],
-                        component=component,
-                        scenario=scenario_desc,
-                        hypothesis_specification=T(".prompts:hypothesis_specification").r(),
+            # Generate component using template with proper context
+            component_sys_prompt = T(".prompts:component_gen.system").r(
+                scenario=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+                last_exp_diff=last_exp_diff,
+                component_desc="\n".join(
+                    [
+                        f"[{key}] {value}"
+                        for key, value in T("scenarios.data_science.share:component_description").template.items()
+                    ]
+                ),
+                component_output_format=T(".prompts:output_format.component").r(),
+            )
+
+            component_user_prompt = T(".prompts:component_gen.user").r(
+                sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+                failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+                component_and_feedback_df=(
+                    trace_component_to_feedback_df.to_string()
+                    if len(trace_component_to_feedback_df) > 0
+                    else "No experiment and feedback provided"
+                ),
+            )
+
+            resp_dict_component: dict = json.loads(
+                APIBackend().build_messages_and_create_chat_completion(
+                    component_user_prompt, component_sys_prompt, json_mode=True, json_target_type=Dict[str, str]
+                )
+            )
+
+            component = resp_dict_component.get("component", "Component not provided")
+            component_reason = resp_dict_component.get("reason", "Reason not provided")
+            sota_exp_model_file_count = len(
+                [
+                    k
+                    for k in sota_exp.experiment_workspace.file_dict.keys()
+                    if k.endswith(".py") and "test" not in k and k.startswith("model")
+                ]
+            )
+            if sota_exp_model_file_count <= 1 and component == "Ensemble":
+                component = "Model"
+
+            # Why we should split component selection and steps after?
+            # - after we know the selected component, we can use RAG.
+
+            # Step 2: Generate the rest of the hypothesis & task
+            component_info = COMPONENT_TASK_MAPPING.get(component)
+
+            if component_info:
+                system_prompt = T(".prompts:direct_exp_gen.system").r(
+                    targets=component_info["target_name"],
+                    component=component,
+                    scenario=scenario_desc,
+                    hypothesis_specification=T(".prompts:hypothesis_specification").r(),
                     hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
                     task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
                     task_output_format=component_info["task_output_format"],
-                    extra_requirement=component_info.get("extra_requirement"),
                     workflow_check=(not component == "Workflow"),
         )
 
-        user_prompt = T(".prompts:direct_exp_gen.user").r(
-            targets=component_info["target_name"],
-            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-            last_exp_diff=last_exp_diff,
-        )
+                user_prompt = T(".prompts:direct_exp_gen.user").r(
+                    targets=component_info["target_name"],
+                    sota_exp_desc=sota_exp_desc,
+                    sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+                    failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+                    last_exp_diff=last_exp_diff,
+                )
 
         def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
             # Only modify the user_prompt on retries (i > 0)

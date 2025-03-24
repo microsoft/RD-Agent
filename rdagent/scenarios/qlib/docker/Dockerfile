@@ -9,11 +9,11 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/* 
 
-RUN git clone https://github.com/microsoft/qlib.git
+RUN git clone --depth=100 https://github.com/microsoft/qlib.git
 
 WORKDIR /workspace/qlib
 
-RUN git reset c9ed050ef034fe6519c14b59f3d207abcb693282 --hard
+RUN git reset 4d621bff99bb403231e26bb1dddae6e77d2af170 --hard
 
 RUN python -m pip install --upgrade cython
 RUN python -m pip install -e .
@@ -21,3 +21,4 @@ RUN python -m pip install -e .
 RUN pip install catboost
 RUN pip install xgboost
 RUN pip install scipy==1.11.4
+RUN pip install tables

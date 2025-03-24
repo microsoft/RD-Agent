@@ -11,6 +11,9 @@ class LLMSettings(ExtendedBaseSettings):
     # backend
     backend: str = "rdagent.oai.backend.DeprecBackend"
 
+    chat_model: str = "gpt-4-turbo"
+    embedding_model: str = "text-embedding-3-small"
+
     # TODO: most of the settings are only used on deprec.DeprecBackend.
     # So they should move the settings to that folder.
 
@@ -48,7 +51,6 @@ class LLMSettings(ExtendedBaseSettings):
     chat_openai_base_url: str | None = None  #
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
-    chat_model: str = "gpt-4-turbo"
     chat_max_tokens: int = 3000
     chat_temperature: float = 0.5
     chat_stream: bool = True
@@ -68,7 +70,6 @@ class LLMSettings(ExtendedBaseSettings):
     embedding_openai_base_url: str = ""
     embedding_azure_api_base: str = ""
     embedding_azure_api_version: str = ""
-    embedding_model: str = ""
     embedding_max_str_num: int = 50
 
     # offline llama2 related config

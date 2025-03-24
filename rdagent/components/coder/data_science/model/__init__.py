@@ -20,7 +20,7 @@ from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
-from rdagent.utils.agent.ret import BatchEditOut
+from rdagent.utils.agent.ret import PythonBatchEditOut
 from rdagent.utils.agent.tpl import T
 
 
@@ -63,7 +63,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             feature_code=workspace.file_dict["feature.py"],
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-            out_spec=BatchEditOut.get_spec(),
+            out_spec=PythonBatchEditOut.get_spec(),
         )
         # user_prompt = T(".prompts:model_coder.user").r(
         #     model_spec=workspace.file_dict["spec/model.md"],
@@ -80,28 +80,39 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         for _ in range(5):
-            batch_edit = BatchEditOut.extract_output(
+            batch_edit = PythonBatchEditOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
-                    json_mode=BatchEditOut.json_mode,
-                    json_target_type=Dict[str, str],
                 )
             )
 
+            if not all(i.startswith("model_") for i in batch_edit.keys()):
+                user_prompt += "\nYou should only update model codes!"
+                continue
+
             # 3. post process to align file name to the task name
+            # we assumpt batch_edit only contains one model file update.
             batch_edit = {
                 (f"{target_task.name}.py" if value != "__DEL__" and key != f"{target_task.name}.py" else key): value
                 for key, value in batch_edit.items()
             }
 
             user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+            # TODO: besides same code problem, we should also consider other problems lead to retry.
+            if f"{target_task.name}.py" not in batch_edit:
+                continue
+
             if batch_edit and max(len(i.encode("utf-8")) for i in batch_edit.keys()) > 255:
                 continue
 
             if batch_edit[f"{target_task.name}.py"] != "__DEL__" and batch_edit[
                 f"{target_task.name}.py"
             ] != workspace.file_dict.get(f"{target_task.name}.py"):
+                break
+
+            # If the task involves model removal, assume it can only process one model at a time.
+            if len(batch_edit) == 1 and batch_edit[f"{target_task.name}.py"] == "__DEL__":
                 break
         else:
             raise CoderError("Failed to generate a new model code.")
