@@ -12,8 +12,49 @@ Installation
 
 **Install Docker**: RDAgent is designed for research and development, acting like a human researcher and developer. It can write and run code in various environments, primarily using Docker for code execution. This keeps the remaining dependencies simple. Users must ensure Docker is installed before attempting most scenarios. Please refer to the `official 🐳Docker page <https://docs.docker.com/engine/install/>`_ for installation instructions.
 
-Configuration
-=============
+LiteLLM Backend Configuration
+=============================
+
+Please create a `.env` file in the root directory of the project and add environment variables.
+
+Here is a sample configuration for using OpenAI's gpt-4o via LiteLLM. 
+
+   .. code-block:: Properties
+
+      BACKEND=rdagent.oai.backend.LiteLLMAPIBackend
+      # It can be modified to any model supported by LiteLLM.
+      CHAT_MODEL=gpt-4o
+      EMBEDDING_MODEL=text-embedding-3-small
+      # The backend api_key fully follows the convention of litellm.
+      OPENAI_API_KEY=<replace_with_your_openai_api_key>
+
+Necessary parameters include:
+
+- `BACKEND`: The backend to use. The default is `rdagent.oai.backend.DeprecBackend`. To use the LiteLLM backend, set it to `rdagent.oai.backend.LiteLLMAPIBackend`.
+
+- `CHAT_MODEL`: The model name of the chat model. 
+
+- `EMBEDDING_MODEL`: The model name of the embedding model.
+
+The `CHAT_MODEL` and `EMBEDDING_MODEL` parameters will be passed into LiteLLM's completion function. 
+
+Therefore, when utilizing models provided by different providers, first review the interface configuration of LiteLLM. The model names must match those allowed by LiteLLM.
+
+Additionally, you need to set up the the additional parameters for the respective model provider, and the parameter names must align with those required by LiteLLM.
+
+For example, if you are using a DeepSeek model, you need to set as follows:
+
+   .. code-block:: Properties
+
+      # For some models LiteLLM requires a prefix to the model name.
+      CHAT_MODEL=deepseek/deepseek-chat
+      DEEPSEEK_API_KEY=<replace_with_your_deepseek_api_key>
+
+For more details on LiteLLM requirements, refer to the `official LiteLLM documentation <https://docs.litellm.ai/docs>`_.
+
+
+Configuration(deprecated)
+=========================
 
 To run the application, please create a `.env` file in the root directory of the project and add environment variables according to your requirements.
 

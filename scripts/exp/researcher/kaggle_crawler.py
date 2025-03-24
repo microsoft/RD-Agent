@@ -20,6 +20,7 @@ from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.exception import KaggleError
 from rdagent.core.prompts import Prompts
+from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.debug.data import create_debug_data
@@ -35,29 +36,6 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--headless")
 
 service = Service("/usr/local/bin/chromedriver")
-
-
-def solution_to_feature(inputs) -> str:
-    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["solution_to_feature"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["solution_to_feature"]["user"])
-        .render(inputs=inputs)
-    )
-
-    response = APIBackend().build_messages_and_create_chat_completion(
-        user_prompt=user_prompt,
-        system_prompt=sys_prompt,
-        json_mode=False,
-    )
-    return response
-
 
 def crawl_discussions(
         competition: str, local_data_path: str, wait: float = 3.0, force: bool = False, num: int = 10
@@ -195,7 +173,7 @@ def convert_discussion_to_text(
 
 def crawl_descriptions(
     competition: str, local_data_path: str, wait: float = 3.0, force: bool = False
-) -> dict[str, str]:
+) -> dict[str, str] | str:
     if (fp := Path(f"{local_data_path}/{competition}/description.md")).exists() and not force:
         logger.info(f"Found {competition}/description.md, loading from it.")
         return fp.read_text()
@@ -273,9 +251,9 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
         zipfile_path = f"{local_path}/zip_files"
         zip_competition_path = Path(zipfile_path) / competition
 
-        mleb_env = MLEBDockerEnv()
-        mleb_env.prepare()
         if not zip_competition_path.exists():
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
             (Path(zipfile_path)).mkdir(parents=True, exist_ok=True)
             mleb_env.run(
                 f"mlebench prepare -c {competition} --data-dir ./zip_files",
@@ -286,13 +264,22 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
         if not (Path(local_path) / competition).exists() or list((Path(local_path) / competition).iterdir()) == []:
             (Path(local_path) / competition).mkdir(parents=True, exist_ok=True)
 
-            mleb_env.run(
-                f"/bin/sh -c 'cp -r ./zip_files/{competition}/prepared/public/* ./{competition}'", local_path=local_path
-            )
-            mleb_env.run(
-                f'/bin/sh -c \'for zip_file in ./{competition}/*.zip; do dir_name="${{zip_file%.zip}}"; mkdir -p "$dir_name"; unzip -o "$zip_file" -d "$dir_name"; done\'',
-                local_path=local_path,
-            )
+            mleb_env = MLEBDockerEnv()
+            mleb_env.prepare()
+            mleb_env.run(f"cp -r ./zip_files/{competition}/prepared/public/* ./{competition}", local_path=local_path)
+
+            for zip_path in (Path(local_path) / competition).rglob("*.zip"):
+                with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                    if len(zip_ref.namelist()) == 1:
+                        mleb_env.run(
+                            f"unzip -o ./{zip_path.relative_to(local_path)} -d {zip_path.parent.relative_to(local_path)}",
+                            local_path=local_path,
+                        )
+                    else:
+                        mleb_env.run(
+                            f"mkdir -p ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}; unzip -o ./{zip_path.relative_to(local_path)} -d ./{zip_path.parent.relative_to(local_path)}/{zip_path.stem}",
+                            local_path=local_path,
+                        )
             # NOTE:
             # Patching:  due to mle has special renaming mechanism for different competition;
             # We have to switch the schema back to a uniform one;
@@ -336,6 +323,7 @@ def unzip_data(unzip_file_path: str, unzip_target_path: str) -> None:
         zip_ref.extractall(unzip_target_path)
 
 
+@cache_with_pickle(hash_func=lambda x: x, force=True)
 def leaderboard_scores(competition: str) -> list[float]:
     from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -391,19 +379,8 @@ def download_notebooks(
 
 
 def notebook_to_knowledge(notebook_text: str) -> str:
-    prompt_dict = Prompts(file_path=Path(__file__).parent / "prompts.yaml")
-
-    sys_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["system"])
-        .render()
-    )
-
-    user_prompt = (
-        Environment(undefined=StrictUndefined)
-        .from_string(prompt_dict["gen_knowledge_from_code_mini_case"]["user"])
-        .render(notebook=notebook_text)
-    )
+    sys_prompt = T(".prompts:gen_knowledge_from_code_mini_case.system").r()
+    user_prompt = T(".prompts:gen_knowledge_from_code_mini_case.user").r(notebook=notebook_text)
 
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,

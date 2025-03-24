@@ -10,8 +10,18 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.10"
+  # During the build process, you need to fetch tags, and since the default command to read the docs only pulls shallow code, it will cause an error.
+  # So we added the `git fetch --tags --unshallow || true` command to fetch the full tag record.
+  # Adding this command overrides the default command, so we copied it over to make sure the build was successful.
   commands:
+    - python -mvirtualenv $READTHEDOCS_VIRTUALENV_PATH 
+    - python -m pip install --upgrade --no-cache-dir pip setuptools 
+    - python -m pip install --upgrade --no-cache-dir sphinx 
+    - python -m pip install --exists-action=w --no-cache-dir -r requirements/docs.txt 
+    - python -m pip install --upgrade --upgrade-strategy only-if-needed --no-cache-dir . 
     - git fetch --tags --unshallow || true
+    - mkdir -p $READTHEDOCS_OUTPUT/html/
+    - python -m sphinx -T -b html -d _build/doctrees -D language=en ./docs $READTHEDOCS_OUTPUT/html
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:

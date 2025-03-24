@@ -53,19 +53,22 @@ class DSKnowledgeGraph(UndirectedGraph):
                 idea_text = idea.idea
                 data = idea.hypothesis["data"]
                 problem = idea.hypothesis["problem"]
+                reason = idea.hypothesis["reason"]
 
                 idea_node = UndirectedNode(idea_text, "IDEA")
                 data_node = UndirectedNode(data, "DATA")
                 problem_node = UndirectedNode(problem, "PROBLEM")
+                reason_node = UndirectedNode(reason, "REASON")
 
-                self.add_nodes(idea_node, [data_node, problem_node])
+                self.add_nodes(idea_node, [data_node, problem_node, reason_node])
                 self.idea_pool[idea_node.id] = idea
-            except Exception as e:
-                print(f"Fail to add idea {i} to knowledge base due to error: {e}")
+            
+            except:
+                pass
 
     
 if __name__ == "__main__":
-    output_path = "git_ignore_folder/ds_graph_idea_pool_v1.pkl"
-    cache_path = "scripts/exp/researcher/output_dir/idea_pool/test.json"
+    output_path = "git_ignore_folder/ds_graph_idea_pool_v2.pkl"
+    cache_path = "scripts/exp/researcher/output_dir/idea_pool/idea_v2.json"
     idea_pool = DSKnowledgeGraph(path=output_path, idea_cache_path=cache_path)
     idea_pool.dump()
