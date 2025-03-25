@@ -1,10 +1,5 @@
 """
-A qualified data loader should support following features
-- successfully run
-- len(test) == len(test_ids) == submission length
-- len(train) == len(y)
-
-Please make sure the stdout is rich enough to support informative feedback
+Tests for `feat_eng` in feature.py
 """
 
 import pickle

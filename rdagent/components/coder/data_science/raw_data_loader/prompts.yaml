@@ -385,8 +385,8 @@ data_loader_coder:
     --------- Competition Information ---------
     {{ competition_info }}
 
-    --------- Data Loader Specification ---------
-    {{ data_loader_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     --------- Data Folder Description (All path are relative to the data folder) ---------
     {{ folder_spec }}
@@ -401,7 +401,7 @@ data_loader_coder:
     The former code contains errors. You should correct the code based on the provided information, ensuring you do not repeat the same mistakes.
     {% endif %} 
 
-    You should strictly follow the function interface specifications provided by the specification to implement the function.
+    You should strictly follow the code specifications provided by the specification to implement the function.
 
 
 data_loader_eval:
@@ -453,7 +453,7 @@ data_loader_eval:
       - The number of unique values in each column.
       - The distribution of the target variable.
       - Any other information that you think is important for the following steps.
-     You will be given the EDA output, your job is to check whether the output contains the required and sufficient information. If no EDA output is provided, you should consider it as a failure. Put this evaluation result in the return_checking part.
+    You will be given the EDA output, your job is to check whether the output contains the required and sufficient information. If no EDA output is provided, you should consider it as a failure. Put this evaluation result in the return_checking part.
     
     Your response must follow this structured JSON format:
     ```json

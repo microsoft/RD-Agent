@@ -1,6 +1,7 @@
 import json
 from typing import Dict
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -69,7 +70,11 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             model_codes=workspace.get_codes(r"^model_(?!test)\w+\.py$"),
             ensemble_code=workspace.file_dict["ensemble.py"],
             latest_code=workspace.file_dict.get("main.py"),
-            workflow_spec=workspace.file_dict["spec/workflow.md"],
+            code_spec=(
+                workspace.file_dict["spec/workflow.md"]
+                if DS_RD_SETTING.spec_enabled
+                else T("scenarios.data_science.share:component_spec.Workflow").r()
+            ),
             latest_code_feedback=prev_task_feedback,
         )
 

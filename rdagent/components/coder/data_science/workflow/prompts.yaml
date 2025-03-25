@@ -52,8 +52,8 @@ workflow_coder:
     {% endif %}
   
   user: |-
-    --------- Workflow Specification ---------
-    {{ workflow_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     --------- load data code ---------
     file: load_data.py
@@ -96,9 +96,10 @@ workflow_eval:
 
     The user provides workflow information and its components.
     The details on how to structure the workflow are given in the specification file:
-    ```python
+    ```markdown
     {{ spec }}
     ```
+
     This workflow integrates multiple stages, including:
     - Data loading
     - Feature engineering

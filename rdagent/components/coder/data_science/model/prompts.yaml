@@ -53,8 +53,8 @@ model_coder:
     {% endif %}
 
   user_general: |-
-    --------- Model Building Specification ---------
-    {{ model_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     --------- Former model code ---------
     {% if latest_model_code|length == 0 %}
