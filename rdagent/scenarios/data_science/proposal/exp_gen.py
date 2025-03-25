@@ -474,8 +474,15 @@ class DSExpGen(ExpGen):
             scenario=context["scenario_desc"],
             sota_exp_desc=context["sota_exp_desc"],
             last_exp_diff=context["last_exp_diff"],
+            component_desc="\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            ),
             component_output_format=T(".prompts:output_format.component").r(),
         )
+
 
         component_user_prompt = T(".prompts:component_gen.user").r(
             sota_exp_and_feedback_list_desc=context["sota_exp_feedback_list_desc"],
@@ -725,84 +732,85 @@ class DSExpGen(ExpGen):
             ]
         )
         if sota_exp_model_file_count <= 1 and component == "Ensemble":
+            
             component = "Model"
 
             # Why we should split component selection and steps after?
             # - after we know the selected component, we can use RAG.
 
             # Step 2: Generate the rest of the hypothesis & task
-            component_info = COMPONENT_TASK_MAPPING.get(component)
+        component_info = COMPONENT_TASK_MAPPING.get(component)
 
-            if component_info:
-                system_prompt = T(".prompts:direct_exp_gen.system").r(
-                    targets=component_info["target_name"],
-                    component=component,
-                    scenario=scenario_desc,
-                    hypothesis_specification=T(".prompts:hypothesis_specification").r(),
-                    hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
-                    task_output_format=component_info["task_output_format"],
-                    workflow_check=(not component == "Workflow"),
-        )
-
-                user_prompt = T(".prompts:direct_exp_gen.user").r(
-                    targets=component_info["target_name"],
-                    sota_exp_desc=sota_exp_desc,
-                    sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-                    failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
-                    last_exp_diff=last_exp_diff,
-                )
-
-        def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
-            # Only modify the user_prompt on retries (i > 0)
-            user_prompt = args[0]
-            user_prompt += "\n\nretrying..."
-            return (user_prompt,), kwargs
-
-
-        @wait_retry(retry_n=5, transform_args_fn=_append_retry)
-        def _f(user_prompt):
-            resp_dict = json.loads(
-                APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt, 
-                    system_prompt=system_prompt, 
-                    json_mode=True,
-                    # NOTE: corner cases.
-                    # workflow_update may be a string
-                    # model could have 2 level nested dict.
-                    json_target_type=dict[str, dict[str, str | dict] | str],
-                )
-            )
-            assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
-            assert "task_design" in resp_dict, "Task design not provided."
-            task_class = component_info["task_class"]
-            hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
-            hypothesis = DSHypothesis(
+        if component_info:
+            system_prompt = T(".prompts:direct_exp_gen.system").r(
+                targets=component_info["target_name"],
                 component=component,
-                hypothesis=hypothesis_proposal.get("hypothesis", ""),
-                reason=hypothesis_proposal.get("reason", ""),
-                concise_reason=hypothesis_proposal.get("concise_reason", ""),
-                concise_observation=hypothesis_proposal.get("concise_observation", ""),
-                concise_justification=hypothesis_proposal.get("concise_justification", ""),
-                concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                scenario=scenario_desc,
+                hypothesis_specification=T(".prompts:hypothesis_specification").r(),
+                hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
+                task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                task_output_format=component_info["task_output_format"],
+                workflow_check=(not component == "Workflow"),
+    )
+
+            user_prompt = T(".prompts:direct_exp_gen.user").r(
+                targets=component_info["target_name"],
+                sota_exp_desc=sota_exp_desc,
+                sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+                failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+                last_exp_diff=last_exp_diff,
             )
 
-            task_design = resp_dict.get("task_design", {})
-            task_name = task_design["model_name"] if component == "Model" else component
-            description = task_design.get(
-                "description", f"{component_info['target_name']} description not provided"
-            )
-            task = task_class(
-                name=task_name,
-                description=description,
-                **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
-            )
-            new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+            def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+                # Only modify the user_prompt on retries (i > 0)
+                user_prompt = args[0]
+                user_prompt += "\n\nretrying..."
+                return (user_prompt,), kwargs
+
+
+            @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+            def _f(user_prompt):
+                resp_dict = json.loads(
+                    APIBackend().build_messages_and_create_chat_completion(
+                        user_prompt=user_prompt, 
+                        system_prompt=system_prompt, 
+                        json_mode=True,
+                        # NOTE: corner cases.
+                        # workflow_update may be a string
+                        # model could have 2 level nested dict.
+                        json_target_type=dict[str, dict[str, str | dict] | str],
+                    )
+                )
+                assert "hypothesis_proposal" in resp_dict, "Hypothesis proposal not provided."
+                assert "task_design" in resp_dict, "Task design not provided."
+                task_class = component_info["task_class"]
+                hypothesis_proposal = resp_dict.get("hypothesis_proposal", {})
+                hypothesis = DSHypothesis(
+                    component=component,
+                    hypothesis=hypothesis_proposal.get("hypothesis", ""),
+                    reason=hypothesis_proposal.get("reason", ""),
+                    concise_reason=hypothesis_proposal.get("concise_reason", ""),
+                    concise_observation=hypothesis_proposal.get("concise_observation", ""),
+                    concise_justification=hypothesis_proposal.get("concise_justification", ""),
+                    concise_knowledge=hypothesis_proposal.get("concise_knowledge", ""),
+                )
+
+                task_design = resp_dict.get("task_design", {})
+                task_name = task_design["model_name"] if component == "Model" else component
+                description = task_design.get(
+                    "description", f"{component_info['target_name']} description not provided"
+                )
+                task = task_class(
+                    name=task_name,
+                    description=description,
+                    **{k: task_design.get(k, v) for k, v in component_info.get("extra_params", {}).items()},
+                )
+                new_workflow_desc = resp_dict.get("workflow_update", "No update needed")
+                return hypothesis, task, new_workflow_desc
+            
+            hypothesis, task, new_workflow_desc = _f(user_prompt)
+
             return hypothesis, task, new_workflow_desc
-        
-        hypothesis, task, new_workflow_desc = _f(user_prompt)
-
-        return hypothesis, task, new_workflow_desc
 
 
     def _idea_polish(self, trace: DSTrace, context: dict, best_candidate: tuple, best_candidate_id: int, current_proposal_desc: str, detailed_analysis_bo: dict, historical_attempts_with_feedback_desc: str) -> tuple:
