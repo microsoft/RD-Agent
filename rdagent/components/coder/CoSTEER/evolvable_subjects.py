@@ -14,7 +14,6 @@ class EvolvingItem(Experiment, EvolvableSubjects):
         sub_gt_implementations: list[FBWorkspace] = None,
     ):
         Experiment.__init__(self, sub_tasks=sub_tasks)
-        self.corresponding_selection: list = None
         if sub_gt_implementations is not None and len(
             sub_gt_implementations,
         ) != len(self.sub_tasks):

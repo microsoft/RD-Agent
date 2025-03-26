@@ -12,7 +12,6 @@ from rdagent.components.coder.CoSTEER.evolvable_subjects import EvolvingItem
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.CoSTEER.scheduler import random_select
 from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.evolving_framework import EvolvingStrategy, EvoStep, QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
@@ -59,17 +58,6 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         """
         raise NotImplementedError
 
-    def select_one_round_tasks(
-        self,
-        to_be_finished_task_index: list,
-        evo: EvolvingItem,
-        selected_num: int,
-        queried_knowledge: CoSTEERQueriedKnowledge,
-        scen: Scenario,
-    ) -> list:
-        """Since scheduler is not essential, we implement a simple random selection here."""
-        return random_select(to_be_finished_task_index, evo, selected_num, queried_knowledge, scen)
-
     @abstractmethod
     def assign_code_list_to_evo(self, code_list: list[dict], evo: EvolvingItem) -> None:
         """
@@ -92,10 +80,12 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
         **kwargs,
     ) -> EvolvingItem:
         # 1.找出需要evolve的task
-        to_be_finished_task_index = []
+        to_be_finished_task_index: list[int] = []
         for index, target_task in enumerate(evo.sub_tasks):
             target_task_desc = target_task.get_task_information()
             if target_task_desc in queried_knowledge.success_task_to_knowledge_dict:
+                # NOTE: very weird logic:
+                # it depends on the knowledge to set the already finished task
                 evo.sub_workspace_list[index] = queried_knowledge.success_task_to_knowledge_dict[
                     target_task_desc
                 ].implementation
@@ -105,19 +95,11 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             ):
                 to_be_finished_task_index.append(index)
 
-        # 2. 选择selection方法
-        # if the number of factors to be implemented is larger than the limit, we need to select some of them
-
-        if self.settings.select_threshold < len(to_be_finished_task_index):
-            # Select a fixed number of factors if the total exceeds the threshold
-            to_be_finished_task_index = self.select_one_round_tasks(
-                to_be_finished_task_index, evo, self.settings.select_threshold, queried_knowledge, self.scen
-            )
-
         last_feedback = None
         if len(evolving_trace) > 0:
             last_feedback = evolving_trace[-1].feedback
             assert isinstance(last_feedback, CoSTEERMultiFeedback)
+
         result = multiprocessing_wrapper(
             [
                 (
@@ -138,6 +120,5 @@ class MultiProcessEvolvingStrategy(EvolvingStrategy):
             code_list[target_index] = result[index]
 
         evo = self.assign_code_list_to_evo(code_list, evo)
-        evo.corresponding_selection = to_be_finished_task_index
 
         return evo
