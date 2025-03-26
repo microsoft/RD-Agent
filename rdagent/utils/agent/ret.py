@@ -34,6 +34,7 @@ class PythonAgentOut(AgentOut):
         match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
         if match:
             code = match.group(1)
+            code = re.sub(r'</?code>', '', code, flags=re.IGNORECASE)
             return code
         return resp
 
