@@ -95,7 +95,7 @@ solution_to_data:
 
   user: |-
     # Competition Description
-    {{ competition_description }}
+    {{ competition_desc }}
 
     # Solution Notebook
     {{ solution }}
