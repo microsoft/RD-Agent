@@ -97,7 +97,7 @@ ensemble_eval:
     {% endif %}
 
     The metric used for scoring the predictions:
-    {{ metric_name }}
+    **{{ metric_name }}**
 
     ## Evaluation Criteria
     - You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.

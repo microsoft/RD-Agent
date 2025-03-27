@@ -274,7 +274,7 @@ class DataScienceScen(Scenario):
         self.metric_description = response_json_analysis.get(
             "Metric Evaluation Description", "No target description provided"
         )
-        self.metric_name = response_json_analysis.get("Metric Name", "No metric name provided")
+        self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
     def get_competition_full_desc(self) -> str:
