@@ -65,8 +65,7 @@ task:
             weight_decay: 0.0001
             pt_model_uri: "model.model_cls"
             pt_model_kwargs: {
-                "num_features": { num_features },  # TODO: change this to the number of features in the dataset
-                {% if num_timesteps %}num_timesteps: {{ num_timesteps }}{% endif %}
+                "num_features": {{ num_features }}{% if num_timesteps %}, "num_timesteps": {{ num_timesteps }}{% endif %}
             }
     dataset:
         class: {{ dataset_cls | default("DatasetH") }}
