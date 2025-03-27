@@ -12,11 +12,11 @@ from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
+from rdagent.scenarios.data_science.proposal.utils import *
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-
 
 class DSHypothesis(Hypothesis):
     def __init__(
@@ -334,6 +334,27 @@ class DSExpGen(ExpGen):
                 exp_and_feedback_list=failed_exp_feedback_list,
                 success=False,
             )
+
+            # Step 1: Identify problems
+            scen_problems = identify_scenario_problem(scenario_desc)
+            fb_problems = identify_feedback_problem(scenario_desc)
+            problems = scen_problems + fb_problems
+
+            # Step 2: Sample ideas for each problems (for researcher)
+            
+
+            # Step 3: Propose solutions based on the identified problems and sampled ideas
+            solutions = solution_gen(problems)
+
+
+            # Step 4: Select the best solution
+            best_solution = solution_rank(solutions)
+
+
+            # Step 5: Design task and workflow based on selected solution 
+            # flexible
+            task = task_gen(best_solution)
+
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
