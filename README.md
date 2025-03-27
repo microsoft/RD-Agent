@@ -205,13 +205,13 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   
   # 1. Prepare the competition description files
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
-  mkdir -p git_ignore_folder/kaggle_data && unzip kaggle_data.zip -d git_ignore_folder/kaggle_data/sf-crime
+  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
 
   # 2. Add the competition description file path to the `.env` file.
   dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
 
   # 3. run the application
-  rdagent kaggle --competition sf-crime
+  rdagent kaggle --competition digit-recognizer
   ```
   > **Description of the above example:** <br />
   > - Kaggle competition data, contains two parts: competition description file (json file) and competition dataset (zip file). We prepare the competition description file for you, the competition dataset will be downloaded automatically when you run the program, as in the example. <br />
