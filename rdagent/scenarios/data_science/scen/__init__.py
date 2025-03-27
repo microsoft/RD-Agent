@@ -1,5 +1,6 @@
 import json
 import os
+import reprlib
 from pathlib import Path
 from typing import Dict
 
@@ -233,8 +234,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     with open(path, "r", encoding="utf-8") as f:
                         json_data = json.load(f)
-                        result.append(" " * (indent + 4) + f"Keys: {list(json_data.keys())}")
-                        result.append(" " * (indent + 4) + f"Values: {list(json_data.values())}")
+                        result.append(reprlib.Repr().repr(json_data))
 
     return "\n".join(result) + "\n"
 
