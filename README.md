@@ -211,7 +211,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
 
   # 3. run the application
-  rdagent kaggle --competition sf-crime
+  rdagent kaggle --competition digit-recognizer
   ```
   > **Description of the above example:** <br />
   > - Kaggle competition data, contains two parts: competition description file (json file) and competition dataset (zip file). We prepare the competition description file for you, the competition dataset will be downloaded automatically when you run the program, as in the example. <br />
