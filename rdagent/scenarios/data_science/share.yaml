@@ -73,3 +73,156 @@ component_description:
     Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
   Workflow: |-
     Integrates all pipeline components, from data loading to ensemble prediction, ensuring efficient execution and correct output formatting.
+
+component_spec:
+  general: |-
+    {{ spec }}
+
+    Your code will be tested by the code below. You must ensure your implementation passes the test code:
+    ```python
+    {{ test_code }}
+    ```
+  DataLoadSpec: |-
+    1. File Handling:
+      - Handle file encoding and delimiters appropriately.
+      - Combine or process multiple files if necessary.
+      - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
+
+    2. Data Preprocessing:
+      - Convert data types correctly (e.g., numeric, categorical, date parsing).
+      - Handle missing values appropriately.
+      - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
+
+    3. Code Standards:
+      - DO NOT use progress bars (e.g., `tqdm`).
+      - DO NOT use the sample submission file to extract test index information.
+      - DO NOT exclude features inadvertently during this process.
+    
+    4. Exploratory Data Analysis (EDA) [Required]:
+      - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
+      - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
+      - An evaluation agent will help to check whether the EDA part is added correctly.
+
+  FeatureEng: |-
+    1. Well handle the shape of the data
+      - The sample size of the train data and the test data should be the same in all scenarios.
+      - To most of the scenario, the input shape and the output shape should be exactly the same.
+      - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
+
+    2. Integration with the Model Pipeline:
+      - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+      - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
+
+    3. General Considerations:
+      - Ensure scalability for large datasets.
+      - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
+      - Ensure consistency between feature data types and transformations.
+      - Prevent data leakage: Do not use information derived from the test set when transforming training data.
+
+    4. Code Standards:
+      - Avoid using progress bars (e.g., `tqdm`) in the implementation.          
+
+    5. Notes:
+      - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
+      - Feature engineering should be executed **once** and reused across all models to ensure consistency: `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
+  
+  Model: |-
+    - Do not use progress bars (e.g., `tqdm`) in the implementation.
+    - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+  
+  Ensemble: |-
+    1. Input Validation:
+      - Handle empty or invalid inputs gracefully with appropriate error messages.
+
+    2. Metric Calculation and Storage:
+      - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`, e.g.:
+      ```python
+      scores = {}
+      for model_name, val_pred in val_preds_dict.items():
+          scores[model_name] = calculate_metric(val_label, val_pred)
+      
+      ...
+      some code about ensemble strategy
+      ...
+      ensemble_val_pred = ...
+
+      ensemble_score = calculate_metric(val_label, ensemble_val_pred)
+      scores["ensemble"] = ensemble_score  # Ensure "ensemble" is explicitly stored
+      
+      scores_df = pd.DataFrame(scores.items(), columns=["Model", <metric_name>])
+      scores_df.to_csv("scores.csv", index=False)
+      ```
+      - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
+
+    3. Code Standards:
+      - Do not use progress bars (e.g., tqdm) in the code.
+
+    4. Notes:
+      - Ensure flexibility to handle multiple ensemble strategies based on competition requirements.
+    
+  Workflow: |-
+    Your task is to implement the main workflow script (`main.py`) for a Kaggle-style machine learning competition project. 
+    Follow the provided project structure and specifications to ensure consistency and maintainability:
+    1. Workflow Integration:
+      - Integrate the following components into the workflow:
+        - Data loading (`load_data.py`).
+        - Feature engineering (`feature.py`).
+        - Model workflow for training and testing (`model_*.py`). 
+        - Ensemble workflow that combines results from the model workflow to obtain the final prediction (`ensemble.py`).
+      - Treat each component as a modular and callable Python function.
+      - The workflow script should be flexible enough to handle either a single model or multiple models, with filenames (model_*.py) that are not determined at the outset.
+        For multiple model selection, utilize Python code to identify eligible models based on filenames, for example:
+        ```python
+        available_models = [f for f in os.listdir('.') if f.startswith('model_') and 'test' not in f]
+        ```
+    2. Feature Engineering
+      - The feature engineering should be called only once. For example:
+        `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
+      - It should be called before dataset splitting.
+
+    3. Dataset Splitting
+      - The dataset returned by `load_data` is not pre-split. After calling `feat_eng`, split the data into training and test sets.
+      - [Notice] If feasible, apply cross-validation on the training set (`X_transformed`, `y_transformed`) to ensure a reliable assessment of model performance.
+      - Keep the test set (`X_test_transformed`) unchanged, as it is only used for generating the final predictions.
+      - Pseudocode logic for reference:
+        ```
+        Set number of splits and initialize KFold cross-validator.
+        Create dictionaries for validation and test predictions.
+        For each model file:
+            Import the model dynamically.
+            Initialize arrays for out-of-fold (OOF) and test predictions.
+            For each fold in KFold:
+                Split data into training and validation sets.
+                Run model workflow to get validation and test predictions.
+                Validate shapes.
+                Store validation and test predictions.
+            Compute average test predictions across folds.
+            Save OOF and averaged test predictions.
+        Ensemble predictions from all models and print the final shape.
+        ```
+
+    4. Submission File:
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Present the required submission format explicitly and ensure the output adheres to it.
+
+    5. Code Standards:
+      - Do not use progress bars (e.g., tqdm) in the code.
+
+    6. Ensemble Strategy:
+      Consolidate all model outputs into a dictionary, where each key is the model's filename (excluding the .py extension) and its corresponding value is the model's output.
+      Sample code:
+      {% raw %}
+      {% for model_name in model_names %}
+      model_module = __import__(model_name.replace('.py', ''))
+      val_pred, test_pred, _ = model_module.model_workflow(
+        X=train_X,
+        y=train_y,
+        val_X=val_X,
+        val_y=val_y,
+        test_X=X_test_transformed
+      )
+      val_preds_dict[model_module.__name__] = val_pred
+      test_preds_dict[model_module.__name__] = test_pred
+      {% endfor %}
+      final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
+      {% endraw %}

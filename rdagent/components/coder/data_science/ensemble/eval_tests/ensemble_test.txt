@@ -1,9 +1,11 @@
 """
-A qualified ensemble implementation should:
-- Successfully run
+Tests for `ensemble_workflow` in ensemble.py
+
+A qualified ensemble_workflow implementation should:
 - Return predictions
 - Have correct shapes for inputs and outputs
 - Use validation data appropriately
+- Generate a scores.csv file
 """
 
 import numpy as np

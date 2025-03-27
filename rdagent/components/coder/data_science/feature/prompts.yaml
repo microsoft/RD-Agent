@@ -55,8 +55,8 @@ feature_coder:
     {% endif %}
   
   user: |-
-    --------- Feature Processing Specification ---------
-    {{ feature_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     {% if latest_code %}
     --------- Former code ---------

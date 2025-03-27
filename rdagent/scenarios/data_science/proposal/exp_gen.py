@@ -3,6 +3,7 @@ from typing import Dict, Literal
 
 import pandas as pd
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
@@ -242,10 +243,14 @@ class DSExpGen(ExpGen):
                 else:
                     break
 
+        if DS_RD_SETTING.spec_enabled:
+            spec = last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None
+        else:
+            spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
         resp_dict = self._init_task_gen(
             targets=component,
             scenario_desc=scenario_desc,
-            spec=last_successful_exp.experiment_workspace.file_dict[spec_file] if spec_file else None,
+            spec=spec,
             task_output_format=T(f".prompts:output_format.{component_prompt_key or component.lower()}").r(),
             former_task=former_tasks_desc if former_tasks_desc else None,
         )
@@ -384,13 +389,17 @@ class DSExpGen(ExpGen):
             component_info = COMPONENT_TASK_MAPPING.get(component)
 
             if component_info:
+                if DS_RD_SETTING.spec_enabled:
+                    task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
+                else:
+                    task_spec = T(f"scenarios.data_science.share:component_spec.{component}").r()
                 system_prompt = T(".prompts:direct_exp_gen.system").r(
                     targets=component_info["target_name"],
                     component=component,
                     scenario=scenario_desc,
                     hypothesis_specification=T(".prompts:hypothesis_specification").r(),
                     hypothesis_output_format=T(".prompts:output_format.hypothesis").r(),
-                    task_specification=sota_exp.experiment_workspace.file_dict[component_info["spec_file"]],
+                    task_specification=task_spec,
                     task_output_format=component_info["task_output_format"],
                     workflow_check=(not component == "Workflow"),
                 )

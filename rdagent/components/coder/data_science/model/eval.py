@@ -98,8 +98,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 task_desc=target_task.get_task_information(),
                 test_code=test_code,
                 code=implementation.file_dict[f"{target_task.name}.py"],
-                scenario=self.scen.get_scenario_all_desc(),
-                spec=implementation.file_dict["spec/model.md"],
                 workflow_stdout=workflow_stdout,
                 workflow_code=implementation.all_codes,
             )
