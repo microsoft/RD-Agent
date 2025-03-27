@@ -205,7 +205,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   
   # 1. Prepare the competition description files
   wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
-  unzip kaggle_data.zip -d git_ignore_folder/kaggle_data
+  mkdir -p git_ignore_folder/kaggle_data && unzip kaggle_data.zip -d git_ignore_folder/kaggle_data/sf-crime
 
   # 2. Add the competition description file path to the `.env` file.
   dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
