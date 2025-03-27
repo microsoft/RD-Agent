@@ -196,6 +196,15 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                     csv_head = read_csv_head(path, indent + 4)
                     result.append(csv_head)
                     continue
+                if file_type == "parquet":
+                    df = pd.read_parquet(path)
+                    result.append(
+                        " " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)"
+                    )
+                    result.append(" " * (indent + 2) + f"- Head of {file}:")
+                    csv_head = df.head().to_string(index=False)
+                    result.append(csv_head)
+                    continue
                 result.append(" " * indent + f"- {file} ({size} bytes)")
                 if file_type == "md":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
@@ -210,7 +219,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                         for tag, value in img.tag_v2.items():
                             tag_name = TiffTags.TAGS_V2.get(tag, f"Unknown Tag {tag}")
                             result.append(" " * (indent + 4) + f"{tag_name}: {value}")
-                if file_type in ["json", "txt"]:
+                if file_type =="txt":
                     result.append(" " * (indent + 2) + f"- Content of {file}:")
                     with open(path, "r", encoding="utf-8") as f:
                         for i, line in enumerate(f):
@@ -220,6 +229,12 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
                                 )
                             else:
                                 break
+                if file_type == "json":
+                    result.append(" " * (indent + 2) + f"- Content of {file}:")
+                    with open(path, "r", encoding="utf-8") as f:
+                        json_data = json.load(f)
+                        result.append(" " * (indent + 4) + f"Keys: {list(json_data.keys())}")
+                        result.append(" " * (indent + 4) + f"Values: {list(json_data.values())}")
 
     return "\n".join(result) + "\n"
 
