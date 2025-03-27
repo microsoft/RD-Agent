@@ -23,7 +23,6 @@ DataLoaderEvalFeedback = CoSTEERSingleFeedback
 
 
 class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -32,7 +31,6 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: CoSTEERQueriedKnowledgeV2 = None,
         **kwargs,
     ) -> DataLoaderEvalFeedback:
-
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None

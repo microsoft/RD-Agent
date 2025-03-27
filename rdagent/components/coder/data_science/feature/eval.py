@@ -20,7 +20,6 @@ FeatureEvalFeedback = CoSTEERSingleFeedback
 
 
 class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -29,7 +28,6 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FeatureEvalFeedback:
-
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
