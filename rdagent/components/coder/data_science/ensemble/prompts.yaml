@@ -96,9 +96,13 @@ ensemble_eval:
     You should evaluate both the ensemble test results and the overall workflow results. **Approve the code only if both tests pass.**
     {% endif %}
 
+    The metric used for scoring the predictions:
+    **{{ metric_name }}**
+
     ## Evaluation Criteria
     - You will be given the standard output (`stdout`) from the ensemble test and, if applicable, the workflow test.
     - Code should have no try-except blocks because they can hide errors.
+    - Check whether the code implement the scoring process using the given metric.
     - The stdout includes the local variable values from the ensemble code execution. Check whether the validation score is calculated correctly.
     
     Please respond with your feedback in the following JSON format and order

@@ -31,6 +31,8 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
     ) -> EnsembleEvalFeedback:
 
         target_task_information = target_task.get_task_information()
+        metric_name = self.scen.metric_name
+
         if (
             queried_knowledge is not None
             and target_task_information in queried_knowledge.success_task_to_knowledge_dict
@@ -55,7 +57,8 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
             .render(
                 model_names=[
                     fn[:-3] for fn in implementation.file_dict.keys() if fn.startswith("model_") and "test" not in fn
-                ]
+                ],
+                metric_name=metric_name,
             )
         )
 
@@ -73,6 +76,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:ensemble_eval.system").r(
             task_desc=target_task_information,
             test_code=test_code,
+            metric_name=metric_name,
             code=implementation.file_dict["ensemble.py"],
             workflow_stdout=workflow_stdout,
             workflow_code=implementation.all_codes,
