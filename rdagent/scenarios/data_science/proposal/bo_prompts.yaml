@@ -76,6 +76,7 @@ batch_idea_eval:
        - Besides idea evaluation, you should also consider the feasibility of the implementation. For example, if the implementation is too complex and training time may be too long with limited potential performance improvement, you should consider the to reduce the priority of the proposal. 
        - Also take the "which component to improve could lead to the best performance improvement at current stage" into consideration. The principle is to take the balance of "exploration" and "exploitation". For example, for a given component, if it has already been optimized many times, and with pretty good performance but less margin of improvement gain, you should reduce the priority of optimizing it. Instead, you should propose to optimize other components with more improvement potential but less been optimized.
        - The current status of the whole investigation pipeline should be taken into consideration for the proposal ranking. For example, if the investigation is already close to the end (e.g., we have already optimized most of the components several times / have had many trials of attempts / the trend of performance improvement is not significant), you should propose to optimize the components that have not been optimized yet, and give a higher priority to the proposal that with higher novelty. In the other hand, if the investigation is still in the early stage (e.g., we have not optimized most of the components / have not had many trials of attempts / the trend of performance improvement is significant), you should propose to optimize the components that have more potential of performance improvement.
+       - Efficiency should also be considered. For example, if the proposal is very time-consuming, you should reduce the priority of the proposal. Recall, you have limited time and resources, decrease the priority of the proposal which could be very time-consuming (for example, some recursive feature selection method).
 
     2. For each proposal, provide:
        - A detailed analysis of its strengths and potential risks
@@ -83,6 +84,7 @@ batch_idea_eval:
        - A novelty score (0-10) indicating how different it is from previous attempts
        - A confidence score (0-10) for your evaluation
        - A risk-reward balance score (0-10) for the proposal with "exploration-exploitation balance" principle.
+       - A efficiency score (0-10) for the proposal. 
 
     3. Rank all proposals based on:
        - Estimated performance improvement potential
@@ -121,6 +123,7 @@ batch_idea_eval:
         "innovation_score": [Innovation Score](integer, 0-10),
         "confidence_score": [Confidence Score](integer, 0-10),
         "risk_reward_balance": [Risk-Reward Balance](integer, 0-10),
+        "efficiency_score": [Efficiency Score](integer, 0-10),
       },
       ...
     ]
@@ -140,7 +143,7 @@ idea_polish:
 
     # Polising the best candidate idea!
 
-    You are tasked with polishing the best candidate idea based on the detailed analysis given by the user. The principle is to make the idea more likely to be successful and to have higher performance improvement potential. In most cases, you should not change the component and the hypothesis of the best candidate idea too much. You can try to improve the idea by merging some non-top priority ideas into the best candidate idea, or try to find a better hypothesis, or try to find a better task to increase the performance improvement potential and novelty. If you think the best candidate idea is already good enough, you can just return the best candidate idea. In some case, if you think the best candidate idea and other proposals are all not good enough, feel free to propose a totally new idea.
+    You are tasked with polishing the best candidate idea based on the detailed analysis given by the user. The principle is to make the idea more likely to be successful and to have higher performance improvement potential. In most cases, you may not change too much the component and the hypothesis of the best candidate idea. You can try to improve the best candidate idea by get the inspiration from non-top priority ideas, or try to find a better hypothesis, or try to find a better task to increase the performance improvement potential and novelty. If you think the best candidate idea is already good enough, you can just return the best candidate idea. In some case, if you think the best candidate idea and other proposals are all not good enough, feel free to propose a totally new idea--especially when you found the similar ideas proposed in the trace history can not lead to significant performance improvement. Recall, you have limited time and resources, decrease the priority of the proposal which could be very time-consuming (for example, some recursive feature selection proposal).
 
      The best candidate idea, the detailed analysis, and batch of proposals will be provided to you later.
     
