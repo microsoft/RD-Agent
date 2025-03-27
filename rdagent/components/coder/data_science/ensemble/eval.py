@@ -76,7 +76,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:ensemble_eval.system").r(
             task_desc=target_task_information,
             test_code=test_code,
-            metric_name=metric_name, 
+            metric_name=metric_name,
             code=implementation.file_dict["ensemble.py"],
             workflow_stdout=workflow_stdout,
             workflow_code=implementation.all_codes,

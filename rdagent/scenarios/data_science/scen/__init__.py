@@ -271,7 +271,9 @@ class DataScienceScen(Scenario):
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
-        self.metric_description = response_json_analysis.get("Metric Evaluation Description", "No target description provided")
+        self.metric_description = response_json_analysis.get(
+            "Metric Evaluation Description", "No target description provided"
+        )
         self.metric_name = response_json_analysis.get("Metric Name", "No metric name provided")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
