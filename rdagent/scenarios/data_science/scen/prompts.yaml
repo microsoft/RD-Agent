@@ -36,6 +36,7 @@ competition_description_template:
       "Evaluation Description": "A description of the evaluation used in the competition.",
       "Submission Specifications": "The submission specification & sample submission file descriptions for the model to output."
       "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Metric Name": "The name of the metric which this competition use for scoring the submission."
       "Metric direction": True or False as True means bigger metric number is better, False means smaller is better.
     }
   user: |-

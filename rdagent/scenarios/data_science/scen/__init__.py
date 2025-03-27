@@ -272,6 +272,7 @@ class DataScienceScen(Scenario):
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
+        self.metric_name = response_json_analysis.get("Metric Name", "No metric name provided")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
     def get_competition_full_desc(self) -> str:
@@ -282,6 +283,7 @@ class DataScienceScen(Scenario):
     Target Description: {self.target_description}
     Submission Specifications: {self.submission_specifications}
     Model Output Channel: {self.model_output_channel}
+    Metric Name: {self.metric_name}
     """
 
     @property
@@ -308,6 +310,7 @@ class DataScienceScen(Scenario):
             background=self.background,
             submission_specifications=self.submission_specifications,
             evaluation=self.target_description,
+            metric_name=self.metric_name,
             metric_direction=self.metric_direction,
             eda_output=self.eda_output,
         )
