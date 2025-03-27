@@ -33,9 +33,10 @@ competition_description_template:
       "Data Type": "The type of competition data, e.g., 'Tabular', 'Time Series', 'Text (Natural Language Processing)', 'Image (Computer Vision)', 'Audio', 'Video'", 
       "Brief Description": "A brief description of the competition",
       "Dataset Description": "The dataset utilized in the competition is described based on two sources: the Competition Description, which provides contextual details about the original files, and the Processed Data folder description, which outlines the structure of the dataset after processing. While there may be differences—for instance, original files mentioned in the Competition Description (e.g., .zip files) may have been extracted or restructured—your task is to interpret the new file structure accurately (do not contain any file or folder that is not in Processed Data folder description) and reconcile it with the contextual information from the Competition Description to provide a clear and updated explanation.",
-      "Evaluation Description": "A description of the evaluation used in the competition.",
       "Submission Specifications": "The submission specification & sample submission file descriptions for the model to output."
       "Submission channel number to each sample": "The number of channels in the output for each sample, e.g., 1 for regression, N for N class classification with probabilities, etc. A Integer. If not specified, it is 1."
+      "Metric Evaluation Description": "A precise explanation of how the submissions are scored in this competition, including how the metric is calculated and any specific considerations.",
+      "Metric Name": "The name of the metric which this competition use for scoring the submission."
       "Metric direction": True or False as True means bigger metric number is better, False means smaller is better.
     }
   user: |-
@@ -57,7 +58,7 @@ competition_background: |-
   The data type used in this competition is {{ data_type }}.
   Briefly, the competition involves: {{ brief_description }}.
   The dataset used in this competition is: {{ dataset_description }}.
-  Your goal in this competition is to: {{ target_description }}.
+  The evaluation metric of this competition is: {{ metric_description }}.
 
 rich_style_description: |-
   ### {{ name }} Agent: Automated Feature Engineering & Model Tuning Evolution

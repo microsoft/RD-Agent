@@ -267,11 +267,14 @@ class DataScienceScen(Scenario):
         self.data_type = response_json_analysis.get("Data Type", "No data type provided")
         self.brief_description = response_json_analysis.get("Brief Description", "No brief description provided")
         self.dataset_description = response_json_analysis.get("Dataset Description", "No dataset description provided")
-        self.target_description = response_json_analysis.get("Evaluation Description", "No target description provided")
         self.submission_specifications = response_json_analysis.get(
             "Submission Specifications", "No submission requirements provided"
         )
         self.model_output_channel = response_json_analysis.get("Submission channel number to each sample", 1)
+        self.metric_description = response_json_analysis.get(
+            "Metric Evaluation Description", "No target description provided"
+        )
+        self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
     def get_competition_full_desc(self) -> str:
@@ -279,9 +282,10 @@ class DataScienceScen(Scenario):
     Data Type: {self.data_type}
     Brief Description: {self.brief_description}
     Dataset Description: {self.dataset_description}
-    Target Description: {self.target_description}
     Submission Specifications: {self.submission_specifications}
     Model Output Channel: {self.model_output_channel}
+    Metric Evaluation Description: {self.metric_description}
+    Metric Name: {self.metric_name}
     """
 
     @property
@@ -292,7 +296,7 @@ class DataScienceScen(Scenario):
             data_type=self.data_type,
             brief_description=self.brief_description,
             dataset_description=self.dataset_description,
-            target_description=self.target_description,
+            metric_description=self.metric_description,
         )
         return background_prompt
 
@@ -307,7 +311,8 @@ class DataScienceScen(Scenario):
         return T(".prompts:scenario_description").r(
             background=self.background,
             submission_specifications=self.submission_specifications,
-            evaluation=self.target_description,
+            evaluation=self.metric_description,
+            metric_name=self.metric_name,
             metric_direction=self.metric_direction,
             eda_output=self.eda_output,
         )

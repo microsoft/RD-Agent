@@ -68,6 +68,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
 
         stdout = implementation.execute(env=env, entry=f"python main.py")
+
+        # remove EDA part
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         # Check score file
@@ -85,9 +87,17 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 model_set_in_folder = set(
                     f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
                 )
+
+                # Check model names (index)
                 if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
                     score_ret_code = 1
+
+                # Check metric name (columns)
+                if score_df.columns.tolist() != [self.scen.metric_name]:
+                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_ret_code = 1
+
             except Exception as e:
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
@@ -100,17 +110,6 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             env=env, entry="python test/submission_format_test.py"
         )
         stdout += "\n" + submission_check_out
-
-        # MLEBench Check
-        # !!! Since we are running on a sampled dataset, mlebench check is not required.
-        # mle_check_code = (
-        #     (DIRNAME / "eval_tests" / "mle_submission_format_test.txt")
-        #     .read_text()
-        #     .replace("<competition_id>", self.scen.competition)
-        # )
-        # implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        # stdout += "----Submission Check 2-----\n"
-        # stdout += implementation.execute(env=mde, entry=f"python test/mle_submission_format_test.py")
 
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),

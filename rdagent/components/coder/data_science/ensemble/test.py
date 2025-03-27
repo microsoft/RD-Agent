@@ -44,7 +44,7 @@ def develop_one_competition(competition: str):
         """,
     )
 
-    exp = EnsembleExperiment(sub_tasks=[task])
+    exp = EnsembleExperiment(pending_tasks_list=[task])
 
     # Injecting the corresponding specification
     exp.experiment_workspace.inject_files(**{"spec/ensemble.md": ensemble_spec})
