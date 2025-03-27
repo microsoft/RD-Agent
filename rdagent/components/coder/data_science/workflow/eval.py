@@ -68,7 +68,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
 
         stdout = implementation.execute(env=env, entry=f"python main.py")
-        
+
         # remove EDA part
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
