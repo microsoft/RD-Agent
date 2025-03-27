@@ -1,22 +1,11 @@
 import pandas as pd
 from rdagent.components.coder.model_coder.model import ModelFBWorkspace
 from rdagent.core.experiment import FBWorkspace
-from rdagent.utils.env import DSDockerConf, DockerEnv, KGDockerConf, QlibDockerConf
+from rdagent.utils.env import DSDockerConf, DockerEnv, KGDockerConf, QlibDockerConf,MLEBDockerConf
 
 from pathlib import Path
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-
-def get_data_conf(init_val):
-    # TODO: inherent from the benchmark base class
-    import torch
-    # TODO: design this step in the workflow
-    in_dim = 1000
-    in_channels = 128
-    exec_config = {"model_eval_param_init": init_val}
-    node_feature = torch.randn(in_dim, in_channels)
-    edge_index = torch.randint(0, in_dim, (2, 2000))
-    return (node_feature, edge_index), exec_config
 
 
 class ModelImpValEval:
