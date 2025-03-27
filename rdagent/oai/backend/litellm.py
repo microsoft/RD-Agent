@@ -24,6 +24,7 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
+logger.info(f"{LITELLM_SETTINGS}")
 ACC_COST = 0.0
 
 
@@ -121,5 +122,7 @@ class LiteLLMAPIBackend(APIBackend):
         global ACC_COST
         cost = completion_cost(model=LITELLM_SETTINGS.chat_model, messages=messages, completion=content)
         ACC_COST += cost
-        logger.info(f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}")
+        logger.info(
+            f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+        )
         return content, finish_reason
