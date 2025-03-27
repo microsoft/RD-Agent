@@ -24,7 +24,7 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
-ACC_COST = 0.
+ACC_COST = 0.0
 
 
 class LiteLLMAPIBackend(APIBackend):
