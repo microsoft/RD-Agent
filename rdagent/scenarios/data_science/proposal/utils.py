@@ -38,9 +38,13 @@ def extract_JSON(text) -> List | List[Dict]:
     return []
 
 
-def identify_scenario_problem() -> List[Dict]:
-    sys_prompt = T(".prompts2:scenario_problem.system").r()
-    user_prompt = T(".prompts2:scenario_problem.user").r()
+def identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df) -> List[Dict]:
+    sys_prompt = T(".prompts2:scenario_problem.system").r(component_desc=component_desc)
+    user_prompt = T(".prompts2:scenario_problem.user").r(
+        scenario_desc=scenario_desc,
+        trace_desc_df=trace_desc_df,
+        sota_exp_desc=sota_exp_desc
+    )
 
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
@@ -50,8 +54,12 @@ def identify_scenario_problem() -> List[Dict]:
 
 
 def identify_feedback_problem() -> List[Dict]:
-    sys_prompt = T(".prompts2:feedback_problem.system").r()
-    user_prompt = T(".prompts2:feedback_problem.user").r()
+    sys_prompt = T(".prompts2:feedback_problem.system").r(component_desc=component_desc)
+    user_prompt = T(".prompts2:feedback_problem.user").r(
+        scenario_desc=scenario_desc,
+        trace_desc_df=trace_desc_df,
+        sota_exp_desc=sota_exp_desc
+    )
 
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,

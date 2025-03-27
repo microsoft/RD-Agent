@@ -1,65 +1,68 @@
 scenario_problem:
   system: |-
-    You are a data scientist tasked with rigorously evaluating a competition solution.
-    You will be provided with a competition description and a solution notebook.
-    Your task is to analyze the given information and answer the following questions: 
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given scenario and competition description, EDA (Exploratory Data Analysis) result, and the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the current SOTA implementation within these 5 components:
+    {{ component_desc }}
 
-    (1) Key Dataset Characteristics
-    Identify characteristics explicitly mentioned in the description or directly observable in the solution. Example characteristics: 
-    - Imbalance,
-    - High dimensionality,
-    - Collinearity,
-    - Outliers,
-    - Missing data,
-    - Skewed distribution,
-    - Time-based patterns,
-    - Etc.
-    
-    (2) Solution Assessment
-    For each identified characteristic, state "Yes" or "No" for whether the solution addresses it, with code references or text explanation if applicable.
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are inherent, concrete, specific technical or methodological issues from the competition scenario.
+    1. Dataset Characteristics: inherent dataset properties (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights:
 
-    Rules to follow:
-    1. **Explicit Evidence Only**: Identify data characteristics ONLY if they are directly described in the competition/dataset or observable in the solution code. Never assume common practices (e.g., class imbalance in binary classification is usual) unless explicitly stated.
-    2. **Inherent Data Traits**: Focus on inherent properties of the dataset (e.g., missing data, outliers). Do NOT include preprocessing steps (e.g., normalization) as "characteristics."
-    3. **JSON Output Schema**: For each of the identified characteristics, please strictly adhere to the following JSON schema without anything else.
+    ### Instruction
+
+    ### Output Format
+    Return a JSON list of problems adhering strictly to this schema:
     {
-      "Characteristic": "Name of the identified data characteristic."
-      "Reason": "Exact information from the description or solution proving this characteristic",
-      "Assessment": "Yes/No",
-      "Context": "Explicit code reference or text explanation (ONLY include this field if Assessment=Yes)"
+      "Component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
+      "Problem": "A description of the specific issue.",
+      "Reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
     }
-    Your final output must be **a list of** identified characteristics, each strictly adhere to the above JSON schema without anything else.
+    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
+
+    ### Example
+    [
+    ]
 
   user: |-
-    # Competition Description
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Competition Descriptioin
     {{ competition_desc }}
 
-    # Solution Notebook
-    {{ solution }}
+    # Current SOTA Description
+    {{ sota_exp_desc }}
 
-    Please extract the data characteristics and evaluate the current solution. 
+    Please extract the scenario problems that the current SOTA solution is facing.
     Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
 
 
 feedback_problem:
   system: |-
-    You are a data scientist tasked with rigorously evaluating a competition solution.
-    You will be provided with a competition description, a solution notebook, and the corresponding feedbacks. Your task is to analyze the given information and extract the **low-level problems** that the current solution is facing.
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, trace history description, the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation within these 5 components:
+    {{ component_desc }}
 
     ## Low-Level Problems
     ### Definition
-    Low-level problems are specific, technical, or methodological issues within one of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the solution.
-    1. Component-Specific: The problem is tied to a specific component of the solution.
-    2. Technical or Methodological: The problem is related to the implementation, design, or methodology of the component instead of debugging such as AttributeError.
-    3. Explicit or Reasonable: The problem is either explicitly mentioned in the feedback or can be reasonably inferred from the provided materials.
-    4. Actionable: The problem can be addressed with a clear, actionable improvement.
+    Low-level problems are specific and fine-grained technical, or methodological issues within one or more of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the implementation.
+    
+    ### Instruction
+    1. Specific and Fine-grained: Avoid vague and general statements.
+    2. Technical or Methodological: Focus on design/implementation flaws, not runtime errors.
 
     ### Output Format
-    Output JSON schema:
+    Return a JSON list of problems adhering strictly to this schema:
     {
-      "Component": "The specific component the problem related to. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-      "Problem": "A concise description of the specific issue.",
-      "Reason": "Brief explanation of why this is a problem, based on the feedback or provided materials."
+      "Component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
+      "Problem": "A description of the specific issue.",
+      "Reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
     }
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
@@ -88,16 +91,16 @@ feedback_problem:
     ]
 
   user: |-
-    # Competition Description
-    {{ competition_desc }}
+    # Scenario Description
+    {{ scenario_desc }}
+    
+    # Trace History Description
+    {{ trace_desc_df }}
 
-    # Solution Notebook
-    {{ solution }}
+    # Current SOTA Description
+    {{ sota_exp_desc }}
 
-    # Solution Feedbacks
-    {{ feedback }}
-
-    Please extract the low-level problems that the current solution is facing.
+    Please extract the low-level problems that the current SOTA solution is facing.
     Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
 
 

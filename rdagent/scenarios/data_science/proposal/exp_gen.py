@@ -268,6 +268,7 @@ class DSExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
+        competition_desc = trace.scen.get_competition_full_desc()
         last_successful_exp = trace.last_successful_exp()
 
         next_missing_component = trace.next_incomplete_component()
@@ -309,6 +310,44 @@ class DSExpGen(ExpGen):
 
             # Step 1: Generate component
             # Describe current best solution using shared template
+            # sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+            #     exp=sota_exp, heading="Best of previous exploration of the scenario"
+            # )
+            # last_exp_diff = "\n".join(
+            #     generate_diff_from_dict(
+            #         sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
+            #     )
+            # )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
+
+            # sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+            # failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            #     -self.max_trace_hist :
+            # ]
+            # all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
+            # trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+            # for index, (exp, fb) in enumerate(all_exp_feedback_list):
+            #     trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
+            #         exp.hypothesis.component,
+            #         exp.hypothesis.hypothesis,
+            #         fb.decision,
+            #     ]
+
+            # sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            #     exp_and_feedback_list=sota_exp_feedback_list,
+            #     success=True,
+            # )
+            # failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            #     exp_and_feedback_list=failed_exp_feedback_list,
+            #     success=False,
+            # )
+
+            # Prepare
+            component_desc="\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
             sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
                 exp=sota_exp, heading="Best of previous exploration of the scenario"
             )
@@ -316,33 +355,25 @@ class DSExpGen(ExpGen):
                 generate_diff_from_dict(
                     sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
                 )
-            )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
+            )
 
             sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
-                -self.max_trace_hist :
-            ]
+            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-self.max_trace_hist:]
             all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
-            trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+
+            trace_desc_df = pd.DataFrame(columns=["Problem", "Component", "Hypothesis", "Hypothesis Reason", "Improved"])
             for index, (exp, fb) in enumerate(all_exp_feedback_list):
-                trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
+                trace_desc_df.loc[f"Trace {index + 1}"] = [
+                    exp.hypothesis.problem, # todo
                     exp.hypothesis.component,
                     exp.hypothesis.hypothesis,
+                    exp.hypothesis.reason,
                     fb.decision,
                 ]
 
-            sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=sota_exp_feedback_list,
-                success=True,
-            )
-            failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-                exp_and_feedback_list=failed_exp_feedback_list,
-                success=False,
-            )
-
             # Step 1: Identify problems
-            scen_problems = identify_scenario_problem(scenario_desc)
-            fb_problems = identify_feedback_problem(scenario_desc)
+            scen_problems = identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
+            fb_problems = identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, last_exp_diff, trace_desc_df)
             problems = scen_problems + fb_problems
 
             # Step 2: Sample ideas for each problems (for researcher)
