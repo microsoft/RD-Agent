@@ -1,6 +1,12 @@
 from typing import Any
 
-from litellm import completion, embedding, supports_response_schema, token_counter, completion_cost
+from litellm import (
+    completion,
+    completion_cost,
+    embedding,
+    supports_response_schema,
+    token_counter,
+)
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -18,7 +24,7 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
-ACC_COST = 0
+ACC_COST = 0.
 
 
 class LiteLLMAPIBackend(APIBackend):
