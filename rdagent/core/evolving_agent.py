@@ -102,6 +102,6 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator]):
                 yield evo  # yield the control to caller for process control and logging.
 
                 # 7. check if all tasks are completed
-                if self.with_feedback and es.feedback:
+                if self.with_feedback and es.feedback is not None and es.feedback.finished():
                     logger.info("All tasks in evolving subject have been completed.")
                     break
