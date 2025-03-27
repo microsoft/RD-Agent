@@ -73,6 +73,7 @@ You can try above demos by running the following command:
 
 ### 🐳 Docker installation.
 Users must ensure Docker is installed before attempting most scenarios. Please refer to the [official 🐳Docker page](https://docs.docker.com/engine/install/) for installation instructions.
+Ensure the current user can run Docker commands **without using sudo**. You can verify this by executing `docker run hello-world`.
 
 ### 🐍 Create a Conda Environment
 - Create a new conda environment with Python (3.10 and 3.11 are well-tested in our CI):
