@@ -64,17 +64,31 @@ def extract_features(raw_features, ftype):
             # data features
             if ftype == "data":
                 if feat['Assessment'].lower() == 'no':
-                    feature = f"{feat['Characteristic']}"
-                    extracted_features.append({"label": "DATA", "feature": feature})
+                    feature, reason = feat['Characteristic'], feat['Reason']
+                    extracted_features.append({"label": "DATA", "feature": feature, "reason": reason})
             # problem features
             elif ftype == "problem":
-                feature = f"{feat['Problem']}"
-                extracted_features.append({"label": "PROBLEM", "feature": feature})
-            elif ftype == "reason":
-                pass
+                feature, reason = feat['Problem'], feat['Reason']
+                extracted_features.append({"label": "PROBLEM", "feature": feature, "reason": reason})
             else:
                 raise NotImplementedError
     return extracted_features
+
+
+def format_idea(items, component=None):
+    idx = 1
+    suggested_ideas = ""
+    for item in items:
+        idea, feature = item
+        if component is None or idea.component == component:
+            suggested_ideas += f"## Idea {idx}: {idea.idea}\n"
+            suggested_ideas += f"Method: {idea.method}\n"
+            if component is None: # no specified component
+                suggested_ideas += f"Target Component: {idea.component}\n"
+            suggested_ideas += f"Target Problem: {feature['feature']} as evidenced by {feature['reason']}\n"
+            suggested_ideas += f"Idea Usage Example: {idea.context}\n\n"
+            idx += 1
+    return suggested_ideas
 
 
 from rdagent.oai.llm_utils import APIBackend

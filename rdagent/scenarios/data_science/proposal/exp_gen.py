@@ -16,7 +16,7 @@ from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
-from scripts.exp.researcher.utils import solution_to_data, solution_to_problem, extract_features, Saver
+from scripts.exp.researcher.utils import solution_to_data, solution_to_problem, extract_features, format_idea
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
@@ -365,18 +365,6 @@ class DSExpGen(ExpGen):
                     if idea.id not in idea_ids:
                         idea_ids.append(idea.id)
                         ideas.append((self.knowledge_base.idea_pool[idea.id], feat)) # idea, feature
-
-            def format_idea(ideas, component=None):
-                suggested_ideas = ""
-                idx = 1
-                for item in ideas:
-                    idea, feature = item
-                    if component is None or idea.component == component:
-                        suggested_ideas += f"## Idea {idx}\n"
-                        suggested_ideas += f"{idea.knowledge()}\n"
-                        suggested_ideas += f"This idea tries to fix the problem of previous solution: {feature['feature']}\n\n"
-                        idx += 1
-                return suggested_ideas
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(

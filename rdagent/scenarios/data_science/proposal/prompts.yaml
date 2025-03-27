@@ -304,7 +304,6 @@ component_gen:
     Please choose the most proper component to focus on based on the information above. Please balance the exploration and exploitation.
     Avoid selecting the same component more than 5 times in a row to ensure that the chosen component is not overly repetitive.
 
-
 exp_and_feedback: |-
   {% for experiment, feedback in trace.hist[-10:] %}
   ## Experiment {{ loop.index }}
