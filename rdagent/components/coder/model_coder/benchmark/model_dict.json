@@ -26,41 +26,6 @@
         "key": "linkx",
         "model_type": "Graph"
     },
-    "GPSConv": {
-        "description": "A scalable and powerful graph transformer with linear complexity, capable of handling large graphs with state-of-the-art results across diverse benchmarks.",
-        "formulation": "X^{(l+1)} = \\text{MPNN}^{(l)}(X^{(l)}, A) + \\text{GlobalAttn}^{(l)}(X^{(l)})",
-        "variables": {
-            "X^{(l)}": "The node features at layer l",
-            "A": "The adjacency matrix of the graph",
-            "X^{(l+1)}": "The updated node features at layer l+1",
-            "MPNN^{(l)}": "The message-passing neural network function at layer l",
-            "GlobalAttn^{(l)}": "The global attention function at layer l"
-        },
-        "key": "gpsconv",
-        "model_type": "Graph"
-    },
-    "ViSNet": {
-        "description": "ViSNet is an equivariant geometry-enhanced graph neural network designed for efficient molecular modeling[^1^][1][^2^][2]. It utilizes a Vector-Scalar interactive message passing mechanism to extract and utilize geometric features with low computational costs, achieving state-of-the-art performance on multiple molecular dynamics benchmarks.",
-        "formulation": "\\text{ViSNet}(G) = \\sum_{u \\in G} f(\\mathbf{h}_u, \\mathbf{e}_u, \\mathbf{v}_u)",
-        "variables": {
-            "\\mathbf{h}_u": "Node embedding for atom u",
-            "\\mathbf{e}_u": "Edge embedding associated with atom u",
-            "\\mathbf{v}_u": "Direction unit vector for atom u"
-        },
-        "key": "visnet",
-        "model_type": "Graph"
-    },
-    "Dir-GNN": {
-        "description": "A framework for deep learning on directed graphs that extends MPNNs to incorporate edge directionality.",
-        "formulation": "x^{(k)}_i = COM^{(k)}\\left(x^{(k-1)}_i, m^{(k)}_{i,\\leftarrow}, m^{(k)}_{i,\\rightarrow}\\right)",
-        "variables": {
-            "x^{(k)}_i": "The feature representation of node i at layer k",
-            "m^{(k)}_{i,\\leftarrow}": "The aggregated incoming messages to node i at layer k",
-            "m^{(k)}_{i,\\rightarrow}": "The aggregated outgoing messages from node i at layer k"
-        },
-        "key": "dirgnn",
-        "model_type": "Graph"
-    },
     "A-DGN": {
         "description": "A framework for stable and non-dissipative DGN design, conceived through the lens of ordinary differential equations (ODEs). It ensures long-range information preservation between nodes and prevents gradient vanishing or explosion during training.",
         "formulation": "\\frac{\\partial x_u(t)}{\\partial t} = \\sigma(W^T x_u(t) + \\Phi(X(t), N_u) + b)",
@@ -76,152 +41,6 @@
         },
         "key": "A-DGN",
         "model_type": "Graph"
-    },
-    "GRU": {
-        "description": "A gated recurrent unit (GRU) is a type of recurrent neural network (RNN) that uses gating mechanisms to control the flow of information. It is designed to capture long-range dependencies while mitigating the vanishing gradient problem.",
-        "formulation": [
-            "z_t = \\sigma(W_z \\cdot [h_{t-1}, x_t] + b_z)",
-            "r_t = \\sigma(W_r \\cdot [h_{t-1}, x_t] + b_r)",
-            "\\tilde{h}_t = \\tanh(W_h \\cdot [r_t \\odot h_{t-1}, x_t] + b_h)",
-            "h_t = (1 - z_t) \\odot h_{t-1} + z_t \\odot \\tilde{h}_t"
-        ],
-        "variables": {
-            "x_t": "The input vector at time step t",
-            "h_{t-1}": "The hidden state at the previous time step t-1",
-            "h_t": "The hidden state at time step t",
-            "z_t": "The update gate vector at time step t",
-            "r_t": "The reset gate vector at time step t",
-            "\\tilde{h}_t": "The candidate hidden state at time step t",
-            "W_z, W_r, W_h": "Weight matrices for the update gate, reset gate, and candidate hidden state, respectively",
-            "b_z, b_r, b_h": "Bias vectors for the update gate, reset gate, and candidate hidden state, respectively",
-            "\\sigma": "The sigmoid activation function",
-            "\\tanh": "The hyperbolic tangent activation function",
-            "\\odot": "Element-wise multiplication"
-        },
-        "key": "GRU",
-        "model_type": "TimeSeries"
-    },
-    "LSTM": {
-        "description": "A type of recurrent neural network (RNN) designed to capture long-term dependencies in sequential data. It uses gating mechanisms to control the flow of information, preventing gradient vanishing or explosion during training.",
-        "formulation": [
-            "f_t = \\sigma(W_f \\cdot [h_{t-1}, x_t] + b_f)",
-            "i_t = \\sigma(W_i \\cdot [h_{t-1}, x_t] + b_i)",
-            "\\tilde{C}_t = \\tanh(W_C \\cdot [h_{t-1}, x_t] + b_C)",
-            "C_t = f_t \\cdot C_{t-1} + i_t \\cdot \\tilde{C}_t",
-            "o_t = \\sigma(W_o \\cdot [h_{t-1}, x_t] + b_o)",
-            "h_t = o_t \\cdot \\tanh(C_t)"
-        ],
-        "variables": {
-            "x_t": "The input at time step t",
-            "h_t": "The hidden state at time step t",
-            "C_t": "The cell state at time step t",
-            "f_t": "The forget gate at time step t",
-            "i_t": "The input gate at time step t",
-            "\\tilde{C}_t": "The candidate cell state at time step t",
-            "o_t": "The output gate at time step t",
-            "W_f, W_i, W_C, W_o": "Weight matrices for the forget gate, input gate, cell state, and output gate, respectively",
-            "b_f, b_i, b_C, b_o": "Bias vectors for the forget gate, input gate, cell state, and output gate, respectively",
-            "\\sigma": "The sigmoid activation function",
-            "\\tanh": "The hyperbolic tangent activation function"
-        },
-        "key": "LSTM",
-        "model_type": "TimeSeries"
-    },
-    "DeepAR": {
-        "description": "A probabilistic forecasting model based on deep learning, designed for time series prediction. It uses recurrent neural networks (RNNs) to capture temporal dependencies and generates probabilistic forecasts by modeling the distribution of future values.",
-        "formulation": "p(y_{t+1:t+H} | y_{1:t}, x_{1:t+H}) = \\prod_{i=1}^H p(y_{t+i} | y_{1:t+i-1}, x_{1:t+i})",
-        "variables": {
-            "y_{1:t}": "The historical observations of the time series up to time t",
-            "y_{t+1:t+H}": "The future values of the time series to be predicted over the horizon H",
-            "x_{1:t+H}": "The covariate features (e.g., time-based features, external factors) up to time t+H",
-            "p(y_{t+i} | y_{1:t+i-1}, x_{1:t+i})": "The conditional probability distribution of the time series at time t+i, given past observations and covariates",
-            "H": "The prediction horizon",
-            "t": "The current time step"
-        },
-        "key": "DeepAR",
-        "model_type": "TimeSeries"
-    },
-    "DecoderMLP": {
-        "description": "A decoder model based on Multi-Layer Perceptron (MLP) for generating target outputs from input features or hidden states. It is commonly used in generation tasks, sequence-to-sequence tasks, and regression/classification tasks.",
-        "formulation": "y = W_3 \\cdot \\sigma(W_2 \\cdot \\sigma(W_1 \\cdot x + b_1) + b_2) + b_3",
-        "variables": {
-            "x": "The input feature vector or hidden state",
-            "y": "The output generated by the decoder",
-            "W_1, W_2, W_3": "Weight matrices of the MLP layers",
-            "b_1, b_2, b_3": "Bias vectors of the MLP layers",
-            "\\sigma": "A non-linear activation function (e.g., ReLU, Tanh)",
-            "\\cdot": "Matrix multiplication or dot product"
-        },
-        "key": "DecoderMLP",
-        "model_type": "TimeSeries"
-    },
-    "N-BEATS": {
-        "description": "A deep learning model for time series forecasting that leverages neural basis expansion analysis. It decomposes time series into interpretable components (e.g., trend and seasonality) and uses a stack of fully connected layers to generate accurate predictions.",
-        "formulation": "\\hat{y}_{t+1:t+H} = \\sum_{l=1}^L g_l(\\mathbf{h}_l), \\quad \\mathbf{h}_l = f_l(\\mathbf{h}_{l-1})",
-        "variables": {
-            "\\hat{y}_{t+1:t+H}": "The predicted values for the time steps from t+1 to t+H",
-            "g_l": "The l-th block's forward projection function, generating predictions",
-            "f_l": "The l-th block's backward projection function, learning hierarchical features",
-            "\\mathbf{h}_l": "The hidden state of the l-th block",
-            "L": "The total number of blocks in the stack",
-            "H": "The forecast horizon"
-        },
-        "key": "N-BEATS",
-        "model_type": "TimeSeries"
-    },
-    "NHiTS": {
-        "description": "A neural network-based time series forecasting model that leverages hierarchical interpolation to capture multi-scale temporal patterns. It is designed for efficient and accurate long-term forecasting by progressively refining predictions through multiple interpolation layers.",
-        "formulation": "y_{t+1:t+H} = \\sum_{l=1}^L \\text{Interp}_l(\\text{MLP}_l(\\text{Downsample}_l(x_{t-K+1:t})))",
-        "variables": {
-            "y_{t+1:t+H}": "The predicted values for the future time steps from t+1 to t+H",
-            "L": "The number of hierarchical interpolation layers",
-            "\\text{Interp}_l": "The interpolation function at layer l, which refines the predictions at a specific time scale",
-            "\\text{MLP}_l": "A multi-layer perceptron (MLP) at layer l, responsible for learning temporal patterns",
-            "\\text{Downsample}_l": "The downsampling operation at layer l, which reduces the temporal resolution to focus on longer-term patterns",
-            "x_{t-K+1:t}": "The input time series data from time step t-K+1 to t, where K is the lookback window",
-            "H": "The forecast horizon",
-            "K": "The lookback window size"
-        },
-        "key": "NHiTS",
-        "model_type": "TimeSeries"
-    },
-    "TFT": {
-        "description": "A deep learning model for time series forecasting that combines Transformer, LSTM, and attention mechanisms to capture complex temporal dependencies and handle multiple input types. It provides interpretable predictions through attention weights.",
-        "formulation": [
-            "Static Feature Encoding: s = f_s(z_s)",
-            "Temporal Processing: h_t = LSTM(x_t, h_{t-1})",
-            "Attention Mechanism: a_t = \\text{Attention}(h_t, h_{1:T})",
-            "Output Prediction: y_t = f_o(a_t, s)"
-        ],
-        "variables": {
-            "s": "Static features encoded by the static feature encoder",
-            "z_s": "Raw static features",
-            "f_s": "Static feature encoding function",
-            "h_t": "Hidden state of the LSTM at time t",
-            "x_t": "Input features at time t",
-            "LSTM": "Long Short-Term Memory network for temporal processing",
-            "a_t": "Attention weights at time t",
-            "Attention": "Self-attention mechanism to capture temporal dependencies",
-            "h_{1:T}": "Hidden states of the LSTM over all time steps",
-            "y_t": "Predicted output at time t",
-            "f_o": "Output function combining attention and static features"
-        },
-        "key": "TFT",
-        "model_type": "TimeSeries"
-    },
-    "TiDE": {
-        "description": "A deep learning model for time-series forecasting that combines the efficiency of traditional time-series models with the expressive power of neural networks. It uses a dense encoder-decoder architecture to capture long-term dependencies and handle multivariate time-series data effectively.",
-        "formulation": "\\hat{y}_{t+1:t+H} = \\text{Decoder}(\\text{Encoder}(x_{t-L+1:t}, \\text{TimeFeatures}_{t-L+1:t}), \\text{TimeFeatures}_{t+1:t+H})",
-        "variables": {
-            "\\hat{y}_{t+1:t+H}": "The predicted values for the future time steps from t+1 to t+H",
-            "x_{t-L+1:t}": "The historical time-series data from time step t-L+1 to t",
-            "\\text{TimeFeatures}_{t-L+1:t}": "The time-related features (e.g., date, season, holidays) for the historical time steps",
-            "\\text{TimeFeatures}_{t+1:t+H}": "The time-related features for the future time steps",
-            "\\text{Encoder}": "A dense encoder (MLP) that maps historical time-series data and time features to a latent representation",
-            "\\text{Decoder}": "A dense decoder (MLP) that maps the latent representation and future time features to the predicted values"
-        },
-        "key": "TiDE",
-        "model_type": "Time-Series"
     },
     "AlexNet": {
         "description": "A deep convolutional neural network (CNN) that achieved breakthrough performance in the 2012 ImageNet Large Scale Visual Recognition Challenge (ILSVRC). It introduced several key innovations, including the use of ReLU activation, dropout, and data augmentation, which significantly improved image classification accuracy.",
@@ -248,332 +67,178 @@
             "Output": "The predicted class probabilities"
         },
         "key": "AlexNet",
-        "model_type": "Vision"
+        "model_type": "Convolutional"
     },
-    "ConvNeXt": {
-        "description": "A modern convolutional neural network architecture inspired by Transformer design principles. It rethinks traditional CNN components to achieve state-of-the-art performance in computer vision tasks while maintaining computational efficiency.",
-        "formulation": "y = \\text{ConvNeXtBlock}(x; \\text{LargeKernel}, \\text{DepthwiseConv}, \\text{LayerNorm}, \\text{ChannelExpansion})",
-        "variables": {
-            "x": "Input feature map",
-            "y": "Output feature map",
-            "\\text{ConvNeXtBlock}": "A building block of ConvNeXt, incorporating key design elements",
-            "\\text{LargeKernel}": "Large kernel convolution (e.g., 7x7) for capturing broader context",
-            "\\text{DepthwiseConv}": "Depthwise separable convolution for efficient computation",
-            "\\text{LayerNorm}": "Layer normalization, replacing BatchNorm",
-            "\\text{ChannelExpansion}": "Channel expansion ratio in the MLP layer, similar to Transformer's design"
-        },
-        "key": "ConvNeXt",
-        "model_type": "Vision"
-    },
-    "DenseNet": {
-        "description": "A densely connected convolutional network architecture designed to improve feature propagation and gradient flow by connecting each layer to every other layer in a feed-forward manner. This ensures efficient feature reuse and mitigates the vanishing gradient problem.",
-        "formulation": "x_l = H_l([x_0, x_1, \\dots, x_{l-1}])",
-        "variables": {
-            "x_l": "The output of the l-th layer",
-            "H_l": "A composite function consisting of convolution, batch normalization, and activation (e.g., ReLU)",
-            "[x_0, x_1, \\dots, x_{l-1}]": "The concatenated feature maps from all preceding layers (layers 0 to l-1)"
-        },
-        "key": "DenseNet",
-        "model_type": "Vision"
-    },
-    "EfficientNetV2": {
-        "description": "An efficient convolutional neural network architecture designed to improve training speed and inference efficiency while maintaining high performance. It introduces Fused-MBConv modules and progressive learning strategies to optimize computational efficiency.",
-        "formulation": "Y = \\text{EfficientNetV2}(X; \\theta)",
-        "variables": {
-            "Y": "The output predictions of the model",
-            "X": "The input image or feature map",
-            "\\theta": "The set of model parameters (weights and biases)",
-            "\\text{EfficientNetV2}": "The EfficientNetV2 model architecture, consisting of Fused-MBConv and MBConv modules",
-            "Fused-MBConv": "A fused module combining depthwise and pointwise convolutions for efficiency",
-            "MBConv": "A mobile inverted bottleneck convolution module with squeeze-and-excitation layers",
-            "Progressive Learning": "A training strategy that gradually increases image size and regularization strength"
-        },
-        "key": "EfficientNetV2",
-        "model_type": "Vision"
-    },
-    "Inception V3": {
-        "description": "A deep convolutional neural network architecture designed for image classification and computer vision tasks. It introduces modular Inception blocks with factorized convolutions to efficiently capture multi-scale features while reducing computational complexity.",
-        "formulation": "y = \\text{InceptionBlock}(x; W_1, W_3, W_5, W_p) + \\text{AuxiliaryClassifier}(x; W_{aux})",
-        "variables": {
-            "x": "The input image or feature map",
-            "y": "The output classification or feature representation",
-            "\\text{InceptionBlock}": "A modular block that applies parallel convolutions (1x1, 3x3, 5x5) and pooling operations to capture multi-scale features",
-            "W_1, W_3, W_5": "Weight matrices for 1x1, 3x3, and 5x5 convolutions, respectively",
-            "W_p": "Weight matrix for pooling operations",
-            "\\text{AuxiliaryClassifier}": "An auxiliary classifier applied at intermediate layers to improve gradient flow and prevent vanishing gradients",
-            "W_{aux}": "Weight matrix for the auxiliary classifier"
-        },
-        "key": "InceptionV3",
-        "model_type": "Vision"
-    },
-    "MobileNetV3": {
-        "description": "A lightweight and efficient convolutional neural network architecture designed for mobile and embedded devices. It combines neural architecture search (NAS) with manual optimizations to achieve high accuracy with low computational cost.",
-        "formulation": "y = MBConv(x; W, b) \\cdot SE(x) + x",
-        "variables": {
-            "x": "Input feature map",
-            "y": "Output feature map",
-            "MBConv(x; W, b)": "MobileNet bottleneck convolution operation with weights W and biases b",
-            "SE(x)": "Squeeze-and-Excitation module that adaptively recalibrates channel-wise feature responses",
-            "W": "Weight matrix of the convolution layers",
-            "b": "Bias vector of the convolution layers"
-        },
-        "key": "MobileNetV3",
-        "model_type": "Vision"
-    },
-    "Word2Vec": {
-        "description": "A neural network-based model for learning distributed representations of words in a continuous vector space. It captures semantic relationships between words by predicting either a target word from its context (CBOW) or the context from a target word (Skip-gram).",
-        "formulation": {
-            "CBOW": "P(w_t | w_{t-k}, ..., w_{t+k}) = \\frac{\\exp(v_{w_t}^T \\cdot \\bar{v}_{context})}{\\sum_{i=1}^{|V|} \\exp(v_{w_i}^T \\cdot \\bar{v}_{context})}",
-            "Skip-gram": "P(w_{t+j} | w_t) = \\frac{\\exp(v_{w_{t+j}}^T \\cdot v_{w_t})}{\\sum_{i=1}^{|V|} \\exp(v_{w_i}^T \\cdot v_{w_t})}"
-        },
-        "variables": {
-            "w_t": "The target word at position t",
-            "w_{t+j}": "The context word at position t+j",
-            "v_{w_t}": "The vector representation of the target word w_t",
-            "v_{w_{t+j}}": "The vector representation of the context word w_{t+j}",
-            "\\bar{v}_{context}": "The average vector representation of the context words",
-            "|V|": "The size of the vocabulary",
-            "k": "The size of the context window"
-        },
-        "key": "Word2Vec",
-        "model_type": "WordEmbedding"
-    },
-    "ELMo": {
-        "description": "A deep contextualized word representation model that generates context-sensitive embeddings by leveraging a bidirectional language model. It captures syntactic and semantic features of words across different layers of a neural network.",
-        "formulation": "ELMo_k = \\gamma \\sum_{j=0}^{L} s_j \\cdot h_{k,j}",
-        "variables": {
-            "ELMo_k": "The contextualized embedding for the k-th token in a sentence",
-            "\\gamma": "A task-specific scaling parameter",
-            "s_j": "The softmax-normalized weight for the j-th layer",
-            "h_{k,j}": "The hidden state of the j-th layer for the k-th token",
-            "L": "The total number of layers in the bidirectional LSTM"
-        },
-        "key": "ELMo",
-        "model_type": "WordEmbedding"
-    },
-    "BERT": {
-        "description": "Bidirectional Encoder Representations from Transformers (BERT) is a pre-trained language model based on the Transformer architecture. It uses bidirectional context to capture deep semantic representations of text, enabling state-of-the-art performance on various natural language processing (NLP) tasks. BERT is pre-trained on large-scale corpora using Masked Language Modeling (MLM) and Next Sentence Prediction (NSP) tasks, and can be fine-tuned for specific downstream tasks.",
-        "formulation": {
-            "input_embedding": "E(X) = \\text{TokenEmbedding}(X) + \\text{PositionEmbedding}(X) + \\text{SegmentEmbedding}(X)",
-            "transformer_encoder": "H = \\text{TransformerEncoder}(E(X))",
-            "output": "\\text{BERT}(X) = H"
-        },
-        "variables": {
-            "X": "The input sequence of tokens",
-            "E(X)": "The combined embedding of token, position, and segment information",
-            "\\text{TokenEmbedding}(X)": "The embedding of each token in the input sequence",
-            "\\text{PositionEmbedding}(X)": "The positional encoding to capture the order of tokens",
-            "\\text{SegmentEmbedding}(X)": "The segment embedding to distinguish between different sentences (e.g., in NSP)",
-            "\\text{TransformerEncoder}": "A stack of multi-head self-attention and feed-forward layers",
-            "H": "The hidden states output by the Transformer encoder",
-            "\\text{BERT}(X)": "The final contextualized representations of the input sequence"
-        },
-        "key": "BERT",
-        "model_type": "WordEmbedding"
-    },
-    "RoBERTa": {
-        "description": "A robustly optimized variant of the BERT model, designed to improve pre-training efficiency and downstream task performance. RoBERTa enhances BERT by removing the Next Sentence Prediction (NSP) task, using dynamic masking, training with larger batch sizes, and leveraging longer sequences and more data.",
-        "formulation": "\\text{RoBERTa}(X) = \\text{Transformer}(\\text{Masked Language Model}(X))",
-        "variables": {
-            "X": "The input sequence of tokens",
-            "\\text{Transformer}": "A multi-layer bidirectional Transformer encoder",
-            "\\text{Masked Language Model}": "A task where a percentage of tokens in the input sequence are masked, and the model predicts the original tokens based on context",
-            "\\text{RoBERTa}": "The final output representation of the input sequence"
-        },
-        "key": "RoBERTa",
-        "model_type": "WordEmbedding"
-    },
-    "Conformer": {
-        "description": "A hybrid architecture combining convolutional neural networks (CNNs) and Transformer models to capture both local and global dependencies in sequence data. It is particularly effective in tasks such as speech recognition, natural language processing, and computer vision.",
-        "formulation": "Y = \\text{LayerNorm}(\\text{ConvModule}(\\text{MultiHeadAttention}(X)) + \\text{FFN}(X))",
-        "variables": {
-            "X": "The input sequence representation",
-            "Y": "The output sequence representation",
-            "\\text{MultiHeadAttention}(X)": "The multi-head self-attention mechanism applied to the input sequence",
-            "\\text{ConvModule}(X)": "The convolution module capturing local features in the sequence",
-            "\\text{FFN}(X)": "The feed-forward neural network for non-linear transformation",
-            "\\text{LayerNorm}(X)": "Layer normalization applied to stabilize training"
-        },
-        "key": "Conformer",
-        "model_type": "SpeechRecognition"
-    },
-    "DeepSpeech": {
-        "description": "An open-source speech recognition system based on deep learning, developed by Mozilla. It uses a sequence-to-sequence model with Connectionist Temporal Classification (CTC) to directly map audio signals to text.",
-        "formulation": "P(y|x) = \\prod_{t=1}^T P(y_t|x_t), \\text{ where } y = \\text{argmax}_{y'} \\sum_{\\pi \\in \\mathcal{B}^{-1}(y')} P(\\pi|x)",
-        "variables": {
-            "x": "The input audio signal, typically represented as a sequence of spectrograms or Mel-frequency cepstral coefficients (MFCCs)",
-            "y": "The output text sequence",
-            "T": "The length of the input sequence",
-            "P(y|x)": "The probability of the output sequence given the input sequence",
-            "y_t": "The token at time step t in the output sequence",
-            "x_t": "The input feature vector at time step t",
-            "\\pi": "A possible alignment between the input and output sequences",
-            "\\mathcal{B}": "The CTC function that maps alignments to output sequences by removing repeated tokens and blanks"
-        },
-        "key": "DeepSpeech",
-        "model_type": "SpeechRecognition"
-    },
-    "Emformer": {
-        "description": "A memory-augmented Transformer architecture designed for efficient streaming speech recognition. It processes input audio in chunks, leveraging a memory buffer to capture long-range dependencies while maintaining low latency.",
-        "formulation": "y_t = \\text{Transformer}(x_t, M_{t-1})",
-        "variables": {
-            "y_t": "The output at time step t (e.g., predicted text or phonemes)",
-            "x_t": "The input audio chunk at time step t",
-            "M_{t-1}": "The memory buffer containing hidden states from previous chunks",
-            "\\text{Transformer}": "The Transformer-based encoder with memory-augmented attention",
-            "t": "The current time step or chunk index"
-        },
-        "key": "Emformer",
-        "model_type": "SpeechRecognition"
-    },
-    "Tacotron 2": {
-        "description": "An end-to-end text-to-speech (TTS) synthesis model that generates high-quality and natural-sounding speech from text. It combines a sequence-to-sequence architecture with attention mechanisms and a neural vocoder to produce mel-spectrograms, which are then converted into waveforms.",
+    "ResNet": {
+        "description": "Residual Networks (ResNets) are a type of deep neural network architecture that introduced skip connections to address the vanishing gradient problem in very deep networks. By enabling the direct flow of information across layers, ResNets allow for the training of extremely deep networks with improved performance.",
         "formulation": [
-            "Encoder: h = Encoder(text)",
-            "Attention: c_t = Attention(h, s_{t-1})",
-            "Decoder: s_t, m_t = Decoder(c_t, s_{t-1}, m_{t-1})",
-            "Vocoder: waveform = WaveNet(mel-spectrogram)"
+            "Input → Conv1 → BN → ReLU → MaxPool → ResBlock1 → ResBlock2 → ResBlock3 → AvgPool → FC → Softmax → Output"
         ],
         "variables": {
-            "text": "The input text sequence",
-            "h": "The encoded representation of the text, produced by the encoder",
-            "c_t": "The context vector at time step t, computed by the attention mechanism",
-            "s_t": "The decoder state at time step t",
-            "m_t": "The mel-spectrogram frame at time step t",
-            "mel-spectrogram": "The sequence of mel-spectrogram frames generated by the decoder",
-            "waveform": "The final audio waveform generated by the vocoder"
+            "Input": "The input image (e.g., 224x224x3 for RGB images)",
+            "Conv1": "Initial convolutional layer with 64 filters of size 7x7, stride 2",
+            "BN": "Batch normalization applied after convolution",
+            "ReLU": "Rectified Linear Unit activation function: max(0, x)",
+            "MaxPool": "Max pooling layer with 3x3 filters, stride 2",
+            "ResBlock1": "A stack of residual blocks with 64 filters",
+            "ResBlock2": "A stack of residual blocks with 128 filters",
+            "ResBlock3": "A stack of residual blocks with 256 filters",
+            "AvgPool": "Average pooling layer",
+            "FC": "Fully connected layer",
+            "Softmax": "Softmax activation function for multi-class classification",
+            "Output": "The predicted class probabilities"
         },
-        "key": "Tacotron2",
-        "model_type": "SpeechRecognition"
+        "key": "ResNet",
+        "model_type": "Convolutional"
     },
-    "Wav2Letter": {
-        "description": "An end-to-end automatic speech recognition (ASR) model developed by Facebook AI Research (FAIR). It directly processes raw audio waveforms using convolutional neural networks (CNNs) and employs Connectionist Temporal Classification (CTC) for sequence prediction. Wav2Letter eliminates the need for traditional feature extraction steps like MFCC or spectrograms.",
-        "formulation": "P(y|x) = \\sum_{\\pi \\in \\mathcal{B}^{-1}(y)} P(\\pi|x), \\quad P(\\pi|x) = \\prod_{t=1}^T P(\\pi_t|x_t)",
+    "LeNet": {
+        "description": "LeNet-5 is a pioneering convolutional neural network (CNN) architecture developed by Yann LeCun and his colleagues for handwritten digit recognition. It consists of multiple layers of convolution, pooling, and fully connected layers, demonstrating the effectiveness of deep learning for image classification tasks.",
+        "formulation": [
+            "Input → Conv1 → Tanh → AvgPool1 → Conv2 → Tanh → AvgPool2 → FC1 → Tanh → FC2 → Softmax → Output"
+        ],
         "variables": {
-            "x": "The input raw audio waveform",
-            "y": "The output sequence of characters or phonemes",
-            "\\pi": "A possible alignment path between the input audio and the output sequence",
-            "\\mathcal{B}^{-1}(y)": "The set of all possible alignment paths that map to the output sequence y",
-            "P(\\pi|x)": "The probability of the alignment path \\pi given the input x",
-            "P(y|x)": "The probability of the output sequence y given the input x",
-            "T": "The length of the input sequence (number of time steps)",
-            "\\pi_t": "The predicted label at time step t",
-            "x_t": "The input audio features at time step t"
+            "Input": "The input image (e.g., 32x32x1 for grayscale images)",
+            "Conv1": "First convolutional layer with 6 filters of size 5x5",
+            "Tanh": "Hyperbolic tangent activation function",
+            "AvgPool1": "Average pooling layer with 2x2 filters, stride 2",
+            "Conv2": "Second convolutional layer with 16 filters of size 5x5",
+            "AvgPool2": "Average pooling layer with 2x2 filters, stride 2",
+            "FC1": "First fully connected layer with 120 units",
+            "FC2": "Second fully connected layer with 84 units",
+            "Softmax": "Softmax activation function for multi-class classification",
+            "Output": "The predicted class probabilities"
         },
-        "key": "Wav2Letter",
-        "model_type": "SpeechRecognition"
+        "key": "GoogLeNet",
+        "model_type": "Convolutional"
     },
-    "wav2vec 2.0": {
-        "description": "A self-supervised learning model for speech recognition that learns meaningful representations from raw audio data by masking parts of the input and predicting the masked segments. It leverages a combination of convolutional and transformer architectures to extract and contextualize audio features.",
-        "formulation": "z = \\text{CNN}(x), \\quad c = \\text{Transformer}(z), \\quad q = \\text{Quantize}(z), \\quad \\mathcal{L} = \\text{ContrastiveLoss}(c, q)",
+    "RNN": {
+        "description": "A type of neural network designed to capture sequential dependencies in data. It processes input sequences one element at a time, updating its hidden state at each step to retain information about past inputs.",
+        "formulation": [
+            "h_t = \\sigma(W_{ih} x_t + b_{ih} + W_{hh} h_{t-1} + b_{hh})",
+            "y_t = \\text{softmax}(W_{hy} h_t + b_{hy})"
+        ],
         "variables": {
-            "x": "The raw audio input",
-            "z": "The latent feature representation extracted by the CNN-based feature encoder",
-            "c": "The contextualized representation generated by the transformer-based context network",
-            "q": "The quantized representation of the latent features",
-            "\\text{CNN}": "The convolutional neural network used as the feature encoder",
-            "\\text{Transformer}": "The transformer-based context network",
-            "\\text{Quantize}": "The quantization module that discretizes the latent features",
-            "\\text{ContrastiveLoss}": "The contrastive loss function used to train the model by comparing positive and negative samples"
+            "h_t": "The hidden state at time step t",
+            "x_t": "The input at time step t",
+            "W_{ih}, W_{hh}, W_{hy}": "Weight matrices for input-to-hidden, hidden-to-hidden, and hidden-to-output connections",
+            "b_{ih}, b_{hh}, b_{hy}": "Bias vectors for input-to-hidden, hidden-to-hidden, and hidden-to-output connections",
+            "\\sigma": "The activation function (e.g., sigmoid or tanh)",
+            "\\text{softmax}": "The softmax function for multi-class classification",
+            "y_t": "The output prediction at time step t"
         },
-        "key": "wav2vec2.0",
-        "model_type": "SpeechRecognition"
+        "key": "RNN",
+        "model_type": "Recurrent"
     },
-    "ConvTasNet": {
-        "description": "A deep learning model for single-channel speech separation, operating directly in the time domain. It uses an encoder-separator-decoder architecture to extract and separate speech sources from a mixed audio signal.",
-        "formulation": "y_i(t) = Decoder(Separator(Encoder(x(t))_i))",
+    "LSTM": {
+        "description": "A type of recurrent neural network (RNN) designed to capture long-term dependencies in sequential data. It uses gating mechanisms to control the flow of information, preventing gradient vanishing or explosion during training.",
+        "formulation": [
+            "f_t = \\sigma(W_f \\cdot [h_{t-1}, x_t] + b_f)",
+            "i_t = \\sigma(W_i \\cdot [h_{t-1}, x_t] + b_i)",
+            "\\tilde{C}_t = \\tanh(W_C \\cdot [h_{t-1}, x_t] + b_C)",
+            "C_t = f_t \\cdot C_{t-1} + i_t \\cdot \\tilde{C}_t",
+            "o_t = \\sigma(W_o \\cdot [h_{t-1}, x_t] + b_o)",
+            "h_t = o_t \\cdot \\tanh(C_t)"
+        ],
         "variables": {
-            "x(t)": "The input mixed audio signal in the time domain",
-            "Encoder(x(t))": "The encoder transforms the input signal into a high-dimensional feature representation",
-            "Separator(Encoder(x(t))_i)": "The separator network extracts the i-th source's feature representation from the encoded signal",
-            "Decoder(Separator(Encoder(x(t))_i))": "The decoder reconstructs the i-th source's time-domain signal from the separated features",
-            "y_i(t)": "The separated time-domain signal of the i-th source"
+            "x_t": "The input at time step t",
+            "h_t": "The hidden state at time step t",
+            "C_t": "The cell state at time step t",
+            "f_t": "The forget gate at time step t",
+            "i_t": "The input gate at time step t",
+            "\\tilde{C}_t": "The candidate cell state at time step t",
+            "o_t": "The output gate at time step t",
+            "W_f, W_i, W_C, W_o": "Weight matrices for the forget gate, input gate, cell state, and output gate, respectively",
+            "b_f, b_i, b_C, b_o": "Bias vectors for the forget gate, input gate, cell state, and output gate, respectively",
+            "\\sigma": "The sigmoid activation function",
+            "\\tanh": "The hyperbolic tangent activation function"
         },
-        "key": "ConvTasNet",
-        "model_type": "AudioSeparation"
+        "key": "LSTM",
+        "model_type": "Recurrent"
     },
-    "HDemucs": {
-        "description": "A deep learning model for audio source separation, designed to separate mixed audio into individual tracks (e.g., vocals, drums, bass, other instruments). It leverages convolutional neural networks (CNNs) and Transformer architectures to capture both temporal and spectral features of audio signals.",
-        "formulation": "Y = f_{\\text{HDemucs}}(X; \\theta)",
+    "Seq2SeqEncoder": {
+        "description": "A sequence-to-sequence (Seq2Seq) model encoder that processes input sequences and generates a fixed-size context vector to capture the input information. It is commonly used in tasks such as machine translation and text summarization.",
+        "formulation": [
+            "Input Sequence → Embedding Layer → Encoder RNN → Context Vector"
+        ],
         "variables": {
-            "X": "The input mixed audio signal (time-domain waveform or spectrogram)",
-            "Y": "The output separated audio tracks (e.g., vocals, drums, bass, other instruments)",
-            "f_{\\text{HDemucs}}": "The HDemucs model function, parameterized by \\theta",
-            "\\theta": "The learnable parameters of the model, including convolutional and Transformer weights"
+            "Input Sequence": "The input sequence to be encoded (e.g., a sequence of words)",
+            "Embedding Layer": "Converts input tokens into dense vectors",
+            "Encoder RNN": "Recurrent neural network (e.g., LSTM or GRU) that processes the input sequence",
+            "Context Vector": "A fixed-size representation of the input sequence"
         },
-        "key": "HDemucs",
-        "model_type": "AudioSeparation"
+        "key": "Seq2SeqEncoderRNN",
+        "model_type": "Recurrent"
     },
-    "WaveRNN": {
-        "description": "A lightweight and efficient autoregressive recurrent neural network (RNN) model for high-quality raw audio waveform generation. It operates at dual time scales to capture both coarse and fine-grained temporal structures in audio signals.",
-        "formulation": "p(x_t | x_{<t}) = \\text{RNN}(x_{<t}, h_{t-1})",
+    "Seq2SeqDecoder": {
+        "description": "A sequence-to-sequence (Seq2Seq) model decoder that generates an output sequence based on the context vector produced by the encoder. It typically uses an attention mechanism to focus on different parts of the input sequence during decoding.",
+        "formulation": [
+            "Context Vector → Decoder RNN → Output Sequence"
+        ],
         "variables": {
-            "x_t": "The audio sample at time step t",
-            "x_{<t}": "All audio samples generated before time step t",
-            "h_{t-1}": "The hidden state of the RNN at the previous time step",
-            "RNN": "The recurrent neural network with dual time scales",
-            "p(x_t | x_{<t})": "The probability distribution of the current audio sample given the previous samples"
+            "Context Vector": "The fixed-size representation of the input sequence produced by the encoder",
+            "Decoder RNN": "Recurrent neural network (e.g., LSTM or GRU) that generates the output sequence",
+            "Output Sequence": "The predicted output sequence (e.g., a translated sentence)"
         },
-        "key": "WaveRNN",
-        "model_type": "AudioAutoRegressive"
+        "key": "Seq2SeqDecoderRNN",
+        "model_type": "Recurrent"
     },
-    "WaveNet": {
-        "description": "A deep neural network model for generating high-quality audio waveforms. It uses autoregressive modeling and dilated convolutions to capture long-range dependencies in audio data, enabling realistic speech and music synthesis.",
-        "formulation": "p(x_t | x_{<t}, c) = \\text{softmax}(W \\cdot (\\text{Conv1D}_{\\text{dilated}}(x_{<t}) + \\text{Embedding}(c)) + b)",
+    "TransformerEncoderModule": {
+        "description": "A complete Transformer Encoder module consisting of multiple encoder layers, input embeddings, and positional encodings. Processes input sequences in parallel using stacked self-attention mechanisms and feed-forward networks to generate contextual representations.",
+        "formulation": [
+            "Input Tokens → Token Embedding → Positional Encoding → [Encoder Layer × N] → Output",
+            "Each Encoder Layer:",
+            "  - Multi-Head Self-Attention → Add & Norm",
+            "  - Feed-Forward Network → Add & Norm"
+        ],
         "variables": {
-            "x_t": "The audio sample at time step t",
-            "x_{<t}": "The sequence of audio samples before time step t",
-            "c": "The conditioning information (e.g., text, speaker identity)",
-            "W": "A weight matrix for the output layer",
-            "b": "A bias vector for the output layer",
-            "\\text{Conv1D}_{\\text{dilated}}": "A 1D dilated convolutional layer",
-            "\\text{Embedding}": "An embedding function for the conditioning information",
-            "\\text{softmax}": "The softmax function for probability distribution over possible audio samples"
+            "Input Tokens": "Discrete input tokens (e.g., words, subwords)",
+            "Token Embedding": "Learned embedding layer converting tokens to vectors",
+            "Positional Encoding": "Sinusoidal or learned position embeddings",
+            "Encoder Layer": "Basic Transformer encoder layer with self-attention",
+            "N": "Number of stacked encoder layers (typically 6-12)",
+            "Output": "Contextualized sequence representation"
         },
-        "key": "WaveNet",
-        "model_type": "AudioAutoRegressive"
+        "key": "TransformerEncoderModule",
+        "model_type": "Transformer"
     },
-    "WaveGlow": {
-        "description": "A flow-based generative model for high-quality and efficient speech synthesis. It combines the principles of flow models and parallel waveform generation to transform a simple distribution (e.g., Gaussian) into a complex speech waveform distribution.",
-        "formulation": "z = f_{\\theta}^{-1}(x), \\quad x \\sim p_{data}(x), \\quad z \\sim p_{z}(z)",
+    "TransformerDecoderModule": {
+        "description": "A complete Transformer Decoder module with multiple decoder layers, output embeddings, and positional encodings. Generates output sequences autoregressively using masked self-attention and encoder-decoder cross-attention mechanisms.",
+        "formulation": [
+            "Input Tokens → Token Embedding → Positional Encoding → [Decoder Layer × N] → Output Projection",
+            "Each Decoder Layer:",
+            "  - Masked Multi-Head Self-Attention → Add & Norm",
+            "  - Multi-Head Cross-Attention (with encoder outputs) → Add & Norm",
+            "  - Feed-Forward Network → Add & Norm"
+        ],
         "variables": {
-            "x": "The observed speech waveform data",
-            "z": "The latent variable sampled from a simple distribution (e.g., Gaussian)",
-            "f_{\\theta}": "A bijective (invertible) transformation parameterized by \\theta",
-            "p_{data}(x)": "The probability distribution of the speech waveform data",
-            "p_{z}(z)": "The prior probability distribution of the latent variable (e.g., Gaussian)"
+            "Input Tokens": "Target sequence tokens (shifted right for autoregression)",
+            "Token Embedding": "Learned embedding layer for output tokens",
+            "Positional Encoding": "Position information embedding",
+            "Decoder Layer": "Complete decoder layer with three sub-layers",
+            "N": "Number of stacked decoder layers",
+            "Output Projection": "Linear layer mapping to vocabulary space",
+            "Encoder Outputs": "Representations from encoder module (for cross-attention)"
         },
-        "key": "WaveGlow",
-        "model_type": "AudioAutoRegressive"
+        "key": "TransformerDecoderModule",
+        "model_type": "Transformer"
     },
-    "MelGAN": {
-        "description": "A generative adversarial network (GAN) architecture designed for high-fidelity audio generation, particularly in the mel-spectrogram domain. MelGAN uses a multi-scale discriminator and a generator with a multi-resolution architecture to synthesize realistic audio waveforms.",
-        "formulation": "x_{\\text{fake}} = G(z), \\quad D(x) = \\sum_{i=1}^N D_i(x)",
+    "SwimTransformerModule": {
+        "description": "A complete Swim Transformer module for sequential data processing, featuring specialized position encoding and attention mechanisms optimized for temporal patterns in time series or audio data.",
+        "formulation": [
+            "Input Sequence → Projection Embedding → Enhanced Position Encoding → [Swim Layer × N] → Output",
+            "Each Swim Layer:",
+            "  - Temporal Position Encoding → Modified Self-Attention → Add & Norm",
+            "  - Feed-Forward Network → Add & Norm"
+        ],
         "variables": {
-            "x_{\\text{fake}}": "The generated audio waveform",
-            "G(z)": "The generator network that maps random noise z to audio waveforms",
-            "D(x)": "The discriminator network that evaluates the realism of audio waveforms",
-            "D_i(x)": "The i-th scale discriminator in the multi-scale discriminator",
-            "N": "The number of scales in the multi-scale discriminator"
+            "Input Sequence": "Raw sequential data (time series, audio frames, etc.)",
+            "Projection Embedding": "Linear projection to embedding space",
+            "Enhanced Position Encoding": "Specialized temporal position encoding",
+            "Swim Layer": "Modified transformer layer with temporal attention",
+            "N": "Number of stacked Swim layers",
+            "Output": "Processed sequence representation"
         },
-        "key": "MelGAN",
-        "model_type": "AudioAutoRegressive"
-    },
-    "HiFi-GAN": {
-        "description": "A high-fidelity generative adversarial network (GAN) designed for efficient and high-quality audio waveform generation. It employs multi-scale discriminators and a convolutional generator to synthesize realistic audio signals, widely used in text-to-speech (TTS) systems.",
-        "formulation": "G^*(x) = \\argmin_G \\max_{D_1, D_2, ..., D_k} \\mathbb{E}_{y \\sim p_{data}(y)}[\\log D(y)] + \\mathbb{E}_{x \\sim p_{x}(x)}[\\log(1 - D(G(x)))] + \\lambda_{fm} \\mathcal{L}_{fm}(G, D) + \\lambda_{mel} \\mathcal{L}_{mel}(G)",
-        "variables": {
-            "G": "The generator network that synthesizes audio waveforms from input features (e.g., Mel-spectrograms)",
-            "D_1, D_2, ..., D_k": "Multi-scale discriminators that evaluate the generated audio at different temporal resolutions",
-            "x": "The input feature representation (e.g., Mel-spectrogram)",
-            "y": "The ground-truth audio waveform",
-            "p_{data}(y)": "The distribution of real audio data",
-            "p_{x}(x)": "The distribution of input features",
-            "\\mathcal{L}_{fm}(G, D)": "The feature matching loss, which encourages the generator to produce audio with similar feature statistics to real data",
-            "\\mathcal{L}_{mel}(G)": "The Mel-spectrogram loss, which ensures the generated audio matches the target Mel-spectrogram",
-            "\\lambda_{fm}, \\lambda_{mel}": "Weighting hyperparameters for the feature matching and Mel-spectrogram losses"
-        },
-        "key": "HiFi-GAN",
-        "model_type": "AudioAutoRegressive"
+        "key": "SwimTransformerModule",
+        "model_type": "Transformer"
     }
 }
