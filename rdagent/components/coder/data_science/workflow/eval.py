@@ -115,7 +115,11 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:workflow_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
             task_desc=target_task.get_task_information(),
-            spec=implementation.file_dict["spec/workflow.md"],
+            spec=(
+                implementation.file_dict["spec/workflow.md"]
+                if DS_RD_SETTING.spec_enabled
+                else T("scenarios.data_science.share:component_spec.Workflow").r()
+            ),
         )
         user_prompt = T(".prompts:workflow_eval.user").r(
             stdout=stdout.strip(),

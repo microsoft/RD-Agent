@@ -24,6 +24,7 @@ File structure
 
 import json
 import re
+from pathlib import Path
 from typing import Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -52,6 +53,8 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -90,38 +93,41 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 1. specifications
         # TODO: We may move spec into a separated COSTEER task
-        if "spec/data_loader.md" not in workspace.file_dict:  # Only generate the spec once
-            system_prompt = T(".prompts:spec.system").r(
-                runtime_environment=runtime_environment,
-                task_desc=data_loader_task_info,
-                competition_info=competition_info,
-                folder_spec=data_folder_info,
-            )
-            data_loader_prompt = T(".prompts:spec.user.data_loader").r(
-                latest_spec=workspace.file_dict.get("spec/data_loader.md")
-            )
-            feature_prompt = T(".prompts:spec.user.feature").r(latest_spec=workspace.file_dict.get("spec/feature.md"))
-            model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
-            ensemble_prompt = T(".prompts:spec.user.ensemble").r(
-                latest_spec=workspace.file_dict.get("spec/ensemble.md")
-            )
-            workflow_prompt = T(".prompts:spec.user.workflow").r(
-                latest_spec=workspace.file_dict.get("spec/workflow.md")
-            )
+        if DS_RD_SETTING.spec_enabled:
+            if "spec/data_loader.md" not in workspace.file_dict:  # Only generate the spec once
+                system_prompt = T(".prompts:spec.system").r(
+                    runtime_environment=runtime_environment,
+                    task_desc=data_loader_task_info,
+                    competition_info=competition_info,
+                    folder_spec=data_folder_info,
+                )
+                data_loader_prompt = T(".prompts:spec.user.data_loader").r(
+                    latest_spec=workspace.file_dict.get("spec/data_loader.md")
+                )
+                feature_prompt = T(".prompts:spec.user.feature").r(
+                    latest_spec=workspace.file_dict.get("spec/feature.md")
+                )
+                model_prompt = T(".prompts:spec.user.model").r(latest_spec=workspace.file_dict.get("spec/model.md"))
+                ensemble_prompt = T(".prompts:spec.user.ensemble").r(
+                    latest_spec=workspace.file_dict.get("spec/ensemble.md")
+                )
+                workflow_prompt = T(".prompts:spec.user.workflow").r(
+                    latest_spec=workspace.file_dict.get("spec/workflow.md")
+                )
 
-            spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
+                spec_session = APIBackend().build_chat_session(session_system_prompt=system_prompt)
 
-            data_loader_spec = spec_session.build_chat_completion(user_prompt=data_loader_prompt)
-            feature_spec = spec_session.build_chat_completion(user_prompt=feature_prompt)
-            model_spec = spec_session.build_chat_completion(user_prompt=model_prompt)
-            ensemble_spec = spec_session.build_chat_completion(user_prompt=ensemble_prompt)
-            workflow_spec = spec_session.build_chat_completion(user_prompt=workflow_prompt)
-        else:
-            data_loader_spec = workspace.file_dict["spec/data_loader.md"]
-            feature_spec = workspace.file_dict["spec/feature.md"]
-            model_spec = workspace.file_dict["spec/model.md"]
-            ensemble_spec = workspace.file_dict["spec/ensemble.md"]
-            workflow_spec = workspace.file_dict["spec/workflow.md"]
+                data_loader_spec = spec_session.build_chat_completion(user_prompt=data_loader_prompt)
+                feature_spec = spec_session.build_chat_completion(user_prompt=feature_prompt)
+                model_spec = spec_session.build_chat_completion(user_prompt=model_prompt)
+                ensemble_spec = spec_session.build_chat_completion(user_prompt=ensemble_prompt)
+                workflow_spec = spec_session.build_chat_completion(user_prompt=workflow_prompt)
+            else:
+                data_loader_spec = workspace.file_dict["spec/data_loader.md"]
+                feature_spec = workspace.file_dict["spec/feature.md"]
+                model_spec = workspace.file_dict["spec/model.md"]
+                ensemble_spec = workspace.file_dict["spec/ensemble.md"]
+                workflow_spec = workspace.file_dict["spec/workflow.md"]
 
         # 2. code
         system_prompt = T(".prompts:data_loader_coder.system").r(
@@ -130,9 +136,17 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
         )
+        code_spec = (
+            data_loader_spec
+            if DS_RD_SETTING.spec_enabled
+            else T("scenarios.data_science.share:component_spec.general").r(
+                spec=T("scenarios.data_science.share:component_spec.DataLoadSpec").r(),
+                test_code=(DIRNAME / "eval_tests" / "data_loader_test.txt").read_text(),
+            )
+        )
         user_prompt = T(".prompts:data_loader_coder.user").r(
             competition_info=competition_info,
-            data_loader_spec=data_loader_spec,
+            code_spec=code_spec,
             folder_spec=data_folder_info,
             latest_code=workspace.file_dict.get("load_data.py"),
             latest_code_feedback=prev_task_feedback,
@@ -152,14 +166,20 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         else:
             raise CoderError("Failed to generate a new data loader code.")
 
-        return {
-            "spec/data_loader.md": data_loader_spec,
-            "spec/feature.md": feature_spec,
-            "spec/model.md": model_spec,
-            "spec/ensemble.md": ensemble_spec,
-            "spec/workflow.md": workflow_spec,
-            "load_data.py": data_loader_code,
-        }
+        return (
+            {
+                "spec/data_loader.md": data_loader_spec,
+                "spec/feature.md": feature_spec,
+                "spec/model.md": model_spec,
+                "spec/ensemble.md": ensemble_spec,
+                "spec/workflow.md": workflow_spec,
+                "load_data.py": data_loader_code,
+            }
+            if DS_RD_SETTING.spec_enabled
+            else {
+                "load_data.py": data_loader_code,
+            }
+        )
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
         """
