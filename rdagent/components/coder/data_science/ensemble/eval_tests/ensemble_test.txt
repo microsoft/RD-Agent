@@ -122,5 +122,7 @@ assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
 )
 assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
 assert len(score_df.columns) == 1, f"The scores dataframe should have exactly one column for the scores of the evaluation indicator, but has these columns: {score_df.columns.tolist()}"
+assert score_df.columns[0] == {{metric_name}}, f"The column name of the scores in the scores dataframe should be {{{metric_name}}}, but is '{score_df.columns[0]}'"
+
 
 print("Ensemble test end.")
