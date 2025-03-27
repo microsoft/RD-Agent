@@ -1,30 +1,33 @@
 scenario_problem:
   system: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given scenario and competition description, EDA (Exploratory Data Analysis) result, and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Scenario Problems** from the current SOTA implementation within these 5 components:
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials within these 5 components:
     {{ component_desc }}
 
     ## Scenario Problems
     ### Definition
-    Scenario problems are inherent, concrete, specific technical or methodological issues from the competition scenario.
-    1. Dataset Characteristics: inherent dataset properties (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
-    2. Domain-specific Insights:
+    Scenario problems are concrete, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
 
     ### Instruction
+    1. Be Specific and Fine-grained: Avoid vague and general statements. For example, instead of stating "the data has temporal issues",you should specify "time-series leakage due to overlapping train/test date ranges".
 
     ### Output Format
-    Return a JSON list of problems adhering strictly to this schema:
-    {
-      "Component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
-      "Problem": "A description of the specific issue.",
-      "Reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
-    }
+    {{ problem_output_format }}
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
     ### Example
     [
+      {
+        "Problem": "Time-series leakage due to identical customer IDs appearing in both train and test sets with overlapping time periods",
+        "Reason": "This causes artificial inflation of validation scores since the model can memorize patterns from what should be future data"
+      },
+      {
+        "Problem": "Medical trial dataset shows 72% missing values in blood pressure readings exclusively for patients over 65, correlating with known measurement challenges in elderly populations",
+        "Reason": "Simple imputation would introduce age-based bias, requiring domain-aware handling of missing data patterns"
+      }
     ]
 
   user: |-
@@ -58,12 +61,7 @@ feedback_problem:
     2. Technical or Methodological: Focus on design/implementation flaws, not runtime errors.
 
     ### Output Format
-    Return a JSON list of problems adhering strictly to this schema:
-    {
-      "Component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
-      "Problem": "A description of the specific issue.",
-      "Reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
-    }
+    {{ problem_output_format }}
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
     ### Example
@@ -104,41 +102,11 @@ feedback_problem:
     Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
 
 
-solution_specification: |-
-  1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
-  2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
-  3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
-
-
-solution_gen:
-  system: |-
-    You are a data scientist tasked with rigorously evaluating a competition solution.
-    You will be provided with a data science competition description, a current implementation, and a identified problem under current solution.
-    Your task is to analyze current solution and propose a hypothe and extract the **low-level problems** that the current solution is facing.
-
-    # Scenario Description
-    {{ scen_desc }}
-
-    # 
-
-  user: |-
-    # Previous Successful Implementations and Feedbacks
-    {{ sota_exp_and_feedback_list_desc }}
-    
-    # Current SOTA Implementation
-    {{ sota_exp_desc }}
-
-
 output_format:
   problem: |-
     The output should strictly follow the JSON schema:
     {
-    }
-  solution: |-
-    The output should strictly follow the JSON schema:
-    {
-      "problem": ,
-      "component": ,
-      "hypothesis": ,
-      "reason": ,
+      "Component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
+      "Problem": "A description of the specific issue.",
+      "Reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
     }
