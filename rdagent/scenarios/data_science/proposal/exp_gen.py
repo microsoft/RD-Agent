@@ -362,6 +362,8 @@ class DSExpGen(ExpGen):
             failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-self.max_trace_hist:]
             all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
 
+
+            # truncate not important trace
             trace_desc_df = pd.DataFrame(columns=["Problem", "Component", "Hypothesis", "Hypothesis Reason", "Improved"])
             for index, (exp, fb) in enumerate(all_exp_feedback_list):
                 trace_desc_df.loc[f"Trace {index + 1}"] = [
@@ -372,10 +374,17 @@ class DSExpGen(ExpGen):
                     fb.decision,
                 ]
 
+            # Step 0: Decide whether to refine previous solution
+            
+
+            # Step 0: Select node (SOTA or Latest)
+
+
             # Step 1: Identify problems
             scen_problems = identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
             fb_problems = identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, last_exp_diff, trace_desc_df)
             problems = scen_problems + fb_problems
+
 
             # Step 2: Sample ideas for each problems (for researcher)
             

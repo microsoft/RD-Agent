@@ -13,22 +13,12 @@ scenario_problem:
 
     ### Instruction
     1. Be Specific and Fine-grained: Avoid vague and general statements. For example, instead of stating "the data has temporal issues",you should specify "time-series leakage due to overlapping train/test date ranges".
+    2. Mismatch ... scenario没考虑到的点
 
     ### Output Format
     {{ problem_output_format }}
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
-    ### Example
-    [
-      {
-        "Problem": "Time-series leakage due to identical customer IDs appearing in both train and test sets with overlapping time periods",
-        "Reason": "This causes artificial inflation of validation scores since the model can memorize patterns from what should be future data"
-      },
-      {
-        "Problem": "Medical trial dataset shows 72% missing values in blood pressure readings exclusively for patients over 65, correlating with known measurement challenges in elderly populations",
-        "Reason": "Simple imputation would introduce age-based bias, requiring domain-aware handling of missing data patterns"
-      }
-    ]
 
   user: |-
     # Scenario Description
@@ -37,7 +27,7 @@ scenario_problem:
     # Competition Descriptioin
     {{ competition_desc }}
 
-    # Current SOTA Description
+    # Current SOTA Implementation
     {{ sota_exp_desc }}
 
     Please extract the scenario problems that the current SOTA solution is facing.
@@ -52,7 +42,7 @@ feedback_problem:
     Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation within these 5 components:
     {{ component_desc }}
 
-    ## Low-Level Problems
+    ## Low-Level Problems (方法中存在的问题)
     ### Definition
     Low-level problems are specific and fine-grained technical, or methodological issues within one or more of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the implementation.
     
@@ -64,30 +54,6 @@ feedback_problem:
     {{ problem_output_format }}
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
-    ### Example
-    [
-      {
-        "Component": "FeatureEng",
-        "Problem": "Redundant features are created, increasing dimensionality without improving model performance.",
-        "Reason": "The feedback highlights that several features are highly correlated, indicating redundancy."
-      },
-      {
-        "Component": "Ensemble",
-        "Problem": "The ensemble weights are not optimized, leading to suboptimal performance.",
-        "Reason": "The solution notebook uses equal weights for all models in the ensemble, despite some models performing significantly better than others."
-      },
-      {
-        "Component": "Model",
-        "Problem": "The model's hyperparameters are not optimally tuned, leading to suboptimal performance.",
-        "Reason": "The solution notebook does not include any hyperparameter tuning steps, and the default values are used, which may not be optimal for this dataset."
-      },
-      {
-        "Component": "FeatureEng",
-        "Problem": "Feature scaling is inconsistent, with some features normalized and others left unscaled.",
-        "Reason": "The feedback notes that features A and B are normalized, while features C and D remain in their original scale, leading to skewed model performance."
-      }
-    ]
-
   user: |-
     # Scenario Description
     {{ scenario_desc }}
@@ -95,7 +61,7 @@ feedback_problem:
     # Trace History Description
     {{ trace_desc_df }}
 
-    # Current SOTA Description
+    # Current SOTA Implementation
     {{ sota_exp_desc }}
 
     Please extract the low-level problems that the current SOTA solution is facing.
