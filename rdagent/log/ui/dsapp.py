@@ -225,7 +225,7 @@ def evolving_win(data, key):
         if evo_id in data:
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
-                workspace_win(data[evo_id]["evolving code"][0], instance_id="evolving")
+                workspace_win(data[evo_id]["evolving code"][0], instance_id=key)
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
                 f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
@@ -266,7 +266,7 @@ def running_win(data, mle_score):
     evolving_win({k: v for k, v in data.items() if isinstance(k, int)}, key="running")
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
-        workspace_win(data["no_tag"].experiment_workspace, instance_id="running")
+        workspace_win(data["no_tag"].experiment_workspace, instance_id="running_dump")
         st.subheader("Result")
         st.write(data["no_tag"].result)
         st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
