@@ -1,3 +1,4 @@
+import hashlib
 import math
 import re
 from collections import defaultdict
@@ -158,7 +159,10 @@ def task_win(data):
 
 
 def workspace_win(data):
-    show_files = {k: v for k, v in data.file_dict.items() if not "test" in k}
+    show_files = {k: v for k, v in data.file_dict.items() if "test" not in k}
+
+    unique_key = hashlib.md5(str(data.workspace_path).encode()).hexdigest()
+
     if len(show_files) > 0:
         with st.expander(f"Files in :blue[{replace_ep_path(data.workspace_path)}]"):
             code_tabs = st.tabs(show_files.keys())
@@ -170,6 +174,21 @@ def workspace_win(data):
                         wrap_lines=True,
                         line_numbers=True,
                     )
+
+            st.markdown("### Save All Files to Folder")
+            target_folder = st.text_input("Enter target folder path:", key=f"save_folder_path_input_{unique_key}")
+
+            if st.button("Save Files", key=f"save_files_button_{unique_key}"):
+                if target_folder.strip() == "":
+                    st.warning("Please enter a valid folder path.")
+                else:
+                    target_folder_path = Path(target_folder)
+                    target_folder_path.mkdir(parents=True, exist_ok=True)
+                    for filename, content in data.file_dict.items():
+                        save_path = target_folder_path / filename
+                        save_path.parent.mkdir(parents=True, exist_ok=True)
+                        save_path.write_text(content, encoding="utf-8")
+                    st.success(f"All files saved to: {target_folder}")
     else:
         st.markdown(f"No files in :blue[{replace_ep_path(data.workspace_path)}]")
 
