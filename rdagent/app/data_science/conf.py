@@ -23,10 +23,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # bo_mode: bool = True
     bo_mode: bool = True
 
-    idea_bo_step: int = 6
+    idea_bo_step: int = 3
     """The step size for idea generation BO"""
 
-    component_bo_step: int = 3
+    component_bo_step: int = 2
     """The step size for component selection BO"""
 
     bo_idea_polish: bool = False
