@@ -1,6 +1,12 @@
 from typing import Any
 
-from litellm import completion, embedding, supports_response_schema, token_counter
+from litellm import (
+    completion,
+    completion_cost,
+    embedding,
+    supports_response_schema,
+    token_counter,
+)
 
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
@@ -18,6 +24,8 @@ class LiteLLMSettings(LLMSettings):
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
+logger.info(f"{LITELLM_SETTINGS}")
+ACC_COST = 0.0
 
 
 class LiteLLMAPIBackend(APIBackend):
@@ -111,4 +119,10 @@ class LiteLLMAPIBackend(APIBackend):
             )
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
+        global ACC_COST
+        cost = completion_cost(model=LITELLM_SETTINGS.chat_model, messages=messages, completion=content)
+        ACC_COST += cost
+        logger.info(
+            f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+        )
         return content, finish_reason

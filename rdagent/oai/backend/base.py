@@ -391,7 +391,8 @@ class APIBackend(ABC):
 
         all_response = ""
         new_messages = deepcopy(messages)
-        for _ in range(6):  # for some long code, 3 times may not enough for reasoning models
+        try_n = 6
+        for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
             if "json_mode" in kwargs:
                 del kwargs["json_mode"]
             response, finish_reason = self._create_chat_completion_add_json_in_prompt(
@@ -412,7 +413,7 @@ class APIBackend(ABC):
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response
             new_messages.append({"role": "assistant", "content": response})
-        raise RuntimeError("Failed to continue the conversation after 3 retries.")
+        raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
 
     def _create_embedding_with_cache(
         self, input_content_list: list[str], *args: Any, **kwargs: Any
