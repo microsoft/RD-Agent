@@ -158,10 +158,13 @@ def task_win(data):
             )
 
 
-def workspace_win(data):
+def workspace_win(data, instance_id=None):
     show_files = {k: v for k, v in data.file_dict.items() if "test" not in k}
 
-    unique_key = hashlib.md5(str(data.workspace_path).encode()).hexdigest()
+    base_key = str(data.workspace_path)
+    if instance_id is not None:
+        base_key += f"_{instance_id}"
+    unique_key = hashlib.md5(base_key.encode()).hexdigest()
 
     if len(show_files) > 0:
         with st.expander(f"Files in :blue[{replace_ep_path(data.workspace_path)}]"):
@@ -206,7 +209,7 @@ def exp_gen_win(data):
     for tasks in data["no_tag"].pending_tasks_list:
         task_win(tasks[0])
     st.subheader("Exp Workspace")
-    workspace_win(data["no_tag"].experiment_workspace)
+    workspace_win(data["no_tag"].experiment_workspace, instance_id="exp_gen")
 
 
 def evolving_win(data, key):
@@ -222,7 +225,7 @@ def evolving_win(data, key):
         if evo_id in data:
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
-                workspace_win(data[evo_id]["evolving code"][0])
+                workspace_win(data[evo_id]["evolving code"][0], instance_id="evolving")
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
                 f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
@@ -255,7 +258,7 @@ def coding_win(data):
         evolving_win(evolving_data, key="coding")
     if "no_tag" in data:
         st.subheader("Exp Workspace (coding final)")
-        workspace_win(data["no_tag"].experiment_workspace)
+        workspace_win(data["no_tag"].experiment_workspace, instance_id="coding")
 
 
 def running_win(data, mle_score):
@@ -263,7 +266,7 @@ def running_win(data, mle_score):
     evolving_win({k: v for k, v in data.items() if isinstance(k, int)}, key="running")
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
-        workspace_win(data["no_tag"].experiment_workspace)
+        workspace_win(data["no_tag"].experiment_workspace, instance_id="running")
         st.subheader("Result")
         st.write(data["no_tag"].result)
         st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
@@ -287,7 +290,7 @@ def sota_win(data):
         st.markdown(f"**SOTA Exp Hypothesis**")
         hypothesis_win(data.hypothesis)
         st.markdown("**Exp Workspace**")
-        workspace_win(data.experiment_workspace)
+        workspace_win(data.experiment_workspace, instance_id="sota")
     else:
         st.markdown("No SOTA experiment.")
 
