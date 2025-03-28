@@ -23,7 +23,6 @@ DataLoaderEvalFeedback = CoSTEERSingleFeedback
 
 
 class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -32,7 +31,6 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: CoSTEERQueriedKnowledgeV2 = None,
         **kwargs,
     ) -> DataLoaderEvalFeedback:
-
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -54,7 +52,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         fname = "test/data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=env, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
         stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
         stdout = stdout_part_1 + stdout_part_2
@@ -80,9 +78,12 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_stdout=workflow_stdout,
         )
 
-        return build_cls_from_json_with_retry(
+        fb = build_cls_from_json_with_retry(
             DataLoaderEvalFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             init_kwargs_update_func=DataLoaderEvalFeedback.val_and_update_init_dict,
         )
+        fb.final_decision = fb.final_decision and ret_code == 0
+
+        return fb
