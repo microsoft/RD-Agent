@@ -1,24 +1,27 @@
 scenario_problem:
   system: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    You will be given scenario and competition description, EDA (Exploratory Data Analysis) result, and the current SOTA implementation and feedback.
+    You will be given scenario and competition description and the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Scenario Problems** from the given materials within these 5 components:
     {{ component_desc }}
 
     ## Scenario Problems
     ### Definition
-    Scenario problems are concrete, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
     1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
     2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
 
     ### Instruction
     1. Be Specific and Fine-grained: Avoid vague and general statements. For example, instead of stating "the data has temporal issues",you should specify "time-series leakage due to overlapping train/test date ranges".
-    2. Mismatch ... scenario没考虑到的点
+    
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
 
     ### Output Format
     {{ problem_output_format }}
     Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
-
 
   user: |-
     # Scenario Description
@@ -30,7 +33,7 @@ scenario_problem:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    Please extract the scenario problems that the current SOTA solution is facing.
+    Please extract the scenario problems from the provided materials.
     Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
 
 
@@ -42,7 +45,7 @@ feedback_problem:
     Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation within these 5 components:
     {{ component_desc }}
 
-    ## Low-Level Problems (方法中存在的问题)
+    ## Low-Level Problems
     ### Definition
     Low-level problems are specific and fine-grained technical, or methodological issues within one or more of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the implementation.
     
