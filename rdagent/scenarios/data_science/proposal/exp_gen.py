@@ -13,11 +13,11 @@ from rdagent.core.knowledge_base import KnowledgeBase
 from rdagent.core.proposal import ExperimentFeedback, ExpGen, Hypothesis, Trace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
+from rdagent.scenarios.data_science.proposal.utils import *
 from rdagent.scenarios.data_science.scen import DataScienceScen
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
-
 
 class DSHypothesis(Hypothesis):
     def __init__(
@@ -268,6 +268,7 @@ class DSExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
+        competition_desc = trace.scen.get_competition_full_desc()
         last_successful_exp = trace.last_successful_exp()
 
         next_missing_component = trace.next_incomplete_component()
@@ -339,6 +340,63 @@ class DSExpGen(ExpGen):
                 exp_and_feedback_list=failed_exp_feedback_list,
                 success=False,
             )
+
+            # Prepare
+            component_desc="\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=sota_exp, heading="Best of previous exploration of the scenario"
+            )
+            last_exp_diff = "\n".join(
+                generate_diff_from_dict(
+                    sota_exp.experiment_workspace.file_dict, last_exp.experiment_workspace.file_dict
+                )
+            )
+
+            sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+            failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-self.max_trace_hist:]
+            all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
+
+
+            # todo: truncate not important trace
+            trace_desc_df = pd.DataFrame(columns=["Problem", "Component", "Hypothesis", "Hypothesis Reason", "Improved"])
+            for index, (exp, fb) in enumerate(all_exp_feedback_list):
+                trace_desc_df.loc[f"Trace {index + 1}"] = [
+                    exp.hypothesis.problem, # todo
+                    exp.hypothesis.component,
+                    exp.hypothesis.hypothesis,
+                    exp.hypothesis.reason,
+                    fb.decision,
+                ]
+
+            # Step 0: Decide whether to refine previous solution
+            
+
+            # Step 0: Select node (SOTA or Latest)
+
+
+            # Step 1: Identify problems
+            scen_problems = identify_scenario_problem(component_desc, scenario_desc, competition_desc, sota_exp_desc)
+            fb_problems = identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
+            problems = scen_problems + fb_problems
+
+
+            # Step 2: Sample ideas for each problems (for researcher)
+            
+
+            # Step 3: Propose solutions based on the identified problems and sampled ideas
+            hypothesis = hypothesis_gen(component_desc, scenario_desc, trace_desc_df, sota_exp_desc, problems)
+
+
+            # Step 4: Select the best solution
+
+
+            # Step 5: Design task and workflow based on selected solution 
+
 
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
