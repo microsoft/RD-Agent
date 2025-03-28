@@ -269,7 +269,6 @@ class DSExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         scenario_desc = trace.scen.get_scenario_all_desc()
         competition_desc = trace.scen.get_competition_full_desc()
-        eda_output = None # todo
         last_successful_exp = trace.last_successful_exp()
 
         next_missing_component = trace.next_incomplete_component()
@@ -363,7 +362,7 @@ class DSExpGen(ExpGen):
             all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
 
 
-            # truncate not important trace
+            # todo: truncate not important trace
             trace_desc_df = pd.DataFrame(columns=["Problem", "Component", "Hypothesis", "Hypothesis Reason", "Improved"])
             for index, (exp, fb) in enumerate(all_exp_feedback_list):
                 trace_desc_df.loc[f"Trace {index + 1}"] = [
@@ -381,8 +380,8 @@ class DSExpGen(ExpGen):
 
 
             # Step 1: Identify problems
-            scen_problems = identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
-            fb_problems = identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, last_exp_diff, trace_desc_df)
+            scen_problems = identify_scenario_problem(component_desc, scenario_desc, competition_desc, sota_exp_desc)
+            fb_problems = identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
             problems = scen_problems + fb_problems
 
 
@@ -390,16 +389,13 @@ class DSExpGen(ExpGen):
             
 
             # Step 3: Propose solutions based on the identified problems and sampled ideas
-            solutions = solution_gen(problems)
+            hypothesis = hypothesis_gen(component_desc, scenario_desc, trace_desc_df, sota_exp_desc, problems)
 
 
             # Step 4: Select the best solution
-            best_solution = solution_rank(solutions)
 
 
             # Step 5: Design task and workflow based on selected solution 
-            # flexible
-            task = task_gen(best_solution)
 
 
             # Generate component using template with proper context

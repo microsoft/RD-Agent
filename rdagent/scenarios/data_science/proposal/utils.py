@@ -38,14 +38,17 @@ def extract_JSON(text) -> List | List[Dict]:
     return []
 
 
-def identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df) -> List[Dict]:
-    sys_prompt = T(".prompts2:scenario_problem.system").r(component_desc=component_desc)
+def identify_scenario_problem(component_desc, scenario_desc, competition_desc, sota_exp_desc) -> List[Dict]:
+    sys_prompt = T(".prompts2:scenario_problem.system").r(
+        component_desc=component_desc,
+        problem_spec = T(".prompts2:specification.problem").r()
+        problem_output_format = T(".prompts2:output_format.problem").r()
+    )
     user_prompt = T(".prompts2:scenario_problem.user").r(
         scenario_desc=scenario_desc,
-        trace_desc_df=trace_desc_df,
+        competition_desc=competition_desc,
         sota_exp_desc=sota_exp_desc
     )
-
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
         system_prompt=sys_prompt,
@@ -53,14 +56,17 @@ def identify_scenario_problem(component_desc, scenario_desc, sota_exp_desc, trac
     return extract_JSON(response)
 
 
-def identify_feedback_problem() -> List[Dict]:
-    sys_prompt = T(".prompts2:feedback_problem.system").r(component_desc=component_desc)
+def identify_feedback_problem(component_desc, scenario_desc, trace_desc_df, sota_exp_desc) -> List[Dict]:
+    sys_prompt = T(".prompts2:scenario_problem.system").r(
+        component_desc=component_desc,
+        problem_spec = T(".prompts2:specification.problem").r()
+        problem_output_format = T(".prompts2:output_format.problem").r()
+    )
     user_prompt = T(".prompts2:feedback_problem.user").r(
         scenario_desc=scenario_desc,
         trace_desc_df=trace_desc_df,
         sota_exp_desc=sota_exp_desc
     )
-
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
         system_prompt=sys_prompt,
@@ -68,26 +74,20 @@ def identify_feedback_problem() -> List[Dict]:
     return extract_JSON(response)
 
 
-def solution_gen() -> Dict:
-    sys_prompt = T(".prompts2:solution_gen.system").r()
-    user_prompt = T(".prompts2:solution_gen.user").r()
-
+def hypothesis_gen(component_desc, scenario_desc, trace_desc_df, sota_exp_desc, problems) -> Dict:
+    sys_prompt = T(".prompts2:hypothesis_gen.system").r(
+        component_desc = component_desc,
+        hypothesis_spec = T(".prompts2:specification.hypothesis").r()
+        hypothesis_output_format = T(".prompts2:output_format.hypothesis").r()
+    )
+    user_prompt = T(".prompts2:hypothesis_gen.user").r(
+        scenario_desc = scenario_desc,
+        trace_desc_df = trace_desc_df,
+        sota_exp_desc = sota_exp_desc,
+        problems = problems
+    )
     response = APIBackend().build_messages_and_create_chat_completion(
         user_prompt=user_prompt,
         system_prompt=sys_prompt,
     )
-    return extract_JSON(response)[0]
-
-
-def solution_rank(solution: List[Dict]) -> Dict:
-    pass
-
-def task_gen(solution):
-    sys_prompt = T(".prompts2:task_gen.system").r()
-    user_prompt = T(".prompts2:task_gen.user").r()
-
-    response = APIBackend().build_messages_and_create_chat_completion(
-        user_prompt=user_prompt,
-        system_prompt=sys_prompt,
-    )
-    return extract_JSON(response)[0]
+    return extract_JSON(response)
