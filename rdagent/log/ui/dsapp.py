@@ -1,3 +1,4 @@
+import hashlib
 import math
 import re
 from collections import defaultdict
@@ -157,8 +158,14 @@ def task_win(data):
             )
 
 
-def workspace_win(data):
-    show_files = {k: v for k, v in data.file_dict.items() if not "test" in k}
+def workspace_win(data, instance_id=None):
+    show_files = {k: v for k, v in data.file_dict.items() if "test" not in k}
+
+    base_key = str(data.workspace_path)
+    if instance_id is not None:
+        base_key += f"_{instance_id}"
+    unique_key = hashlib.md5(base_key.encode()).hexdigest()
+
     if len(show_files) > 0:
         with st.expander(f"Files in :blue[{replace_ep_path(data.workspace_path)}]"):
             code_tabs = st.tabs(show_files.keys())
@@ -170,6 +177,21 @@ def workspace_win(data):
                         wrap_lines=True,
                         line_numbers=True,
                     )
+
+            st.markdown("### Save All Files to Folder")
+            target_folder = st.text_input("Enter target folder path:", key=f"save_folder_path_input_{unique_key}")
+
+            if st.button("Save Files", key=f"save_files_button_{unique_key}"):
+                if target_folder.strip() == "":
+                    st.warning("Please enter a valid folder path.")
+                else:
+                    target_folder_path = Path(target_folder)
+                    target_folder_path.mkdir(parents=True, exist_ok=True)
+                    for filename, content in data.file_dict.items():
+                        save_path = target_folder_path / filename
+                        save_path.parent.mkdir(parents=True, exist_ok=True)
+                        save_path.write_text(content, encoding="utf-8")
+                    st.success(f"All files saved to: {target_folder}")
     else:
         st.markdown(f"No files in :blue[{replace_ep_path(data.workspace_path)}]")
 
@@ -187,7 +209,7 @@ def exp_gen_win(data):
     for tasks in data["no_tag"].pending_tasks_list:
         task_win(tasks[0])
     st.subheader("Exp Workspace")
-    workspace_win(data["no_tag"].experiment_workspace)
+    workspace_win(data["no_tag"].experiment_workspace, instance_id="exp_gen")
 
 
 def evolving_win(data, key):
@@ -203,7 +225,7 @@ def evolving_win(data, key):
         if evo_id in data:
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
-                workspace_win(data[evo_id]["evolving code"][0])
+                workspace_win(data[evo_id]["evolving code"][0], instance_id=key)
                 fb = data[evo_id]["evolving feedback"][0]
                 st.subheader("evolving feedback" + ("✅" if bool(fb) else "❌"))
                 f1, f2, f3 = st.tabs(["execution", "return_checking", "code"])
@@ -236,7 +258,7 @@ def coding_win(data):
         evolving_win(evolving_data, key="coding")
     if "no_tag" in data:
         st.subheader("Exp Workspace (coding final)")
-        workspace_win(data["no_tag"].experiment_workspace)
+        workspace_win(data["no_tag"].experiment_workspace, instance_id="coding")
 
 
 def running_win(data, mle_score):
@@ -244,7 +266,7 @@ def running_win(data, mle_score):
     evolving_win({k: v for k, v in data.items() if isinstance(k, int)}, key="running")
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
-        workspace_win(data["no_tag"].experiment_workspace)
+        workspace_win(data["no_tag"].experiment_workspace, instance_id="running_dump")
         st.subheader("Result")
         st.write(data["no_tag"].result)
         st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
@@ -268,7 +290,7 @@ def sota_win(data):
         st.markdown(f"**SOTA Exp Hypothesis**")
         hypothesis_win(data.hypothesis)
         st.markdown("**Exp Workspace**")
-        workspace_win(data.experiment_workspace)
+        workspace_win(data.experiment_workspace, instance_id="sota")
     else:
         st.markdown("No SOTA experiment.")
 
