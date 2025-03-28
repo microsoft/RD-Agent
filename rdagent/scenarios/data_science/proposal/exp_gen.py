@@ -38,13 +38,10 @@ class DSHypothesis(Hypothesis):
     def __str__(self) -> str:
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
+        # (Yuante) I think `concise_reason`, `concise_observation`, `concise_justification`, `concise_knowledge` is for visualization but not for LLM to generate the next task.
         return f"""Chosen Component: {self.component}
 Hypothesis: {self.hypothesis}
 Reason: {self.reason}
-Concise Reason & Knowledge: {self.concise_reason}
-Concise Observation: {self.concise_observation}
-Concise Justification: {self.concise_justification}
-Concise Knowledge: {self.concise_knowledge}
 """
 
 
@@ -323,11 +320,12 @@ class DSExpGen(ExpGen):
                 -self.max_trace_hist :
             ]
             all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
-            trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
+            trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "score", "decision"])
             for index, (exp, fb) in enumerate(all_exp_feedback_list):
                 trace_component_to_feedback_df.loc[f"trial {index + 1}"] = [
                     exp.hypothesis.component,
                     exp.hypothesis.hypothesis,
+                    "Running buggy" if exp.result is None else pd.DataFrame(exp.result).loc["ensemble"].iloc[0],
                     fb.decision,
                 ]
 
