@@ -1,6 +1,7 @@
 from typing import Any
 
 from litellm import (
+    Router,
     completion,
     completion_cost,
     embedding,
@@ -21,6 +22,16 @@ class LiteLLMSettings(LLMSettings):
         """Use `LITELLM_` as prefix for environment variables"""
 
     # Placeholder for LiteLLM specific settings, so far it's empty
+    openai_api_key: str | None = None
+    openai_api_base: str | None = None
+    openai_model_name: str | None = None
+
+    azure_api_key: str | None = None
+    azure_api_base: str | None = None
+    azure_model_name: str | None = None
+    azure_api_version: str | None = None
+
+    enable_router: bool = False
 
 
 LITELLM_SETTINGS = LiteLLMSettings()
@@ -81,14 +92,45 @@ class LiteLLMAPIBackend(APIBackend):
             kwargs["response_format"] = {"type": "json_object"}
 
         # Call LiteLLM completion
-        response = completion(
-            model=LITELLM_SETTINGS.chat_model,
-            messages=messages,
-            stream=LITELLM_SETTINGS.chat_stream,
-            temperature=LITELLM_SETTINGS.chat_temperature,
-            max_tokens=LITELLM_SETTINGS.chat_max_tokens,
-            **kwargs,
-        )
+        if LITELLM_SETTINGS.enable_router:
+            model_list = [
+                {
+                    "model_name": "chat_model",
+                    "litellm_params": {  # params for litellm completion/embedding call
+                        "model": LITELLM_SETTINGS.openai_model_name,
+                        "api_key": LITELLM_SETTINGS.openai_api_key,
+                        "base_url": LITELLM_SETTINGS.openai_api_base,
+                    },
+                },
+                {
+                    "model_name": "chat_model",
+                    "litellm_params": {  # params for litellm completion/embedding call
+                        "model": LITELLM_SETTINGS.azure_model_name,
+                        "api_key": LITELLM_SETTINGS.azure_api_key,
+                        "api_base": LITELLM_SETTINGS.openai_api_base,
+                        "api_version": LITELLM_SETTINGS.azure_api_version,
+                    },
+                },
+            ]
+            print(model_list)
+            response = Router(model_list=model_list).completion(
+                model="chat_model",
+                messages=messages,
+                stream=LITELLM_SETTINGS.chat_stream,
+                temperature=LITELLM_SETTINGS.chat_temperature,
+                max_tokens=LITELLM_SETTINGS.chat_max_tokens,
+                **kwargs,
+            )
+
+        else:
+            response = completion(
+                model=LITELLM_SETTINGS.chat_model,
+                messages=messages,
+                stream=LITELLM_SETTINGS.chat_stream,
+                temperature=LITELLM_SETTINGS.chat_temperature,
+                max_tokens=LITELLM_SETTINGS.chat_max_tokens,
+                **kwargs,
+            )
         logger.info(
             f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
         )
