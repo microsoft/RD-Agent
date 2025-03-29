@@ -112,7 +112,10 @@ class LiteLLMAPIBackend(APIBackend):
                     },
                 },
             ]
-            print(model_list)
+            logger.info(
+                f"{LogColors.GREEN}Enabling LiteLLM Router{LogColors.END} on {len(model_list)} endpoints",
+                tag="llm_messages",
+            )
             response = Router(model_list=model_list).completion(
                 model="chat_model",
                 messages=messages,
