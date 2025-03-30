@@ -67,8 +67,10 @@ component_description:
     Loads and preprocesses competition data, ensuring proper data types, handling missing values, and providing an exploratory data analysis summary.
   FeatureEng: |-
     Transforms raw data into meaningful features while maintaining shape consistency, avoiding data leakage, and optimizing for model performance.
+    It should be model-agnostic (data transformations/augmentations that apply only to specific model frameworks should not be included here).
   Model: |-
     Perform one of three tasks: model building, which develops a model to address the problem; model tuning, which optimizes an existing model for better performance; or model removal, which discards models that do not contribute effectively.
+    Handle data operations or augmentations that are closely tied to the model framework, such as tools provided by PyTorch or TensorFlow.
   Ensemble: |-
     Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
   Workflow: |-
@@ -106,11 +108,12 @@ component_spec:
   FeatureEng: |-
     1. Well handle the shape of the data
       - The sample size of the train data and the test data should be the same in all scenarios.
-      - To most of the scenario, the input shape and the output shape should be exactly the same.
-      - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
+      - To some tabular or time-series data, you may add or remove some columns so your inferred column number may be unsure.
+      - For scenarios where each dimension does not have a special meaning (like image, audio, and so on), the input shape and the output shape should be exactly the same in most cases unless there is a compelling reason to change them.
 
     2. Integration with the Model Pipeline:
       - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+        - Model-related operations should not be implemented in this step. (e.g., it uses tools combined with models like torch.Dataset with rich data transformation/augmentation)
       - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
 
     3. General Considerations:
@@ -129,6 +132,7 @@ component_spec:
   Model: |-
     - Do not use progress bars (e.g., `tqdm`) in the implementation.
     - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+    - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
   
   Ensemble: |-
     1. Input Validation:
