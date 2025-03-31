@@ -20,7 +20,7 @@ if __name__ == "__main__":
     task_l = mtl.load()
 
     # task_l = [t for t in task_l if t.name == "A-DGN"]  # FIXME: other models does not work well
-    # task_l = [t for t in task_l if t.name == "PMLP"]  
+    # task_l = [t for t in task_l if t.name == "Dir-GNN"]
     # TODO: Align it with the benchmark framework after @wenjun's refine the evaluation part.
     # Currently, we just handcraft a workflow for fast evaluation.
 

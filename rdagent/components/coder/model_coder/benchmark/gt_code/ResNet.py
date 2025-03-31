@@ -166,8 +166,8 @@ class Bottleneck(nn.Module):
 class ResNet(nn.Module):
     def __init__(
         self,
-        block: Type[Union[BasicBlock, Bottleneck]],
-        layers: List[int],
+        block: Type[Union[BasicBlock, Bottleneck]] = BasicBlock,
+        layers: List[int] =[2, 2, 2, 2],
         num_classes: int = 1000,
         zero_init_residual: bool = False,
         groups: int = 1,

@@ -72,7 +72,8 @@
     "ResNet": {
         "description": "Residual Networks (ResNets) are a type of deep neural network architecture that introduced skip connections to address the vanishing gradient problem in very deep networks. By enabling the direct flow of information across layers, ResNets allow for the training of extremely deep networks with improved performance.",
         "formulation": [
-            "Input → Conv1 → BN → ReLU → MaxPool → ResBlock1 → ResBlock2 → ResBlock3 → AvgPool → FC → Softmax → Output"
+            "Input → Conv1 → BN → ReLU → MaxPool → ResBlock1 → ResBlock2 → ResBlock3 → AvgPool → FC → Softmax → Output",
+            "Use Hyperparameters: block=BasicBlock, layers=[2, 2, 2, 2], num_classes=1000"
         ],
         "variables": {
             "Input": "The input image (e.g., 224x224x3 for RGB images)",
@@ -182,13 +183,14 @@
         "key": "Seq2SeqDecoderRNN",
         "model_type": "Recurrent"
     },
-    "TransformerEncoderModule": {
+    "TransformerEncoder": {
         "description": "A complete Transformer Encoder module consisting of multiple encoder layers, input embeddings, and positional encodings. Processes input sequences in parallel using stacked self-attention mechanisms and feed-forward networks to generate contextual representations.",
         "formulation": [
             "Input Tokens → Token Embedding → Positional Encoding → [Encoder Layer × N] → Output",
             "Each Encoder Layer:",
             "  - Multi-Head Self-Attention → Add & Norm",
-            "  - Feed-Forward Network → Add & Norm"
+            "  - Feed-Forward Network → Add & Norm",
+            "Use Hyperparameters: d_model=512, nhead=8, num_layers=6"
         ],
         "variables": {
             "Input Tokens": "Discrete input tokens (e.g., words, subwords)",
@@ -198,17 +200,18 @@
             "N": "Number of stacked encoder layers (typically 6-12)",
             "Output": "Contextualized sequence representation"
         },
-        "key": "TransformerEncoderModule",
+        "key": "TransformerEncoder",
         "model_type": "Transformer"
     },
-    "TransformerDecoderModule": {
+    "TransformerDecoder": {
         "description": "A complete Transformer Decoder module with multiple decoder layers, output embeddings, and positional encodings. Generates output sequences autoregressively using masked self-attention and encoder-decoder cross-attention mechanisms.",
         "formulation": [
             "Input Tokens → Token Embedding → Positional Encoding → [Decoder Layer × N] → Output Projection",
             "Each Decoder Layer:",
             "  - Masked Multi-Head Self-Attention → Add & Norm",
             "  - Multi-Head Cross-Attention (with encoder outputs) → Add & Norm",
-            "  - Feed-Forward Network → Add & Norm"
+            "  - Feed-Forward Network → Add & Norm",
+            "Use Hyperparameters: d_model=512, nhead=8, num_layers=6"
         ],
         "variables": {
             "Input Tokens": "Target sequence tokens (shifted right for autoregression)",
@@ -219,16 +222,17 @@
             "Output Projection": "Linear layer mapping to vocabulary space",
             "Encoder Outputs": "Representations from encoder module (for cross-attention)"
         },
-        "key": "TransformerDecoderModule",
+        "key": "TransformerDecoder",
         "model_type": "Transformer"
     },
-    "SwimTransformerModule": {
+    "SwimTransformer": {
         "description": "A complete Swim Transformer module for sequential data processing, featuring specialized position encoding and attention mechanisms optimized for temporal patterns in time series or audio data.",
         "formulation": [
             "Input Sequence → Projection Embedding → Enhanced Position Encoding → [Swim Layer × N] → Output",
             "Each Swim Layer:",
             "  - Temporal Position Encoding → Modified Self-Attention → Add & Norm",
-            "  - Feed-Forward Network → Add & Norm"
+            "  - Feed-Forward Network → Add & Norm",
+            "Use Hyperparameters: patch_size=[4, 4], embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], window_size=[7, 7], stochastic_depth_prob=0.2, num_classes=1000"
         ],
         "variables": {
             "Input Sequence": "Raw sequential data (time series, audio frames, etc.)",
@@ -238,7 +242,7 @@
             "N": "Number of stacked Swim layers",
             "Output": "Processed sequence representation"
         },
-        "key": "SwimTransformerModule",
+        "key": "SwimTransformer",
         "model_type": "Transformer"
     }
 }

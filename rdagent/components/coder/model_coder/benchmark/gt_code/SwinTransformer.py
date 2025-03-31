@@ -537,8 +537,8 @@ class SwinTransformer(nn.Module):
         attention_dropout: float = 0.0,
         stochastic_depth_prob: float = 0.1,
         num_classes: int = 1000,
-        norm_layer: Optional[Callable[..., nn.Module]] = None,
-        block: Optional[Callable[..., nn.Module]] = None,
+        norm_layer: Optional[Callable[..., nn.Module]] = nn.LayerNorm,
+        block: Optional[Callable[..., nn.Module]] = SwinTransformerBlock,
         downsample_layer: Callable[..., nn.Module] = PatchMerging,
     ):
         super().__init__()
@@ -1054,9 +1054,6 @@ if __name__ == "__main__":
         window_size=[7, 7],
         stochastic_depth_prob=0.2,
         num_classes=1000,
-        norm_layer=nn.LayerNorm,
-        block=SwinTransformerBlock,
-        downsample_layer=PatchMerging
     )
 
     # 前向传播
