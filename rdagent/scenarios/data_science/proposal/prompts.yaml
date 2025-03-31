@@ -175,6 +175,10 @@ direct_exp_gen:
     To assist you in formulating new hypotheses, the user has provided some additional information: 
     {{ hypothesis_specification }}
 
+    **If the chosen component is model**:
+    - When the target component is model architecture selection, the primary hypothesis must explicitly prioritize using large-scale pre-trained models as the base architecture. 
+    - Always start from state-of-the-art pretrained checkpoints and focus on efficient fine-tuning strategies rather than training from scratch, even if this requires adjusting other components like batch size or learning schedules to accommodate model size.
+
     ## Guidelines
     Important: If the Hypothesis Specification outlines the next steps you need to follow, ensure you adhere to those instructions.
 

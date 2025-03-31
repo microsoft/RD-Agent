@@ -41,7 +41,8 @@ model_coder:
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
     3. If the model can both be implemented by PyTorch and Tensorflow, please use pytorch for broader compatibility.
     4. The hyperparameters should be set optimally to ensure the model can be trained successfully. Avoid setting minimal parameters just to pass the initial run, as there will be limited opportunities to adjust them in the future.
-    5. If you consider the feature code is insufficient, you may add necessary features during the process.
+    5. Hyperparameter configurations must dynamically adapt to model complexity, data characteristics, and hardware constraints through parametric relationships between layer depth, sample size, and prediction uncertainty, ensuring automated tuning of learning schedules and regularization strength based on real-time training dynamics.  
+    6. During model construction, continuously evaluate feature effectiveness and proactively augment missing critical feature processing steps (e.g., target encoding for high-cardinality categorical fields or text segmentation for long documents), even when these steps are absent from the initial feature engineering code.
 
     ## Output Format
     {% if out_spec %}
