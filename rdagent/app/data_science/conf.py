@@ -29,5 +29,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     # - [ ] replace yaml render with target test.  "spec > .yaml data_science !out_spec !task_spec model_spec"
     # - [ ] At the head of all tests, emphasis the function to be tested.
 
+    proposal_version: str = "v1"
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

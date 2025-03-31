@@ -1,0 +1,217 @@
+scenario_problem:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    You will be given scenario and competition description and the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials within these 5 components:
+    {{ component_desc }}
+
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    {{ problem_spec }}
+    
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+
+    ### Output Format
+    {{ problem_output_format }}
+    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Competition Descriptioin
+    {{ competition_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    Please extract the scenario problems from the provided materials.
+    Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
+
+
+feedback_problem:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, trace history description, the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation within these 5 components:
+    {{ component_desc }}
+
+    ## Low-Level Problems
+    ### Definition
+    Low-level problems are specific and fine-grained technical, or methodological issues within one or more of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the implementation.
+    
+    ### Specification
+    {{ problem_spec }}
+
+    ### Output Format
+    {{ problem_output_format }}
+    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+    
+    # Trace History Description
+    {{ trace_desc_df }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    Please extract the low-level problems that the current SOTA solution is facing.
+    Your final output must be **a list of** identified characteristics, each strictly adhere to the given JSON schema without anything else.
+
+
+hypothesis_gen:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, trace history description, the current SOTA implementation, and a list of identified problems.
+    Your task is to firstly propose a list of hypothesis to address each identified problems and secondly evaluate the proposed hypothesis.
+
+    # Task 1: Hypothesis Proposal
+    Firstly, for each identified problems, you should propose a hypothesis to address the problem and improve the current SOTA implementation.
+    A hypothesis is a precise, testable, and actionable statement that proposes a specific modification or improvement to address an identified problem in a Kaggle competition implementation.
+    Each hypothesis should focus on one of the following 5 components of an implementation:
+    {{ component_desc }}
+
+    ## Hypothesis Specification
+    1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
+    2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
+    3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+
+    ## Hypothesis Output Format
+    The output should strictly follow the JSON schema:
+    {
+      "index": "The index of the proposed hypothesis. Must be one-to-one correspondence with the identified problems. Must be an integer."
+      "problem": "The identified problem that the hypothesis tend to address.",
+      "observation": "The observation of the given scenario, data characteristics, or trace history.",
+      "component": "The component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+      "hypothesis": "The new hypothesis generated based on the information provided.",
+      "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them."
+    }
+    Your final output should be **a list of** proposed hypothesis, each strictly adhere to the above JSON schema without anything else.
+
+
+    # Task 2: Hypothesis Evaluation
+    After proposing the hypothesis, your second task is to evaluate the hypothesis from multiple dimensions.
+
+    ## Evaluation Specification
+
+    ## Evaluation Guild
+
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Trace History Description
+    {{ trace_desc_df }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Identified Problems
+    {{ problems }}
+
+
+hypothesis_rank:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, trace history description, the current SOTA implementation, and a list of proposed hypothesis.
+    The hypothesis are proposed to improve the current SOTA implementation. Your task is to select the best hypothesis according to the impacts if they apply to the SOTA implementation.
+
+    ### Output Format
+    {{ best_hypothesis_output_format }}
+    Your final output should be **a list of** proposed hypothesis, each strictly adhere to the above JSON schema without anything else.
+
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Trace History Description
+    {{ trace_desc_df }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Proposed Hypothesis
+    {{ problems }}
+
+
+task_gen:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, trace history description, the current SOTA implementation, and a proposed hypothesis to improve the current SOTA implementation.
+    
+    # Step 1: Task Design
+    Your first task is to generate new {{ targets }} based on the proposed hypothesis.
+
+    ## Specification
+    {{ task_specification }}
+
+    ## Task Output Format
+    {{ task_output_format }}
+
+    {% if workflow_check %}
+    # Step 2: Workflow Update
+    Since components have dependencies, your second task is to update the workflow to reflect the changes made to the target component. Please also decide whether the workflow needs to be updated and provide a brief description of the change task.
+    {{ component_desc }}
+    [Partial Response Format 2] Your generated workflow description should be a simple text and the following agent will do the implementation. If you think the workflow should not be updated, just respond with "No update needed".
+    {% endif %}
+
+    Your final output should strictly adhere to the following JSON format. 
+    {
+      "task_design": [Partial Response Format 1],
+      {% if workflow_check %}"workflow_update": [Partial Response Format 2], {% endif %}
+    }
+    
+  user: |-
+
+
+specification:
+  problem: |-
+    1. The problem should be specific and fine-grained. Avoid general or vague statements. 
+    2. The problem should technical or methodological. Focus on design and implementation flaws, not runtime errors.
+  hypothesis: |-
+    1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
+    2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
+    3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+
+
+output_format:
+  problem: |-
+    The output should strictly follow the JSON schema:
+    {
+      "component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
+      "problem": "A description of the specific issue.",
+      "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
+    }
+  hypothesis: |-
+    The output should strictly follow the JSON schema:
+    {
+      "index": "The index of the proposed hypothesis. Must be one-to-one correspondence with the identified problems. Must be an integer."
+      "problem": "The identified problem that the hypothesis tend to address.",
+      "observation": "The observation of the given scenario, data characteristics, or trace history.",
+      "component": "The component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+      "hypothesis": "The new hypothesis generated based on the information provided.",
+      "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them."
+    }
+  best_hypothesis: |-
+    The output should strictly follow the JSON schema:
+    {
+      "index": "The index of identified best hypothesis for improve the current SOTA implementation.",
+      "reason": "The reason why you select this hypothesis."
+    }
+
