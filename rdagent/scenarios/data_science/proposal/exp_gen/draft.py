@@ -1,4 +1,5 @@
 import json
+from typing import TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -6,10 +7,10 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.experiment import Hypothesis
+from rdagent.core.proposal import Hypothesis
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import (
+from rdagent.scenarios.data_science.proposal.exp_gen.base import (
     DSExpGenCls,
     DSHypothesis,
     DSTrace,
@@ -78,7 +79,7 @@ class DSDraftExpGen(DSExpGenCls):
         }
         task_cls = init_component_config[component]["task_cls"]
         spec_file = init_component_config[component].get("spec_file")
-        component_prompt_key = (init_component_config[component].get("component_prompt_key"),)
+        component_prompt_key = init_component_config[component].get("component_prompt_key")
 
         former_tasks_desc = ""
         if len(trace.hist) > 0:

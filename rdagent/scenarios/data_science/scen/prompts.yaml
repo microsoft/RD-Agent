@@ -18,7 +18,7 @@ scenario_description: |-
   {% else %} The metric is better when it is smaller.
   {% endif %}
 
-  {% if eda_output is not none %}
+  {% if eda_output is not none %}EDA results:
   {{ eda_output }}
   {% endif %}
 
