@@ -55,7 +55,7 @@ COMPONENT_TASK_MAPPING = {
 
 
 class DSProposalV1ExpGen(DSExpGenCls):
-    def generate(self, trace: DSTrace) -> DSExperiment:
+    def generate(self, trace: DSTrace, max_trace_hist: int) -> DSExperiment:
         # Guidelines:
         # System prompts: Shared condition you are facing
         # - scenario description: `scenario_desc`
@@ -81,9 +81,7 @@ class DSProposalV1ExpGen(DSExpGenCls):
         )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
         sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
-            -self.max_trace_hist :
-        ]
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-max_trace_hist:]
         all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
         trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
         for index, (exp, fb) in enumerate(all_exp_feedback_list):
@@ -306,9 +304,13 @@ class DSProposalV2ExpGen(DSExpGenCls):
         # FIXME: Consider not pick ensemble when model count is 1
         # TODO use rule base or llm to rank the hypothesis
 
-        max_score_problem_name = pd.DataFrame(
-            {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
-        ).sum().idxmax(axis=0)
+        max_score_problem_name = (
+            pd.DataFrame(
+                {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
+            )
+            .sum()
+            .idxmax(axis=0)
+        )
 
         return DSHypothesis(
             component=hypothesis_dict[max_score_problem_name]["component"],
