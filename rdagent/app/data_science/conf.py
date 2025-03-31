@@ -24,5 +24,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable specification
     spec_enabled: bool = True
 
+    proposal_version: str = "v1"
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
