@@ -21,13 +21,12 @@ scenario_problem:
 
     ### Output Format
     {{ problem_output_format }}
-    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
   user: |-
     # Scenario Description
     {{ scenario_desc }}
 
-    # Competition Descriptioin
+    # Competition Description
     {{ competition_desc }}
 
     # Current SOTA Implementation
@@ -54,7 +53,6 @@ feedback_problem:
 
     ### Output Format
     {{ problem_output_format }}
-    Your final output should be **a list of** identified problems, each strictly adhere to the above JSON schema without anything else.
 
   user: |-
     # Scenario Description
@@ -75,10 +73,12 @@ hypothesis_gen:
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, trace history description, the current SOTA implementation, and a list of identified problems.
-    Your task is to firstly propose a list of hypothesis to address each identified problems and secondly evaluate the proposed hypothesis.
+    Your role involves two tasks:
+    1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
+    2. **Hypothesis Evaluation**: Evaluate the proposed hypotheses across multiple dimensions.
 
     # Task 1: Hypothesis Proposal
-    Firstly, for each identified problems, you should propose a hypothesis to address the problem and improve the current SOTA implementation.
+    For each identified problem, you are required to propose a hypothesis aimed at improving the current SOTA implementation. 
     A hypothesis is a precise, testable, and actionable statement that proposes a specific modification or improvement to address an identified problem in a Kaggle competition implementation.
     Each hypothesis should focus on one of the following 5 components of an implementation:
     {{ component_desc }}
@@ -88,26 +88,34 @@ hypothesis_gen:
     2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
 
-    ## Hypothesis Output Format
-    The output should strictly follow the JSON schema:
-    {
-      "index": "The index of the proposed hypothesis. Must be one-to-one correspondence with the identified problems. Must be an integer."
-      "problem": "The identified problem that the hypothesis tend to address.",
-      "observation": "The observation of the given scenario, data characteristics, or trace history.",
-      "component": "The component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-      "hypothesis": "The new hypothesis generated based on the information provided.",
-      "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them."
-    }
-    Your final output should be **a list of** proposed hypothesis, each strictly adhere to the above JSON schema without anything else.
-
 
     # Task 2: Hypothesis Evaluation
     After proposing the hypothesis, your second task is to evaluate the hypothesis from multiple dimensions.
 
-    ## Evaluation Specification
+    ## Evaluation Instruction
+    Please score the proposed hypothesis from 1 to 10 for each of the following dimensions (where 1 means lowest and 10 means highest):
+    1. Problem-Hypothesis Alignment: How well the hypothesis addresses the identified problem.
+    2. Expected Impact: The estimated improvement after applying the hypothesis to current SOTA implementation.
+    3. Novelty: Degree of innovation compared to previous attempts.
+    4. Feasibility: The ease of implementing the proposed hypothesis in the current SOTA implementation.
+    5. Risk-Reward Balance: The exploration-exploitation balance of the proposed hypothesis.
 
-    ## Evaluation Guild
-
+    ## Final Output Format in JSON Schema. Please return a list even if there is only one hypothesis.
+    {
+      "problem name 1": {
+        "observation": "Brief explanation of the observation.",
+        "component": "The component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        "hypothesis": "The new hypothesis generated based on the information provided.",
+        "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them."
+        "evaluation": {
+          "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",
+          "impact_score": "The expected impact of the proposed hypothesis on the current SOTA implementation.",
+          "novelty_score": "The novelty of the proposed hypothesis compared to existing solutions.",
+          "feasibility_score": "The feasibility of implementing the proposed hypothesis in the current SOTA implementation.",
+          "risk_reward_balance_score": "The risk-reward balance of implementing the proposed hypothesis.",
+        }
+      },
+    }
 
   user: |-
     # Scenario Description
@@ -156,7 +164,7 @@ task_gen:
     You will be given a competition scenario, trace history description, the current SOTA implementation, and a proposed hypothesis to improve the current SOTA implementation.
     
     # Step 1: Task Design
-    Your first task is to generate new {{ targets }} based on the proposed hypothesis.
+    Your first task is to generate new {{ targets }} based on the proposed hypothesis. Your task should very detailed with specific steps and instructions. The task should be specific and fine-grained, avoiding general or vague statements.
 
     ## Specification
     {{ task_specification }}
@@ -178,7 +186,14 @@ task_gen:
     }
     
   user: |-
+    # Scenario Description
+    {{ scenario_desc }}
 
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Target Hypothesis
+    {{ hypothesis }}
 
 specification:
   problem: |-
@@ -192,11 +207,16 @@ specification:
 
 output_format:
   problem: |-
-    The output should strictly follow the JSON schema:
+    The output should strictly follow the JSON schema. 
     {
-      "component": "Component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow'). Omit this field if the problem is related to multiple components.",
-      "problem": "A description of the specific issue.",
-      "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
+      "problem name 1": {
+        "problem": "Description of the first issue",
+        "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
+      },
+      "problem name 2": {
+        "problem": "Description of the second issue",
+        "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials."
+      }
     }
   hypothesis: |-
     The output should strictly follow the JSON schema:

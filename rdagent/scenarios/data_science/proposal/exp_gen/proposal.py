@@ -11,8 +11,7 @@ from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoader
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen import (
-    COMPONENT_TASK_MAPPING,
+from rdagent.scenarios.data_science.proposal.exp_gen.base import (
     DSExpGenCls,
     DSHypothesis,
     DSTrace,
@@ -239,8 +238,9 @@ class DSProposalV1ExpGen(DSExpGenCls):
 
 
 class DSProposalV2ExpGen(DSExpGenCls):
-
-    def identify_scenario_problem(self, component_desc, scenario_desc, competition_desc, sota_exp_desc) -> List[Dict]:
+    def identify_scenario_problem(
+        self, component_desc: str, scenario_desc: str, competition_desc: str, sota_exp_desc: str
+    ) -> List[Dict]:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             component_desc=component_desc,
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -255,10 +255,13 @@ class DSProposalV2ExpGen(DSExpGenCls):
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
         )
-        return extract_JSON(response)
+        return json.loads(response)
 
-    def identify_feedback_problem(self, component_desc, scenario_desc, trace_desc_df, sota_exp_desc) -> List[Dict]:
+    def identify_feedback_problem(
+        self, component_desc: str, scenario_desc: str, trace_desc_df_str: str, sota_exp_desc: str
+    ) -> List[Dict]:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             component_desc=component_desc,
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -266,51 +269,103 @@ class DSProposalV2ExpGen(DSExpGenCls):
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
-            trace_desc_df=trace_desc_df,
+            trace_desc_df=trace_desc_df_str,
             sota_exp_desc=sota_exp_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
         )
-        return extract_JSON(response)
+        return json.loads(response)
 
-    def hypothesis_gen(self, component_desc, scenario_desc, trace_desc_df, sota_exp_desc, problems) -> List[Dict]:
+    def hypothesis_gen(
+        self, component_desc: str, scenario_desc: str, trace_desc_df_str: str, sota_exp_desc: str, problems: list
+    ) -> List[dict]:
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
             hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(),
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
-            scenario_desc=scenario_desc, trace_desc_df=trace_desc_df, sota_exp_desc=sota_exp_desc, problems=problems
+            scenario_desc=scenario_desc,
+            trace_desc_df=trace_desc_df_str,
+            sota_exp_desc=sota_exp_desc,
+            problems=json.dumps(problems, indent=2),
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
-        return extract_JSON(response)
+        return json.loads(response)
 
-    def hypothesis_rank(self, scenario_desc, trace_desc_df, sota_exp_desc, hypothesis) -> Dict:
-        sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
-            best_hypothesis_output_format=T(".prompts_v2:output_format.best_hypothesis").r()
-        )
-        user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
-            scenario_desc=scenario_desc, trace_desc_df=trace_desc_df, sota_exp_desc=sota_exp_desc, hypothesis=hypothesis
-        )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-        )
-        return extract_JSON(response)[0]
+    def hypothesis_rank(self, hypothesis_dict: dict) -> DSHypothesis:
+        # FIXME: Consider not pick ensemble when model count is 1
+        # TODO use rule base or llm to rank the hypothesis
 
-    def task_gen(self, targets, component_desc) -> Dict:
-        sys_prompt = T(".prompts_v2:hypothesis_gen.system").r()
-        user_prompt = T(".prompts_v2:hypothesis_gen.user").r()
+        max_score_problem_name = pd.DataFrame(
+            {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
+        ).sum().idxmax(axis=0)
+
+        return DSHypothesis(
+            component=hypothesis_dict[max_score_problem_name]["component"],
+            hypothesis=hypothesis_dict[max_score_problem_name]["hypothesis"],
+            reason=hypothesis_dict[max_score_problem_name]["reason"],
+        )
+
+    def task_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        sota_exp: DSExperiment,
+        hypothesis: DSHypothesis,
+    ) -> DSExperiment:
+        component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+        if DS_RD_SETTING.spec_enabled:
+            task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
+        else:
+            task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
+        sys_prompt = T(".prompts_v2:task_gen.system").r(
+            targets=component_info["target_name"],
+            task_specification=task_spec,
+            task_output_format=component_info["task_output_format"],
+            component_desc=component_desc,
+            workflow_check=(not hypothesis.component == "Workflow"),
+        )
+        user_prompt = T(".prompts_v2:task_gen.user").r(
+            scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=hypothesis
+        )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | Dict[str, str]],
         )
-        return extract_JSON(response)[0]
+        task_dict = json.loads(response)
+        task_design = task_dict.get("task_design", {})
+        task_name = task_design["model_name"] if hypothesis.component == "Model" else hypothesis.component
+        description = task_design.get("description", f"{component_info['target_name']} description not provided")
+        task_class = COMPONENT_TASK_MAPPING[hypothesis.component]["task_class"]
+        task = task_class(
+            name=task_name,
+            description=description,
+        )
+        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
+        # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+        exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
+
+        if new_workflow_desc != "No update needed":
+            workflow_task = WorkflowTask(
+                name="Workflow",
+                description=new_workflow_desc,
+            )
+            exp.pending_tasks_list.append([workflow_task])
+        return exp
 
     def generate(self, trace: DSTrace) -> DSExperiment:
         component_desc = "\n".join(
@@ -321,15 +376,8 @@ class DSProposalV2ExpGen(DSExpGenCls):
         )
 
         sota_exp = trace.sota_experiment()
-        sota_exp_model_file_count = len(
-            [
-                k
-                for k in sota_exp.experiment_workspace.file_dict.keys()
-                if k.endswith(".py") and "test" not in k and k.startswith("model")
-            ]
-        )
         scenario_desc = trace.scen.get_scenario_all_desc()
-        competition_desc = trace.scen.get_competition_desc()
+        competition_desc = trace.scen.get_competition_full_desc()
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
@@ -348,19 +396,39 @@ class DSProposalV2ExpGen(DSExpGenCls):
 
         # Step 1: Identify problems
         # todo: do not identify components
-        scen_problems = self.identify_scenario_problem(component_desc, scenario_desc, competition_desc, sota_exp_desc)
-        fb_problems = self.identify_feedback_problem(component_desc, scenario_desc, sota_exp_desc, trace_desc_df)
-        problems = scen_problems + fb_problems
+        scen_problems = self.identify_scenario_problem(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            competition_desc=competition_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        fb_problems = self.identify_feedback_problem(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            trace_desc_df_str=trace_desc_df.to_string(),
+            sota_exp_desc=sota_exp_desc,
+        )
+        all_problems = {**scen_problems, **fb_problems}
 
         # Step 2: Propose hypothesis based on the identified problems
-        # give score -- ask shikai
-        hypothesis = self.hypothesis_gen(component_desc, scenario_desc, trace_desc_df, sota_exp_desc, problems)
-        if sota_exp_model_file_count <= 1:
-            for hypo in hypothesis:
-                component = hypo.get("component", "Component not provided")
-                if component == "Ensemble":
-                    hypo["component"] = "Model"
+        hypothesis_dict = self.hypothesis_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            trace_desc_df_str=trace_desc_df.to_string(),
+            sota_exp_desc=sota_exp_desc,
+            problems=all_problems,
+        )
 
         # Step 3: Select the best hypothesis
         # do not call llm (based on scores)
-        new_hypothesis = self.hypothesis_rank(scenario_desc, trace_desc_df, sota_exp_desc, hypothesis)
+        new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=hypothesis_dict,
+        )
+
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            sota_exp=sota_exp,
+            hypothesis=new_hypothesis,
+        )
