@@ -1,6 +1,8 @@
 import json
+from pathlib import Path
 from typing import Dict
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -21,6 +23,8 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -64,8 +68,16 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
         )
+        code_spec = (
+            workspace.file_dict["spec/feature.md"]
+            if DS_RD_SETTING.spec_enabled
+            else T("scenarios.data_science.share:component_spec.general").r(
+                spec=T("scenarios.data_science.share:component_spec.FeatureEng").r(),
+                test_code=(DIRNAME / "eval_tests" / "feature_test.txt").read_text(),
+            )
+        )
         user_prompt = T(".prompts:feature_coder.user").r(
-            feature_spec=workspace.file_dict["spec/feature.md"],
+            code_spec=code_spec,
             latest_code=workspace.file_dict.get("feature.py"),
             latest_code_feedback=prev_task_feedback,
         )

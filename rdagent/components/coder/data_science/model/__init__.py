@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Dict
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiEvaluator,
@@ -22,6 +24,8 @@ from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import PythonBatchEditOut
 from rdagent.utils.agent.tpl import T
+
+DIRNAME = Path(__file__).absolute().resolve().parent
 
 
 class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
@@ -71,8 +75,16 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         #     latest_code=workspace.file_dict.get(f"{target_task.name}.py", None),
         # )
         # We want to use a simpler way to
+        code_spec = (
+            workspace.file_dict["spec/model.md"]
+            if DS_RD_SETTING.spec_enabled
+            else T("scenarios.data_science.share:component_spec.general").r(
+                spec=T("scenarios.data_science.share:component_spec.Model").r(),
+                test_code=(DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name),
+            )
+        )
         user_prompt = T(".prompts:model_coder.user_general").r(
-            model_spec=workspace.file_dict["spec/model.md"],
+            code_spec=code_spec,
             latest_model_code=workspace.get_codes(
                 r"^model_(?!test)\w+\.py$"
             ),  # TODO: If we have high failure rate here, we should clean this step with less information.

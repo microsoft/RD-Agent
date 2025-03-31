@@ -188,7 +188,7 @@ direct_exp_gen:
 
     ## Task Specification
     The scope of the {{ targets }} can be described by a interface specification as follows:
-    ```Python
+    ```markdown
     {{ task_specification }}
     ```
 

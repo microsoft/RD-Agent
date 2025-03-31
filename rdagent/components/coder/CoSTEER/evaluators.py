@@ -162,7 +162,14 @@ class CoSTEERMultiFeedback(Feedback):
     def __iter__(self):
         return iter(self.feedback_list)
 
-    def __bool__(self):
+    def finished(self) -> bool:
+        """
+        In some implementations, tasks may fail multiple times, leading agents to skip the implementation.
+        This results in None feedback. However, we want to accept the correct parts and ignore None feedback.
+        """
+        return all(feedback.final_decision for feedback in self.feedback_list if feedback is not None)
+
+    def __bool__(self) -> bool:
         return all(feedback.final_decision for feedback in self.feedback_list)
 
 
