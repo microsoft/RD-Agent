@@ -358,5 +358,5 @@ output_format:
     Design a specific and detailed workflow task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
     The output should follow JSON format. The schema is as follows:
     {
-        "description": "A precise and comprehensive description of the workflow",
+        "description": "A precise and comprehensive description of the main workflow script (`main.py`)",
     }

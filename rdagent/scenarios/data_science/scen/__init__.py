@@ -228,13 +228,14 @@ class DataScienceScen(Scenario):
     """Data Science Scenario"""
 
     def __init__(self, competition: str) -> None:
+        self.metric_name: str | None = None  # It is None when initialization. After analysing, we'll assign the metric name
+
         self.competition = competition
         self.raw_description = self._get_description()
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
         self.metric_direction = self._get_direction()
         self.eda_output = None
-        self.metric_name: str | None = None  # It is None when initialization. After analysing, we'll assign the metric name
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
