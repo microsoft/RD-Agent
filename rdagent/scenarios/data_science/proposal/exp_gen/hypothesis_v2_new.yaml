@@ -31,6 +31,9 @@ scenario_problem:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
+    Please extract the scenario problems from the provided materials.
+
+
 feedback_problem:
   system: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
@@ -52,14 +55,14 @@ feedback_problem:
     # Scenario Description
     {{ scenario_desc }}
     
-    Here's the former SOTA experiments and their feedbacks:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    Also, here's the former failed experiments and their feedbacks:
-    {{ failed_exp_and_feedback_list_desc }}
+    # Trace History Description
+    {{ trace_desc_df }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
+
+    Please extract the low-level problems that the current SOTA solution is facing.
+
 
 hypothesis_gen:
   system: |-
@@ -93,19 +96,15 @@ hypothesis_gen:
     4. Feasibility: The ease of implementing the proposed hypothesis in the current SOTA implementation.
     5. Risk-Reward Balance: The exploration-exploitation balance of the proposed hypothesis.
 
-    ## Final Output Format in JSON Schema:
+    ## Final Output Format
     {{ hypothesis_output_format }}
-    
 
   user: |-
     # Scenario Description
     {{ scenario_desc }}
 
-    Here's the former SOTA experiments and their feedbacks:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    Also, here's the former failed experiments and their feedbacks:
-    {{ failed_exp_and_feedback_list_desc }}
+    # Trace History Description
+    {{ trace_desc_df }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -149,7 +148,7 @@ task_gen:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    # Proposed Hypothesis
+    # Target Hypothesis
     {{ hypothesis }}
 
 specification:
@@ -181,8 +180,8 @@ output_format:
       "problem name 1": {
         "observation": "The observation of the given scenario, data characteristics, or trace history.",
         "component": "The component name that the hypothesis focus on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-        "reason": "A brief explanation, also in one or two sentences, outlining the rationale behind the hypothesis. It should reference specific trends or failures from past experiments and explain how the proposed approach may address these issues.",
-        "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
+        "reason": "The comprehensive and logical reasoning process for you to propose the hypothesis.",
+        "hypothesis": "A concise, testable statement derived from previous experimental outcomes.",
         "evaluation": {
           "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",
           "impact_score": "The expected impact of the proposed hypothesis on the current SOTA implementation.",

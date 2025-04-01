@@ -233,11 +233,8 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_scenario_problem(
-        self, component_desc: str, scenario_desc: str, competition_desc: str, sota_exp_desc: str
-    ) -> List[Dict]:
+    def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> List[Dict]:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            component_desc=component_desc,
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
@@ -256,14 +253,12 @@ class DSProposalV2ExpGen(ExpGen):
 
     def identify_feedback_problem(
         self,
-        component_desc: str,
         scenario_desc: str,
         sota_exp_feedback_list_desc: str,
         failed_exp_feedback_list_desc: str,
         sota_exp_desc: str,
-    ) -> List[Dict]:
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            component_desc=component_desc,
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
@@ -289,7 +284,7 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
         sota_exp_desc: str,
         problems: list,
-    ) -> List[dict]:
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
             hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
@@ -412,13 +407,11 @@ class DSProposalV2ExpGen(ExpGen):
         # Step 1: Identify problems
         # todo: do not identify components
         scen_problems = self.identify_scenario_problem(
-            component_desc=component_desc,
             scenario_desc=scenario_desc,
             competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
         )
         fb_problems = self.identify_feedback_problem(
-            component_desc=component_desc,
             scenario_desc=scenario_desc,
             sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
@@ -435,6 +428,20 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
         )
+        sota_exp_model_file_count = len(
+            [
+                k
+                for k in sota_exp.experiment_workspace.file_dict.keys()
+                if k.endswith(".py") and "test" not in k and k.startswith("model")
+            ]
+        )
+        if sota_exp_model_file_count <= 1:
+            pop_names = []
+            for problem_name in hypothesis_dict:
+                if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                    pop_names.append(problem_name)
+            for name in pop_names:
+                hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
         # do not call llm (based on scores)
