@@ -58,8 +58,11 @@ feedback_problem:
     # Scenario Description
     {{ scenario_desc }}
     
-    # Trace History Description
-    {{ trace_desc_df }}
+    Here's the former SOTA experiments and their feedbacks:
+    {{ sota_exp_and_feedback_list_desc }}
+
+    Also, here's the former failed experiments and their feedbacks:
+    {{ failed_exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -105,8 +108,8 @@ hypothesis_gen:
       "problem name 1": {
         "observation": "Brief explanation of the observation.",
         "component": "The component name. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-        "hypothesis": "The new hypothesis generated based on the information provided.",
-        "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them."
+        "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
+        "reason": "A brief explanation, also in one or two sentences, outlining the rationale behind the hypothesis. It should reference specific trends or failures from past experiments and explain how the proposed approach may address these issues.",
         "evaluation": {
           "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",
           "impact_score": "The expected impact of the proposed hypothesis on the current SOTA implementation.",
@@ -121,8 +124,11 @@ hypothesis_gen:
     # Scenario Description
     {{ scenario_desc }}
 
-    # Trace History Description
-    {{ trace_desc_df }}
+    Here's the former SOTA experiments and their feedbacks:
+    {{ sota_exp_and_feedback_list_desc }}
+
+    Also, here's the former failed experiments and their feedbacks:
+    {{ failed_exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -147,8 +153,11 @@ hypothesis_rank:
     # Scenario Description
     {{ scenario_desc }}
 
-    # Trace History Description
-    {{ trace_desc_df }}
+    Here's the former SOTA experiments and their feedbacks:
+    {{ sota_exp_and_feedback_list_desc }}
+
+    Also, here's the former failed experiments and their feedbacks:
+    {{ failed_exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -169,7 +178,7 @@ task_gen:
     ## Specification
     {{ task_specification }}
 
-    ## Task Output Format
+    ## [Partial Response Format 1] Task Output Format
     {{ task_output_format }}
 
     {% if workflow_check %}
@@ -192,7 +201,7 @@ task_gen:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    # Target Hypothesis
+    # Proposed Hypothesis
     {{ hypothesis }}
 
 specification:

@@ -28,14 +28,13 @@ class DSHypothesis(Hypothesis):
     def __str__(self) -> str:
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
-        return f"""Chosen Component: {self.component}
-Hypothesis: {self.hypothesis}
-Reason: {self.reason}
-Concise Reason & Knowledge: {self.concise_reason}
-Concise Observation: {self.concise_observation}
-Concise Justification: {self.concise_justification}
-Concise Knowledge: {self.concise_knowledge}
-"""
+        lines = []
+        if self.problem is not None:
+            lines.append(f"Target Problem: {self.problem}")
+        lines.extend(
+            [f"Chosen Component: {self.component}", f"Hypothesis: {self.hypothesis}", f"Reason: {self.reason}"]
+        )
+        return "\n".join(lines)
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
