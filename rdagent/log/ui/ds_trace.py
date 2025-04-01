@@ -399,81 +399,113 @@ def replace_ep_path(p: Path):
 
 def summarize_data():
     st.header("Summary", divider="rainbow")
-    df = pd.DataFrame(
-        columns=["Component", "Running Score", "Feedback", "e-loops", "Time", "Start Time (UTC+8)", "End Time (UTC+8)"],
-        index=range(len(state.data) - 1),
-    )
+    with st.container(border=True):
+        df = pd.DataFrame(
+            columns=[
+                "Component",
+                "Running Score",
+                "Feedback",
+                "e-loops",
+                "Time",
+                "Coding",
+                "Running",
+                "Start Time (UTC+8)",
+                "End Time (UTC+8)",
+            ],
+            index=range(len(state.data) - 1),
+        )
 
-    for loop in range(len(state.data) - 1):
-        loop_data = state.data[loop]
-        df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
-        if state.times[loop]:
-            df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
-            df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
-            df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
-        if "running" in loop_data and "no_tag" in loop_data["running"]:
-            if "mle_score" not in state.data[loop]:
-                if "mle_score" in loop_data["running"]:
-                    mle_score_txt = loop_data["running"]["mle_score"]
-                    state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
-                    if state.data[loop]["mle_score"]["score"] is not None:
-                        df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
-                    else:
-                        state.data[loop]["mle_score"] = mle_score_txt
-                        df.loc[loop, "Running Score"] = "❌"
-                else:
-                    mle_score_path = (
-                        replace_ep_path(loop_data["running"]["no_tag"].experiment_workspace.workspace_path)
-                        / "mle_score.txt"
-                    )
-                    try:
-                        mle_score_txt = mle_score_path.read_text()
+        for loop in range(len(state.data) - 1):
+            loop_data = state.data[loop]
+            df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
+            if state.times[loop]:
+                df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
+                coding_time = state.times[loop][1].end - state.times[loop][1].start
+                df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
+                if len(state.times[loop]) > 2:
+                    running_time = state.times[loop][2].end - state.times[loop][2].start
+                    df.loc[loop, "Running"] = str(running_time).split(".")[0]
+                df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
+                df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
+            if "running" in loop_data and "no_tag" in loop_data["running"]:
+                if "mle_score" not in state.data[loop]:
+                    if "mle_score" in loop_data["running"]:
+                        mle_score_txt = loop_data["running"]["mle_score"]
                         state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
                         if state.data[loop]["mle_score"]["score"] is not None:
                             df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
                             df.loc[loop, "Running Score"] = "❌"
-                    except Exception as e:
-                        state.data[loop]["mle_score"] = str(e)
-                        df.loc[loop, "Running Score"] = "❌"
-            else:
-                if isinstance(state.data[loop]["mle_score"], dict):
-                    df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                    else:
+                        mle_score_path = (
+                            replace_ep_path(loop_data["running"]["no_tag"].experiment_workspace.workspace_path)
+                            / "mle_score.txt"
+                        )
+                        try:
+                            mle_score_txt = mle_score_path.read_text()
+                            state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
+                            if state.data[loop]["mle_score"]["score"] is not None:
+                                df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                            else:
+                                state.data[loop]["mle_score"] = mle_score_txt
+                                df.loc[loop, "Running Score"] = "❌"
+                        except Exception as e:
+                            state.data[loop]["mle_score"] = str(e)
+                            df.loc[loop, "Running Score"] = "❌"
                 else:
-                    df.loc[loop, "Running Score"] = "❌"
+                    if isinstance(state.data[loop]["mle_score"], dict):
+                        df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                    else:
+                        df.loc[loop, "Running Score"] = "❌"
 
-        else:
-            df.loc[loop, "Running Score"] = "N/A"
+            else:
+                df.loc[loop, "Running Score"] = "N/A"
 
-        if "coding" in loop_data:
-            df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
-        if "feedback" in loop_data:
-            df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
-        else:
-            df.loc[loop, "Feedback"] = "N/A"
-    stat_t0, stat_t1 = st.columns(2)
-    stat_t0.dataframe(df)
+            if "coding" in loop_data:
+                df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+            if "feedback" in loop_data:
+                df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
+            else:
+                df.loc[loop, "Feedback"] = "N/A"
+        st.dataframe(df)
 
-    def comp_stat_func(x: pd.DataFrame):
-        total_num = x.shape[0]
-        valid_num = x[x["Running Score"] != "N/A"].shape[0]
-        avg_e_loops = x["e-loops"].mean()
-        return pd.Series(
-            {
-                "Total": total_num,
-                "Valid": valid_num,
-                "Valid Rate": round(valid_num / total_num * 100, 2),
-                "Avg e-loops": round(avg_e_loops, 2),
-            }
+        def comp_stat_func(x: pd.DataFrame):
+            total_num = x.shape[0]
+            valid_num = x[x["Running Score"] != "N/A"].shape[0]
+            avg_e_loops = x["e-loops"].mean()
+            return pd.Series(
+                {
+                    "Loop Num": total_num,
+                    "Valid Loop": valid_num,
+                    "Valid Rate": round(valid_num / total_num * 100, 2),
+                    "Avg e-loops": round(avg_e_loops, 2),
+                }
+            )
+
+        st1, st2 = st.columns([1, 1])
+
+        # component statistics
+        comp_df = df.loc[:, ["Component", "Running Score", "e-loops"]].groupby("Component").apply(comp_stat_func)
+        comp_df.loc["Total"] = comp_df.sum()
+        comp_df.loc["Total", "Valid Rate"] = round(
+            comp_df.loc["Total", "Valid Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
         )
+        comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
+        comp_df.loc["Total", "Avg e-loops"] = round(df["e-loops"].mean(), 2)
+        st2.markdown("### Component Statistics")
+        st2.dataframe(comp_df)
 
-    comp_df = df.loc[:, ["Component", "Running Score", "e-loops"]].groupby("Component").apply(comp_stat_func)
-    comp_df.loc["Total"] = comp_df.sum()
-    comp_df.loc["Total", "Valid Rate"] = round(comp_df.loc["Total", "Valid"] / comp_df.loc["Total", "Total"] * 100, 2)
-    comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
-    comp_df.loc["Total", "Avg e-loops"] = round(df["e-loops"].mean(), 2)
-    stat_t1.dataframe(comp_df)
+        # component time statistics
+        time_df = df.loc[:, ["Component", "Time", "Coding", "Running"]]
+        time_df = time_df.astype({"Time": "timedelta64[ns]", "Coding": "timedelta64[ns]", "Running": "timedelta64[ns]"})
+        st1.markdown("### Time Statistics")
+        time_stat_df = time_df.groupby("Component").sum()
+        time_stat_df.loc["Total"] = time_stat_df.sum()
+        time_stat_df.loc[:, "Coding(%)"] = time_stat_df["Coding"] / time_stat_df["Time"] * 100
+        time_stat_df.loc[:, "Running(%)"] = time_stat_df["Running"] / time_stat_df["Time"] * 100
+        time_stat_df = time_stat_df.map(lambda x: str(x).split(".")[0] if pd.notnull(x) else "0:00:00")
+        st1.dataframe(time_stat_df)
 
 
 def stdout_win(loop_id: int):
