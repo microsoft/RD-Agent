@@ -17,7 +17,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PROJ_PATH = DIRNAME.parent.parent
 
 
-def get_caller_dir(upshift: int=0):
+def get_caller_dir(upshift: int = 0):
     # Inspect the calling stack to get the caller's directory
     stack = inspect.stack()
     caller_frame = stack[1 + upshift]
@@ -91,7 +91,12 @@ class RDAT:
         """
         # loader=FunctionLoader(load_yaml_content) is for supporting grammar like below.
         # `{% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}`
-        rendered = Environment(undefined=StrictUndefined, loader=FunctionLoader(load_yaml_content)).from_string(self.template).render(**context).strip("\n")
+        rendered = (
+            Environment(undefined=StrictUndefined, loader=FunctionLoader(load_yaml_content))
+            .from_string(self.template)
+            .render(**context)
+            .strip("\n")
+        )
         while "\n\n\n" in rendered:
             rendered = rendered.replace("\n\n\n", "\n\n")
         rendered = "\n".join(line for line in rendered.splitlines() if line.strip())
