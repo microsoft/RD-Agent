@@ -7,18 +7,14 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.core.proposal import Hypothesis
+from rdagent.core.proposal import ExpGen, Hypothesis
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen.base import (
-    DSExpGenCls,
-    DSHypothesis,
-    DSTrace,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 
 
-class DSDraftExpGen(DSExpGenCls):
+class DSDraftExpGen(ExpGen):
 
     def _init_task_gen(
         self,
@@ -54,7 +50,7 @@ class DSDraftExpGen(DSExpGenCls):
 
         return resp_dict
 
-    def generate(
+    def gen(
         self,
         component: COMPONENT,
         trace: DSTrace,

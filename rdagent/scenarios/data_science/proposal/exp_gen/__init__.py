@@ -20,16 +20,17 @@ class DSExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         next_missing_component = trace.next_incomplete_component()
         if next_missing_component is not None:
-            return DSDraftExpGen().generate(
+            return DSDraftExpGen(scen=self.scen).gen(
                 component=next_missing_component,
                 trace=trace,
             )
         if DS_RD_SETTING.proposal_version == "v1":
-            return DSProposalV1ExpGen().gen(
+            return DSProposalV1ExpGen(scen=self.scen).gen(
                 trace=trace,
                 max_trace_hist=self.max_trace_hist,
             )
         if DS_RD_SETTING.proposal_version == "v2":
-            return DSProposalV2ExpGen().gen(
+            return DSProposalV2ExpGen(scen=self.scen).gen(
                 trace=trace,
+                max_trace_hist=self.max_trace_hist,
             )
