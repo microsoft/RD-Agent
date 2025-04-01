@@ -7,12 +7,6 @@ from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSEx
 from rdagent.scenarios.data_science.scen import DataScienceScen
 
 
-class DSExpGenCls:
-    @abstractmethod
-    def generate_exp(self, *args, **kwargs) -> DSExperiment:
-        raise NotImplementedError("generate_exp method must be implemented in subclasses")
-
-
 class DSHypothesis(Hypothesis):
     def __init__(
         self,
