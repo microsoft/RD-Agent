@@ -149,7 +149,7 @@ task_gen:
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    # Proposed Hypothesis
+    # Proposed Hypothesis you should strictly follow:
     {{ hypothesis }}
 
 specification:
