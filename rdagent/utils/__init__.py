@@ -15,6 +15,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Union
 
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils.agent.tpl import T
 
@@ -140,7 +141,6 @@ def filter_redundant_text(stdout: str) -> str:
                 break
             filtered_stdout = re.sub(r"\s*\n\s*", "\n", filtered_stdout)
         except Exception as e:
-            from rdagent.log import rdagent_logger as logger
             logger.error(f"Error in filtering progress bar: due to {e}")
     return filtered_stdout
 
