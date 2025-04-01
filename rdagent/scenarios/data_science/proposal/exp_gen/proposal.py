@@ -357,7 +357,11 @@ class DSProposalV2ExpGen(ExpGen):
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", {})
         task_name = task_design["model_name"] if hypothesis.component == "Model" else hypothesis.component
-        description = task_design.get("description", f"{component_info['target_name']} description not provided")
+        description = (
+            task_design
+            if isinstance(task_design, str)
+            else task_design.get("description", f"{component_info['target_name']} description not provided")
+        )
         task_class = COMPONENT_TASK_MAPPING[hypothesis.component]["task_class"]
         task = task_class(
             name=task_name,

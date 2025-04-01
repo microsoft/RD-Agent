@@ -331,14 +331,12 @@ output_format:
     The output should follow JSON format. The schema is as follows:
     {
         "description": "A precise and comprehensive description of the overall data loader for the data science workflow",
-        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
     }
   feature: |-
     Design a specific and detailed feature engineering task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
     The output should follow JSON format. The schema is as follows:
     {
         "description": "A precise and comprehensive description of feature engineering task",
-        # Don't add ellipsis (...) or any filler text that might cause JSON parsing errors here!
     }
   model: |-
     Design a specific and detailed model task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
