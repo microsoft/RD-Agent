@@ -56,15 +56,15 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
         return exp
 
     # included steps
-    def direct_exp_gen(self, prev_out: dict[str, Any]):
+    def exp_gen(self, prev_out: dict[str, Any]):
         with logger.tag("r"):  # research
             hypo = self._propose()
             exp = self._exp_gen(hypo)
-        return {"propose": hypo, "exp_gen": exp}
+        return exp
 
     def coding(self, prev_out: dict[str, Any]):
         with logger.tag("d"):  # develop
-            exp = self.coder.develop(prev_out["direct_exp_gen"]["exp_gen"])
+            exp = self.coder.develop(prev_out["exp_gen"])
             logger.log_object(exp.sub_workspace_list, tag="coder result")
         return exp
 
@@ -84,7 +84,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
                 reason="",
                 decision=False,
             )
-            self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
+            self.trace.hist.append((prev_out["exp_gen"], feedback))
         else:
             feedback = self.summarizer.generate_feedback(prev_out["running"], self.trace)
             with logger.tag("ef"):  # evaluate and feedback
