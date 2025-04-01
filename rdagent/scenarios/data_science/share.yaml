@@ -64,7 +64,7 @@ describe: # some template to describe some object
 
 component_description:
   DataLoadSpec: |-
-    Loads and preprocesses competition data, ensuring proper data types, handling missing values, and providing an exploratory data analysis summary.
+    Loads raw competition data, ensuring proper data types, and providing an exploratory data analysis summary.
   FeatureEng: |-
     Transforms raw data into meaningful features while maintaining shape consistency, avoiding data leakage, and optimizing for model performance.
     It should be model-agnostic (data transformations/augmentations that apply only to specific model frameworks should not be included here).
@@ -89,21 +89,26 @@ component_spec:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
       - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
+      - Ensure you load the actual data from the files, not just the filenames or paths. Do not postpone data loading to later steps.
 
     2. Data Preprocessing:
       - Convert data types correctly (e.g., numeric, categorical, date parsing).
-      - Handle missing values appropriately.
       - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
+      - Domain-Specific Handling: 
+        - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
 
     3. Code Standards:
       - DO NOT use progress bars (e.g., `tqdm`).
       - DO NOT use the sample submission file to extract test index information.
       - DO NOT exclude features inadvertently during this process.
-    
+
     4. Exploratory Data Analysis (EDA) [Required]:
       - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
       - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
       - An evaluation agent will help to check whether the EDA part is added correctly.
+
+    5. NOTES
+      - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
 
   FeatureEng: |-
     1. Well handle the shape of the data
