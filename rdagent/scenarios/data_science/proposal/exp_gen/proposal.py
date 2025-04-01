@@ -389,7 +389,6 @@ class DSProposalV2ExpGen(DSExpGenCls):
 
         for index, (exp, fb) in enumerate(all_exp_feedback_list):
             trace_desc_df.loc[f"Trace {index + 1}"] = [
-                exp.hypothesis.problem,  # todo
                 exp.hypothesis.component,
                 exp.hypothesis.hypothesis,
                 exp.hypothesis.reason,
