@@ -21,10 +21,9 @@ exp_feedback:
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
-      "Observations": "Your overall observations here",
-      "Feedback for Hypothesis": "Observations related to the hypothesis",
-      "New Hypothesis": "Your new hypothesis here",
-      "Reasoning": "Reasoning for the new hypothesis",
+      "Observations": "A detailed summary of the experimental results, including the description and scores for both SOTA and the current experiment. Limit this field to no more than three sentences, focusing on concrete data rather than general statements.",
+      "Feedback for Hypothesis": "A brief evaluation of the original hypothesis that highlights specific data points or trends which support or contradict it. Limit this field to two sentences.",
+      "Reasoning": "A clear explanation of why the current result performs better or worse than SOTA. This should reference both the SOTA description score and the current experiment's description score, providing insight into the factors contributing to the observed differences. Limit this field to one to three sentences.",
       "Replace Best Result": "yes or no"
     }
 

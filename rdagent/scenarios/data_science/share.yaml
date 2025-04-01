@@ -56,6 +56,11 @@ describe: # some template to describe some object
     The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     ### Task of experiment
     {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+    {% if exp_and_feedback[0].result is none %}
+    Experiment score: Running buggy
+    {% else %}
+    Experiment score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    {% endif %}
     Experiment feedback decision: {{ exp_and_feedback[1].decision }}
     Reason: {{ exp_and_feedback[1].reason }}
     {% endfor %}
