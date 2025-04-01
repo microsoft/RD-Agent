@@ -23,11 +23,13 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
+        problem: str = "",
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
+        self.problem = problem
 
     def __str__(self) -> str:
         if self.hypothesis == "":
