@@ -80,6 +80,7 @@ class LiteLLMAPIBackend(APIBackend):
         if json_mode and supports_response_schema(model=LITELLM_SETTINGS.chat_model):
             kwargs["response_format"] = {"type": "json_object"}
 
+        logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
         response = completion(
             model=LITELLM_SETTINGS.chat_model,
@@ -93,7 +94,6 @@ class LiteLLMAPIBackend(APIBackend):
             f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
         )
 
-        logger.info(self._build_log_messages(messages), tag="llm_messages")
         if LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
             content = ""

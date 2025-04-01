@@ -25,11 +25,11 @@ class DSExpGen(ExpGen):
                 trace=trace,
             )
         if DS_RD_SETTING.proposal_version == "v1":
-            return DSProposalV1ExpGen().generate(
+            return DSProposalV1ExpGen().gen(
                 trace=trace,
                 max_trace_hist=self.max_trace_hist,
             )
         if DS_RD_SETTING.proposal_version == "v2":
-            return DSProposalV2ExpGen().generate(
+            return DSProposalV2ExpGen().gen(
                 trace=trace,
             )

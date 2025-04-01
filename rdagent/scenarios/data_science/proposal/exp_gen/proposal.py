@@ -9,13 +9,10 @@ from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.core.proposal import ExpGen
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.proposal.exp_gen.base import (
-    DSExpGenCls,
-    DSHypothesis,
-    DSTrace,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -54,8 +51,8 @@ COMPONENT_TASK_MAPPING = {
 }
 
 
-class DSProposalV1ExpGen(DSExpGenCls):
-    def generate(self, trace: DSTrace, max_trace_hist: int) -> DSExperiment:
+class DSProposalV1ExpGen(ExpGen):
+    def gen(self, trace: DSTrace, max_trace_hist: int) -> DSExperiment:
         # Guidelines:
         # System prompts: Shared condition you are facing
         # - scenario description: `scenario_desc`
@@ -235,7 +232,7 @@ class DSProposalV1ExpGen(DSExpGenCls):
             raise ValueError(f"Unknown component: {component}")
 
 
-class DSProposalV2ExpGen(DSExpGenCls):
+class DSProposalV2ExpGen(ExpGen):
     def identify_scenario_problem(
         self, component_desc: str, scenario_desc: str, competition_desc: str, sota_exp_desc: str
     ) -> List[Dict]:
@@ -371,7 +368,7 @@ class DSProposalV2ExpGen(DSExpGenCls):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def generate(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
