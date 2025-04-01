@@ -17,7 +17,7 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PROJ_PATH = DIRNAME.parent.parent
 
 
-def get_caller_dir(upshift: int = 0):
+def get_caller_dir(upshift: int = 0) -> Path:
     # Inspect the calling stack to get the caller's directory
     stack = inspect.stack()
     caller_frame = stack[1 + upshift]
@@ -29,7 +29,7 @@ def get_caller_dir(upshift: int = 0):
     return caller_dir
 
 
-def load_yaml_content(uri: str, caller_dir: Path | None = None) -> str:
+def load_yaml_content(uri: str, caller_dir: Path | None = None) -> Any:
     """
     Please refer to RDAT.__init__ file
     """
