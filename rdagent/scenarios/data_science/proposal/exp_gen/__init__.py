@@ -17,7 +17,7 @@ class DSExpGen(ExpGen):
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (,)) -> DSExperiment:
         next_missing_component = trace.next_incomplete_component()
         if next_missing_component is not None:
             return DSDraftExpGen().generate(

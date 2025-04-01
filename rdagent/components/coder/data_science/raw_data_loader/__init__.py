@@ -222,5 +222,5 @@ class DataLoaderCoSTEER(CoSTEER):
         stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
-        self.scen.eda_output = eda_output
+        new_exp.experiment_workspace.inject_files(**{"EDA.md": eda_output})
         return new_exp

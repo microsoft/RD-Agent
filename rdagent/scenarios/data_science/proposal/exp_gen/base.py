@@ -39,14 +39,12 @@ Concise Knowledge: {self.concise_knowledge}
 
 
 class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
-    def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
-        self.scen: DataScienceScen = scen
-        self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
-        self.knowledge_base = knowledge_base
+    hist: list[tuple[DSExperiment, ExperimentFeedback]]
 
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
 
-    def next_incomplete_component(self) -> COMPONENT | None:
+    # TODO: change the logic based on current selection
+    def next_incomplete_component(self, selection: tuple[int, ...] = ()) -> COMPONENT | None:
         """
         NOTE:
         - A component will be complete until get True decision feedback !!!

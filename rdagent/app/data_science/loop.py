@@ -17,7 +17,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
-from rdagent.core.proposal import ExperimentFeedback
+from rdagent.core.proposal import ExperimentFeedback, LatestCKPSelector
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -47,6 +47,7 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
+        self.ckp_selector = LatestCKPSelector()
         self.exp_gen = DSExpGen(scen)
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
@@ -64,7 +65,8 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        exp = self.exp_gen.gen(self.trace)
+        selection  = self.ckp_selector.select(self.trace)
+        exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
