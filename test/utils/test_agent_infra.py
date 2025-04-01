@@ -24,6 +24,12 @@ class TestAgentInfra(unittest.TestCase):
 
         print(code)
 
+    def test_include(self):
+        parent = T("components.coder.data_science.raw_data_loader.prompts:spec.user.data_loader").r(latest_spec=None)
+        child = T("scenarios.data_science.share:component_spec.DataLoadSpec").r()
+        assert child in parent
+        print(parent)
+
 
 if __name__ == "__main__":
     unittest.main()
