@@ -605,6 +605,8 @@ class DockerEnv(Env[DockerConf]):
         if local_path is not None:
             local_path = os.path.abspath(local_path)
             volumes[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
+            if enable_cache:
+                volumes["/tmp/cache"] = {"bind": "/tmp/cache", "mode": "rw"}
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
