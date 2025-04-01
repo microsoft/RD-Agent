@@ -89,6 +89,8 @@ class RDAT:
         """
         Render the template with the given context.
         """
+        # loader=FunctionLoader(load_yaml_content) is for supporting grammar like below.
+        # `{% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}`
         rendered = Environment(undefined=StrictUndefined, loader=FunctionLoader(load_yaml_content)).from_string(self.template).render(**context).strip("\n")
         while "\n\n\n" in rendered:
             rendered = rendered.replace("\n\n\n", "\n\n")
