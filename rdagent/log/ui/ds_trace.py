@@ -120,9 +120,8 @@ def load_data(log_path: Path):
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
 
-def load_stdout():
-    # FIXME: TODO: 使用配置项来指定stdout文件名
-    stdout_path = state.log_folder / f"{state.log_path}.stdout"
+@st.cache_data
+def load_stdout(stdout_path: Path):
     if stdout_path.exists():
         stdout = stdout_path.read_text()
     else:
@@ -509,7 +508,7 @@ def summarize_data():
 
 
 def stdout_win(loop_id: int):
-    stdout = load_stdout()
+    stdout = load_stdout(state.log_folder / f"{state.log_path}.stdout")
     if stdout.startswith("Please Set"):
         st.toast(stdout, icon="🟡")
         return
