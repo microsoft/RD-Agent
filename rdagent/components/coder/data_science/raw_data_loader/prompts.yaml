@@ -109,10 +109,11 @@ spec:
       2. Precautions for Feature Engineering:
         - Well handle the shape of the data:
           - The sample size of the train data and the test data should be the same in all scenarios.
-          - To most of the scenario, the input shape and the output shape should be exactly the same.
-          - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
+          - To some tabular or time-series data, you may add or remove some columns so your inferred column number may be unsure.
+          - For scenarios where each dimension does not have a special meaning (like image, audio, and so on), the input shape and the output shape should be exactly the same in most cases unless there is a compelling reason to change them.
         - Integration with the Model Pipeline:
           - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+            - Model-related operations should not be implemented in this step. (e.g., it uses tools combined with models like torch.Dataset with rich data transformation/augmentation)
           - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
         - General Considerations:
           - Ensure scalability for large datasets.
@@ -174,6 +175,7 @@ spec:
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
         - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+        - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
 
       {% if latest_spec %}
       5. Former Specification:
