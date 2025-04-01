@@ -300,7 +300,7 @@ class DSProposalV2ExpGen(DSExpGenCls):
         )
         return json.loads(response)
 
-    def hypothesis_rank(self, hypothesis_dict: dict) -> DSHypothesis:
+    def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict) -> DSHypothesis:
         # FIXME: Consider not pick ensemble when model count is 1
         # TODO use rule base or llm to rank the hypothesis
 
@@ -311,11 +311,13 @@ class DSProposalV2ExpGen(DSExpGenCls):
             .sum()
             .idxmax(axis=0)
         )
+        problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
             component=hypothesis_dict[max_score_problem_name]["component"],
             hypothesis=hypothesis_dict[max_score_problem_name]["hypothesis"],
             reason=hypothesis_dict[max_score_problem_name]["reason"],
+            problem=problem,
         )
 
     def task_gen(
@@ -389,6 +391,7 @@ class DSProposalV2ExpGen(DSExpGenCls):
 
         for index, (exp, fb) in enumerate(all_exp_feedback_list):
             trace_desc_df.loc[f"Trace {index + 1}"] = [
+                exp.hypothesis.problem,
                 exp.hypothesis.component,
                 exp.hypothesis.hypothesis,
                 exp.hypothesis.reason,
@@ -424,6 +427,7 @@ class DSProposalV2ExpGen(DSExpGenCls):
         # do not call llm (based on scores)
         new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
+            problem_dict=all_problems,
         )
 
         return self.task_gen(
