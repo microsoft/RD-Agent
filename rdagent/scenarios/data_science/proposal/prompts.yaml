@@ -85,7 +85,7 @@ task_gen:
     {% endif %}
 
     {% if hypothesis is none %}
-    Since we are at the very beginning stage, we plan to start from a very simple task. To each component, please only generate the task to implement the most simple and basic function of the component. For example, the feature engineering should only implement the function which output the raw data without any transformation. The model component only uses the most basic and easy to implement model without any tuning. The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
+    Since we are at the very beginning stage, we plan to start from a very simple task. To each component, please only generate the task to implement the most simple and basic function of the component. For example, the feature engineering should only implement the function which output the raw data without any transformation. The model component only uses the most basic and easy to implement model without any tuning (but the model type should suit the task). The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
     {% else %}
     The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
     1. The target hypothesis you are targeting to generate {{ targets }} for.
@@ -358,5 +358,5 @@ output_format:
     Design a specific and detailed workflow task based on the given hypothesis. The output should be detailed enough to directly implement the corresponding code.
     The output should follow JSON format. The schema is as follows:
     {
-        "description": "A precise and comprehensive description of the workflow",
+        "description": "A precise and comprehensive description of the main workflow script (`main.py`)",
     }
