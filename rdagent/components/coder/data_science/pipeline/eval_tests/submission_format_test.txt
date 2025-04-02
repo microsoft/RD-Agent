@@ -74,4 +74,4 @@ print_first_rows(SAMPLE_SUBMISSION_PATH, sample_submission_name)
 print_first_rows('submission.csv', 'submission.csv')
 
 assert calculate_md5("scores.csv") == file_md5, "scores.csv should not be rewritten"
-print(f"\nPlease Checked the content of the submission file(submission.csv should align with {sample_submission_name}). ")
+print(f"\nPlease Checked the content of the submission file(submission.csv should has the same format with {sample_submission_name} but might not the same index with {sample_submission_name}). ")
