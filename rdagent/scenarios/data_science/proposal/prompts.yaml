@@ -168,6 +168,384 @@ direct_exp_gen:
     It will be used in the following scenario:
     {{ scenario }}
 
+    To assist you generate better ideas, the code below is a solution which get good grades(which scored 0.21 at test dataset) for reference:
+    ```python
+    import os
+    import pandas as pd
+    import numpy as np
+    import torch
+    from torch.utils.data import Dataset, DataLoader
+    from transformers import (
+        BertTokenizer,
+        BertForSequenceClassification,
+        RobertaTokenizer,
+        RobertaForSequenceClassification,
+        XLNetTokenizer,
+        XLNetForSequenceClassification,
+        ElectraTokenizer,
+        ElectraForSequenceClassification,
+        DebertaV2Tokenizer,
+        DebertaV2ForSequenceClassification,
+        AdamW,
+        get_cosine_schedule_with_warmup,
+    )
+    import torch.nn.functional as F
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.metrics import log_loss
+    import torch.nn as nn
+    from tqdm import tqdm
+    from sklearn.model_selection import train_test_split  # Importing train_test_split
+
+    # Set device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load data
+    train_df = pd.read_csv("./input/train.csv")
+    test_df = pd.read_csv("./input/test.csv")
+
+    # Encode labels
+    le = LabelEncoder()
+    train_df["author_encoded"] = le.fit_transform(train_df["author"])
+
+    # Split data
+    train_texts, val_texts, train_labels, val_labels = train_test_split(
+        train_df["text"],
+        train_df["author_encoded"],
+        test_size=0.1,
+        random_state=42,
+        stratify=train_df["author_encoded"],
+    )
+
+    # Parameters
+    batch_size = 8  # Default batch size
+    epochs = 3
+    max_length = 160
+    num_warmup_steps = 100
+
+
+    # Define Focal Loss with gamma=1.0
+    class FocalLoss(nn.Module):
+        def __init__(self, gamma=1.0, reduction="mean"):
+            super(FocalLoss, self).__init__()
+            self.gamma = gamma
+            self.reduction = reduction
+
+        def forward(self, logits, target):
+            ce_loss = nn.CrossEntropyLoss(reduction="none")(logits, target)
+            pt = torch.exp(-ce_loss)
+            focal_loss = ((1 - pt) ** self.gamma) * ce_loss
+            if self.reduction == "mean":
+                return torch.mean(focal_loss)
+            else:
+                return torch.sum(focal_loss)
+
+
+    criterion = FocalLoss(gamma=1.0)
+
+    # Ensure submission directory exists
+    os.makedirs("./submission", exist_ok=True)
+
+    # Prepare submission dataframe
+    submission = pd.DataFrame()
+    submission["id"] = test_df["id"]
+
+    # Lists to collect individual model predictions and validation losses
+    individual_val_preds = []
+    individual_test_preds = []
+    val_log_losses = []
+
+    # Set val_targets once before the loop
+    val_targets = val_labels.values
+
+    # List of models to ensemble
+    model_infos = [
+        {
+            "name": "bert-base-uncased",
+            "tokenizer_class": BertTokenizer,
+            "model_class": BertForSequenceClassification,
+            "config": {
+                "hidden_dropout_prob": 0.0,
+                "attention_probs_dropout_prob": 0.0,
+            },
+            "batch_size": batch_size,
+        },
+        {
+            "name": "roberta-base",
+            "tokenizer_class": RobertaTokenizer,
+            "model_class": RobertaForSequenceClassification,
+            "config": {
+                "hidden_dropout_prob": 0.0,
+                "attention_probs_dropout_prob": 0.0,
+            },
+            "batch_size": batch_size,
+        },
+        {
+            "name": "xlnet-base-cased",
+            "tokenizer_class": XLNetTokenizer,
+            "model_class": XLNetForSequenceClassification,
+            "config": {
+                "summary_last_dropout": 0.0,
+            },
+            "batch_size": batch_size,
+        },
+        {
+            "name": "google/electra-base-discriminator",
+            "tokenizer_class": ElectraTokenizer,
+            "model_class": ElectraForSequenceClassification,
+            "config": {
+                "hidden_dropout_prob": 0.0,
+                "attention_probs_dropout_prob": 0.0,
+            },
+            "batch_size": batch_size,
+        },
+        {
+            "name": "microsoft/deberta-v3-base",
+            "tokenizer_class": DebertaV2Tokenizer,
+            "model_class": DebertaV2ForSequenceClassification,
+            "config": {
+                "hidden_dropout_prob": 0.0,
+                "attention_probs_dropout_prob": 0.0,
+            },
+            "batch_size": batch_size,
+        },
+        {
+            "name": "microsoft/deberta-v3-large",
+            "tokenizer_class": DebertaV2Tokenizer,
+            "model_class": DebertaV2ForSequenceClassification,
+            "config": {
+                "hidden_dropout_prob": 0.0,
+                "attention_probs_dropout_prob": 0.0,
+            },
+            "batch_size": 4,  # Reduce batch size for large model
+        },
+    ]
+
+    for idx, model_info in enumerate(model_infos):
+        print(f"Training model {idx+1}/{len(model_infos)}: {model_info['name']}")
+        # Initialize tokenizer
+        tokenizer = model_info["tokenizer_class"].from_pretrained(model_info["name"])
+
+        # Tokenize texts
+        def encode_texts(texts):
+            return tokenizer.batch_encode_plus(
+                texts.tolist(),
+                max_length=max_length,
+                padding="max_length",
+                truncation=True,
+                return_attention_mask=True,
+                return_tensors="pt",
+            )
+
+        train_encodings = encode_texts(train_texts)
+        val_encodings = encode_texts(val_texts)
+        test_encodings = encode_texts(test_df["text"])
+
+        # Create custom dataset
+        class TextDataset(Dataset):
+            def __init__(self, encodings, labels=None):
+                self.encodings = encodings
+                if labels is not None:
+                    self.labels = labels.tolist()
+                else:
+                    self.labels = None
+
+            def __getitem__(self, idx):
+                item = {key: val[idx] for key, val in self.encodings.items()}
+                if self.labels is not None:
+                    item["labels"] = torch.tensor(self.labels[idx], dtype=torch.long)
+                return item
+
+            def __len__(self):
+                return len(self.encodings.input_ids)
+
+        train_dataset = TextDataset(train_encodings, train_labels)
+        val_dataset = TextDataset(val_encodings, val_labels)
+        test_dataset = TextDataset(test_encodings)
+
+        # Data loaders with model-specific batch size
+        current_batch_size = model_info.get("batch_size", batch_size)
+        train_loader = DataLoader(
+            train_dataset, batch_size=current_batch_size, shuffle=True
+        )
+        val_loader = DataLoader(val_dataset, batch_size=current_batch_size)
+        test_loader = DataLoader(test_dataset, batch_size=current_batch_size)
+
+        # Initialize model
+        if model_info["name"] == "xlnet-base-cased":
+            config = (
+                model_info["model_class"]
+                .from_pretrained(
+                    model_info["name"],
+                    num_labels=3,
+                    summary_last_dropout=0.0,
+                )
+                .config
+            )
+        elif model_info["name"] in [
+            "google/electra-base-discriminator",
+            "microsoft/deberta-v3-base",
+            "microsoft/deberta-v3-large",
+        ]:
+            config = (
+                model_info["model_class"]
+                .from_pretrained(
+                    model_info["name"],
+                    num_labels=3,
+                    hidden_dropout_prob=0.0,
+                    attention_probs_dropout_prob=0.0,
+                )
+                .config
+            )
+        else:
+            config = (
+                model_info["model_class"]
+                .from_pretrained(
+                    model_info["name"],
+                    num_labels=3,
+                    **model_info["config"],
+                )
+                .config
+            )
+
+        model = model_info["model_class"].from_pretrained(
+            model_info["name"],
+            config=config,
+        )
+        model.to(device)
+
+        # Optimizer and scheduler
+        total_steps = len(train_loader) * epochs
+        optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
+        )
+
+        # Training loop
+        for epoch in range(epochs):
+            model.train()
+            total_loss = 0
+            for batch in tqdm(train_loader, desc=f"Epoch {epoch +1}"):
+                optimizer.zero_grad()
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                if (
+                    "token_type_ids" in batch
+                    and "token_type_ids" in model.forward.__code__.co_varnames
+                ):
+                    token_type_ids = batch["token_type_ids"].to(device)
+                else:
+                    token_type_ids = None
+                labels = batch["labels"].to(device)
+                outputs = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    token_type_ids=token_type_ids,
+                    return_dict=True,
+                )
+                logits = outputs.logits
+                loss = criterion(logits, labels)
+                total_loss += loss.item()
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+            avg_train_loss = total_loss / len(train_loader)
+            print(f"Epoch {epoch +1}, Training loss: {avg_train_loss}")
+
+        # Evaluation
+        model.eval()
+        val_preds = []
+        with torch.no_grad():
+            for batch in tqdm(val_loader, desc="Evaluating"):
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                if (
+                    "token_type_ids" in batch
+                    and "token_type_ids" in model.forward.__code__.co_varnames
+                ):
+                    token_type_ids = batch["token_type_ids"].to(device)
+                else:
+                    token_type_ids = None
+                outputs = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    token_type_ids=token_type_ids,
+                    return_dict=True,
+                )
+                logits = outputs.logits
+                probs = F.softmax(logits, dim=-1)
+                val_preds.extend(probs.cpu().numpy())
+        val_preds = np.array(val_preds)
+        individual_val_preds.append(val_preds)
+
+        # Calculate validation log loss for this model
+        val_log_loss_i = log_loss(val_targets, val_preds)
+        val_log_losses.append(val_log_loss_i)
+        print(f"Model {idx+1} Validation Log Loss: {val_log_loss_i}")
+
+        # Predictions on test set
+        model.eval()
+        test_preds = []
+        with torch.no_grad():
+            for batch in tqdm(test_loader, desc="Predicting"):
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                if (
+                    "token_type_ids" in batch
+                    and "token_type_ids" in model.forward.__code__.co_varnames
+                ):
+                    token_type_ids = batch["token_type_ids"].to(device)
+                else:
+                    token_type_ids = None
+                outputs = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    token_type_ids=token_type_ids,
+                    return_dict=True,
+                )
+                logits = outputs.logits
+                probs = F.softmax(logits, dim=-1)
+                test_preds.extend(probs.cpu().numpy())
+        test_preds = np.array(test_preds)
+        individual_test_preds.append(test_preds)
+
+        # Clean up
+        del model
+        torch.cuda.empty_cache()
+
+    # Compute weights inversely proportional to validation log losses
+    inv_val_log_losses = [1 / loss for loss in val_log_losses]
+    weights = inv_val_log_losses / np.sum(inv_val_log_losses)
+    print(f"Weights: {weights}")
+
+    # Weighted ensemble of validation predictions
+    ensemble_val_preds = np.zeros_like(individual_val_preds[0])
+    for weight, val_pred in zip(weights, individual_val_preds):
+        ensemble_val_preds += weight * val_pred
+
+    # Calculate overall validation log loss
+    overall_val_log_loss = log_loss(val_targets, ensemble_val_preds)
+    print(f"Overall Validation Log Loss: {overall_val_log_loss}")
+
+    # Weighted ensemble of test predictions
+    ensemble_test_preds = np.zeros_like(individual_test_preds[0])
+    for weight, test_pred in zip(weights, individual_test_preds):
+        ensemble_test_preds += weight * test_pred
+
+    # Prepare submission
+    submission_probs = ensemble_test_preds / np.sum(
+        ensemble_test_preds, axis=1, keepdims=True
+    )
+    submission[le.inverse_transform([0, 1, 2])] = submission_probs
+    submission = submission[["id", "EAP", "HPL", "MWS"]]
+
+    # Save submission file
+    submission.to_csv("./submission/submission.csv", index=False)
+
+    # Print the validation metric at the end
+    print(f"Overall Validation Log Loss: {overall_val_log_loss}")
+    ```
+    You can imitate this solution and then try to improve your performance.
+
     # Step1: Hypothesis Proposal
     The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you later.
 
