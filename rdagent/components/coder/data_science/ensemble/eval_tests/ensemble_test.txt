@@ -35,7 +35,7 @@ def print_preds_info(model_name, data_type, preds):
             print(f"Unknown prediction type: {type(preds)}")
 
 def get_length(data):
-    return len(data) if isinstance(data, list) else data.shape[0]
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
