@@ -8,6 +8,9 @@ scenario_description: |-
   ------The expected output & submission format specifications------
   {{ submission_specifications }}
 
+  ------The name of the evaluation metric used------
+  {{ metric_name }}
+
   {% if evaluation is not none %}
   ------Evaluation------
   {{ evaluation }}
