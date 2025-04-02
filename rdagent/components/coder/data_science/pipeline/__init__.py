@@ -93,6 +93,8 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
+            runtime_environment=runtime_environment,
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,

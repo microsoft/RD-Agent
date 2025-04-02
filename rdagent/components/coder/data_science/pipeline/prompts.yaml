@@ -6,6 +6,12 @@ pipeline_coder:
     ## Task Description
     {{ task_desc }}
 
+    ## The runtime environment your code will running on
+    {{ runtime_environment }}
+
+    ## Specification your code should follow
+    {{ spec }}
+
     {% if queried_similar_successful_knowledge|length != 0 or queried_former_failed_knowledge|length != 0 %}
     ## Relevant Information for This Task
     {% endif %}
