@@ -262,6 +262,7 @@ component_spec:
     4. NOTES
       - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
       - For neural network models, use pytorch rather than tensorflow as the backend if possible.
+      - For decision tree models, use xgboost or RandomForest rather than lightgbm as the backend if possible.
 
     5. General Considerations:
       - Ensure scalability for large datasets.
