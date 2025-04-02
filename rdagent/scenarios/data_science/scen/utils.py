@@ -374,7 +374,7 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
 
     # if the result is very long we generate a simpler version
     if len(result) > 6_000 and not simple:
-        return generate(base_path, include_file_details=include_file_details, simple=True)
+        return describe_data_folder_v2(base_path, include_file_details=include_file_details, simple=True)
     # if still too long, we truncate
     if len(result) > 6_000 and simple:
         return result[:6_000] + "\n... (truncated)"
