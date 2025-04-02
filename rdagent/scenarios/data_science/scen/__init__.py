@@ -1,10 +1,6 @@
 import json
-import os
 from pathlib import Path
 from typing import Dict
-
-import pandas as pd
-from PIL import Image, TiffTags
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.conf import get_ds_env
@@ -12,216 +8,15 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.scen.utils import (
+    describe_data_folder,
+    describe_data_folder_v2,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     leaderboard_scores,
 )
 from rdagent.utils.agent.tpl import T
-
-
-def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
-    """
-    Reads the first few rows of a CSV file and formats them with indentation and optional truncation.
-
-    Parameters:
-        file_path (str): Path to the CSV file.
-        indent (int): Number of spaces to prepend to each line for indentation.
-        lines (int): Number of rows to read from the CSV file.
-        max_col_width (int): Maximum width of each column's content.
-
-    Returns:
-        str: A formatted string of the first few rows of the CSV file.
-    """
-    try:
-        # Read the CSV file with specified rows
-        df = pd.read_csv(file_path, nrows=lines)
-
-        if df.empty:
-            return " " * indent + "(No data in the file)"
-
-        # Truncate column contents to a maximum width
-        truncated_df = df.copy()
-        for col in truncated_df.columns:
-            truncated_df[col] = (
-                truncated_df[col]
-                .astype(str)
-                .apply(lambda x: (x[:max_col_width] + "...") if len(x) > max_col_width else x)
-            )
-
-        # Convert DataFrame to a string representation
-        df_string_lines = truncated_df.to_string(index=False).split("\n")
-
-        # Add indentation to each line
-        indented_lines = [" " * indent + line for line in df_string_lines]
-
-        return "\n".join(indented_lines)
-    except FileNotFoundError:
-        return f"Error: File not found at path '{file_path}'."
-    except pd.errors.EmptyDataError:
-        return f"Error: The file at '{file_path}' is empty."
-    except Exception as e:
-        return f"Error reading CSV: {e}"
-
-
-def get_dir_snapshot(folder_path):
-    """
-    [note]
-        - Returns a set of file extensions within the subfolder (excluding subfolder names)
-        - Compares only the types of files contained, not specific file names or quantities
-    """
-    exts = set()
-    try:
-        with os.scandir(folder_path) as it:
-            for entry in it:
-                if entry.is_file():
-                    file_ext = os.path.splitext(entry.name)[1]
-                    exts.add(file_ext)
-    except Exception as e:
-        logger.error(f"Error scanning directory: {e}")
-
-    return frozenset(exts)
-
-
-def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subfolders=2, is_top_level=True):
-    """
-    folder_path              : Current directory path
-    indent                   : Current indentation
-    max_files                : Maximum number of files of the same type to display
-    partial_expand_subfolders: When all subfolders have the same internal file types, only expand this many subfolders, the rest are omitted
-    is_top_level             : Indicates if the current folder is the top-level folder
-    """
-    result = []
-    files_count = {}
-    files_details = {}
-
-    for root, dirs, files in os.walk(folder_path):
-        dirs.sort()
-        files.sort()
-        if not dirs:
-            for file in files:
-                file_path = os.path.join(root, file)
-                file_type = os.path.splitext(file)[1][1:]
-                file_size = os.path.getsize(file_path)
-
-                if file_type not in files_count:
-                    files_count[file_type] = 0
-                    files_details[file_type] = []
-                files_count[file_type] += 1
-
-                # At top level, collect all CSV and Markdown files without restrictions
-                # In deeper levels, follow the max_files restriction
-                if is_top_level and file_type in ["csv", "md"]:
-                    files_details[file_type].append((file, file_size, file_path))
-                elif len(files_details[file_type]) < max_files:
-                    files_details[file_type].append((file, file_size, file_path))
-            break
-
-        # Collect "type snapshots" of subfolders
-        snapshots = []
-        for d in dirs:
-            subfolder_path = os.path.join(root, d)
-            snapshot = get_dir_snapshot(subfolder_path)
-            snapshots.append(snapshot)
-
-        # Determine if all subfolders have the same file type distribution
-        first_snapshot = snapshots[0]
-        all_same_structure = all(s == first_snapshot for s in snapshots)
-
-        if all_same_structure:
-            for i, d in enumerate(dirs):
-                if i < partial_expand_subfolders:
-                    result.append(" " * indent + f"- Folder: {d}")
-                    subfolder_path = os.path.join(root, d)
-                    result.append(
-                        describe_data_folder(
-                            folder_path=subfolder_path,
-                            indent=indent + 2,
-                            max_files=max_files,
-                            partial_expand_subfolders=partial_expand_subfolders,
-                            is_top_level=False,
-                        )
-                    )
-                else:
-                    remaining = len(dirs) - i
-                    result.append(" " * indent + f"... ({remaining} more subfolders)")
-                    break
-        else:
-            for d in dirs:
-                result.append(" " * indent + f"- Folder: {d}")
-                subfolder_path = os.path.join(root, d)
-                result.append(
-                    describe_data_folder(
-                        folder_path=subfolder_path,
-                        indent=indent + 2,
-                        max_files=max_files,
-                        partial_expand_subfolders=partial_expand_subfolders,
-                        is_top_level=False,
-                    )
-                )
-
-        for file in files:
-            file_path = os.path.join(root, file)
-            file_type = os.path.splitext(file)[1][1:]
-            file_size = os.path.getsize(file_path)
-
-            if file_type not in files_count:
-                files_count[file_type] = 0
-                files_details[file_type] = []
-            files_count[file_type] += 1
-
-            # At top level, collect all CSV and Markdown files without restrictions
-            # In deeper levels, follow the max_files restriction
-            if is_top_level and file_type in ["csv", "md"]:
-                files_details[file_type].append((file, file_size, file_path))
-            elif not is_top_level and len(files_details[file_type]) <= max_files:
-                files_details[file_type].append((file, file_size, file_path))
-
-        break
-
-    # Print the folder and its contents
-    for file_type, count in files_count.items():
-        if count > max_files and file_type not in ["csv", "md", "txt"]:
-            result.append(" " * indent + f"{count} {file_type}s:")
-            for file, size, path in files_details[file_type]:
-                result.append(" " * (indent + 2) + f"- {file} ({size} bytes)")
-            result.append(" " * (indent + 2) + "... (file limit reached)")
-        else:
-            for file, size, path in files_details[file_type]:
-                if file_type == "csv":
-                    df = pd.read_csv(path)
-                    result.append(
-                        " " * indent + f"- {file} ({size} bytes, with {df.shape[0]} rows and {df.shape[1]} columns)"
-                    )
-                    result.append(" " * (indent + 2) + f"- Head of {file}:")
-                    csv_head = read_csv_head(path, indent + 4)
-                    result.append(csv_head)
-                    continue
-                result.append(" " * indent + f"- {file} ({size} bytes)")
-                if file_type == "md":
-                    result.append(" " * (indent + 2) + f"- Content of {file}:")
-                    if file == "description.md":
-                        result.append(" " * (indent + 4) + f"Please refer to the background of the scenario context.")
-                        continue
-                    with open(path, "r", encoding="utf-8") as f:
-                        result.append(" " * (indent + 4) + f.read())
-                if file_type == "tif":
-                    result.append(" " * (indent + 2) + f"- Metadata of {file}:")
-                    with Image.open(path) as img:
-                        for tag, value in img.tag_v2.items():
-                            tag_name = TiffTags.TAGS_V2.get(tag, f"Unknown Tag {tag}")
-                            result.append(" " * (indent + 4) + f"{tag_name}: {value}")
-                if file_type in ["json", "txt"]:
-                    result.append(" " * (indent + 2) + f"- Content of {file}:")
-                    with open(path, "r", encoding="utf-8") as f:
-                        for i, line in enumerate(f):
-                            if i < 2:
-                                result.append(
-                                    " " * (indent + 4) + line.strip()[:100] + ("..." if len(line.strip()) > 100 else "")
-                                )
-                            else:
-                                break
-
-    return "\n".join(result) + "\n"
 
 
 class DataScienceScen(Scenario):
@@ -333,7 +128,7 @@ class DataScienceScen(Scenario):
         return stdout
 
     def _get_data_folder_description(self) -> str:
-        return describe_data_folder(Path(DS_RD_SETTING.local_data_path) / self.competition)
+        return describe_data_folder_v2(Path(DS_RD_SETTING.local_data_path) / self.competition)
 
 
 class KaggleScen(DataScienceScen):
@@ -364,3 +159,5 @@ class KaggleScen(DataScienceScen):
 
 if __name__ == "__main__":
     print(describe_data_folder(Path("/data/userdata/share/mle_kaggle") / "stanford-covid-vaccine"))
+
+    print(describe_data_folder_v2(Path("/data/userdata/share/mle_kaggle") / "stanford-covid-vaccine"))
