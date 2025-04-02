@@ -112,7 +112,7 @@ class DataScienceRDLoop(RDLoop):
         - If we come to feedback phase, the previous development steps are successful.
         """
         exp: DSExperiment = prev_out["running"]
-        if self.trace.next_incomplete_component() is None and DS_RD_SETTING.coder_on_whole_pipeline:
+        if self.trace.next_incomplete_component() is None or DS_RD_SETTING.coder_on_whole_pipeline:
             # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
             # So we need feedback for the proposal.
             feedback = self.summarizer.generate_feedback(exp, self.trace)
