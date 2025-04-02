@@ -109,9 +109,11 @@ assert isinstance(final_pred, pred_type), (
 
 # Check shape
 if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor)):
-    assert len(final_pred) == len(test_X), (
-        f"Wrong output sample size: len(final_pred)={len(final_pred)} "
-        f"vs. len(test_X)={len(test_X)}"
+    final_pred_len = final_pred.shape[0] if hasattr(final_pred, 'shape') else len(final_pred)
+    test_X_len = test_X.shape[0] if hasattr(test_X, 'shape') else len(test_X)
+    assert final_pred_len == test_X_len, (
+        f"Wrong output sample size: len(final_pred)={final_pred_len} "
+        f"vs. len(test_X)={test_X_len}"
     )
 
 # check scores.csv
