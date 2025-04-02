@@ -101,7 +101,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
             env=mde, entry="python test/mle_submission_format_test.py"
         )
-        stdout += f"\nMLEBench submission check:\n{submission_check_out}"
+        stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
