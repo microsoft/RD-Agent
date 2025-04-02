@@ -33,11 +33,11 @@ X, y, X_test, test_ids = debug_info_print(load_data)()
 
 
 def get_length(data):
-    return len(data) if isinstance(data, list) else data.shape[0]
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 
 def get_width(data):
-    return 1 if isinstance(data, list) else data.shape[1:]
+    return data.shape[1:] if hasattr(data, 'shape') else 1
 
 
 def get_column_list(data):

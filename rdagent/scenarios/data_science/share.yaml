@@ -101,6 +101,7 @@ component_spec:
       - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
       - Domain-Specific Handling: 
         - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
+        - Instead of returning binary bytes directly, convert/decode them into more useful formats like numpy.ndarrays.
 
     3. Code Standards:
       - DO NOT use progress bars (e.g., `tqdm`).

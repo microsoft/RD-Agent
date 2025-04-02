@@ -2,28 +2,33 @@
 Tests for `feat_eng` in feature.py
 """
 
-import pickle
-from copy import deepcopy
 
+from copy import deepcopy
+import sys
 import numpy as np
 import pandas as pd
 from feature import feat_eng
 from load_data import load_data
+import reprlib
+aRepr = reprlib.Repr()
+aRepr.maxother=300
 
 X, y, X_test, test_ids = load_data()
-print(f"X.shape: {X.shape}")
-print(f"y.shape: {y.shape}" if not isinstance(y, list) else f"y(list)'s length: {len(y)}")
-print(f"X_test.shape: {X_test.shape}")
+print("X:", aRepr.repr(X))
+print("y:", aRepr.repr(y))
+print("X_test:", aRepr.repr(X_test))
+print("test_ids", aRepr.repr(test_ids))
+
+print(f"X.shape: {X.shape}" if hasattr(X, 'shape') else f"X length: {len(X)}")
+print(f"y.shape: {y.shape}" if hasattr(y, 'shape') else f"y length: {len(y)}")
+print(f"X_test.shape: {X_test.shape}" if hasattr(X_test, 'shape') else f"X_test length: {len(X_test)}")
 print(f"test_ids length: {len(test_ids)}")
+
 X_loaded = deepcopy(X)
 y_loaded = deepcopy(y)
 X_test_loaded = deepcopy(X_test)
 
-import sys
-import reprlib
 def debug_info_print(func):
-    aRepr = reprlib.Repr()
-    aRepr.maxother=300
     def wrapper(*args, **kwargs):
         def local_trace(frame, event, arg):
             if event == "return" and frame.f_code == func.__code__:
@@ -44,7 +49,7 @@ X, y, X_test = debug_info_print(feat_eng)(X, y, X_test)
 
 
 def get_length(data):
-    return len(data) if isinstance(data, list) else data.shape[0]
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 
 def get_width(data):
