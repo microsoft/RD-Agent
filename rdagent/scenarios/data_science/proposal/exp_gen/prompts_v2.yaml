@@ -171,7 +171,9 @@ specification:
 
 output_format:
   problem: |-
-    For each of the identified problem, you should strictly adhere to the following JSON schema. Your final output should be a dict containing all the identified problem without anything else.
+    For each of the identified problem, you should strictly adhere to the following JSON schema. 
+    Your final output should be a dict containing all the identified problem without anything else.
+    Please respond at most five problems considering the most valuable and recently not explored.
     {
       "problem name 1": {
         "problem": "Description of the first issue",
