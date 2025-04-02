@@ -21,6 +21,7 @@ X_test_loaded = deepcopy(X_test)
 
 import sys
 import reprlib
+from joblib.memory import MemorizedFunc
 
 
 def get_original_code(func):
