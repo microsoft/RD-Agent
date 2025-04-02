@@ -233,7 +233,12 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> List[Dict]:
+    def identify_scenario_problem(
+        self, 
+        scenario_desc: str,
+        competition_desc: str,
+        sota_exp_desc: str
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
@@ -306,7 +311,6 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict) -> DSHypothesis:
-        # FIXME: Consider not pick ensemble when model count is 1
         # TODO use rule base or llm to rank the hypothesis
 
         max_score_problem_name = (
@@ -409,7 +413,6 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 1: Identify problems
-        # todo: do not identify components
         scen_problems = self.identify_scenario_problem(
             scenario_desc=scenario_desc,
             competition_desc=competition_desc,
@@ -448,7 +451,6 @@ class DSProposalV2ExpGen(ExpGen):
                 hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        # do not call llm (based on scores)
         new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
