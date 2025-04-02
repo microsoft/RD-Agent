@@ -11,6 +11,9 @@ scenario_description: |-
   ------The name of the evaluation metric used------
   {{ metric_name }}
 
+  ------The time limit to your code------
+  You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.
+
   {% if evaluation is not none %}
   ------Evaluation------
   {{ evaluation }}
