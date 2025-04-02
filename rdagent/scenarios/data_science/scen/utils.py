@@ -1,9 +1,13 @@
 import os
+
 import pandas as pd
 from PIL import Image, TiffTags
+
 from rdagent.log import rdagent_logger as logger
 
 """ data folder description version 1 """
+
+
 def read_csv_head(file_path, indent=0, lines=5, max_col_width=100):
     """
     Reads the first few rows of a CSV file and formats them with indentation and optional truncation.
@@ -208,6 +212,7 @@ def describe_data_folder(folder_path, indent=0, max_files=2, partial_expand_subf
 
     return "\n".join(result) + "\n"
 
+
 """ data folder description version 2 """
 import json
 from pathlib import Path
@@ -300,13 +305,9 @@ def preview_csv(p: Path, file_name: str, simple=True) -> str:
                 v = df[col][df[col].notnull()].mean()
                 out.append(f"{name} is {v*100:.2f}% True, {100-v*100:.2f}% False")
             elif df[col].nunique() < 10:
-                out.append(
-                    f"{name} has {df[col].nunique()} unique values: {df[col].unique().tolist()}"
-                )
+                out.append(f"{name} has {df[col].nunique()} unique values: {df[col].unique().tolist()}")
             elif is_numeric_dtype(df[col]):
-                out.append(
-                    f"{name} has range: {df[col].min():.2f} - {df[col].max():.2f}, {nan_count} nan values"
-                )
+                out.append(f"{name} has range: {df[col].min():.2f} - {df[col].max():.2f}, {nan_count} nan values")
             elif dtype == "object":
                 out.append(
                     f"{name} has {df[col].nunique()} unique values. Some example values: {df[col].value_counts().head(4).index.tolist()}"
@@ -342,9 +343,7 @@ def preview_json(p: Path, file_name: str):
             f.seek(0)
             builder.add_object(json.load(f))
 
-    return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(
-        indent=2
-    )
+    return f"-> {file_name} has auto-generated json schema:\n" + builder.to_json(indent=2)
 
 
 def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
@@ -375,9 +374,7 @@ def describe_data_folder_v2(base_path, include_file_details=True, simple=False):
 
     # if the result is very long we generate a simpler version
     if len(result) > 6_000 and not simple:
-        return generate(
-            base_path, include_file_details=include_file_details, simple=True
-        )
+        return generate(base_path, include_file_details=include_file_details, simple=True)
     # if still too long, we truncate
     if len(result) > 6_000 and simple:
         return result[:6_000] + "\n... (truncated)"

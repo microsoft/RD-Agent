@@ -8,12 +8,15 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.scen.utils import (
+    describe_data_folder,
+    describe_data_folder_v2,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
     leaderboard_scores,
 )
 from rdagent.utils.agent.tpl import T
-from rdagent.scenarios.data_science.scen.utils import describe_data_folder, describe_data_folder_v2
 
 
 class DataScienceScen(Scenario):
