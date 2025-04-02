@@ -109,11 +109,12 @@ pipeline_eval:
     1. Executes successfully, correctly generating a final submission.
     2. Generates predictions in the correct format, ensuring they align with the submission structure!
 
-    [Note] 
-    1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
-
     ## Evaluation Criteria
     You will be given the execution output (`stdout`) to determine correctness.  
+
+    [Note] 
+    1. Model performance is NOT a concern in this evaluation—only correct execution and formatting matter.
+    2. You only check the format of the submission since we only feed you part of the data, so the submission might has different index to the sample submission data.
     
     Please respond with your feedback in the following JSON format and order
     ```json
