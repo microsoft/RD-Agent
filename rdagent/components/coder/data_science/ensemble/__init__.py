@@ -95,7 +95,8 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 .render(
                     model_names=[
                         fn[:-3] for fn in workspace.file_dict.keys() if fn.startswith("model_") and "test" not in fn
-                    ]
+                    ],
+                    metric_name=self.scen.metric_name,
                 )
             )
             code_spec = T("scenarios.data_science.share:component_spec.general").r(
@@ -153,4 +154,13 @@ class EnsembleCoSTEER(CoSTEER):
         eva = CoSTEERMultiEvaluator(EnsembleCoSTEEREvaluator(scen=scen), scen=scen)
         es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )

@@ -67,17 +67,18 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 (DIRNAME / "eval_tests" / "model_test.txt").read_text().replace("model01", target_task.name)
             )  # only check the model changed this time
             implementation.inject_files(**{fname: test_code})
-            stdout = implementation.execute(env=env, entry=f"python {fname}")
+            stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
 
             if stdout is None:
                 raise CoderError(
                     "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
                 )
         else:
+            ret_code = 0
             if_model_removed = True
             stdout = f"Model {target_task.name} removal succeeded."
 
-        if "main.py" in implementation.file_dict:
+        if "main.py" in implementation.file_dict and ret_code == 0:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:

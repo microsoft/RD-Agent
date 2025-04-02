@@ -77,6 +77,8 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
         )
 
+        # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
+        # `new_hypothesis` should not exist in the feedback.
         return HypothesisFeedback(
             observations=resp_dict.get("Observations", "No observations provided"),
             hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),

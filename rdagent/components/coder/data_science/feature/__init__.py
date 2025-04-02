@@ -130,4 +130,13 @@ class FeatureCoSTEER(CoSTEER):
         )  # Please specify whether you agree running your eva in parallel or not
         es = FeatureMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )
