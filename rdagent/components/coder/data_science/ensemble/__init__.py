@@ -154,4 +154,13 @@ class EnsembleCoSTEER(CoSTEER):
         eva = CoSTEERMultiEvaluator(EnsembleCoSTEEREvaluator(scen=scen), scen=scen)
         es = EnsembleMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
-        super().__init__(*args, settings=settings, eva=eva, es=es, evolving_version=2, scen=scen, **kwargs)
+        super().__init__(
+            *args,
+            settings=settings,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.coder_max_loop,
+            **kwargs,
+        )

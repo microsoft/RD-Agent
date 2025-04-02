@@ -54,14 +54,14 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         fname = "test/data_loader_test.py"
         test_code = (DIRNAME / "eval_tests" / "data_loader_test.txt").read_text()
         implementation.inject_files(**{fname: test_code})
-        stdout = implementation.execute(env=env, entry=f"python {fname}")
+        stdout, ret_code = implementation.execute_ret_code(env=env, entry=f"python {fname}")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
         stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
         stdout = stdout_part_1 + stdout_part_2
         if eda_output is not None and len(eda_output.split(" ")) > 10000:
             eda_output += "Length of EDA output is too long, truncated. Please reject this implementation and motivate it to reduce the length of EDA output."
 
-        if "main.py" in implementation.file_dict:
+        if "main.py" in implementation.file_dict and ret_code == 0:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:

@@ -26,5 +26,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     proposal_version: str = "v1"
 
+    coder_max_loop: int = 10
+    runner_max_loop: int = 3
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

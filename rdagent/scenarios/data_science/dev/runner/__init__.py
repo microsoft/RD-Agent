@@ -93,7 +93,14 @@ class DSCoSTEERRunner(CoSTEER):
 
         # In runner, we don't need very big loops, so we set max_loop to 3
         super().__init__(
-            *args, settings=CoSTEER_SETTINGS, eva=eva, es=es, evolving_version=2, scen=scen, max_loop=3, **kwargs
+            *args,
+            settings=CoSTEER_SETTINGS,
+            eva=eva,
+            es=es,
+            evolving_version=2,
+            scen=scen,
+            max_loop=DS_RD_SETTING.runner_max_loop,
+            **kwargs,
         )
 
     def develop(self, exp):
