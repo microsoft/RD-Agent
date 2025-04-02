@@ -57,6 +57,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
         stdout = implementation.execute(env=env, entry=f"python main.py")
+        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
