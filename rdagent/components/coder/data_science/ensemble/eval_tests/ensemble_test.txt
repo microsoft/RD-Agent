@@ -34,6 +34,9 @@ def print_preds_info(model_name, data_type, preds):
         else:
             print(f"Unknown prediction type: {type(preds)}")
 
+def get_length(data):
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
+
 X, y, test_X, test_ids = load_data()
 X, y, test_X = feat_eng(X, y, test_X)
 train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -109,9 +112,9 @@ assert isinstance(final_pred, pred_type), (
 
 # Check shape
 if isinstance(final_pred, (list, np.ndarray, pd.DataFrame, torch.Tensor, tf.Tensor)):
-    assert len(final_pred) == len(test_X), (
-        f"Wrong output sample size: len(final_pred)={len(final_pred)} "
-        f"vs. len(test_X)={len(test_X)}"
+    assert get_length(final_pred) == get_length(test_X), (
+        f"Wrong output sample size: get_length(final_pred)={get_length(final_pred)} "
+        f"vs. get_length(test_X)={get_length(test_X)}"
     )
 
 # check scores.csv
