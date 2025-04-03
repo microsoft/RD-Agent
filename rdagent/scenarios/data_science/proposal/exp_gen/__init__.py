@@ -17,7 +17,12 @@ class DSExpGen(ExpGen):
         self.max_trace_hist = max_trace_hist  # max number of historical trace to know when propose new experiment
         super().__init__(scen)
 
-    def gen(self, trace: DSTrace) -> DSExperiment:
+    def gen(self, trace: DSTrace, selection: tuple[int, ...] | None = (-1, )) -> DSExperiment:
+
+        # set the current selection for the trace 
+        # handy design:dynamically change the "current selection" attribute of the trace, and we donot need to pass selection as an argument to other functions    
+        trace.set_current_selection(selection)
+
         if DS_RD_SETTING.coder_on_whole_pipeline:
             return DSProposalV2ExpGen(scen=self.scen).gen(
                 trace=trace,

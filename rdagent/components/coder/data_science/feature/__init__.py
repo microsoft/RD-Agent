@@ -61,7 +61,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
 
         # 2. code
         system_prompt = T(".prompts:feature_coder.system").r(
-            competition_info=self.scen.get_scenario_all_desc(),
+            competition_info=self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None)),
             task_desc=feature_information_str,
             data_loader_code=workspace.file_dict.get("load_data.py"),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,

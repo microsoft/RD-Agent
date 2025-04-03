@@ -66,7 +66,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        competition_info = self.scen.get_scenario_all_desc()
+        competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
         runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         pipeline_task_info = target_task.get_task_information()

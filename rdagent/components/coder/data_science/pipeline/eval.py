@@ -95,8 +95,13 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         )
         stdout += "\n" + submission_check_out
 
+        if not isinstance(implementation, FBWorkspace):
+            eda_output = None
+        else:
+            eda_output = implementation.file_dict.get("EDA.md", None)
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
