@@ -343,7 +343,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
         table.add_row("Local Path", local_path)
         table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
         table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
-        logger.info(f"Volumes: {volumes}")
         print(table)
 
         cwd = None
@@ -646,7 +645,6 @@ class DockerEnv(Env[DockerConf]):
             table.add_row("Entry", entry)
             table.add_row("Env", "\n".join(f"{k}:{v}" for k, v in env.items()))
             table.add_row("Volumes", "\n".join(f"{k}:{v}" for k, v in volumes.items()))
-            logger.info(f"Volumes: {volumes}")
             print(table)
             for log in logs:
                 decoded_log = log.strip().decode()
