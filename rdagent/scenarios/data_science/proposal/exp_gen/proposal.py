@@ -11,7 +11,7 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -268,7 +268,6 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
-            pipeline=pipeline,
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -320,13 +319,30 @@ class DSProposalV2ExpGen(ExpGen):
         if pipeline:
             problem_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
 
-        max_score_problem_name = (
-            pd.DataFrame(
-                {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
-            )
-            .sum()
-            .idxmax(axis=0)
+        weights = {
+            "alignment_score": 0.2,
+            "impact_score": 0.4,
+            "novelty_score": 0.2,
+            "feasibility_score": 0.1,
+            "risk_reward_balance_score": 0.1,
+        }
+        scores = pd.DataFrame(
+            {
+                problem_name: {
+                    score_key: hypothesis_dict[problem_name]["evaluation"].get(score_key, 0) * weight
+                    for score_key, weight in weights.items()
+                }
+                for problem_name in hypothesis_dict
+            }
         )
+        scores_sorted = scores.sum().sort_values(ascending=False)
+        if len(scores_sorted) > 5:
+            scores_sorted = scores_sorted[: len(scores_sorted) // 2]
+
+        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
+            scores_sorted
+        )
+        max_score_problem_name = scores_sorted.index[reproducible_int]
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
