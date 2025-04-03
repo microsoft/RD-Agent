@@ -66,7 +66,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def sync_dag_parent_and_hist(self, ) -> None:
         """
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
-        Should be called when the hist is changed.
+        Should be called when the hist is changed. 
         """
 
         if len(self.hist) == 0 or self.get_current_selection() is None:
@@ -206,7 +206,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         search_list = self.retrieve_search_list(search_type)
 
         if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
-            for exp, ef in self.hist[::-1]:
+            for exp, ef in search_list[::-1]:
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:
                     return exp
