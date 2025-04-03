@@ -326,15 +326,20 @@ class DSProposalV2ExpGen(ExpGen):
             "feasibility_score": 0.1,
             "risk_reward_balance_score": 0.1,
         }
-        scores = pd.DataFrame(
-            {
-                problem_name: {
-                    score_key: hypothesis_dict[problem_name]["evaluation"].get(score_key, 0) * weight
-                    for score_key, weight in weights.items()
-                }
-                for problem_name in hypothesis_dict
-            }
-        )
+        scores_dict = {}
+        for problem_name in hypothesis_dict:
+            scores_dict[problem_name] = {}
+            for score_key in weights:
+                if score_key not in hypothesis_dict[problem_name]["evaluation"]:
+                    scores_dict[problem_name][score_key] = 0
+                else:
+                    try:
+                        scores_dict[problem_name][score_key] = (
+                            float(hypothesis_dict[problem_name]["evaluation"][score_key]) * weights[score_key]
+                        )
+                    except (ValueError, TypeError):
+                        scores_dict[problem_name][score_key] = 0
+        scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
         if len(scores_sorted) > 5:
             scores_sorted = scores_sorted[: len(scores_sorted) // 2]
