@@ -11,7 +11,7 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -335,7 +335,14 @@ class DSProposalV2ExpGen(ExpGen):
                 for problem_name in hypothesis_dict
             }
         )
-        max_score_problem_name = scores.sum().idxmax(axis=0)
+        scores_sorted = scores.sum().sort_values(ascending=False)
+        if len(scores_sorted) > 5:
+            scores_sorted = scores_sorted[: len(scores_sorted) // 2]
+
+        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
+            scores_sorted
+        )
+        max_score_problem_name = scores_sorted.index[reproducible_int]
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
