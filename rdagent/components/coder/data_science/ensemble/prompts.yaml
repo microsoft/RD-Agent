@@ -39,6 +39,7 @@ ensemble_coder:
     1. The function's code is associated with several other functions including a data loader, feature engineering, and model training. all codes are as follows:
     {{ all_code }}
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    3. You don't need to ensemble all the models. If you consider a single model may have a better peformance, you can ignore some of the models and only use some of them to ensemble the final prediction totally based on your own judgement. You can be very flexible.
 
     ## Output Format
     {% if out_spec %}
