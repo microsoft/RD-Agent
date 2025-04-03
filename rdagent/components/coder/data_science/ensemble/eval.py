@@ -67,7 +67,7 @@ class EnsembleCoSTEEREvaluator(CoSTEEREvaluator):
 
         stdout += f"\nNOTE: the above scripts run with return code {ret_code}"
 
-        if "main.py" in implementation.file_dict:
+        if "main.py" in implementation.file_dict and ret_code == 0:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:

@@ -56,6 +56,11 @@ describe: # some template to describe some object
     The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     ### Task of experiment
     {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+    {% if exp_and_feedback[0].result is none %}
+    Experiment score: Running buggy
+    {% else %}
+    Experiment score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    {% endif %}
     Experiment feedback decision: {{ exp_and_feedback[1].decision }}
     Reason: {{ exp_and_feedback[1].reason }}
     {% endfor %}
@@ -64,11 +69,13 @@ describe: # some template to describe some object
 
 component_description:
   DataLoadSpec: |-
-    Loads and preprocesses competition data, ensuring proper data types, handling missing values, and providing an exploratory data analysis summary.
+    Loads raw competition data, ensuring proper data types, and providing an exploratory data analysis summary.
   FeatureEng: |-
     Transforms raw data into meaningful features while maintaining shape consistency, avoiding data leakage, and optimizing for model performance.
+    It should be model-agnostic (data transformations/augmentations that apply only to specific model frameworks should not be included here).
   Model: |-
     Perform one of three tasks: model building, which develops a model to address the problem; model tuning, which optimizes an existing model for better performance; or model removal, which discards models that do not contribute effectively.
+    Handle data operations or augmentations that are closely tied to the model framework, such as tools provided by PyTorch or TensorFlow.
   Ensemble: |-
     Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
   Workflow: |-
@@ -87,30 +94,37 @@ component_spec:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
       - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
+      - Ensure you load the actual data from the files, not just the filenames or paths. Do not postpone data loading to later steps.
 
     2. Data Preprocessing:
       - Convert data types correctly (e.g., numeric, categorical, date parsing).
-      - Handle missing values appropriately.
       - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
+      - Domain-Specific Handling: 
+        - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
+        - Instead of returning binary bytes directly, convert/decode them into more useful formats like numpy.ndarrays.
 
     3. Code Standards:
       - DO NOT use progress bars (e.g., `tqdm`).
       - DO NOT use the sample submission file to extract test index information.
       - DO NOT exclude features inadvertently during this process.
-    
+
     4. Exploratory Data Analysis (EDA) [Required]:
       - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
       - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
       - An evaluation agent will help to check whether the EDA part is added correctly.
 
+    5. NOTES
+      - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
+
   FeatureEng: |-
     1. Well handle the shape of the data
       - The sample size of the train data and the test data should be the same in all scenarios.
-      - To most of the scenario, the input shape and the output shape should be exactly the same.
-      - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
+      - To some tabular or time-series data, you may add or remove some columns so your inferred column number may be unsure.
+      - For scenarios where each dimension does not have a special meaning (like image, audio, and so on), the input shape and the output shape should be exactly the same in most cases unless there is a compelling reason to change them.
 
     2. Integration with the Model Pipeline:
       - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+        - Model-related operations should not be implemented in this step. (e.g., it uses tools combined with models like torch.Dataset with rich data transformation/augmentation)
       - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
 
     3. General Considerations:
@@ -129,6 +143,7 @@ component_spec:
   Model: |-
     - Do not use progress bars (e.g., `tqdm`) in the implementation.
     - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+    - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
   
   Ensemble: |-
     1. Input Validation:
@@ -226,3 +241,49 @@ component_spec:
       {% endfor %}
       final_pred = ensemble_workflow(test_preds_dict, val_preds_dict, val_y)
       {% endraw %}
+    
+  Pipeline: |-
+    1. File Handling:
+      - Handle file encoding and delimiters appropriately.
+      - Combine or process multiple files if necessary.
+      - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
+      - Ensure you load the actual data from the files, not just the filenames or paths. Do not postpone data loading to later steps.
+
+    2. Data Preprocessing:
+      - Convert data types correctly (e.g., numeric, categorical, date parsing).
+      - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
+      - Domain-Specific Handling: 
+        - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
+
+    3. Code Standards:
+      - DO NOT use progress bars (e.g., `tqdm`).
+      - DO NOT use the sample submission file to extract test index information.
+      - DO NOT exclude features inadvertently during this process.
+
+    4. NOTES
+      - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
+      - For neural network models, use pytorch rather than tensorflow as the backend if possible.
+      - For decision tree models, use xgboost or RandomForest rather than lightgbm as the backend if possible.
+
+    5. General Considerations:
+      - Ensure scalability for large datasets.
+      - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
+      - Ensure consistency between feature data types and transformations.
+      - Prevent data leakage: Do not use information derived from the test set when transforming training data.     
+
+    6. Notes:
+      - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
+      - Feature engineering should be executed **once** and reused across all models to ensure consistency: `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
+  
+    7. Metric Calculation and Storage:
+      - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
+      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand.
+      - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
+      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters.
+      - The column names in `scores.csv` should be:
+        - Model: The name of the model or ensemble strategy.
+        - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.
+
+    8. Submission File:
+      - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
+      - Present the required submission format explicitly and ensure the output adheres to it.

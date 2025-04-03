@@ -23,11 +23,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     #### enable specification
     spec_enabled: bool = True
-    # - [ ] rdagent/components/coder/data_science/raw_data_loader/__init__.py: make spec implementation optional
-    # - [ ] move spec responsibility into  rdagent/scenarios/data_science/share.yaml
-    # - [ ] make all spec.md optional;  but replace it with the test & responsibility.   "spec/.*\.md".
-    # - [ ] replace yaml render with target test.  "spec > .yaml data_science !out_spec !task_spec model_spec"
-    # - [ ] At the head of all tests, emphasis the function to be tested.
+
+    proposal_version: str = "v1"
+    coder_on_whole_pipeline: bool = False
+
+    coder_max_loop: int = 10
+    runner_max_loop: int = 3
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

@@ -51,33 +51,12 @@ spec:
           - Specify the data source location (`/kaggle/input/`).
           - Clearly define the structure and type of the output.
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
-
-      2. Precautions for Data Loading and Preprocessing:
-        - File Handling:
-          - Handle file encoding and delimiters appropriately.
-          - Combine or process multiple files if necessary.
-          - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
-        - Data Preprocessing:
-          - Convert data types correctly (e.g., numeric, categorical, date parsing).
-          - Handle missing values appropriately.
-          - Optimize memory usage for large datasets using techniques like downcasting or reading data in chunks if necessary.
-        - Domain-Specific Handling: 
-          - Apply competition-specific preprocessing steps as needed (e.g., text tokenization, image resizing).
-
-      3. Code Standards:
-        - DO NOT use progress bars (e.g., `tqdm`).
-        - DO NOT use the sample submission file to extract test index information.
-        - DO NOT exclude features inadvertently during this process.
-
-      4. Notes:
+      2. Notes:
         - Update `DT` (data type) based on the specific competition dataset. This can include `pd.DataFrame`, `np.array`, `torch.Tensor`, etc.
-        - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
         - Only set the DT of variables without inferring the shape of these variables since you don't know the shape of the data.
-      
-      5. Exploratory Data Analysis (EDA) [Required]:
-        - Before returning the data, you should always add an EDA part describing the data to help the following steps understand the data better.
-        - The EDA part should be drafted in plain text with certain format schema with no more than ten thousand characters.
-        - An evaluation agent will help to check whether the EDA part is added correctly.
+
+      Responsibilities and notes of an implemented data loader that aligns with the generated specification.
+      {% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}
 
       {% if latest_spec %}
       6. Former Specification:
@@ -109,10 +88,11 @@ spec:
       2. Precautions for Feature Engineering:
         - Well handle the shape of the data:
           - The sample size of the train data and the test data should be the same in all scenarios.
-          - To most of the scenario, the input shape and the output shape should be exactly the same.
-          - To some tabular data, you may add or remove some columns so your inferred column number may be unsure.
+          - To some tabular or time-series data, you may add or remove some columns so your inferred column number may be unsure.
+          - For scenarios where each dimension does not have a special meaning (like image, audio, and so on), the input shape and the output shape should be exactly the same in most cases unless there is a compelling reason to change them.
         - Integration with the Model Pipeline:
           - If feature engineering is deferred to the model pipeline for better overall performance, state explicitly that it will be handled at the model stage.
+            - Model-related operations should not be implemented in this step. (e.g., it uses tools combined with models like torch.Dataset with rich data transformation/augmentation)
           - Otherwise, ensure this function applies all required transformations while avoiding data leakage.
         - General Considerations:
           - Ensure scalability for large datasets.
@@ -175,6 +155,7 @@ spec:
       4. Notes:
         - Align `DT` (data type) with the definitions used in Feature Engineering specifications.
         - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
+        - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
 
       {% if latest_spec %}
       5. Former Specification:
@@ -435,9 +416,7 @@ data_loader_eval:
     The data loader is part of the whole workflow. The user has executed the entire pipeline and provided additional stdout.
 
     **Workflow Code:**
-    ```python
     {{ workflow_code }}
-    ```
 
     You should evaluate both the data loader test results and the overall workflow execution. **Approve the code only if both tests pass.**
     {% endif %}

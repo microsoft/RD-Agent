@@ -9,17 +9,12 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import (
-    DSCoderCoSTEERSettings,
-    get_ds_env,
-)
+from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
-from rdagent.utils.env import DockerEnv, MLEBDockerConf
 from rdagent.utils.fmt import shrink_text
 
 DIRNAME = Path(__file__).absolute().resolve().parent
@@ -48,6 +43,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         # execute workflow
         stdout = implementation.execute(env=env, entry="python -m coverage run main.py")
+        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
+        eda_output = match.groups()[1] if match else None
+        self.scen.eda_output = eda_output
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         # Check score file
@@ -67,9 +65,15 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 )
 
                 # Check model names (index)
-                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
-                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
-                    score_ret_code = 1
+                # in Pipeline task, we only check ensemble in scores.csv
+                if DS_RD_SETTING.coder_on_whole_pipeline:
+                    if "ensemble" not in model_set_in_scores:
+                        score_check_text += f"\n[Error] The score dataframe doesn't contain the ensemble model.\nscore_df is:\n{score_df}"
+                        score_ret_code = 1
+                else:
+                    if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
+                        score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                        score_ret_code = 1
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
@@ -97,7 +101,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
             env=mde, entry="python test/mle_submission_format_test.py"
         )
-        stdout += f"\nMLEBench submission check:\n{submission_check_out}"
+        stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
@@ -115,7 +119,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=DSCoSTEEREvalFeedback.val_and_update_init_dict,
         )
 
-        if feedback:
+        if feedback and not DS_RD_SETTING.coder_on_whole_pipeline:
             # remove unused files
             implementation.execute(env=env, entry="python -m coverage json -o coverage.json")
             coverage_report_path = implementation.workspace_path / "coverage.json"

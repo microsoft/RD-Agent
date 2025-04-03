@@ -386,6 +386,7 @@ class APIBackend(ABC):
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
                 if LLM_SETTINGS.log_llm_chat_content:
+                    logger.info(self._build_log_messages(messages), tag="llm_messages")
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result
 
