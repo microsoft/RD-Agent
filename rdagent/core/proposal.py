@@ -138,8 +138,9 @@ class CheckpointSelector:
     """
     In the trace, we may start from any check point (we'll represent it as a variable `from_checkpoint_idx`)
     """
+
     @abstractmethod
-    def get_selection(trace: Trace) -> tuple[int , ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
         """
         checkpoint_idx represents the place where we want to create a new node.
         comment from fsk:: the return value should be the idx of target node (the parent of the new generating node) in hist.
@@ -148,17 +149,19 @@ class CheckpointSelector:
         - `None` represents starting from scratch (start a new trace)
 
         TODO:
-        - `None`/new-trace: need more discussion and design, we may need a new class (list of trace class) for this.
-        - maybe we do not need extra new class, just use current trace class, save multiple traces in hist - to discuss and confirm.
+        - build selector class here or load selector function in `select.py`?
         """
 
 
 class LatestCKPSelector(CheckpointSelector):
-    def get_selection(trace: Trace) -> tuple[int , ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
         """
         -`(-1, )` represents starting from the latest trial in the trace
         """
         return (-1, )
+    
+    
+    
 
 
 class ExpGen(ABC):

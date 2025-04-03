@@ -67,7 +67,7 @@ class DataLoaderMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     ) -> dict[str, str]:
         # return a workspace with "load_data.py", "spec/load_data.md" inside
         # assign the implemented code to the new workspace.
-        competition_info = self.scen.get_scenario_all_desc()
+        competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
         runtime_environment = self.scen.get_runtime_environment()
         data_folder_info = self.scen.processed_data_folder_description
         data_loader_task_info = target_task.get_task_information()

@@ -18,29 +18,30 @@ class DSExpGen(ExpGen):
         super().__init__(scen)
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] | None = (-1, )) -> DSExperiment:
+
+        # set the current selection for the trace 
+        # handy design:dynamically change the "current selection" attribute of the trace, and we donot need to pass selection as an argument to other functions    
+        trace.set_current_selection(selection)
+
         if DS_RD_SETTING.coder_on_whole_pipeline:
             return DSProposalV2ExpGen(scen=self.scen).gen(
                 trace=trace,
                 max_trace_hist=self.max_trace_hist,
                 pipeline=True,
-                selection=selection,
             )
         next_missing_component = trace.next_incomplete_component()
         if next_missing_component is not None:
             return DSDraftExpGen(scen=self.scen).gen(
                 component=next_missing_component,
                 trace=trace,
-                selection=selection,
             )
         if DS_RD_SETTING.proposal_version == "v1":
             return DSProposalV1ExpGen(scen=self.scen).gen(
                 trace=trace,
                 max_trace_hist=self.max_trace_hist,
-                selection=selection,
             )
         if DS_RD_SETTING.proposal_version == "v2":
             return DSProposalV2ExpGen(scen=self.scen).gen(
                 trace=trace,
                 max_trace_hist=self.max_trace_hist,
-                selection=selection,
             )

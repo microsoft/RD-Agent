@@ -54,7 +54,6 @@ class DSDraftExpGen(ExpGen):
         self,
         component: COMPONENT,
         trace: DSTrace,
-        selection: tuple[int, ...] | None = (-1, ),
     ) -> DSExperiment:
         """Handle any component using a unified approach.
 
@@ -66,8 +65,13 @@ class DSDraftExpGen(ExpGen):
             spec_file: Path to specification file if needed
             selection: The selection of the node to generate the task
         """
-        scenario_desc = trace.scen.get_scenario_all_desc()
-        last_successful_exp = trace.last_successful_exp(selection=selection)
+        last_successful_exp = trace.last_successful_exp()
+        # typecheck on the last successful exp, should be DSExperiment
+        if not isinstance(last_successful_exp, DSExperiment):
+            eda_output = None   
+        else:
+            eda_output = last_successful_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
         init_component_config = {
             "DataLoadSpec": {"task_cls": DataLoaderTask, "spec_file": None, "component_prompt_key": "data_loader"},
             "FeatureEng": {"task_cls": FeatureTask, "spec_file": "spec/feature.md", "component_prompt_key": "feature"},
@@ -80,7 +84,7 @@ class DSDraftExpGen(ExpGen):
         component_prompt_key = init_component_config[component].get("component_prompt_key")
 
         former_tasks_desc = ""
-        search_list = trace.retrieve_search_list(selection=selection)
+        search_list = trace.retrieve_search_list()
         if len(search_list) > 0:
             for exp, fb in reversed(search_list):
                 if exp is not last_successful_exp:

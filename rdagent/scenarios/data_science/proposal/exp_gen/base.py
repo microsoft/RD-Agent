@@ -43,25 +43,54 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def __init__(self, scen: DataScienceScen, knowledge_base: KnowledgeBase | None = None) -> None:
         self.scen: DataScienceScen = scen
         self.hist: list[tuple[DSExperiment, ExperimentFeedback]] = []
-        self.dag_parent: list[tuple[int, ...]] = []
+        """
+        The dag_parent is a list of tuples, each tuple is the parent index of the current node.
+        The first element of the tuple is the parent index, the rest are the parent indexes of the parent (not implemented yet).
+        If the current node is the root node without parent, the tuple is empty.
+        """
+        self.dag_parent: list[tuple[int, ...]] = []# List of tuples representing parent indices in the DAG structure.
+        # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
+
         self.knowledge_base = knowledge_base
+
+        self.current_selection: tuple[int, ...] = (-1, )
+
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
 
-    # TODO: change the logic based on current selection
+    def get_current_selection(self) -> tuple[int, ...]:
+        return self.current_selection
 
+    def set_current_selection(self, selection: tuple[int, ...]) -> None:
+        self.current_selection = selection
+
+    def sync_dag_parent_and_hist(self, ) -> None:
+        """
+        Adding corresponding parent index to the dag_parent when the hist is going to be changed.
+        Should be called when the hist is changed.
+        """
+
+        if len(self.hist) == 0 or self.get_current_selection() is None:
+            # the node we are going to add is the first node of hist / root node of a new sub-trace
+            self.dag_parent.append(())
+
+        else:
+            current_node_idx = self.current_selection[0]
+
+            if current_node_idx == -1:
+                # the current selection is the latest one
+                current_node_idx = len(self.hist) - 1
+
+            self.dag_parent.append((current_node_idx, ))
 
     def retrieve_search_list(
             self, 
-            selection: tuple[int, ...] | None = (-1, ), 
-            search_type: Literal["all", "ancestors"] = "all"
+            search_type: Literal["all", "ancestors"] = "ancestors"
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve the search list based on the selection and search_type.
 
         Parameters
         ----------
-        selection : tuple[int, ...]
-            The selection of the node to work on.
         search_type : str
             One of "all", "ancestors".
             - "all": search the whole hist.
@@ -72,29 +101,39 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         list[tuple[DSExperiment, ExperimentFeedback]]
             The search list.
         """
+
+        selection = self.get_current_selection()
         if selection is None:
             # selection is None, which means we switch to a new trace, which is not implemented yet
-            # raise NotImplementedError("The multi-trace setting Not implemented yet")
             return []
 
         return self.collect_all_ancestors(selection) if search_type == "ancestors" else self.hist
 
     def collect_all_ancestors(
             self, 
-            selection: tuple[int, ...] | None = (-1, ),
+            selection: tuple[int, ...] | None = (-1,),
     ) -> list[tuple[DSExperiment, ExperimentFeedback]] | None:
         """
         Collect all ancestors of the given selection.
         The return list follows the order of [root->...->parent->current_node].
         """
-        all_ancestors = []
-        if selection is not None:
+
+        if len(self.dag_parent) == 0:
+            return []
+
+        else:
+            all_ancestors = []
+
+
             # start from the latest selection
             current_node_idx = selection[0] 
-            parent_idx = self.dag_parent[current_node_idx]
+            
 
             # add the current node to the list
             all_ancestors.insert(0, self.hist[current_node_idx])
+
+
+            parent_idx = self.dag_parent[current_node_idx]
 
             while len(parent_idx) > 0:
                 all_ancestors.insert(0, self.hist[parent_idx[0]])
@@ -104,15 +143,14 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def next_incomplete_component(
         self, 
-        selection: tuple[int, ...] | None = (-1, ),
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> COMPONENT | None:
         """
         NOTE:
         - A component will be complete until get True decision feedback !!!
 
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         for c in self.COMPLETE_ORDER:
             """Check if the component is in the ancestors of the selection."""
@@ -132,13 +170,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def experiment_and_feedback_list_after_init(
         self, 
         return_type: Literal["sota", "failed", "all"], 
-        selection: tuple[int, ...] | None = (-1, ),
         search_type: Literal["all", "ancestors"] = "all",
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
@@ -157,8 +194,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def sota_experiment(
         self,
-        selection: tuple[int, ...] | None = (-1, ),
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> DSExperiment | None:
         """
 
@@ -167,7 +203,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Experiment or None
             The experiment result if found, otherwise None.
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
             for exp, ef in self.hist[::-1]:
@@ -178,13 +214,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def last_successful_exp(
         self,
-        selection: tuple[int, ...] | None = (-1, ),
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> DSExperiment | None:
         """
         Access the last successful experiment even part of the components are not completed.
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         for exp, ef in search_list[::-1]:
             if ef.decision:
@@ -193,13 +228,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def last_exp(
         self,
-        selection: tuple[int, ...] | None = (-1, ),
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> DSExperiment | None:
         """
         Access the last experiment
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         for exp, ef in search_list[::-1]:
             return exp
@@ -207,13 +241,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def last_runnable_exp_fb(
         self,
-        selection: tuple[int, ...] | None = (-1, ),
-        search_type: Literal["all", "ancestors"] = "all",
+        search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
         Access the last runnable experiment (no exception, usually not all task failed) and feedback
         """
-        search_list = self.retrieve_search_list(selection, search_type)
+        search_list = self.retrieve_search_list(search_type)
 
         for exp, ef in search_list[::-1]:
             if ef.exception is None:

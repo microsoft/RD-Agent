@@ -107,7 +107,7 @@ class DataScienceScen(Scenario):
 
     def get_scenario_all_desc(self, eda_output=None) -> str:
         """
-        eda_output depends on 
+        eda_output depends on dynamic .md files from current workspace, not fixed.
         """
         return T(".prompts:scenario_description").r(
             background=self.background,

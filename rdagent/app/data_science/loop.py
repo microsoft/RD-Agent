@@ -69,7 +69,7 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        selection  = self.ckp_selector.select(self.trace)
+        selection  = self.ckp_selector.get_selection(self.trace)
         exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
 
@@ -128,6 +128,10 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
+
+        # set the DAG parent for the trace
+        self.trace.sync_dag_parent_and_hist()
+
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             self.trace.hist.append((prev_out["running"], prev_out["feedback"]))
