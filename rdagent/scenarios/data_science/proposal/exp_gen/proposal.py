@@ -268,7 +268,6 @@ class DSProposalV2ExpGen(ExpGen):
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
-            pipeline=pipeline,
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -319,14 +318,24 @@ class DSProposalV2ExpGen(ExpGen):
         # TODO use rule base or llm to rank the hypothesis
         if pipeline:
             problem_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
-
-        max_score_problem_name = (
-            pd.DataFrame(
-                {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
-            )
-            .sum()
-            .idxmax(axis=0)
+            
+        weights = {
+            "alignment_score": 0.2,
+            "impact_score": 0.4,
+            "novelty_score": 0.2,
+            "feasibility_score": 0.1,
+            "risk_reward_balance_score": 0.1
+        }
+        scores = pd.DataFrame(
+            {
+                problem_name: {
+                    score_key: hypothesis_dict[problem_name]["evaluation"].get(score_key, 0) * weight
+                    for score_key, weight in weights.items()
+                }
+                for problem_name in hypothesis_dict
+            }
         )
+        max_score_problem_name = (scores.sum().idxmax(axis=0))
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
