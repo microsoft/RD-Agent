@@ -114,6 +114,7 @@ class DataScienceScen(Scenario):
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
             eda_output=self.eda_output,
+            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
         )
 
     def get_runtime_environment(self) -> str:

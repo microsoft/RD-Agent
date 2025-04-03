@@ -38,9 +38,11 @@ feedback_problem:
     You will be given a competition scenario, trace history description, the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation.
 
+    {% if not pipeline %}
     ## Low-Level Problems
     ### Definition
     Low-level problems are specific and fine-grained technical, or methodological issues within one or more of the five components ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow') in the implementation.
+    {% endif %}
     
     ### Specification
     {{ problem_spec }}
@@ -73,13 +75,18 @@ hypothesis_gen:
     # Task 1: Hypothesis Proposal
     For each identified problem, you are required to propose a hypothesis aimed at improving the current SOTA implementation. 
     A hypothesis is a precise, testable, and actionable statement that proposes a specific modification or improvement to address an identified problem in a Kaggle competition implementation.
+    {% if not pipeline %}
     Each hypothesis should focus on one of the following 5 components of an implementation:
     {{ component_desc }}
+    {% else %}
+    Each hypothesis should focus on the whole pipeline.
+    {% endif %}
 
     ## Hypothesis Specification
     1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
     2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+    4. For problems which you think are covered by the current SOTA implementation or by the former hypothesis, you should ignore that problem and not include it in your response. But you should not respond an empty hypothesis list.
 
 
     # Task 2: Hypothesis Evaluation
@@ -164,7 +171,9 @@ specification:
 
 output_format:
   problem: |-
-    For each of the identified problem, you should strictly adhere to the following JSON schema. Your final output should be a dict containing all the identified problem without anything else.
+    For each of the identified problem, you should strictly adhere to the following JSON schema. 
+    Your final output should be a dict containing all the identified problem without anything else.
+    Please respond at most five problems considering the most valuable and recently not explored.
     {
       "problem name 1": {
         "problem": "Description of the first issue",
@@ -180,7 +189,9 @@ output_format:
     {
       "problem name 1": {
         "observation": "The observation of the given scenario, data characteristics, or trace history.",
-        "component": "The component name that the hypothesis focus on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        {% if not pipeline %}"component": "The component name that the hypothesis focus on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        {% else %}"component": "The component name that the hypothesis focus on. Must be 'Pipeline'.",
+        {% endif %}
         "reason": "A brief explanation, also in one or two sentences, outlining the rationale behind the hypothesis. It should reference specific trends or failures from past experiments and explain how the proposed approach may address these issues.",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
         "evaluation": {

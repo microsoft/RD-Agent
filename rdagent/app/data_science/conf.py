@@ -25,6 +25,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     spec_enabled: bool = True
 
     proposal_version: str = "v1"
+    coder_on_whole_pipeline: bool = False
 
     coder_max_loop: int = 10
     runner_max_loop: int = 3
