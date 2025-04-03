@@ -605,10 +605,13 @@ class DockerEnv(Env[DockerConf]):
         if local_path is not None:
             local_path = os.path.abspath(local_path)
             volumes[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
-            volumes["/tmp/cache"] = {"bind": "/tmp/cache", "mode": "rw"}
+            
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            cache_path = "/tmp/cache/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/cache/full"
+            Path(cache_path).mkdir(parents=True, exist_ok=True)
+            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 
