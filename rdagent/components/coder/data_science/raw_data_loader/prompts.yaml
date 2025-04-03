@@ -410,9 +410,7 @@ data_loader_eval:
     The data loader is part of the whole workflow. The user has executed the entire pipeline and provided additional stdout.
 
     **Workflow Code:**
-    ```python
     {{ workflow_code }}
-    ```
 
     You should evaluate both the data loader test results and the overall workflow execution. **Approve the code only if both tests pass.**
     {% endif %}
