@@ -94,7 +94,7 @@ component_spec:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
       - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
-      - Ensure you load the actual data from the files, not just the filenames or paths. Do not postpone data loading to later steps.
+      - If each prediction sample is linked to a file on disk, simply load the file paths (please load the full path to make it easier to write the loader in following workflows) as X/features without any additional processing.
 
     2. Data Preprocessing:
       - Convert data types correctly (e.g., numeric, categorical, date parsing).
@@ -139,11 +139,13 @@ component_spec:
     5. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
       - Feature engineering should be executed **once** and reused across all models to ensure consistency: `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
+      - If the data loader returns the file path directly, we can skip feature engineering and return original values directly.
   
   Model: |-
     - Do not use progress bars (e.g., `tqdm`) in the implementation.
     - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
     - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
+      - Please correctly handle data transformations/augmentations, especially when the dataloader loads the file path directly.
   
   Ensemble: |-
     1. Input Validation:
