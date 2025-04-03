@@ -54,6 +54,7 @@ class DSDraftExpGen(ExpGen):
         self,
         component: COMPONENT,
         trace: DSTrace,
+        selection: tuple[int, ...] | None = (-1, ),
     ) -> DSExperiment:
         """Handle any component using a unified approach.
 
@@ -63,9 +64,10 @@ class DSDraftExpGen(ExpGen):
             scenario_desc: Description of the current scenario
             last_successful_exp: Last successful experiment or None
             spec_file: Path to specification file if needed
+            selection: The selection of the node to generate the task
         """
         scenario_desc = trace.scen.get_scenario_all_desc()
-        last_successful_exp = trace.last_successful_exp()
+        last_successful_exp = trace.last_successful_exp(selection=selection)
         init_component_config = {
             "DataLoadSpec": {"task_cls": DataLoaderTask, "spec_file": None, "component_prompt_key": "data_loader"},
             "FeatureEng": {"task_cls": FeatureTask, "spec_file": "spec/feature.md", "component_prompt_key": "feature"},
@@ -78,8 +80,9 @@ class DSDraftExpGen(ExpGen):
         component_prompt_key = init_component_config[component].get("component_prompt_key")
 
         former_tasks_desc = ""
-        if len(trace.hist) > 0:
-            for exp, fb in reversed(trace.hist):
+        search_list = trace.retrieve_search_list(selection=selection)
+        if len(search_list) > 0:
+            for exp, fb in reversed(search_list):
                 if exp is not last_successful_exp:
                     former_task_desc = exp.pending_tasks_list[0][0].get_task_information()
                     former_task_desc += f"\n\nYou have tried to implement the same component and got the following exception: \n{fb.exception}\n Please try different methods to avoid the same errors and results in an infinite loop"

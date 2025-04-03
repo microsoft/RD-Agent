@@ -74,6 +74,7 @@ class EnsembleMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         )
 
         # Generate code with knowledge integration
+        workspace.file_dict.get("EDA.md")
         competition_info = self.scen.get_scenario_all_desc()
         system_prompt = T(".prompts:ensemble_coder.system").r(
             task_desc=ensemble_information_str,
