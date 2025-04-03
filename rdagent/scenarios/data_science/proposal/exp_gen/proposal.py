@@ -318,13 +318,13 @@ class DSProposalV2ExpGen(ExpGen):
         # TODO use rule base or llm to rank the hypothesis
         if pipeline:
             problem_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
-            
+
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
             "novelty_score": 0.2,
             "feasibility_score": 0.1,
-            "risk_reward_balance_score": 0.1
+            "risk_reward_balance_score": 0.1,
         }
         scores = pd.DataFrame(
             {
@@ -335,7 +335,7 @@ class DSProposalV2ExpGen(ExpGen):
                 for problem_name in hypothesis_dict
             }
         )
-        max_score_problem_name = (scores.sum().idxmax(axis=0))
+        max_score_problem_name = scores.sum().idxmax(axis=0)
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
