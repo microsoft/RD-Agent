@@ -67,7 +67,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
 
-        stdout = implementation.execute(env=env, entry=f"python main.py")
+        stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
 
         # remove EDA part
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
@@ -79,6 +79,14 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not score_fp.exists():
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
+            implementation.execute(env=env, entry="python -m coverage json -o coverage.json")
+            coverage_report_path = implementation.workspace_path / "coverage.json"
+            if coverage_report_path.exists():
+                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
+                coverage_report_path.unlink()
+                logger.info(f"All used scripts: {used_files}")
+                if len(used_files) == 1:
+                    score_check_text += f"\n[Error] The only used script is {used_files}.\nPlease check if you have implemented entry point in 'main.py'."
         else:
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
