@@ -51,3 +51,7 @@ nbformat
 setuptools-scm
 seaborn
 azure.ai.inference
+
+# data folder desc
+humanize
+genson

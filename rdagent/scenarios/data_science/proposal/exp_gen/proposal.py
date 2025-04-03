@@ -7,10 +7,11 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
-from rdagent.oai.llm_utils import APIBackend
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -47,6 +48,11 @@ COMPONENT_TASK_MAPPING = {
         "spec_file": "spec/workflow.md",
         "task_output_format": T(".prompts:output_format.workflow").r(),
         "task_class": WorkflowTask,
+    },
+    "Pipeline": {
+        "target_name": "Pipeline",
+        "task_output_format": T(".prompts:output_format.pipeline").r(),
+        "task_class": PipelineTask,
     },
 }
 
@@ -257,6 +263,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_feedback_list_desc: str,
         failed_exp_feedback_list_desc: str,
         sota_exp_desc: str,
+        pipeline: bool,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -284,11 +291,13 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc: str,
         sota_exp_desc: str,
         problems: list,
+        pipeline: bool,
     ) -> Dict:
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
             hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
-            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(),
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline),
+            pipeline=pipeline,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -305,16 +314,35 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
-    def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict) -> DSHypothesis:
+    def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
         # TODO use rule base or llm to rank the hypothesis
+        if pipeline:
+            problem_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
 
-        max_score_problem_name = (
-            pd.DataFrame(
-                {problem_name: hypothesis_dict[problem_name]["evaluation"] for problem_name in hypothesis_dict}
-            )
-            .sum()
-            .idxmax(axis=0)
+        weights = {
+            "alignment_score": 0.2,
+            "impact_score": 0.4,
+            "novelty_score": 0.2,
+            "feasibility_score": 0.1,
+            "risk_reward_balance_score": 0.1,
+        }
+        scores = pd.DataFrame(
+            {
+                problem_name: {
+                    score_key: hypothesis_dict[problem_name]["evaluation"].get(score_key, 0) * weight
+                    for score_key, weight in weights.items()
+                }
+                for problem_name in hypothesis_dict
+            }
         )
+        scores_sorted = scores.sum().sort_values(ascending=False)
+        if len(scores_sorted) > 5:
+            scores_sorted = scores_sorted[: len(scores_sorted) // 2]
+
+        reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
+            scores_sorted
+        )
+        max_score_problem_name = scores_sorted.index[reproducible_int]
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
@@ -331,9 +359,10 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp_desc: str,
         sota_exp: DSExperiment,
         hypothesis: DSHypothesis,
+        pipeline: bool,
     ) -> DSExperiment:
         component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
-        if DS_RD_SETTING.spec_enabled:
+        if not pipeline and DS_RD_SETTING.spec_enabled and sota_exp is not None:
             task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
             task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
@@ -342,7 +371,7 @@ class DSProposalV2ExpGen(ExpGen):
             task_specification=task_spec,
             task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
-            workflow_check=(not hypothesis.component == "Workflow"),
+            workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=str(hypothesis)
@@ -361,7 +390,7 @@ class DSProposalV2ExpGen(ExpGen):
             if isinstance(task_design, str)
             else task_design.get("description", f"{component_info['target_name']} description not provided")
         )
-        task_class = COMPONENT_TASK_MAPPING[hypothesis.component]["task_class"]
+        task_class = component_info["task_class"]
         task = task_class(
             name=task_name,
             description=description,
@@ -369,9 +398,10 @@ class DSProposalV2ExpGen(ExpGen):
         new_workflow_desc = task_dict.get("workflow_update", "No update needed")
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypothesis)
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
-        exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
+        if sota_exp is not None:
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
 
-        if new_workflow_desc != "No update needed":
+        if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
                 description=new_workflow_desc,
@@ -379,7 +409,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def gen(self, trace: DSTrace, max_trace_hist: int) -> DSExperiment:
+    def gen(self, trace: DSTrace, max_trace_hist: int, pipeline: bool = False) -> DSExperiment:
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
@@ -418,6 +448,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
+            pipeline=pipeline,
         )
         all_problems = {**scen_problems, **fb_problems}
 
@@ -429,26 +460,29 @@ class DSProposalV2ExpGen(ExpGen):
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
+            pipeline=pipeline,
         )
-        sota_exp_model_file_count = len(
-            [
-                k
-                for k in sota_exp.experiment_workspace.file_dict.keys()
-                if k.endswith(".py") and "test" not in k and k.startswith("model")
-            ]
-        )
-        if sota_exp_model_file_count <= 1:
-            pop_names = []
-            for problem_name in hypothesis_dict:
-                if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
-                    pop_names.append(problem_name)
-            for name in pop_names:
-                hypothesis_dict.pop(name)
+        if not pipeline:
+            sota_exp_model_file_count = len(
+                [
+                    k
+                    for k in sota_exp.experiment_workspace.file_dict.keys()
+                    if k.endswith(".py") and "test" not in k and k.startswith("model")
+                ]
+            )
+            if sota_exp_model_file_count <= 1:
+                pop_names = []
+                for problem_name in hypothesis_dict:
+                    if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                        pop_names.append(problem_name)
+                for name in pop_names:
+                    hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
         new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
+            pipeline=pipeline,
         )
 
         return self.task_gen(
@@ -457,4 +491,5 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
             hypothesis=new_hypothesis,
+            pipeline=pipeline,
         )

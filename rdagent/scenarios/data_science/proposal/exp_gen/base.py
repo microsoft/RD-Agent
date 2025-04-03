@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Literal
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.evolving_framework import KnowledgeBase
 from rdagent.core.proposal import ExperimentFeedback, Hypothesis, Trace
 from rdagent.scenarios.data_science.experiment.experiment import COMPONENT, DSExperiment
@@ -80,7 +81,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         """
 
         final_component = self.COMPLETE_ORDER[-1]
-        has_final_component = False
+        has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         exp_and_feedback_list = []
         for exp, fb in self.hist:
             if has_final_component:
@@ -101,7 +102,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Experiment or None
             The experiment result if found, otherwise None.
         """
-        if self.next_incomplete_component() is None:
+        if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
             for exp, ef in self.hist[::-1]:
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:

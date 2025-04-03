@@ -18,6 +18,12 @@ class DSExpGen(ExpGen):
         super().__init__(scen)
 
     def gen(self, trace: DSTrace) -> DSExperiment:
+        if DS_RD_SETTING.coder_on_whole_pipeline:
+            return DSProposalV2ExpGen(scen=self.scen).gen(
+                trace=trace,
+                max_trace_hist=self.max_trace_hist,
+                pipeline=True,
+            )
         next_missing_component = trace.next_incomplete_component()
         if next_missing_component is not None:
             return DSDraftExpGen(scen=self.scen).gen(

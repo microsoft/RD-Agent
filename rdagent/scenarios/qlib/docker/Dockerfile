@@ -13,7 +13,7 @@ RUN git clone --depth=100 https://github.com/microsoft/qlib.git
 
 WORKDIR /workspace/qlib
 
-RUN git reset 4d621bff99bb403231e26bb1dddae6e77d2af170 --hard
+RUN git reset e7a1b5ea1ff4412792eeb606a639e0dde422053a --hard
 
 RUN python -m pip install --upgrade cython
 RUN python -m pip install -e .
