@@ -11,6 +11,7 @@ openai
 litellm
 azure.identity
 pyarrow
+rich
 
 numpy # we use numpy as default data format. So we have to install numpy
 pandas # we use pandas as default data format. So we have to install pandas
