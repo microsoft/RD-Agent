@@ -11,7 +11,7 @@ from streamlit import session_state as state
 from rdagent.log.ui.conf import UI_SETTING
 from datetime import datetime
 from collections import deque
-
+from rdagent.log.ui.ds_trace import load_times
 
 def get_exec_time(stdout_p: Path):
     with stdout_p.open("r") as f:
@@ -86,6 +86,9 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "SOTA Exp",
             "Ours - Base",
             "Ours vs Base",
+            "Ours vs Bronze",
+            "Ours vs Silver",
+            "Ours vs Gold",
             "SOTA Exp Score",
             "Baseline Score",
             "Bronze Threshold",
@@ -101,6 +104,15 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     baseline_result_path = UI_SETTING.baseline_result_path
     if Path(baseline_result_path).exists():
         baseline_df = pd.read_csv(baseline_result_path)
+
+    def compare_score(s1, s2):
+        if s1 is None or s2 is None:
+            return None
+        try:
+            c_value = math.exp(abs(math.log(s1 / s2)))
+        except Exception as e:
+            c_value = None
+        return c_value
 
     for k, v in summary.items():
         loop_num = v["loop_num"]
@@ -138,12 +150,10 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
             if baseline_score is not None and v.get("sota_exp_score", None) is not None:
                 base_df.loc[k, "Ours - Base"] = v["sota_exp_score"] - baseline_score
-                try:
-                    base_df.loc[k, "Ours vs Base"] = math.exp(
-                        abs(math.log(v["sota_exp_score"] / baseline_score))
-                    )  # exp^|ln(a/b)|
-                except Exception as e:
-                    base_df.loc[k, "Ours vs Base"] = None
+            base_df.loc[k, "Ours vs Base"] = compare_score(v["sota_exp_score"], baseline_score)
+            base_df.loc[k, "Ours vs Bronze"] = compare_score(v["sota_exp_score"], v.get("bronze_threshold", None))
+            base_df.loc[k, "Ours vs Silver"] = compare_score(v["sota_exp_score"], v.get("silver_threshold", None))
+            base_df.loc[k, "Ours vs Gold"] = compare_score(v["sota_exp_score"], v.get("gold_threshold", None))
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
             base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
