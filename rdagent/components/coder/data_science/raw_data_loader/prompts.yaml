@@ -147,7 +147,6 @@ spec:
       3. Precautions:
         - Ensure input arrays (`X`, `y`, `val_X`, `val_y`, `test_X`) have consistent dimensions and shapes.
         - Use default values for hyperparameters if `hyper_params` is not provided.
-        - Use the best appropriate model for the task, considering the data characteristics and the competition requirements.
         - Train the model on `X` and `y`.
         - Evaluate the model using `val_X` and `val_y` if validation data is available.
         - If `test_X` is provided, generate predictions for it.
