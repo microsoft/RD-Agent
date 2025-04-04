@@ -34,6 +34,7 @@ class PythonAgentOut(AgentOut):
         match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
         if match:
             code = match.group(1)
+            code = re.sub(r"</?code>", "", code, flags=re.IGNORECASE)
             return code
         return resp
 
@@ -51,7 +52,6 @@ class BatchEditOut(AgentOut):
 
 
 class PythonBatchEditOut(AgentOut):
-
     @classmethod
     def get_spec(cls, with_del=True):
         return T(".tpl:PythonBatchEditOut").r(with_del=with_del)
