@@ -19,12 +19,50 @@ def log_execution_results(start_time, val_pred, test_pred, hypers, execution_lab
     feedback_str += f"Execution time: {time.time() - start_time:.2f} seconds.\n"
     print(feedback_str)
 
+
+import reprlib
+aRepr = reprlib.Repr()
+aRepr.maxother=300
+
+# Load and preprocess data
+X, y, test_X, test_ids = load_data()
+X, y, test_X = feat_eng(X, y, test_X)
+
+print(f"X.shape: {X.shape}" if hasattr(X, 'shape') else f"X length: {len(X)}")
+print(f"y.shape: {y.shape}" if hasattr(y, 'shape') else f"y length: {len(y)}")
+print(f"test_X.shape: {test_X.shape}" if hasattr(test_X, 'shape') else f"test_X length: {len(test_X)}")
+print(f"test_ids length: {len(test_ids)}")
+
+train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
+
+
+import sys
+import reprlib
+from joblib.memory import MemorizedFunc
+
+
+def get_original_code(func):
+    if isinstance(func, MemorizedFunc):
+        return func.func.__code__
+    return func.__code__
+
+print("train_X:", aRepr.repr(train_X))
+print("train_y:", aRepr.repr(train_y))
+print("val_X:", aRepr.repr(val_X))
+print("val_y:", aRepr.repr(val_y))
+
+print(f"train_X.shape: {train_X.shape}" if hasattr(train_X, 'shape') else f"train_X length: {len(train_X)}")
+print(f"train_y.shape: {train_y.shape}" if hasattr(train_y, 'shape') else f"train_y length: {len(train_y)}")
+print(f"val_X.shape: {val_X.shape}" if hasattr(val_X, 'shape') else f"val_X length: {len(val_X)}")
+print(f"val_y.shape: {val_y.shape}" if hasattr(val_y, 'shape') else f"val_y length: {len(val_y)}")
+
+
+
 def debug_info_print(func):
-    aRepr = reprlib.Repr()
-    aRepr.maxother=300
     def wrapper(*args, **kwargs):
+        original_code = get_original_code(func)
         def local_trace(frame, event, arg):
-            if event == "return" and frame.f_code == func.__code__:
+            if event == "return" and frame.f_code == original_code:
                 print("\n" + "="*20 + "Running model training code, local variable values:" + "="*20)
                 for k, v in frame.f_locals.items():
                     printed = aRepr.repr(v)

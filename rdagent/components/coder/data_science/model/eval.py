@@ -75,10 +75,11 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                     "The execution output contains too many progress bars and results in the LLM's token size exceeding the limit."
                 )
         else:
+            ret_code = 0
             if_model_removed = True
             stdout = f"Model {target_task.name} removal succeeded."
 
-        if "main.py" in implementation.file_dict:
+        if "main.py" in implementation.file_dict and ret_code == 0:
             workflow_stdout = implementation.execute(env=env, entry="python main.py")
             workflow_stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", workflow_stdout)
         else:
@@ -99,8 +100,6 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 task_desc=target_task.get_task_information(),
                 test_code=test_code,
                 code=implementation.file_dict[f"{target_task.name}.py"],
-                scenario=self.scen.get_scenario_all_desc(),
-                spec=implementation.file_dict["spec/model.md"],
                 workflow_stdout=workflow_stdout,
                 workflow_code=implementation.all_codes,
             )

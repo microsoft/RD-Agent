@@ -1,3 +1,5 @@
+# tess successfully running.
+# (GPT) if it aligns with the spec & rationality of the spec.
 import json
 import re
 from pathlib import Path
@@ -5,40 +7,36 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
-    CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
+from rdagent.components.coder.CoSTEER.knowledge_management import (
+    CoSTEERQueriedKnowledgeV2,
+)
 from rdagent.components.coder.data_science.conf import get_ds_env
-from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-WorkflowSingleFeedback = CoSTEERSingleFeedback
-WorkflowMultiFeedback = CoSTEERMultiFeedback
+PipelineSingleFeedback = CoSTEERSingleFeedback
+PipelineMultiFeedback = CoSTEERMultiFeedback
 
 
-class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
-    """
-    Motivation case:
-    - Simplest case, we already split the data into train_data, valid_data, and test_data. We require the model to learn (optionally validate on valid data), and infer on test data.
-
-    Test workflow:
-    - Build train, valid, and test data to run it, and test the output (e.g., shape, etc.)
-    """
+class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
     def evaluate(
         self,
         target_task: Task,
         implementation: FBWorkspace,
         gt_implementation: FBWorkspace,
-        queried_knowledge: QueriedKnowledge = None,
+        queried_knowledge: CoSTEERQueriedKnowledgeV2 = None,
         **kwargs,
-    ) -> CoSTEERSingleFeedback:
+    ) -> PipelineSingleFeedback:
+
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -46,7 +44,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         ):
             return queried_knowledge.success_task_to_knowledge_dict[target_task_information].feedback
         elif queried_knowledge is not None and target_task_information in queried_knowledge.failed_task_info_set:
-            return WorkflowSingleFeedback(
+            return PipelineSingleFeedback(
                 execution="This task has failed too many times, skip implementation.",
                 return_checking="This task has failed too many times, skip implementation.",
                 code="This task has failed too many times, skip implementation.",
@@ -55,51 +53,28 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         env = get_ds_env()
         env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
-        env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
-
-        # # DockerEnv for MLEBench submission validation
-        # mle_de_conf = MLEBDockerConf()
-        # mle_de_conf.extra_volumes = {
-        #     f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-        # }
-        # mde = DockerEnv(conf=mle_de_conf)
-        # mde.prepare()
 
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
-
-        stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
-
-        # remove EDA part
+        stdout = implementation.execute(env=env, entry=f"python main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
-        # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
         score_check_text = ""
         if not score_fp.exists():
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
-            implementation.execute(env=env, entry="python -m coverage json -o coverage.json")
-            coverage_report_path = implementation.workspace_path / "coverage.json"
-            if coverage_report_path.exists():
-                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
-                coverage_report_path.unlink()
-                logger.info(f"All used scripts: {used_files}")
-                if len(used_files) == 1:
-                    score_check_text += f"\n[Error] The only used script is {used_files}.\nPlease check if you have implemented entry point in 'main.py'."
         else:
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
                 model_set_in_scores = set(score_df.index)
-                # We assume that model names in `score_df` are stored without the '.py' file extension.
-                model_set_in_folder = set(
-                    f[:-3] for f in implementation.file_dict.keys() if re.match(r"^model_(?!test)\w+\.py$", f)
-                )
 
                 # Check model names (index)
-                if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
-                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"
+                if "ensemble" not in model_set_in_scores:
+                    score_check_text += (
+                        f"\n[Error] The score dataframe doesn't contain the ensemble model.\nscore_df is:\n{score_df}"
+                    )
                     score_ret_code = 1
 
                 # Check metric name (columns)
@@ -120,24 +95,20 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         stdout += "\n" + submission_check_out
 
-        system_prompt = T(".prompts:workflow_eval.system").r(
+        system_prompt = T(".prompts:pipeline_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
             task_desc=target_task.get_task_information(),
-            spec=(
-                implementation.file_dict["spec/workflow.md"]
-                if DS_RD_SETTING.spec_enabled
-                else T("scenarios.data_science.share:component_spec.Workflow").r()
-            ),
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
-        user_prompt = T(".prompts:workflow_eval.user").r(
+        user_prompt = T(".prompts:pipeline_eval.user").r(
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
         wfb = build_cls_from_json_with_retry(
-            WorkflowSingleFeedback,
+            PipelineSingleFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            init_kwargs_update_func=WorkflowSingleFeedback.val_and_update_init_dict,
+            init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
         if score_ret_code != 0:
             wfb.final_decision = False

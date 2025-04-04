@@ -15,7 +15,6 @@ from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import Workspace
 
 FactorSingleFeedback = CoSTEERSingleFeedbackDeprecated
-FactorMultiFeedback = CoSTEERMultiFeedback
 
 
 class FactorEvaluatorForCoder(CoSTEEREvaluator):

@@ -9,13 +9,50 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from jinja2 import Environment, StrictUndefined
+from jinja2 import Environment, FunctionLoader, StrictUndefined
 
-from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import rdagent_logger as logger
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 PROJ_PATH = DIRNAME.parent.parent
+
+
+def get_caller_dir(upshift: int = 0) -> Path:
+    # Inspect the calling stack to get the caller's directory
+    stack = inspect.stack()
+    caller_frame = stack[1 + upshift]
+    caller_module = inspect.getmodule(caller_frame[0])
+    if caller_module and caller_module.__file__:
+        caller_dir = Path(caller_module.__file__).parent
+    else:
+        caller_dir = DIRNAME
+    return caller_dir
+
+
+def load_yaml_content(uri: str, caller_dir: Path | None = None) -> Any:
+    """
+    Please refer to RDAT.__init__ file
+    """
+    if caller_dir is None:
+        caller_dir = get_caller_dir(upshift=1)
+    # Parse the URI
+    path_part, yaml_path = uri.split(":")
+    yaml_keys = yaml_path.split(".")
+
+    if path_part.startswith("."):
+        yaml_file_path = caller_dir / f"{path_part[1:].replace('.', '/')}.yaml"
+    else:
+        yaml_file_path = (PROJ_PATH / path_part.replace(".", "/")).with_suffix(".yaml")
+
+    # Load the YAML file
+    with open(yaml_file_path, "r") as file:
+        yaml_content = yaml.safe_load(file)
+
+    # Traverse the YAML content to get the desired template
+    for key in yaml_keys:
+        yaml_content = yaml_content[key]
+
+    return yaml_content
 
 
 # class T(SingletonBaseClass): TODO: singleton does not support args now.
@@ -39,44 +76,27 @@ class RDAT:
             the loaded content will be saved in `self.template`
         """
         self.uri = uri
-        # Inspect the calling stack to get the caller's directory
-        stack = inspect.stack()
-        caller_frame = stack[1]
-        caller_module = inspect.getmodule(caller_frame[0])
-        if caller_module and caller_module.__file__:
-            caller_dir = Path(caller_module.__file__).parent
-        else:
-            caller_dir = DIRNAME
-
-        # Parse the URI
-        path_part, yaml_path = uri.split(":")
-        yaml_keys = yaml_path.split(".")
-
-        if path_part.startswith("."):
-            yaml_file_path = caller_dir / f"{path_part[1:].replace('.', '/')}.yaml"
+        caller_dir = get_caller_dir(1)
+        if uri.startswith("."):
             try:
                 # modify the uri to a raltive path to the project for easier finding prompts.yaml
                 self.uri = f"{str(caller_dir.resolve().relative_to(PROJ_PATH)).replace('/', '.')}{uri}"
             except ValueError:
                 pass
-        else:
-            yaml_file_path = (PROJ_PATH / path_part.replace(".", "/")).with_suffix(".yaml")
-
-        # Load the YAML file
-        with open(yaml_file_path, "r") as file:
-            yaml_content = yaml.safe_load(file)
-
-        # Traverse the YAML content to get the desired template
-        for key in yaml_keys:
-            yaml_content = yaml_content[key]
-
-        self.template = yaml_content
+        self.template = load_yaml_content(uri, caller_dir=caller_dir)
 
     def r(self, **context: Any) -> str:
         """
         Render the template with the given context.
         """
-        rendered = Environment(undefined=StrictUndefined).from_string(self.template).render(**context).strip("\n")
+        # loader=FunctionLoader(load_yaml_content) is for supporting grammar like below.
+        # `{% include "scenarios.data_science.share:component_spec.DataLoadSpec" %}`
+        rendered = (
+            Environment(undefined=StrictUndefined, loader=FunctionLoader(load_yaml_content))
+            .from_string(self.template)
+            .render(**context)
+            .strip("\n")
+        )
         while "\n\n\n" in rendered:
             rendered = rendered.replace("\n\n\n", "\n\n")
         rendered = "\n".join(line for line in rendered.splitlines() if line.strip())

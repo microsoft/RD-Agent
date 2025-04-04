@@ -10,6 +10,8 @@ from rdagent.components.coder.data_science.feature import FeatureCoSTEER
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model import ModelCoSTEER
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.pipeline import PipelineCoSTEER
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
@@ -54,6 +56,8 @@ class DataScienceRDLoop(RDLoop):
         self.ensemble_coder = EnsembleCoSTEER(scen)
         self.workflow_coder = WorkflowCoSTEER(scen)
 
+        self.pipeline_coder = PipelineCoSTEER(scen)
+
         self.runner = DSCoSTEERRunner(scen)
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
@@ -86,6 +90,8 @@ class DataScienceRDLoop(RDLoop):
                     exp = self.ensemble_coder.develop(exp)
                 elif isinstance(exp.sub_tasks[0], WorkflowTask):
                     exp = self.workflow_coder.develop(exp)
+                elif isinstance(exp.sub_tasks[0], PipelineTask):
+                    exp = self.pipeline_coder.develop(exp)
                 else:
                     raise NotImplementedError(f"Unsupported component in DataScienceRDLoop: {exp.hypothesis.component}")
             exp.sub_tasks = []
@@ -106,7 +112,7 @@ class DataScienceRDLoop(RDLoop):
         - If we come to feedback phase, the previous development steps are successful.
         """
         exp: DSExperiment = prev_out["running"]
-        if self.trace.next_incomplete_component() is None:
+        if self.trace.next_incomplete_component() is None or DS_RD_SETTING.coder_on_whole_pipeline:
             # we have alreadly completed components in previous trace. So current loop is focusing on a new proposed idea.
             # So we need feedback for the proposal.
             feedback = self.summarizer.generate_feedback(exp, self.trace)
@@ -130,7 +136,11 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if self.trace.sota_experiment() is None and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+            if (
+                self.trace.sota_experiment() is None
+                and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors
+                and not DS_RD_SETTING.coder_on_whole_pipeline
+            ):
                 # if {in inital/drafting stage} and {tried enough times}
                 for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
                     if fb:

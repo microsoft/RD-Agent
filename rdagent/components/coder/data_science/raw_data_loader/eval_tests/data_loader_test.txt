@@ -1,10 +1,5 @@
 """
-A qualified data loader should support following features
-- successfully run
-- len(test) == len(test_ids) == submission length
-- len(train) == len(y)
-
-Please make sure the stdout is rich enough to support informative feedback
+Tests for `load_data` in load_data.py
 """
 
 import pickle
@@ -14,12 +9,22 @@ from load_data import load_data
 
 import sys
 import reprlib
+from joblib.memory import MemorizedFunc
+
+
+def get_original_code(func):
+    if isinstance(func, MemorizedFunc):
+        return func.func.__code__
+    return func.__code__
+
+
 def debug_info_print(func):
     aRepr = reprlib.Repr()
     aRepr.maxother=300
     def wrapper(*args, **kwargs):
+        original_code = get_original_code(func)
         def local_trace(frame, event, arg):
-            if event == "return" and frame.f_code == func.__code__:
+            if event == "return" and frame.f_code == original_code:
                 print("\n" + "="*20 + "Running data_load code, local variable values:" + "="*20)
                 for k, v in frame.f_locals.items():
                     printed = aRepr.repr(v)
@@ -38,11 +43,11 @@ X, y, X_test, test_ids = debug_info_print(load_data)()
 
 
 def get_length(data):
-    return len(data) if isinstance(data, list) else data.shape[0]
+    return data.shape[0] if hasattr(data, 'shape') else len(data)
 
 
 def get_width(data):
-    return 1 if isinstance(data, list) else data.shape[1:]
+    return data.shape[1:] if hasattr(data, 'shape') else 1
 
 
 def get_column_list(data):

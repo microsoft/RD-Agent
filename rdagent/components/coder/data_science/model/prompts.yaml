@@ -40,6 +40,11 @@ model_coder:
     {{ feature_code }}
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
     3. If the model can both be implemented by PyTorch and Tensorflow, please use pytorch for broader compatibility.
+    4. You should use the following cache decorator to cache the results of the function:
+    ```python
+    from joblib import Memory
+    memory = Memory(location='/tmp/cache', verbose=0)
+    @memory.cache``
 
     ## Output Format
     {% if out_spec %}
@@ -53,8 +58,8 @@ model_coder:
     {% endif %}
 
   user_general: |-
-    --------- Model Building Specification ---------
-    {{ model_spec }}
+    --------- Code Specification ---------
+    {{ code_spec }}
 
     --------- Former model code ---------
     {% if latest_model_code|length == 0 %}

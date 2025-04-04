@@ -15,16 +15,14 @@ exp_feedback:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. Suggest improvements or new directions. Stay innovative and adaptive.
-    4. SOTA results are the best outcomes we have achieved in this scenario. If we do not have complete experiment available (i.e., results that are runnable and can generate evaluation outcomes), **please replace it as the best result/SOTA**.
+    3. SOTA results are the best outcomes we have achieved in this scenario. 
   
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
-      "Observations": "Your overall observations here",
-      "Feedback for Hypothesis": "Observations related to the hypothesis",
-      "New Hypothesis": "Your new hypothesis here",
-      "Reasoning": "Reasoning for the new hypothesis",
+      "Observations": "A detailed summary of the experimental results, including the description and scores for both SOTA and the current experiment. Limit this field to no more than three sentences, focusing on concrete data rather than general statements.",
+      "Feedback for Hypothesis": "A brief evaluation of the original hypothesis that highlights specific data points or trends which support or contradict it. Limit this field to two sentences.",
+      "Reasoning": "A clear explanation of why the current result performs better or worse than SOTA. This should reference both the SOTA description score and the current experiment's description score, providing insight into the factors contributing to the observed differences. Limit this field to one to three sentences.",
       "Replace Best Result": "yes or no"
     }
 

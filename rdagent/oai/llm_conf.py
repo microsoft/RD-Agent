@@ -51,7 +51,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_openai_base_url: str | None = None  #
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
-    chat_max_tokens: int = 3000
+    chat_max_tokens: int | None = None
     chat_temperature: float = 0.5
     chat_stream: bool = True
     chat_seed: int | None = None

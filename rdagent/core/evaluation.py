@@ -12,6 +12,13 @@ class Feedback:
         The building process of feedback will should be in evaluator
     """
 
+    def finished(self) -> bool:
+        """
+        In some implementations, tasks may fail multiple times, leading agents to skip the implementation.
+        So both skip and success indicate the task is finished.
+        """
+        return self.__bool__()
+
     def __bool__(self) -> bool:
         return True
 

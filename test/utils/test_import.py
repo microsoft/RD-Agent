@@ -26,7 +26,7 @@ class TestRDAgentImports(unittest.TestCase):
             if "llm_st" in fstr:
                 continue
             if (
-                fstr.endswith("rdagent/log/ui/app.py")
+                "rdagent/log/ui/" in fstr
                 or fstr.endswith("rdagent/app/cli.py")
                 or fstr.endswith("rdagent/app/CI/run.py")
                 or fstr.endswith("rdagent/app/utils/ape.py")

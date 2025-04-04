@@ -1,4 +1,29 @@
+"""
+
+Loop should not large change exclude
+- Action Choice[current data loader & spec]
+- other should share
+    - Propose[choice] => Task[Choice] => CoSTEER =>
+        -
+
+Extra feature:
+- cache
+
+
+File structure
+- ___init__.py: the entrance/agent of coder
+- evaluator.py
+- conf.py
+- exp.py: everything under the experiment, e.g.
+    - Task
+    - Experiment
+    - Workspace
+- test.py
+    - Each coder could be tested.
+"""
+
 import json
+import re
 from pathlib import Path
 from typing import Dict
 
@@ -14,9 +39,15 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledge,
 )
-from rdagent.components.coder.data_science.conf import DSCoderCoSTEERSettings
-from rdagent.components.coder.data_science.feature.eval import FeatureCoSTEEREvaluator
-from rdagent.components.coder.data_science.feature.exp import FeatureTask
+from rdagent.components.coder.data_science.conf import (
+    DSCoderCoSTEERSettings,
+    get_ds_env,
+)
+from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
+from rdagent.components.coder.data_science.raw_data_loader.eval import (
+    DataLoaderCoSTEEREvaluator,
+)
+from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -27,77 +58,67 @@ from rdagent.utils.agent.tpl import T
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 
-class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
+class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
     def implement_one_task(
         self,
-        target_task: FeatureTask,
+        target_task: DataLoaderTask,
         queried_knowledge: CoSTEERQueriedKnowledge | None = None,
         workspace: FBWorkspace | None = None,
         prev_task_feedback: CoSTEERSingleFeedback | None = None,
     ) -> dict[str, str]:
-        # return a workspace with "load_data.py", "spec/load_data.md" inside
-        # assign the implemented code to the new workspace.
-        feature_information_str = target_task.get_task_information()
+        competition_info = self.scen.get_scenario_all_desc()
+        runtime_environment = self.scen.get_runtime_environment()
+        data_folder_info = self.scen.processed_data_folder_description
+        pipeline_task_info = target_task.get_task_information()
 
-        # 1. query
         queried_similar_successful_knowledge = (
-            queried_knowledge.task_to_similar_task_successful_knowledge[feature_information_str]
+            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
             if queried_knowledge is not None
             else []
         )
         queried_former_failed_knowledge = (
-            queried_knowledge.task_to_former_failed_traces[feature_information_str]
-            if queried_knowledge is not None
-            else []
+            queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
         )
         queried_former_failed_knowledge = (
             [
                 knowledge
                 for knowledge in queried_former_failed_knowledge[0]
-                if knowledge.implementation.file_dict.get("feature.py") != workspace.file_dict.get("feature.py")
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
             ],
             queried_former_failed_knowledge[1],
         )
 
-        # 2. code
-        system_prompt = T(".prompts:feature_coder.system").r(
-            competition_info=self.scen.get_scenario_all_desc(),
-            task_desc=feature_information_str,
-            data_loader_code=workspace.file_dict.get("load_data.py"),
+        system_prompt = T(".prompts:pipeline_coder.system").r(
+            task_desc=pipeline_task_info,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),
+            runtime_environment=runtime_environment,
+            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
-        code_spec = (
-            workspace.file_dict["spec/feature.md"]
-            if DS_RD_SETTING.spec_enabled
-            else T("scenarios.data_science.share:component_spec.general").r(
-                spec=T("scenarios.data_science.share:component_spec.FeatureEng").r(),
-                test_code=(DIRNAME / "eval_tests" / "feature_test.txt").read_text(),
-            )
-        )
-        user_prompt = T(".prompts:feature_coder.user").r(
-            code_spec=code_spec,
-            latest_code=workspace.file_dict.get("feature.py"),
+        user_prompt = T(".prompts:pipeline_coder.user").r(
+            competition_info=competition_info,
+            folder_spec=data_folder_info,
+            latest_code=workspace.file_dict.get("main.py"),
             latest_code_feedback=prev_task_feedback,
         )
 
         for _ in range(5):
-            feature_code = PythonAgentOut.extract_output(
+            pipeline_code = PythonAgentOut.extract_output(
                 APIBackend().build_messages_and_create_chat_completion(
                     user_prompt=user_prompt,
                     system_prompt=system_prompt,
                 )
             )
-            if feature_code != workspace.file_dict.get("feature.py"):
+            if pipeline_code != workspace.file_dict.get("main.py"):
                 break
             else:
                 user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
         else:
-            raise CoderError("Failed to generate a new feature code.")
+            raise CoderError("Failed to generate a new pipeline code.")
 
         return {
-            "feature.py": feature_code,
+            "main.py": pipeline_code,
         }
 
     def assign_code_list_to_evo(self, code_list: list[dict[str, str]], evo):
@@ -117,7 +138,7 @@ class FeatureMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
-class FeatureCoSTEER(CoSTEER):
+class PipelineCoSTEER(CoSTEER):
     def __init__(
         self,
         scen: Scenario,
@@ -126,9 +147,9 @@ class FeatureCoSTEER(CoSTEER):
     ) -> None:
         settings = DSCoderCoSTEERSettings()
         eva = CoSTEERMultiEvaluator(
-            FeatureCoSTEEREvaluator(scen=scen), scen=scen
+            PipelineCoSTEEREvaluator(scen=scen), scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = FeatureMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        es = PipelineMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
         super().__init__(
             *args,
