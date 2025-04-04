@@ -261,7 +261,7 @@ class FBWorkspace(Workspace):
         """
         self.prepare()
         self.inject_files(**self.file_dict)
-        stdout, return_code = env.run_ret_code(entry, str(self.workspace_path))
+        stdout, return_code = env.run_ret_code(entry, str(self.workspace_path), env={"PYTHONPATH": "./"})
         return (
             shrink_text(
                 filter_redundant_text(stdout),
