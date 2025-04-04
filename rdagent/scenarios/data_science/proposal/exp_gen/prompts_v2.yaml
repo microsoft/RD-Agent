@@ -158,8 +158,8 @@ task_gen:
 
     Your final output should strictly adhere to the following JSON format. 
     {
-      "task_design": [Partial Response Format 1],
-      {% if workflow_check %}"workflow_update": [Partial Response Format 2], {% endif %}
+      "task_design": ---The dict corresponding to task output format---,
+      {% if workflow_check %}"workflow_update": ---A string corresponding to workflow description--- {% endif %}
     }
     
   user: |-
