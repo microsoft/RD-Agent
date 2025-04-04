@@ -9,7 +9,7 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.log.ui.conf import UI_SETTING
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import deque
 from rdagent.log.ui.ds_trace import load_times
 
@@ -29,6 +29,7 @@ def get_exec_time(stdout_p: Path):
 
     return None
 
+@st.cache_data(persist=True)
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     summarys = {}
     for lf in log_folders:
@@ -58,7 +59,19 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             else:
                 v["exec_time"] = None
             v["stdout"] = ", ".join([i for i in v["stdout"] if i])
-
+            
+            times_info = load_times(Path(lf) / k)
+            exp_gen_time = timedelta()
+            coding_time = timedelta()
+            running_time = timedelta()
+            for time_info in times_info.values():
+                exp_gen_time += time_info[0].end - time_info[0].start
+                coding_time += time_info[1].end - time_info[1].start
+                if len(time_info) > 2:
+                    running_time += time_info[2].end - time_info[2].start
+            v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
+            v["coding_time"] = str(coding_time).split(".")[0]
+            v["running_time"] = str(running_time).split(".")[0]
             # 调整实验名字
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
@@ -72,6 +85,9 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
         columns=[
             "Competition",
             "Exec Time",
+            "Exp Gen",
+            "Coding",
+            "Running",
             "Total Loops",
             "Successful Final Decision",
             "Made Submission",
@@ -118,6 +134,9 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
         base_df.loc[k, "Exec Time"] = v["exec_time"]
+        base_df.loc[k, "Exp Gen"] = v["exp_gen_time"]
+        base_df.loc[k, "Coding"] = v["coding_time"]
+        base_df.loc[k, "Running"] = v["running_time"]
         base_df.loc[k, "Total Loops"] = loop_num
         if loop_num == 0:
             base_df.loc[k] = "N/A"

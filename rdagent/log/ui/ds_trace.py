@@ -66,7 +66,7 @@ def load_times(log_path: Path):
     return convert_defaultdict_to_dict(times)
 
 
-@st.cache_data
+@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
