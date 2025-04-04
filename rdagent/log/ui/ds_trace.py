@@ -482,12 +482,15 @@ def summarize_data():
         def comp_stat_func(x: pd.DataFrame):
             total_num = x.shape[0]
             valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
+            success_num = x[x["Feedback"] == "✅"].shape[0]
             avg_e_loops = x["e-loops"].mean()
             return pd.Series(
                 {
                     "Loop Num": total_num,
                     "Valid Loop": valid_num,
+                    "Success Loop": success_num,
                     "Valid Rate": round(valid_num / total_num * 100, 2),
+                    "Success Rate": round(success_num / total_num * 100, 2),
                     "Avg e-loops": round(avg_e_loops, 2),
                 }
             )
@@ -495,12 +498,16 @@ def summarize_data():
         st1, st2 = st.columns([1, 1])
 
         # component statistics
-        comp_df = df.loc[:, ["Component", "Running Score (test)", "e-loops"]].groupby("Component").apply(comp_stat_func)
+        comp_df = df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops"]].groupby("Component").apply(comp_stat_func)
         comp_df.loc["Total"] = comp_df.sum()
         comp_df.loc["Total", "Valid Rate"] = round(
             comp_df.loc["Total", "Valid Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
         )
+        comp_df.loc["Total", "Success Rate"] = round(
+            comp_df.loc["Total", "Success Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
+        )
         comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
+        comp_df["Success Rate"] = comp_df["Success Rate"].apply(lambda x: f"{x}%")
         comp_df.loc["Total", "Avg e-loops"] = round(df["e-loops"].mean(), 2)
         st2.markdown("### Component Statistics")
         st2.dataframe(comp_df)
