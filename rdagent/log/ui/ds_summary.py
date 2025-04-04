@@ -9,7 +9,25 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.log.ui.conf import UI_SETTING
+from datetime import datetime
+from collections import deque
 
+
+def get_exec_time(stdout_p: Path):
+    with stdout_p.open("r") as f:
+        first_line = next(f).strip()
+        last_line = deque(f, maxlen=1).pop().strip()
+
+        # Extract timestamps from the lines
+        first_time_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", first_line)
+        last_time_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}:\d{2})", last_line)
+
+        if first_time_match and last_time_match:
+            first_time = datetime.fromisoformat(first_time_match.group(1))
+            last_time = datetime.fromisoformat(last_time_match.group(1))
+            return pd.Timedelta(last_time - first_time)
+
+    return None
 
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     summarys = {}
@@ -36,6 +54,9 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
                     v["stdout"].append("LLM Retry")
                 if "Traceback (most recent call last):" in stdout[-10000:]:
                     v["stdout"].append("Code Error")
+                v["exec_time"] = get_exec_time(stdout_p)
+            else:
+                v["exec_time"] = None
             v["stdout"] = ", ".join([i for i in v["stdout"] if i])
 
             # 调整实验名字
@@ -50,6 +71,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     base_df = pd.DataFrame(
         columns=[
             "Competition",
+            "Exec Time",
             "Total Loops",
             "Successful Final Decision",
             "Made Submission",
@@ -60,7 +82,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Silver",
             "Gold",
             "Any Medal",
-            "Best Medal",
+            "Best Result",
             "SOTA Exp",
             "Ours - Base",
             "Ours vs Base",
@@ -83,23 +105,30 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
+        base_df.loc[k, "Exec Time"] = v["exec_time"]
         base_df.loc[k, "Total Loops"] = loop_num
         if loop_num == 0:
             base_df.loc[k] = "N/A"
         else:
             base_df.loc[k, "Successful Final Decision"] = v["success_loop_num"]
             base_df.loc[k, "Made Submission"] = v["made_submission_num"]
+            if v["made_submission_num"] > 0:
+                base_df.loc[k, "Best Result"] = "made_submission"
             base_df.loc[k, "Valid Submission"] = v["valid_submission_num"]
+            if v["valid_submission_num"] > 0:
+                base_df.loc[k, "Best Result"] = "valid_submission"
             base_df.loc[k, "Above Median"] = v["above_median_num"]
+            if v["above_median_num"] > 0:
+                base_df.loc[k, "Best Result"] = "above_median"
             base_df.loc[k, "Bronze"] = v["bronze_num"]
             if v["bronze_num"] > 0:
-                base_df.loc[k, "Best Medal"] = "bronze"
+                base_df.loc[k, "Best Result"] = "bronze"
             base_df.loc[k, "Silver"] = v["silver_num"]
             if v["silver_num"] > 0:
-                base_df.loc[k, "Best Medal"] = "silver"
+                base_df.loc[k, "Best Result"] = "silver"
             base_df.loc[k, "Gold"] = v["gold_num"]
             if v["gold_num"] > 0:
-                base_df.loc[k, "Best Medal"] = "gold"
+                base_df.loc[k, "Best Result"] = "gold"
             base_df.loc[k, "Any Medal"] = v["get_medal_num"]
 
             baseline_score = None
@@ -235,9 +264,9 @@ def all_summarize_win():
         != "0 (0.0%)"
     ).sum()
     total_stat.name = "总体统计(%)"
-    total_stat.loc["Bronze"] = base_df["Best Medal"].value_counts().get("bronze", 0)
-    total_stat.loc["Silver"] = base_df["Best Medal"].value_counts().get("silver", 0)
-    total_stat.loc["Gold"] = base_df["Best Medal"].value_counts().get("gold", 0)
+    total_stat.loc["Bronze"] = base_df["Best Result"].value_counts().get("bronze", 0)
+    total_stat.loc["Silver"] = base_df["Best Result"].value_counts().get("silver", 0)
+    total_stat.loc["Gold"] = base_df["Best Result"].value_counts().get("gold", 0)
     total_stat = total_stat / base_df.shape[0] * 100
 
     # SOTA Exp 统计
