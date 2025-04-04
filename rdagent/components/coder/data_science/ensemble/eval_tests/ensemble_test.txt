@@ -128,5 +128,10 @@ assert model_set_in_scores == set({{model_names}}).union({"ensemble"}), (
 assert score_df.index.is_unique, "The scores dataframe has duplicate model names."
 assert score_df.columns.tolist() == ["{{metric_name}}"], f"The column names of the scores dataframe should be ['{{metric_name}}'], but is '{score_df.columns.tolist()}'"
 
+# Check for NaN values in score_df
+assert not score_df.isnull().values.any(), (
+    f"The scores dataframe contains NaN values at the following locations:\n{score_df[score_df.isnull().any(axis=1)]}"
+)
+
 
 print("Ensemble test end.")

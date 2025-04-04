@@ -82,6 +82,12 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
+                # Check if scores contain NaN (values)
+                if score_df.isnull().values.any():
+                    nan_locations = score_df[score_df.isnull().any(axis=1)]
+                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+                    score_ret_code = 1
+
             except Exception as e:
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
