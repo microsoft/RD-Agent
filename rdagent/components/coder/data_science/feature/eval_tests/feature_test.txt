@@ -28,10 +28,22 @@ X_loaded = deepcopy(X)
 y_loaded = deepcopy(y)
 X_test_loaded = deepcopy(X_test)
 
+import sys
+import reprlib
+from joblib.memory import MemorizedFunc
+
+
+def get_original_code(func):
+    if isinstance(func, MemorizedFunc):
+        return func.func.__code__
+    return func.__code__
+
+
 def debug_info_print(func):
     def wrapper(*args, **kwargs):
+        original_code = get_original_code(func)
         def local_trace(frame, event, arg):
-            if event == "return" and frame.f_code == func.__code__:
+            if event == "return" and frame.f_code == original_code:
                 print("\n" + "="*20 + "Running feat_eng code, local variable values:" + "="*20)
                 for k, v in frame.f_locals.items():
                     printed = aRepr.repr(v)

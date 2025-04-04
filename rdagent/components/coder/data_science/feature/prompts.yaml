@@ -39,10 +39,15 @@ feature_coder:
     ```python
     {{ data_loader_code }}
     ```
-    3. **Additional Guidance:**
+    4. **Additional Guidance:**
       - If a previous attempt exists, improve upon it without repeating mistakes.
       - If errors indicate a missing file, find a way to download it or implement an alternative solution.
       - You should avoid using logging module to output information in your generated code, and instead use the print() function.
+    5. You should use the following cache decorator to cache the results of the function:
+    ```python
+    from joblib import Memory
+    memory = Memory(location='/tmp/cache', verbose=0)
+    @memory.cache```
 
     ## Output Format
     {% if out_spec %}
