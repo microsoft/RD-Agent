@@ -273,7 +273,7 @@ component_gen:
     {{ component_desc }}
 
     Please generate the output in JSON format following the format below:
-    {{ component_output_format }}
+    {% include "scenarios.data_science.proposal.exp_gen.prompts:output_format.component" %}
 
   user: |-
     Here's the former SOTA experiments and their feedbacks:

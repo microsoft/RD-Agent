@@ -113,8 +113,7 @@ class DSProposalV1ExpGen(ExpGen):
                     f"[{key}] {value}"
                     for key, value in T("scenarios.data_science.share:component_description").template.items()
                 ]
-            ),
-            component_output_format=T(".prompts:output_format.component").r(),
+            )
         )
 
         component_user_prompt = T(".prompts:component_gen.user").r(
