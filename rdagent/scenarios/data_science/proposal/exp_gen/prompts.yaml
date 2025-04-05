@@ -308,7 +308,7 @@ hypothesis_specification: |-
 output_format:
   component: |-
     {
-      "reason": "The reason why you choose this component. Based on the current status and former trials, why this component is the most promising one to focus on.",
+      "reason": "The reason why you chose this component. Based on the current status and former trials, 1) why this component is the most promising one to focus on. 2) Why the component is the right place to apply your idea."
       "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
     }
   hypothesis: |-
