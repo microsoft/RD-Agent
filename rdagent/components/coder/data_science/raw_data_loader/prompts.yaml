@@ -313,8 +313,8 @@ data_loader_coder:
     {% endif %}
     
     {% if queried_similar_successful_knowledge|length != 0 %}
-    --------- Successful Implementations for Similar Models ---------
-    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Model {{ loop.index }}:=====
+    --------- Successful Implementation Examples for Similar Task ---------
+    ====={% for similar_successful_knowledge in queried_similar_successful_knowledge %} Example {{ loop.index }}:=====
     {{ similar_successful_knowledge.target_task.get_task_information() }}
     =====Code:=====
     {{ similar_successful_knowledge.implementation.all_codes }}
