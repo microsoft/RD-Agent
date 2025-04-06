@@ -10,7 +10,6 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
 
-
 class NaiveExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         sota_exp = trace.sota_experiment()
