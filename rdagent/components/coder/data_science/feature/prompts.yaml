@@ -48,6 +48,10 @@ feature_coder:
     from joblib import Memory
     memory = Memory(location='/tmp/cache', verbose=0)
     @memory.cache```
+    6. Coding tricks:
+      - If the input consists of a batch of file paths and you need to modify the file contents to complete your feature engineering task, you can accomplish your feature engineering task by modifying these files and creating new files in a subfolder within "/tmp/cache" (this path is persistent, otherwise you may lose your created file). Then the new file paths are returned.
+
+    {% include "scenarios.data_science.share:guidelines.coding" %}
 
     ## Output Format
     {% if out_spec %}
