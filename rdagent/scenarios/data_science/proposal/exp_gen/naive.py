@@ -1,6 +1,7 @@
 """
 The most naive way to design experiments
 """
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
@@ -20,7 +21,9 @@ class NaiveExpGen(ExpGen):
         )
 
         sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-DS_RD_SETTING.max_trace_hist:]
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            -DS_RD_SETTING.max_trace_hist :
+        ]
 
         sota_exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=sota_exp_feedback_list,
@@ -48,10 +51,13 @@ class NaiveExpGen(ExpGen):
             retry_n=5,
         )
 
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=DSHypothesis(
-            component="Pipeline",
-            hypothesis=task.description,
-        ))
+        exp = DSExperiment(
+            pending_tasks_list=[[task]],
+            hypothesis=DSHypothesis(
+                component="Pipeline",
+                hypothesis=task.description,
+            ),
+        )
 
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
