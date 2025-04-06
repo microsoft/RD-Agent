@@ -81,7 +81,7 @@ task_gen:
     {% endif %}
 
     {% if hypothesis is none %}
-    Since we are at the very beginning stage, we plan to start with a very simple task. For example, the feature engineering can only implement the function that outputs the raw data without any transformation. The model component uses a suitable model for the task but a relatively simple one. The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
+    Since we are at the very beginning stage, we plan to start with a very simple task. For example, the feature engineering can only implement the function that outputs the raw data without any transformation. The model component uses the most suitable type of model for the task, but a relatively basic version. The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
     {% else %}
     The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
     1. The target hypothesis you are targeting to generate {{ targets }} for.

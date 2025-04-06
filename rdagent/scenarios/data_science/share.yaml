@@ -78,7 +78,9 @@ component_description:
     - When focusing on this component, the corresponding editing files will be: "feature.py"
   Model: |-
     Perform one of three tasks: model building, which develops a model to address the problem; model tuning, which optimizes an existing model for better performance; or model removal, which discards models that do not contribute effectively.
-    Handle data operations or augmentations that are closely tied to the model framework, such as tools provided by PyTorch or TensorFlow.
+    Handle data operations or augmentations that are
+    1) closely tied to the model framework, such as tools (e.g., PyTorch's Datasets & DataLoaders) provided by PyTorch or TensorFlow.
+    2) cannot be applied in feature engineering ("feature.py") without modifying the model code.
     - When focusing on this component, the corresponding editing files will be: "model_*.py"
   Ensemble: |-
     Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
@@ -199,6 +201,7 @@ component_spec:
         ```python
         available_models = [f for f in os.listdir('.') if f.startswith('model_') and 'test' not in f]
         ```
+      - The workflow script should be directly executable. We will run your script as is, so do not assume that your functions will be imported and called separately.
     2. Feature Engineering
       - The feature engineering should be called only once. For example:
         `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
@@ -296,3 +299,7 @@ component_spec:
     8. Submission File:
       - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
       - Present the required submission format explicitly and ensure the output adheres to it.
+
+guidelines:
+  coding: |-
+    You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.
