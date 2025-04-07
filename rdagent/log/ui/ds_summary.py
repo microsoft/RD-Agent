@@ -34,13 +34,18 @@ def get_exec_time(stdout_p: Path):
 # @st.cache_data(persist=True)
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     summarys = {}
+    with st.sidebar:
+        if st.toggle("show 24h summary", key="show_hours_summary"):
+            sn = "summary_24h.pkl"
+        else:
+            sn = "summary.pkl"
     for lf in log_folders:
-        if not (Path(lf) / "summary.pkl").exists():
+        if not (Path(lf) / sn).exists():
             st.warning(
-                f"No summary file found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf}`"
+                f"{sn} not found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf} --hours=<>`"
             )
         else:
-            summarys[lf] = pd.read_pickle(Path(lf) / "summary.pkl")
+            summarys[lf] = pd.read_pickle(Path(lf) / sn)
 
     if len(summarys) == 0:
         return {}, pd.DataFrame()
