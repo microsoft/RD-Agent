@@ -18,7 +18,10 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
         # the initial workspace or the successful new version after coding
         self.experiment_workspace = FBWorkspace()
         self.pending_tasks_list = pending_tasks_list
+
         self.format_check_result = None
+        # this field is optional. It  is not none only when we have a format checker. Currently, only following cases are supported.
+        # - mle-bench
 
     def is_ready_to_run(self) -> bool:
         """
