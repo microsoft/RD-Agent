@@ -58,7 +58,7 @@ COMPONENT_TASK_MAPPING = {
 
 
 class DSProposalV1ExpGen(ExpGen):
-    def gen(self, trace: DSTrace, max_trace_hist: int) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         # Guidelines:
         # System prompts: Shared condition you are facing
         # - scenario description: `scenario_desc`
@@ -84,7 +84,9 @@ class DSProposalV1ExpGen(ExpGen):
         )  # we use file_dict for hitting the cache when replicate the experiment in another machine.
 
         sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-max_trace_hist:]
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            -DS_RD_SETTING.max_trace_hist :
+        ]
         all_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="all")
         trace_component_to_feedback_df = pd.DataFrame(columns=["component", "hypothesis", "decision"])
         for index, (exp, fb) in enumerate(all_exp_feedback_list):
@@ -414,7 +416,7 @@ class DSProposalV2ExpGen(ExpGen):
             exp.pending_tasks_list.append([workflow_task])
         return exp
 
-    def gen(self, trace: DSTrace, max_trace_hist: int, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
@@ -431,7 +433,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[-max_trace_hist:]
+        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+            -DS_RD_SETTING.max_trace_hist :
+        ]
 
         sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=sota_exp_feedback_list,
