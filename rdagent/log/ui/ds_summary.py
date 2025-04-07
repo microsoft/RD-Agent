@@ -47,18 +47,10 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     for lf, s in summarys.items():
         for k, v in s.items():
             stdout_p = Path(lf) / f"{k}.stdout"
-            v["stdout"] = []
             if stdout_p.exists():
-                # stdout = stdout_p.read_text()
-                stdout = ""
-                if "Retrying" in stdout:
-                    v["stdout"].append("LLM Retry")
-                if "Traceback (most recent call last):" in stdout[-10000:]:
-                    v["stdout"].append("Code Error")
                 v["exec_time"] = get_exec_time(stdout_p)
             else:
                 v["exec_time"] = None
-            v["stdout"] = ", ".join([i for i in v["stdout"] if i])
             
             exp_gen_time = timedelta()
             coding_time = timedelta()
@@ -112,7 +104,6 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Silver Threshold",
             "Gold Threshold",
             "Medium Threshold",
-            "stdout",
         ],
         index=summary.keys(),
     )
@@ -180,7 +171,6 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
             base_df.loc[k, "Gold Threshold"] = v.get("gold_threshold", None)
             base_df.loc[k, "Medium Threshold"] = v.get("median_threshold", None)
-            base_df.loc[k, "stdout"] = v["stdout"]
 
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
     base_df = base_df.astype(
@@ -276,8 +266,22 @@ def all_summarize_win():
         return
 
     base_df = percent_df(base_df)
-    st.dataframe(base_df)
+    base_df.insert(0, "Select", True)
+    base_df = st.data_editor(
+        base_df,
+        column_config={
+            "Select": st.column_config.CheckboxColumn(
+                "Select",
+                default=True,
+                help="Stat this trace.",
+                disabled=False
+            ),
+        },
+        disabled=(col for col in base_df.columns if col not in ["Select"]),
+    )
     st.markdown("Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`")
+    
+    base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
     total_stat = (
         base_df[
