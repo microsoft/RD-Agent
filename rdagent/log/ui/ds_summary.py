@@ -29,7 +29,7 @@ def get_exec_time(stdout_p: Path):
 
     return None
 
-@st.cache_data(persist=True)
+# @st.cache_data(persist=True)
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     summarys = {}
     for lf in log_folders:
@@ -60,15 +60,16 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
                 v["exec_time"] = None
             v["stdout"] = ", ".join([i for i in v["stdout"] if i])
             
-            times_info = load_times(Path(lf) / k)
             exp_gen_time = timedelta()
             coding_time = timedelta()
             running_time = timedelta()
-            for time_info in times_info.values():
-                exp_gen_time += time_info[0].end - time_info[0].start
-                coding_time += time_info[1].end - time_info[1].start
-                if len(time_info) > 2:
-                    running_time += time_info[2].end - time_info[2].start
+            if state.show_times_info:
+                times_info = load_times(Path(lf) / k)
+                for time_info in times_info.values():
+                    exp_gen_time += time_info[0].end - time_info[0].start
+                    coding_time += time_info[1].end - time_info[1].start
+                    if len(time_info) > 2:
+                        running_time += time_info[2].end - time_info[2].start
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
             v["running_time"] = str(running_time).split(".")[0]
@@ -213,7 +214,7 @@ def num2percent(num: int, total: int, show_origin=True) -> str:
 
 
 def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
-    base_df = df.astype("object", copy=True)
+    base_df = df.replace("N/A", pd.NA).astype("object", copy=True)
     for k in base_df.index:
         loop_num = int(base_df.loc[k, "Total Loops"])
         if loop_num != 0:
@@ -337,37 +338,40 @@ def all_summarize_win():
         st.plotly_chart(fig)
 
     # write curve
-    for k, v in summary.items():
-        with st.container(border=True):
-            st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-            fc1, fc2 = st.columns(2)
-            tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
-            tdf = pd.Series(tscores, name="score")
-            f2 = px.line(tdf, markers=True, title="Test scores")
-            fc2.plotly_chart(f2, key=k)
-            try:
-                vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
+    st.subheader("Curves", divider="rainbow")
+    if st.toggle("Show Curves", key="show_curves"):
+        for k, v in summary.items():
+            with st.container(border=True):
+                st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
+                fc1, fc2 = st.columns(2)
+                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                tdf = pd.Series(tscores, name="score")
+                f2 = px.line(tdf, markers=True, title="Test scores")
+                fc2.plotly_chart(f2, key=k)
+                try:
+                    vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
 
-                if len(vscores) > 0:
-                    metric_name = list(vscores.values())[0].name
-                else:
-                    metric_name = "None"
+                    if len(vscores) > 0:
+                        metric_name = list(vscores.values())[0].name
+                    else:
+                        metric_name = "None"
 
-                vdf = pd.DataFrame(vscores)
-                vdf.columns = [f"loop {i}" for i in vdf.columns]
-                f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+                    vdf = pd.DataFrame(vscores)
+                    vdf.columns = [f"loop {i}" for i in vdf.columns]
+                    f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
 
-                fc1.plotly_chart(f1, key=f"{k}_v")
-            except Exception as e:
-                import traceback
+                    fc1.plotly_chart(f1, key=f"{k}_v")
+                except Exception as e:
+                    import traceback
 
-                st.markdown("- Error: " + str(e))
-                st.code(traceback.format_exc())
-                st.markdown("- Valid Scores: ")
-                # st.write({k: type(v) for k, v in v["valid_scores"].items()})
-                st.json(v["valid_scores"])
+                    st.markdown("- Error: " + str(e))
+                    st.code(traceback.format_exc())
+                    st.markdown("- Valid Scores: ")
+                    # st.write({k: type(v) for k, v in v["valid_scores"].items()})
+                    st.json(v["valid_scores"])
 
-
+with st.sidebar:
+    st.toggle("Show Times Info (Slowly)", key="show_times_info")
 with st.container(border=True):
     if st.toggle("近3天平均", key="show_3days"):
         days_summarize_win()

@@ -472,7 +472,10 @@ def summarize_data():
                 df.loc[loop, "Running Score (test)"] = "N/A"
 
             if "coding" in loop_data:
-                df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+                if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
+                    df.loc[loop, "e-loops"] = 0
+                else:
+                    df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
                 df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
             else:
@@ -577,12 +580,19 @@ with st.sidebar:
         elif day_srv == "srv3":
             state.log_folders = [re.sub(r"log\.srv\d*", "log.srv3", folder) for folder in state.log_folders]
 
-    state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
+    if "log_folder" in st.query_params:
+        state.log_folder = Path(st.query_params["log_folder"])
+    else:
+        state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
         folders = get_folders_sorted(state.log_folder)
-        st.selectbox(f"Select from :blue[**{state.log_folder.absolute()}**]", folders, key="log_path")
+        if "selection" in st.query_params:
+            default_index = folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
+        else:
+            default_index = 0
+        state.log_path = st.selectbox(f"Select from :blue[**{state.log_folder.absolute()}**]", folders, index=default_index)
 
         if st.button("Refresh Data"):
             if state.log_path is None:
@@ -607,6 +617,7 @@ with st.sidebar:
 # UI - Main
 if state.data["competition"]:
     st.title(state.data["competition"])
+    st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()
     if len(state.data) > 2:
         loop_id = st.slider("Loop", 0, len(state.data) - 2, 0)
