@@ -317,10 +317,6 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
-        # TODO use rule base or llm to rank the hypothesis
-        if pipeline:
-            problem_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
-
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
