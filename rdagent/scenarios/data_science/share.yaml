@@ -264,12 +264,13 @@ component_spec:
       - Never use sample submission as the test index, as it may not be the same as the test data. Use the test index file or test data source to get the test index.
       - For neural network models, use pytorch rather than tensorflow as the backend if possible.
       - For decision tree models, use xgboost or RandomForest rather than lightgbm as the backend if possible.
+      - For neural network models, it's always better to firstly try from a pretrained model and then fine-tune it rather than training from scratch.
 
     5. General Considerations:
       - Ensure scalability for large datasets.
       - Handle missing values and outliers appropriately (e.g., impute, remove, or replace).
       - Ensure consistency between feature data types and transformations.
-      - Prevent data leakage: Do not use information derived from the test set when transforming training data.     
+      - Prevent data leakage: Do not use information derived from the test set when transforming training data.
 
     6. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
@@ -283,6 +284,7 @@ component_spec:
       - The column names in `scores.csv` should be:
         - Model: The name of the model or ensemble strategy.
         - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.
+      - Validation metrics should be aligned across all ideas and implementations. Avoid proposing ideas that might affect the validation metrics and modifying the related code.
 
     8. Submission File:
       - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
