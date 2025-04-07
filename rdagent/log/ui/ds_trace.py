@@ -41,9 +41,16 @@ def extract_evoid(tag):
     return match.group(1) if match else None
 
 
+def convert_defaultdict_to_dict(d):
+    if isinstance(d, defaultdict):
+        d = {k: convert_defaultdict_to_dict(v) for k, v in d.items()}
+    return d
+
+
+@st.cache_data(persist=True)
 def load_times(log_path: Path):
     """加载时间数据"""
-    state.times = defaultdict(lambda: defaultdict(dict))
+    times = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
         if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
             li, fn = extract_loopid_func_name(msg.tag)
@@ -54,18 +61,14 @@ def load_times(log_path: Path):
             loop_obj_path = log_path / "__session__" / f"{li}" / "4_record"
             if loop_obj_path.exists():
                 try:
-                    state.times[li] = DataScienceRDLoop.load(loop_obj_path, do_truncate=False).loop_trace[li]
+                    times[li] = DataScienceRDLoop.load(loop_obj_path, do_truncate=False).loop_trace[li]
                 except Exception as e:
                     pass
 
-
-def convert_defaultdict_to_dict(d):
-    if isinstance(d, defaultdict):
-        d = {k: convert_defaultdict_to_dict(v) for k, v in d.items()}
-    return d
+    return convert_defaultdict_to_dict(times)
 
 
-@st.cache_data
+@st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
@@ -402,10 +405,12 @@ def summarize_data():
         df = pd.DataFrame(
             columns=[
                 "Component",
-                "Running Score",
+                "Running Score (valid)",
+                "Running Score (test)",
                 "Feedback",
                 "e-loops",
                 "Time",
+                "Exp Gen",
                 "Coding",
                 "Running",
                 "Start Time (UTC+8)",
@@ -417,8 +422,10 @@ def summarize_data():
         for loop in range(len(state.data) - 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
-            if state.times[loop]:
+            if loop in state.times and state.times[loop]:
                 df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
+                exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
+                df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
                 coding_time = state.times[loop][1].end - state.times[loop][1].start
                 df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
                 if len(state.times[loop]) > 2:
@@ -427,15 +434,21 @@ def summarize_data():
                 df.loc[loop, "Start Time (UTC+8)"] = state.times[loop][0].start + timedelta(hours=8)
                 df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
             if "running" in loop_data and "no_tag" in loop_data["running"]:
+                try:
+                    df.loc[loop, "Running Score (valid)"] = round(
+                        loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5
+                    )
+                except:
+                    df.loc[loop, "Running Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
                         state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
                         if state.data[loop]["mle_score"]["score"] is not None:
-                            df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                            df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
-                            df.loc[loop, "Running Score"] = "❌"
+                            df.loc[loop, "Running Score (test)"] = "❌"
                     else:
                         mle_score_path = (
                             replace_ep_path(loop_data["running"]["no_tag"].experiment_workspace.workspace_path)
@@ -445,24 +458,28 @@ def summarize_data():
                             mle_score_txt = mle_score_path.read_text()
                             state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
                             if state.data[loop]["mle_score"]["score"] is not None:
-                                df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                                df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                             else:
                                 state.data[loop]["mle_score"] = mle_score_txt
-                                df.loc[loop, "Running Score"] = "❌"
+                                df.loc[loop, "Running Score (test)"] = "❌"
                         except Exception as e:
                             state.data[loop]["mle_score"] = str(e)
-                            df.loc[loop, "Running Score"] = "❌"
+                            df.loc[loop, "Running Score (test)"] = "❌"
                 else:
                     if isinstance(state.data[loop]["mle_score"], dict):
-                        df.loc[loop, "Running Score"] = str(state.data[loop]["mle_score"]["score"])
+                        df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                     else:
-                        df.loc[loop, "Running Score"] = "❌"
+                        df.loc[loop, "Running Score (test)"] = "❌"
 
             else:
-                df.loc[loop, "Running Score"] = "N/A"
+                df.loc[loop, "Running Score (valid)"] = "N/A"
+                df.loc[loop, "Running Score (test)"] = "N/A"
 
             if "coding" in loop_data:
-                df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+                if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
+                    df.loc[loop, "e-loops"] = 0
+                else:
+                    df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
             if "feedback" in loop_data:
                 df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
             else:
@@ -471,13 +488,16 @@ def summarize_data():
 
         def comp_stat_func(x: pd.DataFrame):
             total_num = x.shape[0]
-            valid_num = x[x["Running Score"] != "N/A"].shape[0]
+            valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
+            success_num = x[x["Feedback"] == "✅"].shape[0]
             avg_e_loops = x["e-loops"].mean()
             return pd.Series(
                 {
                     "Loop Num": total_num,
                     "Valid Loop": valid_num,
+                    "Success Loop": success_num,
                     "Valid Rate": round(valid_num / total_num * 100, 2),
+                    "Success Rate": round(success_num / total_num * 100, 2),
                     "Avg e-loops": round(avg_e_loops, 2),
                 }
             )
@@ -485,22 +505,38 @@ def summarize_data():
         st1, st2 = st.columns([1, 1])
 
         # component statistics
-        comp_df = df.loc[:, ["Component", "Running Score", "e-loops"]].groupby("Component").apply(comp_stat_func)
+        comp_df = (
+            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops"]]
+            .groupby("Component")
+            .apply(comp_stat_func)
+        )
         comp_df.loc["Total"] = comp_df.sum()
         comp_df.loc["Total", "Valid Rate"] = round(
             comp_df.loc["Total", "Valid Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
         )
+        comp_df.loc["Total", "Success Rate"] = round(
+            comp_df.loc["Total", "Success Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
+        )
         comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
+        comp_df["Success Rate"] = comp_df["Success Rate"].apply(lambda x: f"{x}%")
         comp_df.loc["Total", "Avg e-loops"] = round(df["e-loops"].mean(), 2)
         st2.markdown("### Component Statistics")
         st2.dataframe(comp_df)
 
         # component time statistics
-        time_df = df.loc[:, ["Component", "Time", "Coding", "Running"]]
-        time_df = time_df.astype({"Time": "timedelta64[ns]", "Coding": "timedelta64[ns]", "Running": "timedelta64[ns]"})
+        time_df = df.loc[:, ["Component", "Time", "Exp Gen", "Coding", "Running"]]
+        time_df = time_df.astype(
+            {
+                "Time": "timedelta64[ns]",
+                "Exp Gen": "timedelta64[ns]",
+                "Coding": "timedelta64[ns]",
+                "Running": "timedelta64[ns]",
+            }
+        )
         st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
+        time_stat_df.loc[:, "Exp Gen(%)"] = time_stat_df["Exp Gen"] / time_stat_df["Time"] * 100
         time_stat_df.loc[:, "Coding(%)"] = time_stat_df["Coding"] / time_stat_df["Time"] * 100
         time_stat_df.loc[:, "Running(%)"] = time_stat_df["Running"] / time_stat_df["Time"] * 100
         time_stat_df = time_stat_df.map(lambda x: str(x).split(".")[0] if pd.notnull(x) else "0:00:00")
@@ -559,19 +595,30 @@ with st.sidebar:
         elif day_srv == "srv3":
             state.log_folders = [re.sub(r"log\.srv\d*", "log.srv3", folder) for folder in state.log_folders]
 
-    state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
+    if "log_folder" in st.query_params:
+        state.log_folder = Path(st.query_params["log_folder"])
+    else:
+        state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
         folders = get_folders_sorted(state.log_folder)
-        st.selectbox(f"Select from :blue[**{state.log_folder.absolute()}**]", folders, key="log_path")
+        if "selection" in st.query_params:
+            default_index = (
+                folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
+            )
+        else:
+            default_index = 0
+        state.log_path = st.selectbox(
+            f"Select from :blue[**{state.log_folder.absolute()}**]", folders, index=default_index
+        )
 
         if st.button("Refresh Data"):
             if state.log_path is None:
                 st.toast("Please select a log path first!", icon="🟡")
                 st.stop()
 
-            load_times(state.log_folder / state.log_path)
+            state.times = load_times(state.log_folder / state.log_path)
             state.data, state.llm_data = load_data(state.log_folder / state.log_path)
             st.rerun()
     st.toggle("Show LLM Log", key="show_llm_log")
@@ -589,6 +636,7 @@ with st.sidebar:
 # UI - Main
 if state.data["competition"]:
     st.title(state.data["competition"])
+    st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()
     if len(state.data) > 2:
         loop_id = st.slider("Loop", 0, len(state.data) - 2, 0)
