@@ -10,6 +10,7 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
+from rdagent.components.knowledge_management.idea_pool import DSKnowledgeGraph
 from rdagent.core.proposal import ExpGen
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -241,6 +242,10 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
+    def _init_idea_pool(self) -> None:
+        if not hasattr(self, 'idea_pool'):
+            self.idea_pool = DSKnowledgeGraph(path=DS_RD_SETTING.researcher_path)
+
     def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -317,6 +322,9 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
+        if pipeline:
+            hypothesis_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
+
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
@@ -413,6 +421,7 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        # Prepare
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
@@ -441,6 +450,9 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=failed_exp_feedback_list,
             success=False,
         )
+        ## Load idea pool
+        if DS_RD_SETTING.enable_researcher:
+            self._init_idea_pool()
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -457,7 +469,11 @@ class DSProposalV2ExpGen(ExpGen):
         )
         all_problems = {**scen_problems, **fb_problems}
 
-        # Step 2: Propose hypothesis based on the identified problems
+        # Step 1.5: Sample ideas from idea pool
+        if DS_RD_SETTING.enable_researcher:
+            sample_ideas = self.idea_pool.sample_ideas(all_problems)
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
