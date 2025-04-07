@@ -93,13 +93,13 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Any Medal",
             "Best Result",
             "SOTA Exp",
+            "SOTA Exp Score",
+            "Baseline Score",
             "Ours - Base",
             "Ours vs Base",
             "Ours vs Bronze",
             "Ours vs Silver",
             "Ours vs Gold",
-            "SOTA Exp Score",
-            "Baseline Score",
             "Bronze Threshold",
             "Silver Threshold",
             "Gold Threshold",
@@ -204,7 +204,7 @@ def num2percent(num: int, total: int, show_origin=True) -> str:
 
 
 def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
-    base_df = df.replace("N/A", pd.NA).astype("object", copy=True)
+    base_df = df.copy(deep=True)
     for k in base_df.index:
         loop_num = int(base_df.loc[k, "Total Loops"])
         if loop_num != 0:
@@ -268,7 +268,40 @@ def all_summarize_win():
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     base_df = st.data_editor(
-        base_df,
+        base_df.style.applymap(
+            lambda x: "background-color: #F0F8FF",
+            subset=[
+                "Baseline Score",
+                "Bronze Threshold",
+                "Silver Threshold",
+                "Gold Threshold",
+                "Medium Threshold"
+            ],
+        ).applymap(
+            lambda x: "background-color: #FFFFE0",
+            subset=[
+                "Ours - Base",
+                "Ours vs Base",
+                "Ours vs Bronze",
+                "Ours vs Silver",
+                "Ours vs Gold",
+            ]
+        ).applymap(
+            lambda x: "background-color: #E6E6FA",
+            subset=[
+                "Exec Time",
+                "Exp Gen",
+                "Coding",
+                "Running",
+            ]
+        ).applymap(
+            lambda x: "background-color: #F0FFF0",
+            subset=[
+                "Best Result",
+                "SOTA Exp",
+                "SOTA Exp Score",
+            ]
+        ),
         column_config={
             "Select": st.column_config.CheckboxColumn(
                 "Select",
@@ -281,6 +314,7 @@ def all_summarize_win():
     )
     st.markdown("Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`")
     
+    # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
     total_stat = (
