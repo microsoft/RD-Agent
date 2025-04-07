@@ -1,5 +1,5 @@
 """
-The motiviation of the utils is for environment management
+The motivation of the utils is for environment management
 
 Tries to create uniform environment for the agent to run;
 - All the code and data is expected included in one folder
@@ -210,8 +210,8 @@ class Env(Generic[ASpecificEnvConf]):
         target_folder = Path(RD_AGENT_SETTINGS.pickle_cache_folder_path_str) / f"utils.env.run"
         target_folder.mkdir(parents=True, exist_ok=True)
 
-        # we must add the information of data (beyound code) into the key.
-        # Otherwise, all commands operating on data will become invalue (e.g. rm -r submission.csv)
+        # we must add the information of data (beyond code) into the key.
+        # Otherwise, all commands operating on data will become invalid (e.g. rm -r submission.csv)
         # So we recursively walk in the folder and add the sorted relative filename list as part of the key.
         data_key = []
         for path in Path(local_path).rglob("*"):
@@ -292,7 +292,7 @@ ASpecificLocalConf = TypeVar("ASpecificLocalConf", bound=LocalConf)
 
 class LocalEnv(Env[ASpecificLocalConf]):
     """
-    Sometimes local environment may be more convinient for testing
+    Sometimes local environment may be more convenient for testing
     """
 
     def prepare(self) -> None: ...
@@ -311,6 +311,9 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = rp
+            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
+            Path(cache_path).mkdir(parents=True, exist_ok=True)
+            volumes[cache_path] = "/tmp/cache"
         for lp, rp in running_extra_volume.items():
             volumes[lp] = rp
 
@@ -605,9 +608,13 @@ class DockerEnv(Env[DockerConf]):
         if local_path is not None:
             local_path = os.path.abspath(local_path)
             volumes[local_path] = {"bind": self.conf.mount_path, "mode": "rw"}
+
         if self.conf.extra_volumes is not None:
             for lp, rp in self.conf.extra_volumes.items():
                 volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
+            cache_path = "/tmp/sample" if "/sample/" in "".join(self.conf.extra_volumes.keys()) else "/tmp/full"
+            Path(cache_path).mkdir(parents=True, exist_ok=True)
+            volumes[cache_path] = {"bind": "/tmp/cache", "mode": "rw"}
         for lp, rp in running_extra_volume.items():
             volumes[lp] = {"bind": rp, "mode": self.conf.extra_volume_mode}
 

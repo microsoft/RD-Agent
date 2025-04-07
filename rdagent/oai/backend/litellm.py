@@ -88,6 +88,7 @@ class LiteLLMAPIBackend(APIBackend):
             stream=LITELLM_SETTINGS.chat_stream,
             temperature=LITELLM_SETTINGS.chat_temperature,
             max_tokens=LITELLM_SETTINGS.chat_max_tokens,
+            reasoning_effort=LITELLM_SETTINGS.reasoning_effort,
             **kwargs,
         )
         logger.info(

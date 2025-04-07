@@ -13,6 +13,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -67,7 +68,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
 
-        stdout = implementation.execute(env=env, entry=f"python main.py")
+        stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
 
         # remove EDA part
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
@@ -79,6 +80,14 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         if not score_fp.exists():
             score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
+            implementation.execute(env=env, entry="python -m coverage json -o coverage.json")
+            coverage_report_path = implementation.workspace_path / "coverage.json"
+            if coverage_report_path.exists():
+                used_files = set(json.loads(coverage_report_path.read_text())["files"].keys())
+                coverage_report_path.unlink()
+                logger.info(f"All used scripts: {used_files}")
+                if len(used_files) == 1:
+                    score_check_text += f"\n[Error] The only used script is {used_files}.\nPlease check if you have implemented entry point in 'main.py'."
         else:
             try:
                 score_df = pd.read_csv(score_fp, index_col=0)
@@ -96,6 +105,12 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_ret_code = 1
+
+                # Check if scores contain NaN (values)
+                if score_df.isnull().values.any():
+                    nan_locations = score_df[score_df.isnull().any(axis=1)]
+                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
                     score_ret_code = 1
 
             except Exception as e:
