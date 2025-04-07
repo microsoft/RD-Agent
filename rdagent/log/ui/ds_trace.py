@@ -40,10 +40,12 @@ def extract_evoid(tag):
     match = re.search(r"\.evo_loop_(\d+)\.", tag)
     return match.group(1) if match else None
 
+
 def convert_defaultdict_to_dict(d):
     if isinstance(d, defaultdict):
         d = {k: convert_defaultdict_to_dict(v) for k, v in d.items()}
     return d
+
 
 @st.cache_data(persist=True)
 def load_times(log_path: Path):
@@ -62,7 +64,7 @@ def load_times(log_path: Path):
                     times[li] = DataScienceRDLoop.load(loop_obj_path, do_truncate=False).loop_trace[li]
                 except Exception as e:
                     pass
-    
+
     return convert_defaultdict_to_dict(times)
 
 
@@ -433,7 +435,9 @@ def summarize_data():
                 df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
-                    df.loc[loop, "Running Score (valid)"] = round(loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5)
+                    df.loc[loop, "Running Score (valid)"] = round(
+                        loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5
+                    )
                 except:
                     df.loc[loop, "Running Score (valid)"] = "❌"
                 if "mle_score" not in state.data[loop]:
@@ -501,7 +505,11 @@ def summarize_data():
         st1, st2 = st.columns([1, 1])
 
         # component statistics
-        comp_df = df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops"]].groupby("Component").apply(comp_stat_func)
+        comp_df = (
+            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops"]]
+            .groupby("Component")
+            .apply(comp_stat_func)
+        )
         comp_df.loc["Total"] = comp_df.sum()
         comp_df.loc["Total", "Valid Rate"] = round(
             comp_df.loc["Total", "Valid Loop"] / comp_df.loc["Total", "Loop Num"] * 100, 2
@@ -517,7 +525,14 @@ def summarize_data():
 
         # component time statistics
         time_df = df.loc[:, ["Component", "Time", "Exp Gen", "Coding", "Running"]]
-        time_df = time_df.astype({"Time": "timedelta64[ns]", "Exp Gen": "timedelta64[ns]", "Coding": "timedelta64[ns]", "Running": "timedelta64[ns]"})
+        time_df = time_df.astype(
+            {
+                "Time": "timedelta64[ns]",
+                "Exp Gen": "timedelta64[ns]",
+                "Coding": "timedelta64[ns]",
+                "Running": "timedelta64[ns]",
+            }
+        )
         st1.markdown("### Time Statistics")
         time_stat_df = time_df.groupby("Component").sum()
         time_stat_df.loc["Total"] = time_stat_df.sum()
@@ -589,10 +604,14 @@ with st.sidebar:
     else:
         folders = get_folders_sorted(state.log_folder)
         if "selection" in st.query_params:
-            default_index = folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
+            default_index = (
+                folders.index(st.query_params["selection"]) if st.query_params["selection"] in folders else 0
+            )
         else:
             default_index = 0
-        state.log_path = st.selectbox(f"Select from :blue[**{state.log_folder.absolute()}**]", folders, index=default_index)
+        state.log_path = st.selectbox(
+            f"Select from :blue[**{state.log_folder.absolute()}**]", folders, index=default_index
+        )
 
         if st.button("Refresh Data"):
             if state.log_path is None:

@@ -1,5 +1,7 @@
 import math
 import re
+from collections import deque
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -9,9 +11,8 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.log.ui.conf import UI_SETTING
-from datetime import datetime, timedelta
-from collections import deque
 from rdagent.log.ui.ds_trace import load_times
+
 
 def get_exec_time(stdout_p: Path):
     with stdout_p.open("r") as f:
@@ -28,6 +29,7 @@ def get_exec_time(stdout_p: Path):
             return pd.Timedelta(last_time - first_time)
 
     return None
+
 
 # @st.cache_data(persist=True)
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
@@ -51,7 +53,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
                 v["exec_time"] = get_exec_time(stdout_p)
             else:
                 v["exec_time"] = None
-            
+
             exp_gen_time = timedelta()
             coding_time = timedelta()
             running_time = timedelta()
@@ -270,14 +272,9 @@ def all_summarize_win():
     base_df = st.data_editor(
         base_df.style.applymap(
             lambda x: "background-color: #F0F8FF",
-            subset=[
-                "Baseline Score",
-                "Bronze Threshold",
-                "Silver Threshold",
-                "Gold Threshold",
-                "Medium Threshold"
-            ],
-        ).applymap(
+            subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+        )
+        .applymap(
             lambda x: "background-color: #FFFFE0",
             subset=[
                 "Ours - Base",
@@ -285,35 +282,32 @@ def all_summarize_win():
                 "Ours vs Bronze",
                 "Ours vs Silver",
                 "Ours vs Gold",
-            ]
-        ).applymap(
+            ],
+        )
+        .applymap(
             lambda x: "background-color: #E6E6FA",
             subset=[
                 "Exec Time",
                 "Exp Gen",
                 "Coding",
                 "Running",
-            ]
-        ).applymap(
+            ],
+        )
+        .applymap(
             lambda x: "background-color: #F0FFF0",
             subset=[
                 "Best Result",
                 "SOTA Exp",
                 "SOTA Exp Score",
-            ]
+            ],
         ),
         column_config={
-            "Select": st.column_config.CheckboxColumn(
-                "Select",
-                default=True,
-                help="Stat this trace.",
-                disabled=False
-            ),
+            "Select": st.column_config.CheckboxColumn("Select", default=True, help="Stat this trace.", disabled=False),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
     st.markdown("Ours vs Base: `math.exp(abs(math.log(sota_exp_score / baseline_score)))`")
-    
+
     # 统计选择的比赛
     base_df = base_df[base_df["Select"]]
     st.markdown(f"**统计的比赛数目: :red[{base_df.shape[0]}]**")
@@ -407,6 +401,7 @@ def all_summarize_win():
                     st.markdown("- Valid Scores: ")
                     # st.write({k: type(v) for k, v in v["valid_scores"].items()})
                     st.json(v["valid_scores"])
+
 
 with st.sidebar:
     st.toggle("Show Times Info (Slowly)", key="show_times_info")
