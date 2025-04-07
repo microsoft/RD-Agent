@@ -19,8 +19,8 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
-from rdagent.core.proposal import ExperimentFeedback, LatestCKPSelector
-from rdagent.scenarios.data_science.proposal.exp_gen.select import GlobalGreedyCKPSelector
+from rdagent.core.proposal import ExperimentFeedback
+from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector, SOTAJumpCKPSelector
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -50,7 +50,8 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        self.ckp_selector = LatestCKPSelector()
+        # self.ckp_selector = LatestCKPSelector()
+        self.ckp_selector = SOTAJumpCKPSelector()
         self.exp_gen = DSExpGen(scen)
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
