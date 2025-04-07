@@ -20,6 +20,7 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
 from rdagent.core.proposal import ExperimentFeedback, LatestCKPSelector
+from rdagent.scenarios.data_science.proposal.exp_gen.select import GlobalGreedyCKPSelector
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
