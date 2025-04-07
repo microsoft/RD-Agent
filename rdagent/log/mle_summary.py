@@ -1,8 +1,9 @@
 import json
 import re
 from collections import defaultdict
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
+
 import fire
 import pandas as pd
 
@@ -94,7 +95,7 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         sota_exp_score = None
         sota_exp_rank = None
         grade_output = None
-        
+
         start_time = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             if start_time and hours and msg.timestamp > start_time + timedelta(hours=hours):
