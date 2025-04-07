@@ -78,9 +78,6 @@ describe: # some template to describe some object
     ### Experiment index: {{ loop.index }}
     The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
 
-    ### Task of experiment
-    {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
-
     {% if exp_and_feedback[0].result is none %}
     Experiment score: Running buggy
     {% else %}
