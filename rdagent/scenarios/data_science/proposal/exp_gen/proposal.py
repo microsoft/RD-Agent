@@ -471,7 +471,8 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_researcher:
-            sample_ideas = self.idea_pool.sample_ideas(all_problems)
+            sampled_ideas = self.idea_pool.sample_ideas(all_problems)
+            # TODO: merge all_problems and sampled_ideas
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
@@ -482,6 +483,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
             pipeline=pipeline,
+            researcher=DS_RD_SETTING.enable_researcher
         )
         if not pipeline:
             sota_exp_model_file_count = len(
