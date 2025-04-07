@@ -98,11 +98,11 @@ class DSProposalV1ExpGen(ExpGen):
 
         sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=sota_exp_feedback_list,
-            success=True,
+            type="success",
         )
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=failed_exp_feedback_list,
-            success=False,
+            type="failure",
         )
 
         # Generate component using template with proper context
@@ -262,8 +262,9 @@ class DSProposalV2ExpGen(ExpGen):
     def identify_feedback_problem(
         self,
         scenario_desc: str,
-        sota_exp_feedback_list_desc: str,
-        failed_exp_feedback_list_desc: str,
+        # sota_exp_feedback_list_desc: str,
+        # failed_exp_feedback_list_desc: str,
+        exp_feedback_list_desc: str,
         sota_exp_desc: str,
         pipeline: bool,
     ) -> Dict:
@@ -273,8 +274,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
-            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            # sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+            # failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -289,8 +291,9 @@ class DSProposalV2ExpGen(ExpGen):
         self,
         component_desc: str,
         scenario_desc: str,
-        sota_exp_feedback_list_desc: str,
-        failed_exp_feedback_list_desc: str,
+        exp_feedback_list_desc: str,
+        # sota_exp_feedback_list_desc: str,
+        # failed_exp_feedback_list_desc: str,
         sota_exp_desc: str,
         problems: list,
         pipeline: bool,
@@ -303,8 +306,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
-            sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
-            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            # sota_exp_and_feedback_list_desc=sota_exp_feedback_list_desc,
+            # failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=json.dumps(problems, indent=2),
         )
@@ -428,18 +432,23 @@ class DSProposalV2ExpGen(ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
-        sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
-            -DS_RD_SETTING.max_trace_hist :
-        ]
+        # sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
+        # failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
+        #     -DS_RD_SETTING.max_trace_hist :
+        # ]
 
-        sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=sota_exp_feedback_list,
-            success=True,
-        )
-        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=failed_exp_feedback_list,
-            success=False,
+        # sota_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+        #     exp_and_feedback_list=sota_exp_feedback_list,
+        #     type="success",
+        # )
+        # failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+        #     exp_and_feedback_list=failed_exp_feedback_list,
+        #     type="failure",
+        # )
+
+        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            type="all",
         )
 
         # Step 1: Identify problems
@@ -450,8 +459,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
-            sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
-            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            # sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
+            # failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             pipeline=pipeline,
         )
@@ -461,8 +471,9 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
-            sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
-            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            # sota_exp_feedback_list_desc=sota_exp_feedback_list_desc,
+            # failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
             pipeline=pipeline,
