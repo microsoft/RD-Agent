@@ -435,8 +435,8 @@ def summarize_data():
                 df.loc[loop, "End Time (UTC+8)"] = state.times[loop][-1].end + timedelta(hours=8)
             if "running" in loop_data and "no_tag" in loop_data["running"]:
                 try:
-                    df.loc[loop, "Running Score (valid)"] = round(
-                        loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5
+                    df.loc[loop, "Running Score (valid)"] = str(
+                        round(loop_data["running"]["no_tag"].result.loc["ensemble"].iloc[0], 5)
                     )
                 except:
                     df.loc[loop, "Running Score (valid)"] = "❌"
