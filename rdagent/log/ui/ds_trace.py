@@ -405,6 +405,9 @@ def summarize_data():
         df = pd.DataFrame(
             columns=[
                 "Component",
+                "Hypothesis",
+                "Reason",
+                "Others",
                 "Running Score (valid)",
                 "Running Score (test)",
                 "Feedback",
@@ -422,6 +425,13 @@ def summarize_data():
         for loop in range(len(state.data) - 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
+            df.loc[loop, "Hypothesis"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.hypothesis
+            df.loc[loop, "Reason"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.reason
+            df.at[loop, "Others"] = {
+                k: v
+                for k, v in loop_data["direct_exp_gen"]["no_tag"].hypothesis.__dict__.items()
+                if k not in ["component", "hypothesis", "reason"]
+            }
             if loop in state.times and state.times[loop]:
                 df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
                 exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
@@ -484,7 +494,17 @@ def summarize_data():
                 df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
             else:
                 df.loc[loop, "Feedback"] = "N/A"
-        st.dataframe(df)
+        st.dataframe(df[df.columns[~df.columns.isin(["Hypothesis", "Reason", "Others"])]])
+        st.markdown("### Hypotheses Table")
+        st.dataframe(
+            df.iloc[:, :8],
+            row_height=100,
+            column_config={
+                "Others": st.column_config.JsonColumn(width="medium"),
+                "Reason": st.column_config.TextColumn(width="medium"),
+                "Hypothesis": st.column_config.TextColumn(width="large"),
+            },
+        )
 
         def comp_stat_func(x: pd.DataFrame):
             total_num = x.shape[0]
