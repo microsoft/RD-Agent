@@ -56,12 +56,17 @@ def load_times(log_path: Path):
         for p in session_path.iterdir()
         if p.is_dir() and p.name.isdigit()
     )
-    rdloop_obj_p = session_path / str(max_li) / "4_record"
-    if not rdloop_obj_p.exists():
-        rdloop_obj_p = session_path / str(max_li-1) / "4_record"
+    max_step = max(
+        int(p.name.split("_")[0])
+        for p in (session_path / str(max_li)).iterdir()
+        if p.is_file()
+    )
+    rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
     
-    rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
-
+    try:
+        rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
+    except:
+        rd_times = {}
     return rd_times
 
 
@@ -433,8 +438,9 @@ def summarize_data():
                 df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
                 exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
                 df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
-                coding_time = state.times[loop][1].end - state.times[loop][1].start
-                df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
+                if len(state.times[loop]) > 1:
+                    coding_time = state.times[loop][1].end - state.times[loop][1].start
+                    df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
                 if len(state.times[loop]) > 2:
                     running_time = state.times[loop][2].end - state.times[loop][2].start
                     df.loc[loop, "Running"] = str(running_time).split(".")[0]

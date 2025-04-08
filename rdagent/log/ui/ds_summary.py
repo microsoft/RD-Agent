@@ -67,7 +67,8 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             for time_info in times_info.values():
                 all_time += sum((ti.end - ti.start for ti in time_info), timedelta())
                 exp_gen_time += time_info[0].end - time_info[0].start
-                coding_time += time_info[1].end - time_info[1].start
+                if len(time_info) > 1:
+                    coding_time += time_info[1].end - time_info[1].start
                 if len(time_info) > 2:
                     running_time += time_info[2].end - time_info[2].start
             v["exec_time"] = str(all_time).split(".")[0]
