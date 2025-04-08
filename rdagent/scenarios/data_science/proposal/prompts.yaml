@@ -297,6 +297,11 @@ component_gen:
 
     # Here are the suggested ideas for you to reference:
     {{ idea }}
+
+    # Important Note:
+    Some of these ideas are extracted from a high-performing solution specifically for this competition. 
+    These ideas have been proven effective and should be given higher priority when considering improvements.
+    Ideas that start with "From aide's best solution" in their reason are particularly valuable.
   
     All former trials and their feedbacks are provided in pandas DataFrame format. The user has already made several hypothesis on this scenario and did several evaluation on them:
     {{ component_and_feedback_df }}
