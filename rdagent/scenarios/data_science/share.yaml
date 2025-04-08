@@ -301,9 +301,9 @@ component_spec:
   
     7. Metric Calculation and Storage:
       - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
-      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand.
+      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of 5-fold cross-validation in `scores.csv` on each model.
       - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
-      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters.
+      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
       - The column names in `scores.csv` should be:
         - Model: The name of the model or ensemble strategy.
         - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.

@@ -14,8 +14,8 @@ exp_feedback:
     Step 2: Analyze Experiment Results (If Submission is Correct)
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
-    2. Compare with previous best results.
-    3. SOTA results are the best outcomes we have achieved in this scenario.
+    2. Compare the validation score named "ensemble" with previous "ensemble" best results. You don't need to compare individual model scores.
+    3. SOTA results are the best outcomes we have achieved in this scenario. 
 
     Step 3: Review of Evaluation Alignment with Competition Requirements (listed in scenario)
     As a reviewer, you should verify whether the current experiment strictly adheres to the evaluation requirements specified in the competition scenario description:
