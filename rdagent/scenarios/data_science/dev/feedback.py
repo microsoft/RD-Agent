@@ -62,7 +62,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
         if DS_RD_SETTING.rule_base_eval:
             if sota_exp:
                 if cur_score > sota_score:
-                    return ExperimentFeedback(
+                    return HypothesisFeedback(
                         observations="The current score bigger than the SOTA score.",
                         hypothesis_evaluation="The current score is bigger than the SOTA score.",
                         new_hypothesis="No new hypothesis provided",
