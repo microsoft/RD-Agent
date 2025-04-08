@@ -14,7 +14,7 @@ from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
 
 
-def get_exec_time(stdout_p: Path):
+def get_script_time(stdout_p: Path):
     with stdout_p.open("r") as f:
         first_line = next(f).strip()
         last_line = deque(f, maxlen=1).pop().strip()
@@ -55,20 +55,22 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
         for k, v in s.items():
             stdout_p = Path(lf) / f"{k}.stdout"
             if stdout_p.exists():
-                v["exec_time"] = get_exec_time(stdout_p)
+                v["script_time"] = get_script_time(stdout_p)
             else:
-                v["exec_time"] = None
+                v["script_time"] = None
 
             exp_gen_time = timedelta()
             coding_time = timedelta()
             running_time = timedelta()
-            if state.show_times_info:
-                times_info = load_times(Path(lf) / k)
-                for time_info in times_info.values():
-                    exp_gen_time += time_info[0].end - time_info[0].start
-                    coding_time += time_info[1].end - time_info[1].start
-                    if len(time_info) > 2:
-                        running_time += time_info[2].end - time_info[2].start
+            all_time = timedelta()
+            times_info = load_times(Path(lf) / k)
+            for time_info in times_info.values():
+                all_time += sum((ti.end - ti.start for ti in time_info), timedelta())
+                exp_gen_time += time_info[0].end - time_info[0].start
+                coding_time += time_info[1].end - time_info[1].start
+                if len(time_info) > 2:
+                    running_time += time_info[2].end - time_info[2].start
+            v["exec_time"] = str(all_time).split(".")[0]
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
             v["running_time"] = str(running_time).split(".")[0]
@@ -84,6 +86,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     base_df = pd.DataFrame(
         columns=[
             "Competition",
+            "Script Time",
             "Exec Time",
             "Exp Gen",
             "Coding",
@@ -132,6 +135,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
+        base_df.loc[k, "Script Time"] = v["script_time"]
         base_df.loc[k, "Exec Time"] = v["exec_time"]
         base_df.loc[k, "Exp Gen"] = v["exp_gen_time"]
         base_df.loc[k, "Coding"] = v["coding_time"]
@@ -312,6 +316,7 @@ def all_summarize_win():
             .apply(
                 lambda col: col.map(lambda val: "background-color: #E6E6FA"),
                 subset=[
+                    "Script Time",
                     "Exec Time",
                     "Exp Gen",
                     "Coding",
@@ -435,8 +440,6 @@ def all_summarize_win():
                     st.json(v["valid_scores"])
 
 
-with st.sidebar:
-    st.toggle("Show Times Info (Slowly)", key="show_times_info")
 with st.container(border=True):
     if st.toggle("近3天平均", key="show_3days"):
         days_summarize_win()
