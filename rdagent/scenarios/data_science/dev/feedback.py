@@ -70,7 +70,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                         decision=True if self.scen.metric_direction else False,
                     )
                 elif cur_score < sota_score:
-                    return ExperimentFeedback(
+                    return HypothesisFeedback(
                         observations="The current score smaller than the SOTA score.",
                         hypothesis_evaluation="The current score is smaller than the SOTA score.",
                         new_hypothesis="No new hypothesis provided",
@@ -78,7 +78,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                         decision=False if self.scen.metric_direction else True,
                     )
                 else:
-                    return ExperimentFeedback(
+                    return HypothesisFeedback(
                         observations="The current score equals to the SOTA score.",
                         hypothesis_evaluation="The current score equals to the SOTA score.",
                         new_hypothesis="No new hypothesis provided",
