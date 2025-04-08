@@ -67,9 +67,14 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 # Check model names (index)
                 # in Pipeline task, we only check ensemble in scores.csv
                 if DS_RD_SETTING.coder_on_whole_pipeline:
-                    if "ensemble" not in model_set_in_scores:
-                        score_check_text += f"\n[Error] The score dataframe doesn't contain the ensemble model.\nscore_df is:\n{score_df}"
+                    if not score_df.index.is_unique:
+                        score_check_text += "\n[Error] The score dataframe contains duplicate model names."
                         score_ret_code = 1
+                    if "ensemble" not in model_set_in_scores:
+                        score_check_text += "\n[Error] The score dataframe doesn't contain the ensemble model."
+                        score_ret_code = 1
+                    if score_ret_code != 0:
+                        score_check_text += f"The score_df is:\n{score_df}"
                 else:
                     if model_set_in_scores != model_set_in_folder.union({"ensemble"}):
                         score_check_text += f"\n[Error] The scores dataframe does not contain the correct model names as index.\ncorrect model names are: {model_set_in_folder.union({'ensemble'})}\nscore_df is:\n{score_df}"

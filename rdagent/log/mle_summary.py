@@ -1,6 +1,7 @@
 import json
 import re
 from collections import defaultdict
+from datetime import timedelta
 from pathlib import Path
 
 import fire
@@ -61,7 +62,13 @@ def save_all_grade_info(log_folder):
             save_grade_info(log_trace_path)
 
 
-def summarize_folder(log_folder: Path):
+def summarize_folder(log_folder: Path, hours: int | None = None):
+    """
+    Summarize the log folder and save the summary as a pickle file.
+    Args:
+        log_folder (Path): The path to the log folder (contains many log traces).
+        hours (int | None): The number of hours to stat. If None, stat all.
+    """
     log_folder = Path(log_folder)
     stat = defaultdict(dict)
     for log_trace_path in log_folder.iterdir():  # One log trace
@@ -88,10 +95,15 @@ def summarize_folder(log_folder: Path):
         sota_exp_score = None
         sota_exp_rank = None
         grade_output = None
+
+        start_time = None
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
+            if start_time and hours and msg.timestamp > start_time + timedelta(hours=hours):
+                break
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
                     stat[log_trace_path.name]["competition"] = msg.content
+                    start_time = msg.timestamp
 
                     # get threshold scores
                     workflowexp = FBWorkspace()
@@ -185,10 +197,14 @@ def summarize_folder(log_folder: Path):
                 "median_threshold": median_threshold,
             }
         )
-    if (log_folder / "summary.pkl").exists():
-        (log_folder / "summary.pkl").unlink()
-        print("Old summary file removed.")
-    pd.to_pickle(stat, log_folder / "summary.pkl")
+
+    # Save the summary
+    save_name = f"summary_{hours}h.pkl" if hours else "summary.pkl"
+    save_p = log_folder / save_name
+    if save_p.exists():
+        save_p.unlink()
+        print(f"Old {save_name} removed.")
+    pd.to_pickle(stat, save_p)
 
 
 # {

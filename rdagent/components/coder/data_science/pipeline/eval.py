@@ -71,11 +71,14 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 model_set_in_scores = set(score_df.index)
 
                 # Check model names (index)
-                if "ensemble" not in model_set_in_scores:
-                    score_check_text += (
-                        f"\n[Error] The score dataframe doesn't contain the ensemble model.\nscore_df is:\n{score_df}"
-                    )
+                if not score_df.index.is_unique:
+                    score_check_text += "\n[Error] The score dataframe contains duplicate model names."
                     score_ret_code = 1
+                if "ensemble" not in model_set_in_scores:
+                    score_check_text += "\n[Error] The score dataframe doesn't contain the ensemble model."
+                    score_ret_code = 1
+                if score_ret_code != 0:
+                    score_check_text += f"The score_df is:\n{score_df}"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
