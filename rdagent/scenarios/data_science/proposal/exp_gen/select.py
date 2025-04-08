@@ -9,7 +9,7 @@ class LatestCKPSelector(CheckpointSelector):
     -`(-1, )` represents starting from the latest trial in the trace
     """
 
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
         return (-1,)
 
@@ -24,7 +24,7 @@ class GlobalGreedyCKPSelector(CheckpointSelector):
     not implemented yet
     """
 
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
         return (-1,)
 
@@ -35,7 +35,7 @@ class LocalGreedyCKPSelector(CheckpointSelector):
     not implemented yet
     """
 
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
         return (-1,)
 
@@ -50,7 +50,7 @@ class BugBufferCKPSelector(CheckpointSelector):
         self.bug_count = 0
         self.BUG_BUFFER_SIZE = 10
 
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
         if self.bug_count < self.BUG_BUFFER_SIZE:
             return (-1,)
@@ -60,7 +60,7 @@ class BugBufferCKPSelector(CheckpointSelector):
 
 
 class RandomCKPSelector(CheckpointSelector):
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
         """
         random selector: select the trial randomly
         not implemented yet
@@ -69,7 +69,7 @@ class RandomCKPSelector(CheckpointSelector):
 
 
 class BuggyCKPSelector(CheckpointSelector):
-    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
         """
         buggy selector: select the most recent trial with buggy performance
         not implemented yet

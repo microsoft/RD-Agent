@@ -20,7 +20,7 @@ class DSExpGen(ExpGen):
     def __init__(self, scen: DataScienceScen) -> None:
         super().__init__(scen)
 
-    def gen(self, trace: DSTrace, selection: tuple[int, ...] | None = (-1,)) -> DSExperiment:
+    def gen(self, trace: DSTrace, selection: tuple[int, ...]= (-1,)) -> DSExperiment:
 
         # set the current selection for the trace
         # handy design:dynamically change the "current selection" attribute of the trace, and we donot need to pass selection as an argument to other functions

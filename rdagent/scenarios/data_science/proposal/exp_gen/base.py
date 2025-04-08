@@ -71,7 +71,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Should be called when the hist is changed.
         """
 
-        if len(self.hist) == 0 or self.get_current_selection() is None:
+        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
             # the node we are going to add is the first node of hist / root node of a new sub-trace
             self.dag_parent.append(())
 
@@ -112,8 +112,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
     def collect_all_ancestors(
         self,
-        selection: tuple[int, ...] | None = (-1,),
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]] | None:
+        selection: tuple[int, ...] = (-1,),
+    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Collect all ancestors of the given selection.
         The return list follows the order of [root->...->parent->current_node].
