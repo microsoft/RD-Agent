@@ -297,50 +297,44 @@ def all_summarize_win():
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     base_df = st.data_editor(
-        base_df.style
-            .apply(
-                lambda col: col.map(lambda val: "background-color: #F0F8FF"),
-                subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
-                axis=0
-            )
-            .apply(
-                lambda col: col.map(lambda val: "background-color: #FFFFE0"),
-                subset=[
-                    "Ours - Base",
-                    "Ours vs Base",
-                    "Ours vs Bronze",
-                    "Ours vs Silver",
-                    "Ours vs Gold",
-                ],
-                axis=0
-            )
-            .apply(
-                lambda col: col.map(lambda val: "background-color: #E6E6FA"),
-                subset=[
-                    "Script Time",
-                    "Exec Time",
-                    "Exp Gen",
-                    "Coding",
-                    "Running",
-                ],
-                axis=0
-            )
-            .apply(
-                lambda col: col.map(lambda val: "background-color: #F0FFF0"),
-                subset=[
-                    "Best Result",
-                    "SOTA Exp",
-                    "SOTA Exp Score",
-                ],
-                axis=0
-            ),
+        base_df.style.apply(
+            lambda col: col.map(lambda val: "background-color: #F0F8FF"),
+            subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+            axis=0,
+        )
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #FFFFE0"),
+            subset=[
+                "Ours - Base",
+                "Ours vs Base",
+                "Ours vs Bronze",
+                "Ours vs Silver",
+                "Ours vs Gold",
+            ],
+            axis=0,
+        )
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #E6E6FA"),
+            subset=[
+                "Script Time",
+                "Exec Time",
+                "Exp Gen",
+                "Coding",
+                "Running",
+            ],
+            axis=0,
+        )
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #F0FFF0"),
+            subset=[
+                "Best Result",
+                "SOTA Exp",
+                "SOTA Exp Score",
+            ],
+            axis=0,
+        ),
         column_config={
-            "Select": st.column_config.CheckboxColumn(
-                "Select",
-                default=True,
-                help="Stat this trace.",
-                disabled=False
-            ),
+            "Select": st.column_config.CheckboxColumn("Select", default=True, help="Stat this trace.", disabled=False),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
