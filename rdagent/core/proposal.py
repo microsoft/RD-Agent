@@ -153,13 +153,6 @@ class CheckpointSelector:
         """
 
 
-class LatestCKPSelector(CheckpointSelector):
-    """
-    -`(-1, )` represents starting from the latest trial in the trace
-    """
-    def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
-
-        return (-1, )
     
     
     

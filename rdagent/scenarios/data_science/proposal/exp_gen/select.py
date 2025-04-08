@@ -4,13 +4,14 @@ from rdagent.core.proposal import Trace, CheckpointSelector
 # # TODO: more advanced selector
 # # TODO/Discussion: load selector function here or define selector class in `proposal.py`?
 
-# class LatestCKPSelector(CheckpointSelector):
-#     """
-#     -`(-1, )` represents starting from the latest trial in the trace
-#     """
-#     def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
 
-#         return (-1, )
+class LatestCKPSelector(CheckpointSelector):
+    """
+    -`(-1, )` represents starting from the latest trial in the trace
+    """
+    def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
+
+        return (-1, )
 
 # TODO: implement these selectors and more
 
