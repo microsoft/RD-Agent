@@ -62,7 +62,9 @@ class DSExperiment2Feedback(Experiment2Feedback):
             eda_output = None
         else:
             eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc(eda_output=eda_output))
+        system_prompt = T(".prompts:exp_feedback.system").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
+        )
         user_prompt = T(".prompts:exp_feedback.user").r(
             sota_desc=sota_desc,
             cur_exp=exp,

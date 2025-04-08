@@ -68,7 +68,7 @@ class DSDraftExpGen(ExpGen):
         last_successful_exp = trace.last_successful_exp()
         # typecheck on the last successful exp, should be DSExperiment
         if not isinstance(last_successful_exp, DSExperiment):
-            eda_output = None   
+            eda_output = None
         else:
             eda_output = last_successful_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)

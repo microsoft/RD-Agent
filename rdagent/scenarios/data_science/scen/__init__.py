@@ -115,7 +115,7 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
-            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours", 
+            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
 

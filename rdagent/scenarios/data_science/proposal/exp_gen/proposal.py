@@ -70,10 +70,10 @@ class DSProposalV1ExpGen(ExpGen):
         sota_exp = trace.sota_experiment()
         if not isinstance(sota_exp, DSExperiment):
             eda_output = None
-        else:   
+        else:
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
-        
+
         assert sota_exp is not None, "SOTA experiment is not provided."
         last_exp = trace.last_exp()
         # exp_and_feedback = trace.hist[-1]
