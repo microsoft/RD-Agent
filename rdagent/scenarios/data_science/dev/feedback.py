@@ -77,6 +77,9 @@ class DSExperiment2Feedback(Experiment2Feedback):
             )
         )
 
+        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+            exp.result = None
+
         # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
         # `new_hypothesis` should not exist in the feedback.
         return HypothesisFeedback(

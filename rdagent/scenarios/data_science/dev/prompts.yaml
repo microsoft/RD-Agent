@@ -15,7 +15,20 @@ exp_feedback:
     Your feedback should:
     1. Confirm if the current result supports or refutes the hypothesis.
     2. Compare with previous best results.
-    3. SOTA results are the best outcomes we have achieved in this scenario. 
+    3. SOTA results are the best outcomes we have achieved in this scenario.
+
+    Step 3: Review of Evaluation Alignment with Competition Requirements (listed in scenario)
+    As a reviewer, you should verify whether the current experiment strictly adheres to the evaluation requirements specified in the competition scenario description:
+    - Confirm that the validation metric precisely matches the official Kaggle competition evaluation metric detailed in the scenario.
+    - Ensure validation and test predictions are generated under identical conditions:
+      - Consistent preprocessing, normalization rules, tokenization methods, and post-processing logic.
+      - Check carefully that no simpler approximations or shortcuts (such as simpler rules or direct lookups) are applied exclusively to the validation predictions.
+    - Investigate thoroughly for subtle data leakage or inadvertent overfitting:
+      - Ensure no fold-specific models, heuristics, or condition-specific strategies differ across folds.
+      - No implicit or explicit use of test set distribution or information in the validation decisions.
+    - Check corner cases rigorously to ensure alignment between validation and test behavior
+
+    If the current experiment deviates from any aspect listed above in the competition's scenario description, explicitly document the identified discrepancy and set `"Evaluation Aligned With Task": "no"` (`"Replace Best Result"` should obviously be set as "no" as well). Clearly state the specific reason(s) for non-alignment.
   
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
@@ -23,6 +36,7 @@ exp_feedback:
       "Observations": "A detailed summary of the experimental results, including the description and scores for both SOTA and the current experiment. Limit this field to no more than three sentences, focusing on concrete data rather than general statements.",
       "Feedback for Hypothesis": "A brief evaluation of the original hypothesis that highlights specific data points or trends which support or contradict it. Limit this field to two sentences.",
       "Reasoning": "A clear explanation of why the current result performs better or worse than SOTA. This should reference both the SOTA description score and the current experiment's description score, providing insight into the factors contributing to the observed differences. Limit this field to one to three sentences.",
+      "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no"
     }
 
@@ -38,7 +52,7 @@ exp_feedback:
     {{ cur_exp.pending_tasks_list[0][0].get_task_information() }}
 
     {% if cur_exp.hypothesis %}
-    the experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
+    The experiment is designed based on hypothesis: {{ cur_exp.hypothesis }}
     Modified code according to hypothesis:
     {% else %}
     Modified code:
