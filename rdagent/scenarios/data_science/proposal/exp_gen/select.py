@@ -28,7 +28,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
 
     def get_selection(self, trace: Trace) -> tuple[int , ...] | None:
 
-        current_trace = self.retrieve_search_list(search_type="ancestors")
+        current_trace = trace.retrieve_search_list(search_type="ancestors")
         if len(trace.hist) > 0 and len(current_trace) > self.SOTA_COUNT_WINDOW:
             all_exp_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="ancestors")
             # sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
