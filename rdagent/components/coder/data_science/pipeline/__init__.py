@@ -43,7 +43,7 @@ from rdagent.components.coder.data_science.conf import (
     DSCoderCoSTEERSettings,
     get_ds_env,
 )
-from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
+from rdagent.components.coder.data_science.pipeline.eval import ModelDumpEvaluator, PipelineCoSTEEREvaluator
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -146,8 +146,12 @@ class PipelineCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         settings = DSCoderCoSTEERSettings()
+        eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        if DS_RD_SETTING.enable_model_dump:
+            eval_l.append(ModelDumpEvaluator(scen=scen))
+
         eva = CoSTEERMultiEvaluator(
-            PipelineCoSTEEREvaluator(scen=scen), scen=scen
+            single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = PipelineMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 
