@@ -3,6 +3,7 @@ from typing import Dict
 
 import pandas as pd
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import (
     Experiment2Feedback,
     ExperimentFeedback,
@@ -58,6 +59,32 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
                 f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
             )
+        if DS_RD_SETTING.rule_base_eval:
+            if sota_exp:
+                if cur_score > sota_score:
+                    return ExperimentFeedback(
+                        observations="The current score bigger than the SOTA score.",
+                        hypothesis_evaluation="The current score is bigger than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is bigger than the SOTA score.",
+                        decision=True if self.scen.metric_direction else False,
+                    )
+                elif cur_score < sota_score:
+                    return ExperimentFeedback(
+                        observations="The current score smaller than the SOTA score.",
+                        hypothesis_evaluation="The current score is smaller than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is smaller than the SOTA score.",
+                        decision=False if self.scen.metric_direction else True,
+                    )
+                else:
+                    return ExperimentFeedback(
+                        observations="The current score equals to the SOTA score.",
+                        hypothesis_evaluation="The current score equals to the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score equals to the SOTA score.",
+                        decision=False,
+                    )
 
         system_prompt = T(".prompts:exp_feedback.system").r(scenario=self.scen.get_scenario_all_desc())
         user_prompt = T(".prompts:exp_feedback.user").r(
