@@ -132,9 +132,10 @@ class Env(Generic[ASpecificEnvConf]):
                     entry, local_path, env, running_extra_volume=running_extra_volume, remove_timestamp=remove_timestamp
                 )
                 end = time.time()
-                if end - start >= self.conf.running_timeout_period:
-                    print(
-                        f"[red]The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed.[/red]"
+                logger.info(f"Running time: {end - start} seconds")
+                if end - start + 1 >= self.conf.running_timeout_period:
+                    logger.warning(
+                        f"The running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                     )
                     log_output += f"\n\nThe running time exceeds {self.conf.running_timeout_period} seconds, so the process is killed."
                 return log_output, return_code

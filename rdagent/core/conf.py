@@ -39,7 +39,7 @@ class ExtendedBaseSettings(BaseSettings):
                 env_prefix=base_cls.model_config.get("env_prefix"),
                 env_nested_delimiter=base_cls.model_config.get("env_nested_delimiter"),
             )
-            for base_cls in base_iter(cast(type[ExtendedBaseSettings], settings_cls))
+            for base_cls in base_iter(cast("type[ExtendedBaseSettings]", settings_cls))
         ]
         return init_settings, env_settings, *parent_env_settings, dotenv_settings, file_secret_settings
 
