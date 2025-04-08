@@ -104,7 +104,6 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         )
         stdout += "\n" + submission_check_out
 
-
         eda_output = implementation.file_dict.get("EDA.md", None)
 
         system_prompt = T(".prompts:pipeline_eval.system").r(

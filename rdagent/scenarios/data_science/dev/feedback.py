@@ -58,7 +58,7 @@ class DSExperiment2Feedback(Experiment2Feedback):
                 f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
                 f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
             )
-            
+
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
         system_prompt = T(".prompts:exp_feedback.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
