@@ -216,14 +216,8 @@ direct_exp_gen:
     }
 
   user: |-
-    # All former successful experiments and their feedbacks
-    Below are all the experiments that surpassed the previous SOTA solutions along with their feedback. The current SOTA solution is the latest among these successful trials:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    {% if failed_exp_and_feedback_list_desc %}
-    # Several latest failed experiments and their feedbacks
-    The user has conducted several recent experiments on this scenario, but they either encountered execution errors or failed to surpass the SOTA performance. The details of these failed experiments and their results are as follows:
-    {{ failed_exp_and_feedback_list_desc }}
+    # All former experiments and their feedbacks
+    {{ exp_and_feedback_list_desc }}
     
     {% if targets == "Model" %}
     Based on the feedback from previous experiment failures, if the failure was due to exceeding the time limit or memory constraints, start with the smallest model size or choose alternative algorithms or methods with significantly lower time or space complexity instead of using a neural network. You can then iteratively refine and optimize the model in later stages.
@@ -243,8 +237,6 @@ direct_exp_gen:
       b. If you decide to add a new model, specify the type of model you would add and generate a new hypothesis related to the new model.
 
     When building the model, if the runtime permits, consider incorporating hyperparameter search methods to improve performance.
-    {% endif %}
-    
     {% endif %}
     
     {% if last_exp_diff %}
@@ -280,14 +272,8 @@ component_gen:
     {{ component_output_format }}
 
   user: |-
-    Here's the former SOTA experiments and their feedbacks:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    Also, here's the former failed experiments and their feedbacks:
-    {{ failed_exp_and_feedback_list_desc }}
-
-    All former trials and their feedbacks are provided in pandas DataFrame format. The user has already made several hypothesis on this scenario and did several evaluation on them:
-    {{ component_and_feedback_df }}
+    Here are the former experiments and their feedbacks:
+    {{ exp_and_feedback_desc }}
     
     Please choose the most proper component to focus on based on the information above. Please balance the exploration and exploitation.
     Avoid selecting the same component more than 5 times in a row to ensure that the chosen component is not overly repetitive.
