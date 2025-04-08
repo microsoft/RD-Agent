@@ -50,12 +50,12 @@ def convert_defaultdict_to_dict(d):
 @st.cache_data(persist=True)
 def load_times(log_path: Path):
     """加载时间数据"""
-    session_path = log_path / "__session__"
-    max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
-    max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
-    rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
-
     try:
+        session_path = log_path / "__session__"
+        max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
+        max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
+        rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
+
         rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
     except:
         rd_times = {}
