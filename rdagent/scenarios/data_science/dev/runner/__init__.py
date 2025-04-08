@@ -126,7 +126,7 @@ class DSCoSTEERRunner(CoSTEER):
         # 2) if mle-bench, then the submission format checking will be used.
         # DockerEnv for MLEBench submission validation
         if DS_RD_SETTING.if_using_mle_data:
-            score_fp = exp.experiment_workspace.workspace_path / "test"/ "mle_submission_format_test.output"
+            score_fp = exp.experiment_workspace.workspace_path / "test" / "mle_submission_format_test.output"
             with score_fp.open() as f:
                 exp.format_check_result = f.read()
         return exp
