@@ -20,23 +20,10 @@ class NaiveExpGen(ExpGen):
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
 
-        # sota_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="sota")
-        # failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")[
-        #     -DS_RD_SETTING.max_trace_hist :
-        # ]
-
         exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
         )
-        # sota_exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-        #     exp_and_feedback_list=sota_exp_feedback_list,
-        #     type="success",
-        # )
-        # failed_exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-        #     exp_and_feedback_list=failed_exp_feedback_list,
-        #     type="failure",
-        # )
 
         sys_prompt = T(".naive:naive_gen.system").r()
 
@@ -45,8 +32,6 @@ class NaiveExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_and_feedback_list_desc,
-            # sota_exp_and_feedback_list_desc=sota_exp_and_feedback_list_desc,
-            # failed_exp_and_feedback_list_desc=failed_exp_and_feedback_list_desc,
         )
 
         task = build_cls_from_json_with_retry(
