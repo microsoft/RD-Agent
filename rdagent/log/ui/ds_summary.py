@@ -205,6 +205,8 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
 
 
 def num2percent(num: int, total: int, show_origin=True) -> str:
+    num = int(num)
+    total = int(total)
     if show_origin:
         return f"{num} ({round(num / total * 100, 2)}%)"
     return f"{round(num / total * 100, 2)}%"
@@ -212,6 +214,20 @@ def num2percent(num: int, total: int, show_origin=True) -> str:
 
 def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     base_df = df.copy(deep=True)
+
+    # Convert columns to object dtype so we can store strings like "14 (53.85%)" without warnings
+    columns_to_convert = [
+        "Successful Final Decision",
+        "Made Submission",
+        "Valid Submission",
+        "Above Median",
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Any Medal",
+    ]
+    base_df[columns_to_convert] = base_df[columns_to_convert].astype(object)
+
     for k in base_df.index:
         loop_num = int(base_df.loc[k, "Total Loops"])
         if loop_num != 0:
@@ -231,6 +247,7 @@ def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
             base_df.loc[k, "Silver"] = num2percent(base_df.loc[k, "Silver"], loop_num, show_origin)
             base_df.loc[k, "Gold"] = num2percent(base_df.loc[k, "Gold"], loop_num, show_origin)
             base_df.loc[k, "Any Medal"] = num2percent(base_df.loc[k, "Any Medal"], loop_num, show_origin)
+
     return base_df
 
 
@@ -275,39 +292,49 @@ def all_summarize_win():
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     base_df = st.data_editor(
-        base_df.style.applymap(
-            lambda x: "background-color: #F0F8FF",
-            subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
-        )
-        .applymap(
-            lambda x: "background-color: #FFFFE0",
-            subset=[
-                "Ours - Base",
-                "Ours vs Base",
-                "Ours vs Bronze",
-                "Ours vs Silver",
-                "Ours vs Gold",
-            ],
-        )
-        .applymap(
-            lambda x: "background-color: #E6E6FA",
-            subset=[
-                "Exec Time",
-                "Exp Gen",
-                "Coding",
-                "Running",
-            ],
-        )
-        .applymap(
-            lambda x: "background-color: #F0FFF0",
-            subset=[
-                "Best Result",
-                "SOTA Exp",
-                "SOTA Exp Score",
-            ],
-        ),
+        base_df.style
+            .apply(
+                lambda col: col.map(lambda val: "background-color: #F0F8FF"),
+                subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+                axis=0
+            )
+            .apply(
+                lambda col: col.map(lambda val: "background-color: #FFFFE0"),
+                subset=[
+                    "Ours - Base",
+                    "Ours vs Base",
+                    "Ours vs Bronze",
+                    "Ours vs Silver",
+                    "Ours vs Gold",
+                ],
+                axis=0
+            )
+            .apply(
+                lambda col: col.map(lambda val: "background-color: #E6E6FA"),
+                subset=[
+                    "Exec Time",
+                    "Exp Gen",
+                    "Coding",
+                    "Running",
+                ],
+                axis=0
+            )
+            .apply(
+                lambda col: col.map(lambda val: "background-color: #F0FFF0"),
+                subset=[
+                    "Best Result",
+                    "SOTA Exp",
+                    "SOTA Exp Score",
+                ],
+                axis=0
+            ),
         column_config={
-            "Select": st.column_config.CheckboxColumn("Select", default=True, help="Stat this trace.", disabled=False),
+            "Select": st.column_config.CheckboxColumn(
+                "Select",
+                default=True,
+                help="Stat this trace.",
+                disabled=False
+            ),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
