@@ -144,7 +144,7 @@ class CheckpointSelector:
     def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
         """
         checkpoint_idx represents the place where we want to create a new node.
-        comment from fsk:: the return value should be the idx of target node (the parent of the new generating node) in hist.
+        the return value should be the idx of target node (the parent of the new generating node).
         - `(-1, )` represents starting from the latest trial in the trace - default value
         - `(idx, )` represents starting from the `idx`-th trial in the trace.
         - `None` represents starting from scratch (start a new trace)
