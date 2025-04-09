@@ -45,6 +45,9 @@ model_coder:
     from joblib import Memory
     memory = Memory(location='/tmp/cache', verbose=0)
     @memory.cache``
+    5. The hyperparameters should be set optimally to ensure the model can be trained successfully. Avoid setting minimal parameters just to pass the initial run, as there will be limited opportunities to adjust them in the future.
+    6. Hyperparameter configurations must dynamically adapt to model complexity, data characteristics, and hardware constraints through parametric relationships between layer depth, sample size, and prediction uncertainty, ensuring automated tuning of learning schedules and regularization strength based on real-time training dynamics.  
+    7. During model construction, continuously evaluate feature effectiveness and proactively augment missing critical feature processing steps (e.g., target encoding for high-cardinality categorical fields or text segmentation for long documents), even when these steps are absent from the initial feature engineering code.
 
     ## Output Format
     {% if out_spec %}
