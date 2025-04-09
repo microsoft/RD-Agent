@@ -43,24 +43,47 @@ describe: # some template to describe some object
 
   trace: |-
     {% if exp_and_feedback_list|length == 0 %}
-    No previous {% if success %}successful{% else %}failed{% endif %} trial available.
+    No previous 
+    {% if type == "success" %}
+    successful
+    {% elif type == "failure" %}
+    failed
     {% else %}
-    {% if success %}
+    successful or failed
+    {% endif %} trial available.
+    {% else %}
+    {% if type == "success" %}
     ## {{ heading | default('Trace of the successful trial') }}
-    {% else %}
+    {% elif type == "failure" %}
     ## {{ heading | default('Trace of the failed trial') }}
+    {% else %}
+    ## {{ heading | default('Trace of all trials') }}
     {% endif %}
-    Before current trial, several {% if success %}successful{% else %}failed{% endif %} trials are listed below. {% if success %}The current SOTA method is the combination of the best solutions of these trials.{% endif %} The trace order is from the earliest to the latest please focus more on the later trials.
+
+    Before current trial, several 
+    {% if type == "success" %}
+    successful
+    {% elif type == "failure" %}
+    failed
+    {% else %}
+    successful or failed
+    {% endif %} trials are listed below.
+    {% if type == "success" %}
+    The current SOTA method is the combination of the best solutions of these trials.
+    {% endif %}
+
+    The trace order is from the earliest to the latest. Please focus more on the later trials.
+
     {% for exp_and_feedback in exp_and_feedback_list %}
     ### Experiment index: {{ loop.index }}
     The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
-    ### Task of experiment
-    {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+
     {% if exp_and_feedback[0].result is none %}
     Experiment score: Running buggy
     {% else %}
     Experiment score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
     {% endif %}
+
     Experiment feedback decision: {{ exp_and_feedback[1].decision }}
     Reason: {{ exp_and_feedback[1].reason }}
     {% endfor %}
@@ -278,9 +301,9 @@ component_spec:
   
     7. Metric Calculation and Storage:
       - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
-      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand.
+      - The evaluation should be based on 5-fold cross-validation but only if that's an appropriate evaluation for the task at hand. Store the mean validation score of 5-fold cross-validation in `scores.csv` on each model.
       - Even if only one model is present, compute the ensemble score and store it under `"ensemble"`.
-      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters.
+      - The index of `scores.csv` should include the model name and the "ensemble" strategy. "ensemble" should be exactly in the index with all lower case letters. Ensemble is the result from several models. If only one model is present, the ensemble score should be the same as the model score.
       - The column names in `scores.csv` should be:
         - Model: The name of the model or ensemble strategy.
         - <metric_name>: The calculated metric value for that model or ensemble strategy. The metric name can be found in the scenario description. The metric name should be exactly the same as the one in the scenario description since user will use it to check the result.

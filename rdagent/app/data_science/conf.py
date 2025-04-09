@@ -32,5 +32,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_max_loop: int = 10
     runner_max_loop: int = 3
 
+    rule_base_eval: bool = False
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

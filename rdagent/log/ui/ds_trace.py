@@ -50,22 +50,16 @@ def convert_defaultdict_to_dict(d):
 @st.cache_data(persist=True)
 def load_times(log_path: Path):
     """加载时间数据"""
-    times = defaultdict(lambda: defaultdict(dict))
-    for msg in FileStorage(log_path).iter_msg():
-        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
-            li, fn = extract_loopid_func_name(msg.tag)
-            if li:
-                li = int(li)
+    try:
+        session_path = log_path / "__session__"
+        max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
+        max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
+        rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
 
-            # read times
-            loop_obj_path = log_path / "__session__" / f"{li}" / "4_record"
-            if loop_obj_path.exists():
-                try:
-                    times[li] = DataScienceRDLoop.load(loop_obj_path, do_truncate=False).loop_trace[li]
-                except Exception as e:
-                    pass
-
-    return convert_defaultdict_to_dict(times)
+        rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
+    except:
+        rd_times = {}
+    return rd_times
 
 
 @st.cache_data(persist=True)
@@ -100,25 +94,27 @@ def load_data(log_path: Path):
     # debug_llm data
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     llm_log_p = log_path / "debug_llm.pkl"
-    with st.spinner("正在加载 debug_llm.pkl..."):
+    try:
         rd = pickle.loads(llm_log_p.read_bytes())
-        for i, d in enumerate(rd):
-            t = d["tag"]
-            if "debug_exp_gen" in t:
-                continue
-            if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
-                continue
-            lid, fn = extract_loopid_func_name(t)
-            ei = extract_evoid(t)
-            if lid:
-                lid = int(lid)
-            if ei:
-                ei = int(ei)
+    except:
+        rd = []
+    for d in rd:
+        t = d["tag"]
+        if "debug_exp_gen" in t:
+            continue
+        if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
+            continue
+        lid, fn = extract_loopid_func_name(t)
+        ei = extract_evoid(t)
+        if lid:
+            lid = int(lid)
+        if ei:
+            ei = int(ei)
 
-            if ei is not None:
-                llm_data[lid][fn][ei].append(d)
-            else:
-                llm_data[lid][fn]["no_tag"].append(d)
+        if ei is not None:
+            llm_data[lid][fn][ei].append(d)
+        else:
+            llm_data[lid][fn]["no_tag"].append(d)
 
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
@@ -262,7 +258,7 @@ def hypothesis_win(data):
 
 def exp_gen_win(data, llm_data=None):
     st.header("Exp Gen", divider="blue", anchor="exp-gen")
-    if state.show_llm_log:
+    if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
     st.subheader("Hypothesis")
     hypothesis_win(data["no_tag"].hypothesis)
@@ -285,7 +281,7 @@ def evolving_win(data, key, llm_data=None):
             return
 
         if evo_id in data:
-            if state.show_llm_log:
+            if state.show_llm_log and llm_data is not None:
                 llm_log_win(llm_data[evo_id])
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
@@ -336,7 +332,7 @@ def running_win(data, mle_score, llm_data=None):
     evolving_win(
         {k: v for k, v in data.items() if isinstance(k, int)}, key="running", llm_data=llm_data if llm_data else None
     )
-    if state.show_llm_log:
+    if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
@@ -436,8 +432,9 @@ def summarize_data():
                 df.loc[loop, "Time"] = str(sum((i.end - i.start for i in state.times[loop]), timedelta())).split(".")[0]
                 exp_gen_time = state.times[loop][0].end - state.times[loop][0].start
                 df.loc[loop, "Exp Gen"] = str(exp_gen_time).split(".")[0]
-                coding_time = state.times[loop][1].end - state.times[loop][1].start
-                df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
+                if len(state.times[loop]) > 1:
+                    coding_time = state.times[loop][1].end - state.times[loop][1].start
+                    df.loc[loop, "Coding"] = str(coding_time).split(".")[0]
                 if len(state.times[loop]) > 2:
                     running_time = state.times[loop][2].end - state.times[loop][2].start
                     df.loc[loop, "Running"] = str(running_time).split(".")[0]
@@ -664,4 +661,4 @@ if state.data["competition"]:
         loop_id = 0
     if state.show_stdout:
         stdout_win(loop_id)
-    main_win(state.data[loop_id], state.llm_data[loop_id])
+    main_win(state.data[loop_id], state.llm_data[loop_id] if loop_id in state.llm_data else None)
