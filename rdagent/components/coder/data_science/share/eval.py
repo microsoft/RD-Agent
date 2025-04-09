@@ -10,6 +10,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.core.scenario import Scenario
 from rdagent.utils.agent.tpl import T
@@ -51,7 +52,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
 
         # Execute the main script
-        stdout = implementation.execute(env=env, entry="python main.py")
+        stdout = remove_eda_part(implementation.execute(env=env, entry="python main.py"))
 
         # walk model_folder and list the files
         model_folder_files = [str(file.relative_to(implementation.workspace_path)) for file in model_folder.iterdir() if file.is_file()]
