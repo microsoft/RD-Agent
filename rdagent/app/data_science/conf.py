@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.app.kaggle.conf import KaggleBasePropSetting
@@ -33,6 +35,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_max_loop: int = 3
 
     rule_base_eval: bool = False
+
+    ### model dump
+    enable_model_dump: bool = False
+    model_dump_check_level: Literal["medium", "high"] = "medium"
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
