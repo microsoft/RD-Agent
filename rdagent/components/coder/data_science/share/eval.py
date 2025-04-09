@@ -68,17 +68,27 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
             user_prompt=user_prompt,
         )
 
+        for f in ["submission.csv", "scores.csv"]:
+            if not (implementation.workspace_path / f).exists():
+                err_msg = f"{f} does not exist. The model is not dumped. Make sure that the required files, like submission.csv and scores.csv, are created even if you bypass the model training step by loading the saved model file directly."
+                return CoSTEERSingleFeedback(
+                    execution=err_msg,
+                    return_checking=err_msg,
+                    code=err_msg,
+                    final_decision=False,
+                )
+
         # Check if the content has changed
         if DS_RD_SETTING.model_dump_check_level == "high" and submission_content_before is not None and scores_content_before is not None:
             # Read the content of files submission.csv and scores.csv after execution
             submission_content_after = (implementation.workspace_path / "submission.csv").read_text()
             scores_content_after = (implementation.workspace_path / "scores.csv").read_text()
             # excactly same checking. But it will take more user's time
-            if submission_content_before != submission_content_after:
-                return_msg = "[Error] The content of submission.csv has changed. Please check the code to ensure that the model is dumped correctly, and rerun the code to use the model directly without retraining it."
-                if scores_content_before != scores_content_after:
+            if scores_content_before != scores_content_after:
+                return_msg = "\n[Error] The content of scores.csv has changed. Please check the code to ensure that the model is dumped correctly, and rerun the code to use the model directly without retraining it."
+                return_msg += f"\nBefore:\n{scores_content_before}\nAfter:\n{scores_content_after}"
+                if submission_content_before != submission_content_after:
                     # If the scores file changes, display the two contents and append it into the return_checking
-                    return_msg = "\n[Error] The content of scores.csv has changed. Please check the code to ensure that the model is dumped correctly, and rerun the code to use the model directly without retraining it."
-                    return_msg += f"\nBefore:\n{scores_content_before}\nAfter:\n{scores_content_after}"
+                    return_msg = "[Error] The content of submission.csv has changed. Please check the code to ensure that the model is dumped correctly, and rerun the code to use the model directly without retraining it."
                 csfb.return_checking = (csfb.return_checking or "") + return_msg
         return csfb

@@ -1,6 +1,7 @@
 dump_model_coder:
   guideline: |-
     Please dump the model in a "models/" subfolder in the first running, and the script rerun performs inference without needing to retrain the model.
+    Make sure that the required files, like submission.csv and scores.csv, are created even if you bypass the model training step by loading the saved model file directly.
 
 dump_model_eval:
   system: |-
@@ -15,6 +16,7 @@ dump_model_eval:
     - Check if the code saves the model in the "models/" subfolder.
     - Ensure that when the code is rerun, it skips the training process and loads the model from the "models/" subfolder for direct inference.
       - Verify that there is no training activity in the output.
+    - Ensure that even if you skip the model training by loading saved models, the files like scores.csv and submission.csv are still correctly created.
 
     Please respond with your feedback in the following JSON format and order
     ```json
