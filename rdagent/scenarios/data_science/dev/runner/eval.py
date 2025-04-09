@@ -91,37 +91,48 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 score_ret_code = 1
 
         # DockerEnv for MLEBench submission validation
-        mde = get_ds_env("mlebench")
-        mde.conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-        }
-        mde.prepare()
-        # MLEBench Check
-        mle_check_code = (
-            (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-            .read_text()
-            .replace("<competition_id>", self.scen.competition)
-        )
-        implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=mde, entry="python test/mle_submission_format_test.py"
-        )
+        submission_check_out = ""
+
+        if DS_RD_SETTING.if_using_mle_data:
+            mde = get_ds_env("mlebench")
+            mde.conf.extra_volumes = {
+                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+            }
+            mde.prepare()
+            # MLEBench Check
+            mle_check_code = (
+                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
+                .read_text()
+                .replace("<competition_id>", self.scen.competition)
+            )
+            implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+            submission_check_out, submission_ret_code = implementation.execute_ret_code(
+                env=mde, entry="python test/mle_submission_format_test.py"
+            )
+            stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
+            implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
+
         if DS_RD_SETTING.rule_base_eval:
-            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+            if DS_RD_SETTING.if_using_mle_data:
+                score_check_text = score_check_text + "\n" + submission_check_out
+            if (
+                execute_ret_code == 0
+                and score_ret_code == 0
+                and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0)
+            ):
                 return DSCoSTEEREvalFeedback(
                     execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
+                    return_checking=score_check_text,
                     code="Code evaluation is not available.",
                     final_decision=True,
                 )
             else:
                 return DSCoSTEEREvalFeedback(
                     execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
+                    return_checking=score_check_text,
                     code="Code evaluation is not available.",
                     final_decision=False,
                 )
-        stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
@@ -181,7 +192,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if score_ret_code != 0:
             feedback.final_decision = False
             feedback.return_checking += "\n" + score_check_text
-        if submission_ret_code != 0:
+        if DS_RD_SETTING.if_using_mle_data and submission_ret_code != 0:
             feedback.final_decision = False
             feedback.return_checking += "\nSubmission file check failed."
         return feedback

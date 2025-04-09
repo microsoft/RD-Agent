@@ -111,28 +111,22 @@ class DSCoSTEERRunner(CoSTEER):
                 description=f"The whole workflow of the solution has finished with some execution error, please check the error message and debug the whole code repo.\nCurrent code repo md5: {md5_hash(exp.experiment_workspace.all_codes)}",
             )
         ]
-        exp = super().develop(exp)
+        exp = super().develop(exp)  # run strategy(code implementation & evaluation loops)
         exp.sub_tasks = bak_sub_tasks
 
+        # NOTE: after running the loops, we expect some results are generated
+        #
+        # 1) scores of the models and ensemble
         score_fp = exp.experiment_workspace.workspace_path / "scores.csv"
         if not score_fp.exists():
             logger.error("Metrics file (scores.csv) is not generated.")
             raise RunnerError(f"Metrics file (scores.csv) is not generated")
         exp.result = pd.read_csv(score_fp, index_col=0)
 
+        # 2) if mle-bench, then the submission format checking will be used.
         # DockerEnv for MLEBench submission validation
-        mde = get_ds_env(conf_type="mlebench")
-        mde.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
-        mde.prepare()
-        # MLEBench Check
-        mle_check_code = (
-            (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-            .read_text()
-            .replace("<competition_id>", self.scen.competition)
-        )
-        exp.experiment_workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-        exp.format_check_result = exp.experiment_workspace.execute(
-            env=mde, entry=f"python test/mle_submission_format_test.py"
-        )
-
+        if DS_RD_SETTING.if_using_mle_data:
+            score_fp = exp.experiment_workspace.workspace_path / "test" / "mle_submission_format_test.output"
+            with score_fp.open() as f:
+                exp.format_check_result = f.read()
         return exp
