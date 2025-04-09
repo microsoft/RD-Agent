@@ -1,0 +1,52 @@
+[
+  {
+    "idea": "Stacking ensemble for improved prediction accuracy",
+    "method": "Applied a stacking ensemble method, combining predictions from neural network and CatBoost models, and using a meta-model to learn the optimal combination of their outputs.",
+    "context": "The notebook implemented stacking by training a neural network and CatBoost models separately for each target. Their predictions on the validation set were then used as input features for a CatBoost meta-model, which learned to combine their outputs effectively.",
+    "component": "Ensemble",
+    "hypothesis": {
+      "problem": "Regression problem with multiple target variables requiring accurate predictions.",
+      "data": "Complex relationships between features and targets, benefiting from diverse model perspectives."
+    }
+  },
+  {
+    "idea": "Polynomial feature transformation for capturing interactions",
+    "method": "Applied polynomial feature transformation to numerical features to capture interactions and non-linear relationships.",
+    "context": "The notebook generated polynomial features of degree 2 from the scaled numerical features using sklearn's PolynomialFeatures, which were then used as inputs for both the neural network and CatBoost models.",
+    "component": "FeatureEng",
+    "hypothesis": {
+      "problem": "Predicting continuous target variables where interactions between features may influence the outcome.",
+      "data": "Numerical features with potential non-linear interactions."
+    }
+  },
+  {
+    "idea": "Hyperparameter tuning with Optuna for CatBoost models",
+    "method": "Used Optuna for hyperparameter tuning to optimize CatBoost model performance.",
+    "context": "The notebook defined objective functions for each target variable and used Optuna to search for the best hyperparameters, including iterations, depth, and learning rate, over 30 trials.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Regression problem requiring model optimization for better performance.",
+      "data": "High-dimensional data with complex patterns, necessitating careful tuning of model parameters."
+    }
+  },
+  {
+    "idea": "Computation of unit cell volume and density as features",
+    "method": "Computed unit cell volume and density from lattice parameters and atomic compositions to use as additional features.",
+    "context": "The notebook calculated the unit cell volume using lattice vectors and angles, and density using atomic masses and computed volume, adding these as new features to the dataset.",
+    "component": "FeatureEng",
+    "hypothesis": {
+      "problem": "Regression problem where physical properties of materials are predictive of target variables.",
+      "data": "Material compositions with physical attributes that influence formation and bandgap energies."
+    }
+  },
+  {
+    "idea": "Neural network with embedding for categorical features",
+    "method": "Implemented a neural network with an embedding layer for categorical features to improve learning from categorical data.",
+    "context": "The notebook used a Keras neural network with an embedding layer for the 'spacegroup' categorical feature, combined with dense layers for numerical features, to predict the target variables.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Regression problem with mixed data types, requiring effective handling of categorical data.",
+      "data": "Categorical features with potential impact on target predictions, requiring transformation for neural network compatibility."
+    }
+  }
+]

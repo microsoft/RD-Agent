@@ -276,6 +276,13 @@ class DSExpGen(ExpGen):
     def gen(self, trace: DSTrace, cache_path: str = "scripts/exp/researcher/output_dir/idea_pool/ds_graph_idea_pool_v2.pkl") -> DSExperiment:
         self._init_knowledge_base(cache_path)
 
+        # Load aide ideas
+        aide_ideas_path = "scripts/exp/researcher/output_dir/idea_pool/aide_ideas.json"
+        aide_ideas = []
+        if os.path.exists(aide_ideas_path):
+            with open(aide_ideas_path, "r") as f:
+                aide_ideas = json.load(f)
+
         scenario_desc = trace.scen.get_scenario_all_desc()
         last_successful_exp = trace.last_successful_exp()
 
@@ -366,6 +373,33 @@ class DSExpGen(ExpGen):
                         idea_ids.append(idea.id)
                         ideas.append((self.knowledge_base.idea_pool[idea.id], feat)) # idea, feature
 
+            # Add aide ideas that match the current component
+            for aide_idea in aide_ideas:
+                # Check if the idea is already in the list
+                if any(idea[0].idea == aide_idea["idea"] for idea in ideas):
+                    continue
+                    
+                # Create a feature for the aide idea
+                aide_feature = {
+                    "label": "PROBLEM" if "problem" in aide_idea["hypothesis"] else "DATA",
+                    "feature": aide_idea["hypothesis"].get("problem", aide_idea["hypothesis"].get("data", "")),
+                    "reason": "From aide's best solution"
+                }
+                
+                # Add the idea to the list with higher priority
+                # Create a SimpleNamespace to match the structure expected by format_idea
+                from types import SimpleNamespace
+                idea_obj = SimpleNamespace(
+                    id=f"aide_{len(idea_ids)}",
+                    idea=aide_idea["idea"],
+                    method=aide_idea["method"],
+                    component=aide_idea["component"],
+                    context=aide_idea["context"]
+                )
+                
+                idea_ids.append(idea_obj.id)
+                ideas.append((idea_obj, aide_feature))
+        
             # Generate component using template with proper context
             component_sys_prompt = T(".prompts:component_gen.system").r(
                 scenario=scenario_desc,
