@@ -20,7 +20,6 @@ from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
 from rdagent.core.exception import CoderError, RunnerError
 from rdagent.core.proposal import ExperimentFeedback
-from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector, SOTAJumpCKPSelector
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
@@ -29,6 +28,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.select import (
+    AlwaysWinCKPSelector,
     LatestCKPSelector,
     SOTAJumpCKPSelector,
 )
@@ -37,6 +37,7 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 SELECTOR_NAME_MAP = {
     "latest": LatestCKPSelector,
     "sota_jump": SOTAJumpCKPSelector,
+    "always_win": AlwaysWinCKPSelector,
 }
 
 class DataScienceRDLoop(RDLoop):

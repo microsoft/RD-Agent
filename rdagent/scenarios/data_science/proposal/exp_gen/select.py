@@ -50,6 +50,28 @@ class SOTAJumpCKPSelector(CheckpointSelector):
         else:
             return (-1,)
 
+class AlwaysWinCKPSelector(CheckpointSelector):
+    """
+    always-win policy: 
+    always start from the lastest SOTA trial 
+    """
+    def __init__(self, ) -> None:
+        print(f"Using always-win selector")
+
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
+        current_trace = trace.retrieve_search_list(search_type="ancestors")
+
+        if len(trace.hist) > 0 and len(current_trace) > 0:
+            sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
+            last_sota_idx = trace.hist.index(sota_exp_list[-1])
+
+            if last_sota_idx >= 0:
+                return (last_sota_idx,)
+            else:
+                return (-1,)
+        else:
+            return (-1,)
+
 
 # TODO: implement these selectors and more
 
