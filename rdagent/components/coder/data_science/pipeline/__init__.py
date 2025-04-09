@@ -43,7 +43,8 @@ from rdagent.components.coder.data_science.conf import (
     DSCoderCoSTEERSettings,
     get_ds_env,
 )
-from rdagent.components.coder.data_science.pipeline.eval import ModelDumpEvaluator, PipelineCoSTEEREvaluator
+from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
+from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -95,6 +96,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=runtime_environment,
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            enable_model_dump=DS_RD_SETTING.enable_model_dump,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,

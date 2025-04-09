@@ -86,8 +86,14 @@ class DSCoSTEERRunner(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+
+        settings = DSCoderCoSTEERSettings()
+        eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        if DS_RD_SETTING.enable_model_dump:
+            eval_l.append(ModelDumpEvaluator(scen=scen))
+
         eva = CoSTEERMultiEvaluator(
-            DSCoSTEERCoSTEEREvaluator(scen=scen), scen=scen
+            single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 

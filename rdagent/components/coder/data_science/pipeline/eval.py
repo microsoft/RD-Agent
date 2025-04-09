@@ -25,11 +25,6 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 PipelineSingleFeedback = CoSTEERSingleFeedback
 PipelineMultiFeedback = CoSTEERMultiFeedback
 
-class ModelDumpEvaluator(CoSTEEREvaluator):
-    """This evaluator assumes that it runs after the model"""
-    def evaluate(self, target_task: Task, implementation: Workspace, gt_implementation: Workspace, **kwargs) -> CoSTEERSingleFeedback:
-        implementation.files
-        return super().evaluate(target_task, implementation, gt_implementation, **kwargs)
 
 class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
