@@ -1,4 +1,5 @@
 import math
+import pickle
 import re
 from collections import deque
 from datetime import datetime, timedelta
@@ -29,6 +30,16 @@ def get_script_time(stdout_p: Path):
             return pd.Timedelta(last_time - first_time)
 
     return None
+
+
+def get_final_sota_exp(log_path: Path):
+    sota_exp_paths = [i for i in log_path.rglob(f"**/SOTA experiment/**/*.pkl")]
+    if len(sota_exp_paths) == 0:
+        return None
+    final_sota_exp_path = max(sota_exp_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
+    with final_sota_exp_path.open("rb") as f:
+        final_sota_exp = pickle.load(f)
+    return final_sota_exp
 
 
 # @st.cache_data(persist=True)
@@ -75,6 +86,12 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
             v["running_time"] = str(running_time).split(".")[0]
+
+            final_sota_exp = get_final_sota_exp(Path(lf) / k)
+            if final_sota_exp is not None:
+                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
+            else:
+                v["sota_exp_score_valid"] = None
             # 调整实验名字
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
@@ -104,6 +121,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Any Medal",
             "Best Result",
             "SOTA Exp",
+            "SOTA Exp Score (valid)",
             "SOTA Exp Score",
             "Baseline Score",
             "Ours - Base",
@@ -178,6 +196,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             base_df.loc[k, "Ours vs Silver"] = compare_score(v["sota_exp_score"], v.get("silver_threshold", None))
             base_df.loc[k, "Ours vs Gold"] = compare_score(v["sota_exp_score"], v.get("gold_threshold", None))
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
+            base_df.loc[k, "SOTA Exp Score (valid)"] = v.get("sota_exp_score_valid", None)
             base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
             base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
@@ -199,6 +218,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Ours - Base": float,
             "Ours vs Base": float,
             "SOTA Exp Score": float,
+            "SOTA Exp Score (valid)": float,
             "Baseline Score": float,
             "Bronze Threshold": float,
             "Silver Threshold": float,
@@ -330,6 +350,7 @@ def all_summarize_win():
                 "Best Result",
                 "SOTA Exp",
                 "SOTA Exp Score",
+                "SOTA Exp Score (valid)",
             ],
             axis=0,
         ),
@@ -407,24 +428,54 @@ def all_summarize_win():
         for k, v in summary.items():
             with st.container(border=True):
                 st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-                fc1, fc2 = st.columns(2)
-                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
-                tdf = pd.Series(tscores, name="score")
-                f2 = px.line(tdf, markers=True, title="Test scores")
-                fc2.plotly_chart(f2, key=k)
                 try:
-                    vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
+                    tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                    vscores = {}
+                    for k, vs in v["valid_scores"].items():
+                        if not vs.index.is_unique:
+                            st.warning(
+                                f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
+                            )
+                            st.write(vs)
+                        vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
 
                     if len(vscores) > 0:
                         metric_name = list(vscores.values())[0].name
                     else:
                         metric_name = "None"
 
+                    tdf = pd.Series(tscores, name="score")
                     vdf = pd.DataFrame(vscores)
+                    if "ensemble" in vdf.index:
+                        ensemble_row = vdf.loc[["ensemble"]]
+                        vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
                     vdf.columns = [f"loop {i}" for i in vdf.columns]
-                    f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+                    fig = go.Figure()
+                    # Add test scores trace from tdf
+                    fig.add_trace(
+                        go.Scatter(
+                            x=tdf.index,
+                            y=tdf,
+                            mode="lines+markers",
+                            name="Test scores",
+                            marker=dict(symbol="diamond"),
+                            line=dict(shape="linear", dash="dash"),
+                        )
+                    )
+                    # Add valid score traces from vdf (transposed to have loops on x-axis)
+                    for column in vdf.T.columns:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=vdf.T.index,
+                                y=vdf.T[column],
+                                mode="lines+markers",
+                                name=f"{column}",
+                                visible=("legendonly" if column != "ensemble" else None),
+                            )
+                        )
+                    fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
 
-                    fc1.plotly_chart(f1, key=f"{k}_v")
+                    st.plotly_chart(fig)
                 except Exception as e:
                     import traceback
 
