@@ -115,7 +115,11 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if DS_RD_SETTING.rule_base_eval:
             if DS_RD_SETTING.if_using_mle_data:
                 score_check_text = score_check_text + "\n" + submission_check_out
-            if execute_ret_code == 0 and score_ret_code == 0 and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0):
+            if (
+                execute_ret_code == 0
+                and score_ret_code == 0
+                and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0)
+            ):
                 return DSCoSTEEREvalFeedback(
                     execution=stdout,
                     return_checking=score_check_text,
