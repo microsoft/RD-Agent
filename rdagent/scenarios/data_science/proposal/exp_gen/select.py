@@ -1,3 +1,4 @@
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import CheckpointSelector, Trace
 
 # # TODO: more advanced selector
@@ -7,6 +8,8 @@ class LatestCKPSelector(CheckpointSelector):
     """
     -`(-1, )` represents starting from the latest trial in the trace
     """
+    def __init__(self, ):
+        print(f"Using latest selector by default")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
@@ -19,10 +22,11 @@ class SOTAJumpCKPSelector(CheckpointSelector):
     if the cumulative SOTA in a window is below a threshold, jump to a new trial
     otherwise, continue the current latest trial
     """
-    def __init__(self) -> None:
-        
-        self.SOTA_COUNT_WINDOW = 5
-        self.SOTA_COUNT_THRESHOLD = 1 # start to compute cumulative SOTA ratio after 5 trials
+    def __init__(self, ) -> None:
+        self.SOTA_COUNT_WINDOW = DS_RD_SETTING.sota_count_window
+        self.SOTA_COUNT_THRESHOLD = DS_RD_SETTING.sota_count_threshold
+
+        print(f"Using SOTA-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}")
         
 
     def get_selection(self, trace: Trace) -> tuple[int,...]:

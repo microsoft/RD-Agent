@@ -34,5 +34,13 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     rule_base_eval: bool = False
 
+    #### selector related
+    selector_name: str = "latest"
+    """The name of the selector to use"""
+    sota_count_window: int = 5
+    """The number of trials to consider for SOTA count"""
+    sota_count_threshold: int = 1
+    """The threshold for SOTA count"""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

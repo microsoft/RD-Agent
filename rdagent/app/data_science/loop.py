@@ -34,6 +34,10 @@ from rdagent.scenarios.data_science.proposal.exp_gen.select import (
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
+SELECTOR_NAME_MAP = {
+    "latest": LatestCKPSelector,
+    "sota_jump": SOTAJumpCKPSelector,
+}
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
@@ -54,8 +58,9 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        # self.ckp_selector = LatestCKPSelector()
-        self.ckp_selector = SOTAJumpCKPSelector()
+
+        self.ckp_selector = SELECTOR_NAME_MAP[DS_RD_SETTING.selector_name]()
+
         self.exp_gen = DSExpGen(scen)
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
