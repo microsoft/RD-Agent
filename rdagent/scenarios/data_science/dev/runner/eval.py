@@ -91,6 +91,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 score_ret_code = 1
 
         # DockerEnv for MLEBench submission validation
+        submission_check_out = None
         if DS_RD_SETTING.if_using_mle_data:
             mde = get_ds_env("mlebench")
             mde.conf.extra_volumes = {
@@ -125,7 +126,9 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                     code="Code evaluation is not available.",
                     final_decision=False,
                 )
-        stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
+        
+        if not submission_check_out is None:
+            stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
