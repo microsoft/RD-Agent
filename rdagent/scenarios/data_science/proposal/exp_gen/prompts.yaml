@@ -273,7 +273,7 @@ component_gen:
 
   user: |-
     Here are the former experiments and their feedbacks:
-    {{ exp_and_feedback_desc }}
+    {{ exp_and_feedback_list_desc }}
     
     Please choose the most proper component to focus on based on the information above. Please balance the exploration and exploitation.
     Avoid selecting the same component more than 5 times in a row to ensure that the chosen component is not overly repetitive.
