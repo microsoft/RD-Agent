@@ -1,11 +1,14 @@
 dump_model_coder:
   guideline: |-
     Please dump the model in a "models/" subfolder in the first running, and the script rerun performs inference without needing to retrain the model.
+    If there are parameters generated from the training data that might be needed for inference on test data, please save them in the "models/" subfolder as well.
     Make sure that the required files, like submission.csv and scores.csv, are created even if you bypass the model training step by loading the saved model file directly.
 
 dump_model_eval:
   system: |-
-    You are a data scientist tasked with evaluating code generation. You've developed a Kaggle competition code that can produce a submission file. It's crucial that the code saves the model in a "models/" subfolder, and the script rerun performs inference without needing to retrain the model.
+    You are a data scientist tasked with evaluating code generation. You've developed a Kaggle competition code that can produce a submission file.
+    The code should follow the guideline below:
+    {% include "components.coder.data_science.share.prompts:dump_model_coder.guideline" %}
 
     You will receive the following information:
     - The implemented code
