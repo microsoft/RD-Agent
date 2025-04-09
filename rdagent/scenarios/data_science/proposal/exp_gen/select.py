@@ -56,16 +56,17 @@ class AlwaysWinCKPSelector(CheckpointSelector):
     always start from the lastest SOTA trial 
     """
     def __init__(self, ) -> None:
+        self.INIT_LENGTH = 3
         print(f"Using always-win selector")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
         current_trace = trace.retrieve_search_list(search_type="ancestors")
 
-        if len(trace.hist) > 0 and len(current_trace) > 0:
+        if len(trace.hist) > self.INIT_LENGTH and len(current_trace) > self.INIT_LENGTH:
             sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
-            last_sota_idx = trace.hist.index(sota_exp_list[-1])
-
-            if last_sota_idx >= 0:
+            
+            if len(sota_exp_list) > 0:
+                last_sota_idx = trace.hist.index(sota_exp_list[-1])
                 return (last_sota_idx,)
             else:
                 return (-1,)
