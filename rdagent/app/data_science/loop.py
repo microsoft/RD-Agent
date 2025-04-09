@@ -27,6 +27,10 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.select import (
+    LatestCKPSelector,
+    SOTAJumpCKPSelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
@@ -49,6 +53,7 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
+        self.ckp_selector = LatestCKPSelector()
         self.exp_gen = DSExpGen(scen)
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
@@ -68,7 +73,8 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        exp = self.exp_gen.gen(self.trace)
+        selection = self.ckp_selector.get_selection(self.trace)
+        exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
 
         # FIXME: this is for LLM debug webapp, remove this when the debugging is done.
@@ -126,6 +132,10 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
+
+        # set the DAG parent for the trace
+        self.trace.sync_dag_parent_and_hist()
+
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is None:
             self.trace.hist.append((prev_out["running"], prev_out["feedback"]))

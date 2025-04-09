@@ -59,7 +59,7 @@ class WorkflowMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         # 2. code
         system_prompt = T(".prompts:workflow_coder.system").r(
             task_desc=workflow_information_str,
-            competition_info=self.scen.get_scenario_all_desc(),
+            competition_info=self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None)),
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
             out_spec=PythonAgentOut.get_spec(),

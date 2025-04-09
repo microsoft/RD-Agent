@@ -52,11 +52,8 @@ feedback_problem:
     # Scenario Description
     {{ scenario_desc }}
     
-    # Previous SOTA Experiments and Feedbacks:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    # Previous Failed Experiments and Feedbacks:
-    {{ failed_exp_and_feedback_list_desc }}
+    # Previous Experiments and Feedbacks:
+    {{ exp_and_feedback_list_desc }}    
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -115,11 +112,8 @@ hypothesis_gen:
     # Scenario Description
     {{ scenario_desc }}
 
-    # Previous SOTA Experiments and Feedbacks:
-    {{ sota_exp_and_feedback_list_desc }}
-
-    # Previous Failed Experiments and Feedbacks:
-    {{ failed_exp_and_feedback_list_desc }}
+    # Previous Experiments and Feedbacks:
+    {{ exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}

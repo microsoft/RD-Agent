@@ -1,4 +1,5 @@
 import math
+import pickle
 import re
 from collections import deque
 from datetime import datetime, timedelta
@@ -14,7 +15,7 @@ from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
 
 
-def get_exec_time(stdout_p: Path):
+def get_script_time(stdout_p: Path):
     with stdout_p.open("r") as f:
         first_line = next(f).strip()
         last_line = deque(f, maxlen=1).pop().strip()
@@ -29,6 +30,16 @@ def get_exec_time(stdout_p: Path):
             return pd.Timedelta(last_time - first_time)
 
     return None
+
+
+def get_final_sota_exp(log_path: Path):
+    sota_exp_paths = [i for i in log_path.rglob(f"**/SOTA experiment/**/*.pkl")]
+    if len(sota_exp_paths) == 0:
+        return None
+    final_sota_exp_path = max(sota_exp_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
+    with final_sota_exp_path.open("rb") as f:
+        final_sota_exp = pickle.load(f)
+    return final_sota_exp
 
 
 # @st.cache_data(persist=True)
@@ -55,23 +66,32 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
         for k, v in s.items():
             stdout_p = Path(lf) / f"{k}.stdout"
             if stdout_p.exists():
-                v["exec_time"] = get_exec_time(stdout_p)
+                v["script_time"] = get_script_time(stdout_p)
             else:
-                v["exec_time"] = None
+                v["script_time"] = None
 
             exp_gen_time = timedelta()
             coding_time = timedelta()
             running_time = timedelta()
-            if state.show_times_info:
-                times_info = load_times(Path(lf) / k)
-                for time_info in times_info.values():
-                    exp_gen_time += time_info[0].end - time_info[0].start
+            all_time = timedelta()
+            times_info = load_times(Path(lf) / k)
+            for time_info in times_info.values():
+                all_time += sum((ti.end - ti.start for ti in time_info), timedelta())
+                exp_gen_time += time_info[0].end - time_info[0].start
+                if len(time_info) > 1:
                     coding_time += time_info[1].end - time_info[1].start
-                    if len(time_info) > 2:
-                        running_time += time_info[2].end - time_info[2].start
+                if len(time_info) > 2:
+                    running_time += time_info[2].end - time_info[2].start
+            v["exec_time"] = str(all_time).split(".")[0]
             v["exp_gen_time"] = str(exp_gen_time).split(".")[0]
             v["coding_time"] = str(coding_time).split(".")[0]
             v["running_time"] = str(running_time).split(".")[0]
+
+            final_sota_exp = get_final_sota_exp(Path(lf) / k)
+            if final_sota_exp is not None:
+                v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
+            else:
+                v["sota_exp_score_valid"] = None
             # 调整实验名字
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
@@ -84,6 +104,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     base_df = pd.DataFrame(
         columns=[
             "Competition",
+            "Script Time",
             "Exec Time",
             "Exp Gen",
             "Coding",
@@ -100,6 +121,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Any Medal",
             "Best Result",
             "SOTA Exp",
+            "SOTA Exp Score (valid)",
             "SOTA Exp Score",
             "Baseline Score",
             "Ours - Base",
@@ -132,6 +154,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     for k, v in summary.items():
         loop_num = v["loop_num"]
         base_df.loc[k, "Competition"] = v["competition"]
+        base_df.loc[k, "Script Time"] = v["script_time"]
         base_df.loc[k, "Exec Time"] = v["exec_time"]
         base_df.loc[k, "Exp Gen"] = v["exp_gen_time"]
         base_df.loc[k, "Coding"] = v["coding_time"]
@@ -173,6 +196,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             base_df.loc[k, "Ours vs Silver"] = compare_score(v["sota_exp_score"], v.get("silver_threshold", None))
             base_df.loc[k, "Ours vs Gold"] = compare_score(v["sota_exp_score"], v.get("gold_threshold", None))
             base_df.loc[k, "SOTA Exp Score"] = v.get("sota_exp_score", None)
+            base_df.loc[k, "SOTA Exp Score (valid)"] = v.get("sota_exp_score_valid", None)
             base_df.loc[k, "Baseline Score"] = baseline_score
             base_df.loc[k, "Bronze Threshold"] = v.get("bronze_threshold", None)
             base_df.loc[k, "Silver Threshold"] = v.get("silver_threshold", None)
@@ -194,6 +218,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Ours - Base": float,
             "Ours vs Base": float,
             "SOTA Exp Score": float,
+            "SOTA Exp Score (valid)": float,
             "Baseline Score": float,
             "Bronze Threshold": float,
             "Silver Threshold": float,
@@ -205,6 +230,8 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
 
 
 def num2percent(num: int, total: int, show_origin=True) -> str:
+    num = int(num)
+    total = int(total)
     if show_origin:
         return f"{num} ({round(num / total * 100, 2)}%)"
     return f"{round(num / total * 100, 2)}%"
@@ -212,6 +239,20 @@ def num2percent(num: int, total: int, show_origin=True) -> str:
 
 def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     base_df = df.copy(deep=True)
+
+    # Convert columns to object dtype so we can store strings like "14 (53.85%)" without warnings
+    columns_to_convert = [
+        "Successful Final Decision",
+        "Made Submission",
+        "Valid Submission",
+        "Above Median",
+        "Bronze",
+        "Silver",
+        "Gold",
+        "Any Medal",
+    ]
+    base_df[columns_to_convert] = base_df[columns_to_convert].astype(object)
+
     for k in base_df.index:
         loop_num = int(base_df.loc[k, "Total Loops"])
         if loop_num != 0:
@@ -231,6 +272,7 @@ def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
             base_df.loc[k, "Silver"] = num2percent(base_df.loc[k, "Silver"], loop_num, show_origin)
             base_df.loc[k, "Gold"] = num2percent(base_df.loc[k, "Gold"], loop_num, show_origin)
             base_df.loc[k, "Any Medal"] = num2percent(base_df.loc[k, "Any Medal"], loop_num, show_origin)
+
     return base_df
 
 
@@ -275,12 +317,13 @@ def all_summarize_win():
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     base_df = st.data_editor(
-        base_df.style.applymap(
-            lambda x: "background-color: #F0F8FF",
+        base_df.style.apply(
+            lambda col: col.map(lambda val: "background-color: #F0F8FF"),
             subset=["Baseline Score", "Bronze Threshold", "Silver Threshold", "Gold Threshold", "Medium Threshold"],
+            axis=0,
         )
-        .applymap(
-            lambda x: "background-color: #FFFFE0",
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #FFFFE0"),
             subset=[
                 "Ours - Base",
                 "Ours vs Base",
@@ -288,23 +331,28 @@ def all_summarize_win():
                 "Ours vs Silver",
                 "Ours vs Gold",
             ],
+            axis=0,
         )
-        .applymap(
-            lambda x: "background-color: #E6E6FA",
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #E6E6FA"),
             subset=[
+                "Script Time",
                 "Exec Time",
                 "Exp Gen",
                 "Coding",
                 "Running",
             ],
+            axis=0,
         )
-        .applymap(
-            lambda x: "background-color: #F0FFF0",
+        .apply(
+            lambda col: col.map(lambda val: "background-color: #F0FFF0"),
             subset=[
                 "Best Result",
                 "SOTA Exp",
                 "SOTA Exp Score",
+                "SOTA Exp Score (valid)",
             ],
+            axis=0,
         ),
         column_config={
             "Select": st.column_config.CheckboxColumn("Select", default=True, help="Stat this trace.", disabled=False),
@@ -380,24 +428,54 @@ def all_summarize_win():
         for k, v in summary.items():
             with st.container(border=True):
                 st.markdown(f"**:blue[{k}] - :violet[{v['competition']}]**")
-                fc1, fc2 = st.columns(2)
-                tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
-                tdf = pd.Series(tscores, name="score")
-                f2 = px.line(tdf, markers=True, title="Test scores")
-                fc2.plotly_chart(f2, key=k)
                 try:
-                    vscores = {k: v.iloc[:, 0] for k, v in v["valid_scores"].items()}
+                    tscores = {f"loop {k-1}": v for k, v in v["test_scores"].items()}
+                    vscores = {}
+                    for k, vs in v["valid_scores"].items():
+                        if not vs.index.is_unique:
+                            st.warning(
+                                f"Loop {k}'s valid scores index are not unique, only the last one will be kept to show."
+                            )
+                            st.write(vs)
+                        vscores[k] = vs[~vs.index.duplicated(keep="last")].iloc[:, 0]
 
                     if len(vscores) > 0:
                         metric_name = list(vscores.values())[0].name
                     else:
                         metric_name = "None"
 
+                    tdf = pd.Series(tscores, name="score")
                     vdf = pd.DataFrame(vscores)
+                    if "ensemble" in vdf.index:
+                        ensemble_row = vdf.loc[["ensemble"]]
+                        vdf = pd.concat([ensemble_row, vdf.drop("ensemble")])
                     vdf.columns = [f"loop {i}" for i in vdf.columns]
-                    f1 = px.line(vdf.T, markers=True, title=f"Valid scores (metric: {metric_name})")
+                    fig = go.Figure()
+                    # Add test scores trace from tdf
+                    fig.add_trace(
+                        go.Scatter(
+                            x=tdf.index,
+                            y=tdf,
+                            mode="lines+markers",
+                            name="Test scores",
+                            marker=dict(symbol="diamond"),
+                            line=dict(shape="linear", dash="dash"),
+                        )
+                    )
+                    # Add valid score traces from vdf (transposed to have loops on x-axis)
+                    for column in vdf.T.columns:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=vdf.T.index,
+                                y=vdf.T[column],
+                                mode="lines+markers",
+                                name=f"{column}",
+                                visible=("legendonly" if column != "ensemble" else None),
+                            )
+                        )
+                    fig.update_layout(title=f"Test and Valid scores (metric: {metric_name})")
 
-                    fc1.plotly_chart(f1, key=f"{k}_v")
+                    st.plotly_chart(fig)
                 except Exception as e:
                     import traceback
 
@@ -408,8 +486,6 @@ def all_summarize_win():
                     st.json(v["valid_scores"])
 
 
-with st.sidebar:
-    st.toggle("Show Times Info (Slowly)", key="show_times_info")
 with st.container(border=True):
     if st.toggle("近3天平均", key="show_3days"):
         days_summarize_win()

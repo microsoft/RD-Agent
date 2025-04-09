@@ -54,8 +54,9 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         env = get_ds_env()
         env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
+        # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        stdout = implementation.execute(env=env, entry=f"python main.py")
+        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         score_fp = implementation.workspace_path / "scores.csv"
@@ -101,10 +102,27 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
             env=env, entry="python test/submission_format_test.py"
         )
+        if DS_RD_SETTING.rule_base_eval:
+            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+                return PipelineSingleFeedback(
+                    execution=stdout,
+                    return_checking=score_check_text + "\n" + submission_check_out,
+                    code="Code evaluation is not available.",
+                    final_decision=True,
+                )
+            else:
+                return PipelineSingleFeedback(
+                    execution=stdout,
+                    return_checking=score_check_text + "\n" + submission_check_out,
+                    code="Code evaluation is not available.",
+                    final_decision=False,
+                )
         stdout += "\n" + submission_check_out
 
+        eda_output = implementation.file_dict.get("EDA.md", None)
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )

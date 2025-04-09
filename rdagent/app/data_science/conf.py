@@ -33,6 +33,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     coder_max_loop: int = 10
     runner_max_loop: int = 3
 
+    rule_base_eval: bool = False
+
     ### model dump
     enable_model_dump: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
