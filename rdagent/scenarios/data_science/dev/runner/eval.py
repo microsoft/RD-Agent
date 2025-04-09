@@ -91,7 +91,8 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 score_ret_code = 1
 
         # DockerEnv for MLEBench submission validation
-        submission_check_out = None
+        submission_check_out = ""
+
         if DS_RD_SETTING.if_using_mle_data:
             mde = get_ds_env("mlebench")
             mde.conf.extra_volumes = {
@@ -112,23 +113,22 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
 
         if DS_RD_SETTING.rule_base_eval:
-            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+            if DS_RD_SETTING.if_using_mle_data:
+                score_check_text = score_check_text + "\n" + submission_check_out
+            if execute_ret_code == 0 and score_ret_code == 0 and (not DS_RD_SETTING.if_using_mle_data or submission_ret_code == 0):
                 return DSCoSTEEREvalFeedback(
                     execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
+                    return_checking=score_check_text,
                     code="Code evaluation is not available.",
                     final_decision=True,
                 )
             else:
                 return DSCoSTEEREvalFeedback(
                     execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
+                    return_checking=score_check_text,
                     code="Code evaluation is not available.",
                     final_decision=False,
                 )
-        
-        if not submission_check_out is None:
-            stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(),
