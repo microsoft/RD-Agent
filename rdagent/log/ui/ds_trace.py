@@ -94,25 +94,27 @@ def load_data(log_path: Path):
     # debug_llm data
     llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     llm_log_p = log_path / "debug_llm.pkl"
-    with st.spinner("正在加载 debug_llm.pkl..."):
+    try:
         rd = pickle.loads(llm_log_p.read_bytes())
-        for i, d in enumerate(rd):
-            t = d["tag"]
-            if "debug_exp_gen" in t:
-                continue
-            if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
-                continue
-            lid, fn = extract_loopid_func_name(t)
-            ei = extract_evoid(t)
-            if lid:
-                lid = int(lid)
-            if ei:
-                ei = int(ei)
+    except:
+        rd = []
+    for d in rd:
+        t = d["tag"]
+        if "debug_exp_gen" in t:
+            continue
+        if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
+            continue
+        lid, fn = extract_loopid_func_name(t)
+        ei = extract_evoid(t)
+        if lid:
+            lid = int(lid)
+        if ei:
+            ei = int(ei)
 
-            if ei is not None:
-                llm_data[lid][fn][ei].append(d)
-            else:
-                llm_data[lid][fn]["no_tag"].append(d)
+        if ei is not None:
+            llm_data[lid][fn][ei].append(d)
+        else:
+            llm_data[lid][fn]["no_tag"].append(d)
 
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
@@ -256,7 +258,7 @@ def hypothesis_win(data):
 
 def exp_gen_win(data, llm_data=None):
     st.header("Exp Gen", divider="blue", anchor="exp-gen")
-    if state.show_llm_log:
+    if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
     st.subheader("Hypothesis")
     hypothesis_win(data["no_tag"].hypothesis)
@@ -279,7 +281,7 @@ def evolving_win(data, key, llm_data=None):
             return
 
         if evo_id in data:
-            if state.show_llm_log:
+            if state.show_llm_log and llm_data is not None:
                 llm_log_win(llm_data[evo_id])
             if data[evo_id]["evolving code"][0] is not None:
                 st.subheader("codes")
@@ -330,7 +332,7 @@ def running_win(data, mle_score, llm_data=None):
     evolving_win(
         {k: v for k, v in data.items() if isinstance(k, int)}, key="running", llm_data=llm_data if llm_data else None
     )
-    if state.show_llm_log:
+    if state.show_llm_log and llm_data is not None:
         llm_log_win(common_llm_data)
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
@@ -659,4 +661,4 @@ if state.data["competition"]:
         loop_id = 0
     if state.show_stdout:
         stdout_win(loop_id)
-    main_win(state.data[loop_id], state.llm_data[loop_id])
+    main_win(state.data[loop_id], state.llm_data[loop_id] if loop_id in state.llm_data else None)
