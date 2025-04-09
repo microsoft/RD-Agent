@@ -209,7 +209,7 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
         **kwargs,
     ) -> CoSTEERMultiFeedback:
         eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
-        task_feedback_l = []
+        task_li_feedback_li = []
         for ev in eval_l:
             multi_implementation_feedback = multiprocessing_wrapper(
                 [
@@ -226,19 +226,19 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
                 ],
                 n=RD_AGENT_SETTINGS.multi_proc_n,
             )
-            task_feedback_l.extend(multi_implementation_feedback)
+            task_li_feedback_li.append(multi_implementation_feedback)
         # merge the feedbacks
         merged_task_feedback = []
-        for task_id, tfb in enumerate(task_feedback_l[0]):
-            fb = deepcopy(tfb[task_id])
+        for task_id, fb in enumerate(task_li_feedback_li[0]):
+            fb = deepcopy(fb)  # deep copy to make it more robust
 
-            fb.final_decision = all(task_feedback[task_id].final_decision for task_feedback in task_feedback_l)
+            fb.final_decision = all(task_li_feedback[task_id].final_decision for task_li_feedback in task_li_feedback_li)
             for attr in "execution", "return_checking", "code":
                 setattr(
                     fb, attr, "\n\n".join([
-                        getattr(task_feedback[task_id], attr)
-                        for task_feedback in task_feedback_l
-                        if getattr(task_feedback[task_id], attr) is not None
+                        getattr(task_li_feedback[task_id], attr)
+                        for task_li_feedback in task_li_feedback_li
+                        if getattr(task_li_feedback[task_id], attr) is not None
                     ]))
             merged_task_feedback.append(fb)
 

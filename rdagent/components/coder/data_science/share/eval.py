@@ -19,7 +19,7 @@ PipelineMultiFeedback = CoSTEERMultiFeedback
 
 class ModelDumpEvaluator(CoSTEEREvaluator):
     """This evaluator assumes that it runs after the model"""
-    def evaluate(self, target_task: Task, implementation: Workspace, gt_implementation: Workspace, **kwargs) -> CoSTEERSingleFeedback:
+    def evaluate(self, target_task: Task, implementation: FBWorkspace, gt_implementation: FBWorkspace, **kwargs) -> CoSTEERSingleFeedback:
 
         model_folder = implementation.workspace_path / "models"
         # 1) Check if the model_folder is not empty

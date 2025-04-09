@@ -18,6 +18,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -87,8 +88,7 @@ class DSCoSTEERRunner(CoSTEER):
         **kwargs,
     ) -> None:
 
-        settings = DSCoderCoSTEERSettings()
-        eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen))
 
