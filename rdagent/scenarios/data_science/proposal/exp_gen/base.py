@@ -48,12 +48,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         The first element of the tuple is the parent index, the rest are the parent indexes of the parent (not implemented yet).
         If the current node is the root node without parent, the tuple is empty.
         """
-        self.dag_parent: list[tuple[int, ...]] = []# List of tuples representing parent indices in the DAG structure.
+        self.dag_parent: list[tuple[int, ...]] = []  # List of tuples representing parent indices in the DAG structure.
         # () represents no parent; (1,) presents one parent; (1, 2) represents two parents.
 
         self.knowledge_base = knowledge_base
 
-        self.current_selection: tuple[int, ...] = (-1, )
+        self.current_selection: tuple[int, ...] = (-1,)
 
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
 
@@ -63,13 +63,15 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def set_current_selection(self, selection: tuple[int, ...]) -> None:
         self.current_selection = selection
 
-    def sync_dag_parent_and_hist(self, ) -> None:
+    def sync_dag_parent_and_hist(
+        self,
+    ) -> None:
         """
         Adding corresponding parent index to the dag_parent when the hist is going to be changed.
-        Should be called when the hist is changed. 
+        Should be called when the hist is changed.
         """
 
-        if len(self.hist) == 0 or self.get_current_selection() is None:
+        if len(self.hist) == 0 or len(self.get_current_selection()) == 0:
             # the node we are going to add is the first node of hist / root node of a new sub-trace
             self.dag_parent.append(())
 
@@ -80,11 +82,10 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 # the current selection is the latest one
                 current_node_idx = len(self.hist) - 1
 
-            self.dag_parent.append((current_node_idx, ))
+            self.dag_parent.append((current_node_idx,))
 
     def retrieve_search_list(
-            self, 
-            search_type: Literal["all", "ancestors"] = "ancestors"
+        self, search_type: Literal["all", "ancestors"] = "ancestors"
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve the search list based on the selection and search_type.
@@ -110,9 +111,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return self.collect_all_ancestors(selection) if search_type == "ancestors" else self.hist
 
     def collect_all_ancestors(
-            self, 
-            selection: tuple[int, ...] | None = (-1,),
-    ) -> list[tuple[DSExperiment, ExperimentFeedback]] | None:
+        self,
+        selection: tuple[int, ...] = (-1,),
+    ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Collect all ancestors of the given selection.
         The return list follows the order of [root->...->parent->current_node].
@@ -124,14 +125,11 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             all_ancestors = []
 
-
             # start from the latest selection
-            current_node_idx = selection[0] 
-            
+            current_node_idx = selection[0]
 
             # add the current node to the list
             all_ancestors.insert(0, self.hist[current_node_idx])
-
 
             parent_idx = self.dag_parent[current_node_idx]
 
@@ -142,7 +140,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return all_ancestors
 
     def next_incomplete_component(
-        self, 
+        self,
         search_type: Literal["all", "ancestors"] = "ancestors",
     ) -> COMPONENT | None:
         """
@@ -159,8 +157,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         return None
 
-
-    def has_component(self, component: COMPONENT, search_list: list[tuple[DSExperiment, ExperimentFeedback]] = []) -> bool:
+    def has_component(
+        self, component: COMPONENT, search_list: list[tuple[DSExperiment, ExperimentFeedback]] = []
+    ) -> bool:
         for exp, fb in search_list:
             assert isinstance(exp.hypothesis, DSHypothesis), "Hypothesis should be DSHypothesis (and not None)"
             if exp.hypothesis.component == component and fb:
@@ -168,8 +167,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         return False
 
     def experiment_and_feedback_list_after_init(
-        self, 
-        return_type: Literal["sota", "failed", "all"], 
+        self,
+        return_type: Literal["sota", "failed", "all"],
         search_type: Literal["all", "ancestors"] = "all",
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """

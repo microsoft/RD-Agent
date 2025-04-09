@@ -28,6 +28,10 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.select import (
+    LatestCKPSelector,
+    SOTAJumpCKPSelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
@@ -71,7 +75,7 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
-        selection  = self.ckp_selector.get_selection(self.trace)
+        selection = self.ckp_selector.get_selection(self.trace)
         exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
 

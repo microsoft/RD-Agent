@@ -1,11 +1,14 @@
-from pathlib import Path
-import pandas as pd
 import hashlib
+from pathlib import Path
+
+import pandas as pd
+
 
 def calculate_md5(file_path):
     with open(file_path, "rb") as f:
         file_hash = hashlib.md5(f.read()).hexdigest()
     return file_hash
+
 
 file_md5 = calculate_md5("scores.csv")
 
@@ -24,8 +27,9 @@ find . | grep -i sample | grep -i submission | grep -v sample_submission.csv | g
 # Find sample submission file dynamically
 input_dir = Path("/kaggle/input")
 # Look for common variations of sample submission filenames
-sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + \
-                         list(input_dir.glob("*sampleSubmission*.csv"))
+sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
+    input_dir.glob("*sampleSubmission*.csv")
+)
 
 assert sample_submission_files, "Error: No sample submission file found in /kaggle/input/"
 
@@ -38,10 +42,10 @@ print(f"Using sample submission file: {sample_submission_name}")
 assert Path(SAMPLE_SUBMISSION_PATH).exists(), f"Error: {sample_submission_name} not found at {SAMPLE_SUBMISSION_PATH}"
 
 # Check if our submission file exists
-assert Path('submission.csv').exists(), "Error: submission.csv not found"
+assert Path("submission.csv").exists(), "Error: submission.csv not found"
 
 sample_submission = pd.read_csv(SAMPLE_SUBMISSION_PATH)
-our_submission = pd.read_csv('submission.csv')
+our_submission = pd.read_csv("submission.csv")
 
 success = True
 # Print the columns of the sample submission file
@@ -51,17 +55,19 @@ print("Columns in our_submission.csv:", our_submission.columns)
 for col in sample_submission.columns:
     if col not in our_submission.columns:
         success = False
-        print(f'Column {col} not found in submission.csv')
+        print(f"Column {col} not found in submission.csv")
 
 if success:
-    print(f'submission.csv\'s columns aligns with {sample_submission_name} .')
+    print(f"submission.csv's columns aligns with {sample_submission_name} .")
+else:
+    raise AssertionError(f"submission.csv's columns does not align with {sample_submission_name} .")
 
 
 # Print the first 5 rows of the two submission files, with columns separated by commas.
 def print_first_rows(file_path, file_name, num_rows=5):
     print(f"\nFirst {num_rows} rows of {file_name}:")
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             for i, line in enumerate(file):
                 if i < num_rows:
                     print(line.strip())
@@ -70,8 +76,11 @@ def print_first_rows(file_path, file_name, num_rows=5):
     except FileNotFoundError:
         print(f"Error: {file_name} not found.")
 
+
 print_first_rows(SAMPLE_SUBMISSION_PATH, sample_submission_name)
-print_first_rows('submission.csv', 'submission.csv')
+print_first_rows("submission.csv", "submission.csv")
 
 assert calculate_md5("scores.csv") == file_md5, "scores.csv should not be rewritten"
-print(f"\nPlease Checked the content of the submission file(submission.csv should has the same format with {sample_submission_name} but might not the same index with {sample_submission_name}). ")
+print(
+    f"\nPlease Checked the content of the submission file(submission.csv should has the same format with {sample_submission_name} but might not the same index with {sample_submission_name}). "
+)
