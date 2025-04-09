@@ -127,7 +127,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         stdout += "\n" + submission_check_out
 
         system_prompt = T(".prompts:workflow_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            # here we pass `None` to `eda_output` because we do not have nor need EDA output for workflow.
+            scenario=self.scen.get_scenario_all_desc(eda_output=None),
             task_desc=target_task.get_task_information(),
             spec=(
                 implementation.file_dict["spec/workflow.md"]

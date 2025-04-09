@@ -1,4 +1,4 @@
-""" """
+# TODO: remove `self.scen` if traces will be passed into the instance.
 
 from __future__ import annotations
 
@@ -112,9 +112,16 @@ ASpecificKB = TypeVar("ASpecificKB", bound=KnowledgeBase)
 
 
 class Trace(Generic[ASpecificScen, ASpecificKB]):
+    NodeType = tuple[Experiment, ExperimentFeedback]  # Define NodeType as a new type representing the tuple
+
     def __init__(self, scen: ASpecificScen, knowledge_base: ASpecificKB | None = None) -> None:
         self.scen: ASpecificScen = scen
-        self.hist: list[tuple[Experiment, ExperimentFeedback]] = []
+        self.hist: list[Trace.NodeType] = (
+            []
+        )  # List of tuples containing experiments and their feedback, organized over time.
+        self.dag_parent: list[tuple[int, ...]] = []  # List of tuples representing parent indices in the DAG structure.
+        # (,) represents no parent; (1,) presents one parent; (1, 2) represents two parents.
+
         # TODO: self.hist is 2-tuple now, remove hypothesis from it, change old code for this later.
         self.knowledge_base: ASpecificKB | None = knowledge_base
 
@@ -128,13 +135,32 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         return None, None
 
 
+class CheckpointSelector:
+    """
+    In the trace, we may start from any check point (we'll represent it as a variable `from_checkpoint_idx`)
+    """
+
+    @abstractmethod
+    def get_selection(self, trace: Trace) -> tuple[int, ...] | None:
+        """
+        checkpoint_idx represents the place where we want to create a new node.
+        the return value should be the idx of target node (the parent of the new generating node).
+        - `(-1, )` represents starting from the latest trial in the trace - default value
+        - `(idx, )` represents starting from the `idx`-th trial in the trace.
+        - `None` represents starting from scratch (start a new trace)
+
+
+        - More advanced selection strategies in `select.py`
+        """
+
+
 class ExpGen(ABC):
 
     def __init__(self, scen: Scenario) -> None:
         self.scen = scen
 
     @abstractmethod
-    def gen(self, trace: Trace) -> Experiment:
+    def gen(self, trace: Trace, selection: tuple[int, ...] = (-1,)) -> Experiment:
         """
         Generate the experiment based on the trace.
 

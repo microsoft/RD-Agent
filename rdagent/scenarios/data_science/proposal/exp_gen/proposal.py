@@ -67,12 +67,17 @@ class DSProposalV1ExpGen(ExpGen):
         # - Previous Feedback
         # - Current sota implementation (encourage change based on it)
         # - Extra RAG
-
-        scenario_desc = trace.scen.get_scenario_all_desc()
         sota_exp = trace.sota_experiment()
+        if not isinstance(sota_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+
         assert sota_exp is not None, "SOTA experiment is not provided."
-        exp_and_feedback = trace.hist[-1]
-        last_exp = exp_and_feedback[0]
+        last_exp = trace.last_exp()
+        # exp_and_feedback = trace.hist[-1]
+        # last_exp = exp_and_feedback[0]
 
         # Step 1: Generate component
         # Describe current best solution using shared template
@@ -395,7 +400,11 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         sota_exp = trace.sota_experiment()
-        scenario_desc = trace.scen.get_scenario_all_desc()
+        if not isinstance(sota_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
         competition_desc = trace.scen.get_competition_full_desc()
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
