@@ -90,7 +90,7 @@ class DSCoSTEERRunner(CoSTEER):
 
         eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
-            eval_l.append(ModelDumpEvaluator(scen=scen))
+            eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
 
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen

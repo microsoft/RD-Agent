@@ -232,14 +232,21 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
         for task_id, fb in enumerate(task_li_feedback_li[0]):
             fb = deepcopy(fb)  # deep copy to make it more robust
 
-            fb.final_decision = all(task_li_feedback[task_id].final_decision for task_li_feedback in task_li_feedback_li)
+            fb.final_decision = all(
+                task_li_feedback[task_id].final_decision for task_li_feedback in task_li_feedback_li
+            )
             for attr in "execution", "return_checking", "code":
                 setattr(
-                    fb, attr, "\n\n".join([
-                        getattr(task_li_feedback[task_id], attr)
-                        for task_li_feedback in task_li_feedback_li
-                        if getattr(task_li_feedback[task_id], attr) is not None
-                    ]))
+                    fb,
+                    attr,
+                    "\n\n".join(
+                        [
+                            getattr(task_li_feedback[task_id], attr)
+                            for task_li_feedback in task_li_feedback_li
+                            if getattr(task_li_feedback[task_id], attr) is not None
+                        ]
+                    ),
+                )
             merged_task_feedback.append(fb)
 
         final_decision = [

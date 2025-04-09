@@ -15,7 +15,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.conf import get_ds_env, get_clear_ws_cmd
+from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry

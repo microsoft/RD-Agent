@@ -9,6 +9,7 @@ dump_model_eval:
     You will receive the following information:
     - The implemented code
     - The stdout from running the code
+    - The file list in "models/" subfolder
 
     Focus on these aspects:
     - Check if the code saves the model in the "models/" subfolder.
@@ -31,3 +32,8 @@ dump_model_eval:
 
     ------------ The stdout from running the code ------------ 
     {{stdout}}
+
+    ------------ The file list in "models/" subfolder ------------
+    {% for f in model_folder_files %}
+    - {{ f }}
+    {% endfor %}
