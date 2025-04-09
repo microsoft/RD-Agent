@@ -25,7 +25,6 @@ import docker  # type: ignore[import-untyped]
 import docker.models  # type: ignore[import-untyped]
 import docker.models.containers  # type: ignore[import-untyped]
 import docker.types  # type: ignore[import-untyped]
-import tqdm
 from pydantic import BaseModel, model_validator
 from pydantic_settings import SettingsConfigDict
 from rich import print
@@ -33,6 +32,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
+from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
@@ -41,7 +41,7 @@ from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
 
 
-def pull_image_with_progress(image):
+def pull_image_with_progress(image: str) -> None:
     client = docker.APIClient(base_url="unix://var/run/docker.sock")
     pull_logs = client.pull(image, stream=True, decode=True)
     progress_bars = {}
@@ -322,8 +322,7 @@ class LocalEnv(Env[ASpecificLocalConf]):
     Sometimes local environment may be more convenient for testing
     """
 
-    def prepare(self) -> None:
-        ...
+    def prepare(self) -> None: ...
 
     def _run_ret_code(
         self,
@@ -407,9 +406,9 @@ class MLECondaConf(CondaConf):
 ## Docker Environment -----
 class DockerConf(EnvConf):
     build_from_dockerfile: bool = False
-    dockerfile_folder_path: Optional[
-        Path
-    ] = None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    dockerfile_folder_path: Optional[Path] = (
+        None  # the path to the dockerfile optional path provided when build_from_dockerfile is False
+    )
     image: str  # the image you want to build
     mount_path: str  # the path in the docker image to mount the folder
     default_entry: str  # the entry point of the image
@@ -597,7 +596,7 @@ class DockerEnv(Env[DockerConf]):
             ),
         }
 
-        def get_image(image_name) -> None:
+        def get_image(image_name: str) -> None:
             try:
                 client.images.get(image_name)
             except docker.errors.ImageNotFound:
