@@ -15,7 +15,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.conf import get_ds_env, get_clear_ws_cmd
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -54,8 +54,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         env = get_ds_env()
         env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
 
-        # Clean the scores.csv & submission.csv.
-        implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
+        implementation.execute(env=env, entry=get_clear_ws_cmd())
         stdout = implementation.execute(env=env, entry=f"python main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 

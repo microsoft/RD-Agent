@@ -7,7 +7,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -19,12 +19,12 @@ PipelineMultiFeedback = CoSTEERMultiFeedback
 
 class ModelDumpEvaluator(CoSTEEREvaluator):
     """This evaluator assumes that it runs after the model"""
-    def evaluate(self, target_task: Task, implementation: FBWorkspace, gt_implementation: FBWorkspace, **kwargs) -> CoSTEERSingleFeedback:
+    def evaluate(self, target_task: Task, implementation: FBWorkspace, gt_implementation: FBWorkspace, *kargs, **kwargs) -> CoSTEERSingleFeedback:
 
         model_folder = implementation.workspace_path / "models"
         # 1) Check if the model_folder is not empty
         if not model_folder.exists() or not any(model_folder.iterdir()):
-            err_msg = "Model folder is empty or does not exist. The model is not dumped. Please add code to dump the trained models in `models` sub folder"
+            err_msg = "Model folder (`models` sub folder) is empty or does not exist. The model is not dumped."
             return CoSTEERSingleFeedback(
                 execution=err_msg,
                 return_checking=err_msg,
@@ -39,7 +39,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
         scores_content_before = (implementation.workspace_path / "scores.csv").read_text()
 
         # Remove the files submission.csv and scores.csv
-        implementation.execute(env=env, entry="rm submission.csv scores.csv")
+        implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
 
         # Execute the main script
         stdout = implementation.execute(env=env, entry="python main.py")
