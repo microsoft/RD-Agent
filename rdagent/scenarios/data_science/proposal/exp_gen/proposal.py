@@ -342,6 +342,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp: DSExperiment,
         hypothesis: DSHypothesis,
         pipeline: bool,
+        failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
         if not pipeline and DS_RD_SETTING.spec_enabled and sota_exp is not None:
@@ -356,11 +357,6 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
 
-        failed_exp_feedback_list = trace.experiment_and_feedback_list_after_init(return_type="failed")
-        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=failed_exp_feedback_list,
-            success=False,
-        )
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=str(hypothesis),
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
@@ -422,6 +418,10 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
         )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed")
+            type="failed",
+        )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -476,4 +476,5 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp=sota_exp,
             hypothesis=new_hypothesis,
             pipeline=pipeline,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
