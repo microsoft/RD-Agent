@@ -39,6 +39,20 @@ class PythonAgentOut(AgentOut):
         return resp
 
 
+class MarkdownAgentOut(AgentOut):
+    @classmethod
+    def get_spec(cls):
+        return T(".tpl:MarkdownOut").r()
+
+    @classmethod
+    def extract_output(cls, resp: str):
+        match = re.search(r".*````markdown\n(.*)\n````.*", resp, re.DOTALL)
+        if match:
+            content = match.group(1)
+            return content
+        return resp
+
+
 class BatchEditOut(AgentOut):
     json_mode: bool = True
 

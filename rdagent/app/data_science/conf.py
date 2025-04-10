@@ -38,6 +38,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     ### model dump
     enable_model_dump: bool = False
+    enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
 

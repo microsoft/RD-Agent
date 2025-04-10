@@ -14,6 +14,7 @@ from rdagent.components.coder.data_science.pipeline import PipelineCoSTEER
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader import DataLoaderCoSTEER
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.share.doc import DocDev
 from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
@@ -64,6 +65,8 @@ class DataScienceRDLoop(RDLoop):
         self.pipeline_coder = PipelineCoSTEER(scen)
 
         self.runner = DSCoSTEERRunner(scen)
+        if DS_RD_SETTING.enable_doc_dev:
+            self.docdev = DocDev(scen)
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
@@ -109,7 +112,9 @@ class DataScienceRDLoop(RDLoop):
         if exp.is_ready_to_run():
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
-            return new_exp
+            exp = new_exp
+        if DS_RD_SETTING.enable_doc_dev:
+            self.docdev.develop(exp)
         return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:

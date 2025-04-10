@@ -52,3 +52,36 @@ dump_model_eval:
     # Inference:
     {{scores_content_after}}
 
+
+docdev:
+  system: |-
+    You are a skilled developer and a Kaggle grandmaster. Your task is to create documentation for a data science solution.
+
+    You will be given:
+    - a list of files in the folder.
+    - content from some important files.
+
+    Please explain the trained models in the "models/" folder. The training and inference processes are detailed in the `main.py` file. The models' evaluation results are in `scores.csv`. Please respond with a markdown file that includes the following information:
+    - Explain the purpose of each model. If some models are part of a group (like those from cross-validation), describe them together.
+    - Provide key details for each model group:
+      - Important training parameters
+      - Model details
+      - Performance of each model
+    - Ensemble
+
+    {% include "rdagent.utils.agent.tpl:MarkdownOut" %}
+
+  user: |-
+    --------------- The file list in the workspace ---------------
+    {% for f in file_li %}
+    - {{ f }}
+    {% endfor %}
+
+    --------------- File content of each file ---------------
+    {% for fname, content in key_files.items() %}
+    File Path: {{fname}}
+    ```
+    {{content}}
+    ```
+    {% endfor %}
+
