@@ -15,7 +15,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
-from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -56,8 +56,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         )
 
         # Clean the scores.csv & submission.csv.
-        implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
-        stdout = implementation.execute(env=env, entry=f"python main.py")
+        implementation.execute(env=env, entry=get_clear_ws_cmd())
+        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python main.py")
         stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
 
         score_fp = implementation.workspace_path / "scores.csv"
@@ -72,15 +72,24 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 model_set_in_scores = set(score_df.index)
 
                 # Check model names (index)
-                if "ensemble" not in model_set_in_scores:
-                    score_check_text += (
-                        f"\n[Error] The score dataframe doesn't contain the ensemble model.\nscore_df is:\n{score_df}"
-                    )
+                if not score_df.index.is_unique:
+                    score_check_text += "\n[Error] The score dataframe contains duplicate model names."
                     score_ret_code = 1
+                if "ensemble" not in model_set_in_scores:
+                    score_check_text += "\n[Error] The score dataframe doesn't contain the ensemble model."
+                    score_ret_code = 1
+                if score_ret_code != 0:
+                    score_check_text += f"The score_df is:\n{score_df}"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
                     score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_ret_code = 1
+
+                # Check if scores contain NaN (values)
+                if score_df.isnull().values.any():
+                    nan_locations = score_df[score_df.isnull().any(axis=1)]
+                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
                     score_ret_code = 1
 
             except Exception as e:
@@ -94,10 +103,27 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         submission_check_out, submission_ret_code = implementation.execute_ret_code(
             env=env, entry="python test/submission_format_test.py"
         )
+        if DS_RD_SETTING.rule_base_eval:
+            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+                return PipelineSingleFeedback(
+                    execution=stdout,
+                    return_checking=score_check_text + "\n" + submission_check_out,
+                    code="Code evaluation is not available.",
+                    final_decision=True,
+                )
+            else:
+                return PipelineSingleFeedback(
+                    execution=stdout,
+                    return_checking=score_check_text + "\n" + submission_check_out,
+                    code="Code evaluation is not available.",
+                    final_decision=False,
+                )
         stdout += "\n" + submission_check_out
 
+        eda_output = implementation.file_dict.get("EDA.md", None)
+
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(),
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )

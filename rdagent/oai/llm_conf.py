@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 
@@ -13,6 +14,8 @@ class LLMSettings(ExtendedBaseSettings):
 
     chat_model: str = "gpt-4-turbo"
     embedding_model: str = "text-embedding-3-small"
+
+    reasoning_effort: Literal["low", "medium", "high"] | None = None
 
     # TODO: most of the settings are only used on deprec.DeprecBackend.
     # So they should move the settings to that folder.
