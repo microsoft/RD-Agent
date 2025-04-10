@@ -67,7 +67,8 @@ docdev:
       - Important training parameters
       - Model details
       - Performance of each model
-    - Ensemble
+
+    Be brief. Mention the file path when you introduce files.
 
     {% include "utils.agent.tpl:MarkdownOut" %}
 

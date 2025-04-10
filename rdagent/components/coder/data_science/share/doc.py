@@ -20,7 +20,7 @@ class DocDev(Developer[Experiment]):
         """
         ws: FBWorkspace = exp.experiment_workspace
 
-        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.iterdir() if file.is_file()]
+        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.rglob('*') if file.is_file()]
 
         key_file_list = ["main.py", "scores.csv"]
 
@@ -34,4 +34,4 @@ class DocDev(Developer[Experiment]):
             user_prompt=user_prompt, system_prompt=system_prompt
         )
         markdown = MarkdownAgentOut.extract_output(resp)
-        ws.inject_files({"README.md": markdown})
+        ws.inject_files(**{"README.md": markdown})
