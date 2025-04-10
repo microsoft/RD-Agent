@@ -69,7 +69,7 @@ docdev:
       - Performance of each model
     - Ensemble
 
-    {% include "rdagent.utils.agent.tpl:MarkdownOut" %}
+    {% include "utils.agent.tpl:MarkdownOut" %}
 
   user: |-
     --------------- The file list in the workspace ---------------
