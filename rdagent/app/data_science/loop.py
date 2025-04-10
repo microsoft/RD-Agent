@@ -32,6 +32,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.select import (
     AlwaysWinCKPSelector,
     LatestCKPSelector,
     SOTAJumpCKPSelector,
+    BackJumpCKPSelector,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
@@ -39,6 +40,7 @@ SELECTOR_NAME_MAP = {
     "latest": LatestCKPSelector,
     "sota_jump": SOTAJumpCKPSelector,
     "always_win": AlwaysWinCKPSelector,
+    "back_jump": BackJumpCKPSelector,
 }
 
 class DataScienceRDLoop(RDLoop):
