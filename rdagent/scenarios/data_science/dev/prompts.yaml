@@ -18,15 +18,13 @@ exp_feedback:
     3. SOTA results are the best outcomes we have achieved in this scenario. 
 
     Step 3: Review of Evaluation Alignment with Competition Requirements (listed in scenario)
-    As a reviewer, you should verify whether the current experiment strictly adheres to the evaluation requirements specified in the competition scenario description:
-    - Confirm that the validation metric precisely matches the official Kaggle competition evaluation metric detailed in the scenario.
+    As a reviewer, ensure that the current experiment strictly adheres to the evaluation requirements specified in the competition scenario description. [SPECIFICALLY, YOU MUST TRY YOUR BEST TO AVOID SIGNIFICANT DISCREPANCIES BETWEEN VALIDATION AND TEST SET SCORES]. This includes, but is not limited to
+    - Confirm that the validation metric exactly matches the official Kaggle competition evaluation metric stated in the scenario.
     - Ensure validation and test predictions are generated under identical conditions:
-      - Consistent preprocessing, normalization rules, tokenization methods, and post-processing logic.
-      - Check carefully that no simpler approximations or shortcuts (such as simpler rules or direct lookups) are applied exclusively to the validation predictions.
-    - Investigate thoroughly for subtle data leakage or inadvertent overfitting:
-      - Ensure no fold-specific models, heuristics, or condition-specific strategies differ across folds.
-      - No implicit or explicit use of test set distribution or information in the validation decisions.
-    - Check corner cases rigorously to ensure alignment between validation and test behavior
+      - Consistent preprocessing, normalization, tokenization methods, and post-processing logic.
+      - Verify that no simplified approximations or shortcuts (e.g., simpler rules or direct lookups) are exclusively applied to validation data.
+    - Ensure no fold-specific models, heuristics, or strategies are inconsistently applied across folds.
+    - Rigorously check corner cases to ensure consistent behavior between validation and test datasets.
 
     If the current experiment deviates from any aspect listed above in the competition's scenario description, explicitly document the identified discrepancy and set `"Evaluation Aligned With Task": "no"` (`"Replace Best Result"` should obviously be set as "no" as well). Clearly state the specific reason(s) for non-alignment.
   
