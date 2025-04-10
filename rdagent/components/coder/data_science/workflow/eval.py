@@ -10,7 +10,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
 )
-from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -54,8 +54,9 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env()
-        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        env = get_ds_env(
+            extra_volumes={f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        )
 
         # # DockerEnv for MLEBench submission validation
         # mle_de_conf = MLEBDockerConf()
@@ -66,7 +67,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         # mde.prepare()
 
         # Clean the scores.csv & submission.csv.
-        implementation.execute(env=env, entry=f"rm submission.csv scores.csv")
+        implementation.execute(env=env, entry=get_clear_ws_cmd())
 
         stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
 

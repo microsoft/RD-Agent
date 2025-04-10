@@ -34,7 +34,22 @@ class PythonAgentOut(AgentOut):
         match = re.search(r".*```[Pp]ython\n(.*)\n```.*", resp, re.DOTALL)
         if match:
             code = match.group(1)
+            code = re.sub(r"</?code>", "", code, flags=re.IGNORECASE)
             return code
+        return resp
+
+
+class MarkdownAgentOut(AgentOut):
+    @classmethod
+    def get_spec(cls):
+        return T(".tpl:MarkdownOut").r()
+
+    @classmethod
+    def extract_output(cls, resp: str):
+        match = re.search(r".*````markdown\n(.*)\n````.*", resp, re.DOTALL)
+        if match:
+            content = match.group(1)
+            return content
         return resp
 
 
@@ -51,7 +66,6 @@ class BatchEditOut(AgentOut):
 
 
 class PythonBatchEditOut(AgentOut):
-
     @classmethod
     def get_spec(cls, with_del=True):
         return T(".tpl:PythonBatchEditOut").r(with_del=with_del)

@@ -18,6 +18,7 @@ from rdagent.components.coder.CoSTEER.evolving_strategy import (
 )
 from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.components.coder.data_science.conf import get_ds_env
+from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import RunnerError
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
@@ -86,8 +87,13 @@ class DSCoSTEERRunner(CoSTEER):
         *args,
         **kwargs,
     ) -> None:
+
+        eval_l = [DSCoSTEERCoSTEEREvaluator(scen=scen)]
+        if DS_RD_SETTING.enable_model_dump:
+            eval_l.append(ModelDumpEvaluator(scen=scen, data_type="full"))
+
         eva = CoSTEERMultiEvaluator(
-            DSCoSTEERCoSTEEREvaluator(scen=scen), scen=scen
+            single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = DSRunnerMultiProcessEvolvingStrategy(scen=scen, settings=CoSTEER_SETTINGS)
 

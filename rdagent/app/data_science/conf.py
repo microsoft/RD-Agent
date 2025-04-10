@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import SettingsConfigDict
 
 from rdagent.app.kaggle.conf import KaggleBasePropSetting
@@ -41,6 +43,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The number of trials to consider for SOTA count"""
     sota_count_threshold: int = 1
     """The threshold for SOTA count"""
+    ### model dump
+    enable_model_dump: bool = False
+    enable_doc_dev: bool = False
+    model_dump_check_level: Literal["medium", "high"] = "medium"
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
