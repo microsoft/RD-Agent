@@ -65,7 +65,8 @@ class DataScienceRDLoop(RDLoop):
         self.pipeline_coder = PipelineCoSTEER(scen)
 
         self.runner = DSCoSTEERRunner(scen)
-        self.docdev = DocDev(scen)
+        if DS_RD_SETTING.enable_doc_dev:
+            self.docdev = DocDev(scen)
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
@@ -112,7 +113,8 @@ class DataScienceRDLoop(RDLoop):
             new_exp = self.runner.develop(exp)
             logger.log_object(new_exp)
             exp = new_exp
-        self.docdev.develop(exp)
+        if DS_RD_SETTING.enable_doc_dev:
+            self.docdev.develop(exp)
         return exp
 
     def feedback(self, prev_out: dict[str, Any]) -> ExperimentFeedback:
