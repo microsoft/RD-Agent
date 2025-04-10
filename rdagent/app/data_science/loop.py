@@ -167,7 +167,7 @@ class DataScienceRDLoop(RDLoop):
                 for _, fb in self.trace.hist:
                     if fb:
                         sota_exp_len += 1
-                if float(sota_exp_len / len(self.trace.hist)) < 0.2:
+                if float(sota_exp_len / len(self.trace.hist)) < 0.25:
                     logger.error("Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
