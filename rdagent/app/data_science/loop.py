@@ -159,7 +159,7 @@ class DataScienceRDLoop(RDLoop):
                     logger.error("Consecutive errors reached the limit. Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
-        
+
         # restart the trace
         if DS_RD_SETTING.coder_on_whole_pipeline:
             sota_exp_len = 0
@@ -167,10 +167,10 @@ class DataScienceRDLoop(RDLoop):
                 for _, fb in self.trace.hist:
                     if fb:
                         sota_exp_len += 1
-            if float(sota_exp_len / len(self.trace.hist)) < 0.2:
-                logger.error("Dumping trace.")
-                logger.log_object(self.trace, tag="trace before restart")
-                self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                if float(sota_exp_len / len(self.trace.hist)) < 0.2:
+                    logger.error("Dumping trace.")
+                    logger.log_object(self.trace, tag="trace before restart")
+                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
