@@ -121,8 +121,9 @@ class DSCoSTEERRunner(CoSTEER):
         exp.result = pd.read_csv(score_fp, index_col=0)
 
         # DockerEnv for MLEBench submission validation
-        mde = get_ds_env(conf_type="mlebench")
-        mde.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
+        mde = get_ds_env(
+            conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
+        )
         mde.prepare()
         # MLEBench Check
         mle_check_code = (

@@ -225,8 +225,10 @@ class DataLoaderCoSTEER(CoSTEER):
     def develop(self, exp):
         new_exp = super().develop(exp)
 
-        env = get_ds_env()
-        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
+        env = get_ds_env(
+            extra_volumes={f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"},
+            running_timeout_period=DS_RD_SETTING.full_timeout,
+        )
 
         stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)

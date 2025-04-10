@@ -1,5 +1,6 @@
 from typing import Literal
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
     CondaConf,
@@ -23,7 +24,11 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
     # TODO: extract a function for env and conf.
 
 
-def get_ds_env(conf_type: Literal["kaggle", "mlebench"] = "kaggle") -> Env:
+def get_ds_env(
+    conf_type: Literal["kaggle", "mlebench"] = "kaggle",
+    extra_volumes: dict = {},
+    running_timeout_period: int = DS_RD_SETTING.debug_timeout,
+) -> Env:
     """
     Retrieve the appropriate environment configuration based on the env_type setting.
 
@@ -47,4 +52,6 @@ def get_ds_env(conf_type: Literal["kaggle", "mlebench"] = "kaggle") -> Env:
         )
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
+    env.conf.extra_volumes = extra_volumes
+    env.conf.running_timeout_period = running_timeout_period
     return env

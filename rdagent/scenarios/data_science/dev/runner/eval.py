@@ -33,9 +33,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         **kwargs,
     ) -> DSCoSTEEREvalFeedback:
 
-        env = get_ds_env()
-        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"}
-        env.conf.running_timeout_period = DS_RD_SETTING.full_timeout
+        env = get_ds_env(
+            extra_volumes={f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"},
+            running_timeout_period=DS_RD_SETTING.full_timeout,
+        )
 
         stdout = implementation.execute(
             env=env, entry=f"rm submission.csv scores.csv"
@@ -86,10 +87,12 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
                 score_ret_code = 1
 
         # DockerEnv for MLEBench submission validation
-        mde = get_ds_env("mlebench")
-        mde.conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-        }
+        mde = get_ds_env(
+            conf_type="mlebench",
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
+            },
+        )
         mde.prepare()
         # MLEBench Check
         mle_check_code = (

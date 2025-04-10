@@ -56,9 +56,9 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env()
-        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
-        env.conf.running_timeout_period = DS_RD_SETTING.debug_timeout
+        env = get_ds_env(
+            extra_volumes={f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        )
 
         if_model_removed = False
 
