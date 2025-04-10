@@ -419,7 +419,7 @@ class DSProposalV2ExpGen(ExpGen):
             type="all",
         )
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed")
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
         )
 
