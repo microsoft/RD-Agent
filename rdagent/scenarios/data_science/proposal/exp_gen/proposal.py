@@ -343,8 +343,13 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis: DSHypothesis,
         pipeline: bool,
     ) -> DSExperiment:
-        component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
-        if not pipeline and DS_RD_SETTING.spec_enabled and sota_exp is not None:
+        if pipeline:
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+        else:
+            component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+        if pipeline:
+            task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
+        elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
             task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
             task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
@@ -366,7 +371,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", {})
-        task_name = task_design["model_name"] if hypothesis.component == "Model" else hypothesis.component
+        task_name = (
+            task_design["model_name"] if (hypothesis.component == "Model" and not pipeline) else hypothesis.component
+        )
         description = (
             task_design
             if isinstance(task_design, str)
