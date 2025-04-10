@@ -20,7 +20,6 @@ FeatureEvalFeedback = CoSTEERSingleFeedback
 
 
 class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
-
     def evaluate(
         self,
         target_task: Task,
@@ -29,7 +28,6 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> FeatureEvalFeedback:
-
         target_task_information = target_task.get_task_information()
         if (
             queried_knowledge is not None
@@ -44,8 +42,9 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env()
-        env.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        env = get_ds_env(
+            extra_volumes={f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+        )
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/feature_test.py"
@@ -72,9 +71,12 @@ class FeatureCoSTEEREvaluator(CoSTEEREvaluator):
             workflow_stdout=workflow_stdout,
         )
 
-        return build_cls_from_json_with_retry(
+        fb = build_cls_from_json_with_retry(
             FeatureEvalFeedback,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             init_kwargs_update_func=FeatureEvalFeedback.val_and_update_init_dict,
         )
+        fb.final_decision = fb.final_decision and ret_code == 0
+
+        return fb

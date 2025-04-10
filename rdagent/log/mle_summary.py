@@ -16,8 +16,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
-de = get_ds_env("mlebench")
-de.conf.extra_volumes = {f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
+de = get_ds_env(conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
 de.prepare()
 
 
