@@ -32,12 +32,38 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
+from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
 from rdagent.utils.workflow import wait_retry
+
+
+def pull_image_with_progress(image: str) -> None:
+    client = docker.APIClient(base_url="unix://var/run/docker.sock")
+    pull_logs = client.pull(image, stream=True, decode=True)
+    progress_bars = {}
+
+    for log in pull_logs:
+        if "id" in log and log.get("progressDetail"):
+            layer_id = log["id"]
+            progress_detail = log["progressDetail"]
+            current = progress_detail.get("current", 0)
+            total = progress_detail.get("total", 0)
+
+            if total:
+                if layer_id not in progress_bars:
+                    progress_bars[layer_id] = tqdm(total=total, desc=f"Layer {layer_id}", unit="B", unit_scale=True)
+                progress_bars[layer_id].n = current
+                progress_bars[layer_id].refresh()
+
+        elif "status" in log:
+            print(log["status"])
+
+    for pb in progress_bars.values():
+        pb.close()
 
 
 class EnvConf(ExtendedBaseSettings):
@@ -306,7 +332,6 @@ class LocalEnv(Env[ASpecificLocalConf]):
         running_extra_volume: Mapping = MappingProxyType({}),
         **kwargs: dict,
     ) -> tuple[str, int]:
-
         # mocking the volumes
         volumes = {}
         if self.conf.extra_volumes is not None:
@@ -572,9 +597,16 @@ class DockerEnv(Env[DockerConf]):
             ),
         }
 
+        def get_image(image_name: str) -> None:
+            try:
+                client.images.get(image_name)
+            except docker.errors.ImageNotFound:
+                pull_image_with_progress(image_name)
+
         @wait_retry(5, 10)
         def _f() -> dict:
             try:
+                get_image(self.conf.image)
                 client.containers.run(self.conf.image, "nvidia-smi", **gpu_kwargs)
                 logger.info("GPU Devices are available.")
             except docker.errors.APIError:
