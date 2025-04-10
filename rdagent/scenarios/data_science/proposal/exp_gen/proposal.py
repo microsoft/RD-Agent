@@ -10,11 +10,11 @@ from rdagent.components.coder.data_science.model.exp import ModelTask
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
-from rdagent.components.knowledge_management.idea_pool import DSKnowledgeGraph
 from rdagent.core.proposal import ExpGen
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeGraph
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -229,10 +229,16 @@ class DSProposalV2ExpGen(ExpGen):
         if not hasattr(self, 'idea_pool'):
             self.idea_pool = DSKnowledgeGraph(path=DS_RD_SETTING.researcher_path)
 
-    def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> Dict:
+    def identify_scenario_problem(
+        self,
+        scenario_desc: str,
+        competition_desc: str,
+        sota_exp_desc: str,
+        label: str
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(label=label),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -252,11 +258,11 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         exp_feedback_list_desc: str,
         sota_exp_desc: str,
-        pipeline: bool,
+        label: str
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(label=label),
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -433,21 +439,20 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
+            label='Scenario',
         )
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             pipeline=pipeline,
+            label='Feedback',
         )
         all_problems = {**scen_problems, **fb_problems}
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_researcher:
-            sampled_ideas = self.idea_pool.sample_ideas(all_problems)
-            for key, value in sampled_ideas.items():
-                if key in all_problems:
-                    all_problems[key].update(value)
+            problem_ideas_pairs = self.idea_pool.sample_ideas(all_problems)
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
