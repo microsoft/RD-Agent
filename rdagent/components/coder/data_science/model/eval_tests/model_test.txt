@@ -1,13 +1,9 @@
 import sys
 import time
-import reprlib
 from feature import feat_eng
 from load_data import load_data
 from model01 import model_workflow
 from sklearn.model_selection import train_test_split
-import numpy as np
-import torch
-import tensorflow as tf
 
 
 def log_execution_results(start_time, val_pred, test_pred, hypers, execution_label):
@@ -77,27 +73,6 @@ def debug_info_print(func):
             sys.settrace(None)
     return wrapper
 
-def print_preds_info(preds):
-    if preds is not None:
-        print("Showing a preview of the test predictions (first few entries only):")
-        if isinstance(preds, (pd.DataFrame, pd.Series)):
-            print(preds.head())
-        elif isinstance(preds, (np.ndarray, torch.Tensor, tf.Tensor)):
-            print(preds[:2])
-        elif isinstance(preds, list):
-            print(pd.DataFrame(preds[:5]))
-        else:
-            print(f"Unknown prediction type: {type(preds)}")
-
-# Load and preprocess data
-X, y, test_X, test_ids = load_data()
-X, y, test_X = feat_eng(X, y, test_X)
-train_X, val_X, train_y, val_y = train_test_split(X, y, test_size=0.8, random_state=42)
-print(f"train_X.shape: {train_X.shape}")
-print(f"train_y.shape: {train_y.shape}" if not isinstance(train_y, list) else f"train_y(list)'s length: {len(train_y)}")
-print(f"val_X.shape: {val_X.shape}")
-print(f"val_y.shape: {val_y.shape}" if not isinstance(val_y, list) else f"val_y(list)'s length: {len(val_y)}")
-
 # First execution
 print("The first execution begins.\n")
 start_time = time.time()
@@ -109,7 +84,6 @@ val_pred, test_pred, hypers = debug_info_print(model_workflow)(
     test_X=None,
 )
 log_execution_results(start_time, val_pred, test_pred, hypers, "The first execution")
-print_preds_info(test_pred)
 
 # Second execution
 print("The second execution begins.\n")
