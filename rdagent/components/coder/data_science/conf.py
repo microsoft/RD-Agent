@@ -1,5 +1,6 @@
 from typing import Literal
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.config import CoSTEERSettings
 from rdagent.utils.env import (
     CondaConf,
@@ -48,3 +49,15 @@ def get_ds_env(conf_type: Literal["kaggle", "mlebench"] = "kaggle") -> Env:
     else:
         raise ValueError(f"Unknown env type: {conf.env_type}")
     return env
+
+
+def get_clear_ws_cmd(stage: Literal["before_training", "before_inference"] = "before_training") -> str:
+    """
+    Clean the files in workspace to a specific stage
+    """
+    assert stage in ["before_training", "before_inference"], f"Unknown stage: {stage}"
+    if DS_RD_SETTING.enable_model_dump and stage == "before_training":
+        cmd = "rm -r submission.csv scores.csv models"
+    else:
+        cmd = "rm submission.csv scores.csv"
+    return cmd

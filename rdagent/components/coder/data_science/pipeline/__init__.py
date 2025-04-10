@@ -48,6 +48,7 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
+from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -95,6 +96,7 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             out_spec=PythonAgentOut.get_spec(),
             runtime_environment=runtime_environment,
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            enable_model_dump=DS_RD_SETTING.enable_model_dump,
         )
         user_prompt = T(".prompts:pipeline_coder.user").r(
             competition_info=competition_info,
@@ -146,8 +148,12 @@ class PipelineCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         settings = DSCoderCoSTEERSettings()
+        eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        if DS_RD_SETTING.enable_model_dump:
+            eval_l.append(ModelDumpEvaluator(scen=scen, data_type="sample"))
+
         eva = CoSTEERMultiEvaluator(
-            PipelineCoSTEEREvaluator(scen=scen), scen=scen
+            single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
         es = PipelineMultiProcessEvolvingStrategy(scen=scen, settings=settings)
 

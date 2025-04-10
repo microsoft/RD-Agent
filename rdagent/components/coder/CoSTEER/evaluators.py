@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List
 
@@ -197,7 +198,7 @@ class CoSTEEREvaluator(Evaluator):
 class CoSTEERMultiEvaluator(CoSTEEREvaluator):
     """This is for evaluation of experiment. Due to we have multiple tasks, so we will return a list of evaluation feebacks"""
 
-    def __init__(self, single_evaluator: CoSTEEREvaluator, *args, **kwargs) -> None:
+    def __init__(self, single_evaluator: CoSTEEREvaluator | list[CoSTEEREvaluator], *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.single_evaluator = single_evaluator
 
@@ -207,30 +208,56 @@ class CoSTEERMultiEvaluator(CoSTEEREvaluator):
         queried_knowledge: QueriedKnowledge = None,
         **kwargs,
     ) -> CoSTEERMultiFeedback:
-        multi_implementation_feedback = multiprocessing_wrapper(
-            [
-                (
-                    self.single_evaluator.evaluate,
+        eval_l = self.single_evaluator if isinstance(self.single_evaluator, list) else [self.single_evaluator]
+        task_li_feedback_li = []
+        for ev in eval_l:
+            multi_implementation_feedback = multiprocessing_wrapper(
+                [
                     (
-                        evo.sub_tasks[index],
-                        evo.sub_workspace_list[index],
-                        evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
-                        queried_knowledge,
+                        ev.evaluate,
+                        (
+                            evo.sub_tasks[index],
+                            evo.sub_workspace_list[index],
+                            evo.sub_gt_implementations[index] if evo.sub_gt_implementations is not None else None,
+                            queried_knowledge,
+                        ),
+                    )
+                    for index in range(len(evo.sub_tasks))
+                ],
+                n=RD_AGENT_SETTINGS.multi_proc_n,
+            )
+            task_li_feedback_li.append(multi_implementation_feedback)
+        # merge the feedbacks
+        merged_task_feedback = []
+        for task_id, fb in enumerate(task_li_feedback_li[0]):
+            fb = deepcopy(fb)  # deep copy to make it more robust
+
+            fb.final_decision = all(
+                task_li_feedback[task_id].final_decision for task_li_feedback in task_li_feedback_li
+            )
+            for attr in "execution", "return_checking", "code":
+                setattr(
+                    fb,
+                    attr,
+                    "\n\n".join(
+                        [
+                            getattr(task_li_feedback[task_id], attr)
+                            for task_li_feedback in task_li_feedback_li
+                            if getattr(task_li_feedback[task_id], attr) is not None
+                        ]
                     ),
                 )
-                for index in range(len(evo.sub_tasks))
-            ],
-            n=RD_AGENT_SETTINGS.multi_proc_n,
-        )
+            merged_task_feedback.append(fb)
 
         final_decision = [
             None if single_feedback is None else single_feedback.final_decision
-            for single_feedback in multi_implementation_feedback
+            for single_feedback in merged_task_feedback
         ]
         logger.info(f"Final decisions: {final_decision} True count: {final_decision.count(True)}")
 
+        # TODO: this is to be compatible with factor_implementation;
         for index in range(len(evo.sub_tasks)):
             if final_decision[index]:
                 evo.sub_tasks[index].factor_implementation = True
 
-        return CoSTEERMultiFeedback(multi_implementation_feedback)
+        return CoSTEERMultiFeedback(merged_task_feedback)

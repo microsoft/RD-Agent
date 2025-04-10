@@ -397,6 +397,7 @@ class DockerConf(EnvConf):
     shm_size: str | None = None
     enable_gpu: bool = True  # because we will automatically disable GPU if not available. So we enable it by default.
     mem_limit: str | None = "48g"  # Add memory limit attribute
+    cpu_count: int | None = None  # Add CPU limit attribute
 
     running_timeout_period: int = 3600  # 1 hour
 
@@ -633,6 +634,7 @@ class DockerEnv(Env[DockerConf]):
                 network=self.conf.network,
                 shm_size=self.conf.shm_size,
                 mem_limit=self.conf.mem_limit,  # Set memory limit
+                cpu_count=self.conf.cpu_count,  # Set CPU limit
                 **self._gpu_kwargs(client),
             )
             logs = container.logs(stream=True)
