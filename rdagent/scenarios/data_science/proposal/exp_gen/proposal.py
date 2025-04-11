@@ -266,6 +266,13 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
+    def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+        # Only modify the user_prompt on retries (i > 0)
+        user_prompt = args[0]
+        user_prompt += "\n\nretrying..."
+        return (user_prompt,), kwargs
+
+    @wait_retry(retry_n=5, transform_args_fn=_append_retry)
     def hypothesis_gen(
         self,
         component_desc: str,
@@ -293,7 +300,13 @@ class DSProposalV2ExpGen(ExpGen):
             json_mode=True,
             json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
-        return json.loads(response)
+        resp_dict = json.loads(response)
+        for key, value in resp_dict.items():
+            assert "reason" in value, "Reason not provided."
+            assert "component" in value, "Component not provided."
+            assert "hypothesis" in value, "Hypothesis not provided."
+            assert "evaluation" in value, "Evaluation not provided."
+        return resp_dict
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
         weights = {
