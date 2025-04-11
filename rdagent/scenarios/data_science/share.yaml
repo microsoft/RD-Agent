@@ -35,8 +35,6 @@ describe: # some template to describe some object
     {% if exp_and_feedback[0].hypothesis %}
     the experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     {% endif %}
-    ### Task of previous trial
-    {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
     feedback decision: {{ exp_and_feedback[1].decision }}
     reason: {{ exp_and_feedback[1].reason }}
     {% endif %}
