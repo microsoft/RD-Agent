@@ -14,6 +14,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeGraph
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -224,10 +225,20 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> Dict:
+    def _init_idea_pool(self) -> None:
+        if not hasattr(self, 'idea_pool'):
+            self.idea_pool = DSKnowledgeGraph(path=DS_RD_SETTING.researcher_path)
+
+    def identify_scenario_problem(
+        self,
+        scenario_desc: str,
+        competition_desc: str,
+        sota_exp_desc: str,
+        label: str
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(label=label),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -247,11 +258,11 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         exp_feedback_list_desc: str,
         sota_exp_desc: str,
-        pipeline: bool,
+        label: str
     ) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(label=label),
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -296,6 +307,9 @@ class DSProposalV2ExpGen(ExpGen):
         return json.loads(response)
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
+        if pipeline:
+            hypothesis_dict = {k: v for k, v in hypothesis_dict.items() if v.get("component", "") == "Pipeline"}
+
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
@@ -399,6 +413,7 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        # Prepare
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
@@ -422,22 +437,31 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
         )
+        ## Load idea pool
+        if DS_RD_SETTING.enable_researcher:
+            self._init_idea_pool()
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
             scenario_desc=scenario_desc,
             competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
+            label='Scenario',
         )
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             pipeline=pipeline,
+            label='Feedback',
         )
         all_problems = {**scen_problems, **fb_problems}
 
-        # Step 2: Propose hypothesis based on the identified problems
+        # Step 1.5: Sample ideas from idea pool
+        if DS_RD_SETTING.enable_researcher:
+            all_problems = self.idea_pool.sample_ideas(all_problems)
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
@@ -445,6 +469,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
             pipeline=pipeline,
+            researcher=DS_RD_SETTING.enable_researcher
         )
         if not pipeline:
             sota_exp_model_file_count = len(
