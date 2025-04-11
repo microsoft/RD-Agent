@@ -358,7 +358,9 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         user_prompt = T(".prompts_v2:task_gen.user").r(
-            scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=str(hypothesis),
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis=str(hypothesis),
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
