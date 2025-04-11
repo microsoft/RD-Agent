@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.0](https://github.com/microsoft/RD-Agent/compare/v0.4.0...v0.5.0) (2025-04-11)
+
+
+### Features
+
+* add a check for whether values in score_df are NaN ([#756](https://github.com/microsoft/RD-Agent/issues/756)) ([d9cc780](https://github.com/microsoft/RD-Agent/commit/d9cc78098beb27f3a1bf2f2d461302db177b7d41))
+* add DocDev for auto-generating workspace documentation ([#781](https://github.com/microsoft/RD-Agent/issues/781)) ([bcba6ea](https://github.com/microsoft/RD-Agent/commit/bcba6eac32684ebb267c93b4e85dbfa9561d15d1))
+* add naive experiment generator and update proposal configurations ([#759](https://github.com/microsoft/RD-Agent/issues/759)) ([75494f4](https://github.com/microsoft/RD-Agent/commit/75494f4fed5bc845acfd7f7bacef385f0f96c514))
+* add reasoning_effort parameter to LiteLLMAPIBackend and LLMSett… ([#754](https://github.com/microsoft/RD-Agent/issues/754)) ([113889f](https://github.com/microsoft/RD-Agent/commit/113889fefe9b09aaea1b564704c81664b8f77ec5))
+* add reviewer in feedback ([#765](https://github.com/microsoft/RD-Agent/issues/765)) ([1a95bee](https://github.com/microsoft/RD-Agent/commit/1a95bee6aa6bc6f45fdeb484f3a6f81caa273038))
+* checkpoint selection ([#744](https://github.com/microsoft/RD-Agent/issues/744)) ([a15a06a](https://github.com/microsoft/RD-Agent/commit/a15a06ad643977db59d7cac9da52e637cf80395a))
+* dump model ([#776](https://github.com/microsoft/RD-Agent/issues/776)) ([b49481e](https://github.com/microsoft/RD-Agent/commit/b49481e073e6f536d2b1b3bd2d01229ed05abdea))
+* joblib cache ([#749](https://github.com/microsoft/RD-Agent/issues/749)) ([83a0411](https://github.com/microsoft/RD-Agent/commit/83a041148ff908871b1906f9e6889d80ab513412))
+* merge failed and successful traces together ([#766](https://github.com/microsoft/RD-Agent/issues/766)) ([3a2aa8c](https://github.com/microsoft/RD-Agent/commit/3a2aa8cf0102647950b2dfc0007c118b0c799cd4))
+* pull image with progress ([#777](https://github.com/microsoft/RD-Agent/issues/777)) ([5cad086](https://github.com/microsoft/RD-Agent/commit/5cad0860204ede974533dc7bdc9808cfd135fa24))
+
+
+### Bug Fixes
+
+* duplicate model names test in pipeline coder & runner ([#763](https://github.com/microsoft/RD-Agent/issues/763)) ([be3ee9d](https://github.com/microsoft/RD-Agent/commit/be3ee9da9882edda3c06ff7d1099d1bbda2203c3))
+* fix competition metric direction ([#784](https://github.com/microsoft/RD-Agent/issues/784)) ([3be0057](https://github.com/microsoft/RD-Agent/commit/3be0057556f46c899065ee1c7f9bafe33e79249c))
+* fix some minor bugs ([#758](https://github.com/microsoft/RD-Agent/issues/758)) ([963f96e](https://github.com/microsoft/RD-Agent/commit/963f96e5596bee04074135c2a0e31a8adc39ad8c))
+* Set PYTHONPATH in env.run_ret_code call in FBWorkspace class ([#755](https://github.com/microsoft/RD-Agent/issues/755)) ([68b5018](https://github.com/microsoft/RD-Agent/commit/68b501889caca754f27b57d9ab6f72184e93b15c))
+* task_gen for better understanding ([#752](https://github.com/microsoft/RD-Agent/issues/752)) ([6bfc1e5](https://github.com/microsoft/RD-Agent/commit/6bfc1e570449ee69ac110a4ced9a7cecbc0e6a73))
+* update feedback.py ([#772](https://github.com/microsoft/RD-Agent/issues/772)) ([133778c](https://github.com/microsoft/RD-Agent/commit/133778c67ee3349f1c2fe029bcf6a9ee14568efe))
+
 ## [0.4.0](https://github.com/microsoft/RD-Agent/compare/v0.3.0...v0.4.0) (2025-04-04)
 
 
