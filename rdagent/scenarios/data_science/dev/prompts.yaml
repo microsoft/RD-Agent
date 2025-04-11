@@ -14,13 +14,6 @@ exp_feedback:
       - Identify and clearly specify code or workflow issues.
       - Recommend corrective actions explicitly.
       - Set `"Replace Best Result": "no"`.
-    - If the submission passes, proceed to Step 2.
-
-    Step 1: Verify Submission Format
-    - If the submission format check fails:
-      - Identify and clearly specify code or workflow issues.
-      - Recommend corrective actions explicitly.
-      - Set `"Replace Best Result": "no"`.
       - Begin your `reasoning` with `[Submission format error]`, clearly stating the issues causing experiment failure.
     - If submission passes, proceed to Step 2.
 
