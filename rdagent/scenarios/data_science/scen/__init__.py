@@ -147,8 +147,6 @@ class KaggleScen(DataScienceScen):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)
 
     def _get_direction(self):
-        if DS_RD_SETTING.if_using_mle_data:
-            return super()._get_direction()
         leaderboard = leaderboard_scores(self.competition)
         return "maximize" if float(leaderboard[0]) > float(leaderboard[-1]) else "minimize"
 
