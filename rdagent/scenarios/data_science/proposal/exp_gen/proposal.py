@@ -447,7 +447,6 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            pipeline=pipeline,
         )
         all_problems = {**scen_problems, **fb_problems}
 
