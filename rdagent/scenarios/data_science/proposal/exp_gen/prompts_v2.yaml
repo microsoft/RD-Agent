@@ -255,8 +255,17 @@ output_format:
     {
       "problem name 1 (should be exactly same as the problem name provided)": {
         "problem": "The problem description",
-        "idea": "",
-        "method": "",
-        "context": "",
+        "ideas": [
+          {
+            "idea": "The first idea description",
+            "method": "The method or technique that the idea is based on.",
+            "context": "The context of the idea.",
+          },
+          {
+            "idea": "The second idea description",
+            "method": "The method or technique that the idea is based on.",
+            "context": "The context of the idea.",
+          }
+        ]
       },
     }

@@ -452,7 +452,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_researcher:
-            problem_ideas_pairs = self.idea_pool.sample_ideas(all_problems)
+            all_problems = self.idea_pool.sample_ideas(all_problems)
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
