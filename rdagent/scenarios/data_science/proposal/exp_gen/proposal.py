@@ -342,6 +342,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp: DSExperiment,
         hypothesis: DSHypothesis,
         pipeline: bool,
+        failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
@@ -360,8 +361,12 @@ class DSProposalV2ExpGen(ExpGen):
             component_desc=component_desc,
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
+
         user_prompt = T(".prompts_v2:task_gen.user").r(
-            scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=str(hypothesis)
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis=str(hypothesis),
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -422,6 +427,10 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
         )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+        )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -476,4 +485,5 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp=sota_exp,
             hypothesis=new_hypothesis,
             pipeline=pipeline,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
