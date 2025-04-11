@@ -242,13 +242,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
-    def identify_feedback_problem(
-        self,
-        scenario_desc: str,
-        exp_feedback_list_desc: str,
-        sota_exp_desc: str,
-        pipeline: bool,
-    ) -> Dict:
+    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
@@ -374,7 +368,6 @@ class DSProposalV2ExpGen(ExpGen):
             component_desc=component_desc,
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
-
         user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
@@ -407,7 +400,6 @@ class DSProposalV2ExpGen(ExpGen):
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
-
         if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
