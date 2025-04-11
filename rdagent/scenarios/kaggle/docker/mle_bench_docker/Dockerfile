@@ -11,6 +11,7 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN git clone https://github.com/openai/mle-bench.git
+RUN sed -i '/CVC - Borderline",/a\    "CVC - Normal",\n    "Swan Ganz Catheter Present",' mle-bench/competitions/ranzcr-clip-catheter-line-classification/classes.py
 RUN cd mle-bench && git lfs fetch --all
 RUN cd mle-bench && git lfs pull
 RUN cd mle-bench && python -m pip install -e .
