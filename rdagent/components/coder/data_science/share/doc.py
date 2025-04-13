@@ -20,7 +20,7 @@ class DocDev(Developer[Experiment]):
         """
         ws: FBWorkspace = exp.experiment_workspace
 
-        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.rglob('*') if file.is_file()]
+        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.rglob("*") if file.is_file()]
 
         key_file_list = ["main.py", "scores.csv"]
 
