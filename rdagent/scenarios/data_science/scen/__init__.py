@@ -31,7 +31,9 @@ class DataScienceScen(Scenario):
         self.raw_description = self._get_description()
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
-        self.metric_direction = self._get_direction()
+        self.metric_direction: bool = (
+            self._get_direction()
+        )  # True indicates higher is better, False indicates lower is better
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
@@ -148,7 +150,7 @@ class KaggleScen(DataScienceScen):
 
     def _get_direction(self):
         leaderboard = leaderboard_scores(self.competition)
-        return "maximize" if float(leaderboard[0]) > float(leaderboard[-1]) else "minimize"
+        return float(leaderboard[0]) > float(leaderboard[-1])
 
     @property
     def rich_style_description(self) -> str:

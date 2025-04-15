@@ -200,6 +200,7 @@ def main(
         DS_RD_SETTING.competition = competition
 
     if DS_RD_SETTING.competition:
+
         if DS_RD_SETTING.scen.endswith("KaggleScen"):
             download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
         else:
