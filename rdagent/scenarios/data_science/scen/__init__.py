@@ -90,6 +90,12 @@ class DataScienceScen(Scenario):
 
     @property
     def background(self) -> str:
+        return f"""
+{self.raw_description}
+
+------Processed Data Folder Description------
+{self.processed_data_folder_description}
+"""
         background_template = T(".prompts:competition_background")
         background_prompt = background_template.r(
             task_type=self.task_type,
