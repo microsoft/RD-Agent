@@ -57,7 +57,11 @@ class ModelGeneralCaseSpecEvaluator(CoSTEEREvaluator):
             )
 
         env = get_ds_env(
-            extra_volumes={f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
+                    "scenarios.data_science.share:scen.input_path"
+                ).r()
+            }
         )
 
         if_model_removed = False

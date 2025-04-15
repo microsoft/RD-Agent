@@ -1,6 +1,6 @@
 scenario_problem:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
     You will be given scenario and competition description and the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
 
@@ -33,7 +33,7 @@ scenario_problem:
 
 feedback_problem:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation.
@@ -60,7 +60,7 @@ feedback_problem:
 
 hypothesis_gen:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, the current SOTA implementation and feedback, and a list of identified problems.
     Your role involves two tasks:
@@ -126,7 +126,7 @@ hypothesis_gen:
 
 task_gen:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, trace history description, the current SOTA implementation, and a proposed hypothesis to improve the current SOTA implementation.
     

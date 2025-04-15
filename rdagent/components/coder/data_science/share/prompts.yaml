@@ -55,7 +55,7 @@ dump_model_eval:
 
 docdev:
   system: |-
-    You are a skilled developer and a Kaggle grandmaster. Your task is to create documentation for a data science solution.
+    {% include "scenarios.data_science.share:scen.role" %}  Your task is to create documentation for a data science solution.
 
     You will be given:
     - a list of files in the folder.

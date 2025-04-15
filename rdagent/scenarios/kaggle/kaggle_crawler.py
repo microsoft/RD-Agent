@@ -108,7 +108,9 @@ def crawl_descriptions(
     return descriptions
 
 
-def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING) -> None:
+def download_data(
+    competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPLEMENT_SETTING, enable_create_debug_data: bool = True
+) -> None:
     local_path = settings.local_data_path
     if settings.if_using_mle_data:
         zipfile_path = f"{local_path}/zip_files"
@@ -177,7 +179,7 @@ def download_data(competition: str, settings: ExtendedBaseSettings = KAGGLE_IMPL
                     unzip_data(sub_zip_file, unzip_target_path=unzip_path)
 
     # sample data
-    if not Path(f"{local_path}/sample/{competition}").exists():
+    if enable_create_debug_data and not Path(f"{local_path}/sample/{competition}").exists():
         create_debug_data(competition, dataset_path=local_path)
 
 
