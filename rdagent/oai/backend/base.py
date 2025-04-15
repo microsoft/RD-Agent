@@ -18,6 +18,13 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
 
+try:
+    import openai
+
+    openai_imported = True
+except ImportError:
+    openai_imported = False
+
 
 class SQliteLazyCache(SingletonBaseClass):
     def __init__(self, cache_location: str) -> None:
@@ -337,6 +344,17 @@ class APIBackend(ABC):
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
+                elif (
+                        openai_imported
+                        and isinstance(e, openai.APITimeoutError)
+                        or (
+                            isinstance(e, openai.APIError)
+                            and hasattr(e, "message")
+                            and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
+                            in e.message
+                        )
+                    ):
+                        raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
                 logger.warning(str(e))
