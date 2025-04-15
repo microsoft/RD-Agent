@@ -345,16 +345,16 @@ class APIBackend(ABC):
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
                 elif (
-                        openai_imported
-                        and isinstance(e, openai.APITimeoutError)
-                        or (
-                            isinstance(e, openai.APIError)
-                            and hasattr(e, "message")
-                            and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
-                            in e.message
-                        )
-                    ):
-                        raise e
+                    openai_imported
+                    and isinstance(e, openai.APITimeoutError)
+                    or (
+                        isinstance(e, openai.APIError)
+                        and hasattr(e, "message")
+                        and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
+                        in e.message
+                    )
+                ):
+                    raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
                 logger.warning(str(e))
