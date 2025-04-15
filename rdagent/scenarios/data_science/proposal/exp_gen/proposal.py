@@ -242,13 +242,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
-    def identify_feedback_problem(
-        self,
-        scenario_desc: str,
-        exp_feedback_list_desc: str,
-        sota_exp_desc: str,
-        pipeline: bool,
-    ) -> Dict:
+    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
@@ -266,6 +260,13 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
+    def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
+        # Only modify the user_prompt on retries (i > 0)
+        user_prompt = args[0]
+        user_prompt += "\n\nretrying..."
+        return (user_prompt,), kwargs
+
+    @wait_retry(retry_n=5, transform_args_fn=_append_retry)
     def hypothesis_gen(
         self,
         component_desc: str,
@@ -293,7 +294,13 @@ class DSProposalV2ExpGen(ExpGen):
             json_mode=True,
             json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
         )
-        return json.loads(response)
+        resp_dict = json.loads(response)
+        for key, value in resp_dict.items():
+            assert "reason" in value, "Reason not provided."
+            assert "component" in value, "Component not provided."
+            assert "hypothesis" in value, "Hypothesis not provided."
+            assert "evaluation" in value, "Evaluation not provided."
+        return resp_dict
 
     def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> DSHypothesis:
         weights = {
@@ -342,6 +349,7 @@ class DSProposalV2ExpGen(ExpGen):
         sota_exp: DSExperiment,
         hypothesis: DSHypothesis,
         pipeline: bool,
+        failed_exp_feedback_list_desc: str,
     ) -> DSExperiment:
         if pipeline:
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
@@ -361,7 +369,10 @@ class DSProposalV2ExpGen(ExpGen):
             workflow_check=not pipeline and hypothesis.component != "Workflow",
         )
         user_prompt = T(".prompts_v2:task_gen.user").r(
-            scenario_desc=scenario_desc, sota_exp_desc=sota_exp_desc, hypothesis=str(hypothesis)
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypothesis=str(hypothesis),
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -389,7 +400,6 @@ class DSProposalV2ExpGen(ExpGen):
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
-
         if not pipeline and new_workflow_desc != "No update needed":
             workflow_task = WorkflowTask(
                 name="Workflow",
@@ -422,6 +432,10 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
             type="all",
         )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+        )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -433,7 +447,6 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            pipeline=pipeline,
         )
         all_problems = {**scen_problems, **fb_problems}
 
@@ -476,4 +489,5 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp=sota_exp,
             hypothesis=new_hypothesis,
             pipeline=pipeline,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )

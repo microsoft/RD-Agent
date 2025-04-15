@@ -138,9 +138,9 @@ task_gen:
 
     ## Task Design Guidelines
     The task should be concise with several steps each only in a few sentences. 
-    DON'T repeat the details which has already included in the SOTA code. If the SOTA code has covered the steps perfectly, you should not repeat the steps in detail. 
-    You SHOULD NOT write any code in the task description.
-
+    DO NOT repeat the details which has already included in the SOTA code. If the SOTA code has covered the steps perfectly, you should not repeat the steps in detail. 
+    DO NOT write any code in the task description!
+    Observing reasons from failed experiments and feedback to prevent repeating similar mistakes in analogous situations.
 
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
@@ -167,6 +167,9 @@ task_gen:
 
     # Proposed Hypothesis you should strictly follow:
     {{ hypothesis }}
+
+    # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance):
+    {{ failed_exp_and_feedback_list_desc }}
 
 specification:
   problem: |-

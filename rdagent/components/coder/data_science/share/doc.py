@@ -6,7 +6,7 @@ from rdagent.core.developer import Developer
 from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import MarkdownAgentOut
-from rdagent.utils.agent.workflow import T
+from rdagent.utils.agent.tpl import T
 
 
 class DocDev(Developer[Experiment]):
@@ -20,12 +20,12 @@ class DocDev(Developer[Experiment]):
         """
         ws: FBWorkspace = exp.experiment_workspace
 
-        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.iterdir() if file.is_file()]
+        file_li = [str(file.relative_to(ws.workspace_path)) for file in ws.workspace_path.rglob("*") if file.is_file()]
 
         key_file_list = ["main.py", "scores.csv"]
 
-        system_prompt = T(".prompts:dump_model_eval.system").r()
-        user_prompt = T(".prompts:dump_model_eval.user").r(
+        system_prompt = T(".prompts:docdev.system").r()
+        user_prompt = T(".prompts:docdev.user").r(
             file_li=file_li,
             key_files={f: (ws.workspace_path / f).read_text() for f in key_file_list},
         )
@@ -34,4 +34,4 @@ class DocDev(Developer[Experiment]):
             user_prompt=user_prompt, system_prompt=system_prompt
         )
         markdown = MarkdownAgentOut.extract_output(resp)
-        ws.inject_files({"README.md": markdown})
+        ws.inject_files(**{"README.md": markdown})

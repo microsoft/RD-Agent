@@ -67,9 +67,11 @@ docdev:
       - Important training parameters
       - Model details
       - Performance of each model
-    - Ensemble
 
-    {% include "rdagent.utils.agent.tpl:MarkdownOut" %}
+    Be brief. Mention the file path when you introduce files.
+    Don't introduce anything other than models.
+
+    {% include "utils.agent.tpl:MarkdownOut" %}
 
   user: |-
     --------------- The file list in the workspace ---------------
