@@ -251,4 +251,3 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if ef.exception is None:
                 return exp, ef
         return None
-

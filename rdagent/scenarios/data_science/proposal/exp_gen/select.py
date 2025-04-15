@@ -1,15 +1,20 @@
+import random
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import CheckpointSelector, Trace
-import random
 
 # # TODO: more advanced selector
 # # TODO/Discussion: load selector function here or define selector class in `proposal.py`?
+
 
 class LatestCKPSelector(CheckpointSelector):
     """
     -`(-1, )` represents starting from the latest trial in the trace
     """
-    def __init__(self, ):
+
+    def __init__(
+        self,
+    ):
         print(f"Using latest selector by default")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
@@ -23,14 +28,18 @@ class SOTAJumpCKPSelector(CheckpointSelector):
     if the cumulative SOTA in a window is below a threshold, jump to a new trial
     otherwise, continue the current latest trial
     """
-    def __init__(self, ) -> None:
+
+    def __init__(
+        self,
+    ) -> None:
         self.SOTA_COUNT_WINDOW = DS_RD_SETTING.sota_count_window
         self.SOTA_COUNT_THRESHOLD = DS_RD_SETTING.sota_count_threshold
 
-        print(f"Using SOTA-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}")
-        
+        print(
+            f"Using SOTA-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}"
+        )
 
-    def get_selection(self, trace: Trace) -> tuple[int,...]:
+    def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
         current_trace = trace.retrieve_search_list(search_type="ancestors")
         if len(trace.hist) > 0 and len(current_trace) > self.SOTA_COUNT_WINDOW:
@@ -51,12 +60,16 @@ class SOTAJumpCKPSelector(CheckpointSelector):
         else:
             return (-1,)
 
+
 class AlwaysWinCKPSelector(CheckpointSelector):
     """
-    always-win policy: 
-    always start from the lastest SOTA trial 
+    always-win policy:
+    always start from the lastest SOTA trial
     """
-    def __init__(self, ) -> None:
+
+    def __init__(
+        self,
+    ) -> None:
         self.INIT_LENGTH = 3
         print(f"Using always-win selector")
 
@@ -65,7 +78,7 @@ class AlwaysWinCKPSelector(CheckpointSelector):
 
         if len(trace.hist) > self.INIT_LENGTH and len(current_trace) > self.INIT_LENGTH:
             sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
-            
+
             if len(sota_exp_list) > 0:
                 last_sota_idx = trace.hist.index(sota_exp_list[-1])
                 return (last_sota_idx,)
@@ -78,21 +91,26 @@ class AlwaysWinCKPSelector(CheckpointSelector):
 class BackJumpCKPSelector(CheckpointSelector):
     """
     back-jump policy:
-    if the cumulative SOTA in a window is below a threshold, 
+    if the cumulative SOTA in a window is below a threshold,
     with 50% probability, reboot a new sub-trace
     with 50% probability, jump back to the "last second" SOTA trial (we assume the lastest SOTA trial is not good enough selection)
     """
-    def __init__(self, ) -> None:
+
+    def __init__(
+        self,
+    ) -> None:
         self.SOTA_COUNT_WINDOW = DS_RD_SETTING.sota_count_window
         self.SOTA_COUNT_THRESHOLD = DS_RD_SETTING.sota_count_threshold
 
-        print(f"Using back-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}")
+        print(
+            f"Using back-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}"
+        )
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
         current_trace = trace.retrieve_search_list(search_type="ancestors")
 
         if len(trace.hist) > 0 and len(current_trace) > self.SOTA_COUNT_WINDOW:
-            
+
             all_exp_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="ancestors")
             # sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
             exp_list_in_window = all_exp_list[-self.SOTA_COUNT_WINDOW :]
@@ -104,10 +122,10 @@ class BackJumpCKPSelector(CheckpointSelector):
                     sota_count += 1
 
             if sota_count < self.SOTA_COUNT_THRESHOLD:
-                
+
                 random_choice = random.random()
                 if random_choice < 0.5:
-                    return () # reboot a new sub-trace
+                    return ()  # reboot a new sub-trace
                 else:
                     # jump back to the last second SOTA in hist (may not in current sub-trace)
                     sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
@@ -115,12 +133,14 @@ class BackJumpCKPSelector(CheckpointSelector):
                         last_second_sota_idx = trace.hist.index(sota_exp_list[-2])
                         return (last_second_sota_idx,)
                     else:
-                        return () # reboot a new sub-trace
+                        return ()  # reboot a new sub-trace
 
             else:
                 return (-1,)
         else:
             return (-1,)
+
+
 # TODO: implement these selectors and more
 
 
@@ -152,6 +172,7 @@ class BugBufferCKPSelector(CheckpointSelector):
     bug buffer selector: with limit-size bug buffer size, start a new trace if buffer exceeds.
     not implemented yet
     """
+
     def __init__(self) -> None:
         self.bug_count = 0
         self.BUG_BUFFER_SIZE = 10
