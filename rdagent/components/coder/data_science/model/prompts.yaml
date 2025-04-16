@@ -45,6 +45,7 @@ model_coder:
     from joblib import Memory
     memory = Memory(location='/tmp/cache', verbose=0)
     @memory.cache``
+    {% include "scenarios.data_science.share:guidelines.coding" %}
 
     ## Output Format
     {% if out_spec %}

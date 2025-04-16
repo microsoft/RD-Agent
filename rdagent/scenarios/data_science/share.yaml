@@ -91,16 +91,24 @@ describe: # some template to describe some object
 component_description:
   DataLoadSpec: |-
     Loads raw competition data, ensuring proper data types, and providing an exploratory data analysis summary.
+    - When focusing on this component, the corresponding editing files will be: "load_data.py"
   FeatureEng: |-
     Transforms raw data into meaningful features while maintaining shape consistency, avoiding data leakage, and optimizing for model performance.
     It should be model-agnostic (data transformations/augmentations that apply only to specific model frameworks should not be included here).
+    Ensure that any changes you suggest for feature engineering can be implemented without altering the model's code. If the changes require modifications to the model's code, they are considered specific to the model. We should focus on the model component to apply these changes.
+    - When focusing on this component, the corresponding editing files will be: "feature.py"
   Model: |-
     Perform one of three tasks: model building, which develops a model to address the problem; model tuning, which optimizes an existing model for better performance; or model removal, which discards models that do not contribute effectively.
-    Handle data operations or augmentations that are closely tied to the model framework, such as tools provided by PyTorch or TensorFlow.
+    Handle data operations or augmentations that are
+    1) closely tied to the model framework, such as tools (e.g., PyTorch's Datasets & DataLoaders) provided by PyTorch or TensorFlow.
+    2) cannot be applied in feature engineering ("feature.py") without modifying the model code.
+    - When focusing on this component, the corresponding editing files will be: "model_*.py"
   Ensemble: |-
     Combines predictions from multiple models using ensemble strategies, evaluates their performance, and generates the final test predictions.
+    - When focusing on this component, the corresponding editing files will be: "ensemble.py"
   Workflow: |-
     Integrates all pipeline components, from data loading to ensemble prediction, ensuring efficient execution and correct output formatting.
+    - When focusing on this component, the corresponding editing files will be: "main.py"
 
 component_spec:
   general: |-
@@ -115,7 +123,7 @@ component_spec:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
       - Avoid using the sample submission file to infer test indices. If a dedicated test index file is available, use that. If not, use the order in the test file as the test index.
-      - Ensure you load the actual data from the files, not just the filenames or paths. Do not postpone data loading to later steps.
+      - If each prediction sample is linked to a file on disk, simply load the file paths (please load the full path to make it easier to write the loader in following workflows) as X/features without any additional processing.
 
     2. Data Preprocessing:
       - Convert data types correctly (e.g., numeric, categorical, date parsing).
@@ -160,11 +168,14 @@ component_spec:
     5. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
       - Feature engineering should be executed **once** and reused across all models to ensure consistency: `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
+      - If the data loader returns the file path directly, we can skip feature engineering and return original values directly.
   
   Model: |-
     - Do not use progress bars (e.g., `tqdm`) in the implementation.
     - The device has GPU support, so you are encouraged to use it for training if necessary to accelerate the process.
     - Some data transformations/augmentations can be included in this step (e.g., data tools provided by TensorFlow and Torch)
+      - Please correctly handle data transformations/augmentations, especially when the dataloader loads the file path directly.
+    - Ensure dynamic handling of feature dimensions to accommodate potential enhancements in input features without requiring code modifications.
   
   Ensemble: |-
     1. Input Validation:
@@ -211,6 +222,7 @@ component_spec:
         ```python
         available_models = [f for f in os.listdir('.') if f.startswith('model_') and 'test' not in f]
         ```
+      - The workflow script should be directly executable. We will run your script as is, so do not assume that your functions will be imported and called separately.
     2. Feature Engineering
       - The feature engineering should be called only once. For example:
         `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
@@ -310,3 +322,7 @@ component_spec:
     8. Submission File:
       - Save the final predictions as `submission.csv`, ensuring the format matches the competition requirements (refer to `sample_submission` in the Folder Description for the correct structure).
       - Present the required submission format explicitly and ensure the output adheres to it.
+
+guidelines:
+  coding: |-
+    You might receive exploratory data analysis (EDA) details about the source data. Do not use this EDA information to create assertions or raise errors. We might generate sample data for quick coding (so your code may run on sample data which is part of the full-size data), but remember that the EDA details are based on the full-size data.

@@ -57,6 +57,7 @@ pipeline_coder:
       User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
     - An evaluation agent will help to check whether the EDA part is added correctly.
     - During the EDA part, you should try to avoid any irrelevant information sending to the standard output.
+    {% include "scenarios.data_science.share:guidelines.coding" %}
 
     {% if enable_model_dump %}
     ## Model Dumping
