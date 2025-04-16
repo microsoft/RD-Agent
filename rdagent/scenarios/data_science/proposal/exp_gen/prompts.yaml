@@ -70,11 +70,7 @@ hypothesis_and_feedback: |-
 
 task_gen:
   system: |-
-    {% if hypothesis is not none %}
     The user is trying to generate new {{ targets }} based on the hypothesis generated in the previous step. 
-    {% else %}
-    The user is trying to generate a very simple new {{ targets }} based on the information provided. 
-    {% endif %}
     The {{ targets }} are used in certain scenario, the scenario is as follows:
     {{ scenario }}
 
@@ -85,7 +81,7 @@ task_gen:
     {% endif %}
 
     {% if hypothesis is none %}
-    Since we are at the very beginning stage, we plan to start from a very simple task. To each component, please only generate the task to implement the most simple and basic function of the component. For example, the feature engineering should only implement the function which output the raw data without any transformation. The model component only uses the most basic and easy to implement model without any tuning (but the model type should suit the task). The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
+    Since we are at the very beginning stage, we plan to start with a very simple task. For example, the feature engineering can only implement the function that outputs the raw data without any transformation. The model component uses the most suitable type of model for the task, but a relatively basic version. The ensemble component only uses the simplest ensemble method. The main focus at this stage is to build the first runnable version of the solution.
     {% else %}
     The user will use the {{ targets }} generated to do some experiments. The user will provide this information to you:
     1. The target hypothesis you are targeting to generate {{ targets }} for.
@@ -269,7 +265,7 @@ component_gen:
     {{ component_desc }}
 
     Please generate the output in JSON format following the format below:
-    {{ component_output_format }}
+    {% include "scenarios.data_science.proposal.exp_gen.prompts:output_format.component" %}
 
   user: |-
     Here are the former experiments and their feedbacks:
@@ -298,7 +294,7 @@ hypothesis_specification: |-
 output_format:
   component: |-
     {
-      "reason": "The reason why you choose this component. Based on the current status and former trials, why this component is the most promising one to focus on.",
+      "reason": "The reason why you chose this component. Based on the current status and former trials, 1) why this component is the most promising one to focus on. 2) Why the component is the right place to apply your idea."
       "component": "The component you suggest to focus on. It must be one of ['DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow']."
     }
   hypothesis: |-
