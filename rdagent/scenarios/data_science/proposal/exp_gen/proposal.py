@@ -14,6 +14,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeGraph
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
@@ -223,6 +224,10 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
+    def _init_idea_pool(self) -> None:
+        if not hasattr(self, 'idea_pool'):
+            self.idea_pool = DSKnowledgeGraph(path=DS_RD_SETTING.researcher_path)
+
     def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -322,15 +327,26 @@ class DSProposalV2ExpGen(ExpGen):
                         )
                     except (ValueError, TypeError):
                         scores_dict[problem_name][score_key] = 0
+                
         scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
         if len(scores_sorted) > 5:
             scores_sorted = scores_sorted[: len(scores_sorted) // 2]
 
+        # Increace the weight of the hypothesis that is inspired by the idea pool
+        inspired_dict = []
+        for j, problem_name in enumerate(scores_sorted.index):
+            if hypothesis_dict[problem_name].get("inspired", False):
+                inspired_dict.extend([j] * 3)
+            else:
+                inspired_dict.append(j)
+
+        # Create a random but reproducible integer
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
-            scores_sorted
+            inspired_dict
         )
-        max_score_problem_name = scores_sorted.index[reproducible_int]
+        selected_idx = inspired_dict[reproducible_int]
+        max_score_problem_name = scores_sorted.index[selected_idx]
         problem = problem_dict.get(max_score_problem_name, {}).get("problem", "Problem not provided")
 
         return DSHypothesis(
@@ -408,6 +424,7 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        # Prepare
         component_desc = "\n".join(
             [
                 f"[{key}] {value}"
@@ -442,14 +459,27 @@ class DSProposalV2ExpGen(ExpGen):
             competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
         )
+        for key, value in scen_problems.items():
+            scen_problems[key]["label"] = "SCENARIO_PROBLEM"
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
         )
+        for key, value in fb_problems.items():  
+            fb_problems[key]["label"] = "FEEDBACK_PROBLEM"
         all_problems = {**scen_problems, **fb_problems}
 
-        # Step 2: Propose hypothesis based on the identified problems
+        # Step 1.5: Sample ideas from idea pool
+        if DS_RD_SETTING.enable_researcher:
+            all_problems = self.idea_pool.sample_ideas(
+                problems=all_problems,
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
@@ -457,6 +487,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             problems=all_problems,
             pipeline=pipeline,
+            researcher=DS_RD_SETTING.enable_researcher
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -480,6 +511,8 @@ class DSProposalV2ExpGen(ExpGen):
             problem_dict=all_problems,
             pipeline=pipeline,
         )
+        # add weight to hypothesis with idea inspired
+        # add inspired label
 
         return self.task_gen(
             component_desc=component_desc,
