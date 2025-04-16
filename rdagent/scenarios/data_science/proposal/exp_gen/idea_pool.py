@@ -81,6 +81,8 @@ class DSKnowledgeBase(UndirectedGraph):
         if len(self.vector_base.vector_df) > 0:
             logger.warning("Knowledge graph is not empty, please clear it first. Ignore reading from json file.")
             return
+        else:
+            logger.info(f"Building knowledge graph from idea pool json file: {idea_pool_json_path}")
         with open(idea_pool_json_path, "r", encoding="utf-8") as f:
             idea_pool_dict = json.load(f)
 

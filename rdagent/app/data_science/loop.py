@@ -43,13 +43,6 @@ class DataScienceRDLoop(RDLoop):
         logger.log_object(PROP_SETTING.competition, tag="competition")
         scen: Scenario = import_class(PROP_SETTING.scen)(PROP_SETTING.competition)
 
-        ### shared components in the workflow  # TODO: check if
-        knowledge_base = (
-            import_class(PROP_SETTING.knowledge_base)(PROP_SETTING.knowledge_base_path, scen)
-            if PROP_SETTING.knowledge_base != ""
-            else None
-        )
-
         # 1) task generation from scratch
         # self.scratch_gen: tuple[HypothesisGen, Hypothesis2Experiment] = DummyHypothesisGen(scen),
 
@@ -178,7 +171,13 @@ class DataScienceRDLoop(RDLoop):
 
 
 def main(
-    path=None, output_path=None, step_n=None, loop_n=None, competition="bms-molecular-translation", do_truncate=True
+    path=None,
+    output_path=None,
+    step_n=None,
+    loop_n=None,
+    competition="bms-molecular-translation",
+    do_truncate=True,
+    timeout=None,
 ):
     """
 
@@ -222,7 +221,7 @@ def main(
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
         kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate)
-    kaggle_loop.run(step_n=step_n, loop_n=loop_n)
+    kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
 
 
 if __name__ == "__main__":

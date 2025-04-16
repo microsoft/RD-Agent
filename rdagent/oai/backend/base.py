@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import re
 import sqlite3
@@ -15,6 +16,7 @@ from pydantic import TypeAdapter
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
 
@@ -330,6 +332,7 @@ class APIBackend(ABC):
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
         timeout_count = 0
         for i in range(max_retry):
+            API_start_time = datetime.now()
             try:
                 if embedding:
                     return self._create_embedding_with_cache(*args, **kwargs)
@@ -361,6 +364,8 @@ class APIBackend(ABC):
                         raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
+                    if not isinstance(e, json.decoder.JSONDecodeError):
+                        RD_Agent_TIMER.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")
         error_message = f"Failed to create chat completion after {max_retry} retries."

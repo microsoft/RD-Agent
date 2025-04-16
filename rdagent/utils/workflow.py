@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, TypeVar, Union, cast
 from tqdm.auto import tqdm
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER
 
 
 class LoopMeta(type):
@@ -91,7 +92,7 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
-    def run(self, step_n: int | None = None, loop_n: int | None = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str = None) -> None:
         """
 
         Parameters
@@ -103,6 +104,10 @@ class LoopBase:
             How many steps to run; if current loop is incomplete, it will be counted as the first loop for completion
             `None` indicates to run forever until error or KeyboardInterrupt
         """
+
+        if all_duration is not None:
+            RD_Agent_TIMER.reset(all_duration=all_duration)
+
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
             while True:
                 if step_n is not None:
@@ -112,6 +117,12 @@ class LoopBase:
                 if loop_n is not None:
                     if loop_n <= 0:
                         break
+
+                if RD_Agent_TIMER.is_timeout():
+                    logger.warning("Timeout, exiting the loop.")
+                    break
+                else:
+                    logger.info(f"Timer remaining time: {RD_Agent_TIMER.remain_time()}")
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
