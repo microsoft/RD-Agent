@@ -259,13 +259,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
-    def _append_retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
-        # Only modify the user_prompt on retries (i > 0)
-        user_prompt = args[0]
-        user_prompt += "\n\nretrying..."
-        return (user_prompt,), kwargs
-
-    @wait_retry(retry_n=5, transform_args_fn=_append_retry)
+    @wait_retry(retry_n=5)
     def hypothesis_gen(
         self,
         component_desc: str,

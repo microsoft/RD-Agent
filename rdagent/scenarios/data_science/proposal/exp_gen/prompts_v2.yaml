@@ -201,9 +201,7 @@ output_format:
     {
       "problem name 1 (Should be exactly same as the problem name provided)": {
         "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
-        {% if not pipeline %}"component": "The component name that the hypothesis focus on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-        {% else %}"component": "The component name that the hypothesis mainly focus on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
-        {% endif %}
+        "component": "The component name that the hypothesis {% if pipeline %}mainly {% endif %}focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
         "evaluation": {
           "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",
