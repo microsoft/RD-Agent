@@ -30,16 +30,18 @@ class DSExperiment2Feedback(Experiment2Feedback):
             exp=sota_exp, heading="SOTA of previous exploration of the scenario"
         )
 
+        last_exp = trace.last_exp()
+
         # Get feedback description using shared template
         feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=(trace.hist[-1] if trace.hist else None), heading="Previous Trial Feedback"
+            exp_and_feedback=last_exp, heading="Previous Trial Feedback"
         )
 
         # TODO:
         # -  Should we choose between the diff from last experiment or last sota ?
 
         # Retrieve the last experiment from the history
-        last_exp = trace.hist[-1][0] if trace.hist else None
+        # last_exp = trace.hist[-1][0] if trace.hist else None
         if last_exp and last_exp.experiment_workspace and exp.experiment_workspace:
             # Generate a diff between the two workspaces
             last_exp_files = last_exp.experiment_workspace.file_dict

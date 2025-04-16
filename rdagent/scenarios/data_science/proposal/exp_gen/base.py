@@ -55,7 +55,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.current_selection: tuple[int, ...] = (-1,)
 
+        self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
+
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
+
+    def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
+        self.sota_exp_to_submit = exp
 
     def get_current_selection(self) -> tuple[int, ...]:
         return self.current_selection
@@ -104,8 +109,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         """
 
         selection = self.get_current_selection()
-        if selection is None:
-            # selection is None, which means we switch to a new trace, which is not implemented yet
+        if len(selection) == 0:
+            # selection is (), which means we switch to a new trace, which is not implemented yet
             return []
 
         return self.collect_all_ancestors(selection) if search_type == "ancestors" else self.hist

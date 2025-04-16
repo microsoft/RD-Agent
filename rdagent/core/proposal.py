@@ -153,6 +153,18 @@ class CheckpointSelector:
         """
 
 
+class SOTAexpSelector:
+    """
+    Select the SOTA experiment from the trace to submit
+    """
+
+    @abstractmethod
+    def get_sota_exp_to_submit(self, trace: Trace) -> Experiment | None:
+        """
+        Select the SOTA experiment from the trace to submit
+        """
+
+
 class ExpGen(ABC):
 
     def __init__(self, scen: Scenario) -> None:
