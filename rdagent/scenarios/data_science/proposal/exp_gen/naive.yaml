@@ -1,6 +1,7 @@
 naive_gen:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
+
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, previous SOTA (best) and failed experiments and feedbacks, the current SOTA implementation and feedback, and a list of identified problems.
 
