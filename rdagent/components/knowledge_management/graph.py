@@ -13,8 +13,8 @@ from rdagent.components.knowledge_management.vector_base import (
     cosine,
 )
 from rdagent.core.knowledge_base import KnowledgeBase
-from rdagent.oai.llm_utils import APIBackend
 from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 
 Node = KnowledgeMetaData
 
