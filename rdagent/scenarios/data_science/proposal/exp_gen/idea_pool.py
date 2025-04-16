@@ -1,18 +1,20 @@
 import json
 from pathlib import Path
+from typing import Dict, List
+
+from tqdm import tqdm
+
 from rdagent.components.knowledge_management.graph import (
-    UndirectedGraph,
     UndirectedNode,  # TODO: add appendix attribute to node
 )
+from rdagent.components.knowledge_management.graph import UndirectedGraph
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.tpl import T
-from tqdm import tqdm
-from typing import Dict, List
-from rdagent.log import rdagent_logger as logger
 
 
 class DSIdea:
-    def __init__(self, raw_knowledge: Dict) -> None:
+    def __init__(self, raw_knowledge: Dict | str) -> None:
         """
         {
             "idea": "A concise label summarizing the core concept of this idea.",
@@ -26,10 +28,12 @@ class DSIdea:
         """
         # TODO: add competition name -> avoid using self-generated ideas
         # TODO: align Scenario and Feedback problem (for key and label)
+        if isinstance(raw_knowledge, str):
+            raw_knowledge = json.loads(raw_knowledge)
         self.competition = raw_knowledge.get("competition", None)
         self.idea = raw_knowledge["idea"]
-        self.method = raw_knowledge["method"]
-        self.context = raw_knowledge["context"]
+        self.method = raw_knowledge.get("method", None)
+        self.context = raw_knowledge.get("context", None)
         self.hypothesis = raw_knowledge["hypothesis"].copy()
 
     def __str__(self) -> str:
@@ -43,6 +47,9 @@ class DSIdea:
             }
         )
 
+    def to_formatted_str(self) -> str:
+        return f"Idea Name: {self.idea}\nIdea Method: {self.method}\nIdea Context: {self.context}"
+
 
 class DSKnowledgeBase(UndirectedGraph):
     def __init__(self, path: str | Path | None = None, idea_pool_json_path: str | Path | None = None):
@@ -52,6 +59,24 @@ class DSKnowledgeBase(UndirectedGraph):
             self.build_idea_pool(idea_pool_json_path)
         self.dump()
 
+    def add_idea(self, idea: DSIdea) -> None:
+        idea_name = idea.idea
+        idea_node = UndirectedNode(content=idea_name, label="IDEA", appendix=str(idea))
+
+        competition = idea.competition
+        if competition is not None:
+            competition_node = UndirectedNode(content=competition, label="competition")
+            self.add_nodes(idea_node, [competition_node])
+
+        data = idea.hypothesis.get("SCENARIO_PROBLEM", None)
+        problem = idea.hypothesis.get("FEEDBACK_PROBLEM", None)
+        if data is not None:
+            sp_node = UndirectedNode(content=data, label="SCENARIO_PROBLEM")
+            self.add_nodes(idea_node, [sp_node])
+        if problem is not None:
+            fp_node = UndirectedNode(content=problem, label="FEEDBACK_PROBLEM")
+            self.add_nodes(idea_node, [fp_node])
+
     def build_idea_pool(self, idea_pool_json_path: str | Path):
         if len(self.vector_base.vector_df) > 0:
             logger.warning("Knowledge graph is not empty, please clear it first. Ignore reading from json file.")
@@ -59,27 +84,12 @@ class DSKnowledgeBase(UndirectedGraph):
         with open(idea_pool_json_path, "r", encoding="utf-8") as f:
             idea_pool_dict = json.load(f)
 
-        all_nodes = []
-        add_nodes_list = []
         for i, raw_idea in tqdm(enumerate(idea_pool_dict), desc="Building Knowledge Graph from Ideas"):
             try:
                 idea = DSIdea(raw_idea)
-
-                idea_name = idea.idea
-                data = idea.hypothesis["scenario_problem"]
-                problem = idea.hypothesis["feedback_problem"]
-
-                idea_node = UndirectedNode(content=idea_name, label="IDEA", appendix=str(idea))
-                sp_node = UndirectedNode(content=data, label="SCENARIO_PROBLEM")
-                fp_node = UndirectedNode(content=problem, label="FEEDBACK_PROBLEM")
-                all_nodes.extend([idea_node, sp_node, fp_node])
-                add_nodes_list.append((idea_node, [sp_node, fp_node]))
+                self.add_idea(idea)
             except Exception as e:
                 print(f"The {i}-th idea process failed due to error {e}")
-
-        self.batch_embedding(all_nodes)
-        for add_nodes_pair in add_nodes_list:
-            self.add_nodes(add_nodes_pair[0], add_nodes_pair[1])
 
     def sample_ideas(
         self,
@@ -87,13 +97,16 @@ class DSKnowledgeBase(UndirectedGraph):
         scenario_desc: str,
         exp_feedback_list_desc: str,
         sota_exp_desc: str,
+        competition_desc: str,
     ) -> Dict:
         # sample ideas by cosine similarity
         text = ""
         problem_to_sampled_idea_node_id = {}
+        competition_node = self.get_node_by_content(competition_desc)
+
         for i, (problem_name, problem_dict) in enumerate(problems.items()):
             sampled_nodes = self.semantic_search(
-                node=problem_dict["problem"], topk_k=5, constraint_labels=[problem_dict["label"]]
+                node=problem_dict["problem"], constraint_labels=[problem_dict["label"]]
             )
 
             text += f"# Problem Name {i+1}: {problem_name}\n"
@@ -101,14 +114,18 @@ class DSKnowledgeBase(UndirectedGraph):
             problem_to_sampled_idea_node_id[problem_name] = []
             for node in sampled_nodes:
                 idea_node = self.get_nodes_within_steps(start_node=node, steps=1, constraint_labels="IDEA")[0]
-                if not idea_node.id in self.used_idea_id_set:
 
-                    idea = DSIdea(raw_knowledge=json.loads(idea_node.appendix))
+                if idea_node.id not in self.used_idea_id_set and (
+                    competition_node is None or competition_node not in idea_node.neighbors
+                ):
+                    idea = DSIdea(raw_knowledge=idea_node.appendix)
                     problem_to_sampled_idea_node_id[problem_name].append(idea_node)
                     text += f"## Idea {len(problem_to_sampled_idea_node_id[problem_name])}\n"
                     text += f"- Idea Name: {idea.idea}\n"
                     text += f"- Idea Method: {idea.method}\n"
                     text += f"- Idea Context: {idea.context}\n\n"
+                if len(problem_to_sampled_idea_node_id[problem_name]) >= 5:
+                    break
             text += "\n\n"
 
         # select ideas by LLM
@@ -131,11 +148,16 @@ class DSKnowledgeBase(UndirectedGraph):
         resp_dict = json.loads(response)
 
         # update problems with selected ideas
-        # selected_ideas = []
-        # for key, value in resp_dict.items():
-        #     for i in value["selected_ideas"]:
-        #         selected_ideas.append(sampled_ideas[i])
-        #         self.used_idea_id_set.append(sampled_ideas_id[i])
-        #     problems[key]["ideas"] = selected_ideas
+        for problem_name, picked_id in resp_dict.items():
+            if problem_name in problem_to_sampled_idea_node_id and picked_id < len(
+                problem_to_sampled_idea_node_id[problem_name]
+            ):
+                problems[problem_name]["idea"] = problem_to_sampled_idea_node_id[problem_name][picked_id - 1].appendix
+                problems[problem_name]["idea_node_id"] = problem_to_sampled_idea_node_id[problem_name][picked_id - 1].id
 
         return problems
+
+    def update_pickled_problem(self, problems: Dict, pickled_problem_name: str) -> None:
+        pickled_id = problems[pickled_problem_name].get("idea_node_id", None)
+        if pickled_id is not None:
+            self.used_idea_id_set.add(pickled_id)

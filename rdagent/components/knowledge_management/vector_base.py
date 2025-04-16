@@ -87,7 +87,7 @@ class VectorBase(KnowledgeBase):
         """
         pass
 
-    def search(self, content: str, topk_k: int = 5, similarity_threshold: float = 0) -> List[Document]:
+    def search(self, content: str, topk_k: int | None = None, similarity_threshold: float = 0) -> List[Document]:
         """
         search vector_df by node
         Parameters
@@ -156,7 +156,11 @@ class PDVectorBase(VectorBase):
                 self.add(document=doc)
 
     def search(
-        self, content: str, topk_k: int = 5, similarity_threshold: float = 0, constraint_labels: list[str] | None = None
+        self,
+        content: str,
+        topk_k: int | None = None,
+        similarity_threshold: float = 0,
+        constraint_labels: list[str] | None = None,
     ) -> Tuple[List[Document], List]:
         """
         Search vector by node's embedding.
@@ -192,7 +196,9 @@ class PDVectorBase(VectorBase):
             lambda x: 1 - cosine(x, document.embedding)
         )  # cosine is cosine distance, 1-similarity
 
-        searched_similarities = similarities[similarities > similarity_threshold].nlargest(topk_k)
+        searched_similarities = similarities[similarities > similarity_threshold]
+        if topk_k is not None:
+            searched_similarities = searched_similarities.nlargest(topk_k)
         most_similar_docs = filtered_df.loc[searched_similarities.index]
 
         docs = []

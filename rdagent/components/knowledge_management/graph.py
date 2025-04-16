@@ -276,7 +276,7 @@ class UndirectedGraph(Graph):
         self,
         node: UndirectedNode | str,
         similarity_threshold: float = 0.0,
-        topk_k: int = 5,
+        topk_k: int = None,
         constraint_labels: list[str] | None = None,
     ) -> list[UndirectedNode]:
         """
