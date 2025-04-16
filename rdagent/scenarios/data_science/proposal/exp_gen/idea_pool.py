@@ -92,7 +92,7 @@ class DSKnowledgeBase(UndirectedGraph):
                 add_pairs.append((idea_node, [fp_node]))
         self.batch_embedding(node_list)
         for idea_node, neighbor_list in add_pairs:
-            self.add_edge(idea_node, neighbor_list)
+            self.add_nodes(idea_node, neighbor_list)
 
     def build_idea_pool(self, idea_pool_json_path: str | Path):
         if len(self.vector_base.vector_df) > 0:
