@@ -28,6 +28,7 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.select import (
     LatestCKPSelector,
     SOTAJumpCKPSelector,
@@ -70,8 +71,13 @@ class DataScienceRDLoop(RDLoop):
         # self.summarizer: Experiment2Feedback = import_class(PROP_SETTING.summarizer)(scen)
         # logger.log_object(self.summarizer, tag="summarizer")
 
-        # self.trace = KGTrace(scen=scen, knowledge_base=knowledge_base)
-        self.trace = DSTrace(scen=scen)
+        if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
+            knowledge_base = DSKnowledgeBase(
+                path=DS_RD_SETTING.knowledge_base_path, idea_pool_json_path=DS_RD_SETTING.idea_pool_json_path
+            )
+            self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
+        else:
+            self.trace = DSTrace(scen=scen)
         self.summarizer = DSExperiment2Feedback(scen)
         super(RDLoop, self).__init__()
 

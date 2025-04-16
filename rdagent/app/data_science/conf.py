@@ -41,5 +41,11 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
+    ### knowledge base
+    enable_knowledge_base: bool = False
+    knowledge_base_version: str = "v1"
+    knowledge_base_path: str | None = None
+    idea_pool_json_path: str | None = None
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
