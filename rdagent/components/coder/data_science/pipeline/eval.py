@@ -52,7 +52,11 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             )
 
         env = get_ds_env(
-            extra_volumes={f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": "/kaggle/input"}
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
+                    "scenarios.data_science.share:scen.input_path"
+                ).r()
+            }
         )
 
         # Clean the scores.csv & submission.csv.
@@ -97,7 +101,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_ret_code = 1
 
         # Check submission file
-        base_check_code = (DIRNAME / "eval_tests" / "submission_format_test.txt").read_text()
+        base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
         implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
         # stdout += "----Submission Check 1-----\n"
         submission_check_out, submission_ret_code = implementation.execute_ret_code(

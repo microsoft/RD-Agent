@@ -8,12 +8,14 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.data_science.debug.data import create_debug_data
 from rdagent.scenarios.data_science.scen.utils import (
     describe_data_folder,
     describe_data_folder_v2,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import (
     crawl_descriptions,
+    download_data,
     leaderboard_scores,
 )
 from rdagent.utils.agent.tpl import T
@@ -23,6 +25,17 @@ class DataScienceScen(Scenario):
     """Data Science Scenario"""
 
     def __init__(self, competition: str) -> None:
+
+        # 1) prepare data
+        if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
+            logger.error(f"Please prepare data for competition {competition} first.")
+            raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
+
+        local_path = DS_RD_SETTING.local_data_path
+        if not Path(f"{local_path}/sample/{competition}").exists():
+            create_debug_data(competition, dataset_path=local_path)
+
+        # 2) collect information of competition.
         self.metric_name: str | None = (
             None  # It is None when initialization. After analysing, we'll assign the metric name
         )
@@ -36,13 +49,15 @@ class DataScienceScen(Scenario):
         )  # True indicates higher is better, False indicates lower is better
 
     def _get_description(self):
-        if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
+        if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
+            return fp.read_text()
+        elif (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
             logger.info(f"Found {self.competition}.json, loading from local file.")
             with fp.open("r") as f:
                 return json.load(f)
         else:
             logger.error(
-                f"Cannot find {self.competition}.json in {DS_RD_SETTING.local_data_path}, please check the file."
+                f"Cannot find '{self.competition}.json' in {DS_RD_SETTING.local_data_path} or 'description.md' file, please check the file."
             )
 
     def _get_direction(self):
@@ -144,6 +159,10 @@ class KaggleScen(DataScienceScen):
           But we found that too much scenario unrelated code in kaggle scenario and hard to reuse.
           So we start from a simple one....
     """
+
+    def __init__(self, competition: str) -> None:
+        download_data(competition=competition, settings=DS_RD_SETTING, enable_create_debug_data=False)
+        super().__init__(competition)
 
     def _get_description(self):
         return crawl_descriptions(self.competition, DS_RD_SETTING.local_data_path)

@@ -88,6 +88,11 @@ describe: # some template to describe some object
     {% endif %}
 
 
+scen:  # customizable
+  role: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+  input_path: "/kaggle/input"
+
 component_description:
   DataLoadSpec: |-
     Loads raw competition data, ensuring proper data types, and providing an exploratory data analysis summary.
