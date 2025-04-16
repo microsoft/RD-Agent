@@ -199,7 +199,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   > 3. Join the competition: Click `Join the competition` -> `I Understand and Accept` at the bottom of the [competition details page](https://www.kaggle.com/competitions/sf-crime/data).
   ```bash
   # Generally, you can run the Kaggle competition program with the following command:
-  rdagent data_science --competition <your competition name>
+  rdagent kaggle --competition <your competition name>
 
   # Specifically, you need to create a folder for storing competition files (e.g., competition description file, competition datasets, etc.), and configure the path to the folder in your environment. In addition, you need to use chromedriver when you download the competition descriptors, which you can follow for this specific example:
   
@@ -210,7 +210,7 @@ The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented b
   dotenv set KG_LOCAL_DATA_PATH "$(pwd)/git_ignore_folder/kaggle_data"
 
   # 3. run the application
-  rdagent data_science --competition sf-crime
+  rdagent kaggle --competition sf-crime
   ```
   > **Description of the above example:** <br />
   > - Kaggle competition data is roughly divided into three sections: competition description file (json file) and complete dataset for the competition and simplified dataset for the competition. <br />

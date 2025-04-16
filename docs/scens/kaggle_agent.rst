@@ -153,7 +153,7 @@ Here's an enhanced outline of the steps:
     
     .. code-block:: sh
 
-        rdagent data_science --competition <Competition ID>
+        rdagent kaggle --competition <Competition ID>
 
 - 📤 **Submit the Result Automatically or Manually**
 
