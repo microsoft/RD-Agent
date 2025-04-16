@@ -1,0 +1,4 @@
+scen:  # customizable
+  role: |-
+    [CustomizationWorks]You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+  input_path: "/CustomizationWorks/kaggle/input"
