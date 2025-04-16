@@ -69,7 +69,7 @@ def similarity(text1: str, text2: str) -> int:
     text2 = text2 if isinstance(text2, str) else ""
 
     # Maybe we can use other similarity algorithm such as tfidf
-    return cast(int, fuzz.ratio(text1, text2))  # mypy does not regard it as int
+    return cast("int", fuzz.ratio(text1, text2))  # mypy does not regard it as int
 
 
 def import_class(class_path: str) -> Any:

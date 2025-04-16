@@ -4,7 +4,7 @@ from mlebench.grade import validate_submission
 from mlebench.registry import registry
 
 # Check if our submission file exists
-assert Path('submission.csv').exists(), "Error: submission.csv not found"
+assert Path("submission.csv").exists(), "Error: submission.csv not found"
 
 COMPETITION_ID = "<competition_id>"
 new_registry = registry.set_data_dir(Path("/mle/data"))
@@ -13,3 +13,6 @@ competition = new_registry.get_competition(COMPETITION_ID)
 is_valid, message = validate_submission(Path("submission.csv"), competition)
 
 print(message)
+
+if not is_valid:
+    raise AssertionError("Submission is invalid")

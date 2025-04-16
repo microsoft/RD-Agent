@@ -3,7 +3,13 @@ PythonAgentOut: |-
   ```Python
   <You code>
   ```
-  
+
+MarkdownOut: |-
+  The return content should be like the format below(Please note tha "````" is used to avoid confliction of "```" in markdown file)
+  ````markdown
+  <the content of markdown file>
+  ````
+
 BatchEditOut: |-
   You should return an edition that applies to multiple files in a workspace in JSON.
   Except for the model file, other files should not be renamed.
