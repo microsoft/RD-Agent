@@ -328,6 +328,7 @@ class APIBackend(ABC):
     ) -> str | list[list[float]]:
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
+        timeout_count = 0
         for i in range(max_retry):
             try:
                 if embedding:
@@ -354,7 +355,10 @@ class APIBackend(ABC):
                         in e.message
                     )
                 ):
-                    raise e
+                    timeout_count += 1
+                    if timeout_count >= 3:
+                        logger.warning("Timeout error, please check your network connection.")
+                        raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
                 logger.warning(str(e))
