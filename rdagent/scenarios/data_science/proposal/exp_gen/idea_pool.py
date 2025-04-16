@@ -61,23 +61,38 @@ class DSKnowledgeBase(UndirectedGraph):
             self.build_idea_pool(idea_pool_json_path)
         self.dump()
 
-    def add_idea(self, idea: DSIdea) -> None:
-        idea_name = idea.idea
-        idea_node = UndirectedNode(content=idea_name, label="IDEA", appendix=str(idea))
+    def add_idea(self, idea: List[DSIdea] | DSIdea) -> None:
+        if not isinstance(idea, list):
+            idea_list = [idea]
+        else:
+            idea_list = idea
 
-        competition = idea.competition
-        if competition is not None:
-            competition_node = UndirectedNode(content=competition, label="competition")
-            self.add_nodes(idea_node, [competition_node])
+        node_list = []
+        add_pairs = []
+        for one_idea in idea_list:
+            idea_name = one_idea.idea
+            idea_node = UndirectedNode(content=idea_name, label="IDEA", appendix=str(one_idea))
+            node_list.append(idea_node)
 
-        data = idea.hypothesis.get("SCENARIO_PROBLEM", None)
-        problem = idea.hypothesis.get("FEEDBACK_PROBLEM", None)
-        if data is not None:
-            sp_node = UndirectedNode(content=data, label="SCENARIO_PROBLEM")
-            self.add_nodes(idea_node, [sp_node])
-        if problem is not None:
-            fp_node = UndirectedNode(content=problem, label="FEEDBACK_PROBLEM")
-            self.add_nodes(idea_node, [fp_node])
+            competition = one_idea.competition
+            if competition is not None:
+                competition_node = UndirectedNode(content=competition, label="competition")
+                node_list.append(competition_node)
+                add_pairs.append((idea_node, [competition_node]))
+
+            data = one_idea.hypothesis.get("SCENARIO_PROBLEM", None)
+            problem = one_idea.hypothesis.get("FEEDBACK_PROBLEM", None)
+            if data is not None:
+                sp_node = UndirectedNode(content=data, label="SCENARIO_PROBLEM")
+                node_list.append(sp_node)
+                add_pairs.append((idea_node, [sp_node]))
+            if problem is not None:
+                fp_node = UndirectedNode(content=problem, label="FEEDBACK_PROBLEM")
+                node_list.append(fp_node)
+                add_pairs.append((idea_node, [fp_node]))
+        self.batch_embedding(node_list)
+        for idea_node, neighbor_list in add_pairs:
+            self.add_edge(idea_node, neighbor_list)
 
     def build_idea_pool(self, idea_pool_json_path: str | Path):
         if len(self.vector_base.vector_df) > 0:
@@ -88,12 +103,15 @@ class DSKnowledgeBase(UndirectedGraph):
         with open(idea_pool_json_path, "r", encoding="utf-8") as f:
             idea_pool_dict = json.load(f)
 
+        to_add_ideas = []
         for i, raw_idea in tqdm(enumerate(idea_pool_dict), desc="Building Knowledge Graph from Ideas"):
             try:
                 idea = DSIdea(raw_idea)
-                self.add_idea(idea)
+                to_add_ideas.append(idea)
             except Exception as e:
                 print(f"The {i}-th idea process failed due to error {e}")
+                continue
+        self.add_idea(to_add_ideas)
 
     def sample_ideas(
         self,
