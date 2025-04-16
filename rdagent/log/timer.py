@@ -6,16 +6,16 @@ from rdagent.log import rdagent_logger as logger
 
 
 class RDAgentTimer(SingletonBaseClass):
-    def __init__(self):
+    def __init__(self) -> None:
         self.started = False
 
-    def reset(self, all_duration: str | timedelta):
+    def reset(self, all_duration: str | timedelta) -> None:
         if isinstance(all_duration, str):
             pattern = re.compile(r"^\s*(\d*\.?\d+)\s*([smhd]?)\s*$")
 
             match = pattern.match(all_duration)
             if not match:
-                return
+                return None
             value = float(match.group(1))
             unit = match.group(2)
             if unit == "s":
@@ -33,6 +33,7 @@ class RDAgentTimer(SingletonBaseClass):
         self.target_time = datetime.now() + self.all_duration
         logger.info(f"Timer set to {self.all_duration} seconds and counting down.")
         self.started = True
+        return None
 
     def add_duration(self, duration: timedelta) -> None:
         if self.started:

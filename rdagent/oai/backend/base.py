@@ -364,7 +364,7 @@ class APIBackend(ABC):
                         raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
-                    if not isinstance(e, json.decoder.JSONDecodeError):
+                    if RD_Agent_TIMER.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")

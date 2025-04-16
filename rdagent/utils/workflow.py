@@ -92,7 +92,7 @@ class LoopBase:
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
 
-    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
 
         Parameters
@@ -118,11 +118,12 @@ class LoopBase:
                     if loop_n <= 0:
                         break
 
-                if RD_Agent_TIMER.is_timeout():
-                    logger.warning("Timeout, exiting the loop.")
-                    break
-                else:
-                    logger.info(f"Timer remaining time: {RD_Agent_TIMER.remain_time()}")
+                if RD_Agent_TIMER.started:
+                    if RD_Agent_TIMER.is_timeout():
+                        logger.warning("Timeout, exiting the loop.")
+                        break
+                    else:
+                        logger.info(f"Timer remaining time: {RD_Agent_TIMER.remain_time()}")
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
