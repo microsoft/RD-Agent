@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import pandas as pd
 
@@ -16,7 +16,6 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import (
     DSIdea,
-    DSKnowledgeBase,
 )
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict

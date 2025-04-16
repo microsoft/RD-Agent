@@ -172,6 +172,9 @@ class DataScienceRDLoop(RDLoop):
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+        if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
+            logger.log_object(self.trace.knowledge_base, tag="knowledge base")
+            self.trace.knowledge_base.dump()
 
 
 def main(
