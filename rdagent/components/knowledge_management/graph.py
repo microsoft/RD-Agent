@@ -19,9 +19,10 @@ Node = KnowledgeMetaData
 
 
 class UndirectedNode(Node):
-    def __init__(self, content: str = "", label: str = "", embedding: Any = None) -> None:
+    def __init__(self, content: str = "", label: str = "", embedding: Any = None, appendix: Any = None) -> None:
         super().__init__(content, label, embedding)
         self.neighbors: set[UndirectedNode] = set()
+        self.appendix = appendix # appendix stores any additional information
         assert isinstance(content, str), "content must be a string"
 
     def add_neighbor(self, node: UndirectedNode) -> None:
