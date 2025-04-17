@@ -1,0 +1,52 @@
+[
+  {
+    "idea": "Weighted ensemble using inverse validation log loss",
+    "method": "Computed weights inversely proportional to validation log losses for each model and applied these weights to ensemble predictions.",
+    "context": "The notebook calculated weights for each model based on the inverse of their validation log losses. These weights were used to combine the predictions from multiple models, resulting in a weighted ensemble for both validation and test predictions.",
+    "component": "Ensemble",
+    "hypothesis": {
+      "problem": "A multi-class classification problem where combining multiple model predictions can improve generalization.",
+      "data": "Diverse model performance, as indicated by varying validation log losses, suggesting that some models capture different aspects of the data."
+    }
+  },
+  {
+    "idea": "Use of Focal Loss for imbalanced data",
+    "method": "Implemented Focal Loss to address class imbalance by focusing more on hard-to-classify samples.",
+    "context": "The notebook defined a custom Focal Loss function with gamma=1.0 to be used during model training, aiming to reduce the impact of class imbalance by down-weighting easy-to-classify samples.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Classification problem with class imbalance where certain classes are underrepresented.",
+      "data": "Imbalanced class distribution, leading to models being biased towards majority classes."
+    }
+  },
+  {
+    "idea": "Cosine learning rate schedule with warmup",
+    "method": "Applied a cosine learning rate schedule with warmup to optimize the learning rate during training.",
+    "context": "The notebook used the get_cosine_schedule_with_warmup function to adjust the learning rate dynamically, starting with a warmup phase followed by a cosine decay, to improve model convergence.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Training deep learning models where learning rate scheduling can impact convergence and final performance.",
+      "data": "Complex data patterns requiring careful tuning of learning rates to avoid overfitting or underfitting."
+    }
+  },
+  {
+    "idea": "Stratified train-test split",
+    "method": "Performed stratified train-test split to ensure balanced class distribution in both training and validation sets.",
+    "context": "The notebook used train_test_split with the stratify parameter set to the encoded labels to maintain the same class distribution in both the training and validation datasets.",
+    "component": "DataLoadSpec",
+    "hypothesis": {
+      "problem": "Classification problem where maintaining class distribution across splits is crucial for model evaluation.",
+      "data": "Imbalanced class distribution that could lead to biased model evaluation if not properly stratified."
+    }
+  },
+  {
+    "idea": "Model-specific batch sizes for resource optimization",
+    "method": "Adjusted batch sizes for different models based on their resource requirements to optimize memory usage.",
+    "context": "The notebook specified different batch sizes for each model, reducing the batch size for larger models like 'microsoft/deberta-v3-large' to fit within memory constraints while maintaining efficiency.",
+    "component": "Workflow",
+    "hypothesis": {
+      "problem": "Training large models with limited computational resources where memory optimization is necessary.",
+      "data": "High-dimensional input data requiring careful management of computational resources during model training."
+    }
+  }
+]
