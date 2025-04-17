@@ -37,7 +37,7 @@ class LoopMeta(type):
         steps = []
         for base in bases:
             for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
-                if step not in steps:
+                if step not in steps and step not in ["load", "dump"]:  # incase user override the load/dump method
                     steps.append(step)
         return steps
 
@@ -56,7 +56,7 @@ class LoopMeta(type):
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("_") and callable(attr):
-                if name not in steps:
+                if name not in steps and name not in ["load", "dump"]:  # incase user override the load/dump method
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
                     steps.append(name)
