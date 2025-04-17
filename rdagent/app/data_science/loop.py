@@ -179,7 +179,6 @@ class DataScienceRDLoop(RDLoop):
             and Path(DS_RD_SETTING.log_archive_path).is_dir()
         ):
             start_archive_datetime = datetime.now()
-            self.timer.update_remain_time()
             logger.info(f"Archiving log folder after loop {self.loop_idx}")
             tar_path = (
                 Path(
