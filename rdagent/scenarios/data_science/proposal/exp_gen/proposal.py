@@ -341,7 +341,7 @@ class DSProposalV2ExpGen(ExpGen):
         all_problems = {**scen_problems, **fb_problems}
 
         # Step 2: Propose hypothesis based on the identified problems
-        sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
+        session_system_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
             hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(pipeline=pipeline),
@@ -349,7 +349,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # TODO: FIXME: gen_hypothesis & gen_task 合并后需要新的总体system prompt
-        proposal_session = APIBackend().build_chat_session(session_system_prompt=sys_prompt)
+        proposal_session = APIBackend().build_chat_session(session_system_prompt=session_system_prompt)
 
         def _retry(args: tuple, kwargs: dict) -> tuple[tuple, dict]:
             # 因为是在chat session中 retry, 所以要改掉user_prompt
@@ -372,13 +372,13 @@ class DSProposalV2ExpGen(ExpGen):
                 assert "evaluation" in value, "Evaluation not provided."
             return hypothesis_dict
 
-        user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
+        hypo_user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
             problems=json.dumps(all_problems, indent=2),
         )
-        hypothesis_dict = _f(user_prompt)
+        hypothesis_dict = _f(hypo_user_prompt)
 
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -397,7 +397,7 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        new_hypothesis = self.hypothesis_rank(
+        the_best_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
             pipeline=pipeline,
@@ -407,32 +407,33 @@ class DSProposalV2ExpGen(ExpGen):
         if pipeline:
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
         else:
-            component_info = COMPONENT_TASK_MAPPING.get(new_hypothesis.component)
+            component_info = COMPONENT_TASK_MAPPING.get(the_best_hypothesis.component)
         if pipeline:
             task_spec = T(f"scenarios.data_science.share:component_spec.Pipeline").r()
         elif DS_RD_SETTING.spec_enabled and sota_exp is not None:
             task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
-            task_spec = T(f"scenarios.data_science.share:component_spec.{new_hypothesis.component}").r()
+            task_spec = T(f"scenarios.data_science.share:component_spec.{the_best_hypothesis.component}").r()
+        
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             targets=component_info["target_name"],
             task_specification=task_spec,
             task_output_format=component_info["task_output_format"],
             component_desc=component_desc,
-            workflow_check=not pipeline and new_hypothesis.component != "Workflow",
+            workflow_check=not pipeline and the_best_hypothesis.component != "Workflow",
         )
-        user_prompt = T(".prompts_v2:task_gen.user").r(
+        task_user_prompt = T(".prompts_v2:task_gen.user").r(
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
-            new_hypothesis=str(new_hypothesis),
+            new_hypothesis=str(the_best_hypothesis),
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
 
         # TODO: FIXME: 这里简单把原来的task system prompt当成user prompt加入到chat session当中，应该修改一下
-        proposal_session.build_chat_completion(user_prompt=sys_prompt)
+        # proposal_session.build_chat_completion(user_prompt=sys_prompt)
 
         response = proposal_session.build_chat_completion(
-            user_prompt=user_prompt,
+            user_prompt=task_user_prompt,
             json_mode=True,
             json_target_type=Dict[str, str | Dict[str, str]],
         )
@@ -440,8 +441,8 @@ class DSProposalV2ExpGen(ExpGen):
         task_design = task_dict.get("task_design", {})
         task_name = (
             task_design["model_name"]
-            if (new_hypothesis.component == "Model" and not pipeline)
-            else new_hypothesis.component
+            if (the_best_hypothesis.component == "Model" and not pipeline)
+            else the_best_hypothesis.component
         )
         description = (
             task_design
@@ -454,7 +455,7 @@ class DSProposalV2ExpGen(ExpGen):
             description=description,
         )
         new_workflow_desc = task_dict.get("workflow_update", "No update needed")
-        exp = DSExperiment(pending_tasks_list=[[task]], new_hypothesis=new_hypothesis)
+        exp = DSExperiment(pending_tasks_list=[[task]], new_hypothesis=the_best_hypothesis)
         # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
         if sota_exp is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
