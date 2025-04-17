@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Any
+from typing import Any, Optional, Union
 
 import fire
 
@@ -196,6 +196,33 @@ class DataScienceRDLoop(RDLoop):
                 tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
+
+    @classmethod
+    def load(
+        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
+    ) -> "LoopBase":
+        session = super().load(path, output_path, do_truncate)
+        if (
+            DS_RD_SETTING.enable_knowledge_base
+            and DS_RD_SETTING.knowledge_base_version == "v1"
+            and Path(DS_RD_SETTING.knowledge_base_path).exists()
+        ):
+            knowledge_base = DSKnowledgeBase(path=DS_RD_SETTING.knowledge_base_path)
+            session.trace.knowledge_base = knowledge_base
+        return session
+
+    def dump(self, path: str | Path) -> None:
+        """
+        Since knowledge_base is big and we don't want to dump it every time
+        So we remove it from the trace before dumping and restore it after.
+        """
+        backup_knowledge_base = None
+        if self.trace.knowledge_base is not None:
+            backup_knowledge_base = self.trace.knowledge_base
+            self.trace.knowledge_base = None
+        super().dump(path)
+        if backup_knowledge_base is not None:
+            self.trace.knowledge_base = backup_knowledge_base
 
 
 def main(
