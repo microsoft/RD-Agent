@@ -69,8 +69,8 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             if exp.sub_tasks[0].model_type == "TimeSeries":
                 env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": 20, "step_len": 20, "num_timesteps": 20})
             elif exp.sub_tasks[0].model_type == "Tabular":
-                env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
-            result = exp.experiment_workspace.execute(qlib_config_name="conf_model.yaml", run_env=env_to_use)
+                env_to_use.update({"dataset_cls": "DatasetH", "num_features": 20})
+            result = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
         else:
             if exp.sub_tasks[0].model_type == "TimeSeries":
                 env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})  #TODO: step_len == input.size(-1)
