@@ -1,52 +1,52 @@
 [
   {
-    "idea": "Weighted ensemble using inverse validation log loss",
-    "method": "Computed weights inversely proportional to validation log losses for each model and applied these weights to ensemble predictions.",
-    "context": "The notebook calculated weights for each model based on the inverse of their validation log losses. These weights were used to combine the predictions from multiple models, resulting in a weighted ensemble for both validation and test predictions.",
-    "component": "Ensemble",
-    "hypothesis": {
-      "problem": "A multi-class classification problem where combining multiple model predictions can improve generalization.",
-      "data": "Diverse model performance, as indicated by varying validation log losses, suggesting that some models capture different aspects of the data."
-    }
-  },
-  {
-    "idea": "Use of Focal Loss for imbalanced data",
-    "method": "Implemented Focal Loss to address class imbalance by focusing more on hard-to-classify samples.",
-    "context": "The notebook defined a custom Focal Loss function with gamma=1.0 to be used during model training, aiming to reduce the impact of class imbalance by down-weighting easy-to-classify samples.",
-    "component": "Model",
-    "hypothesis": {
-      "problem": "Classification problem with class imbalance where certain classes are underrepresented.",
-      "data": "Imbalanced class distribution, leading to models being biased towards majority classes."
-    }
-  },
-  {
-    "idea": "Cosine learning rate schedule with warmup",
-    "method": "Applied a cosine learning rate schedule with warmup to optimize the learning rate during training.",
-    "context": "The notebook used the get_cosine_schedule_with_warmup function to adjust the learning rate dynamically, starting with a warmup phase followed by a cosine decay, to improve model convergence.",
-    "component": "Model",
-    "hypothesis": {
-      "problem": "Training deep learning models where learning rate scheduling can impact convergence and final performance.",
-      "data": "Complex data patterns requiring careful tuning of learning rates to avoid overfitting or underfitting."
-    }
-  },
-  {
-    "idea": "Stratified train-test split",
-    "method": "Performed stratified train-test split to ensure balanced class distribution in both training and validation sets.",
-    "context": "The notebook used train_test_split with the stratify parameter set to the encoded labels to maintain the same class distribution in both the training and validation datasets.",
-    "component": "DataLoadSpec",
-    "hypothesis": {
-      "problem": "Classification problem where maintaining class distribution across splits is crucial for model evaluation.",
-      "data": "Imbalanced class distribution that could lead to biased model evaluation if not properly stratified."
-    }
-  },
-  {
-    "idea": "Model-specific batch sizes for resource optimization",
-    "method": "Adjusted batch sizes for different models based on their resource requirements to optimize memory usage.",
-    "context": "The notebook specified different batch sizes for each model, reducing the batch size for larger models like 'microsoft/deberta-v3-large' to fit within memory constraints while maintaining efficiency.",
+    "idea": "Stratified K-Fold Cross-Validation",
+    "method": "Used Stratified K-Fold cross-validation to ensure each fold is representative of the overall class distribution.",
+    "context": "The notebook implemented StratifiedKFold with 5 splits, ensuring that each fold has a similar distribution of the target variable 'diagnosis'. This helps in achieving a more reliable validation performance.",
     "component": "Workflow",
     "hypothesis": {
-      "problem": "Training large models with limited computational resources where memory optimization is necessary.",
-      "data": "High-dimensional input data requiring careful management of computational resources during model training."
+      "problem": "Ensuring robust model evaluation and preventing overfitting.",
+      "data": "Imbalanced class distribution in the target variable."
+    }
+  },
+  {
+    "idea": "Data Augmentation for Robustness",
+    "method": "Applied various data augmentation techniques to increase the robustness of the model.",
+    "context": "The notebook used transformations like RandomHorizontalFlip, RandomVerticalFlip, RandomRotation, and ColorJitter during training to augment the dataset and prevent overfitting.",
+    "component": "FeatureEng",
+    "hypothesis": {
+      "problem": "Improving model generalization and preventing overfitting.",
+      "data": "Limited training data with potential overfitting issues."
+    }
+  },
+  {
+    "idea": "Transfer Learning with Pretrained EfficientNet",
+    "method": "Utilized a pretrained EfficientNet model and fine-tuned it for the specific task.",
+    "context": "The notebook used timm library to load a pretrained EfficientNet-B5 model, replacing the classifier layer to fit the specific problem, and fine-tuned it on the training data.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Achieving high performance with limited labeled data.",
+      "data": "High-dimensional image data with complex patterns."
+    }
+  },
+  {
+    "idea": "Test-Time Augmentation (TTA)",
+    "method": "Applied test-time augmentation to improve prediction robustness by averaging predictions over multiple augmented versions of the test images.",
+    "context": "The notebook used multiple transformations (original, horizontal flip, vertical flip) during test-time and averaged the predictions to get the final output.",
+    "component": "Workflow",
+    "hypothesis": {
+      "problem": "Improving prediction robustness and accuracy.",
+      "data": "High variability in test data that can benefit from multiple augmented views."
+    }
+  },
+  {
+    "idea": "Cosine Annealing Learning Rate Scheduler",
+    "method": "Used a cosine annealing learning rate scheduler to adjust the learning rate during training.",
+    "context": "The notebook applied the CosineAnnealingLR scheduler from PyTorch to adjust the learning rate over epochs, which helps in escaping local minima and achieving better convergence.",
+    "component": "Model",
+    "hypothesis": {
+      "problem": "Optimizing the training process for better convergence.",
+      "data": "Complex optimization landscape requiring dynamic learning rate adjustments."
     }
   }
 ]
