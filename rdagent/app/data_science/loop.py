@@ -192,9 +192,8 @@ class DataScienceRDLoop(RDLoop):
             subprocess.run(["tar", "-cf", str(tar_path), "-C", logger.log_trace_path, "."], check=True)
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(tar_path, DS_RD_SETTING.log_archive_path)
-                os.remove(tar_path)
                 tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
-            shutil.move(
+            shutil.copy(
                 tar_path, DS_RD_SETTING.log_archive_path / "mid_log_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
