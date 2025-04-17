@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, TypeVar, Union, cast
 from tqdm.auto import tqdm
 
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.timer import RD_Agent_TIMER
+from rdagent.log.timer import RD_Agent_TIMER, RDAgentTimer
 
 
 class LoopMeta(type):
@@ -91,6 +91,7 @@ class LoopBase:
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
+        self.timer: RDAgentTimer = RD_Agent_TIMER
 
     def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
@@ -106,7 +107,7 @@ class LoopBase:
         """
 
         if all_duration is not None:
-            RD_Agent_TIMER.reset(all_duration=all_duration)
+            self.timer.reset(all_duration=all_duration)
 
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
             while True:
@@ -118,12 +119,12 @@ class LoopBase:
                     if loop_n <= 0:
                         break
 
-                if RD_Agent_TIMER.started:
-                    if RD_Agent_TIMER.is_timeout():
+                if self.timer.started:
+                    if self.timer.is_timeout():
                         logger.warning("Timeout, exiting the loop.")
                         break
                     else:
-                        logger.info(f"Timer remaining time: {RD_Agent_TIMER.remain_time()}")
+                        logger.info(f"Timer remaining time: {self.timer.remain_time()}")
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
@@ -193,6 +194,9 @@ class LoopBase:
         if do_truncate:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+        
+        if session.timer.started:
+            session.timer.restart_by_remain_time()
         return session
 
 
