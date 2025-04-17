@@ -11,6 +11,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -76,7 +77,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         stdout = implementation.execute(env=env, entry=f"python -m coverage run main.py")
 
         # remove EDA part
-        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
+        stdout = remove_eda_part(stdout)
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
