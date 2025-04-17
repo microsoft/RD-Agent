@@ -5,7 +5,9 @@ from rdagent.utils.agent.tpl import T
 from scripts.exp.researcher.utils import solution_to_idea, extract_JSON
 
 # Path to the aide solution
-SOLUTION_PATH = "/data/userdata/v-yuanteli/aide_gpt_o1_our_results_best_solution/nomad2018-predict-transparent-conductors_0.06262_6.0295790671217295/solution.py"  
+# SOLUTION_PATH = "/data/userdata/v-yuanteli/aide_gpt_o1_our_results_best_solution/nomad2018-predict-transparent-conductors_0.06262_6.0295790671217295/solution.py"  
+# SOLUTION_PATH = "/data/userdata/v-yuanteli/aide_gpt_o1_our_results_new_best_solution/aptos2019-blindness-detection_gold_R:0.03_S:0.94/solution.py"
+SOLUTION_PATH = "/data/userdata/v-yuanteli/aide_gpt_o1_our_results_new_best_solution/spooky-author-identification_silver_R:1.61_S:0.21/solution.py"
 OUTPUT_DIR = "/data/userdata/v-xhong/researcher_u/RD-Agent/scripts/exp/researcher/output_dir/idea_pool"
 OUTPUT_FILE = "aide_ideas.json"
 
