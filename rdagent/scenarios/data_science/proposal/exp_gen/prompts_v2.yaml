@@ -187,7 +187,7 @@ idea_sample:
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
     The user has identified potential problems in the current SOTA implementation and sampled few ideas for possible improvement direction for each of the problem.
-    Your task is to identify at most useful and potential idea for each of the problem according to the impact, alignment, and novelty of the ideas.
+    Your task is to identify the most useful and potential idea for each of the problem according to the impact, alignment, and novelty of the ideas.
 
     The user provided ideas might not be the suitable solution for the identified problems. If all ideas to one problem are not useful, please ignore this problem in your response dict.
 
@@ -224,7 +224,7 @@ specification:
     1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
     2. Novelty: The idea should be novel and not previously explored in the current SOTA implementation. Avoid ideas that have already been tried and failed.
     3. Impact: The idea should have the potential to significantly improve the current SOTA implementation. It should be a promising direction for further exploration.
-    4. Flexibility: The maximum number of ideas for each problem is two and you don't need to sample exact two ideas for each problem. Just choose the most useful and potential ideas for each problem.
+    4. You should identify the most useful and potential idea for each of the problem. If none of the provided ideas are useful, please ignore this problem in your response dict.
 
 output_format:
   problem: |-
@@ -259,8 +259,8 @@ output_format:
       },
     }
   idea: |-
-    For each of the problems, you should identified at most two useful and potential two ideas strictly following to the JSON schema.
-    Your final output should be a dict containing the problem and corresponding identified ideas pairs without anything else.
+    For each of the problems, you should identified the most useful and potential idea strictly following to the JSON schema.
+    Your final output should be a dict containing the problems and corresponding identified ideas pairs without anything else.
     Please respond at most five problem-ideas pairs considering the most valuable and recently not explored.
     {
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
