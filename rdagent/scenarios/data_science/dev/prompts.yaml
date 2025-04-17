@@ -25,7 +25,7 @@ exp_feedback:
       - No shortcuts or fold-specific strategies applied inconsistently.
       - Rigorous checks for corner-case consistency.
     - Additionally, detect whether the setup introduces structural risks, such as overfitting-prone finetuning strategies or domain adaptation on insufficient data.
-    - If such risks are found:
+    - If such discrepancies or risks are found:
       - Clearly document these issues in `Reasoning`.
       - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
       - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
