@@ -1,8 +1,8 @@
 .. _kaggle_agent:
 
-=======================
-Kaggle Agent
-=======================
+===========================
+Data Science Agent - Kaggle
+===========================
 
 **🤖 Automated Feature Engineering & Model Tuning Evolution**
 ------------------------------------------------------------------------------------------
@@ -87,6 +87,7 @@ Here's an enhanced outline of the steps:
 
   .. code-block:: sh
 
+    mkdir -p <your local directory>/kaggle_data
     dotenv set KG_LOCAL_DATA_PATH <your local directory>/kaggle_data
 
 - 📥 **Download Competition Data**
@@ -95,33 +96,22 @@ Here's an enhanced outline of the steps:
 
     - **How to get the competition description file**
 
-      - *Manual Download (General User Suggestions):*
+      - The competition description file is downloaded automatically when the programme is run, and the download process relies on ``chromedriver``, which can be installed as follows:
 
-        - Download the competition description file prepared in advance, and extract it to the specified directory.
+        .. code-block:: sh
 
-          .. code-block:: sh
+          # install chrome
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install ./google-chrome-stable_current_amd64.deb
+          google-chrome --version
 
-            wget https://github.com/SunsetWolf/rdagent_resource/releases/download/kaggle_data/kaggle_data.zip
-            unzip kaggle_data.zip -d <your local directory>/kaggle_data
-
-      - *Automatic Download (Developer Suggestions):*
-      
-        - Alternatively, you can choose to download the competition description file automatically when you run the program, but it requires ``chromedriver`` to be installed, as follows:
-
-          .. code-block:: sh
-
-            # install chrome
-            wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-            sudo apt install ./google-chrome-stable_current_amd64.deb
-            google-chrome --version
-
-            # install chromedriver
-            wget "https://storage.googleapis.com/chrome-for-testing-public/$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')/linux64/chromedriver-linux64.zip"
-            unzip chromedriver-linux64.zip
-            cd chromedriver-linux64
-            sudo mv chromedriver /usr/local/bin
-            sudo chmod +x /usr/local/bin/chromedriver
-            chromedriver --version
+          # install chromedriver
+          wget "https://storage.googleapis.com/chrome-for-testing-public/$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')/linux64/chromedriver-linux64.zip"
+          unzip chromedriver-linux64.zip
+          cd chromedriver-linux64
+          sudo mv chromedriver /usr/local/bin
+          sudo chmod +x /usr/local/bin/chromedriver
+          chromedriver --version
 
     - **How to get the competition dataset**
 
@@ -134,6 +124,9 @@ Here's an enhanced outline of the steps:
         kaggle_data
         └── zip_files
         | └── sf-crime.zip
+        ├── sample
+        | └── sf-crime
+        |   └── ...
         ├── sf-crime.json
         └── sf-crime
           └── ...
@@ -142,7 +135,9 @@ Here's an enhanced outline of the steps:
 
       - ``kaggle_data/sf-crime.json:`` Competition description file.
 
-      - ``kaggle_data/sf-crime:`` The target folder for unzipping the competition dataset.
+      - ``kaggle_data/sf-crime:`` The target folder for unzipping the competition dataset. Complete dataset.
+
+      - ``kaggle_data/sample/sf-crime:`` Simplified dataset based on the complete dataset. Used to quickly verify that the code works.
 
 - 🗳️ **Join the competition**
 
@@ -169,37 +164,6 @@ Here's an enhanced outline of the steps:
       dotenv set KG_AUTO_SUBMIT true
   
   - Else: You can download the prediction results from the UI interface and submit them manually. For more details, refer to the :doc:`UI guide <../ui>`.
-
-📋 Competition List Available
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| **index** | **Competition Name**              | **Task**         | **Modal** | **ID**                                                                                                  |
-+===========+===================================+==================+===========+=========================================================================================================+
-| 01        | Media Campaign Cost Dataset       | Regression       | Tabular   | `playground-series-s3e11 <https://www.kaggle.com/competitions/playground-series-s3e11/data>`_           |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 02        | Wild Blueberry Yield Dataset      | Regression       | Tabular   | `playground-series-s3e14 <https://www.kaggle.com/competitions/playground-series-s3e14/data>`_           |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 03        | Crab Age Dataset                  | Regression       | Tabular   | `playground-series-s3e16 <https://www.kaggle.com/competitions/playground-series-s3e16/data>`_           |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 04        | Flood Prediction Dataset          | Regression       | Tabular   | `playground-series-s4e5 <https://www.kaggle.com/competitions/playground-series-s4e5/data>`_             |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 05        | Used Car Prices Dataset           | Regression       | Tabular   | `playground-series-s4e9 <https://www.kaggle.com/competitions/playground-series-s4e9/data>`_             |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 06        | Cirrhosis Outcomes Dataset        | Multi-Class      | Tabular   | `playground-series-s3e26 <https://www.kaggle.com/competitions/playground-series-s3e26/data>`_           |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 07        | San Francisco Crime Classification| Multi-Class      | Tabular   | `sf-crime <https://www.kaggle.com/competitions/sf-crime/data>`_                                         |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 08        | Poisonous Mushrooms Dataset       | Classification   | Tabular   | `playground-series-s4e8 <https://www.kaggle.com/competitions/playground-series-s4e8/data>`_             |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 09        | Spaceship Titanic                 | Classification   | Tabular   | `spaceship-titanic <https://www.kaggle.com/competitions/spaceship-titanic/data>`_                       |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 10        | Forest Cover Type Prediction      | Classification   | Tabular   | `forest-cover-type-prediction <https://www.kaggle.com/competitions/forest-cover-type-prediction/data>`_ |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| 11        | Digit Recognizer                  | Classification   | Image     | `digit-recognizer <https://www.kaggle.com/competitions/digit-recognizer>`_                              |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
-| To be continued ...                                                                                                                                                                    |
-+-----------+-----------------------------------+------------------+-----------+---------------------------------------------------------------------------------------------------------+
 
 
 
