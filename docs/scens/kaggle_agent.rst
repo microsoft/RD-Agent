@@ -1,7 +1,7 @@
 .. _kaggle_agent:
 
 =======================
-Data Science Kaggle
+Data Science Agent - Kaggle
 =======================
 
 **🤖 Automated Feature Engineering & Model Tuning Evolution**
