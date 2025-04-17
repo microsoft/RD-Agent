@@ -5,7 +5,7 @@ from rdagent.core.utils import SingletonBaseClass
 from rdagent.log import rdagent_logger as logger
 
 
-class RDAgentTimer(SingletonBaseClass):
+class RDAgentTimer:
     def __init__(self) -> None:
         self.started = False
         self.target_time = None
@@ -37,7 +37,7 @@ class RDAgentTimer(SingletonBaseClass):
         logger.info(f"Timer set to {self.all_duration} seconds and counting down.")
         self.started = True
         return None
-    
+
     def restart_by_remain_time(self) -> None:
         if self.remain_time_duration is not None:
             self.target_time = datetime.now() + self.remain_time_duration
@@ -59,7 +59,7 @@ class RDAgentTimer(SingletonBaseClass):
             if datetime.now() > self.target_time:
                 return True
         return False
-    
+
     def update_remain_time(self) -> None:
         if self.started:
             self.remain_time_duration = self.target_time - datetime.now()
@@ -72,4 +72,13 @@ class RDAgentTimer(SingletonBaseClass):
         return None
 
 
-RD_Agent_TIMER = RDAgentTimer()
+class RDAgentTimerWrapper(SingletonBaseClass):
+    def __init__(self) -> None:
+        self.timer: RDAgentTimer = RDAgentTimer()
+
+    def replace_timer(self, timer: RDAgentTimer) -> None:
+        self.timer = timer
+        logger.info("Timer replaced successfully.")
+
+
+RD_Agent_TIMER_wrapper = RDAgentTimerWrapper()

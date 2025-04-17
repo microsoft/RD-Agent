@@ -173,18 +173,32 @@ class DataScienceRDLoop(RDLoop):
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
             self.trace.knowledge_base.dump()
 
-        if DS_RD_SETTING.enable_log_archive and DS_RD_SETTING.log_archive_path is not None and Path(DS_RD_SETTING.log_archive_path).is_dir():
+        if (
+            DS_RD_SETTING.enable_log_archive
+            and DS_RD_SETTING.log_archive_path is not None
+            and Path(DS_RD_SETTING.log_archive_path).is_dir()
+        ):
             start_archive_datetime = datetime.now()
             self.timer.update_remain_time()
             logger.info(f"Archiving log folder after loop {self.loop_idx}")
-            tar_path = Path(DS_RD_SETTING.log_archive_temp_path if DS_RD_SETTING.log_archive_temp_path else DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+            tar_path = (
+                Path(
+                    DS_RD_SETTING.log_archive_temp_path
+                    if DS_RD_SETTING.log_archive_temp_path
+                    else DS_RD_SETTING.log_archive_path
+                )
+                / "mid_log.tar"
+            )
             subprocess.run(["tar", "-cf", str(tar_path), "-C", logger.log_trace_path, "."], check=True)
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(tar_path, DS_RD_SETTING.log_archive_path)
                 os.remove(tar_path)
                 tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
-            shutil.move(tar_path, DS_RD_SETTING.log_archive_path / "mid_log_bak.tar") # backup when upper code line is killed when running
+            shutil.move(
+                tar_path, DS_RD_SETTING.log_archive_path / "mid_log_bak.tar"
+            )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
+
 
 def main(
     path=None,

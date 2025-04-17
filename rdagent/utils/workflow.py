@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, TypeVar, Union, cast
 from tqdm.auto import tqdm
 
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.timer import RD_Agent_TIMER, RDAgentTimer
+from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 
 
 class LoopMeta(type):
@@ -91,7 +91,7 @@ class LoopBase:
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
-        self.timer: RDAgentTimer = RD_Agent_TIMER
+        self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
 
     def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
@@ -194,9 +194,9 @@ class LoopBase:
         if do_truncate:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
-        
+
         if session.timer.started:
-            session.timer.restart_by_remain_time()
+            RD_Agent_TIMER_wrapper.replace_timer(session.timer)
         return session
 
 
