@@ -429,12 +429,15 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
-        component_desc = "\n".join(
-            [
-                f"[{key}] {value}"
-                for key, value in T("scenarios.data_science.share:component_description").template.items()
-            ]
-        )
+        if pipeline:
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        else:
+            component_desc = "\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
 
         sota_exp = trace.sota_experiment()
         if not isinstance(sota_exp, DSExperiment):
