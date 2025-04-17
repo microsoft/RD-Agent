@@ -10,6 +10,7 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
+from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -50,8 +51,10 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry="python -m coverage run main.py")
         match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
         eda_output = match.groups()[1] if match else None
-        self.scen.eda_output = eda_output
-        stdout = re.sub(r"=== Start of EDA part ===(.*)=== End of EDA part ===", "", stdout)
+        if eda_output is None:
+            eda_output = "No EDA output."
+        implementation.inject_files(**{"EDA.md": eda_output})
+        stdout = remove_eda_part(stdout)
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"

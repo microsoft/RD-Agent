@@ -39,12 +39,11 @@ class DSExperiment2Feedback(Experiment2Feedback):
         # -  Should we choose between the diff from last experiment or last sota ?
 
         # Retrieve the last experiment from the history
-        last_exp = trace.hist[-1][0] if trace.hist else None
-        if last_exp and last_exp.experiment_workspace and exp.experiment_workspace:
+        if sota_exp and sota_exp.experiment_workspace and exp.experiment_workspace:
             # Generate a diff between the two workspaces
-            last_exp_files = last_exp.experiment_workspace.file_dict
+            sota_exp_files = sota_exp.experiment_workspace.file_dict
             current_exp_files = exp.experiment_workspace.file_dict
-            diff_edition = generate_diff_from_dict(last_exp_files, current_exp_files)
+            diff_edition = generate_diff_from_dict(sota_exp_files, current_exp_files)
         else:
             diff_edition = []
 
