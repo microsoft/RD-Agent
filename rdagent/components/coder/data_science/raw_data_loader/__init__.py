@@ -226,7 +226,11 @@ class DataLoaderCoSTEER(CoSTEER):
         new_exp = super().develop(exp)
 
         env = get_ds_env(
-            extra_volumes={f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": "/kaggle/input"},
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
+                    "scenarios.data_science.share:scen.input_path"
+                ).r()
+            },
             running_timeout_period=DS_RD_SETTING.full_timeout,
         )
 

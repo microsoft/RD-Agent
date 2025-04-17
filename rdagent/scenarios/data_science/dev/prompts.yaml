@@ -33,8 +33,10 @@ exp_feedback:
     Step 3: Analyze Experimental Results (if format and evaluation alignment correct)
     - Explicitly confirm or refute the hypothesis with precise data points or performance trends.
     - Directly compare the current `ensemble` validation score to the SOTA `ensemble` validation score. Do not focus on individual models unless anomalies are significant.
-    - If current `ensemble` validation score surpasses SOTA, set `"Replace Best Result": "yes"`; otherwise, set as "no".
+    - If current `ensemble` validation score surpasses SOTA `ensemble` validation score, set `"Replace Best Result": "yes"`; otherwise, set as "no".
     - Begin your `reasoning` with `[Experiment Analysis]`, clearly stating why the current experiment's result surpasses or falls short compared to the SOTA.
+    - NOTES:
+      - The experiments focus on the final ensemble results (Don't reject the results because they are still not perfect; e.g., the ensemble does not improve performance due to having only one model. We can improve that later. We are comparing the current ensemble validation score to the SOTA ensemble validation score to check if the overall performance is improved.)
  
     Provide detailed and constructive feedback structured as follows:
     Example JSON Structure for Result Analysis:

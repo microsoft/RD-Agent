@@ -25,13 +25,13 @@ find . | grep -i sample | grep -i submission | grep -v sample_submission.csv | g
 """
 
 # Find sample submission file dynamically
-input_dir = Path("/kaggle/input")
+input_dir = Path("{% include "scenarios.data_science.share:scen.input_path" %}")
 # Look for common variations of sample submission filenames
 sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
     input_dir.glob("*sampleSubmission*.csv")
 )
 
-assert sample_submission_files, "Error: No sample submission file found in /kaggle/input/"
+assert sample_submission_files, "Error: No sample submission file found in {% include "scenarios.data_science.share:scen.input_path" %}"
 
 # Use first matching file
 sample_submission_name = sample_submission_files[0].name

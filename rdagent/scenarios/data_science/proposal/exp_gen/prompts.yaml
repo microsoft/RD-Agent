@@ -155,7 +155,8 @@ task_gen_model: # It is deprecated now, please refer to direct_exp_gen
 
 direct_exp_gen:
   system: |-
-    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science, and also a grandmaster in Kaggle competitions.
+    {% include "scenarios.data_science.share:scen.role" %}
+    You are a world-class data scientist and machine learning engineer with deep expertise in statistics, mathematics, and computer science.
     Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
     
     The user is working on creating a solution for a Kaggle competition. Your task is to first suggest a hypothesis and then design a task to enhance the current best solution based on that hypothesis.

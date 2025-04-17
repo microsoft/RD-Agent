@@ -48,7 +48,7 @@ spec:
           - `test_ids` (DT): Identifiers for the test data.
         - Docstring Requirements:
           - Describe the purpose of the function.
-          - Specify the data source location (`/kaggle/input/`).
+          - Specify the data source location (`{% include "scenarios.data_science.share:scen.input_path" %}`).
           - Clearly define the structure and type of the output.
           - Inferred data shape to each input and output data variables. To uncertain dimension, use -1.
       2. Notes:
@@ -268,7 +268,7 @@ data_loader_coder:
     {% endif %}
 
     ## Guidelines
-    1. Ensure that the dataset is loaded strictly from `/kaggle/input/`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
+    1. Ensure that the dataset is loaded strictly from `{% include "scenarios.data_science.share:scen.input_path" %}`, following the exact folder structure described in the **Data Folder Description**, and do not attempt to load data from the current directory (`./`).
     2. You should avoid using logging module to output information in your generated code, and instead use the print() function.
     3. You should use the following cache decorator to cache the results of the function:
     ```python
