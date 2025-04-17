@@ -194,7 +194,7 @@ class DataScienceRDLoop(RDLoop):
                 shutil.move(tar_path, DS_RD_SETTING.log_archive_path)
                 tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
             shutil.copy(
-                tar_path, DS_RD_SETTING.log_archive_path / "mid_log_bak.tar"
+                tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
 
