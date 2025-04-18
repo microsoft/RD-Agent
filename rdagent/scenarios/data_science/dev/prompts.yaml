@@ -18,13 +18,14 @@ exp_feedback:
     - If submission passes, proceed to Step 2.
 
     Step 2: Evaluate Alignment with Competition Requirements (if format correct)
-    - GOAL: TRY YOUR BEST TO AVOID SIGNIFICANT DISCREPANCIES BETWEEN VALIDATION AND TEST SET SCORES.
+    - GOAL: CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
     - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
       - Exact match between validation metric and official Kaggle metric.
       - Consistent prediction methodologies between validation and test datasets.
       - No shortcuts or fold-specific strategies applied inconsistently.
       - Rigorous checks for corner-case consistency.
-    - If discrepancies are identified:
+    - Additionally, detect whether the setup introduces structural risks, such as overfitting-prone finetuning strategies or domain adaptation on insufficient data.
+    - If such discrepancies or risks are found:
       - Clearly document these issues in `Reasoning`.
       - Set `"Evaluation Aligned With Task": "no"` and `"Replace Best Result": "no"`.
       - Begin your `reasoning` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
