@@ -53,6 +53,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                 if fb.decision:
                     sota_count += 1
             if sota_count < self.SOTA_COUNT_THRESHOLD:
+                print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace")
                 return ()
             else:
                 return (-1,)
@@ -125,14 +126,16 @@ class BackJumpCKPSelector(CheckpointSelector):
 
                 random_choice = random.random()
                 if random_choice < 0.5:
+                    print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
                     return ()  # reboot a new sub-trace
                 else:
-                    # jump back to the last second SOTA in hist (may not in current sub-trace)
+                    print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump back to the last second SOTA in hist (may not in current sub-trace)")
                     sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
                     if len(sota_exp_list) > 1:
                         last_second_sota_idx = trace.hist.index(sota_exp_list[-2])
                         return (last_second_sota_idx,)
                     else:
+                        print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
                         return ()  # reboot a new sub-trace
 
             else:
