@@ -188,7 +188,7 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_log.tar"
             )
-            subprocess.run(["tar", "-cf", str(tar_path), "-C", logger.log_trace_path, "."], check=True)
+            subprocess.run(["tar", "-cf", str(tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
                 tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
