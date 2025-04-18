@@ -1,12 +1,13 @@
 import json
 import random
 from typing import Dict, Tuple
+
 import pandas as pd
 
-from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.log import rdagent_logger as logger
 from rdagent.core.proposal import SOTAexpSelector, Trace
+from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -26,7 +27,7 @@ class GlobalSOTASelector(SOTAexpSelector):
     def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
 
         return trace.sota_experiment(search_type="all")
-    
+
 
 class AutoSOTAexpSelector(SOTAexpSelector):
     """
@@ -51,7 +52,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         elif len(sota_exp_fb_list) == 1:
             logger.info("Auto SOTA selector: Only one SOTA in trace, using it")
             return sota_exp_fb_list[0][0]
-        
+
         else:
             logger.info("Auto SOTA selector: Multiple SOTA in trace, calling LLM to select the best one")
 
@@ -66,11 +67,11 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                     SOAT_exp_with_desc_and_scores += f"""SOTA experiment No. {i+1}:
                         Description: {desc}
                         Final score: {current_final_score}\n\n"""
-                    
+
             system_prompt = T(".prompts_selector:auto_sota_selector.system").r(
                 scenario=trace.scen.get_scenario_all_desc()
             )
-                    
+
             user_prompt = T(".prompts_selector:auto_sota_selector.user").r(
                 historical_sota_exp_with_desc_and_scores=SOAT_exp_with_desc_and_scores,
             )
@@ -89,11 +90,14 @@ class AutoSOTAexpSelector(SOTAexpSelector):
             if sota_submit_idx is not None:
                 sota_submit = sota_exp_fb_list[int(sota_submit_idx) - 1]
                 sota_idx_in_trace = trace.hist.index(sota_submit)
-                logger.info(f"Auto SOTA selector: selected SOTA experiment No. {sota_submit_idx} to submit, which is the No. {sota_idx_in_trace + 1} in the trace")
+                logger.info(
+                    f"Auto SOTA selector: selected SOTA experiment No. {sota_submit_idx} to submit, which is the No. {sota_idx_in_trace + 1} in the trace"
+                )
                 return sota_submit[0]
             else:
                 # no SOTA experiment to submit, using the latest SOTA experiment
                 logger.info("Auto SOTA selector: No SOTA experiment to submit, using the latest SOTA experiment")
                 return sota_exp_fb_list[-1][0]
+
 
 # TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)

@@ -31,15 +31,15 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
     BackJumpCKPSelector,
     LatestCKPSelector,
     SOTAJumpCKPSelector,
 )
+from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
-    GlobalSOTASelector,
     AutoSOTAexpSelector,
+    GlobalSOTASelector,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
