@@ -11,18 +11,16 @@ scenario_description: |-
   ------The name of the evaluation metric used------
   {{ metric_name }}
 
-  ------The time limit to your code------
+  {% if time_limit %}------The time limit to your code------
   You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.
 
-  {% if evaluation is not none %}
-  ------Evaluation------
+  {% endif %}
+  {% if evaluation is not none %}------Evaluation------
   {{ evaluation }}
-  {% endif %}
 
-  The evaluation metrics used is directed as:
-  {% if metric_direction %} The metric is better when it is bigger. 
-  {% else %} The metric is better when it is smaller.
   {% endif %}
+  The evaluation metrics used is directed as:
+  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
 
   {% if eda_output is not none %}------Data Overview(EDA)------
   {{ eda_output }}
@@ -60,11 +58,18 @@ competition_background: |-
   Your knowledge spans cutting-edge data analysis techniques, advanced machine learning algorithms, and their practical applications to solve complex real-world problems.
   You are dedicated to producing accurate, efficient, and innovative solutions.
 
-  The task type for this competition is {{ task_type }}.
-  The data type used in this competition is {{ data_type }}.
+  The task type for this competition is **{{ task_type }}**.
+  The data type used in this competition is **{{ data_type }}**.
+
   Briefly, the competition involves: {{ brief_description }}.
-  The dataset used in this competition is: {{ dataset_description }}.
-  The evaluation metric of this competition is: {{ metric_description }}.
+  
+  The dataset used in this competition is:
+  {{ dataset_description }}.
+  
+  Submission channel number to each sample is: {{ model_output_channel }}.
+
+  The evaluation metric of this competition is:
+  {{ metric_description }}.
 
 rich_style_description: |-
   ### {{ name }} Agent: Automated Feature Engineering & Model Tuning Evolution

@@ -1,7 +1,7 @@
 scenario_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You will be given scenario and competition description and the current SOTA implementation and feedback.
+    You will be given the scenario description and the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
 
     ## Scenario Problems
@@ -24,9 +24,6 @@ scenario_problem:
   user: |-
     # Scenario Description
     {{ scenario_desc }}
-
-    # Competition Description
-    {{ competition_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
@@ -98,8 +95,11 @@ hypothesis_gen:
       - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+    4. Specific and Non-Vague
+      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made.
+      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     {% if enable_idea_pool %}
-    4. Idea Reference
+    5. Idea Reference
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
     {% endif %}
 
@@ -114,7 +114,7 @@ hypothesis_gen:
     Please score the proposed hypothesis from 1 to 10 for each of the following dimensions (where 1 means lowest and 10 means highest):
     1. Problem-Hypothesis Alignment: How well the hypothesis addresses the identified problem.
     2. Expected Impact: The estimated improvement after applying the hypothesis to current SOTA implementation.
-    3. Novelty: Degree of innovation compared to previous attempts. If the proposed hypothesis is very similar to previous experiments' hypothesis, assign low novelty score.
+    3. Novelty: Degree of innovation compared to previous attempts. If the proposed hypothesis is similar to previous experiments' hypothesis, assign novelty score to one.
     4. Feasibility: The ease of implementing the proposed hypothesis in the current SOTA implementation.
     5. Risk-Reward Balance: The exploration-exploitation balance of the proposed hypothesis.
 
@@ -147,10 +147,13 @@ task_gen:
     {{ task_specification }}
 
     ## Task Design Guidelines
-    The task should be concise with several steps each only in a few sentences. 
-    DO NOT repeat the details which has already included in the SOTA code. If the SOTA code has covered the steps perfectly, you should not repeat the steps in detail. 
-    DO NOT write any code in the task description!
-    Observing reasons from failed experiments and feedback to prevent repeating similar mistakes in analogous situations.
+    1. The task should be concise with several steps each only in a few sentences. 
+    2. DO NOT repeat the details which has already included in the SOTA code. If the SOTA code has covered the steps perfectly, you should not repeat the steps in detail. 
+    3. DO NOT write any code in the task description!
+    4. Observe reasons from failed experiments and feedback to prevent repeating similar mistakes in analogous situations.
+    5. Specific and Non-Vague
+      - Avoid vague statements like "choose a proper model" Instead, specify the exact task to be made.
+      - No phrases like "for example" or "eg.," should be used in the task. Give a clear decision in the task.
 
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
@@ -214,6 +217,7 @@ specification:
   problem: |-
     1. The problem should be specific and fine-grained. Avoid general or vague statements. 
     2. The problem should technical or methodological. Focus on design and implementation flaws, not runtime errors.
+    3. The problem should be strictly aligned with the improvement of target metric. The problem should fit the template: "IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE."
   
   hypothesis: |-
     1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
@@ -230,7 +234,7 @@ output_format:
   problem: |-
     For each of the identified problem, you should strictly adhere to the following JSON schema. 
     Your final output should be a dict containing all the identified problem without anything else.
-    Please respond at most five problems considering the most valuable and recently not explored.
+    Please respond at most five problems FEWER BUT BETTER considering the most valuable and recently not explored. Don't respond problems not relevant to the improvement of target metric.
     {
       "problem name 1": {
         "problem": "Description of the first issue in no more than three sentences.",
