@@ -1,7 +1,7 @@
 scenario_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You will be given scenario and competition description and the current SOTA implementation and feedback.
+    You will be given the scenario description and the current SOTA implementation and feedback.
     Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
 
     ## Scenario Problems
@@ -24,9 +24,6 @@ scenario_problem:
   user: |-
     # Scenario Description
     {{ scenario_desc }}
-
-    # Competition Description
-    {{ competition_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
