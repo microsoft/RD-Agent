@@ -13,6 +13,12 @@ from streamlit import session_state as state
 
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
+from rdagent.scenarios.kaggle.kaggle_crawler import leaderboard_scores
+
+
+def get_metric_direction(competition: str):
+    leaderboard = leaderboard_scores(competition)
+    return float(leaderboard[0]) > float(leaderboard[-1])
 
 
 def get_script_time(stdout_p: Path):
@@ -88,7 +94,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             v["running_time"] = str(running_time).split(".")[0]
 
             final_sota_exp = get_final_sota_exp(Path(lf) / k)
-            if final_sota_exp is not None:
+            if final_sota_exp is not None and final_sota_exp.result is not None:
                 v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
             else:
                 v["sota_exp_score_valid"] = None
@@ -299,6 +305,32 @@ def days_summarize_win():
         st.dataframe(df)
 
 
+LITE = [
+    "aerial-cactus-identification",
+    "aptos2019-blindness-detection",
+    "denoising-dirty-documents",
+    "detecting-insults-in-social-commentary",
+    "dog-breed-identification",
+    "dogs-vs-cats-redux-kernels-edition",
+    "histopathologic-cancer-detection",
+    "jigsaw-toxic-comment-classification-challenge",
+    "leaf-classification",
+    "mlsp-2013-birds",
+    "new-york-city-taxi-fare-prediction",
+    "nomad2018-predict-transparent-conductors",
+    "plant-pathology-2020-fgvc7",
+    "random-acts-of-pizza",
+    "ranzcr-clip-catheter-line-classification",
+    "siim-isic-melanoma-classification",
+    "spooky-author-identification",
+    "tabular-playground-series-dec-2021",
+    "tabular-playground-series-may-2022",
+    "text-normalization-challenge-english-language",
+    "text-normalization-challenge-russian-language",
+    "the-icml-2013-whale-challenge-right-whale-redux",
+]
+
+
 def all_summarize_win():
     def shorten_folder_name(folder: str) -> str:
         if "amlt" in folder:
@@ -316,6 +348,28 @@ def all_summarize_win():
 
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
+    bt1, bt2 = st.columns(2)
+    if bt2.toggle("Select Lite Competitions", key="select_lite"):
+        base_df["Select"] = base_df["Competition"].apply(lambda x: x in LITE)
+    else:
+        base_df["Select"] = True
+
+    if bt1.toggle("Select Best", key="select_best"):
+
+        def apply_func(cdf: pd.DataFrame):
+            cp = cdf["Competition"].values[0]
+            md = get_metric_direction(cp)
+            if md:
+                best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
+            else:
+                best_idx = cdf["SOTA Exp Score (valid)"].idxmin()
+            return best_idx
+
+        best_idxs = base_df.groupby("Competition").apply(apply_func)
+        base_df["Select"] = base_df.index.isin(best_idxs.values)
+    else:
+        base_df["Select"] = True
+
     base_df = st.data_editor(
         base_df.style.apply(
             lambda col: col.map(lambda val: "background-color: #F0F8FF"),
