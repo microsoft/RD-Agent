@@ -41,14 +41,7 @@ describe: # some template to describe some object
 
   trace: |-
     {% if exp_and_feedback_list|length == 0 %}
-    No previous 
-    {% if type == "success" %}
-    successful
-    {% elif type == "failure" %}
-    failed
-    {% else %}
-    successful or failed
-    {% endif %} trial available.
+    No previous {% if type == "success" %}successful{% elif type == "failure" %}failed{% else %}successful or failed{% endif %} trial available.
     {% else %}
     {% if type == "success" %}
     ## {{ heading | default('Trace of the successful trial') }}
@@ -114,6 +107,13 @@ component_description:
   Workflow: |-
     Integrates all pipeline components, from data loading to ensemble prediction, ensuring efficient execution and correct output formatting.
     - When focusing on this component, the corresponding editing files will be: "main.py"
+
+component_description_in_pipeline: |-
+  [DataLoadSpec]: Focus on the data loading and preprocessing aspects of the pipeline, ensuring that the data is correctly formatted and ready for feature engineering.
+  [FeatureEng]: Concentrate on transforming the raw data into meaningful features while maintaining the integrity of the dataset.
+  [Model]: Focus on the model building, tuning of the pipeline, ensuring that the model is optimized for performance.
+  [Ensemble]: Concentrate on combining predictions from multiple models and evaluating their performance.
+  [Workflow]: Focus on the overall integration of the pipeline or parts not included in the other components, ensuring that all components work together seamlessly.
 
 component_spec:
   general: |-
