@@ -16,8 +16,11 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
-de = get_ds_env(conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
-de.prepare()
+if not DS_RD_SETTING.kaggle_data:
+    de = get_ds_env()
+else:
+    de = get_ds_env(conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
+    de.prepare()
 
 
 def extract_mle_json(log_content: str) -> dict | None:
@@ -41,10 +44,24 @@ def save_grade_info(log_trace_path: Path):
 
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
-                mle_score_str = msg.content.experiment_workspace.execute(
-                    env=de,
-                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
-                )
+                if not DS_RD_SETTING.kaggle_data:
+                    zip_path = Path(f"{DS_RD_SETTING.local_data_path}/zip_files/{self.scen.competition}")
+                    if not zip_path.exists():
+                        raise FileNotFoundError(f"{zip_path} not found")
+                    msg.content.experiment_workspace.inject_files(**{"grade.py": (zip_path / "grade.py").read_text()})
+                    msg.content.experiment_workspace.inject_files(**{"test.csv": (zip_path / "test.csv").read_text()})
+                    mle_score_str = msg.content.experiment_workspace.execute(
+                        env=de,
+                        entry=f"python grade.py {competition} | tee mle_score.txt",
+                    )
+                    msg.content.experiment_workspace.inject_files(
+                        **{file: msg.content.experiment_workspace.DEL_KEY for file in ["grade.py", "test.csv"]}
+                    )
+                else:
+                    mle_score_str = msg.content.experiment_workspace.execute(
+                        env=de,
+                        entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
+                    )
                 msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
                 trace_storage.log(
                     mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp

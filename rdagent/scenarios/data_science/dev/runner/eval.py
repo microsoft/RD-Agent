@@ -100,6 +100,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         # DockerEnv for MLEBench submission validation
         submission_check_out = ""
+        submission_ret_code = 0
 
         if DS_RD_SETTING.if_using_mle_data:
             mde = get_ds_env(
@@ -121,6 +122,16 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             )
             stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
             implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
+        else:
+            zip_path = Path(f"{DS_RD_SETTING.local_data_path}/zip_files/{self.scen.competition}")
+            if (zip_path / "test.csv").exists():
+                implementation.inject_files(**{"valid.py": (zip_path / "valid.py").read_text()})
+                implementation.inject_files(**{"test.csv": (zip_path / "test.csv").read_text()})
+                submission_check_out, submission_ret_code = implementation.execute_ret_code(
+                    env=env, entry="python valid.py"
+                )
+                implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
+                implementation.inject_files(**{file: implementation.DEL_KEY for file in ["valid.py", "test.csv"]})
 
         if DS_RD_SETTING.rule_base_eval:
             if DS_RD_SETTING.if_using_mle_data:
@@ -202,7 +213,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         if score_ret_code != 0:
             feedback.final_decision = False
             feedback.return_checking += "\n" + score_check_text
-        if DS_RD_SETTING.if_using_mle_data and submission_ret_code != 0:
+        if submission_ret_code != 0:
             feedback.final_decision = False
             feedback.return_checking += "\nSubmission file check failed."
         return feedback
