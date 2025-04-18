@@ -16,7 +16,7 @@ from pydantic import TypeAdapter
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
 from rdagent.log import rdagent_logger as logger
-from rdagent.log.timer import RD_Agent_TIMER
+from rdagent.log.timer import RD_Agent_TIMER_wrapper
 from rdagent.oai.llm_conf import LLM_SETTINGS
 from rdagent.utils import md5_hash
 
@@ -364,8 +364,8 @@ class APIBackend(ABC):
                         raise e
                 else:
                     time.sleep(self.retry_wait_seconds)
-                    if RD_Agent_TIMER.started and not isinstance(e, json.decoder.JSONDecodeError):
-                        RD_Agent_TIMER.add_duration(datetime.now() - API_start_time)
+                    if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
+                        RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
                 logger.warning(f"Retrying {i+1}th time...")
         error_message = f"Failed to create chat completion after {max_retry} retries."

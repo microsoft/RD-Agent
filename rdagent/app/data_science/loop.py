@@ -1,5 +1,8 @@
+import shutil
+import subprocess
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import fire
 
@@ -29,10 +32,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
-from rdagent.scenarios.data_science.proposal.exp_gen.select import (
-    LatestCKPSelector,
-    SOTAJumpCKPSelector,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
@@ -168,6 +168,57 @@ class DataScienceRDLoop(RDLoop):
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
             self.trace.knowledge_base.dump()
+
+        if (
+            DS_RD_SETTING.enable_log_archive
+            and DS_RD_SETTING.log_archive_path is not None
+            and Path(DS_RD_SETTING.log_archive_path).is_dir()
+        ):
+            start_archive_datetime = datetime.now()
+            logger.info(f"Archiving log folder after loop {self.loop_idx}")
+            tar_path = (
+                Path(
+                    DS_RD_SETTING.log_archive_temp_path
+                    if DS_RD_SETTING.log_archive_temp_path
+                    else DS_RD_SETTING.log_archive_path
+                )
+                / "mid_log.tar"
+            )
+            subprocess.run(["tar", "-cf", str(tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            if DS_RD_SETTING.log_archive_temp_path is not None:
+                shutil.move(tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
+                tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+            shutil.copy(
+                tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
+            )  # backup when upper code line is killed when running
+            self.timer.add_duration(datetime.now() - start_archive_datetime)
+
+    @classmethod
+    def load(
+        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
+    ) -> "LoopBase":
+        session = super().load(path, output_path, do_truncate)
+        if (
+            DS_RD_SETTING.enable_knowledge_base
+            and DS_RD_SETTING.knowledge_base_version == "v1"
+            and Path(DS_RD_SETTING.knowledge_base_path).exists()
+        ):
+            knowledge_base = DSKnowledgeBase(path=DS_RD_SETTING.knowledge_base_path)
+            session.trace.knowledge_base = knowledge_base
+        return session
+
+    def dump(self, path: str | Path) -> None:
+        """
+        Since knowledge_base is big and we don't want to dump it every time
+        So we remove it from the trace before dumping and restore it after.
+        """
+        backup_knowledge_base = None
+        if self.trace.knowledge_base is not None:
+            backup_knowledge_base = self.trace.knowledge_base
+            self.trace.knowledge_base = None
+        super().dump(path)
+        if backup_knowledge_base is not None:
+            self.trace.knowledge_base = backup_knowledge_base
 
 
 def main(

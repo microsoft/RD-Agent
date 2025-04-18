@@ -47,5 +47,12 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     knowledge_base_path: str | None = None
     idea_pool_json_path: str | None = None
 
+    ### archive log folder after each loop
+    enable_log_archive: bool = True
+    log_archive_path: str | None = None
+    log_archive_temp_path: str | None = (
+        None  # This is to store the mid tar file since writing the tar file is preferred in local storage then copy to target storage
+    )
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
