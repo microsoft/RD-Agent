@@ -15,7 +15,6 @@ class NaiveExpGen(ExpGen):
     def gen(self, trace: DSTrace) -> DSExperiment:
         sota_exp = trace.sota_experiment()
         scenario_desc = trace.scen.get_scenario_all_desc()
-        competition_desc = trace.scen.get_competition_full_desc()
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
         )
@@ -28,7 +27,6 @@ class NaiveExpGen(ExpGen):
         sys_prompt = T(".naive:naive_gen.system").r()
 
         user_prompt = T(".naive:naive_gen.user").r(
-            competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_and_feedback_list_desc,

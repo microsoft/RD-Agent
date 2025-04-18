@@ -92,17 +92,6 @@ class DataScienceScen(Scenario):
         self.metric_name = response_json_analysis.get("Metric Name", "custom_metric")
         self.metric_direction_guess = response_json_analysis.get("Metric Direction", True)
 
-    def get_competition_full_desc(self) -> str:
-        return f"""Task Type: {self.task_type}
-    Data Type: {self.data_type}
-    Brief Description: {self.brief_description}
-    Dataset Description: {self.dataset_description}
-    Submission Specifications: {self.submission_specifications}
-    Model Output Channel: {self.model_output_channel}
-    Metric Evaluation Description: {self.metric_description}
-    Metric Name: {self.metric_name}
-    """
-
     @property
     def background(self) -> str:
         background_template = T(".prompts:competition_background")
@@ -111,6 +100,7 @@ class DataScienceScen(Scenario):
             data_type=self.data_type,
             brief_description=self.brief_description,
             dataset_description=self.dataset_description,
+            model_output_channel=self.model_output_channel,
             metric_description=self.metric_description,
         )
         return background_prompt
@@ -120,6 +110,17 @@ class DataScienceScen(Scenario):
         return T(".prompts:rich_style_description").r(
             name="Data Science",
             competition=self.competition,
+        )
+
+    def get_competition_full_desc(self) -> str:
+        return T(".prompts:scenario_description").r(
+            background=self.background,
+            submission_specifications=self.submission_specifications,
+            evaluation=self.metric_description,
+            metric_name=self.metric_name,
+            metric_direction=self.metric_direction,
+            time_limit=None,
+            eda_output=None,
         )
 
     def get_scenario_all_desc(self, eda_output=None) -> str:

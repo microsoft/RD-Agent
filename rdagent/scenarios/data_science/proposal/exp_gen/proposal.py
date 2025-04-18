@@ -226,14 +226,13 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_scenario_problem(self, scenario_desc: str, competition_desc: str, sota_exp_desc: str) -> Dict:
+    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
-            competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -445,7 +444,6 @@ class DSProposalV2ExpGen(ExpGen):
         else:
             eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
-        competition_desc = trace.scen.get_competition_full_desc()
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario"
@@ -463,7 +461,6 @@ class DSProposalV2ExpGen(ExpGen):
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
             scenario_desc=scenario_desc,
-            competition_desc=competition_desc,
             sota_exp_desc=sota_exp_desc,
         )
         for problem_name in scen_problems:

@@ -25,9 +25,6 @@ naive_gen:
     # Scenario Description
     {{ scenario_desc }}
 
-    # Competition Description
-    {{ competition_desc }}
-
     # Previous Experiments and Feedbacks:
     {{ exp_and_feedback_list_desc }}
 
