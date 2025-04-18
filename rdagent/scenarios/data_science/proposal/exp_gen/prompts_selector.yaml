@@ -12,13 +12,13 @@ auto_sota_selector:
 
     # Your response should be short and concise, strictly adhere to the following JSON format:
     {
-      "selected_SOTA_idx": [Proposal No.](positive integer),
+      "selected_SOTA_idx": [Experiment No.](positive integer),
       "explanation": "A brief explanation text for your selection."
     }
 
   user: |-
     # SOTA Experiments and Feedback
-    {{ sota_exp_desc }}
+    {{ historical_sota_exp_with_desc_and_scores }}
 
-    # Proposed Hypothesis you should strictly follow:
-    {{ hypothesis }}
+
+

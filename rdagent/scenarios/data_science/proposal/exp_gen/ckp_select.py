@@ -2,7 +2,7 @@ import random
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import CheckpointSelector, Trace
-
+from rdagent.log import rdagent_logger as logger
 # # TODO: more advanced selector
 # # TODO/Discussion: load selector function here or define selector class in `proposal.py`?
 
@@ -15,7 +15,7 @@ class LatestCKPSelector(CheckpointSelector):
     def __init__(
         self,
     ):
-        print(f"Using latest selector by default")
+        logger.info(f"Using latest selector by default")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
@@ -35,9 +35,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
         self.SOTA_COUNT_WINDOW = DS_RD_SETTING.sota_count_window
         self.SOTA_COUNT_THRESHOLD = DS_RD_SETTING.sota_count_threshold
 
-        print(
-            f"Using SOTA-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}"
-        )
+        logger.info(f"Using SOTA-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
 
@@ -54,14 +52,16 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                     sota_count += 1
             if sota_count < self.SOTA_COUNT_THRESHOLD:
                 trace.sub_trace_count += 1
-                print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace")
+                logger.info(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace")
+                logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                 return ()
             else:
-                print(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
+                logger.info(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
+                logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                 return (-1,)
 
         else:
-            print(f"Not enough history to make a decision, continue the current latest trial")
+            logger.info(f"Not enough history to make a decision, continue the current latest trial")
             return (-1,)
 
 
@@ -79,9 +79,7 @@ class BackJumpCKPSelector(CheckpointSelector):
         self.SOTA_COUNT_WINDOW = DS_RD_SETTING.sota_count_window
         self.SOTA_COUNT_THRESHOLD = DS_RD_SETTING.sota_count_threshold
 
-        print(
-            f"Using back-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}"
-        )
+        logger.info(f"Using back-jump selector with window {self.SOTA_COUNT_WINDOW} and threshold {self.SOTA_COUNT_THRESHOLD}")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
         current_trace = trace.retrieve_search_list(search_type="ancestors")
@@ -103,24 +101,29 @@ class BackJumpCKPSelector(CheckpointSelector):
                 random_choice = random.random()
                 if random_choice < 0.5:
                     trace.sub_trace_count += 1
-                    print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
+                    logger.info(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
                     return ()  # reboot a new sub-trace
                 else:
-                    print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump back to the last second SOTA in hist (may not in current sub-trace)")
+                    logger.info(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump back to the last second SOTA in hist (may not in current sub-trace)")
                     sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
                     if len(sota_exp_list) > 1:
                         last_second_sota_idx = trace.hist.index(sota_exp_list[-2])
+                        logger.info(f"jump back to the last second SOTA in hist (may not in current sub-trace), index: {last_second_sota_idx}")
+                        logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                         return (last_second_sota_idx,)
                     else:
                         trace.sub_trace_count += 1
-                        print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
+                        logger.info(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
+                        logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                         return ()  # reboot a new sub-trace
 
             else:
-                print(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
+                logger.info(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
+                logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                 return (-1,)
         else:
-            print(f"Not enough history to make a decision, continue the current latest trial")
+            logger.info(f"Not enough history to make a decision, continue the current latest trial")
+            logger.info(f"current sub-trace count: {trace.sub_trace_count}")
             return (-1,)
 
 
