@@ -33,7 +33,6 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
-    AlwaysWinCKPSelector,
     BackJumpCKPSelector,
     LatestCKPSelector,
     SOTAJumpCKPSelector,
@@ -46,7 +45,6 @@ from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 CKP_SELECTOR_NAME_MAP = {
     "latest": LatestCKPSelector,
     "sota_jump": SOTAJumpCKPSelector,
-    "always_win": AlwaysWinCKPSelector,
     "back_jump": BackJumpCKPSelector,
 }
 
