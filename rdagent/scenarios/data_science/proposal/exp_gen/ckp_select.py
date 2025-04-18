@@ -53,39 +53,15 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                 if fb.decision:
                     sota_count += 1
             if sota_count < self.SOTA_COUNT_THRESHOLD:
+                trace.sub_trace_count += 1
                 print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace")
                 return ()
             else:
+                print(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
                 return (-1,)
 
         else:
-            return (-1,)
-
-
-class AlwaysWinCKPSelector(CheckpointSelector):
-    """
-    always-win policy:
-    always start from the lastest SOTA trial
-    """
-
-    def __init__(
-        self,
-    ) -> None:
-        self.INIT_LENGTH = 3
-        print(f"Using always-win selector")
-
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-        current_trace = trace.retrieve_search_list(search_type="ancestors")
-
-        if len(trace.hist) > self.INIT_LENGTH and len(current_trace) > self.INIT_LENGTH:
-            sota_exp_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors")
-
-            if len(sota_exp_list) > 0:
-                last_sota_idx = trace.hist.index(sota_exp_list[-1])
-                return (last_sota_idx,)
-            else:
-                return (-1,)
-        else:
+            print(f"Not enough history to make a decision, continue the current latest trial")
             return (-1,)
 
 
@@ -126,6 +102,7 @@ class BackJumpCKPSelector(CheckpointSelector):
 
                 random_choice = random.random()
                 if random_choice < 0.5:
+                    trace.sub_trace_count += 1
                     print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
                     return ()  # reboot a new sub-trace
                 else:
@@ -135,73 +112,17 @@ class BackJumpCKPSelector(CheckpointSelector):
                         last_second_sota_idx = trace.hist.index(sota_exp_list[-2])
                         return (last_second_sota_idx,)
                     else:
+                        trace.sub_trace_count += 1
                         print(f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace")
                         return ()  # reboot a new sub-trace
 
             else:
+                print(f"SOTA count {sota_count} is above threshold {self.SOTA_COUNT_THRESHOLD}, continue the current latest trial")
                 return (-1,)
         else:
+            print(f"Not enough history to make a decision, continue the current latest trial")
             return (-1,)
 
 
 # TODO: implement these selectors and more
 
-
-class GlobalGreedyCKPSelector(CheckpointSelector):
-    """
-    global greedy selector: select the trial with best performance globally (in trace.hist)
-    consistent with the greedy strategy in AIDE
-    not implemented yet
-    """
-
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-
-        return (-1,)
-
-
-class LocalGreedyCKPSelector(CheckpointSelector):
-    """
-    local greedy selector: select the trial with best performance locally (in trace.ancestors)
-    not implemented yet
-    """
-
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-
-        return (-1,)
-
-
-class BugBufferCKPSelector(CheckpointSelector):
-    """
-    bug buffer selector: with limit-size bug buffer size, start a new trace if buffer exceeds.
-    not implemented yet
-    """
-
-    def __init__(self) -> None:
-        self.bug_count = 0
-        self.BUG_BUFFER_SIZE = 10
-
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-
-        if self.bug_count < self.BUG_BUFFER_SIZE:
-            return (-1,)
-
-        else:
-            return None
-
-
-class RandomCKPSelector(CheckpointSelector):
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-        """
-        random selector: select the trial randomly
-        not implemented yet
-        """
-        return (-1,)
-
-
-class BuggyCKPSelector(CheckpointSelector):
-    def get_selection(self, trace: Trace) -> tuple[int, ...]:
-        """
-        buggy selector: select the most recent trial with buggy performance
-        not implemented yet
-        """
-        return (-1,)

@@ -39,7 +39,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
         sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="all")
         score_list = []
 
-        historical_attempts_with_scores_desc = "Historical proposal-evaluation analysis:\n\n"
+        SOAT_exp_with_scores_desc = "Historical proposal-evaluation analysis:\n\n"
 
         for exp, ef in sota_exp_fb_list:
             score = exp.result.loc["ensemble"].iloc[0]

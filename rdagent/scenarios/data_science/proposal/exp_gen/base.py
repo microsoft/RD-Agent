@@ -58,6 +58,8 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.knowledge_base = knowledge_base
 
+        self.sub_trace_count: int = 0
+
         self.current_selection: tuple[int, ...] = (-1,)
 
         self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
