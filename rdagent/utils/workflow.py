@@ -170,7 +170,6 @@ class LoopBase:
     def dump(self, path: str | Path) -> None:
         if RD_Agent_TIMER_wrapper.timer.started:
             RD_Agent_TIMER_wrapper.timer.update_remain_time()
-            RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
