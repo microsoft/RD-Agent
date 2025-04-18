@@ -354,6 +354,8 @@ class DSProposalV2ExpGen(ExpGen):
             task_spec = sota_exp.experiment_workspace.file_dict[component_info["spec_file"]]
         else:
             task_spec = T(f"scenarios.data_science.share:component_spec.{hypothesis.component}").r()
+
+
         sys_prompt = T(".prompts_v2:task_gen.system").r(
             targets=component_info["target_name"],
             task_specification=task_spec,
@@ -428,6 +430,27 @@ class DSProposalV2ExpGen(ExpGen):
         failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
+        )
+
+        if pipeline:
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+        else:
+            component_info = COMPONENT_TASK_MAPPING.get(hypothesis.component)
+
+
+        sys_prompt = T(".prompts_v2:hypo_task_gen.system").r(
+            component_desc=component_desc,
+            hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis_v2").r(pipeline=pipeline),
+            task_specification=task_spec,
+            task_output_format=component_info["task_output_format"],
+            workflow_check=not pipeline and hypothesis.component != "Workflow",
+        )
+        user_prompt = T(".prompts_v2:hypo_task_gen.user").r(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
 
         # Step 1: Identify problems
