@@ -119,6 +119,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            time_limit=None,
+            eda_output=None,
         )
 
     def get_scenario_all_desc(self, eda_output=None) -> str:
