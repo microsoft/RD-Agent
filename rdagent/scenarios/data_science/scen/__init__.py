@@ -1,4 +1,6 @@
 import json
+import os
+import platform
 from pathlib import Path
 from typing import Dict
 
@@ -33,7 +35,14 @@ class DataScienceScen(Scenario):
 
         local_path = DS_RD_SETTING.local_data_path
         if not Path(f"{local_path}/sample/{competition}").exists():
-            create_debug_data(competition, dataset_path=local_path)
+            if not DS_RD_SETTING.kaggle_data:
+                Path(f"{local_path}/sample/").mkdir(parents=True, exist_ok=True)
+                if platform.system() == "Linux":
+                    os.symlink(f"{local_path}/{competition}", f"{local_path}/sample/{competition}")
+                if platform.system() == "Windows":
+                    os.link(f"{local_path}/{competition}", f"{local_path}/sample/{competition}")
+            else:
+                create_debug_data(competition, dataset_path=local_path)
 
         # 2) collect information of competition.
         self.metric_name: str | None = (

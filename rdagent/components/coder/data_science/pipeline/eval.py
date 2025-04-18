@@ -101,29 +101,32 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        # Check submission file
-        base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
-        implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
-        # stdout += "----Submission Check 1-----\n"
-        submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=env, entry="python test/submission_format_test.py"
-        )
-        if DS_RD_SETTING.rule_base_eval:
-            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=True,
-                )
-            else:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=False,
-                )
-        stdout += "\n" + submission_check_out
+        if not DS_RD_SETTING.kaggle_data:
+            submission_ret_code = 0
+        else:
+            # Check submission file
+            base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
+            implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
+            # stdout += "----Submission Check 1-----\n"
+            submission_check_out, submission_ret_code = implementation.execute_ret_code(
+                env=env, entry="python test/submission_format_test.py"
+            )
+            if DS_RD_SETTING.rule_base_eval:
+                if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=True,
+                    )
+                else:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=False,
+                    )
+            stdout += "\n" + submission_check_out
 
         eda_output = implementation.file_dict.get("EDA.md", None)
 
