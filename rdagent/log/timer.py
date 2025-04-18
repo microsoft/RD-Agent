@@ -7,10 +7,10 @@ from rdagent.log import rdagent_logger as logger
 
 class RDAgentTimer:
     def __init__(self) -> None:
-        self.started = False
-        self.target_time = None
-        self.all_duration = None
-        self.remain_time_duration = None
+        self.started: bool = False
+        self.target_time: datetime | None = None
+        self.all_duration: timedelta | None = None
+        self.remain_time_duration: timedelta | None = None
 
     def reset(self, all_duration: str | timedelta) -> None:
         if isinstance(all_duration, str):
@@ -48,20 +48,20 @@ class RDAgentTimer:
         return None
 
     def add_duration(self, duration: timedelta) -> None:
-        if self.started:
+        if self.started and self.target_time is not None:
             logger.info(f"Adding {duration} to the timer. Currently {self.remain_time()} remains.")
             self.target_time = self.target_time + duration
             self.update_remain_time()
 
     def is_timeout(self) -> bool:
-        if self.started:
+        if self.started and self.target_time is not None:
             self.update_remain_time()
             if datetime.now() > self.target_time:
                 return True
         return False
 
     def update_remain_time(self) -> None:
-        if self.started:
+        if self.started and self.target_time is not None:
             self.remain_time_duration = self.target_time - datetime.now()
         return None
 

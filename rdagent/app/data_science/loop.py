@@ -1,8 +1,7 @@
-from datetime import datetime
-import os
-from pathlib import Path
 import shutil
 import subprocess
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional, Union
 
 import fire
@@ -33,10 +32,7 @@ from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
-from rdagent.scenarios.data_science.proposal.exp_gen.select import (
-    LatestCKPSelector,
-    SOTAJumpCKPSelector,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
 
 
