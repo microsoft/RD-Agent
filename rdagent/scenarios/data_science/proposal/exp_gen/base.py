@@ -18,20 +18,25 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
-        problem: str = "",
+        problem_name: str = "",
+        problem_desc: str = "",
+        problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
     ) -> None:
         super().__init__(
             hypothesis, reason, concise_reason, concise_observation, concise_justification, concise_knowledge
         )
         self.component = component
-        self.problem = problem
+        self.problem_name = problem_name
+        self.problem_desc = problem_desc
+        self.problem_label = problem_label
 
     def __str__(self) -> str:
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
         lines = []
-        if self.problem is not None:
-            lines.append(f"Target Problem: {self.problem}")
+        if self.problem_name is not None and self.problem_desc is not None:
+            lines.append(f"Target Problem name: {self.problem_name}")
+            lines.append(f"Target Problem: {self.problem_desc}")
         lines.extend(
             [f"Chosen Component: {self.component}", f"Hypothesis: {self.hypothesis}", f"Reason: {self.reason}"]
         )

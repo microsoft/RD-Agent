@@ -13,15 +13,17 @@ from rdagent.components.knowledge_management.vector_base import (
     cosine,
 )
 from rdagent.core.knowledge_base import KnowledgeBase
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 
 Node = KnowledgeMetaData
 
 
 class UndirectedNode(Node):
-    def __init__(self, content: str = "", label: str = "", embedding: Any = None) -> None:
+    def __init__(self, content: str = "", label: str = "", embedding: Any = None, appendix: Any = None) -> None:
         super().__init__(content, label, embedding)
         self.neighbors: set[UndirectedNode] = set()
+        self.appendix = appendix  # appendix stores any additional information
         assert isinstance(content, str), "content must be a string"
 
     def add_neighbor(self, node: UndirectedNode) -> None:
@@ -86,6 +88,10 @@ class Graph(KnowledgeBase):
         size = 16
         embeddings = []
         for i in range(0, len(contents), size):
+            logger.info(
+                f"Creating embedding for index {i} to {i + size} with {len(contents)} contents",
+                tag="batch embedding",
+            )
             embeddings.extend(
                 APIBackend().create_embedding(input_content=contents[i : i + size]),
             )
@@ -270,7 +276,7 @@ class UndirectedGraph(Graph):
         self,
         node: UndirectedNode | str,
         similarity_threshold: float = 0.0,
-        topk_k: int = 5,
+        topk_k: int = None,
         constraint_labels: list[str] | None = None,
     ) -> list[UndirectedNode]:
         """

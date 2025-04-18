@@ -121,7 +121,6 @@ class RDAT:
         )
         while "\n\n\n" in rendered:
             rendered = rendered.replace("\n\n\n", "\n\n")
-        rendered = "\n".join(line for line in rendered.splitlines() if line.strip())
         logger.log_object(
             obj={
                 "uri": self.uri,

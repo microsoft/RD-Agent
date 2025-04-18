@@ -67,6 +67,13 @@ hypothesis_gen:
     1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
     2. **Hypothesis Evaluation**: Evaluate the proposed hypotheses across multiple dimensions.
 
+    {% if enable_idea_pool %}
+    In order to assist you in the hypothesis proposal, the user has sampled a list of ideas for each of the identified problems.
+    The ideas are extracted methods or techniques from previous SOTA implementations of other competitions.
+    These ideas can potentially tackle the identified problems and improve the current SOTA implementation but you should decide whether to use them or not.
+    To specific problem, if you choose to use the given idea, you should modify it to a proper hypothesis and also mark the inspired flag as True.
+    {% endif %}
+
     # Task 1: Hypothesis Proposal
     For each identified problem, you are required to propose a hypothesis aimed at improving the current SOTA implementation. 
     A hypothesis is a precise, testable, and actionable statement that proposes a specific modification or improvement to address an identified problem in a Kaggle competition implementation.
@@ -91,6 +98,10 @@ hypothesis_gen:
       - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+    {% if enable_idea_pool %}
+    4. Idea Reference
+      - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
+    {% endif %}
 
     ## Hypothesis Specification
     {{ hypothesis_spec }}
@@ -114,15 +125,14 @@ hypothesis_gen:
     # Scenario Description
     {{ scenario_desc }}
 
-    # Previous Experiments and Feedbacks:
+    # Previous Experiments and Feedbacks
     {{ exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
 
-    # Identified Problems
+    # Identified Problems{% if enable_idea_pool %} with Sampled Ideas{% endif %}
     {{ problems }}
-
 
 task_gen:
   system: |-
@@ -171,6 +181,35 @@ task_gen:
     # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance):
     {{ failed_exp_and_feedback_list_desc }}
 
+idea_sample:
+  system: |-
+    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
+    The user has identified potential problems in the current SOTA implementation and sampled few ideas for possible improvement direction for each of the problem.
+    Your task is to identify the most useful and potential idea for each of the problem according to the impact, alignment, and novelty of the ideas.
+
+    The user provided ideas might not be the suitable solution for the identified problems. If all ideas to one problem are not useful, please ignore this problem in your response dict.
+
+    ### Specification
+    {{ idea_spec }}
+
+    ### Output Format
+    {{ idea_output_format }}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+    
+    # Previous Experiments and Feedbacks
+    {{ exp_feedback_list_desc }}    
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Problem-Ideas Pairs
+    {{ problem_ideas }}
+
 specification:
   problem: |-
     1. The problem should be specific and fine-grained. Avoid general or vague statements. 
@@ -180,6 +219,12 @@ specification:
     1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
     2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+
+  idea: |-
+    1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
+    2. Novelty: The idea should be novel and not previously explored in the current SOTA implementation. Avoid ideas that have already been tried and failed.
+    3. Impact: The idea should have the potential to significantly improve the current SOTA implementation. It should be a promising direction for further exploration.
+    4. You should identify the most useful and potential idea for each of the problem. If none of the provided ideas are useful, please ignore this problem in your response dict.
 
 output_format:
   problem: |-
@@ -199,7 +244,8 @@ output_format:
   hypothesis: |-
     For each of the identified problem, you should propose a hypothesis strictly following to the JSON schema. Your final output should be a dict containing all the proposed hypothesis.
     {
-      "problem name 1 (Should be exactly same as the problem name provided)": {
+      "problem name 1 (should be exactly same as the problem name provided)": {
+        {% if enable_idea_pool %}"inspired": "True or False. Set to True if the hypothesis is inspired by the user provided ideas. Otherwise, set it to False.",{% endif %}
         "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
         "component": "The component name that the hypothesis {% if pipeline %}mainly {% endif %}focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
@@ -211,4 +257,12 @@ output_format:
           "risk_reward_balance_score": "The risk-reward balance of implementing the proposed hypothesis.",
         }
       },
+    }
+  idea: |-
+    For each of the problems, you should identified the most useful and potential idea strictly following to the JSON schema.
+    Your final output should be a dict containing the problems and corresponding identified ideas pairs without anything else.
+    Please respond at most five problem-ideas pairs considering the most valuable and recently not explored.
+    {
+      "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
+      "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }

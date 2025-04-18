@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, TypeVar, Union, cast
 from tqdm.auto import tqdm
 
 from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 
 
 class LoopMeta(type):
@@ -36,7 +37,7 @@ class LoopMeta(type):
         steps = []
         for base in bases:
             for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
-                if step not in steps:
+                if step not in steps and step not in ["load", "dump"]:  # incase user override the load/dump method
                     steps.append(step)
         return steps
 
@@ -55,7 +56,7 @@ class LoopMeta(type):
         steps = LoopMeta._get_steps(bases)  # all the base classes of parents
         for name, attr in attrs.items():
             if not name.startswith("_") and callable(attr):
-                if name not in steps:
+                if name not in steps and name not in ["load", "dump"]:  # incase user override the load/dump method
                     # NOTE: if we override the step in the subclass
                     # Then it is not the new step. So we skip it.
                     steps.append(name)
@@ -90,8 +91,9 @@ class LoopBase:
         self.loop_prev_out: dict[str, Any] = {}  # the step results of current loop
         self.loop_trace = defaultdict(list[LoopTrace])  # the key is the number of loop
         self.session_folder = logger.log_trace_path / "__session__"
+        self.timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
 
-    def run(self, step_n: int | None = None, loop_n: int | None = None) -> None:
+    def run(self, step_n: int | None = None, loop_n: int | None = None, all_duration: str | None = None) -> None:
         """
 
         Parameters
@@ -103,6 +105,10 @@ class LoopBase:
             How many steps to run; if current loop is incomplete, it will be counted as the first loop for completion
             `None` indicates to run forever until error or KeyboardInterrupt
         """
+
+        if all_duration is not None and not self.timer:
+            self.timer.reset(all_duration=all_duration)
+
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
             while True:
                 if step_n is not None:
@@ -112,6 +118,13 @@ class LoopBase:
                 if loop_n is not None:
                     if loop_n <= 0:
                         break
+
+                if self.timer.started:
+                    if self.timer.is_timeout():
+                        logger.warning("Timeout, exiting the loop.")
+                        break
+                    else:
+                        logger.info(f"Timer remaining time: {self.timer.remain_time()}")
 
                 li, si = self.loop_idx, self.step_idx
                 name = self.steps[si]
@@ -155,6 +168,8 @@ class LoopBase:
                 self.dump(self.session_folder / f"{li}" / f"{si}_{name}")  # save a snapshot after the session
 
     def dump(self, path: str | Path) -> None:
+        if RD_Agent_TIMER_wrapper.timer.started:
+            RD_Agent_TIMER_wrapper.timer.update_remain_time()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
@@ -181,6 +196,10 @@ class LoopBase:
         if do_truncate:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
+
+        if session.timer.started:
+            RD_Agent_TIMER_wrapper.replace_timer(session.timer)
+            RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
         return session
 
 

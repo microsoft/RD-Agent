@@ -51,20 +51,16 @@ class LiteLLMAPIBackend(APIBackend):
         """
         Call the embedding function
         """
-        response_list = []
-        for input_content_iter in input_content_list:
-            model_name = LITELLM_SETTINGS.embedding_model
-            logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
-            logger.info(f"Creating embedding for: {input_content_iter}", tag="debug_litellm_emb")
-            if not isinstance(input_content_iter, str):
-                raise ValueError("Input content must be a string")
-            response = embedding(
-                model=model_name,
-                input=input_content_iter,
-                *args,
-                **kwargs,
-            )
-            response_list.append(response.data[0]["embedding"])
+        model_name = LITELLM_SETTINGS.embedding_model
+        logger.info(f"{LogColors.GREEN}Using emb model{LogColors.END} {model_name}", tag="debug_litellm_emb")
+        logger.info(f"Creating embedding for: {input_content_list}", tag="debug_litellm_emb")
+        response = embedding(
+            model=model_name,
+            input=input_content_list,
+            *args,
+            **kwargs,
+        )
+        response_list = [data["embedding"] for data in response.data]
         return response_list
 
     def _create_chat_completion_inner_function(  # type: ignore[no-untyped-def] # noqa: C901, PLR0912, PLR0915
