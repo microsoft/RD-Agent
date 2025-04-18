@@ -106,7 +106,7 @@ class LoopBase:
             `None` indicates to run forever until error or KeyboardInterrupt
         """
 
-        if all_duration is not None and not self.timer:
+        if all_duration is not None and not self.timer.started:
             self.timer.reset(all_duration=all_duration)
 
         with tqdm(total=len(self.steps), desc="Workflow Progress", unit="step") as pbar:
