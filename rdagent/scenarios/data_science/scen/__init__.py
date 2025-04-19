@@ -59,6 +59,7 @@ class DataScienceScen(Scenario):
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
+            logger.info(f"{self.competition}/Found description.md, loading from local file.")
             return fp.read_text()
         elif (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
             logger.info(f"Found {self.competition}.json, loading from local file.")
