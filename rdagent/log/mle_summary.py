@@ -45,11 +45,11 @@ def save_grade_info(log_trace_path: Path):
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
                 if not DS_RD_SETTING.kaggle_data:
-                    zip_path = Path(f"{DS_RD_SETTING.local_data_path}/zip_files/{self.scen.competition}")
-                    if not zip_path.exists():
-                        raise FileNotFoundError(f"{zip_path} not found")
-                    msg.content.experiment_workspace.inject_files(**{"grade.py": (zip_path / "grade.py").read_text()})
-                    msg.content.experiment_workspace.inject_files(**{"test.csv": (zip_path / "test.csv").read_text()})
+                    eval_path = Path(f"{DS_RD_SETTING.local_data_path}/eval/{self.scen.competition}")
+                    if not eval_path.exists():
+                        raise FileNotFoundError(f"{eval_path} not found")
+                    msg.content.experiment_workspace.inject_files(**{"grade.py": (eval_path / "grade.py").read_text()})
+                    msg.content.experiment_workspace.inject_files(**{"test.csv": (eval_path / "test.csv").read_text()})
                     mle_score_str = msg.content.experiment_workspace.execute(
                         env=de,
                         entry=f"python grade.py {competition} | tee mle_score.txt",
