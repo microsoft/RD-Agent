@@ -1,4 +1,6 @@
 import json
+import os
+import platform
 from pathlib import Path
 from typing import Dict
 
@@ -32,7 +34,7 @@ class DataScienceScen(Scenario):
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
         local_path = DS_RD_SETTING.local_data_path
-        if not Path(f"{local_path}/sample/{competition}").exists():
+        if DS_RD_SETTING.sample_data and not Path(f"{local_path}/sample/{competition}").exists():
             create_debug_data(competition, dataset_path=local_path)
 
         # 2) collect information of competition.
@@ -50,6 +52,7 @@ class DataScienceScen(Scenario):
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
+            logger.info(f"{self.competition}/Found description.md, loading from local file.")
             return fp.read_text()
         elif (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
             logger.info(f"Found {self.competition}.json, loading from local file.")

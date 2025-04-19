@@ -54,7 +54,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         env = get_ds_env(
             extra_volumes={
-                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
+                f"{DS_RD_SETTING.local_data_path}{'/sample/' if DS_RD_SETTING.sample_data else '/'}{self.scen.competition}": T(
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             }
@@ -62,7 +62,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python main.py")
+        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
         stdout = remove_eda_part(stdout)
 
         score_fp = implementation.workspace_path / "scores.csv"
@@ -101,29 +101,36 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        # Check submission file
-        base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
-        implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
-        # stdout += "----Submission Check 1-----\n"
-        submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=env, entry="python test/submission_format_test.py"
+        input_dir = Path(f"{DS_RD_SETTING.local_data_path}{'/sample/' if DS_RD_SETTING.sample_data else '/'}{self.scen.competition}")
+        sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
+            input_dir.glob("*sampleSubmission*.csv")
         )
-        if DS_RD_SETTING.rule_base_eval:
-            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=True,
-                )
-            else:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=False,
-                )
-        stdout += "\n" + submission_check_out
+        if not DS_RD_SETTING.kaggle_data and not sample_submission_files:
+            submission_ret_code = 0
+        else:
+            # Check submission file
+            base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
+            implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
+            # stdout += "----Submission Check 1-----\n"
+            submission_check_out, submission_ret_code = implementation.execute_ret_code(
+                env=env, entry="python test/submission_format_test.py"
+            )
+            if DS_RD_SETTING.rule_base_eval:
+                if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=True,
+                    )
+                else:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=False,
+                    )
+            stdout += "\n" + submission_check_out
 
         eda_output = implementation.file_dict.get("EDA.md", None)
 

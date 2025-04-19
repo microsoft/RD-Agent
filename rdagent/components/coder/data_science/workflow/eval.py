@@ -57,7 +57,7 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
 
         env = get_ds_env(
             extra_volumes={
-                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
+                f"{DS_RD_SETTING.local_data_path}{'/sample/' if DS_RD_SETTING.sample_data else '/'}{self.scen.competition}": T(
                     "scenarios.data_science.share:scen.input_path"
                 ).r()
             }

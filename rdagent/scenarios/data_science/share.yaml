@@ -84,6 +84,7 @@ describe: # some template to describe some object
 scen:  # customizable
   role: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    Please use current data to train and test the model.
   input_path: "/kaggle/input"
 
 component_description:
