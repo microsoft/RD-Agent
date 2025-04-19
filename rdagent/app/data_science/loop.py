@@ -34,7 +34,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-
+from rdagent.core.conf import RD_AGENT_SETTINGS
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
@@ -175,8 +175,8 @@ class DataScienceRDLoop(RDLoop):
             and Path(DS_RD_SETTING.log_archive_path).is_dir()
         ):
             start_archive_datetime = datetime.now()
-            logger.info(f"Archiving log folder after loop {self.loop_idx}")
-            tar_path = (
+            logger.info(f"Archiving log and workspace folder after loop {self.loop_idx}")
+            mid_log_tar_path = (
                 Path(
                     DS_RD_SETTING.log_archive_temp_path
                     if DS_RD_SETTING.log_archive_temp_path
@@ -184,12 +184,26 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_log.tar"
             )
-            subprocess.run(["tar", "-cf", str(tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            mid_workspace_tar_path = (
+                Path(
+                    DS_RD_SETTING.log_archive_temp_path
+                    if DS_RD_SETTING.log_archive_temp_path
+                    else DS_RD_SETTING.log_archive_path
+                )
+                / "mid_workspace.tar"
+            )
+            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            subprocess.run(["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True)
             if DS_RD_SETTING.log_archive_temp_path is not None:
-                shutil.move(tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
-                tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+                shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
+                mid_log_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+                shutil.move(mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace.tar")
+                mid_workspace_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_workspace.tar"
             shutil.copy(
-                tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
+                mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
+            )  # backup when upper code line is killed when running
+            shutil.copy(
+                mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
 
