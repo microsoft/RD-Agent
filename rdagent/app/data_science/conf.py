@@ -41,6 +41,19 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
+    ### selector related
+
+    #### checkpoint selector related
+    selector_name: str = "latest"
+    """The name of the selector to use"""
+    sota_count_window: int = 5
+    """The number of trials to consider for SOTA count"""
+    sota_count_threshold: int = 1
+    """The threshold for SOTA count"""
+
+    #### SOTA experiment selector related
+    sota_exp_selector_name: str = "global_sota"
+    """The name of the SOTA experiment selector to use"""
     ### knowledge base
     enable_knowledge_base: bool = False
     knowledge_base_version: str = "v1"
