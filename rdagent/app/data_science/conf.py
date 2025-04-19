@@ -36,6 +36,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     rule_base_eval: bool = False
     kaggle_data: bool = True
+    sample_data: bool = True
 
     ### model dump
     enable_model_dump: bool = False
