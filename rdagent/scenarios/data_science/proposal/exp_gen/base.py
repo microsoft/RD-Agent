@@ -114,13 +114,20 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         list[tuple[DSExperiment, ExperimentFeedback]]
             The search list.
         """
+        if search_type == "all":
+            return self.hist
 
-        selection = self.get_current_selection()
-        if len(selection) == 0:
-            # selection is (), which means we switch to a new trace, which is not implemented yet
-            return []
+        elif search_type == "ancestors":
+            selection = self.get_current_selection()
+            if len(selection) == 0:
+                # selection is (), which means we switch to a new trace, which is not implemented yet
+                return []
 
-        return self.collect_all_ancestors(selection) if search_type == "ancestors" else self.hist
+            return self.collect_all_ancestors(self.get_current_selection())
+
+        else:
+            raise ValueError(f"Invalid search type: {search_type}")
+
 
     def collect_all_ancestors(
         self,
