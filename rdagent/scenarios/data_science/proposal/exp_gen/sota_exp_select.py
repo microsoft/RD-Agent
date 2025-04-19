@@ -59,7 +59,7 @@ class AutoSOTAexpSelector(SOTAexpSelector):
             SOAT_exp_with_desc_and_scores = "Historical SOTA experiments:\n\n"
 
             for i, (exp, ef) in enumerate(sota_exp_fb_list):
-                if exp and exp.result:
+                if exp:
                     current_final_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
                     desc = T("scenarios.data_science.share:describe.exp").r(
                         exp=exp, heading="SOTA of previous exploration of the scenario"
