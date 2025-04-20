@@ -18,6 +18,16 @@ refine_or_explore:
     4. Time or Memory Constraints  
       - If previous feedback highlights time or memory constraints, refine the implementation by adopting smaller models or algorithms with lower complexity.  
 
+    If you choose to refine the current SOTA implementation, you should suggest a potential hypothesis to improve the current SOTA implementation
+    {% if not pipeline %}
+    Each hypothesis should focus on one of the following 5 components of an implementation:
+    {{ component_desc }}
+    {% else %}
+    Although we don't require each hypothesis to focus on single specific component, you should still respond the main component that the hypothesis focus on.
+    Candidate components are:
+    {{ component_desc }}
+    {% endif %}
+
     ## Output Format
     {{ refine_or_explore_output_format }}
 
