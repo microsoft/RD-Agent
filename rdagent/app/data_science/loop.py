@@ -193,6 +193,15 @@ class DataScienceRDLoop(RDLoop):
                 / "mid_workspace.tar"
             )
             subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            
+            # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
+            for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
+                for file_and_folder in workspace_id.iterdir():
+                    if file_and_folder.is_dir():
+                        shutil.rmtree(file_and_folder)
+                    elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
+                        file_and_folder.unlink()
+            
             subprocess.run(["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True)
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
