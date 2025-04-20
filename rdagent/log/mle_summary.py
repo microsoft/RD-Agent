@@ -13,12 +13,13 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.test_eval import NoTestEvalError, get_test_eval
+from rdagent.scenarios.data_science.test_eval import MLETestEval, NoTestEvalError, get_test_eval
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
 
 
 test_eval = get_test_eval()
 
+is_mle = isinstance(test_eval, MLETestEval)
 
 def extract_mle_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
@@ -107,16 +108,17 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
 
                     # get threshold scores
                     workflowexp = FBWorkspace()
-                    stdout = workflowexp.execute(
-                        env=de,
-                        entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
-                    )
-                    grade_output = extract_mle_json(stdout)
-                    if grade_output:
-                        bronze_threshold = grade_output["bronze_threshold"]
-                        silver_threshold = grade_output["silver_threshold"]
-                        gold_threshold = grade_output["gold_threshold"]
-                        median_threshold = grade_output["median_threshold"]
+                    if is_mle:
+                        stdout = workflowexp.execute(
+                            env=test_eval.env,
+                            entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
+                        )
+                        grade_output = extract_mle_json(stdout)
+                        if grade_output:
+                            bronze_threshold = grade_output["bronze_threshold"]
+                            silver_threshold = grade_output["silver_threshold"]
+                            gold_threshold = grade_output["gold_threshold"]
+                            median_threshold = grade_output["median_threshold"]
 
                 if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
                     loop_num += 1
@@ -135,9 +137,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                         if grade_output:
                             if grade_output["score"] is not None:
                                 test_scores[loop_id + 1] = grade_output["score"]
-                                _, test_ranks[loop_id + 1] = score_rank(
-                                    stat[log_trace_path.name]["competition"], grade_output["score"]
-                                )
+                                if is_mle:
+                                    _, test_ranks[loop_id + 1] = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
                             if grade_output["valid_submission"]:
                                 valid_submission_num += 1
                             if grade_output["above_median"]:
@@ -170,9 +173,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
-                                _, sota_exp_rank = score_rank(
-                                    stat[log_trace_path.name]["competition"], grade_output["score"]
-                                )
+                                if is_mle:
+                                    _, sota_exp_rank = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
 
         stat[log_trace_path.name].update(
             {
