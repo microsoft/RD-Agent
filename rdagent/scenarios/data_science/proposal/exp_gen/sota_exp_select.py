@@ -50,7 +50,10 @@ class AutoSOTAexpSelector(SOTAexpSelector):
             return None
 
         elif len(sota_exp_fb_list) == 1:
-            logger.info("Auto SOTA selector: Only one SOTA in trace, using it")
+            sota_idx_in_trace = trace.hist.index(sota_exp_fb_list[0])
+            logger.info(
+                f"Auto SOTA selector: Only one SOTA in trace, using it, which is the No. {sota_idx_in_trace + 1} in the trace"
+            )
             return sota_exp_fb_list[0][0]
 
         else:
