@@ -24,7 +24,6 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 DSCoSTEEREvalFeedback = CoSTEERSingleFeedback
 
 
-
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
     def evaluate(
