@@ -22,6 +22,7 @@ from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import CoderError, RunnerError
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.core.scenario import Scenario
@@ -175,8 +176,8 @@ class DataScienceRDLoop(RDLoop):
             and Path(DS_RD_SETTING.log_archive_path).is_dir()
         ):
             start_archive_datetime = datetime.now()
-            logger.info(f"Archiving log folder after loop {self.loop_idx}")
-            tar_path = (
+            logger.info(f"Archiving log and workspace folder after loop {self.loop_idx}")
+            mid_log_tar_path = (
                 Path(
                     DS_RD_SETTING.log_archive_temp_path
                     if DS_RD_SETTING.log_archive_temp_path
@@ -184,12 +185,37 @@ class DataScienceRDLoop(RDLoop):
                 )
                 / "mid_log.tar"
             )
-            subprocess.run(["tar", "-cf", str(tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+            mid_workspace_tar_path = (
+                Path(
+                    DS_RD_SETTING.log_archive_temp_path
+                    if DS_RD_SETTING.log_archive_temp_path
+                    else DS_RD_SETTING.log_archive_path
+                )
+                / "mid_workspace.tar"
+            )
+            subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
+
+            # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
+            for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
+                for file_and_folder in workspace_id.iterdir():
+                    if file_and_folder.is_dir():
+                        shutil.rmtree(file_and_folder)
+                    elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
+                        file_and_folder.unlink()
+
+            subprocess.run(
+                ["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True
+            )
             if DS_RD_SETTING.log_archive_temp_path is not None:
-                shutil.move(tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
-                tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+                shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
+                mid_log_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
+                shutil.move(mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace.tar")
+                mid_workspace_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_workspace.tar"
             shutil.copy(
-                tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
+                mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log_bak.tar"
+            )  # backup when upper code line is killed when running
+            shutil.copy(
+                mid_workspace_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_workspace_bak.tar"
             )  # backup when upper code line is killed when running
             self.timer.add_duration(datetime.now() - start_archive_datetime)
 
