@@ -22,6 +22,7 @@ from rdagent.components.coder.data_science.workflow import WorkflowCoSTEER
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.components.workflow.conf import BasePropSetting
 from rdagent.components.workflow.rd_loop import RDLoop
+from rdagent.core.conf import RD_AGENT_SETTINGS
 from rdagent.core.exception import CoderError, RunnerError
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.core.scenario import Scenario
@@ -34,7 +35,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
-from rdagent.core.conf import RD_AGENT_SETTINGS
+
 
 class DataScienceRDLoop(RDLoop):
     skip_loop_error = (CoderError, RunnerError)
@@ -193,7 +194,7 @@ class DataScienceRDLoop(RDLoop):
                 / "mid_workspace.tar"
             )
             subprocess.run(["tar", "-cf", str(mid_log_tar_path), "-C", (Path().cwd() / "log"), "."], check=True)
-            
+
             # remove all files and folders in the workspace except for .py, .md, and .csv files to avoid large workspace dump
             for workspace_id in Path(RD_AGENT_SETTINGS.workspace_path).iterdir():
                 for file_and_folder in workspace_id.iterdir():
@@ -201,8 +202,10 @@ class DataScienceRDLoop(RDLoop):
                         shutil.rmtree(file_and_folder)
                     elif file_and_folder.is_file() and file_and_folder.suffix not in [".py", ".md", ".csv"]:
                         file_and_folder.unlink()
-            
-            subprocess.run(["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True)
+
+            subprocess.run(
+                ["tar", "-cf", str(mid_workspace_tar_path), "-C", (RD_AGENT_SETTINGS.workspace_path), "."], check=True
+            )
             if DS_RD_SETTING.log_archive_temp_path is not None:
                 shutil.move(mid_log_tar_path, Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar")
                 mid_log_tar_path = Path(DS_RD_SETTING.log_archive_path) / "mid_log.tar"
