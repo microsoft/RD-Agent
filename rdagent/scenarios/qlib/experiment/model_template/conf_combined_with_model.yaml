@@ -57,10 +57,10 @@ task:
             n_epochs: 100
             lr: 1e-3
             early_stop: 10
-            batch_size: 2000
+            batch_size: 2048
             metric: loss
             loss: mse
-            n_jobs: 20
+            n_jobs: 10
             GPU: 0
             weight_decay: 0.0001
             pt_model_uri: "model.model_cls"
