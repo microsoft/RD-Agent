@@ -16,6 +16,15 @@ class TestEvalBase:
     def eval(self, competition: str, workspace: FBWorkspace) -> str:
         """eval the workspace as competition, and return the final evaluation result"""
 
+    @abstractmethod
+    def valid(self, competition: str, workspace: FBWorkspace) -> tuple[str, int]:
+        """eval the workspace as competition, and return the final format check result"""
+
+    @abstractmethod
+    def enabled(self, competition) -> bool:
+        """able to eval or not"""
+        return DS_RD_SETTING.if_using_mle_data or Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/test.csv").exists()
+
 
 class TestEval(TestEvalBase):
     """The most basic version of evaluation for test data"""
@@ -39,6 +48,21 @@ class TestEval(TestEvalBase):
         workspace.execute(env=self.env, entry="chmod 777 mle_score.txt")
         return (workspace.workspace_path / "mle_score.txt").read_text()
 
+    def valid(self, competition: str, workspace: FBWorkspace) -> tuple[str, int]:
+        eval_path = Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}")
+        if not eval_path.exists():
+            err_msg = f"No Test Eval provided due to: {eval_path} not found"
+            raise NoTestEvalError(err_msg)
+        workspace.inject_files(**{"submission_format_valid.py": (eval_path / "valid.py").read_text()})
+        workspace.inject_files(**{"submission_format_test.csv": (eval_path / "test.csv").read_text()})
+        submission_check_out, submission_ret_code = workspace.execute_ret_code(
+            env=self.env,
+            entry=f"python submission_format_valid.py {competition} | tee mle_score.txt",
+        )
+        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_format_test.csv"]})
+        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
+        return submission_check_out, submission_ret_code
+
 
 class MLETestEval(TestEvalBase):
     """Evaluation for test data for MLE-Bench competition"""
@@ -56,6 +80,20 @@ class MLETestEval(TestEvalBase):
         )
         workspace.execute(env=self.env, entry="chmod 777 mle_score.txt")
         return (workspace.workspace_path / "mle_score.txt").read_text()
+
+    def valid(self, competition: str, workspace: FBWorkspace) -> tuple[str, int]:
+        mle_check_code = (
+                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
+                .read_text()
+                .replace("<competition_id>", self.scen.competition)
+            )
+        workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
+        submission_check_out, submission_ret_code = workspace.execute_ret_code(
+            env=mde, entry="python test/mle_submission_format_test.py"
+        )
+        
+        workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
+        return submission_check_out, submission_ret_code
 
 
 def get_test_eval() -> TestEvalBase:

@@ -17,10 +17,12 @@ from rdagent.log import rdagent_logger as logger
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.fmt import shrink_text
+from rdagent.scenarios.data_science.test_eval import MLETestEval, NoTestEvalError, get_test_eval
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
 DSCoSTEEREvalFeedback = CoSTEERSingleFeedback
+
 
 
 class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
@@ -55,8 +57,8 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = "No EDA output."
         implementation.inject_files(**{"EDA.md": eda_output})
         stdout = remove_eda_part(stdout)
-        if execute_ret_code == 0 and not stdout:
-            stdout = "The code executed successfully without any errors or exceptions. "
+        if not stdout:
+            stdout = f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'EDA output is emmitted. ' if eda_output else ''}"
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
@@ -103,39 +105,11 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
         # DockerEnv for MLEBench submission validation
         submission_check_out = ""
         submission_ret_code = 0
+        test_eval = get_test_eval()
 
-        if DS_RD_SETTING.if_using_mle_data:
-            mde = get_ds_env(
-                conf_type="mlebench",
-                extra_volumes={
-                    f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data",
-                },
-            )
-            mde.prepare()
-            # MLEBench Check
-            mle_check_code = (
-                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-                .read_text()
-                .replace("<competition_id>", self.scen.competition)
-            )
-            implementation.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
-            submission_check_out, submission_ret_code = implementation.execute_ret_code(
-                env=mde, entry="python test/mle_submission_format_test.py"
-            )
-            stdout += f"\nMLEBench submission check:\n{submission_check_out}\nIf MLEBench submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
-            implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
-        else:
-            eval_path = Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{self.scen.competition}")
-            if (eval_path / "test.csv").exists():
-                # TODO: add a method like `valid_check` in TestEvalBase
-                implementation.inject_files(**{"valid.py": (eval_path / "valid.py").read_text()})
-                implementation.inject_files(**{"test.csv": (eval_path / "test.csv").read_text()})
-                submission_check_out, submission_ret_code = implementation.execute_ret_code(
-                    env=env, entry="python valid.py"
-                )
-                implementation.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
-                implementation.inject_files(**{file: implementation.DEL_KEY for file in ["valid.py", "test.csv"]})
-
+        if test_eval.enabled(self.scen.competition):
+            submission_check_out, submission_ret_code = test_eval.valid(self.scen.competition, implementation)
+            stdout += f"\nSubmission check:\n{submission_check_out}\nIf Submission check returns a 'Submission is valid' or similar message, despite some warning messages, you should still consider the submission as valid and give a positive final decision. "
         if DS_RD_SETTING.rule_base_eval:
             if DS_RD_SETTING.if_using_mle_data:
                 score_check_text = score_check_text + "\n" + submission_check_out
