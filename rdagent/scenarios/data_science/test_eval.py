@@ -23,7 +23,7 @@ class TestEvalBase:
     @abstractmethod
     def enabled(self, competition) -> bool:
         """able to eval or not"""
-        return DS_RD_SETTING.if_using_mle_data or Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/test.csv").exists()
+        return DS_RD_SETTING.if_using_mle_data or Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv").exists()
 
 
 class TestEval(TestEvalBase):
@@ -39,12 +39,12 @@ class TestEval(TestEvalBase):
             err_msg = f"No Test Eval provided due to: {eval_path} not found"
             raise NoTestEvalError(err_msg)
         workspace.inject_files(**{"grade.py": (eval_path / "grade.py").read_text()})
-        workspace.inject_files(**{"test.csv": (eval_path / "test.csv").read_text()})
+        workspace.inject_files(**{"submission_test.csv": (eval_path / "submission_test.csv").read_text()})
         workspace.execute(
             env=self.env,
             entry=f"python grade.py {competition} | tee mle_score.txt",
         )
-        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["grade.py", "test.csv"]})
+        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["grade.py", "submission_test.csv"]})
         workspace.execute(env=self.env, entry="chmod 777 mle_score.txt")
         return (workspace.workspace_path / "mle_score.txt").read_text()
 
@@ -54,12 +54,12 @@ class TestEval(TestEvalBase):
             err_msg = f"No Test Eval provided due to: {eval_path} not found"
             raise NoTestEvalError(err_msg)
         workspace.inject_files(**{"submission_format_valid.py": (eval_path / "valid.py").read_text()})
-        workspace.inject_files(**{"submission_format_test.csv": (eval_path / "test.csv").read_text()})
+        workspace.inject_files(**{"submission_test.csv": (eval_path / "submission_test.csv").read_text()})
         submission_check_out, submission_ret_code = workspace.execute_ret_code(
             env=self.env,
             entry=f"python submission_format_valid.py {competition} | tee mle_score.txt",
         )
-        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_format_test.csv"]})
+        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]})
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
         return submission_check_out, submission_ret_code
 
