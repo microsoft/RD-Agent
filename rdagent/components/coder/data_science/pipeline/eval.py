@@ -18,6 +18,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -101,11 +102,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        input_dir = Path(f"{DS_RD_SETTING.local_data_path}{'/sample/' if DS_RD_SETTING.sample_data else '/'}{self.scen.competition}")
-        sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
-            input_dir.glob("*sampleSubmission*.csv")
-        )
-        if not DS_RD_SETTING.kaggle_data and not sample_submission_files:
+        test_eval = get_test_eval()
+        if not test_eval.is_sub_enabled(self.scen.competition):
             submission_ret_code = 0
         else:
             # Check submission file
@@ -137,6 +135,7 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         system_prompt = T(".prompts:pipeline_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
+            is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(

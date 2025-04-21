@@ -133,6 +133,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
 
         system_prompt = T(".prompts:DSCoSTEER_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=implementation.file_dict.get("EDA.md", None)),
+            is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             task_desc=target_task.get_task_information(),
         )
         user_prompt = T(".prompts:DSCoSTEER_eval.user").r(

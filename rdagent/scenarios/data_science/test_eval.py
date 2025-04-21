@@ -25,6 +25,24 @@ class TestEvalBase:
         """able to eval or not"""
         return DS_RD_SETTING.if_using_mle_data or Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv").exists()
 
+    def is_sub_enabled(self, competition: str) -> bool:
+        """
+        Is subsmiossion file enabled
+
+        If a file like <sample submission csv> is provided; then we think inference from test data to submission file is enabled.
+        According test will be enabled as well.
+
+        Why do not we merge `is_sub_enabled` and `enabled`, cases:
+        1. The dataset provide evaluation.  But we don't provide submission sample(llm will decide by himself)
+        2. We proivde a sample submission. But we don't proivde strict evaluation.
+
+        """
+        input_dir = Path(f"{DS_RD_SETTING.local_data_path}/{competition}")
+        sample_submission_files = list(input_dir.glob("*sample_submission*.csv")) + list(
+            input_dir.glob("*sampleSubmission*.csv")
+        )
+        return len(sample_submission_files) > 0
+
 
 class TestEval(TestEvalBase):
     """The most basic version of evaluation for test data"""
