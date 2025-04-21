@@ -108,7 +108,7 @@ Here's an enhanced outline of the steps:
 
       - ``kaggle_data/eval/custom_data/valid.py:`` (Optional) Competition validation script, in order to check if the submission format is correct.
 
-      - ``kaggle_data/eval/custom_data/test.csv:`` (Optional) Competition test label file.
+      - ``kaggle_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
 
 
 - 🚀 **Run the Application**

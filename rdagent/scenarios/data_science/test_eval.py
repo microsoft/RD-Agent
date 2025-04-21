@@ -23,7 +23,6 @@ class TestEvalBase:
     @abstractmethod
     def enabled(self, competition) -> bool:
         """able to eval or not"""
-        return DS_RD_SETTING.if_using_mle_data or Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv").exists()
 
     def is_sub_enabled(self, competition: str) -> bool:
         """
@@ -81,6 +80,9 @@ class TestEval(TestEvalBase):
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
         return submission_check_out, submission_ret_code
 
+    def enabled(self, competition) -> bool:
+        return Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv").exists()
+
 
 class MLETestEval(TestEvalBase):
     """Evaluation for test data for MLE-Bench competition"""
@@ -113,6 +115,8 @@ class MLETestEval(TestEvalBase):
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
         return submission_check_out, submission_ret_code
 
+    def enabled(self, competition) -> bool:
+        return True
 
 def get_test_eval() -> TestEvalBase:
     """Get the test evaluation instance"""
