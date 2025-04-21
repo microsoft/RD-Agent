@@ -141,10 +141,10 @@ class LoopBase:
 
                 if self.timer.started:
                     if RD_AGENT_SETTINGS.enable_mlflow:
-                        mlflow.log_metric("remain_time", self.timer.remain_time().seconds) # type: ignore[union-attr]
+                        mlflow.log_metric("remain_time", self.timer.remain_time().seconds)  # type: ignore[union-attr]
                         mlflow.log_metric(
-                            "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100 # type: ignore[operator]
-                        )  
+                            "remain_percent", self.timer.remain_time() / self.timer.all_duration * 100  # type: ignore[operator]
+                        )
 
                     if self.timer.is_timeout():
                         logger.warning("Timeout, exiting the loop.")
