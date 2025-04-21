@@ -30,6 +30,7 @@ competition_description_template:
   system: |-
     You are a data science assistant that extracts structured information from unstructured text.
     The user will provide you a Kaggle competition description, and you need to extract specific details from it.
+    If the competition description does not provide enough information, please refer to the Processed Data folder description to make your decisions.
     For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
     Please answer in Json format with the following schema:
     {

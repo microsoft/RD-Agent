@@ -75,7 +75,6 @@ Here's an enhanced outline of the steps:
   .. code-block:: sh
 
     dotenv set KG_LOCAL_DATA_PATH <your local directory>/kaggle_data
-    dotenv set DS_KAGGLE_DATA False
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
 - 📥 **Prepare Competition Data**

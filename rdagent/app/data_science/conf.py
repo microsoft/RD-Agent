@@ -36,7 +36,6 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_max_loop: int = 3
 
     rule_base_eval: bool = False
-    kaggle_data: bool = True
     sample_data: bool = True
 
     #### model dump
