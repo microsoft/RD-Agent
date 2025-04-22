@@ -44,10 +44,13 @@ def save_grade_info(log_trace_path: Path):
             if isinstance(msg.content, DSExperiment):
                 # TODO:  mle_score.txt is not a general name now.
                 # Please use a more general name like test_score.txt
-                mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
-                trace_storage.log(
-                    mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
-                )
+                try:
+                    mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
+                    trace_storage.log(
+                        mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
+                    )
+                except Exception as e:
+                    print(f"Error in {log_trace_path}: {e}")
 
 
 def is_valid_session(p: Path) -> bool:

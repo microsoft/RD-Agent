@@ -24,6 +24,7 @@ class TestEvalBase:
     def enabled(self, competition) -> bool:
         """able to eval or not"""
 
+    @abstractmethod
     def is_sub_enabled(self, competition: str) -> bool:
         """
         Is subsmiossion file enabled
