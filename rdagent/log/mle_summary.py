@@ -13,14 +13,11 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.test_eval import NoTestEvalError, get_test_eval
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
-from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
-if not DS_RD_SETTING.kaggle_data:
-    de = get_ds_env()
-else:
-    de = get_ds_env(conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
-    de.prepare()
+
+test_eval = get_test_eval()
 
 
 def extract_mle_json(log_content: str) -> dict | None:
@@ -44,25 +41,9 @@ def save_grade_info(log_trace_path: Path):
 
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
-                if not DS_RD_SETTING.kaggle_data:
-                    eval_path = Path(f"{DS_RD_SETTING.local_data_path}/eval/{self.scen.competition}")
-                    if not eval_path.exists():
-                        raise FileNotFoundError(f"{eval_path} not found")
-                    msg.content.experiment_workspace.inject_files(**{"grade.py": (eval_path / "grade.py").read_text()})
-                    msg.content.experiment_workspace.inject_files(**{"test.csv": (eval_path / "test.csv").read_text()})
-                    mle_score_str = msg.content.experiment_workspace.execute(
-                        env=de,
-                        entry=f"python grade.py {competition} | tee mle_score.txt",
-                    )
-                    msg.content.experiment_workspace.inject_files(
-                        **{file: msg.content.experiment_workspace.DEL_KEY for file in ["grade.py", "test.csv"]}
-                    )
-                else:
-                    mle_score_str = msg.content.experiment_workspace.execute(
-                        env=de,
-                        entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
-                    )
-                msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
+                # TODO:  mle_score.txt is not a general name now.
+                # Please use a more general name like test_score.txt
+                mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
                 trace_storage.log(
                     mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
                 )
@@ -75,7 +56,10 @@ def is_valid_session(p: Path) -> bool:
 def save_all_grade_info(log_folder):
     for log_trace_path in log_folder.iterdir():
         if is_valid_session(log_trace_path):
-            save_grade_info(log_trace_path)
+            try:
+                save_grade_info(log_trace_path)
+            except NoTestEvalError as e:
+                print(f"Error in {log_trace_path}: {e}")
 
 
 def summarize_folder(log_folder: Path, hours: int | None = None):
