@@ -75,7 +75,7 @@ class TestEval(TestEvalBase):
         workspace.inject_files(**{"submission_test.csv": (eval_path / "submission_test.csv").read_text()})
         submission_check_out, submission_ret_code = workspace.execute_ret_code(
             env=self.env,
-            entry=f"python submission_format_valid.py {competition} | tee mle_score.txt",
+            entry=f"python submission_format_valid.py {competition}",
         )
         workspace.inject_files(**{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]})
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
