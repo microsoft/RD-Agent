@@ -135,7 +135,6 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         self.value_feedback = value
         self.shape_feedback = value
 
-
     @property
     def code(self):
         return self.code_feedback
