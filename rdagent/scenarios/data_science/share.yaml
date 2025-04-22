@@ -86,6 +86,7 @@ describe: # some template to describe some object
     Target Problem: {{ exp_and_feedback[0].hypothesis.problem }}
     {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
     Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    {% if exp_and_feedback[0].result is none %}
     Experiment Score: Running buggy
     {% else %}
     Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
