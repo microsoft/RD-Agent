@@ -132,7 +132,9 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
     def return_checking(self, value):
         # Since return_checking is derived from value_feedback and shape_feedback,
         # we don't need to do anything here
-        pass
+        self.value_feedback = value
+        self.shape_feedback = value
+
 
     @property
     def code(self):
