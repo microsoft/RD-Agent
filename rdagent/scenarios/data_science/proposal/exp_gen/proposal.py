@@ -457,6 +457,9 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
         )
+        simple_trace_desc = T("scenarios.data_science.share:describe.simple_trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+        )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -467,7 +470,7 @@ class DSProposalV2ExpGen(ExpGen):
             scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
+            exp_feedback_list_desc=simple_trace_desc,
             sota_exp_desc=sota_exp_desc,
         )
         for problem_name in fb_problems:
