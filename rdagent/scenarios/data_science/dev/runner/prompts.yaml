@@ -32,6 +32,7 @@ DSCoSTEER_eval:
     ```
     {% else %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code executes successfully.
+    No need to check the detail of submission file.
 
     Please respond with your feedback in the following JSON format and order
     ```json
