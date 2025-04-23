@@ -65,6 +65,8 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
         implementation.execute(env=env, entry=get_clear_ws_cmd())
         stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
         stdout = remove_eda_part(stdout)
+        if not stdout:
+            stdout = f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'EDA output is emmitted. ' if eda_output else ''}"
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
