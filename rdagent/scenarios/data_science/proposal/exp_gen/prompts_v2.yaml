@@ -141,6 +141,9 @@ task_gen:
       - Avoid vague statements like "choose a proper model" Instead, specify the exact task to be made.
       - No phrases like "for example" or "eg.," should be used in the task. Give a clear decision in the task.
 
+    ## Task detail insights
+    The user also provides you several good ideas which might work to get a better result. As you focus on the hypothesis, these ideas might give you sone insights about the parts not related to the hypothesis. You should align your task with both the ideas and the hypothesis.
+
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
 
@@ -166,6 +169,9 @@ task_gen:
 
     # Proposed Hypothesis you should strictly follow:
     {{ hypothesis }}
+
+    # User provided ideas
+    {{ idea_pool_str }}
 
     # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance):
     {{ failed_exp_and_feedback_list_desc }}

@@ -375,6 +375,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis: DSHypothesis,
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
+        idea_pool_str: str,
     ) -> DSExperiment:
         if pipeline:
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
@@ -398,6 +399,7 @@ class DSProposalV2ExpGen(ExpGen):
             sota_exp_desc=sota_exp_desc,
             hypothesis=str(hypothesis),
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+            idea_pool_str=idea_pool_str,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -551,4 +553,5 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis=new_hypothesis,
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            idea_pool_str=idea_pool_str,
         )
