@@ -61,7 +61,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             .render(
                 scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                current_code=target_task.base_code,
+                current_code=workspace.file_dict["model.py"],
             )
         )
 

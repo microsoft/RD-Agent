@@ -156,7 +156,7 @@ qlib_model_background: |-
   3. Architecture: The detailed architecture of the model, such as neural network layers or tree structures.
   4. Hyperparameters: The hyperparameters used in the model, such as learning rate, number of epochs, etc.
   5. ModelType: The type of the model, "Tabular" for tabular model and "TimeSeries" for time series model.
-  The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters. For example, a model with an two GRU layer and a model with three GRU layer should be considered two different models.
+  The model should provide clear and detailed documentation of its architecture and hyperparameters. One model should statically define one output with a fixed architecture and hyperparameters.
 
 qlib_model_interface: |-
   Your python code should follow the interface to better interact with the user's system.
@@ -176,7 +176,7 @@ qlib_model_interface: |-
   model_cls = XXXModel
   ```
 
-  The model has two types, "Tabular" for tabular model and "TimeSeries" for time series model. The input shape to a tabular model is (batch_size, num_features) and the input shape to a time series model is (batch_size, num_features, num_timesteps). The output shape of the model should be (batch_size, 1).
+  The model has two types, "Tabular" for tabular model and "TimeSeries" for time series model. The input shape to a tabular model is (batch_size, num_features) and the input shape to a time series model is (batch_size, num_timesteps, num_features). The output shape of the model should be (batch_size, 1).
   The "batch_size" is a dynamic value which is determined by the input of forward function.
   The "num_features" and "num_timesteps" are static which will be provided to the model through init function.
   User will initialize the tabular model with the following code:
@@ -188,8 +188,6 @@ qlib_model_interface: |-
   model = model_cls(num_features=num_features, num_timesteps=num_timesteps)
   ```
   No other parameters will be passed to the model so give other parameters a default value or just make them static.
-
-  When dealing with TimeSeries model, remember to permute the input tensor since the input tensor is in the shape of (batch_size, num_features, num_timesteps) and a normal time series model is expecting the input tensor in the shape of (batch_size, num_timesteps, num_features).
 
   Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you. Also, don't write main function in your python code. The user will call the forward method in the model_cls to get the output tensor.
 
