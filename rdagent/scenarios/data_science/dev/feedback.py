@@ -120,15 +120,15 @@ class DSExperiment2Feedback(Experiment2Feedback):
             decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
         )
 
-        if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
-            ds_idea = DSIdea(
-                {
-                    "competition": self.scen.get_competition_full_desc(),
-                    "idea": exp.hypothesis.hypothesis,
-                    "method": exp.pending_tasks_list[0][0].get_task_information(),
-                    "hypothesis": {exp.hypothesis.problem_label: exp.hypothesis.problem_desc},
-                }
-            )
-            trace.knowledge_base.add_idea(idea=ds_idea)
+        # if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
+        #     ds_idea = DSIdea(
+        #         {
+        #             "competition": self.scen.get_competition_full_desc(),
+        #             "idea": exp.hypothesis.hypothesis,
+        #             "method": exp.pending_tasks_list[0][0].get_task_information(),
+        #             "hypothesis": {exp.hypothesis.problem_label: exp.hypothesis.problem_desc},
+        #         }
+        #     )
+        #     trace.knowledge_base.add_idea(idea=ds_idea)
 
         return hypothesis_feedback
