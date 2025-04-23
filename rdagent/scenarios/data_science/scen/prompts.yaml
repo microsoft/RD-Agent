@@ -1,5 +1,10 @@
 scenario_description: |-
+  {% if use_raw_description %}
   ------Background of the scenario------
+  {{ raw_description }}
+
+  {% else %}
+    ------Background of the scenario------
   {{ background }}
 
   ------ Guidelines for participating in the competition ----
@@ -10,6 +15,7 @@ scenario_description: |-
 
   ------The name of the evaluation metric used------
   {{ metric_name }}
+  {% endif %}
 
   {% if time_limit %}------The time limit to your code------
   You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.

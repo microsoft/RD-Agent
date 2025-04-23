@@ -122,6 +122,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
             eda_output=None,
         )
@@ -136,6 +138,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
