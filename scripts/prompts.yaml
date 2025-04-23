@@ -1,0 +1,38 @@
+extract_ideas:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be given a scenario description and corresponding SOTA implementation.
+    Your task is to analyze the given information and extract the useful ideas from the implementation.
+
+    ## Idea
+    An idea is a specific technique or approach applied within one of the five data science components that contributes to the high performance of the solution. The description of the components is as follow:
+    {{ component_desc }}
+  
+    ### Idea Specification
+    1. **Transferable**: Avoid trivial details (such as dataset-specific details like column names) to ensure the idea can be applied to other similar scenarios.
+    2. **Specific**: Include enough detail to distinguish the idea from generic or vague concepts (e.g., instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships").
+    3. **Reproducible**: In the `context` field, offer actionable insights or steps to reproduce the idea's impact. Include implementation methods (e.g., how optimal weights for ensembling were determined, the criteria used for hyperparameter tuning, or the specific algorithm used for feature selection).
+    4. **Impactful**: Prioritize ideas that demonstrate a significant contribution to improving model performance. Avoid trivial and useless steps such as "special handles for multiple submissions" and "use `glob` to handle file operations". 
+  
+    ### Idea Schema
+    Please extract all ideas that satisfied the Idea Specification above.
+    Each idea must strictly adhere to the following JSON schema. You final output should be a list containing all the ideas, each strictly adhere to the idea schema below without anything else.
+    [
+      {
+        "idea": "A concise label summarizing the core concept of this idea.",
+        "method": "A specific method used in this idea, described in a general and implementable way (e.g., 'applied a stacking ensemble method to combine predictions from multiple base models'). Avoid mentioning specific models or dataset-specific details to ensure better generalization",
+        "context": "A detailed example of how the notebook implements this idea (e.g., 'the notebook used XGBoost, Random Forest, and LightGBM as base models and logistic regression as the meta-model').",
+        "component": "The component of the solution that the idea focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        "hypothesis": {
+          "problem": "The nature of problem the idea addresses, described without referencing the method itself (e.g., 'a classification problem with complex decision boundaries').",
+          "data": "The characteristics of the data (e.g., imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based pattern, etc.) that justify the use of this method.",
+        }
+      }
+    ]
+        
+  user:  |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # SOTA Implementation
+    {{ sota_code }}
