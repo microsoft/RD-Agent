@@ -235,6 +235,7 @@ specification:
     1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
     2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+    4. A hypothesis should either refine the SOTA or explore new directions. Refinements involve incremental and continuous improvements, such as hyperparameter tuning on previous models or correcting mismatches in existing approaches. Explorations, on the other hand, introduce novel ideas or methods such as untested models, features, or techniques.
 
   idea: |-
     1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
@@ -262,6 +263,7 @@ output_format:
     {
       "problem name 1 (should be exactly same as the problem name provided)": {
         {% if enable_idea_pool %}"inspired": "True or False. Set to True if the hypothesis is inspired by the user provided ideas. Otherwise, set it to False.",{% endif %}
+        "refine": "True or False. Set to True if the hypothesis is a refinement of the current SOTA implementation. Otherwise, set it to False.",
         "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
         "component": "The component name that the hypothesis {% if pipeline %}mainly {% endif %}focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
