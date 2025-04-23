@@ -80,5 +80,7 @@ class RDAgentSettings(ExtendedBaseSettings):
     stdout_context_len: int = 400
     stdout_line_len: int = 10000
 
+    enable_mlflow: bool = False
+
 
 RD_AGENT_SETTINGS = RDAgentSettings()
