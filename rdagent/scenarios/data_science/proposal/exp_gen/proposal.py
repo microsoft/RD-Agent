@@ -339,10 +339,10 @@ class DSProposalV2ExpGen(ExpGen):
         # Increase the weight of the hypothesis that is inspired by the idea pool
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
-            index_to_pick_pool_list.append(j) # base
-            if hypothesis_dict[problem_name].get("refined", False): # refined
-                index_to_pick_pool_list.extend([j] * 3)
-            if hypothesis_dict[problem_name].get("inspired", False): # inspired
+            index_to_pick_pool_list.append(j)
+            if hypothesis_dict[problem_name].get("refined", False):
+                index_to_pick_pool_list.extend([j] * 2)
+            if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 2)
 
         # Create a random but reproducible integer
