@@ -66,9 +66,8 @@ hypothesis_gen:
 
     {% if enable_idea_pool %}
     In order to assist you in the hypothesis proposal, the user has sampled a list of ideas for each of the identified problems.
-    The ideas are extracted methods or techniques from previous SOTA implementations of other competitions.
-    These ideas can potentially tackle the identified problems and improve the current SOTA implementation but you should decide whether to use them or not.
-    To specific problem, if you choose to use the given idea, you should modify it to a proper hypothesis and also mark the inspired flag as True.
+    The ideas are extracted methods or techniques from previous SOTA implementations of other competitions, which are similar to the current competition.
+    These ideas can potentially tackle the identified problems and improve the current SOTA implementation.
     {% endif %}
 
     # Task 1: Hypothesis Proposal
@@ -99,7 +98,7 @@ hypothesis_gen:
       - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made.
       - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     {% if enable_idea_pool %}
-    5. Idea Reference
+    5. Idea Integration
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
     {% endif %}
 
@@ -186,7 +185,7 @@ task_gen:
 
 idea_sample:
   system: |-
-    You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
+    {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
     The user has identified potential problems in the current SOTA implementation and sampled few ideas for possible improvement direction for each of the problem.

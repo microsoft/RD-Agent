@@ -268,18 +268,23 @@ class DSProposalV2ExpGen(ExpGen):
         scenario_desc: str,
         exp_feedback_list_desc: str,
         sota_exp_desc: str,
-        problems: dict,
+        problems: list,
         pipeline: bool,
         enable_idea_pool: bool,
     ) -> Dict:
-        problem_formatted_str = ""
-        for problem_name, problem_dict in problems.items():
-            problem_formatted_str += f"# Problem Name: {problem_name}\n"
-            problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
-            if "idea" in problem_dict:
-                idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
-                problem_formatted_str += f"- Sampled Idea by user: \n{idea_formatted_str}\n"
-            problem_formatted_str += "\n\n"
+        # problem_formatted_str = ""
+        # for problem_name, problem_dict in problems.items():
+        #     problem_formatted_str += f"# Problem Name: {problem_name}\n"
+        #     problem_formatted_str += f"- Problem Description: {problem_dict['problem']}\n"
+        #     if "idea" in problem_dict:
+        #         idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
+        #         problem_formatted_str += f"- Sampled Idea by user: \n{idea_formatted_str}\n"
+        #     problem_formatted_str += "\n\n"
+
+        idea_formatted_str = ""
+        for i, idea in enumerate(problems):
+            idea_formatted_str += f"## Idea {i+1}: \n"
+            idea_formatted_str += f"{idea.to_formatted_str()}\n\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
@@ -294,7 +299,7 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            problems=problem_formatted_str,
+            problems=idea_formatted_str,
             enable_idea_pool=enable_idea_pool,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
@@ -459,30 +464,34 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 1: Identify problems
-        scen_problems = self.identify_scenario_problem(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        for problem_name in scen_problems:
-            scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
-        fb_problems = self.identify_feedback_problem(
-            scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        for problem_name in fb_problems:
-            fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-        all_problems = {**scen_problems, **fb_problems}
+        # scen_problems = self.identify_scenario_problem(
+        #     scenario_desc=scenario_desc,
+        #     sota_exp_desc=sota_exp_desc,
+        # )
+        # for problem_name in scen_problems:
+        #     scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+        # fb_problems = self.identify_feedback_problem(
+        #     scenario_desc=scenario_desc,
+        #     exp_feedback_list_desc=exp_feedback_list_desc,
+        #     sota_exp_desc=sota_exp_desc,
+        # )
+        # for problem_name in fb_problems:
+        #     fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+        # all_problems = {**scen_problems, **fb_problems}
 
         # Step 1.5: Sample ideas from idea pool
-        if DS_RD_SETTING.enable_knowledge_base:
-            all_problems = trace.knowledge_base.sample_ideas(
-                problems=all_problems,
-                scenario_desc=scenario_desc,
-                exp_feedback_list_desc=exp_feedback_list_desc,
-                sota_exp_desc=sota_exp_desc,
-                competition_desc=self.scen.get_competition_full_desc(),
-            )
+        # if DS_RD_SETTING.enable_knowledge_base:
+        #     all_problems = trace.knowledge_base.sample_ideas(
+        #         problems=all_problems,
+        #         scenario_desc=scenario_desc,
+        #         exp_feedback_list_desc=exp_feedback_list_desc,
+        #         sota_exp_desc=sota_exp_desc,
+        #         competition_desc=self.scen.get_competition_full_desc(),
+        #     )
+
+        with open(DS_RD_SETTING.idea_pool_json_path, "r") as f:
+            idea_list = json.load(f)
+        idea_pool = [DSIdea(idea) for idea in idea_list]
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
