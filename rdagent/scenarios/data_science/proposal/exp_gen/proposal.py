@@ -335,13 +335,15 @@ class DSProposalV2ExpGen(ExpGen):
         if len(scores_sorted) > 5:
             scores_sorted = scores_sorted[: len(scores_sorted) // 2]
 
+        # Increase the weight of the hypothesis that refines the SOTA experiment
         # Increase the weight of the hypothesis that is inspired by the idea pool
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
-            if hypothesis_dict[problem_name].get("inspired", False):
+            index_to_pick_pool_list.append(j) # base
+            if hypothesis_dict[problem_name].get("refined", False): # refined
                 index_to_pick_pool_list.extend([j] * 3)
-            else:
-                index_to_pick_pool_list.append(j)
+            if hypothesis_dict[problem_name].get("inspired", False): # inspired
+                index_to_pick_pool_list.extend([j] * 2)
 
         # Create a random but reproducible integer
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
