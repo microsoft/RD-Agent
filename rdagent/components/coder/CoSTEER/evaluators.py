@@ -114,10 +114,13 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
         # Instead, we should create subclass for it.
         self.shape_feedback = shape_feedback  # Not general enough. So
 
-    # TODO: @property
     @property
     def execution(self):
         return self.execution_feedback
+
+    @execution.setter
+    def execution(self, value):
+        self.execution_feedback = value
 
     @property
     def return_checking(self):
@@ -125,9 +128,20 @@ class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
             return f"value feedback: {self.value_feedback}\n\nshape feedback: {self.shape_feedback}"
         return None
 
+    @return_checking.setter
+    def return_checking(self, value):
+        # Since return_checking is derived from value_feedback and shape_feedback,
+        # we don't need to do anything here
+        self.value_feedback = value
+        self.shape_feedback = value
+
     @property
     def code(self):
         return self.code_feedback
+
+    @code.setter
+    def code(self, value):
+        self.code_feedback = value
 
     def __str__(self) -> str:
         return f"""------------------Execution Feedback------------------
