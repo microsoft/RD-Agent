@@ -32,7 +32,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     max_trace_hist: int = 3
 
     coder_max_loop: int = 10
-    runner_max_loop: int = 3
+    runner_max_loop: int = 1
 
     rule_base_eval: bool = False
 

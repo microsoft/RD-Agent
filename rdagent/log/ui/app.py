@@ -210,10 +210,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             msg.content = [i for i in msg.content if i]
                         if "evolving feedback" in tags:
                             total_len = len(msg.content)
-                            msg.content = [i for i in msg.content if i]
                             none_num = total_len - len(msg.content)
-                            if len(msg.content) != len(state.msgs[state.lround]["d.evolving code"][-1].content):
-                                st.toast(":red[**Evolving Feedback Length Error!**]", icon="‼️")
                             right_num = 0
                             for wsf in msg.content:
                                 if wsf.final_decision:
