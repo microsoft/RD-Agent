@@ -67,5 +67,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
         None  # This is to store the mid tar file since writing the tar file is preferred in local storage then copy to target storage
     )
 
+    ### inject diverse
+    enable_inject_diverse: bool = False
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()
