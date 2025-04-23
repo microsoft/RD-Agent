@@ -9,12 +9,11 @@ RUN apt-get clean && apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/* 
 
-WORKDIR /workspace
-RUN git clone --depth=100 https://github.com/microsoft/qlib.git && \
-    cd qlib && \
-    git reset e7a1b5ea1ff4412792eeb606a639e0dde422053a --hard
+RUN git clone https://github.com/microsoft/qlib.git
 
 WORKDIR /workspace/qlib
+
+RUN git fetch && git reset dbde1a109fb53e742a4dd210552ebf943576add9 --hard
 
 RUN python -m pip install --upgrade cython
 RUN python -m pip install -e .
