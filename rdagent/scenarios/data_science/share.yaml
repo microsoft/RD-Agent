@@ -81,6 +81,9 @@ describe: # some template to describe some object
     {% endif %}
   
   simple_trace: |-
+    {% if exp_and_feedback_list|length == 0 %}
+    No previous experiments available.
+    {% else %}
     {% for exp_and_feedback in exp_and_feedback_list %}
     ### Trace Index: {{ loop.index }}
     Target Problem: {{ exp_and_feedback[0].hypothesis.problem }}
@@ -94,6 +97,7 @@ describe: # some template to describe some object
     Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
     {% endfor %}
     Feedback: {{ exp_and_feedback[1].reason }}
+    {% endif %}
     
 scen:  # customizable
   role: |-
