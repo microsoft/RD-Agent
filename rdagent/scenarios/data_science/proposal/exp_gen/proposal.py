@@ -271,6 +271,7 @@ class DSProposalV2ExpGen(ExpGen):
         problems: list,
         pipeline: bool,
         enable_idea_pool: bool,
+        idea_pool_str: str,
     ) -> Dict:
         # problem_formatted_str = ""
         # for problem_name, problem_dict in problems.items():
@@ -281,10 +282,10 @@ class DSProposalV2ExpGen(ExpGen):
         #         problem_formatted_str += f"- Sampled Idea by user: \n{idea_formatted_str}\n"
         #     problem_formatted_str += "\n\n"
 
-        idea_formatted_str = ""
-        for i, idea in enumerate(problems):
-            idea_formatted_str += f"## Idea {i+1}: \n"
-            idea_formatted_str += f"{idea.to_formatted_str()}\n\n"
+        # idea_formatted_str = ""
+        # for i, idea in enumerate(problems):
+        #     idea_formatted_str += f"## Idea {i+1}: \n"
+        #     idea_formatted_str += f"{idea.to_formatted_str()}\n\n"
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
@@ -299,14 +300,14 @@ class DSProposalV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
             sota_exp_desc=sota_exp_desc,
-            problems=idea_formatted_str,
+            idea_pool_str=idea_pool_str,
             enable_idea_pool=enable_idea_pool,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             json_mode=True,
-            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+            json_target_type=Dict[str, str],
         )
         resp_dict = json.loads(response)
         return resp_dict
@@ -489,9 +490,14 @@ class DSProposalV2ExpGen(ExpGen):
         #         competition_desc=self.scen.get_competition_full_desc(),
         #     )
 
+        all_problems = None
         with open(DS_RD_SETTING.idea_pool_json_path, "r") as f:
-            idea_list = json.load(f)
+            idea_list = json.load(f)[self.scen.competition]
         idea_pool = [DSIdea(idea) for idea in idea_list]
+        idea_pool_str = ""
+        for index, idea in enumerate(idea_pool):
+            idea_pool_str += f"## Idea {index + 1}: \n"
+            idea_pool_str += f"{idea.to_formatted_str()}\n\n"
 
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
         hypothesis_dict = self.hypothesis_gen(
@@ -502,6 +508,7 @@ class DSProposalV2ExpGen(ExpGen):
             problems=all_problems,
             pipeline=pipeline,
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+            idea_pool_str=idea_pool_str,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -520,14 +527,21 @@ class DSProposalV2ExpGen(ExpGen):
                     hypothesis_dict.pop(name)
 
         # Step 3: Select the best hypothesis
-        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
-            hypothesis_dict=hypothesis_dict,
-            problem_dict=all_problems,
-            pipeline=pipeline,
+        
+        new_hypothesis = DSHypothesis(
+            component=hypothesis_dict.get("component", "Model"),
+            hypothesis=hypothesis_dict.get("hypothesis", "Hypothesis not provided"),
+            reason=hypothesis_dict.get("reason", "Reason not provided"),
         )
-        # Step 3.5: Update knowledge base with the picked problem
-        if DS_RD_SETTING.enable_knowledge_base:
-            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+        
+        # pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+        #     hypothesis_dict=hypothesis_dict,
+        #     problem_dict=all_problems,
+        #     pipeline=pipeline,
+        # )
+        # # Step 3.5: Update knowledge base with the picked problem
+        # if DS_RD_SETTING.enable_knowledge_base:
+        #     trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
 
         return self.task_gen(
             component_desc=component_desc,

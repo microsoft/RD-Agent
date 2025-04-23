@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.oai.llm_utils import APIBackend
