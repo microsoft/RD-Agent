@@ -23,12 +23,7 @@ def generate_competition_description(competition):
 
 def process_single_notebook(competition, notebook_path, output_path):
     # prepare
-    component_desc = "\n".join(
-        [
-            f"[{key}] {value}"
-            for key, value in T("scenarios.data_science.share:component_description").template.items()
-        ]
-    )
+    component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
     scenario_desc = generate_competition_description(competition)
     with open(notebook_path, 'r', encoding='utf-8') as f:
         code = f.read()
@@ -51,7 +46,7 @@ def process_single_notebook(competition, notebook_path, output_path):
 
     # save to json
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(resp_dict, f, indent=2)
+       json.dump(resp_dict, f, ensure_ascii=False, indent=2)
 
 # %%
 if __name__ == "__main__":

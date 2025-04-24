@@ -9,13 +9,20 @@ extract_ideas:
     {{ component_desc }}
   
     ### Idea Specification
-    1. **Transferable**: Avoid trivial details (such as dataset-specific details like column names) to ensure the idea can be applied to other similar scenarios.
-    2. **Specific**: Include enough detail to distinguish the idea from generic or vague concepts (e.g., instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships").
-    3. **Reproducible**: In the `context` field, offer actionable insights or steps to reproduce the idea's impact. Include implementation methods (e.g., how optimal weights for ensembling were determined, the criteria used for hyperparameter tuning, or the specific algorithm used for feature selection).
+    1. **Transferable**: Preserve technical essence while removing trivial implementation specifics.
+      - Avoid trivial details (such as dataset-specific details like column names) to ensure the idea can be applied to other similar scenarios.
+    2. **Specific**: Technical granularity enabling reproduction of the idea.
+      - Avoid using terms like (such as, for example) in your response. State what exactly the idea is in the code and how it was implemented.
+      - Avoid vague or generic terms (e.g., "ensemble" or "feature engineering") and instead focus on specific methods or techniques (e.g., "stacking ensemble with logistic regression as the meta-model" or "applying polynomial feature transformation").
+      - Include enough detail to distinguish the idea from generic or vague concepts (e.g., instead of "feature engineering," specify "applying polynomial feature transformation to capture non-linear relationships").
+    3. **Reproducible**: Actionable implementation blueprint.
+      - Provide a clear and concise description of how the idea was implemented in the notebook.
+      - In the `context` field, offer actionable insights or steps to reproduce the idea's impact. Include implementation methods (e.g., how optimal weights for ensembling were determined, the criteria used for hyperparameter tuning, or the specific algorithm used for feature selection).
     4. **Impactful**: Prioritize ideas that demonstrate a significant contribution to improving model performance. Avoid trivial and useless steps such as "special handles for multiple submissions" and "use `glob` to handle file operations". 
-  
+    5. **Collective**: Under the previous given specification, the use of all extracted ideas should be able to reproduce the given SOTA implementation to most extent. You may consider to extract ideas by the order or components.
+
     ### Idea Schema
-    Please extract all ideas that satisfied the Idea Specification above.
+    Please extract all ideas that satisfy the Idea Specification above. Make sure the use of all extracted ideas can reproduce the given SOTA implementation as long as they satisfy the given specification.
     Each idea must strictly adhere to the following JSON schema. You final output should be a list containing all the ideas, each strictly adhere to the idea schema below without anything else.
     [
       {
