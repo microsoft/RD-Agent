@@ -16,8 +16,8 @@ if MODEL_TYPE == "Tabular":
     m = model_cls(num_features=input_shape[1])
     data = torch.full(input_shape, INPUT_VALUE)
 elif MODEL_TYPE == "TimeSeries":
-    input_shape = (BATCH_SIZE, NUM_FEATURES, NUM_TIMESTEPS)
-    m = model_cls(num_features=input_shape[1], num_timesteps=input_shape[2])
+    input_shape = (BATCH_SIZE, NUM_TIMESTEPS, NUM_FEATURES)
+    m = model_cls(num_features=input_shape[2], num_timesteps=input_shape[1])
     data = torch.full(input_shape, INPUT_VALUE)
 elif MODEL_TYPE == "Graph":
     node_feature = torch.randn(BATCH_SIZE, NUM_FEATURES)
