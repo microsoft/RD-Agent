@@ -56,8 +56,7 @@ class DSCoSTEERCoSTEEREvaluator(CoSTEEREvaluator):
             eda_output = "No EDA output."
         implementation.inject_files(**{"EDA.md": eda_output})
         stdout = remove_eda_part(stdout)
-        if not stdout:
-            stdout = f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'EDA output is emmitted. ' if eda_output else ''}"
+        stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}. {'EDA output is emmitted. ' if eda_output else ''}"
 
         # Check score file
         score_fp = implementation.workspace_path / "scores.csv"
