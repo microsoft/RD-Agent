@@ -227,9 +227,14 @@ class LoopBase:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
 
-        if session.timer.started and replace_timer:
-            RD_Agent_TIMER_wrapper.replace_timer(session.timer)
-            RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
+        if session.timer.started:
+            if replace_timer:
+                RD_Agent_TIMER_wrapper.replace_timer(session.timer)
+                RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
+            else:
+                # Use the default timer to replace the session timer
+                session.timer = RD_Agent_TIMER_wrapper.timer
+
         return session
 
 
