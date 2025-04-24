@@ -303,15 +303,18 @@ class DeprecBackend(APIBackend):
             logger.info(self._build_log_messages(messages), tag="llm_messages")
         # TODO: fail to use loguru adaptor due to stream response
 
+        model = LLM_SETTINGS.chat_model
         temperature = LLM_SETTINGS.chat_temperature
         max_tokens = LLM_SETTINGS.chat_max_tokens
         frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         presence_penalty = LLM_SETTINGS.chat_presence_penalty
 
         if self.chat_model_map:
-            for t, m in self.chat_model_map.items():
+            for t, mc in self.chat_model_map.items():
                 if t in logger._tag:
-                    model = m
+                    model = mc.get("model", model)
+                    temperature = mc.get("temperature", temperature)
+                    max_tokens = mc.get("max_tokens", max_tokens)
                     break
 
         finish_reason = None
