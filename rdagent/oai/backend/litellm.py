@@ -1,4 +1,4 @@
-from typing import Any, cast, Literal
+from typing import Any, Literal, cast
 
 from litellm import (
     completion,
@@ -103,9 +103,7 @@ class LiteLLMAPIBackend(APIBackend):
             reasoning_effort=reasoning_effort,
             **kwargs,
         )
-        logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages"
-        )
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
 
         if LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")

@@ -314,7 +314,8 @@ class DeprecBackend(APIBackend):
                 if t in logger._tag:
                     model = mc.get("model", model)
                     temperature = float(mc.get("temperature", temperature))
-                    if "max_tokens" in mc: max_tokens = int(mc["max_tokens"])
+                    if "max_tokens" in mc:
+                        max_tokens = int(mc["max_tokens"])
                     break
 
         finish_reason = None
