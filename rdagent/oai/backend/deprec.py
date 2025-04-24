@@ -308,14 +308,11 @@ class DeprecBackend(APIBackend):
         frequency_penalty = LLM_SETTINGS.chat_frequency_penalty
         presence_penalty = LLM_SETTINGS.chat_presence_penalty
 
-        # Use index 4 to skip the current function and intermediate calls,
-        # and get the locals of the caller's frame.
-        caller_locals = inspect.stack()[4].frame.f_locals
-        if "self" in caller_locals:
-            tag = caller_locals["self"].__class__.__name__
-        else:
-            tag = inspect.stack()[4].function
-        model = self.chat_model_map.get(tag, self.chat_model)
+        if self.chat_model_map:
+            for t, m in self.chat_model_map.items():
+                if t in logger._tag:
+                    model = m
+                    break
 
         finish_reason = None
         if self.use_llama2:
@@ -394,7 +391,7 @@ class DeprecBackend(APIBackend):
                 logger.info(f"{LogColors.CYAN}Think:{think_part}{LogColors.END}", tag="llm_messages")
                 logger.info(f"{LogColors.CYAN}Response:{resp}{LogColors.END}", tag="llm_messages")
         else:
-            call_kwargs = dict(
+            call_kwargs: dict[str, Any] = dict(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
@@ -443,7 +440,6 @@ class DeprecBackend(APIBackend):
                     logger.info(
                         json.dumps(
                             {
-                                "tag": tag,
                                 "total_tokens": response.usage.total_tokens,
                                 "prompt_tokens": response.usage.prompt_tokens,
                                 "completion_tokens": response.usage.completion_tokens,
