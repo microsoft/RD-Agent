@@ -152,7 +152,7 @@ class DeprecBackend(APIBackend):
             self.gcr_endpoint_max_token = LLM_SETTINGS.gcr_endpoint_max_token
             if not os.environ.get("PYTHONHTTPSVERIFY", "") and hasattr(ssl, "_create_unverified_context"):
                 ssl._create_default_https_context = ssl._create_unverified_context  # noqa: SLF001
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.chat_model = LLM_SETTINGS.chat_model
             self.encoder = None
         elif LLM_SETTINGS.chat_use_azure_deepseek:
@@ -160,7 +160,7 @@ class DeprecBackend(APIBackend):
                 endpoint=LLM_SETTINGS.chat_azure_deepseek_endpoint,
                 credential=AzureKeyCredential(LLM_SETTINGS.chat_azure_deepseek_key),
             )
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.encoder = None
             self.chat_model = "deepseek-R1"
             self.chat_stream = LLM_SETTINGS.chat_stream
@@ -181,7 +181,7 @@ class DeprecBackend(APIBackend):
             )
 
             self.chat_model = LLM_SETTINGS.chat_model
-            self.chat_model_map = json.loads(LLM_SETTINGS.chat_model_map)
+            self.chat_model_map = LLM_SETTINGS.chat_model_map
             self.encoder = self._get_encoder()
             self.chat_openai_base_url = LLM_SETTINGS.chat_openai_base_url
             self.embedding_openai_base_url = LLM_SETTINGS.embedding_openai_base_url
