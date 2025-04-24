@@ -335,13 +335,15 @@ class DSProposalV2ExpGen(ExpGen):
         if len(scores_sorted) > 5:
             scores_sorted = scores_sorted[: len(scores_sorted) // 2]
 
+        # Increase the weight of the hypothesis that refines the SOTA experiment
         # Increase the weight of the hypothesis that is inspired by the idea pool
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
+            index_to_pick_pool_list.append(j)
+            if hypothesis_dict[problem_name].get("refined", False):
+                index_to_pick_pool_list.extend([j] * 2)
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 3)
-            else:
-                index_to_pick_pool_list.append(j)
+                index_to_pick_pool_list.extend([j] * 2)
 
         # Create a random but reproducible integer
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
@@ -457,6 +459,10 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
         )
+        simple_trace_desc = T("scenarios.data_science.share:describe.simple_trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            pipeline=pipeline,
+        )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
@@ -467,7 +473,7 @@ class DSProposalV2ExpGen(ExpGen):
             scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
-            exp_feedback_list_desc=exp_feedback_list_desc,
+            exp_feedback_list_desc=simple_trace_desc,
             sota_exp_desc=sota_exp_desc,
         )
         for problem_name in fb_problems:
