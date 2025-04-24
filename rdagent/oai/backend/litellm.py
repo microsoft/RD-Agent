@@ -91,8 +91,11 @@ class LiteLLMAPIBackend(APIBackend):
                         temperature = float(mc["temperature"])
                     if "max_tokens" in mc:
                         max_tokens = int(mc["max_tokens"])
-                    if "reasoning_effort" in mc and mc["reasoning_effort"] in ["low", "medium", "high"]:
-                        reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                    if "reasoning_effort" in mc:
+                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
+                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                        else:
+                            reasoning_effort = None
                     break
         response = completion(
             model=model,
