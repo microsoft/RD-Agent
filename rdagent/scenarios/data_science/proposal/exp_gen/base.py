@@ -128,7 +128,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         else:
             raise ValueError(f"Invalid search type: {search_type}")
 
-
     def collect_all_ancestors(
         self,
         selection: tuple[int, ...] = (-1,),
