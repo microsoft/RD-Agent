@@ -221,9 +221,13 @@ class DataScienceRDLoop(RDLoop):
 
     @classmethod
     def load(
-        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
+        cls,
+        path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        do_truncate: bool = False,
+        replace_timer: bool = True,
     ) -> "LoopBase":
-        session = super().load(path, output_path, do_truncate)
+        session = super().load(path, output_path, do_truncate, replace_timer)
         if (
             DS_RD_SETTING.enable_knowledge_base
             and DS_RD_SETTING.knowledge_base_version == "v1"
@@ -255,6 +259,7 @@ def main(
     competition="bms-molecular-translation",
     do_truncate=True,
     timeout=None,
+    replace_timer=True,
 ):
     """
 
@@ -297,7 +302,7 @@ def main(
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
-        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate)
+        kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate, replace_timer)
     kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
 
 
