@@ -443,6 +443,7 @@ class QlibDockerConf(DockerConf):
     extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
     shm_size: str | None = "16g"
     enable_gpu: bool = True
+    enable_cache: bool = False
 
 
 class DMDockerConf(DockerConf):
