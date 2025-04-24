@@ -3,6 +3,9 @@ scenario_description: |-
   ------Background of the scenario------
   {{ raw_description }}
 
+  The evaluation metrics used is directed as:
+  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
+
   {% else %}
     ------Background of the scenario------
   {{ background }}
