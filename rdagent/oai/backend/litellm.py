@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast, Literal
 
 from litellm import (
     completion,
@@ -78,28 +78,33 @@ class LiteLLMAPIBackend(APIBackend):
 
         logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
-        current_model_config = {
-            "model": LITELLM_SETTINGS.chat_model,
-            "temperature": LITELLM_SETTINGS.chat_temperature,
-            "max_tokens": LITELLM_SETTINGS.chat_max_tokens,
-            "reasoning_effort": LITELLM_SETTINGS.reasoning_effort,
-        }
+        model = LITELLM_SETTINGS.chat_model
+        temperature = LITELLM_SETTINGS.chat_temperature
+        max_tokens = LITELLM_SETTINGS.chat_max_tokens
+        reasoning_effort = LITELLM_SETTINGS.reasoning_effort
+
         if LITELLM_SETTINGS.chat_model_map:
             for t, mc in LITELLM_SETTINGS.chat_model_map.items():
                 if t in logger._tag:
-                    current_model_config.update(mc)
+                    model = mc["model"]
+                    if "temperature" in mc:
+                        temperature = float(mc["temperature"])
+                    if "max_tokens" in mc:
+                        max_tokens = int(mc["max_tokens"])
+                    if "reasoning_effort" in mc and mc["reasoning_effort"] in ["low", "medium", "high"]:
+                        reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
                     break
         response = completion(
-            model=current_model_config["model"],
+            model=model,
             messages=messages,
             stream=LITELLM_SETTINGS.chat_stream,
-            temperature=current_model_config["temperature"],
-            max_tokens=current_model_config["max_tokens"],
-            reasoning_effort=current_model_config["reasoning_effort"],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
             **kwargs,
         )
         logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {current_model_config['model']}", tag="llm_messages"
+            f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages"
         )
 
         if LITELLM_SETTINGS.chat_stream:
@@ -128,7 +133,7 @@ class LiteLLMAPIBackend(APIBackend):
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         global ACC_COST
-        cost = completion_cost(model=current_model_config["model"], messages=messages, completion=content)
+        cost = completion_cost(model=model, messages=messages, completion=content)
         ACC_COST += cost
         logger.info(
             f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",

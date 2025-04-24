@@ -313,8 +313,8 @@ class DeprecBackend(APIBackend):
             for t, mc in self.chat_model_map.items():
                 if t in logger._tag:
                     model = mc.get("model", model)
-                    temperature = mc.get("temperature", temperature)
-                    max_tokens = mc.get("max_tokens", max_tokens)
+                    temperature = float(mc.get("temperature", temperature))
+                    if "max_tokens" in mc: max_tokens = int(mc["max_tokens"])
                     break
 
         finish_reason = None
