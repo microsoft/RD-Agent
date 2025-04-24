@@ -461,6 +461,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         simple_trace_desc = T("scenarios.data_science.share:describe.simple_trace").r(
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            pipeline=pipeline,
         )
 
         # Step 1: Identify problems
