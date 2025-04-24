@@ -281,6 +281,8 @@ component_spec:
       {% endraw %}
     
   Pipeline: |-
+    0. Program Running:
+      - The program will be runned using python main.py **without anything parameters**. Ensure no optional parameters are used in main.py
     1. File Handling:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
