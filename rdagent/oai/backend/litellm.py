@@ -78,8 +78,14 @@ class LiteLLMAPIBackend(APIBackend):
 
         logger.info(self._build_log_messages(messages), tag="llm_messages")
         # Call LiteLLM completion
+        current_model = LITELLM_SETTINGS.chat_model
+        if LITELLM_SETTINGS.chat_model_map:
+            for t, m in LITELLM_SETTINGS.chat_model_map.items():
+                if t in logger._tag:
+                    current_model = m
+                    break
         response = completion(
-            model=LITELLM_SETTINGS.chat_model,
+            model=current_model,
             messages=messages,
             stream=LITELLM_SETTINGS.chat_stream,
             temperature=LITELLM_SETTINGS.chat_temperature,
@@ -87,9 +93,7 @@ class LiteLLMAPIBackend(APIBackend):
             reasoning_effort=LITELLM_SETTINGS.reasoning_effort,
             **kwargs,
         )
-        logger.info(
-            f"{LogColors.GREEN}Using chat model{LogColors.END} {LITELLM_SETTINGS.chat_model}", tag="llm_messages"
-        )
+        logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {current_model}", tag="llm_messages")
 
         if LITELLM_SETTINGS.chat_stream:
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END}", tag="llm_messages")
@@ -117,7 +121,7 @@ class LiteLLMAPIBackend(APIBackend):
             logger.info(f"{LogColors.BLUE}assistant:{LogColors.END} {finish_reason_str}\n{content}", tag="llm_messages")
 
         global ACC_COST
-        cost = completion_cost(model=LITELLM_SETTINGS.chat_model, messages=messages, completion=content)
+        cost = completion_cost(model=current_model, messages=messages, completion=content)
         ACC_COST += cost
         logger.info(
             f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
