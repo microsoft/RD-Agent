@@ -203,7 +203,11 @@ class LoopBase:
 
     @classmethod
     def load(
-        cls, path: Union[str, Path], output_path: Optional[Union[str, Path]] = None, do_truncate: bool = False
+        cls,
+        path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        do_truncate: bool = False,
+        replace_timer: bool = True,
     ) -> "LoopBase":
         path = Path(path)
         with path.open("rb") as f:
@@ -223,7 +227,7 @@ class LoopBase:
             max_loop = max(session.loop_trace.keys())
             logger.storage.truncate(time=session.loop_trace[max_loop][-1].end)
 
-        if session.timer.started:
+        if session.timer.started and replace_timer:
             RD_Agent_TIMER_wrapper.replace_timer(session.timer)
             RD_Agent_TIMER_wrapper.timer.restart_by_remain_time()
         return session
