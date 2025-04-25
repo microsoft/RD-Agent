@@ -283,7 +283,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         sys_prompt = T(".prompts_v2:hypothesis_gen.system").r(
             component_desc=component_desc,
-            hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(),
+            hypothesis_spec=T(".prompts_v2:specification.hypothesis").r(pipeline=pipeline),
             hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(
                 pipeline=pipeline, enable_idea_pool=enable_idea_pool
             ),
