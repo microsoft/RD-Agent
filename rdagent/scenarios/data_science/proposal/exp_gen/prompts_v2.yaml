@@ -72,34 +72,21 @@ hypothesis_gen:
     {% endif %}
 
     # Task 1: Hypothesis Proposal
-    For each identified problem, you are required to propose a hypothesis aimed at improving the current SOTA implementation. 
-    A hypothesis is a precise, testable, and actionable statement that proposes a specific modification or improvement to address an identified problem in a Kaggle competition implementation.
-    {% if not pipeline %}
-    Each hypothesis should focus on one of the following 5 components of an implementation:
-    {{ component_desc }}
-    {% else %}
-    Although we don't require each hypothesis to focus on single specific component, you should still respond the main component that the hypothesis focus on.
-    Candidate components are:
-    {{ component_desc }}
-    {% endif %}
+    For each identified problem, propose a hypothesis to improve the current SOTA implementation. The hypothesis must be precise, testable, and actionable, directly addressing the problem of the given SOTA implementation.
 
     ## Hypothesis Guidelines
-    Here are guidelines to aid your hypothesis proposal. You don't need to answer all the questions.
+    Use these guidelines to formulate hypotheses (no need to address all questions):
     1. Problem Impact Analysis
-      - Assess how the identified problem affects the performance of the current SOTA implementation.
+      - Quantify how the problem degrades performance.
     2. Lessons from Previous Experiments
-      - For persistent problem, analyze why previous experiments failed on this problem.
-      - Review why previous experiments failed to address the problem. Identify patterns, overlooked factors, or misaligned assumptions.
-      - Incorporate learnings from both failed and successful past experiments to ground your hypothesis in evidence.
+      - For persistent problems, analyze why prior hypotheses and solutions failed.
+      - Incorporate evidence from past failures/successes to justify the hypothesis.
     3. Actionable Changes
       - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
-    4. Specific and Non-Vague
-      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made.
-      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     {% if enable_idea_pool %}
-    5. Idea Reference
+    4. Idea Reference
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
     {% endif %}
 
@@ -111,7 +98,10 @@ hypothesis_gen:
     After proposing the hypothesis, your second task is to evaluate the hypothesis from multiple dimensions.
 
     ## Evaluation Instruction
-    Please score the proposed hypothesis from 1 to 10 for each of the following dimensions (where 1 means lowest and 10 means highest):
+    Firstly, you should tag the hypothesis with one of the following components. If the hypothesis is related to multiple components, you should choose the most relevant one.
+    {{ component_desc }}
+
+    Secondly, please score the proposed hypothesis from 1 to 10 for each of the following dimensions (where 1 means lowest and 10 means highest):
     1. Problem-Hypothesis Alignment: How well the hypothesis addresses the identified problem.
     2. Expected Impact: The estimated improvement after applying the hypothesis to current SOTA implementation.
     3. Novelty: Degree of innovation compared to previous attempts. If the proposed hypothesis is similar to previous experiments' hypothesis, assign novelty score to one.
@@ -220,9 +210,18 @@ specification:
     3. The problem should be strictly aligned with the improvement of target metric. The problem should fit the template: "IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE."
   
   hypothesis: |-
-    1. The hypothesis should be precise, testable, and directly actionable. Avoid general or vague statements. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is specific and actionable.
-    2. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
-    3. The hypothesis should based on current SOTA solution. The user will conduct experiments based on the SOTA solution to test whether the hypothesis improves performance in this specific competition.
+    1. Each hypothesis should be specific and non-vague.
+      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made. Do not use ambiguous changes like "try method A or method B". 
+      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
+    2. Each hypothesis should be testable and actionable. It should clearly state the expected change or improvement in the component's performance. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is testable and actionable.
+    3. Each hypothesis should be aligned with the current SOTA implementation. It should be a potential solution to the identified problem.
+    4. All the changes in the hypothesis should be correlated and relvant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
+    {% if not pipeline %}
+    5. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
+    6. Each hypothesis should focus on one component. The components will be described in the evaluation stage.
+    {% else %}
+    5. The hypothesis should focus on the whole pipeline. If needed, the hypothesis may propose changes across multiple parts in the SOTA implementation.
+    {% endif %}
 
   idea: |-
     1. Alignment: The idea should be aligned with the identified problem. It should be a potential solution to the problem.
@@ -251,7 +250,7 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": {
         {% if enable_idea_pool %}"inspired": "True or False. Set to True if the hypothesis is inspired by the user provided ideas. Otherwise, set it to False.",{% endif %}
         "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
-        "component": "The component name that the hypothesis {% if pipeline %}mainly {% endif %}focuses on. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+        "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
         "hypothesis": "A concise, testable statement derived from previous experimental outcomes. Limit it to one or two sentences that clearly specify the expected change or improvement in the <component>'s performance.",
         "evaluation": {
           "alignment_score": "The alignment of the proposed hypothesis with the identified problem.",

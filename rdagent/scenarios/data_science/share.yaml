@@ -281,6 +281,9 @@ component_spec:
       {% endraw %}
     
   Pipeline: |-
+    0. Program Running:
+      - The program will be runned using python main.py **without any parameters**. Ensure no optional parameters are used in main.py.
+      
     1. File Handling:
       - Handle file encoding and delimiters appropriately.
       - Combine or process multiple files if necessary.
@@ -312,7 +315,6 @@ component_spec:
 
     6. Notes:
       - GPU and multiprocessing are available and are encouraged to use for accelerating transformations.
-      - Feature engineering should be executed **once** and reused across all models to ensure consistency: `X_transformed, y_transformed, X_test_transformed = feat_eng(X, y, X_test)`
   
     7. Metric Calculation and Storage:
       - Calculate the metric (mentioned in the evaluation section of the competition information) for each model and ensemble strategy on valid, and save the results in `scores.csv`
