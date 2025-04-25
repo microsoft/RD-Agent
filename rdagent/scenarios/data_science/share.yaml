@@ -84,7 +84,8 @@ describe: # some template to describe some object
 scen:  # customizable
   role: |-
     You are a Kaggle Grandmaster and expert ML engineer with deep expertise in statistics, machine learning, and competition optimization.
-    Please use current data to train and test the model.
+    Please note that while the input path includes all competition files, test or validation datasets might not be provided. 
+    In such cases, you may need to split the available data to perform both training and evaluation.
   input_path: "/kaggle/input"
 
 component_description:
