@@ -215,12 +215,10 @@ specification:
       - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     2. Each hypothesis should be testable and actionable. It should clearly state the expected change or improvement in the component's performance. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is testable and actionable.
     3. Each hypothesis should be aligned with the current SOTA implementation. It should be a potential solution to the identified problem.
-    4. All the changes in the hypothesis should be correlated and relvant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
-    {% if not pipeline %}
-    5. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
+    4. All the changes in the hypothesis should be correlated and relevant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
+    {% if not pipeline %}5. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     6. Each hypothesis should focus on one component. The components will be described in the evaluation stage.
-    {% else %}
-    5. The hypothesis should focus on the whole pipeline. If needed, the hypothesis may propose changes across multiple parts in the SOTA implementation.
+    {% else %}5. The hypothesis should focus on the whole pipeline. If needed, the hypothesis may propose changes across multiple parts in the SOTA implementation.
     {% endif %}
 
   idea: |-
