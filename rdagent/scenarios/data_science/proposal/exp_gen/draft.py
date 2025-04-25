@@ -116,3 +116,29 @@ class DSDraftExpGen(ExpGen):
             # exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
+
+
+
+class DSDraftV2ExpGen(ExpGen):
+
+
+    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        # Prepare
+        if pipeline:
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        else:
+            component_desc = "\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
+
+
+        # Step 1: Identify Scenario Problems
+
+        # Step 2: 
+
+
+        pass
