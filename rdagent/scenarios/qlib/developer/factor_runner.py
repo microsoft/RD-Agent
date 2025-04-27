@@ -126,6 +126,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         )
 
         exp.result = result
+        exp.stdout = stdout
 
         return exp
 
