@@ -68,7 +68,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             .mean()
         )
         IC_max.index = pd.MultiIndex.from_product([range(SOTA_feature.shape[1]), range(new_feature.shape[1])])
+        logger.info(f"IC_max1: {IC_max}")
         IC_max = IC_max.unstack().max(axis=0)
+        logger.info(f"IC_max2: {IC_max}")
         return new_feature.iloc[:, IC_max[IC_max < 0.99].index]
 
     @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
@@ -78,24 +80,27 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         then passing the combined data to Docker for backtest results.
         """
         if exp.based_experiments and exp.based_experiments[-1].result is None:
+            logger.info(f"Baseline experiment execution ...")
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
         if exp.based_experiments:
+            logger.info(f"SOTA factor processing ...")
             SOTA_factor = None
             if len(exp.based_experiments) > 1:
                 SOTA_factor = self.process_factor_data(exp.based_experiments)
 
+            logger.info(f"New factor processing ...")
             # Process the new factors data
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                raise FactorEmptyError("No valid factor data found to merge.")
+                raise FactorEmptyError("No valid factor data in this loop found to merge.")
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
                 new_factors = self.deduplicate_new_factors(SOTA_factor, new_factors)
                 if new_factors.empty:
-                    raise FactorEmptyError("No valid factor data found to merge.")
+                    raise FactorEmptyError("No valid factor data found to merge (after deduplicate_new_factors).")
                 combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
             else:
                 combined_factors = new_factors
@@ -113,7 +118,10 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             # Save the combined factors to the workspace
             combined_factors.to_parquet(target_path, engine="pyarrow")
 
-        result = exp.experiment_workspace.execute(
+            logger.info(f"Factor data processing completed.")
+
+        logger.info(f"Experiment execution ...")
+        result, stdout = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
         )
 
@@ -150,15 +158,22 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                     ],  # only execute successfully feedback
                     n=RD_AGENT_SETTINGS.multi_proc_n,
                 )
+                error_message = ""
                 for message, df in message_and_df_list:
                     # Check if factor generation was successful
                     if df is not None and "datetime" in df.index.names:
                         time_diff = df.index.get_level_values("datetime").to_series().diff().dropna().unique()
                         if pd.Timedelta(minutes=1) not in time_diff:
                             factor_dfs.append(df)
+                            logger.info(f"Factor data from {exp.hypothesis.concise_justification} is successfully generated.")
+                        else:
+                            logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated.")
+                    else:
+                        error_message += f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}"
+                        logger.warning(f"Factor data from {exp.hypothesis.concise_justification} is not generated because of {message}")
 
         # Combine all successful factor data
         if factor_dfs:
             return pd.concat(factor_dfs, axis=1)
         else:
-            raise FactorEmptyError("No valid factor data found to merge.")
+            raise FactorEmptyError(f"No valid factor data found to merge (in process_factor_data) because of {error_message}.")

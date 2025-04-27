@@ -29,8 +29,21 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+        
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": None,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],

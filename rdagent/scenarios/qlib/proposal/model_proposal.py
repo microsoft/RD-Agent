@@ -29,8 +29,21 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
             "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
@@ -77,7 +90,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": model_list,
-            "RAG": None,
+            "RAG": "Note, the training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size.",
         }, True
 
     def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:

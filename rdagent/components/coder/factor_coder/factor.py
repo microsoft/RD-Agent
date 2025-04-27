@@ -50,6 +50,12 @@ class FactorTask(CoSTEERTask):
 factor_description: {self.factor_description}
 factor_formulation: {self.factor_formulation}
 variables: {str(self.variables)}"""
+    
+    def get_task_brief_information(self):
+        return f"""factor_name: {self.factor_name}
+factor_description: {self.factor_description}
+factor_formulation: {self.factor_formulation}
+variables: {str(self.variables)}"""
 
     def get_task_information_and_implementation_result(self):
         return {

@@ -2,7 +2,7 @@ from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import ModelEmptyError
 from rdagent.core.utils import cache_with_pickle
 from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
-
+from rdagent.log import rdagent_logger as logger
 
 class QlibModelRunner(CachedRunner[QlibModelExperiment]):
     """
@@ -30,8 +30,13 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
         elif exp.sub_tasks[0].model_type == "Tabular":
             env_to_use.update({"dataset_cls": "DatasetH"})
-
+        logger.info(f"start to run {exp.sub_tasks[0].name} model")
+        # In model loop, execpt the result, we also need to store the training loop
         result = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
+
+        if result is None:
+            logger.error(f"Failed to run {exp.sub_tasks[0].name} model")
+            raise ModelEmptyError(f"Failed to run {exp.sub_tasks[0].name} model")
 
         exp.result = result
 

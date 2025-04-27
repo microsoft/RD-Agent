@@ -69,7 +69,7 @@ def pull_image_with_progress(image: str) -> None:
 class EnvConf(ExtendedBaseSettings):
     default_entry: str
     extra_volumes: dict = {}
-    running_timeout_period: int = 600  # 10 minutes
+    running_timeout_period: int = 3600  # 10 minutes
     # helper settings to support transparent;
     enable_cache: bool = True
     retry_count: int = 5  # retry count for the docker run
@@ -375,12 +375,70 @@ class LocalEnv(Env[ASpecificLocalConf]):
         if local_path:
             cwd = Path(local_path).resolve()
 
-        result = subprocess.run(entry, cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, shell=True)
-        combined_output = result.stderr + result.stdout  # Combine stdout and stderr
-        Console().print(combined_output, markup=False)
+        # Convert any integer values in env to strings
+        env = {k: str(v) if isinstance(v, int) else v for k, v in env.items()}
+        
+        # Use Popen for real-time output
+        process = subprocess.Popen(
+            entry,
+            cwd=cwd,
+            env={**os.environ, **env},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=True,
+            bufsize=1,  # Line buffered
+            universal_newlines=True
+        )
+
+        combined_output = ""
+        # Read both stdout and stderr in real-time
+        import select
+        import sys
+        
+        # Create file descriptors for stdout and stderr
+        stdout_fd = process.stdout.fileno()
+        stderr_fd = process.stderr.fileno()
+        
+        # Set up polling
+        poller = select.poll()
+        poller.register(stdout_fd, select.POLLIN)
+        poller.register(stderr_fd, select.POLLIN)
+        
+        # Read until process ends
+        while True:
+            # Check if process has ended
+            if process.poll() is not None:
+                break
+                
+            # Poll for output
+            events = poller.poll(100)  # 100ms timeout
+            for fd, event in events:
+                if event & select.POLLIN:
+                    if fd == stdout_fd:
+                        output = process.stdout.readline()
+                        if output:
+                            Console().print(output.strip(), markup=False)
+                            combined_output += output
+                    elif fd == stderr_fd:
+                        error = process.stderr.readline()
+                        if error:
+                            Console().print(error.strip(), markup=False)
+                            combined_output += error
+
+        # Get any remaining output
+        remaining_output, remaining_error = process.communicate()
+        if remaining_output:
+            Console().print(remaining_output.strip(), markup=False)
+            combined_output += remaining_output
+        if remaining_error:
+            Console().print(remaining_error.strip(), markup=False)
+            combined_output += remaining_error
+
+        return_code = process.returncode
         print(Rule("[bold green]LocalEnv Logs End[/bold green]", style="dark_orange"))
 
-        return combined_output, result.returncode
+        return combined_output, return_code
 
 
 class CondaConf(LocalConf):
@@ -431,6 +489,12 @@ class DockerConf(EnvConf):
     retry_count: int = 5  # retry count for the docker run
     retry_wait_seconds: int = 10  # retry wait seconds for the docker run
 
+
+class QlibCondaConf(CondaConf):
+    conda_env_name: str = "qlib_yt"
+    enable_cache: bool = False
+    default_entry: str = "qrun conf.yaml"
+    # extra_volumes: dict = {str(Path("~/.qlib/").expanduser().resolve().absolute()): "/root/.qlib/"}
 
 class QlibDockerConf(DockerConf):
     model_config = SettingsConfigDict(env_prefix="QLIB_DOCKER_")
