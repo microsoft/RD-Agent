@@ -1,0 +1,102 @@
+scenario_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be given the scenario description and the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
+
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    {{ problem_spec }}
+    
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+
+    ### Output Format
+    {{ problem_output_format }}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+
+hypothesis_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is creating a Kaggle competition implementation iteratively and this is the first iteration.
+    You will be given a competition scenario and a list of identified scenario problems from the given competition scenario.
+    Your role is to propose a testable hypothesis to address the identified problems and aid the Kaggle competition implementation.
+
+    # Task: Hypothesis Proposal
+    Propose a precise, testable, and actionable hypothesis to address the identified problems based on the provided scenario description.
+
+    ## Hypothesis Specification
+    1. Specific and Non-vague.
+      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made. Do not use ambiguous changes like "try method A or method B". 
+      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
+    2. Testable and Actionable.
+      - Each hypothesis should clearly state the expected change or improvement in the component's performance. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is testable and actionable.
+    3. Relevant and Correlated.
+      - All the changes in the hypothesis should be correlated and relevant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
+    4. Logical and Non-conflicting.
+      - Align the hypothesis with competition goals and constraints.
+      - In case of conflicting ideas in the hypothesis, resolve conflicting ideas by prioritizing the most impactful or feasible option.
+    {% if not pipeline %}
+    5. Single-Direction Focus - Each hypothesis must test one specific idea per experiment. Avoid proposing conditional outcomes (e.g., "this may work in case A or case B").
+    {% else %}
+    5. Pipeline-Level Focus - The hypothesis may propose changes across multiple parts of the implementation if necessary.
+    {% endif %}
+
+    ## Final Output Format in JSON Schema:
+    For each of the identified problem, you should propose a hypothesis strictly following to the JSON schema. Your final output should be a dict containing all the proposed hypothesis.
+    {
+      "hypothesis": "A precise, testable, and actionable hypothesis to address the identified problems based on the provided scenario description.",
+      "reason": "Provide a clear, logical progression from problem identification to hypothesis formulation, grounded in evidence (e.g., trace history, domain principles, or competition constraints). Refer to the Hypothesis Guidelines for better understanding. Reason should be short with no more than two sentences.",
+      "component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+    }
+    
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Identified Problems
+    {{ problems }}
+
+
+task_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is creating a Kaggle competition implementation iteratively and this is the first iteration.
+    You will be given a competition scenario and a list of identified scenario problems from the given competition scenario.
+    Your role is to design very detailed tasks with specific steps and instructions to implement competition solution and address identifed scenario problems. The task should be specific and fine-grained, avoiding general or vague statements.
+
+    # Task Design
+    ## Task Specification
+    {{ task_spec }}
+
+    ## Task Design Guidelines
+    Here are guidelines **YOU MUST FOLLOW** in your task design:
+    1. The task should be concise with several steps each only in a few sentences. 
+    2. DO NOT write any code in the task description.
+    3. DO NOT use any pharases like "for example" or "eg.," in the task description. Clearly give a decision (such as the specific method or model name) in the task description.
+    4. DO NOT use vague statements like "choose a proper model" or "optimize the pipeline". Instead, specify the exact step and task to be made.
+    5. DO NOT include any conflicting ideas in the task description. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only.
+    
+    ##  Task Output Format:
+    {{ task_output_format }}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Identified Scenario Problems
+    {{ scen_problems }}

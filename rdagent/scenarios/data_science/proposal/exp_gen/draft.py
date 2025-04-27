@@ -5,6 +5,7 @@ from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen, Hypothesis
@@ -120,25 +121,54 @@ class DSDraftExpGen(ExpGen):
 
 
 class DSDraftV2ExpGen(ExpGen):
+    def task_gen(self, scen_problems: dict) -> DSExperiment:
+        scen_problems_text = ""
+        for i, (problem_name, problem_dict) in enumerate(scen_problems.items()):
+            scen_problems_text += f"# Problem Name: {problem_name}\n"
+            scen_problems_text += f"- Problem Description: {problem_dict['problem']}\n\n"
 
+        component_info =  {
+            "target_name": "Pipeline",
+            "task_output_format": T(".prompts:output_format.pipeline").r(),
+            "task_class": PipelineTask,
+        }
+        sys_prompt = T(".prompts_drafting:task_gen.system").r(
+            task_spec=T(f"scenarios.data_science.share:component_spec.Pipeline").r(),
+            task_output_format=T(".prompts:output_format.pipeline").r(),
+        )
+        user_prompt = T(".prompts_drafting:task_gen.user").r(
+            scenario_desc=scenario_desc,
+            scen_problems=scen_problems_text,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
+        )
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
         # Prepare
-        if pipeline:
-            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
-        else:
-            component_desc = "\n".join(
-                [
-                    f"[{key}] {value}"
-                    for key, value in T("scenarios.data_science.share:component_description").template.items()
-                ]
-            )
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
+        enable_idea_pool=DS_RD_SETTING.enable_knowledge_base
 
+        # Step 0: Conduct EDA
 
         # Step 1: Identify Scenario Problems
+        sys_prompt = T(".prompts_v2:scenario_problem.system").r(
+            problem_spec=T(".prompts_v2:specification.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+        )
+        user_prompt = T(".prompts_v2:scenario_problem.user").r(scenario_desc=scenario_desc)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
+        )
+        scen_problems = json.loads(response)
 
-        # Step 2: 
+        # Step 2: Design Task
 
 
         pass
