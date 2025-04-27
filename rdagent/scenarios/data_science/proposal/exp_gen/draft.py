@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
