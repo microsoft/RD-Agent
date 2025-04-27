@@ -1,8 +1,8 @@
 scenario_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    You will be given the scenario description and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
+    The user is creating a Kaggle competition implementation iteratively and this is the first iteration. You will be given the Kaggle competition scenario.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials to aid the implementation.
 
     ## Scenario Problems
     ### Definition
@@ -11,22 +11,32 @@ scenario_problem:
     2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
 
     ### Specification
-    {{ problem_spec }}
+    1. The problem should be specific and fine-grained. Avoid general or vague statements. 
+    2. The problem should technical or methodological. Focus on design and implementation flaws, not runtime errors.
+    3. The problem should be strictly aligned with the improvement of target metric. The problem should fit the template: "IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE."
     
     ### Core Analysis Dimensions
-    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
-    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
-    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+    1. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    2. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
 
     ### Output Format
-    {{ problem_output_format }}
+    For each of the identified problem, you should strictly adhere to the following JSON schema. 
+    Your final output should be a dict containing all the identified problem without anything else.
+    Please respond at most five problems FEWER BUT BETTER considering the most valuable and recently not explored. Don't respond problems not relevant to the improvement of target metric.
+    {
+      "problem name 1": {
+        "problem": "Description of the first issue in no more than three sentences.",
+        "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials in no more than two sentences."
+      },
+      "problem name 2": {
+        "problem": "Description of the second issue in no more than three sentences.",
+        "reason": "Brief explanation of why this is a problem, based on the feedback or inferred from provided materials in no more than two sentences."
+      }
+    }
 
   user: |-
     # Scenario Description
     {{ scenario_desc }}
-
-    # Current SOTA Implementation
-    {{ sota_exp_desc }}
 
 
 hypothesis_gen:
@@ -92,7 +102,16 @@ task_gen:
     5. DO NOT include any conflicting ideas in the task description. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only.
     
     ##  Task Output Format:
-    {{ task_output_format }}
+    Firstly, design a specific and detailed Pipeline task based on the given competition scenario and scenario problems. The output should be detailed enough to directly implement the corresponding code.
+    Secondly, you should tag the task with one of the following components. If the task is related to multiple components, you should choose the most relevant one. Note that the component tag MUST NOT affect the task description.
+    {{ component_desc }}
+
+    The output should follow JSON format. The schema is as follows:
+    {
+        "task_description": "A precise and comprehensive description of the main workflow script (`main.py`).",
+        "task_component": "The component tag of the hypothesis. Must be one of ('DataLoadSpec', 'FeatureEng', 'Model', 'Ensemble', 'Workflow').",
+    }
+
 
   user: |-
     # Scenario Description

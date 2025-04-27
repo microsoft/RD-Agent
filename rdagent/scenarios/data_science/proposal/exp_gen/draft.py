@@ -121,45 +121,43 @@ class DSDraftExpGen(ExpGen):
 
 
 class DSDraftV2ExpGen(ExpGen):
-    def task_gen(self, scen_problems: dict) -> DSExperiment:
+    def task_gen(self, scenario_desc: str, scen_problems: dict, component_desc: str) -> DSExperiment:
         scen_problems_text = ""
         for i, (problem_name, problem_dict) in enumerate(scen_problems.items()):
             scen_problems_text += f"# Problem Name: {problem_name}\n"
             scen_problems_text += f"- Problem Description: {problem_dict['problem']}\n\n"
 
-        component_info =  {
-            "target_name": "Pipeline",
-            "task_output_format": T(".prompts:output_format.pipeline").r(),
-            "task_class": PipelineTask,
-        }
         sys_prompt = T(".prompts_drafting:task_gen.system").r(
             task_spec=T(f"scenarios.data_science.share:component_spec.Pipeline").r(),
-            task_output_format=T(".prompts:output_format.pipeline").r(),
         )
         user_prompt = T(".prompts_drafting:task_gen.user").r(
             scenario_desc=scenario_desc,
             scen_problems=scen_problems_text,
+            component_desc=component_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
             json_mode=True,
-            json_target_type=Dict[str, Dict[str, str]],
+            json_target_type=Dict[str, str],
         )
+        task_dict = json.loads(response)
+        task_component = task_dict.get("task_component", None)
+        task_design = task_dict.get("task_design", "Description not provided")
+        task = PipelineTask(name=task_component, description=description)
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=None)
+        return exp
 
-    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+    def gen(self, trace: DSTrace) -> DSExperiment:
         # Prepare
+        component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
-        enable_idea_pool=DS_RD_SETTING.enable_knowledge_base
 
         # Step 0: Conduct EDA
 
         # Step 1: Identify Scenario Problems
-        sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
-        )
-        user_prompt = T(".prompts_v2:scenario_problem.user").r(scenario_desc=scenario_desc)
+        sys_prompt = T(".prompts_drafting:scenario_problem.system").r()
+        user_prompt = T(".prompts_drafting:scenario_problem.user").r(scenario_desc=scenario_desc)
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
@@ -169,6 +167,8 @@ class DSDraftV2ExpGen(ExpGen):
         scen_problems = json.loads(response)
 
         # Step 2: Design Task
-
-
-        pass
+        return self.task_gen(
+            scenario_desc=scenario_desc,
+            scen_problems=scen_problems,
+            component_desc=component_desc,
+        )
