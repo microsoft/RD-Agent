@@ -91,8 +91,11 @@ class LiteLLMAPIBackend(APIBackend):
                         temperature = float(mc["temperature"])
                     if "max_tokens" in mc:
                         max_tokens = int(mc["max_tokens"])
-                    if "reasoning_effort" in mc and mc["reasoning_effort"] in ["low", "medium", "high"]:
-                        reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                    if "reasoning_effort" in mc:
+                        if mc["reasoning_effort"] in ["low", "medium", "high"]:
+                            reasoning_effort = cast(Literal["low", "medium", "high"], mc["reasoning_effort"])
+                        else:
+                            reasoning_effort = None
                     break
         response = completion(
             model=model,
@@ -135,5 +138,17 @@ class LiteLLMAPIBackend(APIBackend):
         ACC_COST += cost
         logger.info(
             f"Current Cost: ${float(cost):.10f}; Accumulated Cost: ${float(ACC_COST):.10f}; {finish_reason=}",
+        )
+        prompt_tokens = token_counter(model=model, messages=messages)
+        completion_tokens = token_counter(model=model, text=content)
+        logger.log_object(
+            {
+                "model": model,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "cost": cost,
+                "accumulated_cost": ACC_COST,
+            },
+            tag="token_cost",
         )
         return content, finish_reason

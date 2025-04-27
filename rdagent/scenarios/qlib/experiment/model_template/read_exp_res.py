@@ -27,8 +27,15 @@ for experiment in experiments:
             experiment_name = experiment
             recorder = R.get_recorder(recorder_id=recorder_id, experiment_name=experiment)
             end_time = recorder.info["end_time"]
-            if latest_recorder is None or end_time > latest_recorder.info["end_time"]:
-                latest_recorder = recorder
+            try:
+                # Check if the recorder has a valid end time
+                if end_time is not None:
+                    if latest_recorder is None or end_time > latest_recorder.info["end_time"]:
+                        latest_recorder = recorder
+                else:
+                    print(f"Warning: Recorder {recorder_id} has no valid end time")
+            except Exception as e:
+                print(f"Error: {e}")
 
 # Check if the latest recorder is found
 if latest_recorder is None:
