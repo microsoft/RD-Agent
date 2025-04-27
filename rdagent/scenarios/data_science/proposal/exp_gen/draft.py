@@ -119,21 +119,24 @@ class DSDraftExpGen(ExpGen):
         return exp
 
 
-
 class DSDraftV2ExpGen(ExpGen):
-    def task_gen(self, scenario_desc: str, scen_problems: dict, component_desc: str) -> DSExperiment:
+    def task_gen(
+        self,
+        scenario_desc: str,
+        scen_problems: dict,
+        component_desc: str,
+    ) -> DSExperiment:
         scen_problems_text = ""
         for i, (problem_name, problem_dict) in enumerate(scen_problems.items()):
-            scen_problems_text += f"# Problem Name: {problem_name}\n"
+            scen_problems_text += f"## Problem Name: {problem_name}\n"
             scen_problems_text += f"- Problem Description: {problem_dict['problem']}\n\n"
-
-        sys_prompt = T(".prompts_drafting:task_gen.system").r(
+        sys_prompt = T(".prompts_drafting:task_draft.system").r(
             task_spec=T(f"scenarios.data_science.share:component_spec.Pipeline").r(),
+            component_desc=component_desc,
         )
-        user_prompt = T(".prompts_drafting:task_gen.user").r(
+        user_prompt = T(".prompts_drafting:task_draft.user").r(
             scenario_desc=scenario_desc,
             scen_problems=scen_problems_text,
-            component_desc=component_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -142,18 +145,22 @@ class DSDraftV2ExpGen(ExpGen):
             json_target_type=Dict[str, str],
         )
         task_dict = json.loads(response)
-        task_component = task_dict.get("task_component", None)
         task_design = task_dict.get("task_design", "Description not provided")
-        task = PipelineTask(name=task_component, description=description)
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=None)
+        task_component = task_dict.get("task_component", None)
+        task = PipelineTask(name=task_component, description=task_design)
+
+        # we use a pesudo hypothesis here
+        pesudo_hypothesis = DSHypothesis(
+            component=task_component,
+            hypothesis="This is a pesudo hypothesis for drafting the first competition implementation. Your result should not be influenced by this hypothesis.",
+        )
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=pesudo_hypothesis)
         return exp
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Prepare
         component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
-
-        # Step 0: Conduct EDA
 
         # Step 1: Identify Scenario Problems
         sys_prompt = T(".prompts_drafting:scenario_problem.system").r()

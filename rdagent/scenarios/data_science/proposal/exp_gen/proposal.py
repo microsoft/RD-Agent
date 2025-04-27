@@ -459,12 +459,12 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 1: Identify problems
-        scen_problems = self.identify_scenario_problem(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        for problem_name in scen_problems:
-            scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+        # scen_problems = self.identify_scenario_problem(
+        #     scenario_desc=scenario_desc,
+        #     sota_exp_desc=sota_exp_desc,
+        # )
+        # for problem_name in scen_problems:
+        #     scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -472,7 +472,8 @@ class DSProposalV2ExpGen(ExpGen):
         )
         for problem_name in fb_problems:
             fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-        all_problems = {**scen_problems, **fb_problems}
+        # all_problems = {**scen_problems, **fb_problems}
+        all_problems = fb_problems
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
