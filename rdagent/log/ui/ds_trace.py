@@ -145,7 +145,7 @@ def task_win(data):
             )
 
 
-def workspace_win(workspace, instance_id=None, cmp=None):
+def workspace_win(workspace, instance_id=None, cmp_workspace=None):
     show_files = {k: v for k, v in workspace.file_dict.items() if "test" not in k}
 
     base_key = str(workspace.workspace_path)
@@ -153,8 +153,8 @@ def workspace_win(workspace, instance_id=None, cmp=None):
         base_key += f"_{instance_id}"
     unique_key = hashlib.md5(base_key.encode()).hexdigest()
     if len(show_files) > 0:
-        if cmp:
-            diff = generate_diff_from_dict(cmp.file_dict, show_files, "main.py")
+        if cmp_workspace:
+            diff = generate_diff_from_dict(cmp_workspace.file_dict, show_files, "main.py")
             with st.expander(":violet[**Diff with last SOTA**]"):
                 st.code("".join(diff), language="diff", wrap_lines=True, line_numbers=True)
         with st.expander(f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]"):
@@ -349,7 +349,7 @@ def running_win(data, mle_score, llm_data=None, sota_exp=None):
         workspace_win(
             data["no_tag"].experiment_workspace,
             instance_id="running_dump",
-            cmp=sota_exp.experiment_workspace if sota_exp else None,
+            cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
         )
         st.subheader("Result")
         st.write(data["no_tag"].result)
