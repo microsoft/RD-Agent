@@ -163,6 +163,19 @@ class DataScienceRDLoop(RDLoop):
                 else:  # otherwise restart it
                     logger.error("Consecutive errors reached the limit. Dumping trace.")
                     logger.log_object(self.trace, tag="trace before restart")
+                    #  check if errors are in coding
+                    recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
+                    if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                        all_coding_fail = True
+                        for exp, fb in recent_hist:
+                            if not (fb and hasattr(fb, "exception") and isinstance(fb.exception, CoderError)):
+                                all_coding_fail = False
+                                break
+                        if all_coding_fail:
+                            scen = self.trace.scen
+                            if hasattr(scen, "reanalyze_competition_description"):
+                                logger.info("Reanalyzing the competition description after three consecutive coding failures.")
+                                scen.reanalyze_competition_description()
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
