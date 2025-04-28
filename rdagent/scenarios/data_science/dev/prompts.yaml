@@ -34,10 +34,24 @@ exp_feedback:
     Step 3: Analyze Experimental Results (if format and evaluation alignment correct)
     - Explicitly confirm or refute the hypothesis with precise data points or performance trends.
     - Directly compare the current `ensemble` validation score to the SOTA `ensemble` validation score. Do not focus on individual models unless anomalies are significant.
-    - If current `ensemble` validation score surpasses SOTA `ensemble` validation score, set `"Replace Best Result": "yes"`; otherwise, set as "no".
+    - Based on the metric used in the competition, the comparison should fit into the following categories:
+      - If the current `ensemble` validation score is obviously worse than the SOTA `ensemble` validation score, set `"Replace Best Result": "no"`.
+      - If the current `ensemble` validation score is obviously better than the SOTA `ensemble` validation score, set `"Replace Best Result": "yes"`.
+      - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score or both reach the ceiling performance, proceed to Step 4.
     - Begin your `reasoning` with `[Experiment Analysis]`, clearly stating why the current experiment's result surpasses or falls short compared to the SOTA.
     - NOTES:
-      - The experiments focus on the final ensemble results (Don't reject the results because they are still not perfect; e.g., the ensemble does not improve performance due to having only one model. We can improve that later. We are comparing the current ensemble validation score to the SOTA ensemble validation score to check if the overall performance is improved.)
+      - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
+    
+    Step 4: Analyze Code With Similar validation Results
+    - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
+    - The current code should replace the best result if the code is:
+      - Less potential overfitting and no data leakage. The code should not modify the validation and test set distributions.
+      - Using best practices and modeling techniques. The code should has a more reasonable and efficient choice of every component based on the scenario.
+      - Interpretable and domain alignment. The code should be tied to solid domain knowledge and be interpretable.
+      - More resource efficiency. The code should be more efficient in terms of time and space complexity.
+    - Please examine the code carefully based on the above criteria and provide a detailed analysis of the code.
+    - Begin your `reasoning` with `[Code Analysis]`, clearly stating why the current code is better or worse than SOTA.
+    - If the current code is not better than SOTA, set `"Replace Best Result": "no"`. Otherwise, set `"Replace Best Result": "yes"`.
  
     Provide detailed and constructive feedback structured as follows:
     Example JSON Structure for Result Analysis:
@@ -46,7 +60,7 @@ exp_feedback:
       "Feedback for Hypothesis": Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "Evaluation Aligned With Task": "yes or no",
       "Replace Best Result": "yes or no",
-      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], or [Experiment Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
+      "Reasoning": "Clearly explain the reason for success or failure of the experiment. Begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA. Limit to three sentences."
     }
 
   user: |-

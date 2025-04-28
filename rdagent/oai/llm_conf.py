@@ -114,7 +114,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_azure_deepseek_endpoint: str = ""
     chat_azure_deepseek_key: str = ""
 
-    chat_model_map: str = "{}"
+    chat_model_map: dict[str, dict[str, str]] = {}
 
 
 LLM_SETTINGS = LLMSettings()
