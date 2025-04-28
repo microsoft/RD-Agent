@@ -15,7 +15,8 @@ class MergeExpGen(ExpGen):
         sota_exp = trace.sota_experiment(selection=(leaves[0],))
         exp_to_merge = trace.sota_experiment(selection=(leaves[1],))
 
-        scenario_desc = trace.scen.get_scenario_all_desc()
+        # scenario_desc = trace.scen.get_scenario_all_desc()
+        # scenario_desc is not needed in task description. So we have to do it.
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp, heading="Best of previous exploration of the scenario",
@@ -31,7 +32,6 @@ class MergeExpGen(ExpGen):
         )
 
         task = PipelineTask(description=T("scenarios.data_science.proposal.exp_gen.merge:task").r(
-            scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             exp_to_merge_desc=exp_to_merge_desc,
             exp_and_feedback_list_desc=exp_and_feedback_list_desc,
