@@ -18,8 +18,8 @@ class DSHypothesis(Hypothesis):
         concise_observation: str = "",
         concise_justification: str = "",
         concise_knowledge: str = "",
-        problem_name: str = "",
-        problem_desc: str = "",
+        problem_name: str | None = None,
+        problem_desc: str | = None,
         problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
     ) -> None:
         super().__init__(
