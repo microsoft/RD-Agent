@@ -229,6 +229,7 @@ class DataScienceRDLoop(RDLoop):
         replace_timer: bool = True,
     ) -> "LoopBase":
         session = super().load(path, output_path, do_truncate, replace_timer)
+        logger.log_object(PROP_SETTING.competition, tag="competition")  # NOTE: necessary to make mle_summary work.
         if (
             DS_RD_SETTING.enable_knowledge_base
             and DS_RD_SETTING.knowledge_base_version == "v1"
