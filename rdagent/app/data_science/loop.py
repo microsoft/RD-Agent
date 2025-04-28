@@ -228,13 +228,10 @@ class DataScienceRDLoop(RDLoop):
         replace_timer: bool = True,
     ) -> "LoopBase":
         session = super().load(path, output_path, do_truncate, replace_timer)
-        if (
-            DS_RD_SETTING.enable_knowledge_base
-            and DS_RD_SETTING.knowledge_base_version == "v1"
-            and Path(DS_RD_SETTING.knowledge_base_path).exists()
-        ):
-            knowledge_base = DSKnowledgeBase(path=DS_RD_SETTING.knowledge_base_path)
-            session.trace.knowledge_base = knowledge_base
+        if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
+            session.trace.knowledge_base = DSKnowledgeBase(
+                path=DS_RD_SETTING.knowledge_base_path, idea_pool_json_path=DS_RD_SETTING.idea_pool_json_path
+            )
         return session
 
     def dump(self, path: str | Path) -> None:
