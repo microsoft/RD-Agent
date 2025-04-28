@@ -5,9 +5,8 @@ task: |-
   Your task is to merge two solutions to create a better version. We expect the merged version to perform better than both given solutions.
 
   You will be given:
-  1) Scenario Description: an overview of the competition;
-  2) Previous Main Solution: this is the main solution you will build on to create an improved version;
-  3) Solution to be merged: another solution that you will combine with the previous main solution.
+  1) Previous Main Solution: this is the main solution you will build on to create an improved version;
+  2) Solution to be merged: another solution that you will combine with the previous main solution.
     - Solution: the approach or method used in this solution.
     - Successful iterations: the steps or changes that led to the success of `Solution to be merged`.
 
