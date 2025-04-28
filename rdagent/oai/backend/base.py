@@ -348,21 +348,21 @@ class APIBackend(ABC):
                     kwargs["input_content_list"] = [
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
-                elif (
-                    openai_imported
-                    and isinstance(e, openai.APITimeoutError)
-                    or (
-                        isinstance(e, openai.APIError)
-                        and hasattr(e, "message")
-                        and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
-                        in e.message
-                    )
-                ):
-                    timeout_count += 1
-                    if timeout_count >= 3:
-                        logger.warning("Timeout error, please check your network connection.")
-                        raise e
                 else:
+                    if (
+                        openai_imported
+                        and isinstance(e, openai.APITimeoutError)
+                        or (
+                            isinstance(e, openai.APIError)
+                            and hasattr(e, "message")
+                            and "Your resource has been temporarily blocked because we detected behavior that may violate our content policy."
+                            in e.message
+                        )
+                    ):
+                        timeout_count += 1
+                        if timeout_count >= 3:
+                            logger.warning("Timeout error, please check your network connection.")
+                            raise e
                     time.sleep(self.retry_wait_seconds)
                     if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)

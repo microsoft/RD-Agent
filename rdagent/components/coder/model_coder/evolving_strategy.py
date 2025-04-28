@@ -52,7 +52,6 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             if isinstance(queried_knowledge, CoSTEERQueriedKnowledgeV2)
             else queried_former_failed_knowledge
         )
-
         system_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(
@@ -61,7 +60,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
             .render(
                 scenario=self.scen.get_scenario_all_desc(filtered_tag=target_task.model_type),
                 queried_former_failed_knowledge=queried_former_failed_knowledge_to_render,
-                current_code=target_task.base_code,
+                current_code=workspace.file_dict.get("model.py"),
             )
         )
 
