@@ -525,6 +525,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                     for v, d in mt.variables.items():
                         mks += f"| ${v}$ | {d} |\n"
                     st.markdown(mks)
+                st.markdown(f"**Train Para**: {mt.training_hyperparameters}")
 
 
 def research_window():

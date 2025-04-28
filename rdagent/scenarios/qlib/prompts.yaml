@@ -82,12 +82,11 @@ factor_hypothesis_output_format: |-
 
 model_hypothesis_specification: |-
   Additional Specifications:
-    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses should build upon the previous one, incorporating feedback and observed performance.
+    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses should build upon the previous one, incorporating feedback and observed performance. But if a series of attempts fail to achieve SOTA, consider exploring entirely new directions, and this time can go back to simple architecture.
     2. Focus exclusively on the architecture of PyTorch models. Each hypothesis should address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
     3. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
-    4. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. Aim for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
-    5. If a series of attempts fail to achieve SOTA, consider exploring entirely new directions.
-    6. Sometimes, when training performance is poor, adjusting hyperparameters is also a good adjustment strategy!
+    4. Sometimes, when training performance is poor, adjusting hyperparameters is also a good adjustment strategy!
+    5. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. Aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.)' time series models after sufficient trials with traditional models.
 
 factor_hypothesis_specification: |-
   1. **Type of Factor and Financial Trends:**
@@ -108,7 +107,6 @@ factor_hypothesis_specification: |-
     - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and starting with simple factors again.
     - If optimizing a specific type of factor, proceed from simple to complex.
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
-
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
@@ -134,7 +132,7 @@ factor_experiment_output_format: |-
 
 model_experiment_output_format: |-
   So far please only design one model to test the hypothesis! 
-  The output should follow JSON format. The schema is as follows (value in training_hyperparameters is a basic setting): 
+  The output should follow JSON format. The schema is as follows (value in training_hyperparameters is a basic setting you can change depends on the previous training log): 
   {
     "model_name 1 (The name of the model)": {
         "description": "A detailed description of the model",
@@ -153,8 +151,8 @@ model_experiment_output_format: |-
         "training_hyperparameters" {
             "n_epochs": "1000",
             "lr": "2e-4",
-            "early_stop": 15,
-            "batch_size": 800,
+            "early_stop": 20,
+            "batch_size": 400,
             "weight_decay": 0.0,
         }
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
