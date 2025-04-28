@@ -1,4 +1,5 @@
 """Merge the version in different traces"""
+
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -20,23 +21,28 @@ class MergeExpGen(ExpGen):
         # scenario_desc is not needed in task description. So we have to do it.
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
-            exp=sota_exp, heading="Best of previous exploration of the scenario",
+            exp=sota_exp,
+            heading="Best of previous exploration of the scenario",
         )
         exp_to_merge_desc = T("scenarios.data_science.share:describe.exp").r(
-            exp=exp_to_merge, heading="A solution that to be merged into previous best solution",
+            exp=exp_to_merge,
+            heading="A solution that to be merged into previous best solution",
         )
 
         exp_and_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
-            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="sota",
-                                                                                selection=(leaves[1],)),
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(
+                return_type="sota", selection=(leaves[1],)
+            ),
             type="success",
         )
 
-        task = PipelineTask(description=T("scenarios.data_science.proposal.exp_gen.merge:task").r(
-            sota_exp_desc=sota_exp_desc,
-            exp_to_merge_desc=exp_to_merge_desc,
-            exp_and_feedback_list_desc=exp_and_feedback_list_desc,
-        ))
+        task = PipelineTask(
+            description=T("scenarios.data_science.proposal.exp_gen.merge:task").r(
+                sota_exp_desc=sota_exp_desc,
+                exp_to_merge_desc=exp_to_merge_desc,
+                exp_and_feedback_list_desc=exp_and_feedback_list_desc,
+            )
+        )
 
         exp = DSExperiment(
             pending_tasks_list=[[task]],
