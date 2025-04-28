@@ -1,8 +1,9 @@
 from abc import abstractmethod
+from pathlib import Path
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
-from pathlib import Path
 
 
 class NoTestEvalError(Exception):
@@ -77,12 +78,16 @@ class TestEval(TestEvalBase):
             env=self.env,
             entry=f"python submission_format_valid.py {competition}",
         )
-        workspace.inject_files(**{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]})
+        workspace.inject_files(
+            **{file: workspace.DEL_KEY for file in ["submission_format_valid.py", "submission_test.csv"]}
+        )
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
         return submission_check_out, submission_ret_code
 
     def enabled(self, competition) -> bool:
-        return Path(f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv").exists()
+        return Path(
+            f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}/submission_test.csv"
+        ).exists()
 
 
 class MLETestEval(TestEvalBase):
@@ -90,8 +95,9 @@ class MLETestEval(TestEvalBase):
 
     def __init__(self) -> None:
         super().__init__()
-        self.env = get_ds_env(conf_type="mlebench",
-                              extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
+        self.env = get_ds_env(
+            conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"}
+        )
         self.env.prepare()
 
     def eval(self, competition: str, workspace: FBWorkspace) -> str:
@@ -104,20 +110,21 @@ class MLETestEval(TestEvalBase):
 
     def valid(self, competition: str, workspace: FBWorkspace) -> tuple[str, int]:
         mle_check_code = (
-                (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
-                .read_text()
-                .replace("<competition_id>", self.scen.competition)
-            )
+            (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
+            .read_text()
+            .replace("<competition_id>", self.scen.competition)
+        )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
         submission_check_out, submission_ret_code = workspace.execute_ret_code(
             env=mde, entry="python test/mle_submission_format_test.py"
         )
-        
+
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
         return submission_check_out, submission_ret_code
 
     def enabled(self, competition) -> bool:
         return True
+
 
 def get_test_eval() -> TestEvalBase:
     """Get the test evaluation instance"""

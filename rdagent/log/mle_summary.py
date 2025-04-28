@@ -13,13 +13,17 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
-from rdagent.scenarios.data_science.test_eval import MLETestEval, NoTestEvalError, get_test_eval
+from rdagent.scenarios.data_science.test_eval import (
+    MLETestEval,
+    NoTestEvalError,
+    get_test_eval,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
-
 
 test_eval = get_test_eval()
 
 is_mle = isinstance(test_eval, MLETestEval)
+
 
 def extract_mle_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)

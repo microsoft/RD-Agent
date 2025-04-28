@@ -14,10 +14,14 @@ from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.data_science.test_eval import (
+    MLETestEval,
+    NoTestEvalError,
+    get_test_eval,
+)
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 from rdagent.utils.fmt import shrink_text
-from rdagent.scenarios.data_science.test_eval import MLETestEval, NoTestEvalError, get_test_eval
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
