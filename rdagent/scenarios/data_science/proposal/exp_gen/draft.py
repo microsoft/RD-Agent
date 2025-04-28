@@ -125,6 +125,7 @@ class DSDraftV2ExpGen(ExpGen):
         scenario_desc: str,
         scen_problems: dict,
         component_desc: str,
+        drafting_trace_desc: str,
     ) -> DSExperiment:
         scen_problems_text = ""
         for i, (problem_name, problem_dict) in enumerate(scen_problems.items()):
@@ -137,6 +138,7 @@ class DSDraftV2ExpGen(ExpGen):
         user_prompt = T(".prompts_drafting:task_draft.user").r(
             scenario_desc=scenario_desc,
             scen_problems=scen_problems_text,
+            drafting_trace_desc=drafting_trace_desc,
         )
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
@@ -159,8 +161,17 @@ class DSDraftV2ExpGen(ExpGen):
 
     def gen(self, trace: DSTrace) -> DSExperiment:
         # Prepare
+        last_exp = trace.last_exp()
+        if not isinstance(last_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = last_exp.experiment_workspace.file_dict.get("EDA.md", None)
+
         component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
-        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+        drafting_trace_desc = T("scenarios.data_science.share:describe.drafting_trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+        )
 
         # Step 1: Identify Scenario Problems
         sys_prompt = T(".prompts_drafting:scenario_problem.system").r()
@@ -178,4 +189,5 @@ class DSDraftV2ExpGen(ExpGen):
             scenario_desc=scenario_desc,
             scen_problems=scen_problems,
             component_desc=component_desc,
+            drafting_trace_desc=drafting_trace_desc,
         )

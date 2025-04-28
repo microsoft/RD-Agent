@@ -87,6 +87,7 @@ task_draft:
     {% include "scenarios.data_science.share:scen.role" %}
     The user is creating a Kaggle competition implementation iteratively and this is the first iteration.
     You will be given a competition scenario and a list of identified scenario problems from the given competition scenario.
+    In addition, if there are any previous failed experiments, you will receive the task designs and failures. Please read them carefully to have a better understanding.
     Your role is to design a very detailed task with specific steps and instructions to implement competition solution and address identifed scenario problems. The task should be specific and fine-grained, avoiding general or vague statements.
 
     # Task Design
@@ -100,7 +101,8 @@ task_draft:
     3. DO NOT use any pharases like "for example" or "eg.," in the task description. Clearly give a decision (such as the specific method or model name) in the task description.
     4. DO NOT use vague statements like "choose a proper model" or "optimize the pipeline". Instead, specify the exact step and task to be made.
     5. DO NOT include any conflicting ideas in the task description. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only.
-    
+    6. Carefully read and analyze the previous failed experiments if any so that no similar mistakes will be made in your task design.
+
     ##  Task Output Format:
     Firstly, design a specific and detailed Pipeline task based on the given competition scenario and scenario problems. The output should be detailed enough to directly implement the corresponding code.
     Secondly, you should tag the task with one of the following components. If the task is related to multiple components, you should choose the most relevant one. Note that the component tag MUST NOT affect the task description.
@@ -118,3 +120,6 @@ task_draft:
 
     # Identified Scenario Problems
     {{ scen_problems }}
+
+    # Previous Failed Experiments
+    {{ drafting_trace_desc }}
