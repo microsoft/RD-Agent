@@ -15,6 +15,7 @@ from rdagent.components.runner import CachedRunner
 from rdagent.core.exception import FactorEmptyError
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 DIRNAME_local = Path.cwd()
@@ -84,10 +85,14 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
         if exp.based_experiments:
-            logger.info(f"SOTA factor processing ...")
             SOTA_factor = None
-            if len(exp.based_experiments) > 1:
-                SOTA_factor = self.process_factor_data(exp.based_experiments)
+            # Filter and retain only QlibFactorExperiment instances
+            sota_factor_experiments_list = [
+                base_exp for base_exp in exp.based_experiments if isinstance(base_exp, QlibFactorExperiment)
+            ]
+            if len(sota_factor_experiments_list) > 1:
+                logger.info(f"SOTA factor processing ...")
+                SOTA_factor = self.process_factor_data(sota_factor_experiments_list)
 
             logger.info(f"New factor processing ...")
             # Process the new factors data
@@ -110,6 +115,9 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors = combined_factors.loc[:, ~combined_factors.columns.duplicated(keep="last")]
             new_columns = pd.MultiIndex.from_product([["feature"], combined_factors.columns])
             combined_factors.columns = new_columns
+            # TODO: put 20 into config
+            num_features = 20 + len(combined_factors.columns)
+
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
             # so we changed the file type of `combined_factors_df` from pkl to parquet.
@@ -117,6 +125,46 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
             # Save the combined factors to the workspace
             combined_factors.to_parquet(target_path, engine="pyarrow")
+
+            # If all previous experiments are about writing factors
+            # result = exp.experiment_workspace.execute(
+            #     qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+            # )
+            # If model exp exists in the previous experiment
+            exist_sota_model_exp = False
+            for base_exp in reversed(exp.based_experiments):
+                if isinstance(base_exp, QlibModelExperiment):
+                    sota_model_exp = base_exp
+                    exist_sota_model_exp = True
+                    break
+            
+            if exist_sota_model_exp:
+                exp.experiment_workspace.inject_files(
+                    **{"model.py": exist_sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
+                )
+                env_to_use = {"PYTHONPATH": "./"}
+                sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
+                if sota_training_hyperparameters:
+                    env_to_use.update({
+                        "n_epochs": str(sota_training_hyperparameters.get("n_epochs", "1000")),
+                        "lr": str(sota_training_hyperparameters.get("lr", "2e-4")),
+                        "early_stop": str(sota_training_hyperparameters.get("early_stop", 20)),
+                        "batch_size": str(sota_training_hyperparameters.get("batch_size", 400)),
+                        "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0)),
+                    })
+                sota_model_type = sota_model_exp.sub_tasks[0].model_type
+                if sota_model_type == "TimeSeries":
+                    env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
+                elif sota_model_type == "Tabular":
+                    env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
+
+                # model + combined factors
+                result = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+            else:
+                # LGBM + combined factors
+                result = exp.experiment_workspace.execute(
+                qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+            )
 
             logger.info(f"Factor data processing completed.")
 

@@ -42,8 +42,7 @@ class Hypothesis:
 
     def __str__(self) -> str:
         return f"""Hypothesis: {self.hypothesis}
-                Reason: {self.reason}
-                """
+Reason: {self.reason}"""
 
     # source: data_ana | model_nan = None
 

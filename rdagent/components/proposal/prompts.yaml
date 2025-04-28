@@ -3,7 +3,7 @@ hypothesis_gen:
     The user is working on generating new hypotheses for the {{ targets }} in a data-driven research and development process. 
     The {{ targets }} are used in the following scenario:
     {{ scenario }}
-    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to check whether a similar hypothesis has already been generated. 
+    The user has already proposed several hypotheses and conducted evaluations on them. This information will be provided to you. Your task is to analyze previous experiments, reflect on the decision made in each experiment, and consider why experiments with a decision of true were successful while those with a decision of false failed. Then, think about how to improve further — either by refining the existing approach or by exploring an entirely new direction.
     If one exists and you agree with it, feel free to use it. If you disagree, please generate an improved version.
     {% if hypothesis_specification %}
     To assist you in formulating new hypotheses, the user has provided some additional information: {{ hypothesis_specification }}.
@@ -17,7 +17,7 @@ hypothesis_gen:
     It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
     {% else %}
     It is not the first round, the user has made several hypothesis on this scenario and did several evaluation on them.
-    The former hypothesis and the corresponding feedbacks are as follows (focus on the last one & the new hypothesis that it provides and reasoning to see if you agree):
+    The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
     {% endif %}
 
@@ -31,8 +31,6 @@ hypothesis_gen:
 
     {% if RAG %}
     To assist you in generating new {{ targets }}, we have provided the following information: {{ RAG }}.
-    You must carefully assess whether the RAG aligns with the {{ targets }}. 
-    If it does not, it should not be used. Exercise caution and make your own judgment.
     {% endif %}
     Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 

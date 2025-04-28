@@ -47,14 +47,17 @@ def process_results(current_result, sota_result):
 
     # Filter the combined DataFrame to retain only the important metrics
     filtered_combined_df = combined_df.loc[important_metrics]
+    
+    def format_filtered_combined_df(filtered_combined_df: pd.DataFrame) -> str:
+        results = []
+        for metric, row in filtered_combined_df.iterrows():
+            current = row["Current Result"]
+            sota = row["SOTA Result"]
+            results.append(f"{metric} of Current Result is {current:.6f}, of SOTA Result is {sota:.6f}")
+        return "; ".join(results)
+    
 
-    filtered_combined_df[
-        "Bigger columns name (Didn't consider the direction of the metric, you should judge it by yourself that bigger is better or smaller is better)"
-    ] = filtered_combined_df.apply(
-        lambda row: "Current Result" if row["Current Result"] > row["SOTA Result"] else "SOTA Result", axis=1
-    )
-
-    return filtered_combined_df.to_string()
+    return format_filtered_combined_df(filtered_combined_df)
 
 
 class QlibFactorExperiment2Feedback(Experiment2Feedback):
