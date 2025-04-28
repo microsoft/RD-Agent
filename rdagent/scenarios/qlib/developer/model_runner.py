@@ -26,6 +26,16 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
 
         env_to_use = {"PYTHONPATH": "./"}
 
+        training_hyperparameters = exp.sub_tasks[0].training_hyperparameters
+        if training_hyperparameters:
+            env_to_use.update({
+                "n_epochs": str(training_hyperparameters.get("n_epochs", "1000")),
+                "lr": str(training_hyperparameters.get("lr", "2e-4")),
+                "early_stop": str(training_hyperparameters.get("early_stop", 15)),
+                "batch_size": str(training_hyperparameters.get("batch_size", 800)),
+                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0)),
+            })
+        
         if exp.sub_tasks[0].model_type == "TimeSeries":
             env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
         elif exp.sub_tasks[0].model_type == "Tabular":

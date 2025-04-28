@@ -33,6 +33,7 @@ last_hypothesis_and_feedback: |-
   {% if experiment.result is not none %}
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
+  Traing Log: {{ experiment.stdout }}
   Observation (Key findings from the experiment): {{ feedback.observations }}
   Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
   Decision (Whether this experiment is SOTA): {{ feedback.decision }}
@@ -52,6 +53,7 @@ sota_hypothesis_and_feedback: |-
   {% if experiment.result is not none %}
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
+  Traing Log: {{ experiment.stdout }}
   Observation (Key findings from the experiment): {{ feedback.observations }}
   Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
   Decision (Whether this experiment is SOTA): {{ feedback.decision }}
@@ -80,11 +82,12 @@ factor_hypothesis_output_format: |-
 
 model_hypothesis_specification: |-
   Additional Specifications:
-    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses must build upon the previous one, incorporating feedback and observed performance.
-    2. Focus exclusively on the architecture of PyTorch models. Each hypothesis must address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
+    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses should build upon the previous one, incorporating feedback and observed performance.
+    2. Focus exclusively on the architecture of PyTorch models. Each hypothesis should address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
     3. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
-    4. Utilize standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures, aiming for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
-    5. After a series of failed attempts without achieving SOTA, consider exploring entirely new directions.
+    4. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. Aim for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
+    5. If a series of attempts fail to achieve SOTA, consider exploring entirely new directions.
+    6. Sometimes, when training performance is poor, adjusting hyperparameters is also a good adjustment strategy!
 
 factor_hypothesis_specification: |-
   1. **Type of Factor and Financial Trends:**
@@ -131,7 +134,7 @@ factor_experiment_output_format: |-
 
 model_experiment_output_format: |-
   So far please only design one model to test the hypothesis! 
-  The output should follow JSON format. The schema is as follows: 
+  The output should follow JSON format. The schema is as follows (value in training_hyperparameters is a basic setting): 
   {
     "model_name 1 (The name of the model)": {
         "description": "A detailed description of the model",
@@ -147,11 +150,15 @@ model_experiment_output_format: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
+        "training_hyperparameters" {
+            "n_epochs": "1000",
+            "lr": "2e-4",
+            "early_stop": 15,
+            "batch_size": 800,
+            "weight_decay": 0.0,
+        }
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
     },
-    "model_name 2 (The name of the model)": {
-        ...
-    }
   }
 
 factor_feedback_generation:
@@ -264,7 +271,6 @@ model_feedback_generation:
 
     
   user: |-
-
     {% if sota_hypothesis %} 
     # SOTA Round Information:
     Hypothesis: {{ sota_hypothesis.hypothesis }}
@@ -280,7 +286,7 @@ model_feedback_generation:
     Why propose this hypothesis: {{ hypothesis.reason }}
     Specific Task: {{ exp.sub_tasks[0] }}
     Code Implementation: {{ exp.sub_workspace_list[0].file_dict.get("model.py") }}
-    Result: {{ exp.result }}
+    Result: {{ exp_result }}
 
     # When judging the results:
     1. **Recommendation for Replacement:**

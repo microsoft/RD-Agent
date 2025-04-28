@@ -19,6 +19,7 @@ class ModelTask(CoSTEERTask):
         architecture: str,
         *args,
         hyperparameters: Dict[str, str],
+        training_hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
         model_type: Optional[str] = None,
@@ -28,6 +29,7 @@ class ModelTask(CoSTEERTask):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
+        self.training_hyperparameters: str = training_hyperparameters
         self.model_type: str = (
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
         )
@@ -41,6 +43,7 @@ description: {self.description}
         task_desc += f"architecture: {self.architecture}\n"
         task_desc += f"variables: {self.variables}\n" if self.variables else ""
         task_desc += f"hyperparameters: {self.hyperparameters}\n"
+        task_desc += f"training_hyperparameters: {self.training_hyperparameters}\n"
         task_desc += f"model_type: {self.model_type}\n"
         return task_desc
 
@@ -50,6 +53,7 @@ description: {self.description}
 """
         task_desc += f"architecture: {self.architecture}\n"
         task_desc += f"hyperparameters: {self.hyperparameters}\n"
+        task_desc += f"training_hyperparameters: {self.training_hyperparameters}\n"
         task_desc += f"model_type: {self.model_type}\n"
         return task_desc
 

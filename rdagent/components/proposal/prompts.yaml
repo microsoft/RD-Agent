@@ -55,4 +55,13 @@ hypothesis2experiment:
     {{ target_hypothesis }}
     The former hypothesis and the corresponding feedbacks are as follows:
     {{ hypothesis_and_feedback }}
+    {% if last_hypothesis_and_feedback %}
+    The latest hypothesis and the corresponding feedback are as follows:
+    {{ last_hypothesis_and_feedback }}
+    {% endif %}
+    {% if sota_hypothesis_and_feedback %}
+    The SOTA hypothesis and the corresponding feedback are as follows:
+    {{ sota_hypothesis_and_feedback }}
+    {% endif %}
+
     Please generate the new {{ targets }} based on the information above.

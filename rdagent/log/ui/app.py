@@ -419,7 +419,7 @@ def summary_window():
                 with cc:
                     show_true_only = st.toggle("successful hypotheses", value=False)
 
-            st.write(state.metric_series)
+            # st.write(state.metric_series)
             # hypotheses_c, chart_c = st.columns([2, 3])
             chart_c = st.container()
             hypotheses_c = st.container()
@@ -613,8 +613,9 @@ def feedback_window():
                 state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
             ):
                 try:
-                    st.write("here")
+                    st.write("workspace")
                     st.write(state.msgs[round]["ef.runner result"][0].content.experiment_workspace.workspace_path)
+                    st.write(state.msgs[round]["ef.runner result"][0].content.stdout)
                 except Exception as e:
                     st.error(f"Error displaying workspace path: {str(e)}")
                 with st.expander("**Config⚙️**", expanded=True):

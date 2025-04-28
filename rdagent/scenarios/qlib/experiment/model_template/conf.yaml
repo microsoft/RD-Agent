@@ -55,15 +55,15 @@ task:
         class: GeneralPTNN
         module_path: qlib.contrib.model.pytorch_general_nn
         kwargs:
-            n_epochs: 1000
-            lr: 2e-4
-            early_stop: 10
-            batch_size: 800
+            n_epochs: {{ n_epochs }}
+            lr: {{ lr }}
+            early_stop: {{ early_stop }}
+            batch_size: {{ batch_size }}
+            weight_decay: {{ weight_decay }}
             metric: loss
             loss: mse
             n_jobs: 20
             GPU: 0
-            # weight_decay: 1e-4
             pt_model_uri: "model.model_cls"
             pt_model_kwargs: {
                 "num_features": 20,
