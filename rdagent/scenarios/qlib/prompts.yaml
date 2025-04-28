@@ -34,10 +34,27 @@ last_hypothesis_and_feedback: |-
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
   Observation (Key findings from the experiment): {{ feedback.observations }}
-  Hypothesis Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
-  Decision (Whether the hypothesis was successful): {{ feedback.decision }}
+  Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
+  Decision (Whether this experiment is SOTA): {{ feedback.decision }}
   New Hypothesis (Given in feedback stage, can be accepted or rejected in the next round): {{ feedback.new_hypothesis }}
   Reasoning (Justification for the new hypothesis): {{ feedback.reason }}
+
+sota_hypothesis_and_feedback: |-
+  ## Hypothesis
+  {{ experiment.hypothesis }}
+  ## Specific task: 
+  {% for task in experiment.sub_tasks %}
+  {% if task is not none and task.get_task_brief_information is defined %}
+  {{ task.get_task_brief_information() }}
+  {% endif %}
+  {% endfor %}
+  ## Market Backtest Analysis and Feedback:
+  {% if experiment.result is not none %}
+  Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
+  {% endif %}
+  Observation (Key findings from the experiment): {{ feedback.observations }}
+  Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
+  Decision (Whether this experiment is SOTA): {{ feedback.decision }}
 
 hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
@@ -50,41 +67,44 @@ hypothesis_output_format: |-
   "concise_knowledge": "A single-sentence summary of transferable knowledge based on theoretical principles. Use conditional statements (e.g., 'If..., then...; When..., then...') to state clear, unambiguous relationships."
   }
 
+factor_hypothesis_output_format: |-
+  The output should follow JSON format. The schema is as follows:
+  {
+  "hypothesis": "The new hypothesis generated based on the information provided. Limit in two or three sentences.",
+  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
+  "concise_reason": "A two-sentence summary. First sentence provides a clear justification for the change. Second sentence states a generalizable knowledge principle.",
+  "concise_observation": "A single-sentence summary focusing on key observations from the scenario, data characteristics, or past experiences (both successes and failures).",
+  "concise_justification": "A single-sentence summary that explains the hypothesis based on theoretical principles or initial assumptions.",
+  "concise_knowledge": "A single-sentence summary of transferable knowledge based on theoretical principles. Use conditional statements (e.g., 'If..., then...; When..., then...') to state clear, unambiguous relationships."
+  }
+
 model_hypothesis_specification: |-
   Additional Specifications:
-    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, begin with a simple architecture. Subsequent hypotheses must build upon the previous one, incorporating feedback and observed performance.
-    2. Focus strictly on the architecture of PyTorch models. Each hypothesis must address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
-    3. Do not include aspects unrelated to architecture, such as input features or optimization strategies.
-    4. Custom architecture design is encouraged. You may use standard libraries, BUT IT IS PREFERRED TO DEFINE COMPONENTS MANUALLY TO EXPLORE NOVEL STRUCTURES.
-
-  Logic for Hypothesis Development:
-    1. If the previous hypothesis outperforms the prior state of the art, inherit its structure and increase model depth or complexity.
-    2. If the previous hypothesis performs poorly, you should judge based on the reasoning and feedback whether to revise the architecture or increasing model's size.
+    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses must build upon the previous one, incorporating feedback and observed performance.
+    2. Focus exclusively on the architecture of PyTorch models. Each hypothesis must address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
+    3. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
+    4. Utilize standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures, aiming for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
+    5. After a series of failed attempts without achieving SOTA, consider exploring entirely new directions.
 
 factor_hypothesis_specification: |-
-  0. **IMPORTANT GUIDELINES**
-    - Keep in mind that factors surpassing the SOTA are included in the SOTA factor library to avoid redundant re-implementation.
-    - When writing a new hypothesis, be specific about the exact methods to be used, rather than using generalized concepts like machine learning models or ensembles.
-    - Prioritize factors that are likely to yield high Information Coefficient based on empirical intuition or prior evidence.
-    - Ensure each generation produces 1-5 factors. Balance simplicity and complexity to build a robust factor library.
-
   1. **Type of Factor and Financial Trends:**
-    - Define the type of factor introduced.
+    - Define the type of factor(s) introduced.
+    - Explain the financial trends or market behaviors indicated by the factor.
     - Omit unnecessary or redundant details.
-  
-  2. **Simple and Effective Factors First:**
-    - Start with factors that are simple and likely effective.
+  2. **1-5 Factors per Generation:**
+    - Ensure each generation produces 1-5 factors.
+    - Balance simplicity and complexity to build a robust factor library.
+  3. **Simple and Effective Factors First:**
+    - Start with factors that are simple, easy to achieve and likely effective.
     - Concisely explain why these factors are expected to work.
     - Avoid complex or combined factors initially.
-  3. **Gradual Complexity Increase:**
-    - Introduce more complex factors (e.g. Machine Learning based factors) as more experimental results are gathered.
-    - Discuss potential advantages and complexities.
+  4. **Gradual Complexity Increase:**
+    - Introduce more complex factors as more experimental results are gathered.
     - Combine factors only after simpler ones are tested and validated.
-
-  4. **New Directions and Optimizations:**
-    - If a new direction is needed (repeated improvements fail to yield better results), explain why based on financial principles, economic theories, or market behaviors.
-    - Suggest only one new direction at a time for clarity. The new direction can be entirely different from previous factors.
-    - If a previous hypothesis did not surpass SOTA but seems optimizable, you may continue in the same direction.
+  5. **New Directions and Optimizations:**
+    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and starting with simple factors again.
+    - If optimizing a specific type of factor, proceed from simple to complex.
+    - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
 
 
 factor_experiment_output_format: |-
@@ -146,7 +166,7 @@ factor_feedback_generation:
     
     Please understand the following operation logic and then make your feedback that is suitable for the scenario:
       1. Logic Explanation:
-          - If the previous hypothesis factor surpasses the SOTA, include this factor in the SOTA factor library.
+          - If the previous hypothesis factor(s) surpasses the SOTA, include this(these) factor(s) in the SOTA factor library.
           - New experiments will generate new factors, which will be combined with the factors in the SOTA library.
           - These combined factors will be backtested and compared against the current SOTA to continuously iterate.
       2. Development Directions:
@@ -156,18 +176,18 @@ factor_feedback_generation:
               - If the previous experiment's factor replaced the SOTA, suggest further improvements to that factor.
               - Clearly specify the differences in name and improvements compared to the previous factor.
           - Continued Research:
-              - If the previous experiment's factor did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
+              - If the previous experiment's factors did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
       3. Final Goal:
           - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
     
       When judging the results:
       1. **Recommendation for Replacement:**
-        - If the new factor shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
+        - If the new factor(s) shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
         - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
         - Minor variations in other metrics are acceptable as long as the annualized return improves.
 
     Consider Changing Direction for Significant Gaps with SOTA:
-      - If the new results significantly differ from the SOTA, consider exploring a new direction.
+      - If the new results significantly differ from the SOTA, consider exploring a new direction (write new type factors).
       - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
 
     Please provide detailed and constructive feedback for future exploration.
@@ -226,8 +246,13 @@ model_feedback_generation:
     You will receive a quantitative model hypothesis, its specific task description, and it market backtest result. 
     Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA (State of the Art) results, and suggest improvements or new directions.
 
+    Suggestions for feedback improvement:
+    1. Focus exclusively on the architecture of PyTorch models. Each hypothesis must address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
+    2. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
+    3. Utilize standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures, aiming for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
+    4. After a series of failed attempts without achieving SOTA, consider exploring entirely new directions.
 
-    Please provide detailed and constructive feedback. Note that as hypothesis evolve, a general trend should be that the model grows larger. 
+    Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
       "Observations": "Clearly summarize current and SOTA results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences.",
@@ -256,21 +281,10 @@ model_feedback_generation:
     Specific Task: {{ exp.sub_tasks[0] }}
     Code Implementation: {{ exp.sub_workspace_list[0].file_dict.get("model.py") }}
     Result: {{ exp.result }}
-    # TODO
-    Execution Log: {{ exp.stdout }}
-
-    # Evaluation Metrics Explanations:
-    Below are the financial meanings of each metric, which should be used to judge the results:
-
-    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs. (the bigger the better)
-    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation. (the bigger the better)
 
     # When judging the results:
-    # TODO
-    1. First, focus on the model's training process to determine whether the current parameters are reasonable and if there is a need for optimization.
-    2. **Recommendation for Replacement:**
-      - If the new model's performance shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current SOTA result.
-      - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
+    1. **Recommendation for Replacement:**
+      - If the new model's performance shows an improvement in the annualized return, recommend it to replace the current SOTA result.
       - Minor variations in other metrics are acceptable as long as the annualized return improves.
-    3.  Consider Changing Direction When Results Are Significantly Worse Than SOTA:
-      - If the new results significantly worse than the SOTA, consider exploring a new direction.
+    2.  Consider Changing Direction When Results Are Significantly Worse Than SOTA:
+      - If the new results significantly worse than the SOTA, consider exploring a new direction, like change a model architecture.

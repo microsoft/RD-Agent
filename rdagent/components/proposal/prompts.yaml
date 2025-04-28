@@ -24,6 +24,11 @@ hypothesis_gen:
     Here is the last trial's hypothesis and the corresponding feedback (The main feedback contains a new hypothesis for your reference only. You need to evaluate the complete trace chain to decide whether to adopt it or propose a more appropriate hypothesis):
     {{ last_hypothesis_and_feedback }}
 
+    {% if sota_hypothesis_and_feedback != "" %}
+    Here is the SOTA trail's hypothesis and the corresponding feedback:
+    {{ sota_hypothesis_and_feedback }}
+    {% endif %}
+
     {% if RAG %}
     To assist you in generating new {{ targets }}, we have provided the following information: {{ RAG }}.
     You must carefully assess whether the RAG aligns with the {{ targets }}. 
