@@ -2,7 +2,7 @@ task: |-
   {% include "scenarios.data_science.share:scen.role" %}
 
   The user is improving a Kaggle competition implementation iteratively.
-  Your task is to merge two solutions to get a better version
+  Your task is to merge two solutions to create a better version. We expect the merged version to perform better than both given solutions.
 
   You will be given:
   1) Scenario Description: an overview of the competition;

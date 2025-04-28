@@ -10,6 +10,7 @@ class MergeExpGen(ExpGen):
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
+        trace.set_current_selection((leaves[0],))  # override the current selection.
 
         # assuming merging the first and sencond trace.
         sota_exp = trace.sota_experiment(selection=(leaves[0],))
