@@ -135,12 +135,15 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             return self.hist
 
         elif search_type == "ancestors":
-            selection = self.get_current_selection()
+
+            if selection is None:
+                selection = self.get_current_selection()
+
             if len(selection) == 0:
-                # selection is (), which means we switch to a new trace, which is not implemented yet
+                # selection is (), which means we switch to a new trace
                 return []
 
-            return self.collect_all_ancestors(self.get_current_selection())
+            return self.collect_all_ancestors(selection)
 
         else:
             raise ValueError(f"Invalid search type: {search_type}")
