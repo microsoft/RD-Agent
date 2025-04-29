@@ -22,6 +22,7 @@ from rdagent.core.proposal import (
     HypothesisFeedback,
 )
 from rdagent.core.developer import Developer
+from rdagent.scenarios.qlib.proposal.quant_proposal import QuantTrace
 
 class QuantRDLoop(RDLoop):
     skip_loop_error = (FactorEmptyError,ModelEmptyError, )
@@ -54,7 +55,7 @@ class QuantRDLoop(RDLoop):
             self.model_summarizer: Experiment2Feedback = import_class(PROP_SETTING.model_summarizer)(scen)
             logger.log_object(self.model_summarizer, tag="model summarizer")
 
-            self.trace = Trace(scen=scen)
+            self.trace = QuantTrace(scen=scen)
             super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):

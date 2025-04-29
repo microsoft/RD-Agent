@@ -14,8 +14,15 @@ from rdagent.components.proposal import (
     FactorAndModelHypothesisGen,
 )
 from rdagent.oai.llm_utils import APIBackend
+from rdagent.scenarios.qlib.proposal.bandit import Metrics, extract_metrics_from_experiment, EnvController
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
+
+class QuantTrace(Trace):
+    def __init__(self, scen: Scenario) -> None:
+        super().__init__(scen)
+        # Initialize the controller with default weights
+        self.controller = EnvController()
 
 class QlibQuantHypothesis(Hypothesis):
     def __init__(
@@ -44,6 +51,16 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         super().__init__(scen)
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
+
+        # bandit
+        if len(trace.hist) > 0:
+            metric = extract_metrics_from_experiment(trace.hist[-1][0])
+            prev_action = trace.hist[-1][0].hypothesis.action
+            trace.controller.record(metric, prev_action)
+            action = trace.controller.decide(metric)
+        else:
+            action = "factor"
+
         hypothesis_and_feedback = (
             (
                 Environment(undefined=StrictUndefined)
@@ -54,33 +71,33 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        last_hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                .render(experiment=trace.hist[-1][0],
-                        feedback=trace.hist[-1][1])
-            )
-            if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
-        )
+        # last_hypothesis_and_feedback = (
+        #     (
+        #         Environment(undefined=StrictUndefined)
+        #         .from_string(prompt_dict["last_hypothesis_and_feedback"])
+        #         .render(experiment=trace.hist[-1][0],
+        #                 feedback=trace.hist[-1][1])
+        #     )
+        #     if len(trace.hist) > 0
+        #     else "No previous hypothesis and feedback available since it's the first round."
+        # )
 
-        system_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["action_gen"]["system"])
-            .render()
-        )
-        user_prompt = (
-            Environment(undefined=StrictUndefined)
-            .from_string(prompt_dict["action_gen"]["user"])
-            .render(
-                hypothesis_and_feedback=hypothesis_and_feedback,
-                last_hypothesis_and_feedback=last_hypothesis_and_feedback,
-            )
-        )
-        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+        # system_prompt = (
+        #     Environment(undefined=StrictUndefined)
+        #     .from_string(prompt_dict["action_gen"]["system"])
+        #     .render()
+        # )
+        # user_prompt = (
+        #     Environment(undefined=StrictUndefined)
+        #     .from_string(prompt_dict["action_gen"]["user"])
+        #     .render(
+        #         hypothesis_and_feedback=hypothesis_and_feedback,
+        #         last_hypothesis_and_feedback=last_hypothesis_and_feedback,
+        #     )
+        # )
+        # resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
 
-        action = json.loads(resp).get("action", "factor")
+        # action = json.loads(resp).get("action", "factor")
 
         # action = random.choice(["factor", "model"])
         self.targets = action
