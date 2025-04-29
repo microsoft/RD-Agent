@@ -52,7 +52,7 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
 
     def prepare_context(self, trace: Trace) -> Tuple[dict, bool]:
 
-        # bandit
+        # ========= Bandit ==========
         if len(trace.hist) > 0:
             metric = extract_metrics_from_experiment(trace.hist[-1][0])
             prev_action = trace.hist[-1][0].hypothesis.action
@@ -70,6 +70,8 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        # ========= LLM ==========
 
         # last_hypothesis_and_feedback = (
         #     (
@@ -99,14 +101,77 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
 
         # action = json.loads(resp).get("action", "factor")
 
+        # ========= random ==========
         # action = random.choice(["factor", "model"])
         self.targets = action
 
-        # TODO We can filter the trace; for example, if the action is a factor, we can show all past experiments related to that factor as well as experiments from the state-of-the-art models.
+        qaunt_rag = None
+        if action == "factor":
+            if len(trace.hist) < 15:
+                qaunt_rag = "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors as much as possible."
+            else:
+                qaunt_rag = "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). At the same time, try to use fundamental factors."
+        elif action == "model":
+            qaunt_rag = "1. In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.\n2. The training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size. This has a significant impact on the training results. If you believe that the previous model itself is good but the training hyperparameters or model hyperparameters are not optimal, you can return the same model and adjust these parameters instead."
+        
+        if len(trace.hist) == 0:
+            hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
+        else:
+            specific_trace = Trace(trace.scen)
+            if action == "factor":
+                # all factor experiments and the SOTA model experiment
+                model_inserted = False
+                for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+                    if trace.hist[i][0].hypothesis.action == "factor":
+                        specific_trace.hist.insert(0, trace.hist[i])
+                    elif trace.hist[i][0].hypothesis.action == "model" and trace.hist[i][1].decision is True and model_inserted == False:
+                        specific_trace.hist.insert(0, trace.hist[i])
+                        model_inserted = True
+            elif action == "model":
+                # all model experiments and all SOTA factor experiments
+                for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+                    if trace.hist[i][0].hypothesis.action == "model":
+                        specific_trace.hist.insert(0, trace.hist[i])
+                    elif trace.hist[i][0].hypothesis.action == "factor" and trace.hist[i][1].decision is True:
+                        specific_trace.hist.insert(0, trace.hist[i])
+            if len(specific_trace.hist) > 0:
+                specific_trace.hist.reverse()
+                hypothesis_and_feedback = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(prompt_dict["hypothesis_and_feedback"])
+                    .render(trace=specific_trace)
+                )
+            else:
+                hypothesis_and_feedback = "No previous hypothesis and feedback available."
+
+        last_hypothesis_and_feedback = None
+        for i in range(len(trace.hist) - 1, -1, -1):
+            if trace.hist[i][0].hypothesis.action == action:
+                last_hypothesis_and_feedback = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                    .render(experiment=trace.hist[i][0],
+                            feedback=trace.hist[i][1])
+                )
+                break
+        
+        sota_hypothesis_and_feedback = None
+        if action == "model":
+            for i in range(len(trace.hist) - 1, -1, -1):
+                if trace.hist[i][0].hypothesis.action == "model" and trace.hist[i][1].decision is True:
+                    sota_hypothesis_and_feedback = (
+                        Environment(undefined=StrictUndefined)
+                        .from_string(prompt_dict["sota_hypothesis_and_feedback"])
+                        .render(experiment=trace.hist[i][0],
+                                feedback=trace.hist[i][1])
+                    )
+                    break
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now." if action == "model" else None,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
+            "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
+            "RAG": qaunt_rag,
             "hypothesis_output_format": prompt_dict["hypothesis_output_format_with_action"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"] if action == "factor" else prompt_dict["model_hypothesis_specification"],
         }
