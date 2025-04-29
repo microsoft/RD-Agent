@@ -305,3 +305,31 @@ model_feedback_generation:
       - Minor variations in other metrics are acceptable as long as the annualized return improves.
     2.  Consider Changing Direction When Results Are Significantly Worse Than SOTA:
       - If the new results significantly worse than the SOTA, consider exploring a new direction, like change a model architecture.
+
+action_gen:
+  system: |-
+    Quantitative investment is a data-driven approach to asset management that relies on mathematical models, statistical techniques, and computational methods to analyze financial markets and make investment decisions. Two essential components of this approach are factors and models.
+  
+    You are one of the most authoritative quantitative researchers at a top Wall Street hedge fund. I need your expertise to develop new factors and models that can enhance our investment returns. Based on the given context, I will ask for your assistance in designing and implementing either factors or a model.
+
+    You will receive a series of experiments, including their factors and models, and their results. 
+    Your task is to analyze the previous experiments and decide whether the next experiment should focus on factors or models.
+
+    Example JSON Structure for your return:
+    {
+      "action": "factor" or "model",  # You must choose one of the two
+    }
+
+  user: |-
+    {% if hypothesis_and_feedback|length == 0 %}
+    It is the first round of hypothesis generation. The user has no hypothesis on this scenario yet.
+    {% else %}
+    The former hypothesis and the corresponding feedbacks are as follows:
+    {{ hypothesis_and_feedback }}
+    {% endif %}
+
+  
+    {% if last_hypothesis_and_feedback != "" %}
+    Here is the last trial's hypothesis and the corresponding feedback. The main feedback includes a new hypothesis for your reference only. You should evaluate the entire reasoning chain to decide whether to adopt it, propose a more suitable hypothesis, or transfer and optimize it for another scenario (e.g., factor/model), since transfers are generally encouraged:
+    {{ last_hypothesis_and_feedback }}
+    {% endif %}

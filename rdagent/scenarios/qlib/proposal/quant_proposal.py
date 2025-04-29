@@ -13,6 +13,7 @@ from rdagent.components.proposal import (
     FactorAndModelHypothesis2Experiment,
     FactorAndModelHypothesisGen,
 )
+from rdagent.oai.llm_utils import APIBackend
 
 prompt_dict = Prompts(file_path=Path(__file__).parent.parent / "prompts.yaml")
 
@@ -53,8 +54,38 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        action = random.choice(["factor", "model"])
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
+        system_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["action_gen"]["system"])
+            .render()
+        )
+        user_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(prompt_dict["action_gen"]["user"])
+            .render(
+                hypothesis_and_feedback=hypothesis_and_feedback,
+                last_hypothesis_and_feedback=last_hypothesis_and_feedback,
+            )
+        )
+        resp = APIBackend().build_messages_and_create_chat_completion(user_prompt, system_prompt, json_mode=True)
+
+        action = json.loads(resp).get("action", "factor")
+
+        # action = random.choice(["factor", "model"])
         self.targets = action
+
+        # TODO We can filter the trace; for example, if the action is a factor, we can show all past experiments related to that factor as well as experiments from the state-of-the-art models.
 
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
