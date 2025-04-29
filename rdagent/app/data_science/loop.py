@@ -166,6 +166,7 @@ class DataScienceRDLoop(RDLoop):
                     self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
+
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             logger.log_object(self.trace.knowledge_base, tag="knowledge_base")
             self.trace.knowledge_base.dump()
@@ -228,6 +229,7 @@ class DataScienceRDLoop(RDLoop):
         replace_timer: bool = True,
     ) -> "LoopBase":
         session = super().load(path, output_path, do_truncate, replace_timer)
+        logger.log_object(DS_RD_SETTING.competition, tag="competition")  # NOTE: necessary to make mle_summary work.
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
             session.trace.knowledge_base = DSKnowledgeBase(
                 path=DS_RD_SETTING.knowledge_base_path, idea_pool_json_path=DS_RD_SETTING.idea_pool_json_path
@@ -257,6 +259,7 @@ def main(
     do_truncate=True,
     timeout=None,
     replace_timer=True,
+    exp_gen_cls: str | None = None,
 ):
     """
 
@@ -275,6 +278,10 @@ def main(
     competition :
     do_truncate :
         If set to True, the logger will truncate the future log messages by calling `logger.storage.truncate`.
+    replace_timer :
+        If session is loaded, should we replace the timer with session.timer
+    exp_gen_cls :
+        When we have different stages, we can replace the exp_gen with the new proposal
 
 
     Auto R&D Evolving loop for models in a Kaggle scenario.
@@ -300,6 +307,11 @@ def main(
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
         kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate, replace_timer)
+
+    # replace exp_gen if we have new class
+    if exp_gen_cls is not None:
+        kaggle_loop.exp_gen = import_class(exp_gen_cls)(kaggle_loop.exp_gen.scen)
+
     kaggle_loop.run(step_n=step_n, loop_n=loop_n, all_duration=timeout)
 
 
