@@ -37,7 +37,7 @@ class LLMHypothesisGen(HypothesisGen):
             .from_string(prompt_dict["hypothesis_gen"]["system_prompt"])
             .render(
                 targets=self.targets,
-                scenario=self.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment"),
+                scenario=self.scen.get_scenario_all_desc(filtered_tag=self.targets) if self.targets in ["factor", "model"] else self.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment"),
                 hypothesis_output_format=context_dict["hypothesis_output_format"],
                 hypothesis_specification=context_dict["hypothesis_specification"],
             )
@@ -48,6 +48,8 @@ class LLMHypothesisGen(HypothesisGen):
             .render(
                 targets=self.targets,
                 hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
+                last_hypothesis_and_feedback=context_dict["last_hypothesis_and_feedback"] if "last_hypothesis_and_feedback" in context_dict else "",
+                sota_hypothesis_and_feedback=context_dict["sota_hypothesis_and_feedback"] if "sota_hypothesis_and_feedback" in context_dict else "",
                 RAG=context_dict["RAG"],
             )
         )
@@ -102,6 +104,8 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
                 targets=self.targets,
                 target_hypothesis=context["target_hypothesis"],
                 hypothesis_and_feedback=context["hypothesis_and_feedback"],
+                last_hypothesis_and_feedback=context["last_hypothesis_and_feedback"] if "last_hypothesis_and_feedback" in context else "",
+                sota_hypothesis_and_feedback=context["sota_hypothesis_and_feedback"] if "sota_hypothesis_and_feedback" in context else "",
                 target_list=context["target_list"],
                 RAG=context["RAG"],
             )

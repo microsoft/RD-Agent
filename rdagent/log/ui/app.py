@@ -31,6 +31,8 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenar
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
 )
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
+
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -55,12 +57,12 @@ else:
 
 QLIB_SELECTED_METRICS = [
     "IC",
-    "1day.excess_return_without_cost.annualized_return",
-    "1day.excess_return_without_cost.information_ratio",
-    "1day.excess_return_without_cost.max_drawdown",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.information_ratio",
+    "1day.excess_return_with_cost.max_drawdown",
 ]
 
-SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
 
 
 def filter_log_folders(main_log_path):
@@ -123,6 +125,9 @@ if "h_decisions" not in state:
 if "metric_series" not in state:
     state.metric_series = []
 
+if "all_metric_series" not in state:
+    state.all_metric_series = []
+
 # Factor Task Baseline
 if "alpha158_metrics" not in state:
     state.alpha158_metrics = None
@@ -164,7 +169,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
+                        if isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario)) and state.alpha158_metrics is None:
                             sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -178,11 +183,13 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
                             ):
+                                sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
                             sms.name = f"Baseline"
                             state.metric_series.append(sms)
+                            state.all_metric_series.append(sms_all)
 
                         # common metrics
                         if msg.content.result is None:
@@ -195,12 +202,15 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
                             ):
+                                sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
 
                             sms.name = f"Round {state.lround}"
+                            sms_all.name = f"Round {state.lround}"
                             state.metric_series.append(sms)
+                            state.all_metric_series.append(sms_all)
                     elif "hypothesis generation" in tags:
                         state.hypotheses[state.lround] = msg.content
                     elif "ef" in tags and "feedback" in tags:
@@ -269,6 +279,7 @@ def refresh(same_trace: bool = False):
     state.hypotheses = defaultdict(None)
     state.h_decisions = defaultdict(bool)
     state.metric_series = []
+    state.all_metric_series = []
     state.last_msg = None
     state.current_tags = []
     state.alpha158_metrics = None
@@ -352,7 +363,6 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
     fig = make_subplots(rows=R, cols=C, subplot_titles=df.columns)
-
     def hypothesis_hover_text(h: Hypothesis, d: bool = False):
         color = "green" if d else "black"
         text = h.hypothesis
@@ -411,6 +421,7 @@ def summary_window():
                 with cc:
                     show_true_only = st.toggle("successful hypotheses", value=False)
 
+            # st.write(state.metric_series)
             # hypotheses_c, chart_c = st.columns([2, 3])
             chart_c = st.container()
             hypotheses_c = st.container()
@@ -421,6 +432,8 @@ def summary_window():
 
             with chart_c:
                 if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
+                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
+                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
@@ -516,6 +529,7 @@ def tasks_window(tasks: list[FactorTask | ModelTask]):
                     for v, d in mt.variables.items():
                         mks += f"| ${v}$ | {d} |\n"
                     st.markdown(mks)
+                st.markdown(f"**Train Para**: {mt.training_hyperparameters}")
 
 
 def research_window():
@@ -562,13 +576,53 @@ def research_window():
 
 
 def feedback_window():
+    # st.write(state.msgs[round])
+    st.write(round)
+    # Check if metric series exists and has the matching round
+    if state.all_metric_series:
+        for metric in state.all_metric_series:
+            if metric.name == f"Round {round}":
+                # Select specific metrics with cost
+                selected_metrics_with_cost = {
+                    'IC': float(f"{metric['IC']:.4f}"),
+                    'ICIR': float(f"{metric['ICIR']:.4f}"),
+                    'Rank IC': float(f"{metric['Rank IC']:.4f}"),
+                    'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
+                    'ARR': float(f"{metric['1day.excess_return_with_cost.annualized_return']:.4f}"),
+                    'IR': float(f"{metric['1day.excess_return_with_cost.information_ratio']:.4f}"),
+                    'MDD': float(f"{metric['1day.excess_return_with_cost.max_drawdown']:.4f}"),
+                    'Sharpe': float(f"{metric['1day.excess_return_with_cost.annualized_return'] / abs(metric['1day.excess_return_with_cost.max_drawdown']):.4f}")
+                }
+                st.write("With Cost Metrics:")
+                st.write(pd.Series(selected_metrics_with_cost))
+                
+                # Select specific metrics without cost
+                selected_metrics_without_cost = {
+                    'IC': float(f"{metric['IC']:.4f}"),
+                    'ICIR': float(f"{metric['ICIR']:.4f}"),
+                    'Rank IC': float(f"{metric['Rank IC']:.4f}"),
+                    'Rank ICIR': float(f"{metric['Rank ICIR']:.4f}"),
+                    'ARR': float(f"{metric['1day.excess_return_without_cost.annualized_return']:.4f}"),
+                    'IR': float(f"{metric['1day.excess_return_without_cost.information_ratio']:.4f}"),
+                    'MDD': float(f"{metric['1day.excess_return_without_cost.max_drawdown']:.4f}"),
+                    'Sharpe': float(f"{metric['1day.excess_return_without_cost.annualized_return'] / abs(metric['1day.excess_return_without_cost.max_drawdown']):.4f}")
+                }
+                st.write("Without Cost Metrics:")
+                st.write(pd.Series(selected_metrics_without_cost))
+                break
     if isinstance(state.scenario, SIMILAR_SCENARIOS):
         with st.container(border=True):
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
             if state.lround > 0 and isinstance(
-                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
             ):
+                try:
+                    st.write("workspace")
+                    st.write(state.msgs[round]["ef.runner result"][0].content.experiment_workspace.workspace_path)
+                    st.write(state.msgs[round]["ef.runner result"][0].content.stdout)
+                except Exception as e:
+                    st.error(f"Error displaying workspace path: {str(e)}")
                 with st.expander("**Config⚙️**", expanded=True):
                     st.markdown(state.scenario.experiment_setting, unsafe_allow_html=True)
 

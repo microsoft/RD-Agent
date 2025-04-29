@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from jinja2 import Environment, StrictUndefined
 
+from rdagent.scenarios.qlib.experiment.model_experiment import QlibModelExperiment
 from rdagent.components.coder.factor_coder.factor import FactorExperiment, FactorTask
 from rdagent.components.proposal import FactorHypothesis2Experiment, FactorHypothesisGen
 from rdagent.core.prompts import Prompts
@@ -29,10 +30,23 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+        
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": None,
-            "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
+            "RAG": "In general, try the easiest and fastest factors to experiment with from various perspectives first.",
+            "hypothesis_output_format": prompt_dict["factor_hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
         return context_dict, True
@@ -105,6 +119,8 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         for task in tasks:
             duplicate = False
             for based_exp in exp.based_experiments:
+                if isinstance(based_exp, QlibModelExperiment):
+                    continue
                 for sub_task in based_exp.sub_tasks:
                     if task.factor_name == sub_task.factor_name:
                         duplicate = True

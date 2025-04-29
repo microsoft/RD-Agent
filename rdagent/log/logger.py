@@ -117,17 +117,17 @@ class RDAgentLog(SingletonBaseClass):
 
         # FIXME: it looks like a hacking... We should redesign it...
         if "debug_" in tag:
-            debug_log_path = self.log_trace_path / "debug_llm.pkl"
-            debug_data = {"tag": tag, "obj": obj}
-            if debug_log_path.exists():
-                with debug_log_path.open("rb") as f:
-                    existing_data = pickle.load(f)
-                existing_data.append(debug_data)
-                with debug_log_path.open("wb") as f:
-                    pickle.dump(existing_data, f)
-            else:
-                with debug_log_path.open("wb") as f:
-                    pickle.dump([debug_data], f)
+            # debug_log_path = self.log_trace_path / "debug_llm.pkl"
+            # debug_data = {"tag": tag, "obj": obj}
+            # if debug_log_path.exists():
+            #     with debug_log_path.open("rb") as f:
+            #         existing_data = pickle.load(f)
+            #     existing_data.append(debug_data)
+            #     with debug_log_path.open("wb") as f:
+            #         pickle.dump(existing_data, f)
+            # else:
+            #     with debug_log_path.open("wb") as f:
+            #         pickle.dump([debug_data], f)
             return
 
         logp = self.storage.log(obj, name=tag, save_type="pkl")

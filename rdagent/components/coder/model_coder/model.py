@@ -8,7 +8,7 @@ from rdagent.components.coder.CoSTEER.task import CoSTEERTask
 from rdagent.core.experiment import Experiment, FBWorkspace
 from rdagent.core.utils import cache_with_pickle
 from rdagent.oai.llm_utils import md5_hash
-from rdagent.utils.env import KGDockerEnv, QTDockerEnv
+from rdagent.utils.env import KGDockerEnv, QTDockerEnv, QlibCondaConf, LocalEnv
 
 
 class ModelTask(CoSTEERTask):
@@ -19,6 +19,7 @@ class ModelTask(CoSTEERTask):
         architecture: str,
         *args,
         hyperparameters: Dict[str, str],
+        training_hyperparameters: Dict[str, str],
         formulation: str = None,
         variables: Dict[str, str] = None,
         model_type: Optional[str] = None,
@@ -28,6 +29,7 @@ class ModelTask(CoSTEERTask):
         self.architecture: str = architecture
         self.variables: str = variables
         self.hyperparameters: str = hyperparameters
+        self.training_hyperparameters: str = training_hyperparameters
         self.model_type: str = (
             model_type  # Tabular for tabular model, TimesSeries for time series model, Graph for graph model, XGBoost for XGBoost model
         )
@@ -41,6 +43,17 @@ description: {self.description}
         task_desc += f"architecture: {self.architecture}\n"
         task_desc += f"variables: {self.variables}\n" if self.variables else ""
         task_desc += f"hyperparameters: {self.hyperparameters}\n"
+        task_desc += f"training_hyperparameters: {self.training_hyperparameters}\n"
+        task_desc += f"model_type: {self.model_type}\n"
+        return task_desc
+
+    def get_task_brief_information(self):
+        task_desc = f"""name: {self.name}
+description: {self.description}
+"""
+        task_desc += f"architecture: {self.architecture}\n"
+        task_desc += f"hyperparameters: {self.hyperparameters}\n"
+        task_desc += f"training_hyperparameters: {self.training_hyperparameters}\n"
         task_desc += f"model_type: {self.model_type}\n"
         return task_desc
 
@@ -100,6 +113,7 @@ class ModelFBWorkspace(FBWorkspace):
         self.before_execute()
         try:
             qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
+            # qtde = LocalEnv(conf=QlibCondaConf()) if self.target_task.version == 1 else KGDockerEnv()
             qtde.prepare()
 
             if self.target_task.version == 1:
