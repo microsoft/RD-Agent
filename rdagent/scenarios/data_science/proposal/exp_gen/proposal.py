@@ -224,6 +224,28 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
+    def refine_or_explore(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
+        sys_prompt = T(".prompts_v2:refine_or_explore.system").r(
+            refine_or_explore_output_format=T(".prompts_v2:output_format.refine_or_explore").r(),
+        )
+        user_prompt = T(".prompts_v2:refine_or_explore.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, bool | str],
+        )
+        return json.loads(response)
+
+    def refine(self, refine_decision: Dict, component_desc: str, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> None:
+        # TODO: multi-turn conversation to refine the exp by 1) component + hypothesis 2) task design
+        pass
+
+        
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -455,6 +477,21 @@ class DSProposalV2ExpGen(ExpGen):
             exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
             type="failed",
         )
+
+        # Step 0: Refine or Explore
+        refine_decision = self.refine_or_explore(
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        if refine_decision.get("decision", False):
+            return self.refine(
+                component_desc=component_desc,
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                pipeline=pipeline,
+            )
 
         # Step 1: Identify problems
         scen_problems = self.identify_scenario_problem(
