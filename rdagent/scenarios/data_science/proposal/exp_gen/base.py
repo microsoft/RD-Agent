@@ -68,6 +68,21 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def set_current_selection(self, selection: tuple[int, ...]) -> None:
         self.current_selection = selection
 
+    def get_leaves(self) -> list[int, ...]:
+        """
+        Get the indices of nodes (in hist) that have no children—i.e., "leaves" of current DAG.
+        Returns:
+            tuple of ints: Indices of leaf nodes.
+            - Leaves with lower index comes first.
+        """
+        # Build a set of all parent indices found in dag_parent (skip empty tuples which represent roots)
+        parent_indices = set(idx for parents in self.dag_parent for idx in parents)
+        # All node indices
+        all_indices = set(range(len(self.hist)))
+        # The leaf nodes have no children, so they are not present as parents of any other node
+        leaves = list(sorted(all_indices - parent_indices))
+        return leaves
+
     def sync_dag_parent_and_hist(
         self,
     ) -> None:
@@ -90,7 +105,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             self.dag_parent.append((current_node_idx,))
 
     def retrieve_search_list(
-        self, search_type: Literal["all", "ancestors"] = "ancestors"
+        self,
+        search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve the search list based on the selection and search_type.
@@ -108,7 +125,9 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             The search list.
         """
 
-        selection = self.get_current_selection()
+        if selection is None:
+            selection = self.get_current_selection()
+
         if selection is None:
             # selection is None, which means we switch to a new trace, which is not implemented yet
             return []
@@ -175,11 +194,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         self,
         return_type: Literal["sota", "failed", "all"],
         search_type: Literal["all", "ancestors"] = "all",
+        selection: tuple[int, ...] | None = None,
     ) -> list[tuple[DSExperiment, ExperimentFeedback]]:
         """
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
-        search_list = self.retrieve_search_list(search_type)
+        search_list = self.retrieve_search_list(search_type, selection=selection)
 
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
@@ -199,6 +219,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
     def sota_experiment(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
     ) -> DSExperiment | None:
         """
 
@@ -207,7 +228,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Experiment or None
             The experiment result if found, otherwise None.
         """
-        search_list = self.retrieve_search_list(search_type)
+        search_list = self.retrieve_search_list(search_type, selection=selection)
 
         if DS_RD_SETTING.coder_on_whole_pipeline or self.next_incomplete_component() is None:
             for exp, ef in search_list[::-1]:
