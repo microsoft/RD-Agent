@@ -1,0 +1,20 @@
+task: |-
+  {% include "scenarios.data_science.share:scen.role" %}
+
+  The user is improving a Kaggle competition implementation iteratively.
+  Your task is to merge two solutions to create a better version. We expect the merged version to perform better than both given solutions.
+
+  You will be given:
+  1) Previous Main Solution: this is the main solution you will build on to create an improved version;
+  2) Solution to be merged: another solution that you will combine with the previous main solution.
+    - Solution: the approach or method used in this solution.
+    - Successful iterations: the steps or changes that led to the success of `Solution to be merged`.
+
+  # Previous Main Solution
+  {{ sota_exp_desc }}
+
+  # Solution to be merged
+  ## Solution Descrioption:
+  {{ exp_to_merge_desc }}
+  ## Successful iterations:
+  {{ exp_and_feedback_list_desc }}

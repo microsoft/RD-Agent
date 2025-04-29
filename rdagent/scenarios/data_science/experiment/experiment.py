@@ -5,7 +5,7 @@ import pandas as pd
 
 from rdagent.core.experiment import Experiment, FBWorkspace, Task
 
-COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow"]
+COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow", "Pipeline"]
 
 
 class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):

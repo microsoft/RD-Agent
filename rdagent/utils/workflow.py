@@ -214,10 +214,13 @@ class LoopBase:
             session = cast(LoopBase, pickle.load(f))
 
         # set session folder
-        if output_path:
-            output_path = Path(output_path)
-            output_path.mkdir(parents=True, exist_ok=True)
-            session.session_folder = output_path / "__session__"
+        # - P1: if output_path explicitly specified.
+        # - P2: RD_AGENT_SETTINGS.log_trace_path
+        output_path_value = output_path if output_path is not None else RD_AGENT_SETTINGS.log_trace_path
+        if output_path_value is not None:
+            output_path_path = Path(output_path_value)
+            output_path_path.mkdir(parents=True, exist_ok=True)
+            session.session_folder = output_path_path / "__session__"
 
         # set trace path
         logger.set_trace_path(session.session_folder.parent)
