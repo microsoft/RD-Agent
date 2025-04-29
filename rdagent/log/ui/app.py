@@ -55,9 +55,9 @@ else:
 
 QLIB_SELECTED_METRICS = [
     "IC",
-    "1day.excess_return_without_cost.annualized_return",
-    "1day.excess_return_without_cost.information_ratio",
-    "1day.excess_return_without_cost.max_drawdown",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.information_ratio",
+    "1day.excess_return_with_cost.max_drawdown",
 ]
 
 SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
@@ -419,7 +419,7 @@ def summary_window():
                 with cc:
                     show_true_only = st.toggle("successful hypotheses", value=False)
 
-            st.write(state.metric_series)
+            # st.write(state.metric_series)
             # hypotheses_c, chart_c = st.columns([2, 3])
             chart_c = st.container()
             hypotheses_c = st.container()

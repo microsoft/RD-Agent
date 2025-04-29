@@ -94,13 +94,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                raise FactorEmptyError("No valid factor data in this loop found to merge.")
+                raise FactorEmptyError("Factors failed to run on the full sample, this round of experiment failed.")
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
                 new_factors = self.deduplicate_new_factors(SOTA_factor, new_factors)
                 if new_factors.empty:
-                    raise FactorEmptyError("No valid factor data found to merge (after deduplicate_new_factors).")
+                    raise FactorEmptyError("The factors generated in this round are highly similar to the previous factors. Please change the direction for creating new factors.")
                 combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
             else:
                 combined_factors = new_factors
@@ -127,6 +127,10 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
         exp.result = result
         exp.stdout = stdout
+
+        if result is None:
+            logger.error(f"Failed to run this experiment, because {stdout}")
+            raise FactorEmptyError(f"Failed to run this experiment, because {stdout}")
 
         return exp
 

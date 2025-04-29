@@ -48,7 +48,7 @@ class LLMHypothesisGen(HypothesisGen):
             .render(
                 targets=self.targets,
                 hypothesis_and_feedback=context_dict["hypothesis_and_feedback"],
-                last_hypothesis_and_feedback=context_dict["last_hypothesis_and_feedback"],
+                last_hypothesis_and_feedback=context_dict["last_hypothesis_and_feedback"] if "last_hypothesis_and_feedback" in context_dict else "",
                 sota_hypothesis_and_feedback=context_dict["sota_hypothesis_and_feedback"] if "sota_hypothesis_and_feedback" in context_dict else "",
                 RAG=context_dict["RAG"],
             )

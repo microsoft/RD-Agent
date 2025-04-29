@@ -44,7 +44,44 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
-            "RAG": "In general, try the easiest and fastest factors to experiment with from various perspectives first.",
+            "RAG": "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors as much as possible." if len(trace.hist) < 10 else """Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). The following factor is a good example, and you MUST aim for such factors. At the same time, try to use fundamental factors as much as possible.
+    import pandas as pd
+    import numpy as np
+    from sklearn.linear_model import LinearRegression
+    from sklearn.ensemble import GradientBoostingRegressor
+
+
+    def calculate_volatility_sentiment_50d_dynamicadjustments():
+        daily_f = pd.read_hdf('daily_f.h5', key='data')
+        daily_pv = pd.read_hdf('daily_pv.h5', key='data')
+        daily_pv.sort_values(by=['datetime', 'instrument'], inplace=True)
+
+        daily_pv['returns'] = daily_pv.groupby('instrument')['$close'].pct_change()
+        daily_pv['volatility_50d'] = daily_pv.groupby('instrument')['returns'].transform(lambda x: x.rolling(window=50).std())
+
+        # Placeholder for actual sentiment data integration
+        # Replace the following line with actual sentiment data retrieval and integration
+        daily_pv['sentiment'] = np.random.uniform(-1, 1, size=len(daily_pv))  # This should be replaced
+
+        def get_dynamic_adjustments(df):
+        model = GradientBoostingRegressor()
+        X = np.arange(len(df)).reshape(-1, 1)
+        y = df['returns'].fillna(0).values
+        model.fit(X, y)
+        return pd.Series(model.predict(X), index=df.index)
+
+        daily_pv['dynamic_adjustments'] = daily_pv.groupby('instrument').apply(get_dynamic_adjustments).reset_index(level=0, drop=True)
+
+        daily_pv['Volatility_Sentiment_50D_DynamicAdjustments'] = (
+        daily_pv['volatility_50d'] * daily_pv['sentiment'] * daily_pv['dynamic_adjustments']
+        )
+
+        result = daily_pv[['Volatility_Sentiment_50D_DynamicAdjustments']].dropna()
+        result.to_hdf('result.h5', key='data', mode='w')
+
+
+    if __name__ == '__main__':
+        calculate_volatility_sentiment_50d_dynamicadjustments()""",
             "hypothesis_output_format": prompt_dict["factor_hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
