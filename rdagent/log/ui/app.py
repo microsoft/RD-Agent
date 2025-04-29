@@ -31,6 +31,8 @@ from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorScenar
 from rdagent.scenarios.qlib.experiment.factor_from_report_experiment import (
     QlibFactorFromReportScenario,
 )
+from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
+
 from rdagent.scenarios.qlib.experiment.model_experiment import (
     QlibModelExperiment,
     QlibModelScenario,
@@ -55,12 +57,12 @@ else:
 
 QLIB_SELECTED_METRICS = [
     "IC",
-    "1day.excess_return_without_cost.annualized_return",
-    "1day.excess_return_without_cost.information_ratio",
-    "1day.excess_return_without_cost.max_drawdown",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.information_ratio",
+    "1day.excess_return_with_cost.max_drawdown",
 ]
 
-SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
 
 
 def filter_log_folders(main_log_path):
@@ -167,7 +169,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                     # Update Summary Info
                     if "model runner result" in tags or "factor runner result" in tags or "runner result" in tags:
                         # factor baseline exp metrics
-                        if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is None:
+                        if isinstance(state.scenario, (QlibFactorScenario, QlibQuantScenario)) and state.alpha158_metrics is None:
                             sms = msg.content.based_experiments[0].result.loc[QLIB_SELECTED_METRICS]
                             sms.name = "alpha158"
                             state.alpha158_metrics = sms
@@ -181,7 +183,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
                             ):
                                 sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
@@ -200,7 +202,7 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                             if isinstance(state.scenario, DMModelScenario):
                                 sms.index = ["AUROC"]
                             elif isinstance(
-                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario)
+                                state.scenario, (QlibModelScenario, QlibFactorFromReportScenario, QlibFactorScenario, QlibQuantScenario)
                             ):
                                 sms_all = sms
                                 sms = sms.loc[QLIB_SELECTED_METRICS]
@@ -431,6 +433,8 @@ def summary_window():
             with chart_c:
                 if isinstance(state.scenario, QlibFactorScenario) and state.alpha158_metrics is not None:
                     df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
+                elif isinstance(state.scenario, QlibQuantScenario) and state.alpha158_metrics is not None:
+                    df = pd.DataFrame([state.alpha158_metrics] + state.metric_series)
                 else:
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
@@ -611,7 +615,7 @@ def feedback_window():
             st.subheader("Feedback📝", divider="orange", anchor="_feedback")
 
             if state.lround > 0 and isinstance(
-                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
+                state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, QlibQuantScenario, KGScenario)
             ):
                 try:
                     st.write("workspace")
