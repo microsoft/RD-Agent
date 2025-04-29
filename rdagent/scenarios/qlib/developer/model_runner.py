@@ -76,8 +76,8 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
             env_to_use.update({
                 "n_epochs": str(training_hyperparameters.get("n_epochs", "1000")),
                 "lr": str(training_hyperparameters.get("lr", "2e-4")),
-                "early_stop": str(training_hyperparameters.get("early_stop", 20)),
-                "batch_size": str(training_hyperparameters.get("batch_size", 400)),
+                "early_stop": str(training_hyperparameters.get("early_stop", 10)),
+                "batch_size": str(training_hyperparameters.get("batch_size", 800)),
                 "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0)),
             })
         

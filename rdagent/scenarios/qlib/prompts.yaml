@@ -95,7 +95,6 @@ hypothesis_output_format_with_action: |-
   }
 
 model_hypothesis_specification: |-
-  Additional Specifications:
   1. First, observe and analyze the overall experimental progression in `hypothesis_and_feedback`. Analyze where the previous model designs were inadequate — whether it was due to parameter settings, architectural flaws, or a lack of novelty (proposing entirely new concepts is highly encouraged as long as they demonstrate effectiveness).
   2. Second, `last_hypothesis_and_feedback` and `sota_hypothesis_and_feedback` are key references you should pay close attention to. You can choose to optimize based on either of them or generate new ideas to form hypotheses and experiments.
   3. If there is no prior experiment or result available at the beginning, you can start by implementing a simple and small architecture.
@@ -106,23 +105,21 @@ model_hypothesis_specification: |-
   8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
 
 factor_hypothesis_specification: |-
-  1. **Type of Factor and Financial Trends:**
-    - Define the type of factor(s) introduced.
-    - Explain the financial trends or market behaviors indicated by the factor.
-    - Omit unnecessary or redundant details.
-  2. **1-5 Factors per Generation:**
+  1. **1-5 Factors per Generation:**
     - Ensure each generation produces 1-5 factors.
     - Balance simplicity and complexity to build a robust factor library.
-  3. **Simple and Effective Factors First:**
+    - Make full use of the financial data provided to you instead of focusing solely on a specific field.
+  2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve and likely effective.
     - Concisely explain why these factors are expected to work.
     - Avoid complex or combined factors initially.
-  4. **Gradual Complexity Increase:**
-    - Introduce more complex factors as more experimental results are gathered.
+  3. **Gradual Complexity Increase:**
+    - Introduce more complex factors (e.g. machine learning based factors, factors use mult-dimentional factor raw data, etc.) as more experimental results are gathered.
     - Combine factors only after simpler ones are tested and validated.
-  5. **New Directions and Optimizations:**
-    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and starting with simple factors again.
+  4. **New Directions and Optimizations:**
+    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and can starting with simple factors again.
     - If optimizing a specific type of factor, proceed from simple to complex.
+  5. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
 
 factor_experiment_output_format: |-
@@ -167,9 +164,9 @@ model_experiment_output_format: |-
         },
         "training_hyperparameters" {  # All values are for reference; you can set them yourself
             "n_epochs": "1000",
-            "lr": "1e-4",
+            "lr": "2e-4",
             "early_stop": 10,
-            "batch_size": 400,
+            "batch_size": 800,
             "weight_decay": 0.0,
         }
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
@@ -188,25 +185,20 @@ factor_feedback_generation:
     
     Please understand the following operation logic and then make your feedback that is suitable for the scenario:
       1. Logic Explanation:
-          - If the previous hypothesis factor(s) surpasses the SOTA, include this(these) factor(s) in the SOTA factor library.
-          - New experiments will generate new factors, which will be combined with the factors in the SOTA library.
-          - These combined factors will be backtested and compared against the current SOTA to continuously iterate.
+        a) All factors that have surpassed SOTA in previous attempts will be included in the SOTA factor library.
+        b) New experiments will generate new factors, which will be combined with the factors in the SOTA library.
+        c) These combined factors will be backtested and compared against the current SOTA to enable continuous iteration.
       2. Development Directions:
-          - New Direction:
-              - Propose a new factor direction for exploration and development.
-          - Optimization of Existing Direction:
-              - If the previous experiment's factor replaced the SOTA, suggest further improvements to that factor.
-              - Clearly specify the differences in name and improvements compared to the previous factor.
-          - Continued Research:
-              - If the previous experiment's factors did not replace the SOTA, suggest ways to optimize and develop factors in this direction.
-      3. Final Goal:
-          - The ultimate goal is to continuously accumulate factors that surpass each iteration to maintain the best SOTA.
+        a) New Direction: Propose a new factor direction for exploration and development.
+        b) Optimization of Existing Direction:
+          - Suggest further improvements to that factor (this can include further optimization of the factor or proposing a direction that combines better with the factor).
+          - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
+      3. Final Goal: To continuously accumulate factors that surpass each iteration to maintain the best SOTA.
     
-      When judging the results:
-      1. **Recommendation for Replacement:**
-        - If the new factor(s) shows a significant improvement in the annualized return without transaction costs, recommend it to replace the current best result.
-        - If the annualized return and any other single metric are better than SOTA, recommend the replacement.
-        - Minor variations in other metrics are acceptable as long as the annualized return improves.
+    When judging the results:
+      1. Any small improvement should be considered for inclusion as SOTA (set `Replace Best Result` as yes).
+      2. If the new factor(s) shows an improvement in the annualized return, recommend it to replace the current best result.
+      3. Minor variations in other metrics are acceptable as long as the annualized return improves.
 
     Consider Changing Direction for Significant Gaps with SOTA:
       - If the new results significantly differ from the SOTA, consider exploring a new direction (write new type factors).
@@ -240,22 +232,7 @@ factor_feedback_generation:
     Analyze the combined result in the context of its ability to:
     1. Support or refute the hypothesis.
     2. Show improvement or deterioration compared to the SOTA experiment.
-
-    Evaluation Metrics Explanations:
-    Below are the financial meanings of each metric, which should be used to judge the results:
-
-    - 1day.excess_return_without_cost.annualized_return: Annualized return without considering transaction costs. (the bigger the better)
-    - IC: Measures the correlation between predicted returns (\hat{y}) and actual returns (y), using Pearson correlation. (the bigger the better)
-
-    When judging the results:
-    1. **Recommendation for Replacement:**
-      - If new factor's IC is greater than SOTA's IC, recommend the replacement (IC is the most important metric for factor development).
-      - If new factor's annualized return is greater than SOTA's annualized return, recommend the replacement.
-
-    Consider Changing Direction for Significant Gaps with SOTA:
-      - If the new results significantly differ from the SOTA, consider exploring a new direction.
-      - Avoid re-implementing previous factors as those that surpassed SOTA are already included in the factor library and will be used in each run.
-
+    
     Note: Only factors with 'Factor Implementation' as True are implemented and tested in this experiment. If 'Factor Implementation' is False, the hypothesis for that factor cannot be verified in this run.
 
 model_feedback_generation:
@@ -266,13 +243,12 @@ model_feedback_generation:
     {{ scenario }}
 
     You will receive a quantitative model hypothesis, its specific task description, and it market backtest result. 
-    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA results, examine the model’s training logs to analyze whether there are issues with hyperparameter settings, and suggest improvements or new directions.
-
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA results, examine the model's training logs to analyze whether there are issues with hyperparameter settings, and suggest improvements or new directions.
 
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
-      "Observations": "Clearly summarize current and SOTA results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences.",
+      "Observations": "First analyze the model's training logs to determine whether there are any issues with its parameter settings. Then clearly summarize the current results and the SOTA results with exact scores and any notable patterns. Limit your summary to no more than three concise, data-focused sentences.",
       "Feedback for Hypothesis": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "New Hypothesis": "Propose a revised hypothesis, considering observed patterns and limitations in the current one. Limit to no more than two sentences.",
       "Reasoning": "Explain the rationale for the new hypothesis using specific trends or performance shifts. Be concise but technically complete. Limit to two sentences.",

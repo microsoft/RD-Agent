@@ -99,13 +99,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             new_factors = self.process_factor_data(exp)
 
             if new_factors.empty:
-                raise FactorEmptyError("No valid factor data in this loop found to merge.")
+                raise FactorEmptyError("Factors failed to run on the full sample, this round of experiment failed.")
 
             # Combine the SOTA factor and new factors if SOTA factor exists
             if SOTA_factor is not None and not SOTA_factor.empty:
                 new_factors = self.deduplicate_new_factors(SOTA_factor, new_factors)
                 if new_factors.empty:
-                    raise FactorEmptyError("No valid factor data found to merge (after deduplicate_new_factors).")
+                    raise FactorEmptyError("The factors generated in this round are highly similar to the previous factors. Please change the direction for creating new factors.")
                 combined_factors = pd.concat([SOTA_factor, new_factors], axis=1).dropna()
             else:
                 combined_factors = new_factors
@@ -159,10 +159,10 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                     env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
 
                 # model + combined factors
-                result = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
             else:
                 # LGBM + combined factors
-                result = exp.experiment_workspace.execute(
+                result, stdout = exp.experiment_workspace.execute(
                 qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
             )
 
@@ -172,6 +172,10 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         result, stdout = exp.experiment_workspace.execute(
             qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
         )
+
+        if result is None:
+            logger.error(f"Failed to run this experiment, because {stdout}")
+            raise FactorEmptyError(f"Failed to run this experiment, because {stdout}")
 
         exp.result = result
         exp.stdout = stdout

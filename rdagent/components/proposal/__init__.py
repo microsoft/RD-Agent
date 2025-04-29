@@ -103,7 +103,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
             .render(
                 targets=self.targets,
                 target_hypothesis=context["target_hypothesis"],
-                hypothesis_and_feedback=context["hypothesis_and_feedback"],
+                hypothesis_and_feedback=context["hypothesis_and_feedback"] if "hypothesis_and_feedback" in context else "",
                 last_hypothesis_and_feedback=context["last_hypothesis_and_feedback"] if "last_hypothesis_and_feedback" in context else "",
                 sota_hypothesis_and_feedback=context["sota_hypothesis_and_feedback"] if "sota_hypothesis_and_feedback" in context else "",
                 target_list=context["target_list"],

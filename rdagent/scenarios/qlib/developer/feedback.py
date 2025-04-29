@@ -41,7 +41,7 @@ def process_results(current_result, sota_result):
     important_metrics = [
         "IC",
         "1day.excess_return_without_cost.annualized_return",
-        # "1day.excess_return_without_cost.max_drawdown",
+        "1day.excess_return_without_cost.max_drawdown",
         # "1day.excess_return_without_cost.information_ratio",
     ]
 

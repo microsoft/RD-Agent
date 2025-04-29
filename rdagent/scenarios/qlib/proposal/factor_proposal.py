@@ -45,7 +45,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
-            "RAG": "In general, try the easiest and fastest factors to experiment with from various perspectives first.",
+            "RAG": "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors." if len(trace.hist) < 15 else "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). At the same time, try to use fundamental factors.",
             "hypothesis_output_format": prompt_dict["factor_hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
