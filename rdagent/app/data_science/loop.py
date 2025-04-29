@@ -169,12 +169,14 @@ class DataScienceRDLoop(RDLoop):
                 else:
                     #  check if errors are in coding
                     recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
-                    all_coding_fail = all(not fb for _, fb in recent_hist)
-                    if all_coding_fail:
-                        scen = self.trace.scen
-                        if hasattr(scen, "reanalyze_competition_description"):
-                            logger.info("Reanalyzing the competition description after three consecutive coding failures.")
-                            scen.reanalyze_competition_description()
+                    if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                        all_coding_fail = all(not fb for _, fb in recent_hist)
+                        if all_coding_fail:
+                            scen = self.trace.scen
+                            if hasattr(scen, "reanalyze_competition_description"):
+                                logger.info("Reanalyzing the competition description after three consecutive coding failures.")
+                                scen.reanalyze_competition_description()
+                            self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
