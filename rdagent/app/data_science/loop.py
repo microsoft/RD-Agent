@@ -154,29 +154,27 @@ class DataScienceRDLoop(RDLoop):
             if (
                 self.trace.sota_experiment() is None
                 and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors
-                and not DS_RD_SETTING.coder_on_whole_pipeline
+                # and not DS_RD_SETTING.coder_on_whole_pipeline
             ):
-                # if {in inital/drafting stage} and {tried enough times}
-                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
-                    if fb:
-                        break  # any success will stop restarting.
-                else:  # otherwise restart it
-                    logger.error("Consecutive errors reached the limit. Dumping trace.")
-                    logger.log_object(self.trace, tag="trace before restart")
+                if (not DS_RD_SETTING.coder_on_whole_pipeline):
+                    # if {in inital/drafting stage} and {tried enough times}
+                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                        if fb:
+                            break  # any success will stop restarting.
+                    else:  # otherwise restart it
+                        logger.error("Consecutive errors reached the limit. Dumping trace.")
+                        logger.log_object(self.trace, tag="trace before restart")
+                        
+                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                else:
                     #  check if errors are in coding
                     recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
-                    if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
-                        all_coding_fail = True
-                        for exp, fb in recent_hist:
-                            if not (fb and hasattr(fb, "exception") and isinstance(fb.exception, CoderError)):
-                                all_coding_fail = False
-                                break
-                        if all_coding_fail:
-                            scen = self.trace.scen
-                            if hasattr(scen, "reanalyze_competition_description"):
-                                logger.info("Reanalyzing the competition description after three consecutive coding failures.")
-                                scen.reanalyze_competition_description()
-                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                    all_coding_fail = all(not fb for _, fb in recent_hist)
+                    if all_coding_fail:
+                        scen = self.trace.scen
+                        if hasattr(scen, "reanalyze_competition_description"):
+                            logger.info("Reanalyzing the competition description after three consecutive coding failures.")
+                            scen.reanalyze_competition_description()
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
