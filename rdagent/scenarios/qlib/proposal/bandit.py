@@ -67,9 +67,19 @@ class LinearThompsonTwoArm:
         }
 
     def sample_reward(self, arm: str, x: np.ndarray) -> float:
-        cov = np.linalg.inv(self.precision[arm])
-        w_sample = np.random.multivariate_normal(self.mean[arm], cov)
-        return np.dot(w_sample, x)
+        P = self.precision[arm]
+        P = 0.5 * (P + P.T)
+
+        eps = 1e-6
+        try:
+            cov = np.linalg.inv(P + eps * np.eye(self.dim))
+            L = np.linalg.cholesky(cov)
+            z = np.random.randn(self.dim)
+            w_sample = self.mean[arm] + L @ z
+        except np.linalg.LinAlgError:
+            w_sample = self.mean[arm]
+
+        return float(np.dot(w_sample, x))
 
     def update(self, arm: str, x: np.ndarray, r: float) -> None:
         P = self.precision[arm]

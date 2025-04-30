@@ -85,14 +85,14 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         if exp.sub_tasks[0].model_type == "TimeSeries":
             if exist_sota_factor_exp:
                 env_to_use.update({"dataset_cls": "TSDatasetH", "num_features": num_features, "step_len": 20, "num_timesteps": 20})
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
             else:
                 env_to_use.update({"dataset_cls": "TSDatasetH", "step_len": 20, "num_timesteps": 20})
                 result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
         elif exp.sub_tasks[0].model_type == "Tabular":
             if exist_sota_factor_exp:
                 env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
             else:
                 env_to_use.update({"dataset_cls": "DatasetH"})
                 result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)

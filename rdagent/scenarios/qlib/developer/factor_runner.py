@@ -140,7 +140,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             
             if exist_sota_model_exp:
                 exp.experiment_workspace.inject_files(
-                    **{"model.py": exist_sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
+                    **{"model.py": sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
                 )
                 env_to_use = {"PYTHONPATH": "./"}
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
@@ -159,7 +159,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                     env_to_use.update({"dataset_cls": "DatasetH", "num_features": num_features})
 
                 # model + combined factors
-                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_combined_with_model.yaml", run_env=env_to_use)
+                result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf_model_combined.yaml", run_env=env_to_use)
             else:
                 # LGBM + combined factors
                 result, stdout = exp.experiment_workspace.execute(
