@@ -151,23 +151,9 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if (
-                self.trace.sota_experiment() is None
-                and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors
-                # and not DS_RD_SETTING.coder_on_whole_pipeline
-            ):
-                if (not DS_RD_SETTING.coder_on_whole_pipeline):
-                    # if {in inital/drafting stage} and {tried enough times}
-                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
-                        if fb:
-                            break  # any success will stop restarting.
-                    else:  # otherwise restart it
-                        logger.error("Consecutive errors reached the limit. Dumping trace.")
-                        logger.log_object(self.trace, tag="trace before restart")
-                        
-                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
-                else:
-                    #  check if errors are in coding
+            if (self.trace.sota_experiment() is None):
+                if (DS_RD_SETTING.coder_on_whole_pipeline):
+                    #  check if feedback is not generated
                     recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
                     if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
                         all_coding_fail = all(not fb for _, fb in recent_hist)
@@ -177,6 +163,16 @@ class DataScienceRDLoop(RDLoop):
                                 logger.info("Reanalyzing the competition description after three consecutive coding failures.")
                                 scen.reanalyze_competition_description()
                             self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+                elif (len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors):
+                    # if {in inital/drafting stage} and {tried enough times}
+                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                        if fb:
+                            break  # any success will stop restarting.
+                    else:  # otherwise restart it
+                        logger.error("Consecutive errors reached the limit. Dumping trace.")
+                        logger.log_object(self.trace, tag="trace before restart")                       
+                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+ 
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
