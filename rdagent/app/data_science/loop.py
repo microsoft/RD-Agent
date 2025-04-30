@@ -137,7 +137,6 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
-
         # set the DAG parent for the trace
         self.trace.sync_dag_parent_and_hist()
 
@@ -156,11 +155,15 @@ class DataScienceRDLoop(RDLoop):
                     #  check if feedback is not generated
                     recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
                     if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
-                        all_coding_fail = all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist)
+                        all_coding_fail = all(
+                            isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist
+                        )
                         if all_coding_fail:
                             new_scen = self.trace.scen
                             if hasattr(new_scen, "reanalyze_competition_description"):
-                                logger.info("Reanalyzing the competition description after three consecutive coding failures.")
+                                logger.info(
+                                    "Reanalyzing the competition description after three consecutive coding failures."
+                                )
                                 new_scen.reanalyze_competition_description()
                             self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
                 elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
@@ -170,9 +173,9 @@ class DataScienceRDLoop(RDLoop):
                             break  # any success will stop restarting.
                     else:  # otherwise restart it
                         logger.error("Consecutive errors reached the limit. Dumping trace.")
-                        logger.log_object(self.trace, tag="trace before restart")                       
+                        logger.log_object(self.trace, tag="trace before restart")
                         self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
- 
+
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
         if DS_RD_SETTING.enable_knowledge_base and DS_RD_SETTING.knowledge_base_version == "v1":
@@ -296,7 +299,6 @@ def main(
         DS_RD_SETTING.competition = competition
 
     if DS_RD_SETTING.competition:
-
         if DS_RD_SETTING.scen.endswith("KaggleScen"):
             download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
         else:
