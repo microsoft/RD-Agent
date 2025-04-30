@@ -95,12 +95,14 @@ class QuantRDLoop(RDLoop):
         e = prev_out.get(self.EXCEPTION_KEY, None)
         if e is not None:
             feedback = HypothesisFeedback(
-                observations="Error occurred in loop, skip this loop",
+                observations=e,
                 hypothesis_evaluation="",
                 new_hypothesis="",
                 reason="",
                 decision=False,
             )
+            with logger.tag("ef"):  # evaluate and feedback
+                logger.log_object(feedback, tag="feedback")
             self.trace.hist.append((prev_out["direct_exp_gen"]["exp_gen"], feedback))
         else:
             if prev_out["direct_exp_gen"]["propose"].action == "factor":

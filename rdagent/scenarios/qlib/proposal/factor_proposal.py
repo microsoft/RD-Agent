@@ -66,7 +66,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
 
 class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict | bool]:
-        scenario = trace.scen.get_scenario_all_desc()
+        scenario = trace.scen.get_scenario_all_desc(action="factor")
         experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
         hypothesis_and_feedback = (

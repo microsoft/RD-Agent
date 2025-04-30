@@ -87,7 +87,7 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts["factor_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
+            .render(scenario=self.scen.get_scenario_all_desc(action = "factor"))
         )
 
         # Generate the user prompt
@@ -148,7 +148,7 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
         sys_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts["model_feedback_generation"]["system"])
-            .render(scenario=self.scen.get_scenario_all_desc())
+            .render(scenario=self.scen.get_scenario_all_desc(action = "model"))
         )
 
         important_metrics = [

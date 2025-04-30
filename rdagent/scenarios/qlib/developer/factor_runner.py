@@ -117,6 +117,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             combined_factors.columns = new_columns
             # TODO: put 20 into config
             num_features = 20 + len(combined_factors.columns)
+            logger.info(f"Factor data processing completed.")
 
             # Due to the rdagent and qlib docker image in the numpy version of the difference,
             # the `combined_factors_df.pkl` file could not be loaded correctly in qlib dokcer,
@@ -137,7 +138,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                     sota_model_exp = base_exp
                     exist_sota_model_exp = True
                     break
-            
+            logger.info(f"Experiment execution ...")
             if exist_sota_model_exp:
                 exp.experiment_workspace.inject_files(
                     **{"model.py": sota_model_exp.sub_workspace_list[0].file_dict["model.py"]}
@@ -146,10 +147,10 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 sota_training_hyperparameters = sota_model_exp.sub_tasks[0].training_hyperparameters
                 if sota_training_hyperparameters:
                     env_to_use.update({
-                        "n_epochs": str(sota_training_hyperparameters.get("n_epochs", "1000")),
+                        "n_epochs": str(sota_training_hyperparameters.get("n_epochs", "100")),
                         "lr": str(sota_training_hyperparameters.get("lr", "2e-4")),
-                        "early_stop": str(sota_training_hyperparameters.get("early_stop", 20)),
-                        "batch_size": str(sota_training_hyperparameters.get("batch_size", 400)),
+                        "early_stop": str(sota_training_hyperparameters.get("early_stop", 10)),
+                        "batch_size": str(sota_training_hyperparameters.get("batch_size", 256)),
                         "weight_decay": str(sota_training_hyperparameters.get("weight_decay", 0.0)),
                     })
                 sota_model_type = sota_model_exp.sub_tasks[0].model_type
@@ -165,13 +166,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
                 result, stdout = exp.experiment_workspace.execute(
                 qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
             )
-
-            logger.info(f"Factor data processing completed.")
-
-        logger.info(f"Experiment execution ...")
-        result, stdout = exp.experiment_workspace.execute(
-            qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
-        )
+        else:
+            logger.info(f"Experiment execution ...")
+            result, stdout = exp.experiment_workspace.execute(
+                qlib_config_name=f"conf.yaml" if len(exp.based_experiments) == 0 else "conf_combined.yaml"
+            )
 
         if result is None:
             logger.error(f"Failed to run this experiment, because {stdout}")

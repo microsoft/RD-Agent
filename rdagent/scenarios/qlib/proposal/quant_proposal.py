@@ -61,17 +61,17 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         else:
             action = "factor"
 
-        hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
-            )
-            if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
-        )
 
         # ========= LLM ==========
+        # hypothesis_and_feedback = (
+        #     (
+        #         Environment(undefined=StrictUndefined)
+        #         .from_string(prompt_dict["hypothesis_and_feedback"])
+        #         .render(trace=trace)
+        #     )
+        #     if len(trace.hist) > 0
+        #     else "No previous hypothesis and feedback available since it's the first round."
+        # )
 
         # last_hypothesis_and_feedback = (
         #     (

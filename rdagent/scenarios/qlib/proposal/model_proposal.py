@@ -85,7 +85,7 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
 
 class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
     def prepare_context(self, hypothesis: Hypothesis, trace: Trace) -> Tuple[dict, bool]:
-        scenario = trace.scen.get_scenario_all_desc()
+        scenario = trace.scen.get_scenario_all_desc(action="model")
         experiment_output_format = prompt_dict["model_experiment_output_format"]
 
         hypothesis_and_feedback = (

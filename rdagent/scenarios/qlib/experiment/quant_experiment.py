@@ -105,11 +105,11 @@ class QlibQuantScenario(Scenario):
         return self._experiment_setting
 
     def get_scenario_all_desc(
-        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None
+        self, task: Task | None = None, filtered_tag: str | None = None, simple_background: bool | None = None, action: str | None = None
     ) -> str:
-        def common_description() -> str:
+        def common_description(action: str | None = None) -> str:
             return f"""\n------Background of the scenario------
-{self.background}
+{self.background(action)}
 ------The source dataset you can use------
 {self.get_source_data_desc()}
 """
@@ -143,8 +143,11 @@ class QlibQuantScenario(Scenario):
             return common_description() + simulator(None)
         elif filtered_tag == "factor" or filtered_tag == "feature":
             return common_description() + interface("factor") + output("factor") + simulator("factor")
-        else:
+        elif filtered_tag == "model":
             return common_description() + interface("model") + output("model") + simulator("model")
+        elif action == "factor" or action == "model":
+            return common_description(action) + interface(action) + output(action) + simulator(action)
+
 
 
 
