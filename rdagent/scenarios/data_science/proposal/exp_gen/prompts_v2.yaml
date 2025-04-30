@@ -81,6 +81,7 @@ hypothesis_gen:
     2. Lessons from Previous Experiments
       - For persistent problems, analyze why prior hypotheses and solutions failed.
       - Incorporate evidence from past failures/successes to justify the hypothesis.
+      - If previous experiments failed because of exceeding time constraints, prioritize time-efficient changes.
     3. Actionable Changes
       - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
