@@ -137,7 +137,6 @@ class DataScienceRDLoop(RDLoop):
         return feedback
 
     def record(self, prev_out: dict[str, Any]):
-
         # set the DAG parent for the trace
         self.trace.sync_dag_parent_and_hist()
 
@@ -151,19 +150,31 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if (
-                self.trace.sota_experiment() is None
-                and len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors
-                and not DS_RD_SETTING.coder_on_whole_pipeline
-            ):
-                # if {in inital/drafting stage} and {tried enough times}
-                for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
-                    if fb:
-                        break  # any success will stop restarting.
-                else:  # otherwise restart it
-                    logger.error("Consecutive errors reached the limit. Dumping trace.")
-                    logger.log_object(self.trace, tag="trace before restart")
-                    self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+            if self.trace.sota_experiment() is None:
+                if DS_RD_SETTING.coder_on_whole_pipeline:
+                    #  check if feedback is not generated
+                    if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                        recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
+                        if all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist):
+                            new_scen = self.trace.scen
+                            if hasattr(new_scen, "reanalyze_competition_description"):
+                                logger.info(
+                                    "Reanalyzing the competition description after three consecutive coding failures."
+                                )
+                                new_scen.reanalyze_competition_description()
+                                self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
+                            else:
+                                logger.info("Can not reanalyze the competition description.")
+                elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
+                    # if {in inital/drafting stage} and {tried enough times}
+                    for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
+                        if fb:
+                            break  # any success will stop restarting.
+                    else:  # otherwise restart it
+                        logger.error("Consecutive errors reached the limit. Dumping trace.")
+                        logger.log_object(self.trace, tag="trace before restart")
+                        self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
+
         logger.log_object(self.trace, tag="trace")
         logger.log_object(self.trace.sota_experiment(), tag="SOTA experiment")
 
@@ -294,7 +305,6 @@ def main(
         DS_RD_SETTING.competition = competition
 
     if DS_RD_SETTING.competition:
-
         if DS_RD_SETTING.scen.endswith("KaggleScen"):
             download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
         else:

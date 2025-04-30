@@ -114,8 +114,21 @@ pipeline_eval:
 
     ## Evaluation Scope
     Your focus is to check whether the workflow code:
-    1. Executes successfully, correctly generating a final submission.
-    2. Generates predictions in the correct format, ensuring they align with the submission structure!
+    Step 1: Executes successfully, correctly generating a final submission.
+
+    Step 2: Generates predictions in the correct format, ensuring: they align with the submission structure, the index and column names should match the sample, and the content should not be empty or apparently incorrect.
+    
+    Step 3: Aligns with the competition requirements. This includes:
+    - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
+    - Confirm strict adherence to the competition's evaluation rules listed in `scenario`:
+      - Exact match between the implementation code of metric and the requirements of the scenario. The metric number is not the focus.
+      - Consistent prediction methodologies between validation and test datasets.
+      - No shortcuts or fold-specific strategies applied inconsistently.
+      - Rigorous checks for corner-case consistency.
+    - If such discrepancies or risks are found:
+      - Clearly document these issues in `code`.
+      - Begin your `code` with `[Evaluation error]`, explicitly stating the evaluation alignment issues causing experiment failure.
+    - If no issues are found, begin your `code` with `[Code analysis]`, providing a detailed analysis of the code quality, readability, and adherence to specifications.
 
     ## Evaluation Criteria
     You will be given the execution output (`stdout`) to determine correctness.  
@@ -129,7 +142,7 @@ pipeline_eval:
     {
         "execution": "Describe whether the code executed successfully, correctly integrating all components and generating the final submission. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
         "return_checking": "Verify the generated files, particularly the submission file. Ensure that its format matches the sample submission, checking the index, column names, and CSV content.",
-        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "code": "Begin explicitly with [Code analysis] or [Evaluation error]. Provide feedback on code quality, readability, adherence to the given specifications, and alignment with competition requirements.",
         "final_decision": <true/false>
     }
     ```
