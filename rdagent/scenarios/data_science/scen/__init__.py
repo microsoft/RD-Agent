@@ -52,9 +52,7 @@ class DataScienceScen(Scenario):
         self.raw_description = self._get_description()
         self.processed_data_folder_description = self._get_data_folder_description()
         self._analysis_competition_description()
-        self.metric_direction: bool = (
-            self._get_direction()
-        )
+        self.metric_direction: bool = self._get_direction()
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
