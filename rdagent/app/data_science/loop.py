@@ -151,19 +151,19 @@ class DataScienceRDLoop(RDLoop):
                     ExperimentFeedback.from_exception(e),
                 )
             )
-            if (self.trace.sota_experiment() is None):
-                if (DS_RD_SETTING.coder_on_whole_pipeline):
+            if self.trace.sota_experiment() is None:
+                if DS_RD_SETTING.coder_on_whole_pipeline:
                     #  check if feedback is not generated
                     recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
                     if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
-                        all_coding_fail = all(not fb for _, fb in recent_hist)
+                        all_coding_fail = all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist)
                         if all_coding_fail:
-                            scen = self.trace.scen
-                            if hasattr(scen, "reanalyze_competition_description"):
+                            new_scen = self.trace.scen
+                            if hasattr(new_scen, "reanalyze_competition_description"):
                                 logger.info("Reanalyzing the competition description after three consecutive coding failures.")
-                                scen.reanalyze_competition_description()
-                            self.trace = DSTrace(scen=self.trace.scen, knowledge_base=self.trace.knowledge_base)
-                elif (len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors):
+                                new_scen.reanalyze_competition_description()
+                            self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
+                elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
                     # if {in inital/drafting stage} and {tried enough times}
                     for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
                         if fb:
