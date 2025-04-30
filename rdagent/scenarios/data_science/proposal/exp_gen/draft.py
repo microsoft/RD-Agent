@@ -124,7 +124,6 @@ class DSDraftV2ExpGen(ExpGen):
         self,
         scenario_desc: str,
         scen_problems: dict,
-        component_desc: str,
         drafting_trace_desc: str,
     ) -> DSExperiment:
         scen_problems_text = ""
@@ -133,7 +132,6 @@ class DSDraftV2ExpGen(ExpGen):
             scen_problems_text += f"- Problem Description: {problem_dict['problem']}\n\n"
         sys_prompt = T(".prompts_drafting:task_draft.system").r(
             task_spec=T(f"scenarios.data_science.share:component_spec.Pipeline").r(),
-            component_desc=component_desc,
         )
         user_prompt = T(".prompts_drafting:task_draft.user").r(
             scenario_desc=scenario_desc,
@@ -151,13 +149,13 @@ class DSDraftV2ExpGen(ExpGen):
         task = PipelineTask(name="Workflow", description=task_design)
 
         # we use a pesudo hypothesis here
-        pesudo_hypothesis = DSHypothesis(
-            component=task_component,
-            hypothesis="This is a pesudo hypothesis for drafting the first competition implementation. Your result should not be influenced by this hypothesis.",
-            problem_name="This is a pesudo problem name for drafting. The corresponding problem description includes several problem together.",
+        pseudo_hypothesis = DSHypothesis(
+            component="Workflow",
+            hypothesis="This is a pseudo hypothesis for drafting the first competition implementation. Your result should not be influenced by this hypothesis.",
+            problem_name="This is a pseudo problem name for drafting. The corresponding problem description includes several problem together.",
             problem_desc=scen_problems_text,
         )
-        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=pesudo_hypothesis)
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=pseudo_hypothesis)
         return exp
 
     def gen(self, trace: DSTrace) -> DSExperiment:

@@ -39,7 +39,7 @@ task_draft:
     The user is creating a Kaggle competition implementation iteratively and this is the first iteration.
     You will be given a competition scenario and a list of identified scenario problems from the given competition scenario.
     In addition, if there are any previous failed experiments, you will receive the task designs and failures. Please read them carefully to have a better understanding.
-    Your role is to design a very detailed task with specific steps and instructions to implement competition solution and address identifed scenario problems. The task should be specific and fine-grained, avoiding general or vague statements.
+    Your role is to design a very detailed task with specific steps and instructions to implement competition solution and address identified scenario problems. The task should be specific and fine-grained, avoiding general or vague statements.
 
     # Task Design
     ## Task Specification
@@ -49,7 +49,7 @@ task_draft:
     Here are guidelines **YOU MUST FOLLOW** in your task design:
     1. The task should be concise with several steps each only in a few sentences. 
     2. DO NOT write any code in the task description.
-    3. DO NOT use any pharases like "for example" or "eg.," in the task description. Clearly give a decision (such as the specific method or model name) in the task description.
+    3. DO NOT use any phrases like "for example" or "eg.," in the task description. Clearly give a decision (such as the specific method or model name) in the task description.
     4. DO NOT use vague statements like "choose a proper model" or "optimize the pipeline". Instead, specify the exact step and task to be made.
     5. Your task design should try to cover **ALL** the identified scenario problems. DO NOT include any conflicting ideas in the task design. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only. DO NOT include any conflicting ideas in the task description.
     6. Carefully read and analyze the previous failed experiments if any so that no similar mistakes will be made in your task design. Remember to put the lessons you learned from previous experiments in the new task design.
