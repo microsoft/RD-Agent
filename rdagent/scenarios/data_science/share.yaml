@@ -79,7 +79,18 @@ describe: # some template to describe some object
     Reason: {{ exp_and_feedback[1].reason }}
     {% endfor %}
     {% endif %}
+  
+  drafting_trace: |-
+    {% if exp_and_feedback_list|length == 0 %}
+    No previous drafting experiments available.
+    {% else %}
+    {% for exp_and_feedback in exp_and_feedback_list %}
+    ## Drafting Experiment {{ loop.index }}
+    Task Design: {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
+    Failure: {{ exp_and_feedback[1].reason }}
 
+    {% endfor %}
+    {% endif %}
 
 scen:  # customizable
   role: |-

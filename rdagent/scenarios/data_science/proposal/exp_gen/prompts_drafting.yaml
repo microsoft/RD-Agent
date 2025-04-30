@@ -1,0 +1,72 @@
+scenario_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is creating a Kaggle competition implementation iteratively and this is the first iteration. You will be given the Kaggle competition scenario.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials to aid the implementation.
+
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    1. The problem should be specific and fine-grained. Avoid general or vague statements. 
+    2. The problem should technical or methodological. Focus on design and implementation flaws.
+    3. The problem should be strictly aligned with the improvement of target metric. **IF THE PROBLEM IS SOLVED, THEN THE TARGET METRIC WILL IMPROVE**.
+
+    ### Output Format
+    For each of the identified problem, you should strictly adhere to the following JSON schema. Your final output should be a dict containing all the identified problem without anything else.
+    {
+      "problem name 1": {
+        "problem": "Description of the first issue in no more than three sentences.",
+        "reason": "Brief explanation of why this is a problem, based on evidence from provided materials in no more than three sentences."
+      },
+      "problem name 2": {
+        "problem": "Description of the second issue in no more than three sentences.",
+        "reason": "Brief explanation of why this is a problem, based on evidence from provided materials in no more than three sentences."
+      }
+    }
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+
+task_draft:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is creating a Kaggle competition implementation iteratively and this is the first iteration.
+    You will be given a competition scenario and a list of identified scenario problems from the given competition scenario.
+    In addition, if there are any previous failed experiments, you will receive the task designs and failures. Please read them carefully to have a better understanding.
+    Your role is to design a very detailed task with specific steps and instructions to implement competition solution and address identifed scenario problems. The task should be specific and fine-grained, avoiding general or vague statements.
+
+    # Task Design
+    ## Task Specification
+    {{ task_spec }}
+
+    ## Task Design Guidelines
+    Here are guidelines **YOU MUST FOLLOW** in your task design:
+    1. The task should be concise with several steps each only in a few sentences. 
+    2. DO NOT write any code in the task description.
+    3. DO NOT use any pharases like "for example" or "eg.," in the task description. Clearly give a decision (such as the specific method or model name) in the task description.
+    4. DO NOT use vague statements like "choose a proper model" or "optimize the pipeline". Instead, specify the exact step and task to be made.
+    5. Your task design should try to cover **ALL** the identified scenario problems. DO NOT include any conflicting ideas in the task design. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only. DO NOT include any conflicting ideas in the task description.
+    6. Carefully read and analyze the previous failed experiments if any so that no similar mistakes will be made in your task design. Remember to put the lessons you learned from previous experiments in the new task design.
+
+    ##  Task Output Format:
+    Design a specific and detailed Pipeline task based on the given competition scenario and scenario problems. The output should be detailed enough to directly implement the corresponding code.
+    The output should follow JSON format. The schema is as follows:
+    {
+        "task_design": "A precise and comprehensive description of the main workflow script (`main.py`).",
+    }
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Identified Scenario Problems
+    {{ scen_problems }}
+
+    # Previous Failed Experiments
+    {{ drafting_trace_desc }}

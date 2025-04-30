@@ -224,23 +224,6 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
-        )
-        user_prompt = T(".prompts_v2:scenario_problem.user").r(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, Dict[str, str]],
-        )
-        return json.loads(response)
-
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
@@ -457,12 +440,6 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 1: Identify problems
-        scen_problems = self.identify_scenario_problem(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        for problem_name in scen_problems:
-            scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -470,7 +447,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         for problem_name in fb_problems:
             fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-        all_problems = {**scen_problems, **fb_problems}
+        all_problems = fb_problems
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:

@@ -1,10 +1,11 @@
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
 from rdagent.components.coder.data_science.feature.exp import FeatureTask
 from rdagent.components.coder.data_science.model.exp import ModelTask
+from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen, Hypothesis
@@ -116,3 +117,77 @@ class DSDraftExpGen(ExpGen):
             # exp.experiment_workspace.inject_code_from_folder(last_successful_exp.experiment_workspace.workspace_path)
             exp.experiment_workspace.inject_code_from_file_dict(last_successful_exp.experiment_workspace)
         return exp
+
+
+class DSDraftV2ExpGen(ExpGen):
+    def task_gen(
+        self,
+        scenario_desc: str,
+        scen_problems: dict,
+        component_desc: str,
+        drafting_trace_desc: str,
+    ) -> DSExperiment:
+        scen_problems_text = ""
+        for i, (problem_name, problem_dict) in enumerate(scen_problems.items()):
+            scen_problems_text += f"## Problem Name: {problem_name}\n"
+            scen_problems_text += f"- Problem Description: {problem_dict['problem']}\n\n"
+        sys_prompt = T(".prompts_drafting:task_draft.system").r(
+            task_spec=T(f"scenarios.data_science.share:component_spec.Pipeline").r(),
+            component_desc=component_desc,
+        )
+        user_prompt = T(".prompts_drafting:task_draft.user").r(
+            scenario_desc=scenario_desc,
+            scen_problems=scen_problems_text,
+            drafting_trace_desc=drafting_trace_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str],
+        )
+        task_dict = json.loads(response)
+        task_design = task_dict.get("task_design", "Description not provided")
+        task = PipelineTask(name="Workflow", description=task_design)
+
+        # we use a pesudo hypothesis here
+        pesudo_hypothesis = DSHypothesis(
+            component=task_component,
+            hypothesis="This is a pesudo hypothesis for drafting the first competition implementation. Your result should not be influenced by this hypothesis.",
+            problem_name="This is a pesudo problem name for drafting. The corresponding problem description includes several problem together.",
+            problem_desc=scen_problems_text,
+        )
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=pesudo_hypothesis)
+        return exp
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        # Prepare
+        last_exp = trace.last_exp()
+        if not isinstance(last_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = last_exp.experiment_workspace.file_dict.get("EDA.md", None)
+
+        component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+        drafting_trace_desc = T("scenarios.data_science.share:describe.drafting_trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+        )
+
+        # Step 1: Identify Scenario Problems
+        sys_prompt = T(".prompts_drafting:scenario_problem.system").r()
+        user_prompt = T(".prompts_drafting:scenario_problem.user").r(scenario_desc=scenario_desc)
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
+        )
+        scen_problems = json.loads(response)
+
+        # Step 2: Design Task
+        return self.task_gen(
+            scenario_desc=scenario_desc,
+            scen_problems=scen_problems,
+            drafting_trace_desc=drafting_trace_desc,
+        )
