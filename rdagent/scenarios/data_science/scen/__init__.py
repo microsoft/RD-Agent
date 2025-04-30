@@ -34,8 +34,12 @@ class DataScienceScen(Scenario):
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
         local_path = DS_RD_SETTING.local_data_path
-        if DS_RD_SETTING.sample_data and not Path(f"{local_path}/sample/{competition}").exists():
-            create_debug_data(competition, dataset_path=local_path)
+        if DS_RD_SETTING.sample_data:
+            self.debug_path = f"{local_path}/sample/{competition}"
+            if not Path(self.debug_path).exists():
+                create_debug_data(competition, dataset_path=local_path)
+        else:
+            self.debug_path = f"{local_path}/{competition}"
 
         # 2) collect information of competition.
         self.metric_name: str | None = (
