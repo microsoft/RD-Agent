@@ -154,6 +154,8 @@ class DSDraftV2ExpGen(ExpGen):
         pesudo_hypothesis = DSHypothesis(
             component=task_component,
             hypothesis="This is a pesudo hypothesis for drafting the first competition implementation. Your result should not be influenced by this hypothesis.",
+            problem_name="This is a pesudo problem name for drafting. The corresponding problem description includes several problem together.",
+            problem_desc=scen_problems_text,
         )
         exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=pesudo_hypothesis)
         return exp
