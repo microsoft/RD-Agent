@@ -1,5 +1,5 @@
 import json
-from typing import Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -148,8 +148,7 @@ class DSDraftV2ExpGen(ExpGen):
         )
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", "Description not provided")
-        task_component = task_dict.get("task_component", None)
-        task = PipelineTask(name=task_component, description=task_design)
+        task = PipelineTask(name="Workflow", description=task_design)
 
         # we use a pesudo hypothesis here
         pesudo_hypothesis = DSHypothesis(
@@ -188,6 +187,5 @@ class DSDraftV2ExpGen(ExpGen):
         return self.task_gen(
             scenario_desc=scenario_desc,
             scen_problems=scen_problems,
-            component_desc=component_desc,
             drafting_trace_desc=drafting_trace_desc,
         )
