@@ -153,19 +153,18 @@ class DataScienceRDLoop(RDLoop):
             if self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
                     #  check if feedback is not generated
-                    recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
-                    if len(recent_hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
-                        all_coding_fail = all(
-                            isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist
-                        )
-                        if all_coding_fail:
+                    if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
+                        recent_hist = self.trace.hist[-DS_RD_SETTING.coding_fail_reanalyze_threshold :]
+                        if all(isinstance(fb.exception, (CoderError, RunnerError)) for _, fb in recent_hist):
                             new_scen = self.trace.scen
                             if hasattr(new_scen, "reanalyze_competition_description"):
                                 logger.info(
                                     "Reanalyzing the competition description after three consecutive coding failures."
                                 )
                                 new_scen.reanalyze_competition_description()
-                            self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
+                                self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
+                            else:
+                                logger.info("Can not reanalyze the competition description.")
                 elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:
                     # if {in inital/drafting stage} and {tried enough times}
                     for _, fb in self.trace.hist[-DS_RD_SETTING.consecutive_errors :]:
