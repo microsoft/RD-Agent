@@ -107,7 +107,7 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
 
         qaunt_rag = None
         if action == "factor":
-            if len(trace.hist) < 15:
+            if len(trace.hist) < 6:
                 qaunt_rag = "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors as much as possible."
             else:
                 qaunt_rag = "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). At the same time, try to use fundamental factors."
@@ -129,11 +129,13 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
                         model_inserted = True
             elif action == "model":
                 # all model experiments and all SOTA factor experiments
+                factor_inserted = False
                 for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
                     if trace.hist[i][0].hypothesis.action == "model":
                         specific_trace.hist.insert(0, trace.hist[i])
-                    elif trace.hist[i][0].hypothesis.action == "factor" and trace.hist[i][1].decision is True:
+                    elif trace.hist[i][0].hypothesis.action == "factor" and trace.hist[i][1].decision is True and factor_inserted == False:
                         specific_trace.hist.insert(0, trace.hist[i])
+                        factor_inserted = True
             if len(specific_trace.hist) > 0:
                 specific_trace.hist.reverse()
                 hypothesis_and_feedback = (

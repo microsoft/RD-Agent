@@ -99,7 +99,7 @@ model_hypothesis_specification: |-
   2. Second, `last_hypothesis_and_feedback` and `sota_hypothesis_and_feedback` are key references you should pay close attention to. You can choose to optimize based on either of them or generate new ideas to form hypotheses and experiments.
   3. If there is no prior experiment or result available at the beginning, you can start by implementing a simple and small architecture.
   4. If a series of attempts fail to achieve SOTA, consider exploring entirely new directions; at this point, it is acceptable to return to simple architectures.
-  5. Focus exclusively on the architecture of PyTorch models. Each hypothesis should specifically address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
+  5. Focus exclusively on the architecture of PyTorch models. Each hypothesis should specifically address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure. DO NOT do any feature-specific processing. Instead, you can propose innovative transformations on the input time-series data to enhance model training effectiveness.
   6. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
   7. Sometimes, when training performance is poor, adjusting hyperparameters can also be an effective strategy for improvement.
   8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
@@ -163,11 +163,11 @@ model_experiment_output_format: |-
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
         "training_hyperparameters" {  # All values are for reference; you can set them yourself
-            "n_epochs": "1000",
-            "lr": "2e-4",
+            "n_epochs": "100",
+            "lr": "1e-3",
             "early_stop": 10,
-            "batch_size": 800,
-            "weight_decay": 0.0,
+            "batch_size": 256,
+            "weight_decay": 1e-4,
         }
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
     },

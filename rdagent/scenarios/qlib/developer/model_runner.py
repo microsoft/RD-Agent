@@ -75,10 +75,10 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         if training_hyperparameters:
             env_to_use.update({
                 "n_epochs": str(training_hyperparameters.get("n_epochs", "100")),
-                "lr": str(training_hyperparameters.get("lr", "2e-4")),
+                "lr": str(training_hyperparameters.get("lr", "1e-3")),
                 "early_stop": str(training_hyperparameters.get("early_stop", 10)),
                 "batch_size": str(training_hyperparameters.get("batch_size", 256)),
-                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0)),
+                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0001)),
             })
         
         logger.info(f"start to run {exp.sub_tasks[0].name} model")
