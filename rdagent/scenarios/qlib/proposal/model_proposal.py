@@ -141,7 +141,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": model_list,
-            "RAG": "Note, the training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. PLEASE DESIGN THE HYPERPARAMETERS ACCORDINGLY AND CONTROL THE MODEL SIZE. THIS HAS A SIGNIFICANT IMPACT ON THE TRAINING RESULTS. If you believe that the previous model itself is good but the training hyperparameters or model hyperparameters are not optimal, you can return the same model and adjust these parameters instead.",
+            "RAG": "Note, the training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set (batch_size is set as 256 at the begining, and you can change it according to the specific training log). Please design the hyperparameters accordingly and control the model size. If you believe that the previous model itself is good but the training hyperparameters or model hyperparameters are not optimal, you can return the same model and adjust these parameters instead.",
         }, True
 
     def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
