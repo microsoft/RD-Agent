@@ -34,7 +34,7 @@ class QlibFBWorkspace(FBWorkspace):
             env=run_env,
         )
 
-        pattern = r"(Epoch\d+: train -[0-9\.]+, valid -[0-9\.]+|best score: -[0-9\.]+ @ \d+ epoch)"
+        pattern = r"(Epoch\d+: train -?\d+\.\d+, valid -?\d+\.\d+|early stop|best score: -?\d+\.\d+ @ \d+ epoch)"
         matches = re.findall(pattern, execute_qlib_log)
         execute_qlib_log = "\n".join(matches)
 

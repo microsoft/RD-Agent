@@ -55,9 +55,9 @@ else:
 
 QLIB_SELECTED_METRICS = [
     "IC",
-    "1day.excess_return_without_cost.annualized_return",
-    "1day.excess_return_without_cost.information_ratio",
-    "1day.excess_return_without_cost.max_drawdown",
+    "1day.excess_return_with_cost.annualized_return",
+    "1day.excess_return_with_cost.information_ratio",
+    "1day.excess_return_with_cost.max_drawdown",
 ]
 
 SIMILAR_SCENARIOS = (QlibModelScenario, DMModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
@@ -355,8 +355,18 @@ def display_hypotheses(hypotheses: dict[int, Hypothesis], decisions: dict[int, b
             return ["font-style: italic;"] * len(col)
         return ["font-weight: bold;"] * len(col)
 
-    # st.dataframe(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0))
-    st.markdown(df.style.apply(style_rows, axis=1).apply(style_columns, axis=0).to_html(), unsafe_allow_html=True)
+    styled_df = df.style.apply(style_rows, axis=1).apply(style_columns, axis=0)
+
+    st.markdown(styled_df.to_html(), unsafe_allow_html=True)
+
+    csv = df.to_csv(index=True)
+    st.download_button(
+        label="Download Hypotheses as CSV",
+        data=csv,
+        file_name="hypotheses.csv",
+        mime="text/csv",
+    )
+
 
 
 def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, colors: list[str] = None):
@@ -614,9 +624,10 @@ def feedback_window():
                 state.scenario, (QlibModelScenario, QlibFactorScenario, QlibFactorFromReportScenario, KGScenario)
             ):
                 try:
-                    st.write("workspace")
+                    st.write("Workspace Path:")
                     st.write(state.msgs[round]["ef.runner result"][0].content.experiment_workspace.workspace_path)
-                    st.write(state.msgs[round]["ef.runner result"][0].content.stdout)
+                    st.write("Training log:")
+                    st.code(state.msgs[round]["ef.runner result"][0].content.stdout)
                 except Exception as e:
                     st.error(f"Error displaying workspace path: {str(e)}")
                 with st.expander("**Config⚙️**", expanded=True):

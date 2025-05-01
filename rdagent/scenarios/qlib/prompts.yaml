@@ -10,12 +10,12 @@ hypothesis_and_feedback: |-
   {{ task.get_task_brief_information() }}
   {% endif %}
   {% endfor %}
-  ## Market Backtest Analysis and Feedback:
+  ## Backtest Analysis and Feedback:
   {% if experiment.result is not none %}
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
-  Observation (Key findings from the experiment): {{ feedback.observations }}
-  Hypothesis Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
+  Observation: {{ feedback.observations }}
+  Hypothesis Evaluation: {{ feedback.hypothesis_evaluation }}
   Decision (Whether the hypothesis was successful): {{ feedback.decision }}
   =========================================================
   {% endfor %}
@@ -29,15 +29,19 @@ last_hypothesis_and_feedback: |-
   {{ task.get_task_brief_information() }}
   {% endif %}
   {% endfor %}
-  ## Market Backtest Analysis and Feedback:
+  ## Backtest Analysis and Feedback:
   {% if experiment.result is not none %}
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
-  Traing Log: {{ experiment.stdout }}
-  Observation (Key findings from the experiment): {{ feedback.observations }}
-  Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
+  {% if experiment.stdout is not none %}
+  Training Log: 
+  Here, you need to focus on analyzing whether there are any issues with the training. If any problems are identified, you must correct them in the next iteration and clearly describe how the changes will be made in the hypothesis.
+  {{ experiment.stdout }} 
+  {% endif %}
+  Observation: {{ feedback.observations }}
+  Evaluation: {{ feedback.hypothesis_evaluation }}
   Decision (Whether this experiment is SOTA): {{ feedback.decision }}
-  New Hypothesis (Given in feedback stage, can be accepted or rejected in the next round): {{ feedback.new_hypothesis }}
+  New Hypothesis (Given in feedback stage, just for reference, and can be accepted or rejected in the next round): {{ feedback.new_hypothesis }}
   Reasoning (Justification for the new hypothesis): {{ feedback.reason }}
 
 sota_hypothesis_and_feedback: |-
@@ -49,13 +53,15 @@ sota_hypothesis_and_feedback: |-
   {{ task.get_task_brief_information() }}
   {% endif %}
   {% endfor %}
-  ## Market Backtest Analysis and Feedback:
+  ## Backtest Analysis and Feedback:
   {% if experiment.result is not none %}
   Backtest Result: {{ experiment.result.loc[["IC", "1day.excess_return_without_cost.annualized_return", "1day.excess_return_without_cost.max_drawdown"]] }}
   {% endif %}
-  Traing Log: {{ experiment.stdout }}
-  Observation (Key findings from the experiment): {{ feedback.observations }}
-  Evaluation (Analysis of the original hypothesis): {{ feedback.hypothesis_evaluation }}
+  {% if experiment.stdout is not none %}
+  Training Log: {{ experiment.stdout }}
+  {% endif %}
+  Observation: {{ feedback.observations }}
+  Evaluation: {{ feedback.hypothesis_evaluation }}
   Decision (Whether this experiment is SOTA): {{ feedback.decision }}
 
 hypothesis_output_format: |-
@@ -81,12 +87,15 @@ factor_hypothesis_output_format: |-
   }
 
 model_hypothesis_specification: |-
-  Additional Specifications:
-    1. Hypotheses should evolve incrementally. If there is no prior hypothesis, start with a simple and small architecture. Subsequent hypotheses should build upon the previous one, incorporating feedback and observed performance. But if a series of attempts fail to achieve SOTA, consider exploring entirely new directions, and this time can go back to simple architecture.
-    2. Focus exclusively on the architecture of PyTorch models. Each hypothesis should address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
-    3. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
-    4. Sometimes, when training performance is poor, adjusting hyperparameters is also a good adjustment strategy!
-    5. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. Aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.)' time series models after sufficient trials with traditional models.
+  1. First, observe and analyze the overall experimental progression in `hypothesis_and_feedback`. Analyze where the previous model designs were inadequate — whether it was due to parameter settings, architectural flaws, or a lack of novelty (proposing entirely new concepts is highly encouraged as long as they demonstrate effectiveness).
+  2. Second, `last_hypothesis_and_feedback` and `sota_hypothesis_and_feedback` are key references you should pay close attention to. You can choose to optimize based on either of them or generate new ideas to form hypotheses and experiments.
+  3. If there is no prior experiment or result available at the beginning, you can start by implementing a simple and small architecture.
+  4. If a series of attempts fail to achieve SOTA, consider exploring entirely new directions; at this point, it is acceptable to return to simple architectures.
+  5. Focus exclusively on the architecture of PyTorch models. Each hypothesis should specifically address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
+  6. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
+  7. Sometimes, when training performance is poor, adjusting hyperparameters can also be an effective strategy for improvement.
+  8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
+
 
 factor_hypothesis_specification: |-
   1. **Type of Factor and Financial Trends:**
@@ -132,9 +141,9 @@ factor_experiment_output_format: |-
 
 model_experiment_output_format: |-
   So far please only design one model to test the hypothesis! 
-  The output should follow JSON format. The schema is as follows (value in training_hyperparameters is a basic setting you can change depends on the previous training log): 
+  The output should follow JSON format. The schema is as follows (value in training_hyperparameters is a basic setting for reference, you CAN CHANGE depends on the previous training log): 
   {
-    "model_name 1 (The name of the model)": {
+    "model_name (The name of the model)": {
         "description": "A detailed description of the model",
         "formulation": "A LaTeX formula representing the model's formulation",
         "architecture": "A detailed description of the model's architecture, e.g., neural network layers or tree structures",
@@ -148,12 +157,12 @@ model_experiment_output_format: |-
             "hyperparameter_name_2": "value of hyperparameter 2",
             "hyperparameter_name_3": "value of hyperparameter 3"
         },
-        "training_hyperparameters" {
-            "n_epochs": "1000",
-            "lr": "2e-4",
-            "early_stop": 20,
-            "batch_size": 400,
-            "weight_decay": 0.0,
+        "training_hyperparameters" {  # All values are for reference; you can set them yourself
+            "n_epochs": "100",
+            "lr": "1e-3",
+            "early_stop": 10,
+            "batch_size": 256,
+            "weight_decay": 0.0001,
         }
         "model_type": "Tabular or TimeSeries"  # Should be one of "Tabular" or "TimeSeries"
     },
@@ -249,18 +258,12 @@ model_feedback_generation:
     {{ scenario }}
 
     You will receive a quantitative model hypothesis, its specific task description, and it market backtest result. 
-    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA (State of the Art) results, and suggest improvements or new directions.
-
-    Suggestions for feedback improvement:
-    1. Focus exclusively on the architecture of PyTorch models. Each hypothesis must address architectural decisions, such as layer configurations, activation functions, regularization methods, and overall model structure.
-    2. Avoid including aspects unrelated to architecture, such as input features or optimization strategies.
-    3. Utilize standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures, aiming for innovation comparable to top-tier AI conferences after sufficient trials with traditional models.
-    4. After a series of failed attempts without achieving SOTA, consider exploring entirely new directions.
+    Your feedback should specify whether the current result supports or refutes the hypothesis, compare it with previous SOTA results, examine the model's training logs to analyze whether there are issues with hyperparameter settings, and suggest improvements or new directions.
 
     Please provide detailed and constructive feedback.
     Example JSON Structure for Result Analysis:
     {
-      "Observations": "Clearly summarize current and SOTA results with exact scores and notable patterns. Limit to no more than three concise, data-focused sentences.",
+      "Observations": "First analyze the model's training logs to determine whether there are any issues with its parameter settings. Then clearly summarize the current results and the SOTA results with exact scores and any notable patterns. Limit your summary to no more than three concise, data-focused sentences.",
       "Feedback for Hypothesis": "Explicitly confirm or refute the hypothesis based on specific data points or performance trends. Limit to two sentences.",
       "New Hypothesis": "Propose a revised hypothesis, considering observed patterns and limitations in the current one. Limit to no more than two sentences.",
       "Reasoning": "Explain the rationale for the new hypothesis using specific trends or performance shifts. Be concise but technically complete. Limit to two sentences.",
@@ -282,8 +285,9 @@ model_feedback_generation:
     # Current Round Information:
     Hypothesis: {{ hypothesis.hypothesis }}
     Why propose this hypothesis: {{ hypothesis.reason }}
-    Specific Task: {{ exp.sub_tasks[0] }}
+    Specific Task: {{ exp.sub_tasks[0].get_task_information() }}
     Code Implementation: {{ exp.sub_workspace_list[0].file_dict.get("model.py") }}
+    Training Log: {{ exp.stdout }}
     Result: {{ exp_result }}
 
     # When judging the results:

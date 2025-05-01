@@ -29,11 +29,11 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         training_hyperparameters = exp.sub_tasks[0].training_hyperparameters
         if training_hyperparameters:
             env_to_use.update({
-                "n_epochs": str(training_hyperparameters.get("n_epochs", "1000")),
-                "lr": str(training_hyperparameters.get("lr", "2e-4")),
-                "early_stop": str(training_hyperparameters.get("early_stop", 20)),
-                "batch_size": str(training_hyperparameters.get("batch_size", 400)),
-                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0)),
+                "n_epochs": str(training_hyperparameters.get("n_epochs", "100")),
+                "lr": str(training_hyperparameters.get("lr", "1e-3")),
+                "early_stop": str(training_hyperparameters.get("early_stop", 10)),
+                "batch_size": str(training_hyperparameters.get("batch_size", 256)),
+                "weight_decay": str(training_hyperparameters.get("weight_decay", 0.0001)),
             })
         
         if exp.sub_tasks[0].model_type == "TimeSeries":
@@ -44,11 +44,11 @@ class QlibModelRunner(CachedRunner[QlibModelExperiment]):
         # In model loop, execpt the result, we also need to store the training loop
         result, stdout = exp.experiment_workspace.execute(qlib_config_name="conf.yaml", run_env=env_to_use)
 
-        if result is None:
-            logger.error(f"Failed to run {exp.sub_tasks[0].name} model")
-            raise ModelEmptyError(f"Failed to run {exp.sub_tasks[0].name} model")
-
         exp.result = result
         exp.stdout = stdout
+
+        if result is None:
+            logger.error(f"Failed to run {exp.sub_tasks[0].name}, because {stdout}")
+            raise ModelEmptyError(f"Failed to run {exp.sub_tasks[0].name} model, because {stdout}")
 
         return exp
