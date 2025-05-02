@@ -66,7 +66,7 @@ def load_times(log_path: Path):
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
-        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
+        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
