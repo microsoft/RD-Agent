@@ -17,7 +17,7 @@ class MergeExpGen(ExpGen):
         sota_exp_fb = trace.sota_experiment_fb(selection=(leaves[0],))
         if sota_exp_fb is None:
             sota_exp_fb = trace.hist[leaves[0]]
-        exp_to_merge_fb = trace.sota_experiment(selection=(leaves[1],))
+        exp_to_merge_fb = trace.sota_experiment_fb(selection=(leaves[1],))
         if exp_to_merge_fb is None:
             exp_to_merge_fb = trace.hist[leaves[1]]
 
