@@ -31,7 +31,6 @@ describe: # some template to describe some object
   feedback: |-
     {% if exp_and_feedback and exp_and_feedback|length > 1 %}
     ## {{heading | default('Previous trial and feedback')}}
-    Before current trial, a previous recent trial is listed below.
     {% if exp_and_feedback[0].hypothesis %}
     the experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
     {% endif %}
@@ -51,16 +50,9 @@ describe: # some template to describe some object
     ## {{ heading | default('Trace of all trials') }}
     {% endif %}
 
-    Before current trial, several 
+    Before current trial, several {% if type == "success" %}successful{% elif type == "failure" %}failed{% else %}successful or failed{% endif %} trials are listed below.
     {% if type == "success" %}
-    successful
-    {% elif type == "failure" %}
-    failed
-    {% else %}
-    successful or failed
-    {% endif %} trials are listed below.
-    {% if type == "success" %}
-    The current SOTA method is the combination of the best solutions of these trials.
+    {{success_trial_desc | default('The current SOTA method is the combination of the best solutions of these trials.')}}
     {% endif %}
 
     The trace order is from the earliest to the latest. Please focus more on the later trials.
