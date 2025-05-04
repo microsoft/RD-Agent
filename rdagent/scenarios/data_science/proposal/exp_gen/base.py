@@ -216,11 +216,11 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 has_final_component = True
         return exp_and_feedback_list
 
-    def sota_experiment(
+    def sota_experiment_fb(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
         selection: tuple[int, ...] | None = None,
-    ) -> DSExperiment | None:
+    ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
 
         Returns
@@ -234,8 +234,18 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             for exp, ef in search_list[::-1]:
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:
-                    return exp
+                    return exp, ef
         return None
+
+    def sota_experiment(
+        self,
+        search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
+    ) -> DSExperiment | None:
+        res = self.sota_experiment_fb(search_type=search_type, selection=selection)
+        if res is not None:
+            res = res[0]
+        return res
 
     def last_successful_exp(
         self,

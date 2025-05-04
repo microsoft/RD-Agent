@@ -66,7 +66,7 @@ def load_times(log_path: Path):
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
     for msg in FileStorage(log_path).iter_msg():
-        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
+        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
@@ -418,7 +418,8 @@ def summarize_data():
             index=range(len(state.data) - 1),
         )
 
-        for loop in range(len(state.data) - 1):
+        min_id, max_id = get_state_data_range(state.data)
+        for loop in range(min_id, max_id + 1):
             loop_data = state.data[loop]
             df.loc[loop, "Component"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.component
             df.loc[loop, "Hypothesis"] = loop_data["direct_exp_gen"]["no_tag"].hypothesis.hypothesis
@@ -650,13 +651,22 @@ with st.sidebar:
 """
     )
 
+
+def get_state_data_range(state_data):
+    # we have a "competition" key in state_data
+    # like dict_keys(['competition', 10, 11, 12, 13, 14])
+    keys = [k for k in state_data.keys() if k != "competition"]
+    return min(keys), max(keys)
+
+
 # UI - Main
 if state.data["competition"]:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()
     if len(state.data) > 2:
-        loop_id = st.slider("Loop", 0, len(state.data) - 2, 0)
+        min_id, max_id = get_state_data_range(state.data)
+        loop_id = st.slider("Loop", min_id, max_id, min_id)
     else:
         loop_id = 0
     if state.show_stdout:
