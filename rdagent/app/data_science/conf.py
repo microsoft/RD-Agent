@@ -16,6 +16,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ## Workflow Related
     consecutive_errors: int = 5
 
+    ## Coding Related
+    coding_fail_reanalyze_threshold: int = 3
+
     debug_timeout: int = 600
     """The timeout limit for running on debugging data"""
     full_timeout: int = 3600
