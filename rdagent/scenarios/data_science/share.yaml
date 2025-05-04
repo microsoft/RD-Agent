@@ -60,7 +60,7 @@ describe: # some template to describe some object
     successful or failed
     {% endif %} trials are listed below.
     {% if type == "success" %}
-    The current SOTA method is the combination of the best solutions of these trials.
+    {{success_trial_desc | default('The current SOTA method is the combination of the best solutions of these trials.')}}
     {% endif %}
 
     The trace order is from the earliest to the latest. Please focus more on the later trials.
