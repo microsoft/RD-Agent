@@ -37,7 +37,9 @@ class MergeExpGen(ExpGen):
             heading="A solution that to be merged into previous best solution",
         )
 
-        success_fb_list = trace.experiment_and_feedback_list_after_init(return_type="sota", search_type="ancestors", selection=(leaves[1],))
+        success_fb_list = trace.experiment_and_feedback_list_after_init(
+            return_type="sota", search_type="ancestors", selection=(leaves[1],)
+        )
         if len(success_fb_list) > 0:
             exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.trace").r(
                 exp_and_feedback_list=success_fb_list,
