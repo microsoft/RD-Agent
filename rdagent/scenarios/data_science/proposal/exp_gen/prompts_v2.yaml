@@ -49,16 +49,15 @@ hypothesis_gen:
     1. Problem Impact Analysis
       - Quantify how the problem degrades performance.
     2. Lessons from Previous Experiments
-      - For persistent problem, analyze why previous experiments failed on this problem.
-      - Review why previous experiments failed to address the problem. Identify patterns, overlooked factors, or misaligned assumptions.
-      - Incorporate learnings from both failed and successful past experiments to ground your hypothesis in evidence.
+      - For persistent problems, analyze why prior hypotheses and solutions failed.
+      - Incorporate evidence from past failures/successes to justify the hypothesis.
+      - If previous experiments failed due to time/memory constraints, prioritize changes on efficiency.
     3. Actionable Changes
       - If the problem relates to time/memory constraints, consider smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
-    4. Specific and Non-Vague
-      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made.
-      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
+    4. Priority Note on Time/Memory Constraints
+      - If time/memory constraints exist, they must be prioritized above all other problems. In such cases, do not response any other problems in the response dictionary.
     {% if enable_idea_pool %}
     4. Idea Reference
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
