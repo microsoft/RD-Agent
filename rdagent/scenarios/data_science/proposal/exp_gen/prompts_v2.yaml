@@ -1,33 +1,3 @@
-scenario_problem:
-  system: |-
-    {% include "scenarios.data_science.share:scen.role" %}
-    You will be given the scenario description and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
-
-    ## Scenario Problems
-    ### Definition
-    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
-    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
-    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
-
-    ### Specification
-    {{ problem_spec }}
-    
-    ### Core Analysis Dimensions
-    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
-    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
-    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
-
-    ### Output Format
-    {{ problem_output_format }}
-
-  user: |-
-    # Scenario Description
-    {{ scenario_desc }}
-
-    # Current SOTA Implementation
-    {{ sota_exp_desc }}
-
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
@@ -79,12 +49,16 @@ hypothesis_gen:
     1. Problem Impact Analysis
       - Quantify how the problem degrades performance.
     2. Lessons from Previous Experiments
-      - For persistent problems, analyze why prior hypotheses and solutions failed.
-      - Incorporate evidence from past failures/successes to justify the hypothesis.
+      - For persistent problem, analyze why previous experiments failed on this problem.
+      - Review why previous experiments failed to address the problem. Identify patterns, overlooked factors, or misaligned assumptions.
+      - Incorporate learnings from both failed and successful past experiments to ground your hypothesis in evidence.
     3. Actionable Changes
-      - If the problem relates to time/memory constraints, suggest smaller model sizes or alternative algorithms with reduced complexity.
+      - If the problem relates to time/memory constraints, consider smaller model sizes or alternative algorithms with reduced complexity.
       - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
+    4. Specific and Non-Vague
+      - Avoid vague statements like "improve the model" or "optimize the pipeline." Instead, specify the exact changes to be made.
+      - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     {% if enable_idea_pool %}
     4. Idea Reference
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
@@ -215,12 +189,10 @@ specification:
       - No phrases like "for example" or "eg.," should be used in the hypothesis. Give a clear decision in the hypothesis.
     2. Each hypothesis should be testable and actionable. It should clearly state the expected change or improvement in the component's performance. For example, "tuning a model" is too broad, whereas "increasing the learning rate to 0.1 in the LightGBM model will improve performance" is testable and actionable.
     3. Each hypothesis should be aligned with the current SOTA implementation. It should be a potential solution to the identified problem.
-    4. All the changes in the hypothesis should be correlated and relvant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
-    {% if not pipeline %}
-    5. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
+    4. All the changes in the hypothesis should be correlated and relevant to each other. Avoid proposing multiple independent ideas in a single hypothesis.
+    {% if not pipeline %}5. Each hypothesis should focus on a single direction per experiment. Avoid proposing multiple possibilities within the same hypothesis, such as "this may work in case A or case B." Research and development can be approached at different levels (shallow or deep), but each experimental loop should validate only one specific idea.
     6. Each hypothesis should focus on one component. The components will be described in the evaluation stage.
-    {% else %}
-    5. The hypothesis should focus on the whole pipeline. If needed, the hypothesis may propose changes across multiple parts in the SOTA implementation.
+    {% else %}5. The hypothesis should focus on the whole pipeline. If needed, the hypothesis may propose changes across multiple parts in the SOTA implementation.
     {% endif %}
 
   idea: |-

@@ -2,7 +2,6 @@
 The most naive way to design experiments
 """
 
-from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment

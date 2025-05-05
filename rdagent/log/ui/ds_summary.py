@@ -359,6 +359,9 @@ def all_summarize_win():
         def apply_func(cdf: pd.DataFrame):
             cp = cdf["Competition"].values[0]
             md = get_metric_direction(cp)
+            # If SOTA Exp Score (valid) column is empty, return the first index
+            if cdf["SOTA Exp Score (valid)"].dropna().empty:
+                return cdf.index[0]
             if md:
                 best_idx = cdf["SOTA Exp Score (valid)"].idxmax()
             else:
