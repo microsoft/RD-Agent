@@ -73,6 +73,8 @@ class DataScienceRDLoop(RDLoop):
         self.sota_exp_selector = SOTA_EXP_SELECTOR_NAME_MAP[DS_RD_SETTING.sota_exp_selector_name]()
 
         self.exp_gen = DSExpGen(scen)
+
+        # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
         self.model_coder = ModelCoSTEER(scen)
