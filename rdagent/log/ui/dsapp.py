@@ -18,10 +18,13 @@ aide_page = st.Page("aide.py", title="Aide", icon="🧑‍🏫")
 st.set_page_config(layout="wide", page_title="RD-Agent", page_icon="🎓", initial_sidebar_state="expanded")
 st.navigation([summary_page, trace_page, aide_page]).run()
 
+
 def convert_log_folder_str(lf: str) -> str:
-    if '/' not in lf:
+    if "/" not in lf:
         return f"/data/share_folder_local/amlt/{lf.strip()}/combined_logs"
     return lf.strip()
+
+
 # UI - Sidebar
 with st.sidebar:
     st.subheader("Pages", divider="rainbow")
@@ -31,9 +34,9 @@ with st.sidebar:
 
     st.subheader("Settings", divider="rainbow")
     with st.form("log_folder_form", border=False):
-        log_folder_str = st.text_area(
-            "**Log Folders**(split by ';')", placeholder=state.log_folder
-        )
+        log_folder_str = st.text_area("**Log Folders**(split by ';')", placeholder=state.log_folder)
         if st.form_submit_button("Confirm"):
-            state.log_folders = [convert_log_folder_str(folder) for folder in log_folder_str.split(";") if folder.strip()]
+            state.log_folders = [
+                convert_log_folder_str(folder) for folder in log_folder_str.split(";") if folder.strip()
+            ]
             st.rerun()
