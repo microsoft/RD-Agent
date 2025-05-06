@@ -112,7 +112,7 @@ class MLETestEval(TestEvalBase):
         mle_check_code = (
             (Path(__file__).absolute().resolve().parent / "eval_tests" / "mle_submission_format_test.txt")
             .read_text()
-            .replace("<competition_id>", self.scen.competition)
+            .replace("<competition_id>", competition)
         )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
         submission_check_out, submission_ret_code = workspace.execute_ret_code(
