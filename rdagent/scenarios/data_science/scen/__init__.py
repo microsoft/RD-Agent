@@ -52,12 +52,12 @@ class DataScienceScen(Scenario):
         local_path = DS_RD_SETTING.local_data_path
         competition = self.competition
         if DS_RD_SETTING.sample_data:
-            self._debug_path = f"{local_path}/sample/{competition}"
-            if not Path(self._debug_path).exists():
+            debug_path = f"{local_path}/sample/{competition}"
+            if not Path(debug_path).exists():
                 create_debug_data(competition, dataset_path=local_path)
         else:
-            self._debug_path = f"{local_path}/{competition}"
-        return self._debug_path
+            debug_path = f"{local_path}/{competition}"
+        return debug_path
 
     def reanalyze_competition_description(self):
         self.raw_description = self._get_description()
