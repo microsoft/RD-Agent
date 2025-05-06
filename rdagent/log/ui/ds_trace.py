@@ -689,7 +689,7 @@ with st.sidebar:
 def get_state_data_range(state_data):
     # we have a "competition" key in state_data
     # like dict_keys(['competition', 10, 11, 12, 13, 14])
-    keys = [k for k in state_data.keys() if k != "competition"]
+    keys = [k for k in state_data.keys() if isinstance(k, int)]
     return min(keys), max(keys)
 
 
