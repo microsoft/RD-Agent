@@ -46,4 +46,5 @@ The supported scenarios are listed below:
     model_agent_med
     model_copilot_general
     kaggle_agent
+    data_science
 

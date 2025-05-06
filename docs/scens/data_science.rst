@@ -21,7 +21,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
   .. code-block:: sh
 
-    dotenv set KG_LOCAL_DATA_PATH <your local directory>/kaggle_data
+    dotenv set KG_LOCAL_DATA_PATH <your local directory>/ds_data
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
 - 📥 **Prepare Competition Data**
@@ -32,7 +32,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
       .. code-block:: text
 
-        kaggle_data
+        ds_data
         └── eval
         | └── custom_data
         |    └── grade.py
@@ -44,16 +44,17 @@ The Data Science Agent is an agent that can automatically perform feature engine
           └── sample_submission.csv
           └── description.md
         
-      - ``kaggle_data/custom_data/train.csv:`` Necessary training data in csv or parquet format, or training images.
+      - ``ds_data/custom_data/train.csv:`` Necessary training data in csv or parquet format, or training images.
 
-      - ``kaggle_data/custom_data/description.md:`` (Optional) Competition description file.
+      - ``ds_data/custom_data/description.md:`` (Optional) Competition description file.
 
-      - ``kaggle_data/custom_data/sample_submission.csv:`` (Optional) Competition sample submission file.
+      - ``ds_data/custom_data/sample_submission.csv:`` (Optional) Competition sample submission file.
 
-      - ``kaggle_data/eval/custom_data/grade.py:`` (Optional) Competition grade script, in order to calculate the score for the submission.
+      - ``ds_data/eval/custom_data/grade.py:`` (Optional) Competition grade script, in order to calculate the score for the submission.
 
-      - ``kaggle_data/eval/custom_data/valid.py:`` (Optional) Competition validation script, in order to check if the submission format is correct.
+      - ``ds_data/eval/custom_data/valid.py:`` (Optional) Competition validation script, in order to check if the submission format is correct.
 
-      - ``kaggle_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
+      - ``ds_data/eval/custom_data/submission_test.csv:`` (Optional) Competition test label file.
+
 
 
