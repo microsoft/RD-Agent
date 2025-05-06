@@ -40,6 +40,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
     AutoSOTAexpSelector,
+    BestValidSelector,
     GlobalSOTASelector,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
@@ -53,6 +54,7 @@ CKP_SELECTOR_NAME_MAP = {
 SOTA_EXP_SELECTOR_NAME_MAP = {
     "global_sota": GlobalSOTASelector,
     "auto_sota": AutoSOTAexpSelector,
+    "best_valid_sota": BestValidSelector,
 }
 
 

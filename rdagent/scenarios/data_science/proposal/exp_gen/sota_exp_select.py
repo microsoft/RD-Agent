@@ -3,9 +3,10 @@ import random
 from typing import Dict, Tuple
 
 import pandas as pd
+import numpy as np
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.core.proposal import SOTAexpSelector, Trace
+from rdagent.core.proposal import ExperimentFeedback, SOTAexpSelector, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -102,5 +103,17 @@ class AutoSOTAexpSelector(SOTAexpSelector):
                 logger.info("Auto SOTA selector: No SOTA experiment to submit, using the latest SOTA experiment")
                 return sota_exp_fb_list[-1][0]
 
+class BestValidSelector(SOTAexpSelector):
+    def get_sota_exp_to_submit(self, trace: Trace) -> DSExperiment | None:
+        sota_exp_fb_list = trace.experiment_and_feedback_list_after_init(return_type="all", search_type="all")
+        direction_sign = 1 if trace.scen.metric_direction else -1
+        def get_sort_key(exp_fb: tuple[DSExperiment, ExperimentFeedback]) -> tuple[bool, float]:
+            score = -np.inf
+            result : pd.DataFrame | None = exp_fb[0].result
+            if result is not None:
+                score = result.loc["ensemble"].iloc[0]
+            return (exp_fb[1].decision, direction_sign * score)
+        sota_exp_fb_list = sorted(sota_exp_fb_list, key=get_sort_key, reverse=True)
+        return sota_exp_fb_list[0][0]
 
 # TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)
