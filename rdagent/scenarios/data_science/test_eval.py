@@ -116,7 +116,7 @@ class MLETestEval(TestEvalBase):
         )
         workspace.inject_files(**{"test/mle_submission_format_test.py": mle_check_code})
         submission_check_out, submission_ret_code = workspace.execute_ret_code(
-            env=mde, entry="python test/mle_submission_format_test.py"
+            env=self.env, entry="python test/mle_submission_format_test.py"
         )
 
         workspace.inject_files(**{"test/mle_submission_format_test.output": submission_check_out})
