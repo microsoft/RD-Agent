@@ -14,6 +14,7 @@ from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.mle_summary import extract_mle_json, is_valid_session
 from rdagent.log.storage import FileStorage
 from rdagent.utils import remove_ansi_codes
+from rdagent.utils.repo.diff import generate_diff_from_dict
 
 if "show_stdout" not in state:
     state.show_stdout = False
@@ -57,7 +58,8 @@ def load_times(log_path: Path):
         rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
 
         rd_times = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False).loop_trace
-    except:
+    except Exception as e:
+        # st.toast(f"Error loading times: {e}", icon="🟡")
         rd_times = {}
     return rd_times
 
@@ -143,16 +145,19 @@ def task_win(data):
             )
 
 
-def workspace_win(data, instance_id=None):
-    show_files = {k: v for k, v in data.file_dict.items() if "test" not in k}
+def workspace_win(workspace, instance_id=None, cmp_workspace=None):
+    show_files = {k: v for k, v in workspace.file_dict.items() if "test" not in k}
 
-    base_key = str(data.workspace_path)
+    base_key = str(workspace.workspace_path)
     if instance_id is not None:
         base_key += f"_{instance_id}"
     unique_key = hashlib.md5(base_key.encode()).hexdigest()
-
     if len(show_files) > 0:
-        with st.expander(f"Files in :blue[{replace_ep_path(data.workspace_path)}]"):
+        if cmp_workspace:
+            diff = generate_diff_from_dict(cmp_workspace.file_dict, show_files, "main.py")
+            with st.expander(":violet[**Diff with last SOTA**]"):
+                st.code("".join(diff), language="diff", wrap_lines=True, line_numbers=True)
+        with st.expander(f"Files in :blue[{replace_ep_path(workspace.workspace_path)}]"):
             code_tabs = st.tabs(show_files.keys())
             for ct, codename in zip(code_tabs, show_files.keys()):
                 with ct:
@@ -172,13 +177,13 @@ def workspace_win(data, instance_id=None):
                 else:
                     target_folder_path = Path(target_folder)
                     target_folder_path.mkdir(parents=True, exist_ok=True)
-                    for filename, content in data.file_dict.items():
+                    for filename, content in workspace.file_dict.items():
                         save_path = target_folder_path / filename
                         save_path.parent.mkdir(parents=True, exist_ok=True)
                         save_path.write_text(content, encoding="utf-8")
                     st.success(f"All files saved to: {target_folder}")
     else:
-        st.markdown(f"No files in :blue[{replace_ep_path(data.workspace_path)}]")
+        st.markdown(f"No files in :blue[{replace_ep_path(workspace.workspace_path)}]")
 
 
 # Helper functions
@@ -195,7 +200,9 @@ def show_text(text, lang=None):
 def highlight_prompts_uri(uri):
     """高亮 URI 的格式"""
     parts = uri.split(":")
-    return f"**{parts[0]}:**:green[**{parts[1]}**]"
+    if len(parts) > 1:
+        return f"**{parts[0]}:**:green[**{parts[1]}**]"
+    return f"**{uri}**"
 
 
 def llm_log_win(llm_d: list):
@@ -252,22 +259,25 @@ def llm_log_win(llm_d: list):
                     show_text(system or "No system prompt available")
 
 
-def hypothesis_win(data):
-    st.code(str(data).replace("\n", "\n\n"), wrap_lines=True)
+def hypothesis_win(hypo):
+    try:
+        st.code(str(hypo).replace("\n", "\n\n"), wrap_lines=True)
+    except Exception as e:
+        st.write(hypo.__dict__)
 
 
-def exp_gen_win(data, llm_data=None):
+def exp_gen_win(exp_gen_data, llm_data=None):
     st.header("Exp Gen", divider="blue", anchor="exp-gen")
     if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
     st.subheader("Hypothesis")
-    hypothesis_win(data["no_tag"].hypothesis)
+    hypothesis_win(exp_gen_data["no_tag"].hypothesis)
 
     st.subheader("pending_tasks")
-    for tasks in data["no_tag"].pending_tasks_list:
+    for tasks in exp_gen_data["no_tag"].pending_tasks_list:
         task_win(tasks[0])
     st.subheader("Exp Workspace")
-    workspace_win(data["no_tag"].experiment_workspace)
+    workspace_win(exp_gen_data["no_tag"].experiment_workspace)
 
 
 def evolving_win(data, key, llm_data=None):
@@ -325,7 +335,7 @@ def coding_win(data, llm_data: dict | None = None):
         workspace_win(data["no_tag"].experiment_workspace, instance_id="coding_dump")
 
 
-def running_win(data, mle_score, llm_data=None):
+def running_win(data, mle_score, llm_data=None, sota_exp=None):
     st.header("Running", divider="blue", anchor="running")
     if llm_data is not None:
         common_llm_data = llm_data.pop("no_tag", [])
@@ -336,7 +346,11 @@ def running_win(data, mle_score, llm_data=None):
         llm_log_win(common_llm_data)
     if "no_tag" in data:
         st.subheader("Exp Workspace (running final)")
-        workspace_win(data["no_tag"].experiment_workspace, instance_id="running_dump")
+        workspace_win(
+            data["no_tag"].experiment_workspace,
+            instance_id="running_dump",
+            cmp_workspace=sota_exp.experiment_workspace if sota_exp else None,
+        )
         st.subheader("Result")
         st.write(data["no_tag"].result)
         st.subheader("MLE Submission Score" + ("✅" if (isinstance(mle_score, dict) and mle_score["score"]) else "❌"))
@@ -346,41 +360,49 @@ def running_win(data, mle_score, llm_data=None):
             st.code(mle_score, wrap_lines=True)
 
 
-def feedback_win(data, llm_data=None):
-    data = data["no_tag"]
-    st.header("Feedback" + ("✅" if bool(data) else "❌"), divider="orange", anchor="feedback")
+def feedback_win(fb_data, llm_data=None):
+    fb_data = fb_data["no_tag"]
+    st.header("Feedback" + ("✅" if bool(fb_data) else "❌"), divider="orange", anchor="feedback")
     if state.show_llm_log and llm_data is not None:
         llm_log_win(llm_data["no_tag"])
-    st.code(str(data).replace("\n", "\n\n"), wrap_lines=True)
-    if data.exception is not None:
-        st.markdown(f"**:red[Exception]**: {data.exception}")
+    st.code(str(fb_data).replace("\n", "\n\n"), wrap_lines=True)
+    if fb_data.exception is not None:
+        st.markdown(f"**:red[Exception]**: {fb_data.exception}")
 
 
-def sota_win(data):
+def sota_win(sota_exp, trace):
     st.header("SOTA Experiment", divider="rainbow", anchor="sota-exp")
-    if data:
+    if hasattr(trace, "sota_exp_to_submit") and trace.sota_exp_to_submit is not None:
+        st.markdown(":orange[trace.**sota_exp_to_submit**]")
+        sota_exp = trace.sota_exp_to_submit
+    else:
+        st.markdown(":orange[trace.**sota_experiment()**]")
+
+    if sota_exp:
         st.markdown(f"**SOTA Exp Hypothesis**")
-        hypothesis_win(data.hypothesis)
+        hypothesis_win(sota_exp.hypothesis)
         st.markdown("**Exp Workspace**")
-        workspace_win(data.experiment_workspace, instance_id="sota")
+        workspace_win(sota_exp.experiment_workspace, instance_id="sota")
     else:
         st.markdown("No SOTA experiment.")
 
 
-def main_win(data, llm_data=None):
-    exp_gen_win(data["direct_exp_gen"], llm_data["direct_exp_gen"] if llm_data else None)
-    if "coding" in data:
-        coding_win(data["coding"], llm_data["coding"] if llm_data else None)
-    if "running" in data:
+def main_win(loop_id, llm_data=None):
+    loop_data = state.data[loop_id]
+    exp_gen_win(loop_data["direct_exp_gen"], llm_data["direct_exp_gen"] if llm_data else None)
+    if "coding" in loop_data:
+        coding_win(loop_data["coding"], llm_data["coding"] if llm_data else None)
+    if "running" in loop_data:
         running_win(
-            data["running"],
-            data.get("mle_score", "no submission to score"),
+            loop_data["running"],
+            loop_data.get("mle_score", "no submission to score"),
             llm_data=llm_data["running"] if llm_data else None,
+            sota_exp=state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None) if loop_id >= 1 else None,
         )
-    if "feedback" in data:
-        feedback_win(data["feedback"], llm_data.get("feedback", None) if llm_data else None)
-    if "record" in data and "SOTA experiment" in data["record"]:
-        sota_win(data["record"]["SOTA experiment"])
+    if "feedback" in loop_data:
+        feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
+    if "record" in loop_data and "SOTA experiment" in loop_data["record"]:
+        sota_win(loop_data["record"]["SOTA experiment"], loop_data["record"]["trace"])
 
 
 def replace_ep_path(p: Path):
@@ -407,7 +429,7 @@ def summarize_data():
                 "Running Score (valid)",
                 "Running Score (test)",
                 "Feedback",
-                "e-loops",
+                "e-loops(coding)",
                 "Time",
                 "Exp Gen",
                 "Coding",
@@ -485,9 +507,11 @@ def summarize_data():
 
             if "coding" in loop_data:
                 if len([i for i in loop_data["coding"].keys() if isinstance(i, int)]) == 0:
-                    df.loc[loop, "e-loops"] = 0
+                    df.loc[loop, "e-loops(coding)"] = 0
                 else:
-                    df.loc[loop, "e-loops"] = max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+                    df.loc[loop, "e-loops(coding)"] = (
+                        max(i for i in loop_data["coding"].keys() if isinstance(i, int)) + 1
+                    )
             if "feedback" in loop_data:
                 df.loc[loop, "Feedback"] = "✅" if bool(loop_data["feedback"]["no_tag"]) else "❌"
             else:
@@ -508,7 +532,7 @@ def summarize_data():
             total_num = x.shape[0]
             valid_num = x[x["Running Score (test)"] != "N/A"].shape[0]
             success_num = x[x["Feedback"] == "✅"].shape[0]
-            avg_e_loops = x["e-loops"].mean()
+            avg_e_loops = x["e-loops(coding)"].mean()
             return pd.Series(
                 {
                     "Loop Num": total_num,
@@ -516,7 +540,7 @@ def summarize_data():
                     "Success Loop": success_num,
                     "Valid Rate": round(valid_num / total_num * 100, 2),
                     "Success Rate": round(success_num / total_num * 100, 2),
-                    "Avg e-loops": round(avg_e_loops, 2),
+                    "Avg e-loops(coding)": round(avg_e_loops, 2),
                 }
             )
 
@@ -524,7 +548,7 @@ def summarize_data():
 
         # component statistics
         comp_df = (
-            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops"]]
+            df.loc[:, ["Component", "Running Score (test)", "Feedback", "e-loops(coding)"]]
             .groupby("Component")
             .apply(comp_stat_func)
         )
@@ -537,7 +561,7 @@ def summarize_data():
         )
         comp_df["Valid Rate"] = comp_df["Valid Rate"].apply(lambda x: f"{x}%")
         comp_df["Success Rate"] = comp_df["Success Rate"].apply(lambda x: f"{x}%")
-        comp_df.loc["Total", "Avg e-loops"] = round(df["e-loops"].mean(), 2)
+        comp_df.loc["Total", "Avg e-loops(coding)"] = round(df["e-loops(coding)"].mean(), 2)
         st2.markdown("### Component Statistics")
         st2.dataframe(comp_df)
 
@@ -615,8 +639,15 @@ with st.sidebar:
 
     if "log_folder" in st.query_params:
         state.log_folder = Path(st.query_params["log_folder"])
+        state.log_folders = [str(state.log_folder)]
     else:
-        state.log_folder = Path(st.radio(f"Select :blue[**one log folder**]", state.log_folders))
+        state.log_folder = Path(
+            st.radio(
+                f"Select :blue[**one log folder**]",
+                state.log_folders,
+                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0],
+            )
+        )
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
@@ -671,4 +702,4 @@ if state.data["competition"]:
         loop_id = 0
     if state.show_stdout:
         stdout_win(loop_id)
-    main_win(state.data[loop_id], state.llm_data[loop_id] if loop_id in state.llm_data else None)
+    main_win(loop_id, state.llm_data[loop_id] if loop_id in state.llm_data else None)

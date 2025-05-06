@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit import session_state as state
 
+from rdagent.log.mle_summary import extract_mle_json
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
 from rdagent.scenarios.kaggle.kaggle_crawler import leaderboard_scores
@@ -38,6 +39,7 @@ def get_script_time(stdout_p: Path):
     return None
 
 
+@st.cache_data(persist=True)
 def get_final_sota_exp(log_path: Path):
     sota_exp_paths = [i for i in log_path.rglob(f"**/SOTA experiment/**/*.pkl")]
     if len(sota_exp_paths) == 0:
@@ -46,6 +48,55 @@ def get_final_sota_exp(log_path: Path):
     with final_sota_exp_path.open("rb") as f:
         final_sota_exp = pickle.load(f)
     return final_sota_exp
+
+
+# @st.cache_data(persist=True)
+def get_sota_exp_stat(log_path: Path):
+    return None
+    trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
+    if len(trace_paths) == 0:
+        return None
+    final_trace_path = max(trace_paths, key=lambda x: int(re.match(r".*Loop_(\d+).*", str(x))[1]))
+    with final_trace_path.open("rb") as f:
+        final_trace = pickle.load(f)
+
+    if hasattr(final_trace, "sota_exp_to_submit"):
+        st.toast("Using sota_exp_to_submit")
+        sota_exp = final_trace.sota_exp_to_submit
+    else:
+        sota_exp = final_trace.sota_experiment()
+
+    if sota_exp is None:
+        return None
+
+    sota_loop_id = None
+    for i, ef in enumerate(final_trace.hist):
+        if ef[0] == sota_exp:
+            sota_loop_id = i
+            break
+
+    sota_mle_score_paths = [i for i in log_path.rglob(f"Loop_{sota_loop_id}/running/mle_score/**/*.pkl")]
+    if len(sota_mle_score_paths) == 0:
+        # sota exp is not evaluated by mle_score
+        return None
+    with sota_mle_score_paths[0].open("rb") as f:
+        sota_mle_score = extract_mle_json(pickle.load(f))
+
+    sota_exp_stat = None
+    if sota_mle_score:  # sota exp's grade output
+        if sota_mle_score["gold_medal"]:
+            sota_exp_stat = "gold"
+        elif sota_mle_score["silver_medal"]:
+            sota_exp_stat = "silver"
+        elif sota_mle_score["bronze_medal"]:
+            sota_exp_stat = "bronze"
+        elif sota_mle_score["above_median"]:
+            sota_exp_stat = "above_median"
+        elif sota_mle_score["valid_submission"]:
+            sota_exp_stat = "valid_submission"
+        elif sota_mle_score["submission_exists"]:
+            sota_exp_stat = "made_submission"
+    return sota_exp_stat
 
 
 # @st.cache_data(persist=True)
@@ -98,6 +149,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
                 v["sota_exp_score_valid"] = final_sota_exp.result.loc["ensemble"].iloc[0]
             else:
                 v["sota_exp_score_valid"] = None
+            v["sota_exp_stat_new"] = get_sota_exp_stat(Path(lf) / k)
             # 调整实验名字
             if "amlt" in lf:
                 summary[f"{lf[lf.rfind('amlt')+5:].split('/')[0]} - {k}"] = v
@@ -127,6 +179,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             "Any Medal",
             "Best Result",
             "SOTA Exp",
+            "SOTA Exp (_to_submit)",
             "SOTA Exp Score (valid)",
             "SOTA Exp Score",
             "Baseline Score",
@@ -195,6 +248,7 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
                 baseline_score = baseline_df.loc[baseline_df["competition_id"] == v["competition"], "score"].item()
 
             base_df.loc[k, "SOTA Exp"] = v.get("sota_exp_stat", None)
+            base_df.loc[k, "SOTA Exp (_to_submit)"] = v["sota_exp_stat_new"]
             if baseline_score is not None and v.get("sota_exp_score", None) is not None:
                 base_df.loc[k, "Ours - Base"] = v["sota_exp_score"] - baseline_score
             base_df.loc[k, "Ours vs Base"] = compare_score(v["sota_exp_score"], baseline_score)
@@ -210,6 +264,8 @@ def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
             base_df.loc[k, "Medium Threshold"] = v.get("median_threshold", None)
 
     base_df["SOTA Exp"] = base_df["SOTA Exp"].replace("", pd.NA)
+
+    base_df["SOTA Exp Score (valid)"] = base_df["SOTA Exp Score (valid)"].replace("Not Calculated", 0)
     base_df = base_df.astype(
         {
             "Total Loops": int,
@@ -350,9 +406,7 @@ def all_summarize_win():
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
     if bt2.toggle("Select Lite Competitions", key="select_lite"):
-        base_df["Select"] = base_df["Competition"].apply(lambda x: x in LITE)
-    else:
-        base_df["Select"] = True
+        base_df["Select"] = base_df["Competition"].isin(LITE)
 
     if bt1.toggle("Select Best", key="select_best"):
 
@@ -370,8 +424,6 @@ def all_summarize_win():
 
         best_idxs = base_df.groupby("Competition").apply(apply_func)
         base_df["Select"] = base_df.index.isin(best_idxs.values)
-    else:
-        base_df["Select"] = True
 
     base_df = st.data_editor(
         base_df.style.apply(
@@ -406,13 +458,14 @@ def all_summarize_win():
             subset=[
                 "Best Result",
                 "SOTA Exp",
+                "SOTA Exp (_to_submit)",
                 "SOTA Exp Score",
                 "SOTA Exp Score (valid)",
             ],
             axis=0,
         ),
         column_config={
-            "Select": st.column_config.CheckboxColumn("Select", default=True, help="Stat this trace.", disabled=False),
+            "Select": st.column_config.CheckboxColumn("Select", help="Stat this trace.", disabled=False),
         },
         disabled=(col for col in base_df.columns if col not in ["Select"]),
     )
@@ -458,7 +511,28 @@ def all_summarize_win():
     sota_exp_stat.loc["Any Medal"] = se_counts.get("Any Medal", 0)
     sota_exp_stat = sota_exp_stat / base_df.shape[0] * 100
 
-    stat_df = pd.concat([total_stat, sota_exp_stat], axis=1)
+    # SOTA Exp (trace.sota_exp_to_submit) 统计
+    se_counts_new = base_df["SOTA Exp (_to_submit)"].value_counts(dropna=True)
+    se_counts_new.loc["made_submission"] = se_counts_new.sum()
+    se_counts_new.loc["Any Medal"] = (
+        se_counts_new.get("gold", 0) + se_counts_new.get("silver", 0) + se_counts_new.get("bronze", 0)
+    )
+    se_counts_new.loc["above_median"] = se_counts_new.get("above_median", 0) + se_counts_new.get("Any Medal", 0)
+    se_counts_new.loc["valid_submission"] = se_counts_new.get("valid_submission", 0) + se_counts_new.get(
+        "above_median", 0
+    )
+
+    sota_exp_stat_new = pd.Series(index=total_stat.index, dtype=int, name="SOTA Exp (_to_submit) 统计(%)")
+    sota_exp_stat_new.loc["Made Submission"] = se_counts_new.get("made_submission", 0)
+    sota_exp_stat_new.loc["Valid Submission"] = se_counts_new.get("valid_submission", 0)
+    sota_exp_stat_new.loc["Above Median"] = se_counts_new.get("above_median", 0)
+    sota_exp_stat_new.loc["Bronze"] = se_counts_new.get("bronze", 0)
+    sota_exp_stat_new.loc["Silver"] = se_counts_new.get("silver", 0)
+    sota_exp_stat_new.loc["Gold"] = se_counts_new.get("gold", 0)
+    sota_exp_stat_new.loc["Any Medal"] = se_counts_new.get("Any Medal", 0)
+    sota_exp_stat_new = sota_exp_stat_new / base_df.shape[0] * 100
+
+    stat_df = pd.concat([total_stat, sota_exp_stat, sota_exp_stat_new], axis=1)
     stat_t0, stat_t1 = st.columns(2)
     with stat_t0:
         st.dataframe(stat_df.round(2))
