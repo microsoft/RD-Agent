@@ -13,13 +13,13 @@ class DSHypothesis(Hypothesis):
         self,
         component: COMPONENT,
         hypothesis: str = "",
-        reason: str = "",
-        concise_reason: str = "",
-        concise_observation: str = "",
-        concise_justification: str = "",
-        concise_knowledge: str = "",
-        problem_name: str = "",
-        problem_desc: str = "",
+        reason: str | None = None,
+        concise_reason: str | None = None,
+        concise_observation: str | None = None,
+        concise_justification: str | None = None,
+        concise_knowledge: str | None = None,
+        problem_name: str | None = None,
+        problem_desc: str | None = None,
         problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
     ) -> None:
         super().__init__(
@@ -230,11 +230,11 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                 has_final_component = True
         return exp_and_feedback_list
 
-    def sota_experiment(
+    def sota_experiment_fb(
         self,
         search_type: Literal["all", "ancestors"] = "ancestors",
         selection: tuple[int, ...] | None = None,
-    ) -> DSExperiment | None:
+    ) -> tuple[DSExperiment, ExperimentFeedback] | None:
         """
 
         Returns
@@ -248,8 +248,18 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             for exp, ef in search_list[::-1]:
                 # the sota exp should be accepted decision and all required components are completed.
                 if ef.decision:
-                    return exp
+                    return exp, ef
         return None
+
+    def sota_experiment(
+        self,
+        search_type: Literal["all", "ancestors"] = "ancestors",
+        selection: tuple[int, ...] | None = None,
+    ) -> DSExperiment | None:
+        res = self.sota_experiment_fb(search_type=search_type, selection=selection)
+        if res is not None:
+            res = res[0]
+        return res
 
     def last_successful_exp(
         self,

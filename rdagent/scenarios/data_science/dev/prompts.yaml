@@ -41,7 +41,7 @@ exp_feedback:
     - Begin your `reasoning` with `[Experiment Analysis]`, clearly stating why the current experiment's result surpasses or falls short compared to the SOTA.
     - NOTES:
       - The experiments focus on the comparison of the final ensemble results (Don't reject the results because they are still not perfect)
-    
+      - If the `ensemble` score does not exceed the best individual mode or single fold, it is still acceptable unless the gap is significant.
     Step 4: Analyze Code With Similar validation Results
     - If the current `ensemble` validation score is similar to the SOTA `ensemble` validation score, give the decision based on the comparison between the current experiment and SOTA.
     - The current code should replace the best result if the code is:
