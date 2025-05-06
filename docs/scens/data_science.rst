@@ -21,7 +21,7 @@ The Data Science Agent is an agent that can automatically perform feature engine
 
   .. code-block:: sh
 
-    dotenv set KG_LOCAL_DATA_PATH <your local directory>/ds_data
+    dotenv set DS_LOCAL_DATA_PATH <your local directory>/ds_data
     dotenv set DS_SCEN rdagent.scenarios.data_science.scen.DataScienceScen
 
 - 📥 **Prepare Competition Data**
