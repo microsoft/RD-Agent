@@ -310,6 +310,10 @@ def main(
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:
+        # FIXME: this is for LLM debug; it should not exit 0 if the path does not exist.
+        if not Path(path).exists():
+            logger.error(f"Path {path} does not exist.")
+            return
         kaggle_loop = DataScienceRDLoop.load(path, output_path, do_truncate, replace_timer)
 
     # replace exp_gen if we have new class
