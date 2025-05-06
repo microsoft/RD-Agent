@@ -205,6 +205,13 @@ class Env(Generic[ASpecificEnvConf]):
         if entry is None:
             entry = self.conf.default_entry
 
+        if "|" in entry:
+            logger.warning(
+                "You are using a command with a shell pipeline (i.e., '|'). "
+                "The exit code ($exit_code) will reflect the result of "
+                "the last command in the pipeline.",
+            )
+
         entry_add_timeout = (
             f"/bin/sh -c 'timeout {self.conf.running_timeout_period} {entry}; "
             + "entry_exit_code=$?; "

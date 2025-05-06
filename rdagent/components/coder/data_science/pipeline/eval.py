@@ -18,6 +18,7 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
 
@@ -52,18 +53,13 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env(
-            extra_volumes={
-                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
-                    "scenarios.data_science.share:scen.input_path"
-                ).r()
-            }
-        )
+        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
         # Clean the scores.csv & submission.csv.
         implementation.execute(env=env, entry=get_clear_ws_cmd())
-        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python main.py")
+        stdout, execute_ret_code = implementation.execute_ret_code(env=env, entry=f"python -m coverage run main.py")
         stdout = remove_eda_part(stdout)
+        stdout += f"The code executed {'successfully' if execute_ret_code == 0 else 'failed'}."
 
         score_fp = implementation.workspace_path / "scores.csv"
         score_ret_code = 0
@@ -101,35 +97,40 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
                 score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
                 score_ret_code = 1
 
-        # Check submission file
-        base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
-        implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
-        # stdout += "----Submission Check 1-----\n"
-        submission_check_out, submission_ret_code = implementation.execute_ret_code(
-            env=env, entry="python test/submission_format_test.py"
-        )
-        if DS_RD_SETTING.rule_base_eval:
-            if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=True,
-                )
-            else:
-                return PipelineSingleFeedback(
-                    execution=stdout,
-                    return_checking=score_check_text + "\n" + submission_check_out,
-                    code="Code evaluation is not available.",
-                    final_decision=False,
-                )
-        stdout += "\n" + submission_check_out
+        test_eval = get_test_eval()
+        if not test_eval.is_sub_enabled(self.scen.competition):
+            submission_ret_code = 0
+        else:
+            # Check submission file
+            base_check_code = T(".eval_tests.submission_format_test", ftype="txt").r()
+            implementation.inject_files(**{"test/submission_format_test.py": base_check_code})
+            # stdout += "----Submission Check 1-----\n"
+            submission_check_out, submission_ret_code = implementation.execute_ret_code(
+                env=env, entry="python test/submission_format_test.py"
+            )
+            if DS_RD_SETTING.rule_base_eval:
+                if execute_ret_code == 0 and score_ret_code == 0 and submission_ret_code == 0:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=True,
+                    )
+                else:
+                    return PipelineSingleFeedback(
+                        execution=stdout,
+                        return_checking=score_check_text + "\n" + submission_check_out,
+                        code="Code evaluation is not available.",
+                        final_decision=False,
+                    )
+            stdout += "\n" + submission_check_out
 
         eda_output = implementation.file_dict.get("EDA.md", None)
 
         system_prompt = T(".prompts:pipeline_eval.system").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task_desc=target_task.get_task_information(),
+            is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
             spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(

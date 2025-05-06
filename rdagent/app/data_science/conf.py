@@ -6,6 +6,7 @@ from rdagent.app.kaggle.conf import KaggleBasePropSetting
 
 
 class DataScienceBasePropSetting(KaggleBasePropSetting):
+    # TODO: Kaggle Setting should be the subclass of DataScience
     model_config = SettingsConfigDict(env_prefix="DS_", protected_namespaces=())
 
     # Main components
@@ -29,7 +30,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     #### enable specification
     spec_enabled: bool = True
 
-    ### proposal related
+    #### proposal related
     proposal_version: str = "v1"
     coder_on_whole_pipeline: bool = False
     max_trace_hist: int = 3
@@ -38,8 +39,10 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     runner_max_loop: int = 1
 
     rule_base_eval: bool = False
+    sample_data: bool = True
+    use_raw_description: bool = False
 
-    ### model dump
+    #### model dump
     enable_model_dump: bool = False
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
@@ -56,6 +59,11 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     log_archive_temp_path: str | None = (
         None  # This is to store the mid tar file since writing the tar file is preferred in local storage then copy to target storage
     )
+
+    #### Evaluation on Test related
+    eval_sub_dir: str = "eval"  # TODO: fixme, this is not a good name
+    """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}"
+    to find the scriipt to evaluate the submission on test"""
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()

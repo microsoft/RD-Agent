@@ -34,7 +34,7 @@ class DSHypothesis(Hypothesis):
         if self.hypothesis == "":
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
         lines = []
-        if self.problem_name is not None and self.problem_desc is not None:
+        if hasattr(self, "problem_name") and self.problem_name is not None and self.problem_desc is not None:
             lines.append(f"Target Problem name: {self.problem_name}")
             lines.append(f"Target Problem: {self.problem_desc}")
         lines.extend(

@@ -304,15 +304,9 @@ def main(
     if competition is not None:
         DS_RD_SETTING.competition = competition
 
-    if DS_RD_SETTING.competition:
-        if DS_RD_SETTING.scen.endswith("KaggleScen"):
-            download_data(competition=DS_RD_SETTING.competition, settings=DS_RD_SETTING)
-        else:
-            if not Path(f"{DS_RD_SETTING.local_data_path}/{competition}").exists():
-                logger.error(f"Please prepare data for competition {competition} first.")
-                return
-    else:
+    if not DS_RD_SETTING.competition:
         logger.error("Please specify competition name.")
+
     if path is None:
         kaggle_loop = DataScienceRDLoop(DS_RD_SETTING)
     else:

@@ -15,6 +15,7 @@ DSCoSTEER_eval:
     - Model training
     - Ensembling
 
+    {% if is_sub_enabled %}
     The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code:
     1. Executes successfully, correctly organizing components and generating a final submission.
     2. Generates predictions in the correct format, ensuring they align with the **sample submission** structure!
@@ -29,7 +30,22 @@ DSCoSTEER_eval:
         "final_decision": <true/false>
     }
     ```
-  
+    {% else %}
+    The user will provide you the whole code base, some logs generated during the execution of the whole workflow. Your evaluation scope includes whether the workflow code executes successfully.
+    No need to check the detail of submission file.
+
+    Please respond with your feedback in the following JSON format and order
+    ```json
+    {
+        "execution": "Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information.",
+        "return_checking": "Describe the expected file to be generated.",
+        "code": "Provide feedback on code quality, readability, and adherence to the given specifications.",
+        "final_decision": <true/false>
+    }
+    ```
+    {% endif %}
+# NOTE: when is_sub_enabled == False, we don't have any checking about the return. So it is just placeholder currently
+
   user: |-
     --------- code base ---------
     {{ code }}

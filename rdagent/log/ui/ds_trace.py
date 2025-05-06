@@ -474,7 +474,10 @@ def summarize_data():
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
                         state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
-                        if state.data[loop]["mle_score"]["score"] is not None:
+                        if (
+                            state.data[loop]["mle_score"] is not None
+                            and state.data[loop]["mle_score"]["score"] is not None
+                        ):
                             df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt

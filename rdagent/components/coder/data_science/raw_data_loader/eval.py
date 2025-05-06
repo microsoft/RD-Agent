@@ -46,13 +46,7 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
 
-        env = get_ds_env(
-            extra_volumes={
-                f"{DS_RD_SETTING.local_data_path}/sample/{self.scen.competition}": T(
-                    "scenarios.data_science.share:scen.input_path"
-                ).r()
-            }
-        )
+        env = get_ds_env(extra_volumes={self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()})
 
         # TODO: do we need to clean the generated temporary content?
         fname = "test/data_loader_test.py"
