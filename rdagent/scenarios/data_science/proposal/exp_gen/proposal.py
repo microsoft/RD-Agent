@@ -225,9 +225,12 @@ class DSProposalV1ExpGen(ExpGen):
 
 
 class DSProposalV2ExpGen(ExpGen):
-    def identify_feedback_problem(
-        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, inject_diverse: bool = False
-    ) -> Dict:
+
+    def identify_feedback_problem(self,
+                                  scenario_desc: str,
+                                  exp_feedback_list_desc: str,
+                                  sota_exp_desc: str,
+                                  inject_diverse: bool = False) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),

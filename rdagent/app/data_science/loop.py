@@ -40,6 +40,7 @@ from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
 from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
     AutoSOTAexpSelector,
+    BestValidSelector,
     GlobalSOTASelector,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
@@ -53,6 +54,7 @@ CKP_SELECTOR_NAME_MAP = {
 SOTA_EXP_SELECTOR_NAME_MAP = {
     "global_sota": GlobalSOTASelector,
     "auto_sota": AutoSOTAexpSelector,
+    "best_valid_sota": BestValidSelector,
 }
 
 
@@ -72,7 +74,9 @@ class DataScienceRDLoop(RDLoop):
         self.ckp_selector = CKP_SELECTOR_NAME_MAP[DS_RD_SETTING.selector_name]()
         self.sota_exp_selector = SOTA_EXP_SELECTOR_NAME_MAP[DS_RD_SETTING.sota_exp_selector_name]()
 
-        self.exp_gen = DSExpGen(scen)
+        self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+
+        # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
         self.model_coder = ModelCoSTEER(scen)
