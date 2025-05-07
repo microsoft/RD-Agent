@@ -9,6 +9,7 @@ from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
+from rdagent.log import rdagent_logger as logger
 
 
 class MergeExpGen(ExpGen):
@@ -86,9 +87,10 @@ class ExpGen2TraceAndMerge(ExpGen):
         self.exp_gen = DSExpGen(self.scen)
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
-        timer: RDAgentTimer = RD_Agent_TIMER_wrapper().timer
+        timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
-        if timer.remain_time_duration >= timedelta(hours=2):
+
+        if timer.remain_time_duration >= timedelta(hours=2):  
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 selection = tuple()  # create new trace

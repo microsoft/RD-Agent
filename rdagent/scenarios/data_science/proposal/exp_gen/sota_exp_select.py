@@ -113,7 +113,11 @@ class BestValidSelector(SOTAexpSelector):
             if result is not None:
                 score = result.loc["ensemble"].iloc[0]
             return (exp_fb[1].decision, direction_sign * score)
-        sota_exp_fb_list = sorted(sota_exp_fb_list, key=get_sort_key, reverse=True)
-        return sota_exp_fb_list[0][0]
+        if len(sota_exp_fb_list) == 0:
+            logger.info("Best Valid SOTA selector: No SOTA in trace yet")
+            return None
+        else:
+            sota_exp_fb_list = sorted(sota_exp_fb_list, key=get_sort_key, reverse=True)
+            return sota_exp_fb_list[0][0]
 
 # TODO: more advanced sota exp selector (e.g. LLM-based, merge exp with multiple sub-trace)
