@@ -1,5 +1,6 @@
 """Merge the version in different traces"""
 
+from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
@@ -46,6 +47,7 @@ class MergeExpGen(ExpGen):
                 type="success",
                 heading="Successful iterations:",
                 success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
+                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             )
         else:
             exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
