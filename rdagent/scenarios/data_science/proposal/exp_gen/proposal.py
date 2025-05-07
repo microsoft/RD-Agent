@@ -344,7 +344,7 @@ class DSProposalV2ExpGen(ExpGen):
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
                 index_to_pick_pool_list.extend([j] * 4)
-            if hypothesis_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
+            elif problem_dict.get(problem_name, {}).get("label", "") == "SCENARIO_PROBLEM":
                 index_to_pick_pool_list.extend([j] * (3 - len(trace.hist) // 3))
             else:
                 index_to_pick_pool_list.extend([j] * 2)
