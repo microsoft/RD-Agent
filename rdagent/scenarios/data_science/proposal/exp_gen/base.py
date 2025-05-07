@@ -12,7 +12,7 @@ class DSHypothesis(Hypothesis):
     def __init__(
         self,
         component: COMPONENT,
-        hypothesis: str = "",
+        hypothesis: str | None = None,
         reason: str | None = None,
         concise_reason: str | None = None,
         concise_observation: str | None = None,
@@ -31,15 +31,18 @@ class DSHypothesis(Hypothesis):
         self.problem_label = problem_label
 
     def __str__(self) -> str:
-        if self.hypothesis == "":
+        if self.hypothesis is None:
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
+
         lines = []
-        if hasattr(self, "problem_name") and self.problem_name is not None and self.problem_desc is not None:
-            lines.append(f"Target Problem name: {self.problem_name}")
+        if self.problem_name is not None:
+            lines.append(f"Target Problem Name: {self.problem_name}")
+        if self.problem_desc is not None:
             lines.append(f"Target Problem: {self.problem_desc}")
-        lines.extend(
-            [f"Chosen Component: {self.component}", f"Hypothesis: {self.hypothesis}", f"Reason: {self.reason}"]
-        )
+        lines.append(f"Chosen Component: {self.component}")
+        lines.append(f"Hypothesis: {self.hypothesis}")
+        if self.reason is not None:
+            lines.append(f"Reason: {self.reason}")
         return "\n".join(lines)
 
 
@@ -203,18 +206,25 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
-        exp_and_feedback_list = []
-        for exp, fb in search_list:
+        SOTA_exp_and_feedback_list = []
+        failed_exp_and_feedback_list = []
+        for exp, fb in enumerate(search_list):
             if has_final_component:
-                if return_type == "all":
-                    exp_and_feedback_list.append((exp, fb))
-                elif return_type == "failed" and not fb.decision:
-                    exp_and_feedback_list.append((exp, fb))
-                elif return_type == "sota" and fb.decision:
-                    exp_and_feedback_list.append((exp, fb))
+                if fb.decision:
+                    SOTA_exp_and_feedback_list.append((exp, fb))
+                    failed_exp_and_feedback_list = []
+                else:
+                    failed_exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
-        return exp_and_feedback_list
+        if return_type == "all":
+            return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
+        elif return_type == "failed":
+            return failed_exp_and_feedback_list
+        elif return_type == "sota":
+            return SOTA_exp_and_feedback_list
+        else:
+            raise ValueError("Invalid return_type. Must be 'sota', 'failed', or 'all'.")
 
     def sota_experiment_fb(
         self,

@@ -40,47 +40,21 @@ describe: # some template to describe some object
 
   trace: |-
     {% if exp_and_feedback_list|length == 0 %}
-    No previous {% if type == "success" %}successful{% elif type == "failure" %}failed{% else %}successful or failed{% endif %} trial available.
+    No previous {% if type == "success" %}SOTA{% elif type == "failure" %}failed{% endif %} experiments available.
     {% else %}
-    {% if type == "success" %}
-    ## {{ heading | default('Trace of the successful trial') }}
-    {% elif type == "failure" %}
-    ## {{ heading | default('Trace of the failed trial') }}
-    {% else %}
-    ## {{ heading | default('Trace of all trials') }}
-    {% endif %}
-
-    Before current trial, several {% if type == "success" %}successful{% elif type == "failure" %}failed{% else %}successful or failed{% endif %} trials are listed below.
-    {% if type == "success" %}
-    {{success_trial_desc | default('The current SOTA method is the combination of the best solutions of these trials.')}}
-    {% endif %}
-
-    The trace order is from the earliest to the latest. Please focus more on the later trials.
-
     {% for exp_and_feedback in exp_and_feedback_list %}
-    ### Experiment index: {{ loop.index }}
-    The experiment is designed based on hypothesis: {{ exp_and_feedback[0].hypothesis }}
-
+    ## Experiment Index: {{ loop.index }}
+    Target Problem: {{ exp_and_feedback[0].hypothesis.problem_desc }}
+    {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
+    Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
     {% if exp_and_feedback[0].result is none %}
-    Experiment score: Running buggy
+    Experiment Score: Running buggy
+    Experiment Error: {{ exp_and_feedback[1].reason }}
     {% else %}
-    Experiment score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    Experiment Feedback: {{ exp_and_feedback[1].reason }}
     {% endif %}
-
-    Experiment feedback decision: {{ exp_and_feedback[1].decision }}
-    Reason: {{ exp_and_feedback[1].reason }}
-    {% endfor %}
-    {% endif %}
-  
-  drafting_trace: |-
-    {% if exp_and_feedback_list|length == 0 %}
-    No previous drafting experiments available.
-    {% else %}
-    {% for exp_and_feedback in exp_and_feedback_list %}
-    ## Drafting Experiment {{ loop.index }}
-    Task Design: {{ exp_and_feedback[0].pending_tasks_list[0][0].get_task_information() }}
-    Failure: {{ exp_and_feedback[1].reason }}
-
     {% endfor %}
     {% endif %}
 
