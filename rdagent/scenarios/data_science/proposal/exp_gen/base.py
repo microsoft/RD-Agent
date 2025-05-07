@@ -208,7 +208,7 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
         failed_exp_and_feedback_list = []
-        for exp, fb in enumerate(search_list):
+        for exp, fb in search_list:
             if has_final_component:
                 if fb.decision:
                     SOTA_exp_and_feedback_list.append((exp, fb))
