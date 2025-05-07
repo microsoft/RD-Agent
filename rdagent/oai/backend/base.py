@@ -126,7 +126,7 @@ class ChatSession:
         self.api_backend = api_backend
         
     @classmethod
-    def clone_session(
+    def clone_from(
         cls,
         existing_session: ChatSession,
         conversation_id: str | None = None,

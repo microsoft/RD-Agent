@@ -282,7 +282,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
         
         if chat_session is not None:
-            h_session = ChatSession.clone_session(chat_session)
+            h_session = ChatSession.clone_from(chat_session)
             response = h_session.build_chat_completion(
                 user_prompt=f"{sys_prompt}\n{'='*30}\n{user_prompt}",
                 json_mode=True,
@@ -387,7 +387,7 @@ class DSProposalV2ExpGen(ExpGen):
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
         if chat_session is not None:
-            t_session = ChatSession.clone_session(chat_session)
+            t_session = ChatSession.clone_from(chat_session)
             response = t_session.build_chat_completion(
                 user_prompt=f"{sys_prompt}\n{'='*30}\n{user_prompt}",
                 json_mode=True,
