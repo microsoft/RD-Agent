@@ -105,14 +105,8 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         grade_output = None
 
         start_time = None
-        last_llm_msg_timestamp = None
-        llm_retry_time = timedelta(seconds=0)
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
-            if "llm" in msg.tag:
-                if "Retrying" in msg.content and last_llm_msg_timestamp:
-                    llm_retry_time += timedelta(seconds=msg.timestamp - last_llm_msg_timestamp)
-                last_llm_msg_timestamp = msg.timestamp
-            if start_time and hours and msg.timestamp > start_time + timedelta(hours=hours) + llm_retry_time:
+            if start_time and hours and msg.timestamp > start_time + timedelta(hours=hours):
                 break
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
