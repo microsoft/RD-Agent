@@ -124,6 +124,22 @@ class ChatSession:
         self.conversation_id = str(uuid.uuid4()) if conversation_id is None else conversation_id
         self.system_prompt = system_prompt if system_prompt is not None else LLM_SETTINGS.default_system_prompt
         self.api_backend = api_backend
+        
+    @classmethod
+    def clone_session(
+        cls,
+        existing_session: ChatSession,
+        conversation_id: str | None = None,
+    ) -> ChatSession:
+        """
+        Clone an existing chat session to create a new session with the same history.
+        """
+        new_session = cls(existing_session.api_backend, conversation_id, existing_session.system_prompt)
+        SessionChatHistoryCache().message_set(
+            new_session.conversation_id,
+            SessionChatHistoryCache().message_get(existing_session.conversation_id),
+        )
+        return new_session
 
     def build_chat_completion_message(self, user_prompt: str) -> list[dict[str, Any]]:
         history_message = SessionChatHistoryCache().message_get(self.conversation_id)
