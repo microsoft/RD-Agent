@@ -10,5 +10,7 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     baseline_result_path: str = "./baseline.csv"
 
+    aide_path: str = "./aide"
+
 
 UI_SETTING = UIBasePropSetting()
