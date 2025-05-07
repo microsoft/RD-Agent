@@ -12,14 +12,14 @@ class DSHypothesis(Hypothesis):
     def __init__(
         self,
         component: COMPONENT,
-        hypothesis: str = "",
-        reason: str = "",
-        concise_reason: str = "",
-        concise_observation: str = "",
-        concise_justification: str = "",
-        concise_knowledge: str = "",
-        problem_name: str = "",
-        problem_desc: str = "",
+        hypothesis: str | None = None,
+        reason: str | None = None,
+        concise_reason: str | None = None,
+        concise_observation: str | None = None,
+        concise_justification: str | None = None,
+        concise_knowledge: str | None = None,
+        problem_name: str | None = None,
+        problem_desc: str | None = None,
         problem_label: Literal["SCENARIO_PROBLEM", "FEEDBACK_PROBLEM"] = "FEEDBACK_PROBLEM",
     ) -> None:
         super().__init__(
@@ -31,15 +31,18 @@ class DSHypothesis(Hypothesis):
         self.problem_label = problem_label
 
     def __str__(self) -> str:
-        if self.hypothesis == "":
+        if self.hypothesis is None:
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
+        
         lines = []
-        if hasattr(self, "problem_name") and self.problem_name is not None and self.problem_desc is not None:
-            lines.append(f"Target Problem name: {self.problem_name}")
+        if self.problem_name is not None:
+            lines.append(f"Target Problem Name: {self.problem_name}")
+        if self.problem_desc is not None:
             lines.append(f"Target Problem: {self.problem_desc}")
-        lines.extend(
-            [f"Chosen Component: {self.component}", f"Hypothesis: {self.hypothesis}", f"Reason: {self.reason}"]
-        )
+        lines.append(f"Chosen Component: {self.component}")
+        lines.append(f"Hypothesis: {self.hypothesis}")
+        if self.reason is not None:
+            lines.append(f"Reason: {self.reason}")
         return "\n".join(lines)
 
 
