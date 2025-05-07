@@ -147,6 +147,11 @@ task_gen:
     5. Specific and Non-Vague
       - Avoid vague statements like "choose a proper model" Instead, specify the exact task to be made.
       - No phrases like "for example" or "eg.," should be used in the task. Give a clear decision in the task.
+    6. Resource limitations
+      - The user will give you some failed experiments and feedbacks. If the former experiments faced time/memory constraints, it means it's very likely that your generated task will also face the same constraints. In this case, you should design a task that is more efficient in terms of time and space complexity.
+      - If the former experiments faced time/memory constraints, you should always prioritize the task design to be more efficient in terms of time and space complexity. 
+      - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
+      - Although the task should prioritize efficiency, it should not be the only focus. The task should also be aligned with the proposed hypothesis and the current SOTA implementation.
 
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
