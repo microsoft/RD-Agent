@@ -33,7 +33,7 @@ class DSHypothesis(Hypothesis):
     def __str__(self) -> str:
         if self.hypothesis is None:
             return f"No hypothesis available. Trying to construct the first runnable {self.component} component."
-        
+
         lines = []
         if self.problem_name is not None:
             lines.append(f"Target Problem Name: {self.problem_name}")
