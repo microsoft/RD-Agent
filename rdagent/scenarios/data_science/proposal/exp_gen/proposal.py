@@ -11,6 +11,7 @@ from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
@@ -304,7 +305,12 @@ class DSProposalV2ExpGen(ExpGen):
         resp_dict = json.loads(response)
         return resp_dict
 
-    def hypothesis_rank(self, hypothesis_dict: dict, problem_dict: dict, pipeline: bool) -> Tuple[str, DSHypothesis]:
+    def hypothesis_rank(
+        self,
+        hypothesis_dict: dict,
+        problem_dict: dict,
+        trace: DSTrace,
+    ) -> Tuple[str, DSHypothesis]:
         weights = {
             "alignment_score": 0.2,
             "impact_score": 0.4,
@@ -330,16 +336,21 @@ class DSProposalV2ExpGen(ExpGen):
 
         scores = pd.DataFrame(scores_dict)
         scores_sorted = scores.sum().sort_values(ascending=False)
-        if len(scores_sorted) > 5:
-            scores_sorted = scores_sorted[: len(scores_sorted) // 2]
+        scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
 
-        # Increase the weight of the hypothesis that is inspired by the idea pool
+        # Increase the weight of the hypothesis that is inspired by the idea pool to double the chance of being selected
+        # linear decay the weight of the scenario problem from double the chance to 0 in 10 loops
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 3)
+                index_to_pick_pool_list.extend([j] * 10)
+            elif hypothesis_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
+                index_to_pick_pool_list.extend([j] * 5)
+            elif hypothesis_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
+                index_to_pick_pool_list.extend([j] * (10 - len(trace.hist)))
             else:
                 index_to_pick_pool_list.append(j)
+        logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
         reproducible_int = int.from_bytes(bytes.fromhex(md5_hash(scores_sorted.to_string())), byteorder="big") % len(
@@ -457,12 +468,7 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
         # Step 1: Identify problems
-        scen_problems = self.identify_scenario_problem(
-            scenario_desc=scenario_desc,
-            sota_exp_desc=sota_exp_desc,
-        )
-        for problem_name in scen_problems:
-            scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+        all_problems = {}
         fb_problems = self.identify_feedback_problem(
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -470,7 +476,16 @@ class DSProposalV2ExpGen(ExpGen):
         )
         for problem_name in fb_problems:
             fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
-        all_problems = {**scen_problems, **fb_problems}
+            all_problems[problem_name] = fb_problems[problem_name]
+
+        if len(trace.hist) < 10:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
 
         # Step 1.5: Sample ideas from idea pool
         if DS_RD_SETTING.enable_knowledge_base:
@@ -512,7 +527,7 @@ class DSProposalV2ExpGen(ExpGen):
         pickled_problem_name, new_hypothesis = self.hypothesis_rank(
             hypothesis_dict=hypothesis_dict,
             problem_dict=all_problems,
-            pipeline=pipeline,
+            trace=trace,
         )
         # Step 3.5: Update knowledge base with the picked problem
         if DS_RD_SETTING.enable_knowledge_base:
