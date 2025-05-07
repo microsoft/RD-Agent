@@ -72,6 +72,25 @@ describe: # some template to describe some object
     {% endfor %}
     {% endif %}
 
+  simple_trace: |-
+    {% if exp_and_feedback_list|length == 0 %}
+    No previous {% if type == "success" %}SOTA{% elif type == "failure" %}failed{% endif %} experiments available.
+    {% else %}
+    {% for exp_and_feedback in exp_and_feedback_list %}
+    ## Experiment Index: {{ loop.index }}
+    Target Problem: {{ exp_and_feedback[0].hypothesis.problem_desc }}
+    {% if not pipeline %}Chosen Component: {{ exp_and_feedback[0].hypothesis.component }}{% endif %}
+    Proposed Hypothesis: {{ exp_and_feedback[0].hypothesis.hypothesis }}
+    Surpass Previous SOTA: {{ exp_and_feedback[1].decision }}
+    {% if exp_and_feedback[0].result is none %}
+    Experiment Score: Running buggy
+    Experiment Error: {{ exp_and_feedback[1].reason }}
+    {% else %}
+    Experiment Score: {{ exp_and_feedback[0].result.loc["ensemble"].iloc[0] }}
+    Experiment Feedback: {{ exp_and_feedback[1].reason }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
 
 scen:  # customizable
   role: |-

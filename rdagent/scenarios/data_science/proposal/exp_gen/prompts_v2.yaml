@@ -31,13 +31,30 @@ scenario_problem:
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace.
+    If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation.
+    Your task is to analyze the given information and extract the **Feedback Problems** from the previous experiments or the current SOTA implementation.
 
-    ## Low-Level Problems
+    ## Feedback Problems
     ### Definition
-    Low-level problems are specific and fine-grained technical, or methodological issues within the implementation.
+    Feedback problems are specific and fine-grained technical, or methodological issues within the previous experiments or the current SOTA implementation.
+
+    ### Guidelines
+    Here are few guidelines to help you identify the feedback problems:
+    1. Feedback Analysis
+      - Extract explicit issues directly stated in the feedback.
+      - Infer implicit issues from feedback context.
+    2. Code Review
+      - Feature Engineering. Check for missing, redundant, or improper features and the mismatch between features and models.
+      - Model Architecture. Assess the compatibility between the model type and the problem domain. Verify model architecture and hyperparameters.
+      - Ensemble. Check if ensemble methods are optimized. Identify underperforming base models to remove from the ensemble.
+      - Training. Validate hyperparameter (e.g., learning rate, batch size), loss functions, and regularization. Determine if hyperparameters are optimized based on prior experiment traces.
+    3. Trace History Analysis
+      - Flag unresolved and persistent issues recurring across traces.
+      - Highlight partial fixes (e.g., inappropriate feature engineering).
+      - Identify unexplored directions (e.g. new features, new model structures) from prior traces.
+      - Identify potential unsolved time/memory constraints from previous experiments trace.
     
     ### Specification
     {{ problem_spec }}
