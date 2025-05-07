@@ -343,15 +343,11 @@ class DSProposalV2ExpGen(ExpGen):
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 2)
+                index_to_pick_pool_list.extend([j] * 4)
             if hypothesis_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
-                if len(trace.hist) > 3:
-                    multiplier = round(3 * (1 - (len(trace.hist) - 3) / 10))
-                    index_to_pick_pool_list.extend([j] * multiplier)
-                else:
-                    index_to_pick_pool_list.append(j)
+                index_to_pick_pool_list.extend([j] * (3 - len(trace.hist) // 3))
             else:
-                index_to_pick_pool_list.append(j)
+                index_to_pick_pool_list.extend([j] * 2)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
 
         # Create a random but reproducible integer
@@ -473,7 +469,7 @@ class DSProposalV2ExpGen(ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) > 3:
+        if len(trace.hist) >= 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -483,7 +479,7 @@ class DSProposalV2ExpGen(ExpGen):
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
                 all_problems[problem_name] = fb_problems[problem_name]
 
-        if len(trace.hist) < 10:
+        if len(trace.hist) < 9:
             scen_problems = self.identify_scenario_problem(
                 scenario_desc=scenario_desc,
                 sota_exp_desc=sota_exp_desc,
