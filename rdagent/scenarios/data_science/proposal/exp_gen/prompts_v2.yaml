@@ -1,3 +1,33 @@
+scenario_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    You will be given the scenario description and the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
+
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    {{ problem_spec }}
+    
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+
+    ### Output Format
+    {{ problem_output_format }}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}

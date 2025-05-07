@@ -3,10 +3,7 @@ from rdagent.core.proposal import ExpGen
 from rdagent.core.utils import import_class
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
-from rdagent.scenarios.data_science.proposal.exp_gen.draft import (
-    DSDraftExpGen,
-    DSDraftV2ExpGen,
-)
+from rdagent.scenarios.data_science.proposal.exp_gen.draft import DSDraftExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.proposal import (
     DSProposalV1ExpGen,
     DSProposalV2ExpGen,
@@ -31,9 +28,6 @@ class DSExpGen(ExpGen):
 
         if DS_RD_SETTING.proposal_version not in ["v1", "v2"]:
             return import_class(DS_RD_SETTING.proposal_version)(scen=self.scen).gen(trace=trace)
-
-        if trace.sota_experiment() is None:
-            return DSDraftV2ExpGen(scen=self.scen).gen(trace=trace)
 
         if DS_RD_SETTING.coder_on_whole_pipeline:
             return DSProposalV2ExpGen(scen=self.scen).gen(trace=trace, pipeline=True)
