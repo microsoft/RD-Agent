@@ -338,16 +338,14 @@ class DSProposalV2ExpGen(ExpGen):
         scores_sorted = scores.sum().sort_values(ascending=False)
         scores_sorted = scores_sorted[:5]  # Select top 5 hypotheses
 
-        # Increase the weight of the hypothesis that is inspired by the idea pool to double the chance of being selected
-        # linear decay the weight of the scenario problem from double the chance to 0 in 10 loops
+        # Increase the weight of the hypothesis that is inspired by the idea pool to 3x.
+        # Linear decay the weight of the scenario problem from 5x to 0x.
         index_to_pick_pool_list = []
         for j, problem_name in enumerate(scores_sorted.index):
             if hypothesis_dict[problem_name].get("inspired", False):
-                index_to_pick_pool_list.extend([j] * 10)
-            elif hypothesis_dict[problem_name]["label"] == "FEEDBACK_PROBLEM":
-                index_to_pick_pool_list.extend([j] * 5)
-            elif hypothesis_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
-                index_to_pick_pool_list.extend([j] * (10 - len(trace.hist)))
+                index_to_pick_pool_list.extend([j] * 2)
+            if hypothesis_dict[problem_name]["label"] == "SCENARIO_PROBLEM":
+                index_to_pick_pool_list.extend([j] * int(5 - 0.5 * len(trace.hist)))
             else:
                 index_to_pick_pool_list.append(j)
         logger.info(f"index_to_pick_pool_list: {index_to_pick_pool_list}")
