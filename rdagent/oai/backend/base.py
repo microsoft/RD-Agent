@@ -360,7 +360,7 @@ class APIBackend(ABC):
                         )
                     ):
                         timeout_count += 1
-                        if timeout_count >= 3:
+                        if timeout_count >= LLM_SETTINGS.timeout_fail_limit:
                             logger.warning("Timeout error, please check your network connection.")
                             raise e
 
