@@ -50,7 +50,7 @@ def get_final_sota_exp(log_path: Path):
     return final_sota_exp
 
 
-# @st.cache_data(persist=True)
+@st.cache_data(persist=True)
 def get_sota_exp_stat(log_path: Path):
     trace_paths = [i for i in log_path.rglob(f"**/trace/**/*.pkl")]
     if len(trace_paths) == 0:
@@ -98,20 +98,12 @@ def get_sota_exp_stat(log_path: Path):
     return sota_exp_stat
 
 
-# @st.cache_data(persist=True)
+@st.cache_data(persist=True)
 def get_summary_df(log_folders: list[str]) -> tuple[dict, pd.DataFrame]:
     summarys = {}
-    with st.sidebar:
-        if st.toggle("show 24h summary", key="show_hours_summary"):
-            sn = "summary_24h.pkl"
-        else:
-            sn = "summary.pkl"
+    sn = "summary.pkl"
     for lf in log_folders:
-        if not (Path(lf) / sn).exists():
-            st.warning(
-                f"{sn} not found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf} --hours=<>`"
-            )
-        else:
+        if (Path(lf) / sn).exists():
             summarys[lf] = pd.read_pickle(Path(lf) / sn)
 
     if len(summarys) == 0:
@@ -397,6 +389,11 @@ def all_summarize_win():
     selected_folders = st.multiselect(
         "Show these folders", state.log_folders, state.log_folders, format_func=shorten_folder_name
     )
+    for lf in selected_folders:
+        if not (Path(lf) / "summary.pkl").exists():
+            st.warning(
+                f"summary.pkl not found in **{lf}**\n\nRun:`dotenv run -- python rdagent/log/mle_summary.py grade_summary --log_folder={lf} --hours=<>`"
+            )
     summary, base_df = get_summary_df(selected_folders)
     if not summary:
         return
