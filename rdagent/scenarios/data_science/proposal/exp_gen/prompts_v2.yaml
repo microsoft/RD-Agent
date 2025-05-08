@@ -116,7 +116,8 @@ hypothesis_gen:
       - If the problem involves underperforming models, propose removing or replacing models of significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
     4. Note on Time/Memory Constraints
-      - If the problem relates to time/memory constraints and few previous failed experiments failed due to similar constraints, you will probably face the same issue. In this case, you should prioritize the efficiency across the hypothesis proposal and do not response to any other problems in the response dictionary.
+      - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
+      - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
     5. Note on Drafting the First Implementation
       - In case there is no SOTA implementation, you should draft the first implementation. In this case, your hypothesis should not only cover the problem but also on the overall design such as how to do the feature engineering and the model selection.
     {% if enable_idea_pool %}
