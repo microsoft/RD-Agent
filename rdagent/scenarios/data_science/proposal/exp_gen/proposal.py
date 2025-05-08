@@ -13,6 +13,7 @@ from rdagent.components.coder.data_science.workflow.exp import WorkflowTask
 from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend, md5_hash
+from rdagent.oai.backend.base import ChatSession
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSIdea
@@ -270,7 +271,8 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
-    ) -> Dict:
+        chat_session: ChatSession | None = None,
+    ) -> tuple[dict, ChatSession | None]:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
             problem_formatted_str += f"# Problem Name: {problem_name}\n"
@@ -296,14 +298,23 @@ class DSProposalV2ExpGen(ExpGen):
             problems=problem_formatted_str,
             enable_idea_pool=enable_idea_pool,
         )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
-        )
+        
+        if chat_session is not None:
+            h_session = ChatSession.clone_from(chat_session)
+            response = h_session.build_chat_completion(
+                user_prompt=f"{sys_prompt}\n{'='*30}\n{user_prompt}",
+                json_mode=True,
+                json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+            )
+        else:
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=sys_prompt,
+                json_mode=True,
+                json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+            )
         resp_dict = json.loads(response)
-        return resp_dict
+        return resp_dict, h_session if chat_session else None
 
     def hypothesis_rank(
         self,
@@ -376,6 +387,7 @@ class DSProposalV2ExpGen(ExpGen):
         hypothesis: DSHypothesis,
         pipeline: bool,
         failed_exp_feedback_list_desc: str,
+        chat_session: ChatSession | None = None,
     ) -> DSExperiment:
         if pipeline:
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
@@ -400,12 +412,20 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis=str(hypothesis),
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
         )
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, str | Dict[str, str]],
-        )
+        if chat_session is not None:
+            t_session = ChatSession.clone_from(chat_session)
+            response = t_session.build_chat_completion(
+                user_prompt=f"{sys_prompt}\n{'='*30}\n{user_prompt}",
+                json_mode=True,
+                json_target_type=Dict[str, str | Dict[str, str]],
+            )
+        else:
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=sys_prompt,
+                json_mode=True,
+                json_target_type=Dict[str, str | Dict[str, str]],
+            )
         task_dict = json.loads(response)
         task_design = task_dict.get("task_design", {})
         task_name = (
@@ -498,8 +518,10 @@ class DSProposalV2ExpGen(ExpGen):
                 competition_desc=self.scen.get_competition_full_desc(),
             )
 
+        proposal_session = APIBackend().build_chat_session(session_system_prompt=None)
+
         # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
-        hypothesis_dict = self.hypothesis_gen(
+        hypothesis_dict, proposal_session = self.hypothesis_gen(
             component_desc=component_desc,
             scenario_desc=scenario_desc,
             exp_feedback_list_desc=exp_feedback_list_desc,
@@ -507,6 +529,7 @@ class DSProposalV2ExpGen(ExpGen):
             problems=all_problems,
             pipeline=pipeline,
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+            chat_session=proposal_session,
         )
         if not pipeline:
             sota_exp_model_file_count = len(
@@ -542,4 +565,5 @@ class DSProposalV2ExpGen(ExpGen):
             hypothesis=new_hypothesis,
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+            chat_session=proposal_session,
         )
