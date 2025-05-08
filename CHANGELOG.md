@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.5.0](https://github.com/microsoft/RD-Agent/compare/v0.4.0...v0.5.0) (2025-05-06)
+
+
+### Features
+
+* add a check for whether values in score_df are NaN ([#756](https://github.com/microsoft/RD-Agent/issues/756)) ([d9cc780](https://github.com/microsoft/RD-Agent/commit/d9cc78098beb27f3a1bf2f2d461302db177b7d41))
+* add DocDev for auto-generating workspace documentation ([#781](https://github.com/microsoft/RD-Agent/issues/781)) ([bcba6ea](https://github.com/microsoft/RD-Agent/commit/bcba6eac32684ebb267c93b4e85dbfa9561d15d1))
+* add drafting pipeline ([#832](https://github.com/microsoft/RD-Agent/issues/832)) ([efedddf](https://github.com/microsoft/RD-Agent/commit/efedddf39bc19221fdffc2e39ee0a09097fc82b0))
+* add mlflow logger in RD loop to log ([#815](https://github.com/microsoft/RD-Agent/issues/815)) ([b91b54f](https://github.com/microsoft/RD-Agent/commit/b91b54f355c26b751087d0c14774f466e82866de))
+* add naive experiment generator and update proposal configurations ([#759](https://github.com/microsoft/RD-Agent/issues/759)) ([75494f4](https://github.com/microsoft/RD-Agent/commit/75494f4fed5bc845acfd7f7bacef385f0f96c514))
+* add reasoning_effort parameter to LiteLLMAPIBackend and LLMSett… ([#754](https://github.com/microsoft/RD-Agent/issues/754)) ([113889f](https://github.com/microsoft/RD-Agent/commit/113889fefe9b09aaea1b564704c81664b8f77ec5))
+* add reviewer in feedback ([#765](https://github.com/microsoft/RD-Agent/issues/765)) ([1a95bee](https://github.com/microsoft/RD-Agent/commit/1a95bee6aa6bc6f45fdeb484f3a6f81caa273038))
+* archive python and csv files in workspace to maintain results ([#814](https://github.com/microsoft/RD-Agent/issues/814)) ([67d0e01](https://github.com/microsoft/RD-Agent/commit/67d0e01e7c9237da1371d93cbf9d86f5f46faac4))
+* checkpoint selection ([#744](https://github.com/microsoft/RD-Agent/issues/744)) ([a15a06a](https://github.com/microsoft/RD-Agent/commit/a15a06ad643977db59d7cac9da52e637cf80395a))
+* custom data ([#810](https://github.com/microsoft/RD-Agent/issues/810)) ([6322916](https://github.com/microsoft/RD-Agent/commit/632291608cf605bd8bcfcab0017824823bdecdb8))
+* dump model ([#776](https://github.com/microsoft/RD-Agent/issues/776)) ([b49481e](https://github.com/microsoft/RD-Agent/commit/b49481e073e6f536d2b1b3bd2d01229ed05abdea))
+* idea pool integrated to exp_gen & add timer to RD-Agent & pause-resume to RD-loops ([#795](https://github.com/microsoft/RD-Agent/issues/795)) ([e62aefa](https://github.com/microsoft/RD-Agent/commit/e62aefa56e34ff45a8ed033f7bf28b95c8e63656))
+* joblib cache ([#749](https://github.com/microsoft/RD-Agent/issues/749)) ([83a0411](https://github.com/microsoft/RD-Agent/commit/83a041148ff908871b1906f9e6889d80ab513412))
+* merge failed and successful traces together ([#766](https://github.com/microsoft/RD-Agent/issues/766)) ([3a2aa8c](https://github.com/microsoft/RD-Agent/commit/3a2aa8cf0102647950b2dfc0007c118b0c799cd4))
+* propose hypothesis across multiple parts in pipeline ([#827](https://github.com/microsoft/RD-Agent/issues/827)) ([acb0e21](https://github.com/microsoft/RD-Agent/commit/acb0e21a331410d044849e12e2887f41e5ff1c3a))
+* pull image with progress ([#777](https://github.com/microsoft/RD-Agent/issues/777)) ([5cad086](https://github.com/microsoft/RD-Agent/commit/5cad0860204ede974533dc7bdc9808cfd135fa24))
+* raise error when timeout in api call ([#793](https://github.com/microsoft/RD-Agent/issues/793)) ([eafd4df](https://github.com/microsoft/RD-Agent/commit/eafd4dfc6263f19a8cdaf27498a1d07b43815306))
+* reanalyze competition info & pipeline coding evaluator prompt ([#837](https://github.com/microsoft/RD-Agent/issues/837)) ([f7b5258](https://github.com/microsoft/RD-Agent/commit/f7b52580080c75d311355bcc6193b49495801809))
+* refine merge ([#842](https://github.com/microsoft/RD-Agent/issues/842)) ([99463b4](https://github.com/microsoft/RD-Agent/commit/99463b46819b3a0dcb2bb12a823a9cdf7ec560b4))
+* refine prompt ([#760](https://github.com/microsoft/RD-Agent/issues/760)) ([a91b182](https://github.com/microsoft/RD-Agent/commit/a91b182c4c9510eb34e4aab956588e909fa5d70b))
+* trace merging ([#836](https://github.com/microsoft/RD-Agent/issues/836)) ([a3d5473](https://github.com/microsoft/RD-Agent/commit/a3d547369e408a05cff570c1239b6320be40418d))
+* using different chat model in different part ([#822](https://github.com/microsoft/RD-Agent/issues/822)) ([c052ea6](https://github.com/microsoft/RD-Agent/commit/c052ea6d1f8948183a4a6ebc873ec01b57373cce))
+
+
+### Bug Fixes
+
+* adapting UI to mock trace ([#841](https://github.com/microsoft/RD-Agent/issues/841)) ([8a5754c](https://github.com/microsoft/RD-Agent/commit/8a5754c9b9c9410d0943aeed777a93c13422e54a))
+* add time to timer when api timeout bug ([#826](https://github.com/microsoft/RD-Agent/issues/826)) ([f45d6ae](https://github.com/microsoft/RD-Agent/commit/f45d6ae6595c1c39b389485b637a0ae53ffc8782))
+* add wait_retry to exp_gen v2 ([#783](https://github.com/microsoft/RD-Agent/issues/783)) ([b9fb7cf](https://github.com/microsoft/RD-Agent/commit/b9fb7cf4e3070062d91b5b67d0f10d6266b45142))
+* align competion_full_desc and scenario_all_desc, remove redundant info in problems proposal ([#808](https://github.com/microsoft/RD-Agent/issues/808)) ([76d8536](https://github.com/microsoft/RD-Agent/commit/76d8536d9ec53952383019306781d49cb3e9f75c))
+* bug fix in timer start ([#807](https://github.com/microsoft/RD-Agent/issues/807)) ([9af7161](https://github.com/microsoft/RD-Agent/commit/9af7161eb57bdd2e24b072335e9d185951c32472))
+* bug in problem identification ([#806](https://github.com/microsoft/RD-Agent/issues/806)) ([e1d5a29](https://github.com/microsoft/RD-Agent/commit/e1d5a2914046476f2f10d5884ed3c3ff956d65ff))
+* duplicate model names test in pipeline coder & runner ([#763](https://github.com/microsoft/RD-Agent/issues/763)) ([be3ee9d](https://github.com/microsoft/RD-Agent/commit/be3ee9da9882edda3c06ff7d1099d1bbda2203c3))
+* fix a bug in docker result extraction ([#824](https://github.com/microsoft/RD-Agent/issues/824)) ([e1c0f98](https://github.com/microsoft/RD-Agent/commit/e1c0f9826abcbc11dda215a600a2637c9ac6e984))
+* fix competition metric direction ([#784](https://github.com/microsoft/RD-Agent/issues/784)) ([3be0057](https://github.com/microsoft/RD-Agent/commit/3be0057556f46c899065ee1c7f9bafe33e79249c))
+* fix model input shape bug and costeer_model bug ([#821](https://github.com/microsoft/RD-Agent/issues/821)) ([b34bd89](https://github.com/microsoft/RD-Agent/commit/b34bd895d6d9c326aab85856a15be0cb72b2c4c8))
+* fix some minor bugs ([#758](https://github.com/microsoft/RD-Agent/issues/758)) ([963f96e](https://github.com/microsoft/RD-Agent/commit/963f96e5596bee04074135c2a0e31a8adc39ad8c))
+* fix some minor bugs in qlib scenario ([#817](https://github.com/microsoft/RD-Agent/issues/817)) ([79962a7](https://github.com/microsoft/RD-Agent/commit/79962a7ca40c77a3997a68da9ad1b5ab16728483))
+* import path of T ([#787](https://github.com/microsoft/RD-Agent/issues/787)) ([ac008a6](https://github.com/microsoft/RD-Agent/commit/ac008a61d03b4737ab3d994024e922839d8f3fe1))
+* improve eval alignment check (e.g. small-scale finetuning) ([#802](https://github.com/microsoft/RD-Agent/issues/802)) ([d391578](https://github.com/microsoft/RD-Agent/commit/d3915788082de640a4ce1eea6d2e607319b89c3e))
+* Set PYTHONPATH in env.run_ret_code call in FBWorkspace class ([#755](https://github.com/microsoft/RD-Agent/issues/755)) ([68b5018](https://github.com/microsoft/RD-Agent/commit/68b501889caca754f27b57d9ab6f72184e93b15c))
+* task_gen for better understanding ([#752](https://github.com/microsoft/RD-Agent/issues/752)) ([6bfc1e5](https://github.com/microsoft/RD-Agent/commit/6bfc1e570449ee69ac110a4ced9a7cecbc0e6a73))
+* update feedback.py ([#772](https://github.com/microsoft/RD-Agent/issues/772)) ([133778c](https://github.com/microsoft/RD-Agent/commit/133778c67ee3349f1c2fe029bcf6a9ee14568efe))
+* update metric direction to return bool ([#791](https://github.com/microsoft/RD-Agent/issues/791)) ([0bf365e](https://github.com/microsoft/RD-Agent/commit/0bf365e7830aa86d2350b9d1c47410af46b3a7e8))
+* update runner max loop to 1 in DS scenario ([#820](https://github.com/microsoft/RD-Agent/issues/820)) ([3da378e](https://github.com/microsoft/RD-Agent/commit/3da378e986e8b776a17dbc694d29ef211192ed3e))
+
 ## [0.4.0](https://github.com/microsoft/RD-Agent/compare/v0.3.0...v0.4.0) (2025-04-04)
 
 
