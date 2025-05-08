@@ -53,6 +53,7 @@ task_draft:
     4. DO NOT use vague statements like "choose a proper model" or "optimize the pipeline". Instead, specify the exact step and task to be made.
     5. Your task design should try to cover **ALL** the identified scenario problems. DO NOT include any conflicting ideas in the task design. If there are conflicting ideas due to conflicting identified problems, prioritize the most impactful or feasible option. If multiple solutions exist for a problem, select the most impactful or feasible option only. DO NOT include any conflicting ideas in the task description.
     6. Carefully read and analyze the previous failed experiments if any so that no similar mistakes will be made in your task design. Remember to put the lessons you learned from previous experiments in the new task design.
+    7. Make sure that the data are loaded from {% include "scenarios.data_science.share:scen.input_path" %}.
 
     ##  Task Output Format:
     Design a specific and detailed Pipeline task based on the given competition scenario and scenario problems. The output should be detailed enough to directly implement the corresponding code.
