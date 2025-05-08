@@ -53,7 +53,8 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ### selector related
 
     #### checkpoint selector related
-    selector_name: str = "latest"
+    # selector_name: str = "latest"
+    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.ckp_select.LatestCKPSelector"
     """The name of the selector to use"""
     sota_count_window: int = 5
     """The number of trials to consider for SOTA count"""
@@ -61,7 +62,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """The threshold for SOTA count"""
 
     #### SOTA experiment selector related
-    sota_exp_selector_name: str = "global_sota"
+    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select.GlobalSOTASelector"
     """The name of the SOTA experiment selector to use"""
     ### knowledge base
     enable_knowledge_base: bool = False

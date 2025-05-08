@@ -111,10 +111,3 @@ class ExpGen2TraceAndMerge(ExpGen):
                 return self.exp_gen.gen(trace, selection)
             else:
                 return self.merge_exp_gen.gen(trace, selection)
-
-# to do: the v3 of online merge
-# class AutoExp2TraceAndMerge(ExpGen):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.merge_exp_gen = MergeExpGen(self.scen)
-#         self.exp_gen = DSExpGen(self.scen)
