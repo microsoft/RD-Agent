@@ -44,11 +44,7 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 final_decision=False,
             )
         env = get_ds_env()
-        env.conf.extra_volumes = {
-            f"{DS_RD_SETTING.local_data_path}/{'sample/' if self.data_type == 'sample' else ''}{self.scen.competition}": T(
-                "scenarios.data_science.share:scen.input_path"
-            ).r()
-        }
+        env.conf.extra_volumes = {self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()}
 
         # 2) check the result and stdout after reruning the model.
 

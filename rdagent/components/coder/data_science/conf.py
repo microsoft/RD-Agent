@@ -27,7 +27,9 @@ class DSCoderCoSTEERSettings(CoSTEERSettings):
 def get_ds_env(
     conf_type: Literal["kaggle", "mlebench"] = "kaggle",
     extra_volumes: dict = {},
-    running_timeout_period: int = DS_RD_SETTING.debug_timeout,
+    running_timeout_period: int = (
+        DS_RD_SETTING.debug_timeout if DS_RD_SETTING.sample_data else DS_RD_SETTING.full_timeout
+    ),
 ) -> Env:
     """
     Retrieve the appropriate environment configuration based on the env_type setting.

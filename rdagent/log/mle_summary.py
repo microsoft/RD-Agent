@@ -13,11 +13,16 @@ from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.test_eval import (
+    MLETestEval,
+    NoTestEvalError,
+    get_test_eval,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
-from rdagent.utils.env import DockerEnv, MLEBDockerConf
 
-de = get_ds_env(conf_type="mlebench", extra_volumes={f"{DS_RD_SETTING.local_data_path}/zip_files": "/mle/data"})
-de.prepare()
+test_eval = get_test_eval()
+
+is_mle = isinstance(test_eval, MLETestEval)
 
 
 def extract_mle_json(log_content: str) -> dict | None:
@@ -41,14 +46,15 @@ def save_grade_info(log_trace_path: Path):
 
         if "running" in msg.tag:
             if isinstance(msg.content, DSExperiment):
-                mle_score_str = msg.content.experiment_workspace.execute(
-                    env=de,
-                    entry=f"mlebench grade-sample submission.csv {competition} --data-dir /mle/data | tee mle_score.txt",
-                )
-                msg.content.experiment_workspace.execute(env=de, entry="chmod 777 mle_score.txt")
-                trace_storage.log(
-                    mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
-                )
+                # TODO:  mle_score.txt is not a general name now.
+                # Please use a more general name like test_score.txt
+                try:
+                    mle_score_str = test_eval.eval(competition, msg.content.experiment_workspace)
+                    trace_storage.log(
+                        mle_score_str, name=f"{msg.tag}.mle_score.pid", save_type="pkl", timestamp=msg.timestamp
+                    )
+                except Exception as e:
+                    print(f"Error in {log_trace_path}: {e}")
 
 
 def is_valid_session(p: Path) -> bool:
@@ -58,7 +64,10 @@ def is_valid_session(p: Path) -> bool:
 def save_all_grade_info(log_folder):
     for log_trace_path in log_folder.iterdir():
         if is_valid_session(log_trace_path):
-            save_grade_info(log_trace_path)
+            try:
+                save_grade_info(log_trace_path)
+            except NoTestEvalError as e:
+                print(f"Error in {log_trace_path}: {e}")
 
 
 def summarize_folder(log_folder: Path, hours: int | None = None):
@@ -106,16 +115,17 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
 
                     # get threshold scores
                     workflowexp = FBWorkspace()
-                    stdout = workflowexp.execute(
-                        env=de,
-                        entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
-                    )
-                    grade_output = extract_mle_json(stdout)
-                    if grade_output:
-                        bronze_threshold = grade_output["bronze_threshold"]
-                        silver_threshold = grade_output["silver_threshold"]
-                        gold_threshold = grade_output["gold_threshold"]
-                        median_threshold = grade_output["median_threshold"]
+                    if is_mle:
+                        stdout = workflowexp.execute(
+                            env=test_eval.env,
+                            entry=f"mlebench grade-sample None {stat[log_trace_path.name]['competition']} --data-dir /mle/data",
+                        )
+                        grade_output = extract_mle_json(stdout)
+                        if grade_output:
+                            bronze_threshold = grade_output["bronze_threshold"]
+                            silver_threshold = grade_output["silver_threshold"]
+                            gold_threshold = grade_output["gold_threshold"]
+                            median_threshold = grade_output["median_threshold"]
 
                 if "direct_exp_gen" in msg.tag and isinstance(msg.content, DSExperiment):
                     loop_num += 1
@@ -134,9 +144,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                         if grade_output:
                             if grade_output["score"] is not None:
                                 test_scores[loop_id + 1] = grade_output["score"]
-                                _, test_ranks[loop_id + 1] = score_rank(
-                                    stat[log_trace_path.name]["competition"], grade_output["score"]
-                                )
+                                if is_mle:
+                                    _, test_ranks[loop_id + 1] = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
                             if grade_output["valid_submission"]:
                                 valid_submission_num += 1
                             if grade_output["above_median"]:
@@ -169,9 +180,10 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                                 sota_exp_stat = "made_submission"
                             if grade_output["score"] is not None:
                                 sota_exp_score = grade_output["score"]
-                                _, sota_exp_rank = score_rank(
-                                    stat[log_trace_path.name]["competition"], grade_output["score"]
-                                )
+                                if is_mle:
+                                    _, sota_exp_rank = score_rank(
+                                        stat[log_trace_path.name]["competition"], grade_output["score"]
+                                    )
 
         stat[log_trace_path.name].update(
             {

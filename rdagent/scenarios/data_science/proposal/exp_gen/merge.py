@@ -51,6 +51,7 @@ class MergeExpGen(ExpGen):
                 type="success",
                 heading="Successful iterations:",
                 success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
+                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
             )
         else:
             exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(

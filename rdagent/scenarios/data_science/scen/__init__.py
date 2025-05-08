@@ -1,4 +1,6 @@
 import json
+import os
+import platform
 from pathlib import Path
 from typing import Dict
 
@@ -32,8 +34,12 @@ class DataScienceScen(Scenario):
             raise FileNotFoundError(f"Cannot find {competition} in {DS_RD_SETTING.local_data_path}")
 
         local_path = DS_RD_SETTING.local_data_path
-        if not Path(f"{local_path}/sample/{competition}").exists():
-            create_debug_data(competition, dataset_path=local_path)
+        if DS_RD_SETTING.sample_data:
+            self.debug_path = f"{local_path}/sample/{competition}"
+            if not Path(self.debug_path).exists():
+                create_debug_data(competition, dataset_path=local_path)
+        else:
+            self.debug_path = f"{local_path}/{competition}"
 
         # 2) collect information of competition.
         self.metric_name: str | None = (
@@ -56,6 +62,7 @@ class DataScienceScen(Scenario):
 
     def _get_description(self):
         if (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}/description.md")).exists():
+            logger.info(f"{self.competition}/Found description.md, loading from local file.")
             return fp.read_text()
         elif (fp := Path(f"{DS_RD_SETTING.local_data_path}/{self.competition}.json")).exists():
             logger.info(f"Found {self.competition}.json, loading from local file.")
@@ -125,6 +132,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=None,
             eda_output=None,
         )
@@ -139,6 +148,8 @@ class DataScienceScen(Scenario):
             evaluation=self.metric_description,
             metric_name=self.metric_name,
             metric_direction=self.metric_direction,
+            raw_description=self.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )

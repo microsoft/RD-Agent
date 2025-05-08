@@ -397,7 +397,11 @@ def main_win(loop_id, llm_data=None):
             loop_data["running"],
             loop_data.get("mle_score", "no submission to score"),
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None) if loop_id >= 1 else None,
+            sota_exp=(
+                state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
+                if (loop_id - 1) in state.data
+                else None
+            ),
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)
@@ -474,7 +478,10 @@ def summarize_data():
                     if "mle_score" in loop_data["running"]:
                         mle_score_txt = loop_data["running"]["mle_score"]
                         state.data[loop]["mle_score"] = extract_mle_json(mle_score_txt)
-                        if state.data[loop]["mle_score"]["score"] is not None:
+                        if (
+                            state.data[loop]["mle_score"] is not None
+                            and state.data[loop]["mle_score"]["score"] is not None
+                        ):
                             df.loc[loop, "Running Score (test)"] = str(state.data[loop]["mle_score"]["score"])
                         else:
                             state.data[loop]["mle_score"] = mle_score_txt
@@ -686,7 +693,7 @@ with st.sidebar:
 def get_state_data_range(state_data):
     # we have a "competition" key in state_data
     # like dict_keys(['competition', 10, 11, 12, 13, 14])
-    keys = [k for k in state_data.keys() if k != "competition"]
+    keys = [k for k in state_data.keys() if isinstance(k, int)]
     return min(keys), max(keys)
 
 

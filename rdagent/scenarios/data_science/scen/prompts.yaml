@@ -1,5 +1,13 @@
 scenario_description: |-
+  {% if use_raw_description %}
   ------Background of the scenario------
+  {{ raw_description }}
+
+  The evaluation metrics used is directed as:
+  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
+
+  {% else %}
+    ------Background of the scenario------
   {{ background }}
 
   ------ Guidelines for participating in the competition ----
@@ -10,6 +18,7 @@ scenario_description: |-
 
   ------The name of the evaluation metric used------
   {{ metric_name }}
+  {% endif %}
 
   {% if time_limit %}------The time limit to your code------
   You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.
@@ -30,6 +39,7 @@ competition_description_template:
   system: |-
     You are a data science assistant that extracts structured information from unstructured text.
     The user will provide you a Kaggle competition description, and you need to extract specific details from it.
+    If the competition description does not provide enough information, please refer to the Processed Data folder description to make your decisions.
     For the dataset, the competition may not include detailed information about the dataset. The user has read the dataset and provide you the relevant information. Please include it in your response.
     Please answer in Json format with the following schema:
     {
