@@ -162,7 +162,7 @@ class DataScienceRDLoop(RDLoop):
                                     "Reanalyzing the competition description after three consecutive coding failures."
                                 )
                                 new_scen.reanalyze_competition_description()
-                                self.trace = DSTrace(scen=new_scen, knowledge_base=self.trace.knowledge_base)
+                                self.trace.scen = new_scen
                             else:
                                 logger.info("Can not reanalyze the competition description.")
                 elif len(self.trace.hist) >= DS_RD_SETTING.consecutive_errors:

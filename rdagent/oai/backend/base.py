@@ -363,7 +363,13 @@ class APIBackend(ABC):
                         if timeout_count >= 3:
                             logger.warning("Timeout error, please check your network connection.")
                             raise e
-                    time.sleep(self.retry_wait_seconds)
+
+                    recommended_wait_seconds = self.retry_wait_seconds
+                    if openai_imported and isinstance(e, openai.RateLimitError) and hasattr(e, "message"):
+                        match = re.search(r"Please retry after (\d+) seconds\.", e.message)
+                        if match:
+                            recommended_wait_seconds = int(match.group(1))
+                    time.sleep(recommended_wait_seconds)
                     if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
