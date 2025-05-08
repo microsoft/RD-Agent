@@ -1,27 +1,27 @@
 scenario_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
-    You will be given the scenario description and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
+    The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA) in the trace. If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it is considered a failed experiment.
+    You will be given the scenario description, details of the current SOTA implementation (if available), and any relevant feedback.
+    Your task is to analyze the provided information and identify **Potential Improvement Opportunities** relevant to the competition's target metric.
 
-    ## Scenario Problems
+    ## Potential Improvement Opportunities
     ### Definition
-    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
-    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
-    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+    Potential Improvement Opportunities are specific, context-dependent areas where strategic changes could lead to better performance on the target metric. They arise from the competition's dataset, domain, or general machine learning best practices. They fall into two categories:
+
+    1. **Dataset-Driven Opportunities**: Leveraging or mitigating inherent structural or statistical properties of the dataset (e.g., addressing imbalance, managing high dimensionality, feature engineering for specific data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
+    2. **Domain-Informed Opportunities**: Applying actionable knowledge derived from expertise in the competition's domain. This allows for correct interpretation of data patterns, informed feature engineering, adherence to domain-specific constraints, or avoidance of invalid assumptions that data alone might not reveal.
 
     ### Specification
-    {{ problem_spec }}
-    
-    ### Core Analysis Dimensions
-    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
-    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
-    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
-    4. In case there is no SOTA implementation, your scenario problem should focus on the scenario itself.
+    1. The opportunity should be specific and fine-grained. Avoid general or vague statements.
+    2. The opportunity should be technical or methodological. Focus on design and implementation strategies, not runtime errors.
+    3. The opportunity must be strictly aligned with the improvement of the target metric. It should fit the template: "IF THIS OPPORTUNITY IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
 
-    ### Output Format
-    {{ problem_output_format }}
+    ### Core Analysis Dimensions
+    1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas for enhancement.
+    2. **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed challenges or unexploited avenues these successful approaches highlight.
+    3. **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances.
+    4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, identified opportunities should primarily focus on foundational strategies and analyses pertinent to the described scenario and dataset.
 
   user: |-
     # Scenario Description

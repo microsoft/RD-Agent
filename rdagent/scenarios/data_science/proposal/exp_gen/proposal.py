@@ -227,8 +227,8 @@ class DSProposalV1ExpGen(ExpGen):
 class DSProposalV2ExpGen(ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            # problem_spec=T(".prompts_v2:specification.problem").r(),
+            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -237,10 +237,14 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, Dict[str, str]],
+            response_format=Opportunities
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
         )
-        return json.loads(response)
+        opportunities = Opportunities(**json.loads(response))
+        # Translate to problems
+        problems = { o.caption: { "problem": o.description, "reason": o.reason } for o in opportunities.opportunities }
+        return problems
 
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
@@ -543,3 +547,21 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
+
+
+from pydantic import BaseModel, Field
+from typing import List
+
+class Opportunity(BaseModel):
+
+    reason: str = Field(description="Brief explanation in no more than two sentences of why addressing this opportunity "
+                  "is expected to improve the target metric, based on the provided materials or general ML principles relevant to the scenario.")
+    caption: str = Field(description="Caption of the opportunity in around 5-15 words")
+    description: str = Field(description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement.")
+
+
+class Opportunities(BaseModel):
+
+    sota_summary: str = Field(description="Summary of current SOTA experiment and interesting findings. If not available, write N/A")
+    opportunities: List[Opportunity] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
+                          "select the most valuable and potentially unexplored avenues. Each opportunity must be tightly relevant to the improvement of the target metric.")
