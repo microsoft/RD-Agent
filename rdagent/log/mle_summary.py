@@ -131,21 +131,20 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
                     loop_num += 1
 
                 if "running" in msg.tag:
+                    loop_id, _ = extract_loopid_func_name(msg.tag)
+                    loop_id = int(loop_id)
                     if isinstance(msg.content, DSExperiment):
-                        submission_path = msg.content.experiment_workspace.workspace_path / "submission.csv"
-                        if submission_path.exists():
-                            made_submission_num += 1
-                            scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
-                            valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
+                        if msg.content.result is not None:
+                            valid_scores[loop_id] = msg.content.result
                     elif "mle_score" in msg.tag:
-                        loop_id, _ = extract_loopid_func_name(msg.tag)
-                        loop_id = int(loop_id)
                         grade_output = extract_mle_json(msg.content)
                         if grade_output:
+                            if grade_output["submission_exists"]:
+                                made_submission_num += 1
                             if grade_output["score"] is not None:
-                                test_scores[loop_id + 1] = grade_output["score"]
+                                test_scores[loop_id] = grade_output["score"]
                                 if is_mle:
-                                    _, test_ranks[loop_id + 1] = score_rank(
+                                    _, test_ranks[loop_id] = score_rank(
                                         stat[log_trace_path.name]["competition"], grade_output["score"]
                                     )
                             if grade_output["valid_submission"]:
