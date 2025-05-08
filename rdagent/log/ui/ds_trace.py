@@ -397,7 +397,11 @@ def main_win(loop_id, llm_data=None):
             loop_data["running"],
             loop_data.get("mle_score", "no submission to score"),
             llm_data=llm_data["running"] if llm_data else None,
-            sota_exp=state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None) if loop_id >= 1 else None,
+            sota_exp=(
+                state.data[loop_id - 1].get("record", {}).get("SOTA experiment", None)
+                if (loop_id - 1) in state.data
+                else None
+            ),
         )
     if "feedback" in loop_data:
         feedback_win(loop_data["feedback"], llm_data.get("feedback", None) if llm_data else None)

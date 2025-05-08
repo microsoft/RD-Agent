@@ -1,13 +1,61 @@
+scenario_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
+    You will be given the scenario description and the current SOTA implementation and feedback.
+    Your task is to analyze the given information and extract the **Scenario Problems** from the given materials.
+
+    ## Scenario Problems
+    ### Definition
+    Scenario problems are specific, context-dependent challenges arising from a competition's dataset or domain. They fall into two categories:
+    1. Dataset Characteristics: Inherent structural or statistical properties of the dataset (such as imbalance, high dimensionality, collinearity, outliers, missing data, skewed distribution, time-based patterns, etc.).
+    2. Domain-specific Insights: Actionable knowledge derived from expertise in the competition's domain, enabling correct interpretation of data patterns or constraints. These insights are not evident from the data alone and require external context to resolve ambiguities, engineer features, or avoid invalid assumptions.
+
+    ### Specification
+    {{ problem_spec }}
+    
+    ### Core Analysis Dimensions
+    1. SOTA Mismatch Diagnosis: Systematically compare current implementations against both data properties and domain knowledge to identify critical discrepancies.
+    2. Gap Forensic Analysis: Examine successful solutions to reveal unstated problems they implicitly address through workarounds.
+    3. Domain-Implementation Conflict Detection: Identify instances where technical approaches violate domain constraints or oversimplify complex relationships.
+    4. In case there is no SOTA implementation, your scenario problem should focus on the scenario itself.
+
+    ### Output Format
+    {{ problem_output_format }}
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Low-Level Problems** from the current SOTA implementation.
+    Your task is to analyze the given information and extract the **Feedback Problems** from the previous experiments or the current SOTA implementation.
 
-    ## Low-Level Problems
+    ## Feedback Problems
     ### Definition
-    Low-level problems are specific and fine-grained technical, or methodological issues within the implementation.
+    Feedback problems are specific and fine-grained technical, or methodological issues within the previous experiments or the current SOTA implementation.
+
+    ### Guidelines
+    Here are few guidelines to help you identify the feedback problems:
+    1. Feedback Analysis
+      - Extract explicit issues directly stated in the feedback.
+      - Infer implicit issues from feedback context.
+    2. Code Review
+      - Feature Engineering. Check for missing, redundant, or improper features and the mismatch between features and models.
+      - Model Architecture. Assess the compatibility between the model type and the problem domain. Verify model architecture and hyperparameters.
+      - Ensemble. Check if ensemble methods are optimized. Identify underperforming base models to remove from the ensemble.
+      - Training. Validate hyperparameter (e.g., learning rate, batch size), loss functions, and regularization. Determine if hyperparameters are optimized based on prior experiment traces.
+    3. Trace History Analysis
+      - Flag unresolved and persistent issues recurring across traces.
+      - Highlight partial fixes (e.g., inappropriate feature engineering).
+      - Identify unexplored directions (e.g. new features, new model structures) from prior traces.
+      - Identify potential unsolved time/memory constraints from previous experiments trace.
     
     ### Specification
     {{ problem_spec }}
@@ -19,7 +67,7 @@ feedback_problem:
     # Scenario Description
     {{ scenario_desc }}
     
-    # Previous Experiments and Feedbacks:
+    # Previous Experiments and Feedbacks
     {{ exp_and_feedback_list_desc }}    
 
     # Current SOTA Implementation
@@ -28,7 +76,7 @@ feedback_problem:
 hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
+    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
     You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, the current SOTA implementation and feedback, and a list of identified problems.
     Your role involves two tasks:
     1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
@@ -58,8 +106,10 @@ hypothesis_gen:
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
     4. Priority Note on Time/Memory Constraints
       - If time/memory constraints exist, they must be prioritized above all other problems. In such cases, do not response any other problems in the response dictionary.
+    5. Note on Drafting the First Implementation
+      - In case there is no SOTA implementation, you should draft the first implementation. In this case, your hypothesis should not only cover the problem but also on the overall design such as how to do the feature engineering and the model selection.
     {% if enable_idea_pool %}
-    5. Idea Reference
+    6. Idea Reference
       - Each idea is a method, technique or trick that contributes to high performance from other competition implementation under similar problem. You are free to use them as an inspiration for your hypothesis proposal.
     {% endif %}
 
@@ -117,6 +167,11 @@ task_gen:
     5. Specific and Non-Vague
       - Avoid vague statements like "choose a proper model" Instead, specify the exact task to be made.
       - No phrases like "for example" or "eg.," should be used in the task. Give a clear decision in the task.
+    6. Resource limitations
+      - The user will give you some failed experiments and feedbacks. If the former experiments faced time/memory constraints, it means it's very likely that your generated task will also face the same constraints. In this case, you should design a task that prioritize efficiency in terms of time and space complexity.
+      - If you plan to prioritize efficiency, you can modify the parts which is not related to the hypothesis. Which means your task should still able to validate the hypothesis.
+      - Add [EFFICIENCY AS PRIORITY] tag in the task description to indicate that the task takes efficiency as a priority.
+      - Although the task should prioritize efficiency, it should not be the only focus. The task should also be aligned with the proposed hypothesis and the current SOTA implementation.
 
     ## [Partial Response Format 1] Task Output Format:
     {{ task_output_format }}
