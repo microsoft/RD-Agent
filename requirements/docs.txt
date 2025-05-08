@@ -11,3 +11,6 @@ sphinx-autobuild
 sphinx-click
 sphinx-togglebutton
 sphinx_rtd_theme
+# snowballstemmer, a dependency of sphinx, was released on 2025-05-08 with version 3.0.0,
+# which causes errors in the build process. So we've limited the version for now.
+snowballstemmer<3.0

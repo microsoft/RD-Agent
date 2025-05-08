@@ -8,6 +8,7 @@ import fire
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
@@ -70,6 +71,33 @@ def save_all_grade_info(log_folder):
                 print(f"Error in {log_trace_path}: {e}")
 
 
+def first_li_si_after_one_time(log_path: Path, hours: int = 12) -> tuple[int, int, str]:
+    """
+    Based on the hours, find the stop loop id and step id (the first step after <hours> hours).
+    Args:
+        log_path (Path): The path to the log folder (contains many log traces).
+        hours (int): The number of hours to stat.
+    Returns:
+        tuple[int, int, str]: The loop id, step id and function name.
+    """
+    session_path = log_path / "__session__"
+    max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
+    max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
+    rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
+
+    rdloop_obj = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False)
+    loop_trace = rdloop_obj.loop_trace
+    si2fn = rdloop_obj.steps
+
+    duration = timedelta(seconds=0)
+    for li, lts in loop_trace.items():
+        for lt in lts:
+            si = lt.step_idx
+            duration += lt.end - lt.start
+            if duration > timedelta(hours=hours):
+                return li, si, si2fn[si]
+
+
 def summarize_folder(log_folder: Path, hours: int | None = None):
     """
     Summarize the log folder and save the summary as a pickle file.
@@ -104,9 +132,14 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         sota_exp_rank = None
         grade_output = None
 
-        start_time = None
+        if hours:
+            stop_li, stop_si, stop_fn = first_li_si_after_one_time(log_trace_path, hours)
+
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
-            if start_time and hours and msg.timestamp > start_time + timedelta(hours=hours):
+            loop_id, fn = extract_loopid_func_name(msg.tag)
+            if loop_id:
+                loop_id = int(loop_id)
+            if hours and loop_id == stop_li and fn == stop_fn:
                 break
             if msg.tag and "llm" not in msg.tag and "session" not in msg.tag:
                 if "competition" in msg.tag:
@@ -132,20 +165,17 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
 
                 if "running" in msg.tag:
                     if isinstance(msg.content, DSExperiment):
-                        submission_path = msg.content.experiment_workspace.workspace_path / "submission.csv"
-                        if submission_path.exists():
-                            made_submission_num += 1
-                            scores_path = msg.content.experiment_workspace.workspace_path / "scores.csv"
-                            valid_scores[loop_num - 1] = pd.read_csv(scores_path, index_col=0)
+                        if msg.content.result is not None:
+                            valid_scores[loop_id] = msg.content.result
                     elif "mle_score" in msg.tag:
-                        loop_id, _ = extract_loopid_func_name(msg.tag)
-                        loop_id = int(loop_id)
                         grade_output = extract_mle_json(msg.content)
                         if grade_output:
+                            if grade_output["submission_exists"]:
+                                made_submission_num += 1
                             if grade_output["score"] is not None:
-                                test_scores[loop_id + 1] = grade_output["score"]
+                                test_scores[loop_id] = grade_output["score"]
                                 if is_mle:
-                                    _, test_ranks[loop_id + 1] = score_rank(
+                                    _, test_ranks[loop_id] = score_rank(
                                         stat[log_trace_path.name]["competition"], grade_output["score"]
                                     )
                             if grade_output["valid_submission"]:
