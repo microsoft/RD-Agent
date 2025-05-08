@@ -101,4 +101,19 @@ class ExpGen2TraceAndMerge(ExpGen):
             # disable reset in merging stage
             DS_RD_SETTING.coding_fail_reanalyze_threshold=100000
             DS_RD_SETTING.consecutive_errors=100000
-            return self.merge_exp_gen.gen(trace)
+
+            leaves: list[int] = trace.get_leaves()
+            if len(leaves) < 2:
+                return self.exp_gen.gen(trace, selection)
+            else:
+                return self.merge_exp_gen.gen(trace, selection)
+
+
+
+class AutoExp2TraceAndMerge(ExpGen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.merge_exp_gen = MergeExpGen(self.scen)
+        self.exp_gen = DSExpGen(self.scen)
+        
+        
