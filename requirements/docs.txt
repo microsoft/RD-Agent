@@ -11,3 +11,4 @@ sphinx-autobuild
 sphinx-click
 sphinx-togglebutton
 sphinx_rtd_theme
+snowballstemmer<3.0
