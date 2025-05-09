@@ -613,8 +613,8 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         enable_idea_pool: bool,
     ) -> Dict:
         problem_formatted_str = ""
-        for problem_name, problem_dict in problems.items():
-            problem_formatted_str += f"## {problem_name}\n"
+        for i, (problem_name, problem_dict) in enumerate(problems.items()):
+            problem_formatted_str += f"## {i+1}. {problem_name}\n"
             problem_formatted_str += f"{problem_dict['problem']}\n"
             if "idea" in problem_dict:
                 idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
@@ -765,7 +765,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 3:
+        if len(trace.hist) >= 1:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -1013,8 +1013,11 @@ class HypothesisDetail(BaseModel):
 
 
 class HypothesisList(BaseModel):
+    deduplicated_insights: List[str] = Field(
+        description="A list of deduplicated insight captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    )
     hypotheses: List[HypothesisDetail] = Field(
-        description="List of hypotheses proposed for the next iteration."
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one insight. The list length should match the number of insights."
     )
 
 

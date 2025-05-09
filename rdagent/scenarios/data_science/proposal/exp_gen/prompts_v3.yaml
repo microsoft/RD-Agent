@@ -150,7 +150,7 @@ hypothesis_gen:
     {% endif %}
 
     # Task 1: Hypothesis Proposal
-    For each **non-duplicated** insight, propose one hypothesis aimed at improving the current SOTA implementation.
+    For each identified insight, if it is not a duplicate of a previous one, propose one hypothesis corresponding to the insight, aimed at improving the current SOTA implementation.
 
     ## 1.1. Steps to Hypothesize
     Follow these steps to formulate effective hypotheses:
@@ -198,7 +198,7 @@ hypothesis_gen:
       - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
 
     # Task 2: Hypothesis Evaluation
-    After proposing a hypothesis for each relevant problem, evaluate each one.
+    After proposing one hypothesis for each relevant insight, evaluate each one.
 
     ## 2.1. Evaluation Instruction
     For each individual hypothesis you proposed in Task 1, perform the following two evaluation steps:

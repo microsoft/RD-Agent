@@ -1,6 +1,6 @@
 import os
 from litellm import completion 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import dotenv
 
 dotenv.load_dotenv(override=True)
@@ -12,7 +12,7 @@ class CalendarEvent(BaseModel):
   participants: list[str]
 
 class EventsList(BaseModel):
-    events: list[CalendarEvent]
+    events: list[CalendarEvent] = Field(min_items=1)
 
 resp = completion(
     model='azure/o3-mini',
