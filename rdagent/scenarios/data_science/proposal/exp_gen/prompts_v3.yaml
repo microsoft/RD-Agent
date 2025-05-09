@@ -158,9 +158,9 @@ hypothesis_gen:
     1. **Reaffirming the Insights**:
        - Internally assess and quantify how the identified insight degrades performance to inform your hypothesis.
        - Relate to previous SOTA experiments. Analyze insights and implicit patterns that can be leveraged.
-       - From failed experiments, identify persistent problems. For example, if experiments consistently failed due to time/memory constraints, your hypotheses for those problems should prioritize efficiency improvements.
+       - From failed experiments, identify persistent problems. For example, if experiments consistently failed due to time/memory constraints, your hypotheses for those insights should prioritize efficiency improvements.
     2. **Drafting the First Implementation (if first)**:
-       If there is no SOTA implementation yet (i.e., you are drafting the first implementation), your hypotheses should not only address the identified problems but also cover the overall techniques to be used, such as feature engineering strategies and model selection.
+       If there is no SOTA implementation yet (i.e., you are drafting the first implementation), your hypotheses should not only address the identified insights but also cover the overall techniques to be used, such as feature engineering strategies and model selection.
     3. **Actionable Changes**:
        - If a problem relates to time/memory constraints, consider specific changes like using smaller model sizes or alternative, less complex algorithms.
        - If a problem involves underperforming models, propose specific actions like removing or replacing models with significantly worse performance.
@@ -171,12 +171,13 @@ hypothesis_gen:
        Provided ideas are methods, techniques, or tricks from high-performing implementations in other competitions addressing similar problems. Use them as inspiration if you find them suitable.
     {% endif %}
 
-    ## 1.2. Writing Guidelines
+    ## 1.2. Guidelines for Writing
 
     1. **Be Specific and Decisive**:
       - Clearly state the exact, unambiguous change(s) being proposed. Avoid vague goals like "improve the model" or "optimize the pipeline."
       - The hypothesis must propose a single, clear course of action. Do not suggest alternatives (e.g., "try method A or method B").
       - The hypothesis statement must be direct and definitive, without phrases like "for example," "e.g.," or "might involve."
+      - The hypothesis must be more informative and decisive than the insight it addresses. It should not simply restate the insight or suggest a general approach without specifics.
 
     2. **Ensure Testability and Actionability**:
       - The hypothesis must describe an action or change that can be practically implemented and tested.
