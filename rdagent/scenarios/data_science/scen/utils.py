@@ -287,7 +287,7 @@ def preview_csv(p: Path, file_name: str, simple=True) -> str:
 
     if simple:
         cols = df.columns.tolist()
-        sel_cols = 15
+        sel_cols = min(len(cols), 100)
         cols_str = ", ".join(cols[:sel_cols])
         res = f"The columns are: {cols_str}"
         if len(cols) > sel_cols:
