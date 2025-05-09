@@ -30,7 +30,7 @@ class DSExpGen(ExpGen):
         if DS_RD_SETTING.proposal_version not in ["v1", "v2", "v3"]:
             return import_class(DS_RD_SETTING.proposal_version)(scen=self.scen).gen(trace=trace)
         if DS_RD_SETTING.proposal_version == "v3":
-            return DSProposalV3ExpGen(scen=self.scen).gen(trace=trace)
+            return DSProposalV3ExpGen(scen=self.scen).gen(trace=trace, pipeline=True)
 
         if DS_RD_SETTING.coder_on_whole_pipeline:
             return DSProposalV2ExpGen(scen=self.scen).gen(trace=trace, pipeline=True)

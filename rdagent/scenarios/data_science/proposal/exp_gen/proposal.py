@@ -565,7 +565,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         opportunities = Opportunities(**json.loads(response))
         # Translate to problems
         problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in opportunities.opportunities }
-        logger.info(f"Identified scenario problems:\n" + pprint.pformat(problems))
+        logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
@@ -585,7 +585,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         actionable_insights = ActionableInsights(**json.loads(response))
         # Translate to problems
         problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in actionable_insights.insights }
-        logger.info(f"Identified feedback problems:\n" + pprint.pformat(problems))
+        logger.info(f"Identified feedback problems:\n" + json.dumps(problems))
         return problems
 
     def get_scenario_all_desc_v3(self, trace: DSTrace, eda_output=None) -> str:
@@ -600,6 +600,59 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
             eda_output=eda_output,
         )
+
+    @wait_retry(retry_n=5)
+    def hypothesis_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        exp_feedback_list_desc: str,
+        sota_exp_desc: str,
+        problems: dict,
+        pipeline: bool,
+        enable_idea_pool: bool,
+    ) -> Dict:
+        problem_formatted_str = ""
+        for problem_name, problem_dict in problems.items():
+            problem_formatted_str += f"## {problem_name}\n"
+            problem_formatted_str += f"{problem_dict['problem']}\n"
+            if "idea" in problem_dict:
+                idea_formatted_str = DSIdea(problem_dict["idea"]).to_formatted_str()
+                problem_formatted_str += f"Sampled Idea by user: \n{idea_formatted_str}\n"
+            problem_formatted_str += "\n\n"
+
+        sys_prompt = T(".prompts_v3:hypothesis_gen.system").r(
+            pipeline=pipeline,
+            enable_idea_pool=enable_idea_pool,
+        )
+        user_prompt = T(".prompts_v3:hypothesis_gen.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            problems=problem_formatted_str,
+            enable_idea_pool=enable_idea_pool,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=HypothesisList
+        )
+        hypotheses = HypothesisList(**json.loads(response))
+        resp_dict = {
+            h.caption: {
+                "reason": h.reaffirm,
+                "component": h.component,
+                "hypothesis": h.statement,
+                "evaluation": {
+                    "alignment_score": h.evaluation.alignment.score,
+                    "impact_score": h.evaluation.impact.score,
+                    "novelty_score": h.evaluation.novelty.score,
+                    "feasibility_score": h.evaluation.feasibility.score,
+                    "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
+                }
+            } for h in hypotheses.hypotheses }
+        logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
+        return resp_dict
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
         if pipeline:
@@ -825,4 +878,64 @@ class ActionableInsights(BaseModel):
             "A list of key actionable insights (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
             "Each insight should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
         )
+    )
+
+
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisEvaluationReasoningScore(BaseModel):
+    reasoning: str = Field(description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence.")
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
+
+
+class HypothesisEvaluation(BaseModel):
+    alignment: HypothesisEvaluationReasoningScore = Field(
+        description="The alignment of the proposed hypothesis with the identified insight."
+    )
+    impact: HypothesisEvaluationReasoningScore = Field(
+        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
+    )
+    novelty: HypothesisEvaluationReasoningScore = Field(
+        description="The novelty of the proposed hypothesis compared to existing solutions."
+    )
+    feasibility: HypothesisEvaluationReasoningScore = Field(
+        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
+    )
+    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
+        description="The risk-reward balance of implementing the proposed hypothesis."
+    )
+
+
+class HypothesisDetail(BaseModel):
+    caption: str = Field(
+        description="The caption of the insight it is based on."
+    )
+    reaffirm: str = Field(
+        description="Reaffirm the insight within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    )
+    statement: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
+        )
+    )
+    component: HypothesisComponent = Field(
+        description="The component tag of the hypothesis."
+    )
+    evaluation: HypothesisEvaluation = Field(
+        description="Evaluate the quality of the hypothesis."
+    )
+
+
+class HypothesisList(BaseModel):
+    hypotheses: List[HypothesisDetail] = Field(
+        description="List of hypotheses proposed for the next iteration."
     )

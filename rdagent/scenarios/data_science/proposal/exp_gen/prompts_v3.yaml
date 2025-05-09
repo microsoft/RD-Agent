@@ -56,6 +56,7 @@ feedback_problem:
     1. **Feedback Analysis**:
       - **Explicit Issues/Suggestions**: Extract issues, errors, or direct suggestions explicitly stated in the feedback for any given trace (SOTA or failed).
       - **Implicit Gaps**: Infer unaddressed points, shortcomings, or areas for improvement implied by the feedback's context, even if not directly stated (e.g., if feedback praises a small gain from a feature but the overall score is still low, an implicit gap might be the need for more impactful features).
+      - **Time/Memory Constraints**: If previous experiments indicate failures due to time/memory limitations, it indicates that the efficiency of current experiments is a critical concern. In this case, the efficiency issues should be listed as an insight.
 
     2. **Implementation Review (of SOTA or relevant past experiments)**:
       - **Feature Engineering**: Identify potentially suboptimal feature selection (e.g., missing crucial features, using redundant or noisy ones, improper transformations for the model type) or a mismatch between feature characteristics and model assumptions, especially if feedback or performance hints at this.
@@ -127,3 +128,117 @@ scenario_description: |-
   Your code's execution is limited to **{{ time_limit }}**.
   Please optimize your model and parameters to ensure your code runs within this specified time constraint.
   {% endif %}
+
+hypothesis_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA). If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it's a failed experiment.
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. Previous SOTA experiments and feedback (chronologically ordered, oldest to newest).
+    3. Previous failed experiments and feedback (ordered attempts that did not improve SOTA).
+    4. The current SOTA implementation and feedback (the latest successful experiment).
+    5. A list of identified opportunities or insights (specific technical or methodological issues from previous experiments).
+
+    Your task is to perform two main steps:
+    1. **Hypothesis Proposal**: For each identified insight, propose a testable hypothesis.
+    2. **Hypothesis Evaluation**: Evaluate each proposed hypothesis across multiple dimensions.
+
+    {% if enable_idea_pool %}
+    To help you propose hypotheses, the user may provide a list of ideas for each identified insight. These ideas are methods or techniques from successful SOTA implementations in other competitions.
+    Evaluate these ideas: they might help address the identified insights and improve the current SOTA. You must decide whether to use them. If you adapt a provided idea for a specific insight into your hypothesis, ensure you clearly state this by setting the 'inspired' flag to True for that hypothesis.
+    {% endif %}
+
+    # Task 1: Hypothesis Proposal
+    For each **non-duplicated** insight, propose one hypothesis aimed at improving the current SOTA implementation.
+
+    ## 1.1. Steps to Hypothesize
+    Follow these steps to formulate effective hypotheses:
+
+    1. **Reaffirming the Insights**:
+       - Internally assess and quantify how the identified insight degrades performance to inform your hypothesis.
+       - Relate to previous SOTA experiments. Analyze insights and implicit patterns that can be leveraged.
+       - From failed experiments, identify persistent problems. For example, if experiments consistently failed due to time/memory constraints, your hypotheses for those problems should prioritize efficiency improvements.
+    2. **Drafting the First Implementation (if first)**:
+       If there is no SOTA implementation yet (i.e., you are drafting the first implementation), your hypotheses should not only address the identified problems but also cover the overall techniques to be used, such as feature engineering strategies and model selection.
+    3. **Actionable Changes**:
+       - If a problem relates to time/memory constraints, consider specific changes like using smaller model sizes or alternative, less complex algorithms.
+       - If a problem involves underperforming models, propose specific actions like removing or replacing models with significantly worse performance.
+       - If a problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning (e.g., "Bayesian optimization for LightGBM's learning_rate and num_leaves").
+       - **Efficiency Issues:** If such time/memory failures have occurred in previous experiments, your response should **ONLY** include hypotheses for `identified insights` that are *themselves directly related to time/memory constraints*, if any. Hypotheses for other types of insights must be omitted from the output dictionary in this specific scenario. If none of the insights are related to time/memory constraints, you can explicitly state this issue without referencing any insights. When proposing solutions for time/memory related problems (or for any problem if general efficiency is paramount even if SOTA is fine): Prioritize efficiency (e.g., smaller models, optimized algorithms). However, if the current SOTA implementation does not face time/memory constraints, do not compromise performance for efficiency unnecessarily. Aim for a balance that allows successful execution and achieves satisfactory performance.
+    {% if enable_idea_pool %}
+    4. **Idea Reference**:
+       Provided ideas are methods, techniques, or tricks from high-performing implementations in other competitions addressing similar problems. Use them as inspiration if you find them suitable.
+    {% endif %}
+
+    ## 1.2. Writing Guidelines
+
+    1. **Be Specific and Decisive**:
+      - Clearly state the exact, unambiguous change(s) being proposed. Avoid vague goals like "improve the model" or "optimize the pipeline."
+      - The hypothesis must propose a single, clear course of action. Do not suggest alternatives (e.g., "try method A or method B").
+      - The hypothesis statement must be direct and definitive, without phrases like "for example," "e.g.," or "might involve."
+
+    2. **Ensure Testability and Actionability**:
+      - The hypothesis must describe an action or change that can be practically implemented and tested.
+      - It should clearly state the expected outcome or specific improvement, typically related to a measurable performance metric.
+      - *Good Example*: "Changing the optimizer from Adam to AdamW and applying a learning rate of 1e-4 for the BERT-based text classifier will increase F1-score by at least 2% on the validation set."
+      - *Poor Example*: "Tune the model for better results."
+
+    3. **Align with Current SOTA and Insights**:
+      - The hypothesis must be directly relevant to improving the *current* State-of-the-Art (SOTA) implementation.
+      - It must address one of the `identified insights` provided as input.
+
+    4. **Maintain Singular Focus within Hypothesis**:
+      - If a hypothesis involves multiple adjustments, these must be tightly correlated and contribute to a single, unified conceptual change.
+      - Avoid bundling multiple independent or unrelated ideas into a single hypothesis. Each hypothesis should test one core concept.
+
+    {% if not pipeline %}
+    5. **Focus on a Single Experimental Direction**:
+      - Each hypothesis must target one clear direction for the experiment.
+      - Avoid conditional logic or outlining multiple possibilities within the hypothesis (e.g., "this may work if X happens, or alternatively, we could try Y if Z occurs"). The aim is for each experimental loop to validate one specific idea.
+
+    6. **Relate to a Core Solution Component**:
+      - The hypothesis should primarily target improvements within one main functional area or component of the overall solution.
+      - Be aware that during the subsequent 'Hypothesis Evaluation' task, you will be required to categorize this hypothesis by tagging it with the single most relevant component from a specific list (e.g., 'DataLoadSpec', 'Model', 'FeatureEng', etc.). While the formal list is provided in that evaluation task, formulate your hypothesis with this upcoming categorization in mind.
+    {% else %}
+    5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
+      - The hypothesis should address improvements to the end-to-end pipeline.
+      - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
+    {% endif %}
+
+    # Task 2: Hypothesis Evaluation
+    After proposing a hypothesis for each relevant problem, evaluate each one.
+
+    ## 2.1. Evaluation Instruction
+    For each individual hypothesis you proposed in Task 1, perform the following two evaluation steps:
+
+    1. **Assign a Component Tag:** Assign a single component tag to the hypothesis. Choose the **single most relevant** tag from the official list below, even if the hypothesis appears to touch upon multiple areas. Use the following detailed descriptions to understand the scope and boundaries of each component. The "Associated files for changes" indicate which parts of a typical codebase would be affected by changes to that component, providing further context for its scope.
+
+      - **`DataLoadSpec`**: Responsible for loading raw competition data, ensuring data is converted to the correct types, and potentially providing an initial exploratory data analysis (EDA) summary.
+      - **`FeatureEng`**: Focuses on transforming raw data into meaningful features suitable for model consumption. Key responsibilities include maintaining data shape consistency, preventing data leakage during feature creation, and optimizing features for model performance. Feature engineering should be model-agnostic. Data transformations or augmentations that are specific to a particular model framework (e.g., requiring model code changes or using framework-specific data loaders) belong in the `Model` component, not here. Changes within `FeatureEng` should be implementable without altering model-specific code (e.g., `model_*.py`).
+      - **`Model`**: Involves model building (developing new models to address the problem), model tuning (optimizing existing models for better performance), or model removal (discarding models that do not contribute effectively). This component also handles data operations or augmentations that are:
+        1. Closely tied to a specific model framework (e.g., using PyTorch's `Datasets` & `DataLoaders` or TensorFlow's `tf.data`).
+        2. Cannot be applied generically in `feature.py` without requiring modifications to the model's own code structure.
+      - **`Ensemble`**: Combines predictions from multiple models using various ensemble strategies (e.g., averaging, stacking). It also includes evaluating the performance of these ensembles and generating the final predictions for submission.
+      - **`Workflow`**: Integrates all pipeline components, orchestrating the flow from data loading and preprocessing, through feature engineering, model training/prediction, and ensembling, to ensure efficient execution and correct formatting of the final output (e.g., `submission.csv`).
+
+    2. **Score the Hypothesis:** For each hypothesis, provide a score from 1 (lowest/worst) to 10 (highest/best) on each of the following five dimensions. Base your scores on all provided information (e.g., competition scenario, SOTA details, previous experiments, identified problems).
+
+      - **Problem-Hypothesis Alignment (Score: 1-10):** How directly and effectively does the hypothesis address the core issues of the `identified insight` it targets? A higher score means a stronger, more direct alignment.
+      - **Expected Impact (Score: 1-10):** What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness) if this hypothesis is successfully implemented on the current SOTA? Higher scores for greater positive impact.
+      - **Novelty (Score: 1-10):** How innovative or original is this hypothesis when compared to the approaches and ideas evident in the `previous SOTA experiments` and `previous failed experiments`? **Crucially, assign a score of 1 if the hypothesis is a repeat or substantially similar to a previously attempted hypothesis (whether successful or failed).**
+      - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation.
+      - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance (e.g., high potential reward justifies moderate risk, or a low-risk change offers solid gains).
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Identified Insights{% if enable_idea_pool %} with Sampled Ideas{% endif %}
+    {{ problems }}
