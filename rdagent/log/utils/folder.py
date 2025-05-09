@@ -1,6 +1,7 @@
 """
 This module provides some useful functions for working with logger folders.
 """
+
 import pickle
 from pathlib import Path
 
@@ -13,8 +14,9 @@ def get_first_session_file_after_duration(log_folder: str | Path, duration: str 
     log_folder = Path(log_folder)
     duration_dt = pd.Timedelta(duration)
     # iterate the dump steps in increasing order
-    files = sorted((log_folder / "__session__").glob("*/*_*"),
-                   key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
+    files = sorted(
+        (log_folder / "__session__").glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0]))
+    )
     fp = None
     for fp in files:
         with fp.open("rb") as f:
@@ -63,6 +65,7 @@ def first_li_si_after_one_time(log_path: Path, hours: int = 12) -> tuple[int, in
 
 if __name__ == "__main__":
     from rdagent.app.data_science.loop import DataScienceRDLoop
+
     f = get_first_session_file_after_duration("<path to log aptos2019-blindness-detection>", pd.Timedelta("12h"))
 
     with f.open("rb") as f:
