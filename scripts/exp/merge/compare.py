@@ -1,13 +1,15 @@
-import os
 import pickle
 import re
 from collections import deque
 from datetime import datetime, timedelta
-from itertools import combinations
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 from loguru import logger
+import typer
+
+app = typer.Typer()
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
 from rdagent.log.ui.conf import UI_SETTING
@@ -165,8 +167,9 @@ def get_summary_df(log_folders: list[str], sn: str = "summary.pkl") -> tuple[dic
         if s1 is None or s2 is None:
             return None
         try:
+            import math
             c_value = math.exp(abs(math.log(s1 / s2)))
-        except Exception as e:
+        except Exception:
             c_value = None
         return c_value
 
@@ -251,117 +254,26 @@ def get_summary_df(log_folders: list[str], sn: str = "summary.pkl") -> tuple[dic
     return summary, base_df
 
 
-exp_list = [
-    "deciding-cod",
-    "exotic-frog",  # 12h version
-    "civil-reindeer",
-    "selected-worm",  # o3-4.1 | 12h version
-    "prepared-salmon",  # o1-4.1
-]
-# exp_submit_order = [
-#     "civil-reindeer_prepared-salmon",
-#     "deciding-cod_civil-reindeer",
-#     "deciding-cod_prepared-salmon",
-#     "exotic-frog_civil-reindeer",
-#     "exotic-frog_selected-worm",
-#     "civil-reindeer_selected-worm",
-#     "deciding-cod_exotic-frog",
-#     "deciding-cod_selected-worm",
-#     "exotic-frog_prepared-salmon",
-#     "selected-worm_prepared-salmon",
-# ]
-# exp_submit_name = [
-#     "measured-jackal",
-#     "wondrous-bluegill",
-#     "optimum-sole",
-#     "noted-whale",
-#     "great-guppy",
-#     "inviting-quail",
-#     "amusing-glider",
-#     "charmed-pheasant",
-#     "big-yak",
-#     "factual-trout",
-# ]
+def main(
+    exp_list: List[str] = typer.Option(..., "--exp-list", help="List of experiment names.", show_default=False),
+    output: str = typer.Option("merge_base_df.h5", help="Output summary file name."),
+    summary_name: str = typer.Option("summary.pkl", help="Summary pickle file name in log folders."),
+):
+    """
+    Generate summary and base dataframe for given experiment list, and save to a summary file.
+    """
+    print(f"exp_list: {exp_list}")
+    log_folders = [
+        f"/home/xiaoyang/repos/JobAndExp/amlt_project/amlt/{exp}/combined_logs" for exp in exp_list
+    ]
+    summary, base_df = get_summary_df(log_folders, sn=summary_name)
+    print("Summary keys:", list(summary.keys()))
+    print("Summary DataFrame:")
+    print(base_df)
+    base_df.to_hdf(output, "data")
+    print(f"Summary saved to {output}")
 
+if __name__ == "__main__":
+    app.command()(main)
+    app()
 
-# finished_exp = [
-#     "measured-jackal",
-#     "wondrous-bluegill",
-#     "optimum-sole",
-#     "noted-whale",
-#     "great-guppy",
-#     # "inviting-quail",
-#     "amusing-glider",
-#     "charmed-pheasant",
-#     "big-yak",
-#     "factual-trout",
-# ]
-
-finished_exp = [
-    "internal-kid",
-    "renewing-jackal",
-    "sacred-wildcat",
-]
-
-
-
-
-# def get_exp_name(exp1, exp2):
-#     """
-#     Return the merged experiment submit name given two experiment keys.
-#     If the combination is not found, return the joined name.
-#     Only works if the order matches exactly with exp_submit_order.
-#     """
-#     key = f"{exp1}_{exp2}"
-#     if key in exp_submit_order:
-#         idx = exp_submit_order.index(key)
-#         return exp_submit_name[idx]
-#     return key  # fallback: just join with underscore
-
-
-# for exp1, exp2 in combinations(exp_list, 2):
-#     exp_name = get_exp_name(exp1, exp2)
-#     print(f"Exp1: {exp1}, Exp2: {exp2}, Merged Name: {exp_name}")
-#     if exp_name in finished_exp:
-#         break
-
-# get 12h traces
-# log_folders = [f"/Data/home/xiaoyang/repos/JobAndExp/amlt_project/amlt_processed/12h/{exp}/combined_logs" for exp in exp_list]
-# summary, base_df = get_summary_df(log_folders, sn="summary_12h.pkl")
-# print("Summary keys:", list(summary.keys()))
-# print("Summary DataFrame:")
-# print(base_df)
-# from IPython import embed; embed()
-# base_df.to_hdf("12h_base_df.h5", "data")
-
-# get 13h traces
-# log_folders = [f"/Data/home/xiaoyang/repos/JobAndExp/amlt_project/amlt_processed/12h/{exp}/combined_logs" for exp in exp_list]
-# summary, base_df = get_summary_df(log_folders, sn="summary_13h.pkl")
-# print("Summary keys:", list(summary.keys()))
-# print("Summary DataFrame:")
-# print(base_df)
-# base_df.to_hdf("13h_base_df.h5", "data")
-# from IPython import embed; embed()
-
-
-# get full traces
-# log_folders = [f"/Data/home/xiaoyang/repos/JobAndExp/amlt_project/amlt_processed/12h/{exp}/combined_logs" for exp in exp_list]
-# summary, base_df = get_summary_df(log_folders, sn="summary.pkl")
-# print("Summary keys:", list(summary.keys()))
-# print("Summary DataFrame:")
-# print(base_df)
-# base_df.to_hdf("full_base_df.h5", "data")
-# from IPython import embed; embed()
-
-
-# # get the merge traces
-log_folders = [
-    f"/Data/home/xiaoyang/repos/JobAndExp/amlt_project/amlt/{exp}/combined_logs" for exp in finished_exp
-]
-summary, base_df = get_summary_df(log_folders, sn="summary.pkl")
-print("Summary keys:", list(summary.keys()))
-print("Summary DataFrame:")
-print(base_df)
-
-base_df.to_hdf("merge_base_df.h5", "data")
-from IPython import embed; embed()
