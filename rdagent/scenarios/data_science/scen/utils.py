@@ -313,7 +313,7 @@ def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) ->
                     f"{name} has {df[col].nunique()} unique values. Some example values: {df[col].value_counts().head(4).index.tolist()}"
                 )
     if show_nan_columns:
-        nan_cols = [col for col in cols if df[col].isnull().any()]
+        nan_cols = [col for col in df.columns.tolist() if df[col].isnull().any()]
         nan_cols_str = ", ".join(nan_cols) if nan_cols else "None"
         if nan_cols_str:
             out.append(f"\n Columns containing NaN values: {nan_cols_str}")
