@@ -558,6 +558,176 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
 
+class DSProposalV3ExpGen(DSProposalV2ExpGen):
+    def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
+        sys_prompt = T(".prompts_v3:scenario_problem.system").r(
+            problem_spec=T(".prompts_v3:specification.problem").r(),
+            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
+        )
+        user_prompt = T(".prompts_v3:scenario_problem.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=Opportunities
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
+        )
+        opportunities = Opportunities(**json.loads(response))
+        # Translate to problems
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in opportunities.opportunities }
+        logger.info(f"Identified scenario problems:\n" + pprint.pformat(problems))
+        return problems
+
+    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
+        sys_prompt = T(".prompts_v3:feedback_problem.system").r(
+            problem_spec=T(".prompts_v3:specification.problem").r(),
+            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
+        )
+        user_prompt = T(".prompts_v3:feedback_problem.user").r(
+            scenario_desc=scenario_desc,
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=ActionableInsights
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
+        )
+        actionable_insights = ActionableInsights(**json.loads(response))
+        # Translate to problems
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in actionable_insights.insights }
+        logger.info(f"Identified feedback problems:\n" + pprint.pformat(problems))
+        return problems
+
+    def get_scenario_all_desc_v3(self, trace: DSTrace, eda_output=None) -> str:
+        return T(".prompts_v3:scenario_description").r(
+            background=trace.scen.background,
+            submission_specifications=trace.scen.submission_specifications,
+            evaluation=trace.scen.metric_description,
+            metric_name=trace.scen.metric_name,
+            metric_direction=trace.scen.metric_direction,
+            raw_description=trace.scen.raw_description,
+            use_raw_description=DS_RD_SETTING.use_raw_description,
+            time_limit=f"{DS_RD_SETTING.full_timeout / 60 / 60 : .2f} hours",
+            eda_output=eda_output,
+        )
+
+    def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+        if pipeline:
+            component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        else:
+            component_desc = "\n".join(
+                [
+                    f"[{key}] {value}"
+                    for key, value in T("scenarios.data_science.share:component_description").template.items()
+                ]
+            )
+
+        sota_exp = trace.sota_experiment()
+        if not isinstance(sota_exp, DSExperiment):
+            eda_output = None
+        else:
+            eda_output = sota_exp.experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = self.get_scenario_all_desc_v3(trace, eda_output=eda_output)
+
+        sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="Best of previous exploration of the scenario"
+        )
+
+        exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="all"),
+            type="all",
+            pipeline=pipeline,
+        )
+        failed_exp_feedback_list_desc = T("scenarios.data_science.share:describe.trace").r(
+            exp_and_feedback_list=trace.experiment_and_feedback_list_after_init(return_type="failed"),
+            type="failed",
+            pipeline=pipeline,
+        )
+
+        # Step 1: Identify problems
+        all_problems = {}
+        if len(trace.hist) >= 3:
+            fb_problems = self.identify_feedback_problem(
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in fb_problems:
+                fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
+                all_problems[problem_name] = fb_problems[problem_name]
+
+        if len(trace.hist) < 9:
+            scen_problems = self.identify_scenario_problem(
+                scenario_desc=scenario_desc,
+                sota_exp_desc=sota_exp_desc,
+            )
+            for problem_name in scen_problems:
+                scen_problems[problem_name]["label"] = "SCENARIO_PROBLEM"
+                all_problems[problem_name] = scen_problems[problem_name]
+
+        # Step 1.5: Sample ideas from idea pool
+        if DS_RD_SETTING.enable_knowledge_base:
+            all_problems = trace.knowledge_base.sample_ideas(
+                problems=all_problems,
+                scenario_desc=scenario_desc,
+                exp_feedback_list_desc=exp_feedback_list_desc,
+                sota_exp_desc=sota_exp_desc,
+                competition_desc=self.scen.get_competition_full_desc(),
+            )
+
+        # Step 2: Propose hypothesis based on the identified problems (and sampled ideas)
+        hypothesis_dict = self.hypothesis_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            exp_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+            problems=all_problems,
+            pipeline=pipeline,
+            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+        )
+        if not pipeline:
+            sota_exp_model_file_count = len(
+                [
+                    k
+                    for k in sota_exp.experiment_workspace.file_dict.keys()
+                    if k.endswith(".py") and "test" not in k and k.startswith("model")
+                ]
+            )
+            if sota_exp_model_file_count <= 1:
+                pop_names = []
+                for problem_name in hypothesis_dict:
+                    if hypothesis_dict[problem_name].get("component", "") == "Ensemble":
+                        pop_names.append(problem_name)
+                for name in pop_names:
+                    hypothesis_dict.pop(name)
+
+        # Step 3: Select the best hypothesis
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=hypothesis_dict,
+            problem_dict=all_problems,
+            trace=trace,
+        )
+        # Step 3.5: Update knowledge base with the picked problem
+        if DS_RD_SETTING.enable_knowledge_base:
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            sota_exp=sota_exp,
+            hypothesis=new_hypothesis,
+            pipeline=pipeline,
+            failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+
+
 class OpportunityCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
