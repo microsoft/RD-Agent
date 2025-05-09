@@ -1,7 +1,10 @@
 import json
-from typing import Dict, Tuple
+import pprint
+from enum import Enum
+from typing import List, Dict, Tuple
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.ensemble.exp import EnsembleTask
@@ -227,7 +230,7 @@ class DSProposalV1ExpGen(ExpGen):
 class DSProposalV2ExpGen(ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
-            # problem_spec=T(".prompts_v2:specification.problem").r(),
+            problem_spec=T(".prompts_v2:specification.problem").r(),
             # problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
@@ -243,13 +246,14 @@ class DSProposalV2ExpGen(ExpGen):
         )
         opportunities = Opportunities(**json.loads(response))
         # Translate to problems
-        problems = { o.caption: { "problem": o.description, "reason": o.reason } for o in opportunities.opportunities }
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in opportunities.opportunities }
+        logger.info(f"Identified scenario problems:\n" + pprint.pformat(problems))
         return problems
 
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -259,10 +263,15 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, Dict[str, str]],
+            response_format=ActionableInsights
+            # json_mode=True,
+            # json_target_type=Dict[str, Dict[str, str]],
         )
-        return json.loads(response)
+        actionable_insights = ActionableInsights(**json.loads(response))
+        # Translate to problems
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in actionable_insights.insights }
+        logger.info(f"Identified feedback problems:\n" + pprint.pformat(problems))
+        return problems
 
     @wait_retry(retry_n=5)
     def hypothesis_gen(
@@ -549,19 +558,117 @@ class DSProposalV2ExpGen(ExpGen):
         )
 
 
-from pydantic import BaseModel, Field
-from typing import List
+class OpportunityCategory(str, Enum):
+    DATASET_DRIVEN = "dataset-driven"
+    DOMAIN_INFORMED = "domain-informed"
 
-class Opportunity(BaseModel):
 
-    reason: str = Field(description="Brief explanation in no more than two sentences of why addressing this opportunity "
-                  "is expected to improve the target metric, based on the provided materials or general ML principles relevant to the scenario.")
-    caption: str = Field(description="Caption of the opportunity in around 5-15 words")
-    description: str = Field(description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement.")
+class OpportunityDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the Core Analysis Dimensions "
+            "(SOTA Alignment Analysis, Gap Identification, Domain-Implementation Coherence Check, Scenario-First Focus) "
+            "specifically led to identifying THIS opportunity."
+        )
+    )
+    category: OpportunityCategory = Field(
+        description="The category of the improvement opportunity."
+    )
+    statement: str = Field(
+        description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement."
+    )
+    metric_impact: str = Field(
+        description="Brief explanation in no more than two sentences of why addressing this opportunity is expected to improve the target metric."
+    )
+    caption: str = Field(
+        description="Summarize the opportunity in around 5-15 words."
+    )
+
+
+class OpportunityAnalysis(BaseModel):
+    sota_alignment_analysis: str = Field(
+        description="Comparing SOTA to data/domain insights; 'N/A' if not available."
+    )
+    gap_identification: str = Field(
+        description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
+    )
+    domain_implementation_coherence_check: str = Field(
+        description="Technical methods conflicting with domain rules or oversimplifying; 'N/A' if none."
+    )
+    scenario_first_focus: str = Field(
+        description="Foundational scenario strategies, key if no SOTA exists; 'N/A' if SOTA already exists."
+    )
 
 
 class Opportunities(BaseModel):
 
-    sota_summary: str = Field(description="Summary of current SOTA experiment and interesting findings. If not available, write N/A")
-    opportunities: List[Opportunity] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
+    analysis: OpportunityAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
+    opportunities: List[OpportunityDetail] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
                           "select the most valuable and potentially unexplored avenues. Each opportunity must be tightly relevant to the improvement of the target metric.")
+
+
+class ActionableInsightAnalysisDetail(BaseModel):
+
+    category: str = Field(
+        description="Describe the specific area of this analysis in a few words, such as 'Explicit Suggestions', 'Feature Engineering', 'Presistent Issues'"
+    )
+    statement: str = Field(
+        description="Description of the analysis in no more than three sentences, outlining the specific problem."
+    )
+
+
+class ActionableInsightAnalysis(BaseModel):
+
+    feedback: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details derived from feedback on previous experiments."
+    )
+    implementation_review: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details from reviewing previous code implementations."
+    )
+    trace_history: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details identified from the history of experiment traces."
+    )
+
+
+class ActionableInsightDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS insight."
+        )
+    )
+    category: str = Field(
+        description=(
+            "The specific category of the insight, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
+            "'Implementation - Feature Engineering Flaw', 'Trace - Recurring Error'). This should align with and be more specific than the source analysis group (feedback, implementation_review, trace_history)."
+        )
+    )
+    statement: str = Field(
+        description=(
+            "Description of the actionable insight in no more than three sentences, outlining the specific issue, "
+            "observation, or area for improvement derived from past experiments or feedback."
+        )
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of why acting on this insight (e.g., addressing the identified issue "
+            "or leveraging the observation) is expected to improve the target metric or future iterations."
+        )
+    )
+    caption: str = Field(
+        description="Summarize the actionable insight concisely in around 5-15 words."
+    )
+
+
+class ActionableInsights(BaseModel):
+    analysis: ActionableInsightAnalysis = Field(
+        description=(
+            "A structured summary of the analysis performed on feedback, implementation reviews, "
+            "and experiment traces, which forms the basis for the derived insights."
+        )
+    )
+    insights: List[ActionableInsightDetail] = Field(
+        description=(
+            "A list of key actionable insights (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
+            "Each insight should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
+        )
+    )

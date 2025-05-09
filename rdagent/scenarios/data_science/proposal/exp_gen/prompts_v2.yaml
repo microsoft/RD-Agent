@@ -5,23 +5,21 @@ scenario_problem:
     You will be given the scenario description, details of the current SOTA implementation (if available), and any relevant feedback.
     Your task is to analyze the provided information and identify **Potential Improvement Opportunities** relevant to the competition's target metric.
 
-    ## Potential Improvement Opportunities
-    ### Definition
-    Potential Improvement Opportunities are specific, context-dependent areas where strategic changes could lead to better performance on the target metric. They arise from the competition's dataset, domain, or general machine learning best practices. They fall into two categories:
-
-    1. **Dataset-Driven Opportunities**: Leveraging or mitigating inherent structural or statistical properties of the dataset (e.g., addressing imbalance, managing high dimensionality, feature engineering for specific data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
-    2. **Domain-Informed Opportunities**: Applying actionable knowledge derived from expertise in the competition's domain. This allows for correct interpretation of data patterns, informed feature engineering, adherence to domain-specific constraints, or avoidance of invalid assumptions that data alone might not reveal.
-
-    ### Specification
-    1. The opportunity should be specific and fine-grained. Avoid general or vague statements.
-    2. The opportunity should be technical or methodological. Focus on design and implementation strategies, not runtime errors.
-    3. The opportunity must be strictly aligned with the improvement of the target metric. It should fit the template: "IF THIS OPPORTUNITY IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
-
     ### Core Analysis Dimensions
     1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas for enhancement.
     2. **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed challenges or unexploited avenues these successful approaches highlight.
     3. **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances.
     4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, identified opportunities should primarily focus on foundational strategies and analyses pertinent to the described scenario and dataset.
+
+    ## Potential Improvement Opportunities
+    You **MUST** categorize each identified opportunity into one of the following two types. This categorization should be based on the primary driver or nature of the opportunity:
+    1. **Dataset-Driven Opportunity**: Opportunities primarily derived from leveraging or mitigating inherent structural or statistical properties of the dataset (e.g., addressing imbalance, managing high dimensionality, specific feature engineering for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
+    2. **Domain-Informed Opportunity**: Opportunities primarily derived from applying actionable knowledge specific to the competition's domain. This includes the correct interpretation of data patterns based on domain context, domain-specific feature engineering, adherence to known domain constraints, or avoiding invalid assumptions that data analysis alone might not reveal.
+
+    ### Specification
+    1. The opportunity should be specific and fine-grained. Avoid general or vague statements.
+    2. The opportunity should be technical or methodological. Focus on design and implementation strategies, not runtime errors.
+    3. The opportunity must be strictly aligned with the improvement of the target metric. It should fit the template: "IF THIS OPPORTUNITY IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
 
   user: |-
     # Scenario Description
@@ -33,42 +31,45 @@ scenario_problem:
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
-    You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, and the current SOTA implementation and feedback.
-    Your task is to analyze the given information and extract the **Feedback Problems** from the previous experiments or the current SOTA implementation.
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is modified from the current State-of-the-Art (SOTA) in that trace. If a new trace surpasses the current SOTA, it becomes the new SOTA. If not, it's considered a failed experiment.
+    You will be given a competition scenario, details of previous SOTA and failed experiments (including their feedback), and the current SOTA implementation (and its feedback, if any).
+    Your task is to analyze this historical information and extract **Actionable Insights from Experiment History**.
 
-    ## Feedback Problems
+    ## Actionable Insights from Experiment History
     ### Definition
-    Feedback problems are specific and fine-grained technical, or methodological issues within the previous experiments or the current SOTA implementation.
+    Actionable Insights are specific, fine-grained technical or methodological observations, issues, or patterns identified within previous experiments or the current SOTA implementation. These insights are primarily derived from explicit feedback, code analysis, or patterns in the trace history, and should guide concrete improvements in subsequent iterations.
 
-    ### Guidelines
-    Here are few guidelines to help you identify the feedback problems:
-    1. Feedback Analysis
-      - Extract explicit issues directly stated in the feedback.
-      - Infer implicit issues from feedback context.
-    2. Code Review
-      - Feature Engineering. Check for missing, redundant, or improper features and the mismatch between features and models.
-      - Model Architecture. Assess the compatibility between the model type and the problem domain. Verify model architecture and hyperparameters.
-      - Ensemble. Check if ensemble methods are optimized. Identify underperforming base models to remove from the ensemble.
-      - Training. Validate hyperparameter (e.g., learning rate, batch size), loss functions, and regularization. Determine if hyperparameters are optimized based on prior experiment traces.
-    3. Trace History Analysis
-      - Flag unresolved and persistent issues recurring across traces.
-      - Highlight partial fixes (e.g., inappropriate feature engineering).
-      - Identify unexplored directions (e.g. new features, new model structures) from prior traces.
-      - Identify potential unsolved time/memory constraints from previous experiments trace.
-    
-    ### Specification
-    {{ problem_spec }}
+    ### Guidelines for Identification
+    Here are guidelines to help you identify these Actionable Insights:
 
-    ### Output Format
-    {{ problem_output_format }}
+    1. **Feedback Analysis**:
+      - **Explicit Issues/Suggestions**: Extract issues, errors, or direct suggestions explicitly stated in the feedback for any given trace (SOTA or failed).
+      - **Implicit Gaps**: Infer unaddressed points, shortcomings, or areas for improvement implied by the feedback's context, even if not directly stated (e.g., if feedback praises a small gain from a feature but the overall score is still low, an implicit gap might be the need for more impactful features).
+
+    2. **Implementation Review (of SOTA or relevant past experiments)**:
+      - **Feature Engineering**: Identify potentially suboptimal feature selection (e.g., missing crucial features, using redundant or noisy ones, improper transformations for the model type) or a mismatch between feature characteristics and model assumptions, especially if feedback or performance hints at this.
+      - **Model Architecture & Hyperparameters**: Assess if the model type, architecture, or key hyperparameters (e.g., complexity, capacity) seem misaligned with the problem domain, dataset size/characteristics, or information gleaned from feedback or performance trends across traces.
+      - **Ensemble Strategy**: If ensembling is used, evaluate if the method appears suboptimal (e.g., lack of model diversity, questionable weighting, overly complex for the gain). Pinpoint if feedback or performance data suggests specific base models are underperforming or harming the ensemble.
+      - **Training & Validation Process**: Scrutinize training parameters (e.g., learning rate schedule, batch size, epoch count), loss functions, or regularization techniques, especially if they might be contributing to issues highlighted in feedback (e.g., overfitting, slow convergence, instability) or inconsistent performance in trace history. Check if validation strategies appear robust and reflective of the test set.
+
+    3. **Trace History Analysis (Trends & Patterns)**:
+      - **Persistent Issues**: Flag unresolved negative patterns, errors, or suboptimal outcomes that recur across multiple experiment traces, despite attempts to fix them.
+      - **Ineffective/Partial Fixes**: Highlight previous changes that were intended to address an issue but were only partially successful, proved ineffective, or potentially introduced new, subtle problems, as evidenced by subsequent feedback or performance.
+      - **Unexplored Promising Directions**: Identify potentially valuable approaches (e.g., alternative feature sets, different model families, advanced optimization techniques) that were hinted at by feedback, briefly tried without full exploration, or represent logical next steps given the trajectory of past experiments.
+      - **Constraint Violations/Inefficiencies**: Note any indications of unaddressed time or memory constraint violations, or significant computational inefficiencies that might have impacted previous experiments or could limit future, more complex iterations.
+
+    ### Specification for each Actionable Insight
+    1. The insight must be specific, actionable, and evidence-based (tied to feedback, code, or trace history).
+    2. The insight should focus on technical or methodological aspects.
+    3. Addressing the point raised by the insight should have a plausible positive impact on the target metric.
+    4. The insight should fit a template like: "IF THE OBSERVATION MADE IN THIS INSIGHT IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
 
   user: |-
     # Scenario Description
     {{ scenario_desc }}
     
     # Previous Experiments and Feedbacks
-    {{ exp_and_feedback_list_desc }}    
+    {{ exp_and_feedback_list_desc }}
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
