@@ -142,7 +142,7 @@ class LoopBase:
                     lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
                     if lastest_api_fail_time is not None:
                         mlflow.log_metric(
-                            "api_fail_count",
+                            "lastest_api_fail_time",
                             (
                                 lastest_api_fail_time.second
                                 + lastest_api_fail_time.minute * 1e2
