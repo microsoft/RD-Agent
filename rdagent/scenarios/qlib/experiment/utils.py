@@ -69,10 +69,13 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
 
     JJ_TPL = Environment(undefined=StrictUndefined).from_string(
         """
-{{file_name}}
-```{{type_desc}}
+# {{file_name}}
+
+## File Type
+{{type_desc}}
+
+## Content Overview
 {{content}}
-```
 """
     )
 
@@ -83,29 +86,56 @@ def get_file_desc(p: Path, variable_list=[]) -> str:
         pd.set_option("display.max_rows", None)  # or 1000
         pd.set_option("display.max_colwidth", None)  # or 199
 
+        # Basic information
+        df_info = "### Data Structure\n"
         if isinstance(df.index, pd.MultiIndex):
-            df_info = f"MultiIndex names:, {df.index.names})\n"
+            df_info += f"- Index: MultiIndex with levels {df.index.names}\n"
         else:
-            df_info = f"Index name: {df.index.name}\n"
+            df_info += f"- Index: {df.index.name}\n"
+        
+        # Column information
+        df_info += "\n### Columns\n"
         columns = df.dtypes.to_dict()
-        filtered_columns = [f"{i, j}" for i, j in columns.items() if i in variable_list]
-        if filtered_columns:
-            df_info += "Related Data columns: \n"
-            df_info += ",".join(filtered_columns)
+        
+        # Group columns by their prefixes if they exist
+        grouped_columns = {}
+        for col in columns:
+            if col.startswith('$'):
+                prefix = col.split('_')[0] if '_' in col else col
+                if prefix not in grouped_columns:
+                    grouped_columns[prefix] = []
+                grouped_columns[prefix].append(col)
+            else:
+                if 'other' not in grouped_columns:
+                    grouped_columns['other'] = []
+                grouped_columns['other'].append(col)
+
+        if variable_list:
+            df_info += "#### Relevant Columns:\n"
+            for col in variable_list:
+                if col in columns:
+                    df_info += f"- {col}: {columns[col]}\n"
         else:
-            df_info += "Data columns: \n"
-            df_info += ",".join(columns)
-        df_info += "\n"
+            df_info += "#### All Columns:\n"
+            for prefix, cols in grouped_columns.items():
+                if prefix == 'other':
+                    df_info += "\n#### Other Columns:\n"
+                else:
+                    df_info += f"\n#### {prefix} Related Columns:\n"
+                for col in cols:
+                    df_info += f"- {col}: {columns[col]}\n"
+
+        # Sample data if available
         if "REPORT_PERIOD" in df.columns:
             one_instrument = df.index.get_level_values("instrument")[0]
             df_on_one_instrument = df.loc[pd.IndexSlice[:, one_instrument], ["REPORT_PERIOD"]]
-            df_info += f"""
-A snapshot of one instrument, from which you can tell the distribution of the data:
-{df_on_one_instrument.head(5)}
-"""
+            df_info += "\n### Sample Data\n"
+            df_info += f"Showing data for instrument {one_instrument}:\n"
+            df_info += str(df_on_one_instrument.head(5))
+
         return JJ_TPL.render(
             file_name=p.name,
-            type_desc="h5 info",
+            type_desc="HDF5 Data File",
             content=df_info,
         )
     elif p.name.endswith(".md"):
@@ -113,7 +143,7 @@ A snapshot of one instrument, from which you can tell the distribution of the da
             content = f.read()
             return JJ_TPL.render(
                 file_name=p.name,
-                type_desc="markdown",
+                type_desc="Markdown Documentation",
                 content=content,
             )
     else:
