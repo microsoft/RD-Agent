@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
+import pytz
 from pydantic import TypeAdapter
 
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
@@ -349,6 +350,8 @@ class APIBackend(ABC):
                         content[: len(content) // 2] for content in kwargs.get("input_content_list", [])
                     ]
                 else:
+                    RD_Agent_TIMER_wrapper.api_fail_count += 1
+                    RD_Agent_TIMER_wrapper.latest_api_fail_time = datetime.now(pytz.timezone("Asia/Shanghai"))
                     if (
                         openai_imported
                         and isinstance(e, openai.APITimeoutError)
@@ -360,10 +363,16 @@ class APIBackend(ABC):
                         )
                     ):
                         timeout_count += 1
-                        if timeout_count >= 3:
+                        if timeout_count >= LLM_SETTINGS.timeout_fail_limit:
                             logger.warning("Timeout error, please check your network connection.")
                             raise e
-                    time.sleep(self.retry_wait_seconds)
+
+                    recommended_wait_seconds = self.retry_wait_seconds
+                    if openai_imported and isinstance(e, openai.RateLimitError) and hasattr(e, "message"):
+                        match = re.search(r"Please retry after (\d+) seconds\.", e.message)
+                        if match:
+                            recommended_wait_seconds = int(match.group(1))
+                    time.sleep(recommended_wait_seconds)
                     if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))

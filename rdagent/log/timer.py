@@ -75,10 +75,12 @@ class RDAgentTimer:
 class RDAgentTimerWrapper(SingletonBaseClass):
     def __init__(self) -> None:
         self.timer: RDAgentTimer = RDAgentTimer()
+        self.api_fail_count: int = 0
+        self.latest_api_fail_time: datetime | None = None
 
     def replace_timer(self, timer: RDAgentTimer) -> None:
         self.timer = timer
         logger.info("Timer replaced successfully.")
 
 
-RD_Agent_TIMER_wrapper = RDAgentTimerWrapper()
+RD_Agent_TIMER_wrapper: RDAgentTimerWrapper = RDAgentTimerWrapper()

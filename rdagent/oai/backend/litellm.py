@@ -104,6 +104,7 @@ class LiteLLMAPIBackend(APIBackend):
             temperature=temperature,
             max_tokens=max_tokens,
             reasoning_effort=reasoning_effort,
+            max_retries=0,
             **kwargs,
         )
         logger.info(f"{LogColors.GREEN}Using chat model{LogColors.END} {model}", tag="llm_messages")
