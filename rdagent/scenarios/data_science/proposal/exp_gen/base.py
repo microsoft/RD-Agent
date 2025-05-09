@@ -226,10 +226,6 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         Retrieve a list of experiments and feedbacks based on the return_type.
         """
         search_list = self.retrieve_search_list(search_type, selection=selection)
-        if max_retrieve_num is not None and len(search_list) > 0:
-            retrieve_num = min(max_retrieve_num, len(search_list))
-            search_list = search_list[:retrieve_num]
-
         final_component = self.COMPLETE_ORDER[-1]
         has_final_component = True if DS_RD_SETTING.coder_on_whole_pipeline else False
         SOTA_exp_and_feedback_list = []
@@ -243,6 +239,13 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
                     failed_exp_and_feedback_list.append((exp, fb))
             if exp.hypothesis.component == final_component and fb:
                 has_final_component = True
+        if max_retrieve_num is not None and (SOTA_exp_and_feedback_list or failed_exp_and_feedback_list):
+            SOTA_exp_and_feedback_list = SOTA_exp_and_feedback_list[
+                -min(max_retrieve_num, len(SOTA_exp_and_feedback_list)) :
+            ]
+            failed_exp_and_feedback_list = failed_exp_and_feedback_list[
+                -min(max_retrieve_num, len(failed_exp_and_feedback_list)) :
+            ]
         if return_type == "all":
             return SOTA_exp_and_feedback_list + failed_exp_and_feedback_list
         elif return_type == "failed":

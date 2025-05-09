@@ -1,16 +1,21 @@
 """Merge the version in different traces"""
 
+import json
 from datetime import timedelta
+from typing import Dict, Tuple
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.loop import DataScienceRDLoop
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.proposal import DSProposalV2ExpGen
 from rdagent.utils.agent.tpl import T
+from rdagent.utils.workflow import wait_retry
 
 
 class MergeExpGen(ExpGen):
@@ -82,7 +87,106 @@ class MergeExpGen(ExpGen):
         return exp
 
 
-# dual-target version
+class ExpGen2Hypothesis(DSProposalV2ExpGen):
+    @wait_retry(retry_n=5)
+    def hypothesis_gen(
+        self,
+        component_desc: str,
+        sota_exp_desc: str,
+        enable_idea_pool: bool,
+        pipeline: bool = True,
+        exp_feedback_list_desc: str = "",
+        scenario_desc: str = "",
+        problems: dict = {},
+    ) -> Dict:
+        sys_prompt = T(".merge:hypothesis_gen.system").r(
+            component_desc=component_desc,
+            hypothesis_output_format=T(".prompts_v2:output_format.hypothesis").r(
+                pipeline=pipeline, enable_idea_pool=enable_idea_pool
+            ),
+            pipeline=pipeline,
+        )
+        user_prompt = T(".merge:hypothesis_gen.user").r(
+            exp_and_feedback_list_desc=exp_feedback_list_desc,
+            sota_exp_desc=sota_exp_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str | Dict[str, str | int]]],
+        )
+        resp_dict = json.loads(response)
+        return resp_dict
+
+    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+        # Ignore the selection argument and use all leaves instead.
+        leaves: list[int] = trace.get_leaves()
+        sota_exp_fb = trace.sota_experiment_fb(selection=selection)
+        trace.set_current_selection(selection)  # override the current selection.
+        exp_index = leaves[1] if selection[0] == leaves[0] else leaves[0]
+
+        exp_to_merge_fb = trace.sota_experiment_fb(selection=(exp_index,))
+        if exp_to_merge_fb is None:
+            exp_to_merge_fb = trace.hist[exp_index]
+
+        if sota_exp_fb:
+            sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
+                exp=sota_exp_fb[0],
+                heading="Best previous exploration of the scenario",
+            )
+        else:
+            sota_exp_desc = ""
+
+        success_fb_list = trace.experiment_and_feedback_list_after_init(
+            return_type="sota", search_type="ancestors", selection=(exp_index,)
+        )
+        if len(success_fb_list) > 0:
+            exp_to_merge_fb_desc = T("scenarios.data_science.proposal.exp_gen.merge:trace").r(
+                exp_and_feedback_list=success_fb_list,
+                type="success",
+                heading="Successful iterations:",
+                success_trial_desc="These trials are the steps or changes that led to the success of the solution to be merged",
+                pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+            )
+        else:
+            exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.feedback").r(
+                exp_and_feedback=exp_to_merge_fb,
+                heading="The feedback for the solution to be merged",
+            )
+
+        component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
+        hypothesis_dict = self.hypothesis_gen(
+            component_desc=component_desc,
+            exp_feedback_list_desc=exp_to_merge_fb_desc,
+            sota_exp_desc=sota_exp_desc,
+            enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+            pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+        )
+
+        all_problems = {}
+        pickled_problem_name, new_hypothesis = self.hypothesis_rank(
+            hypothesis_dict=hypothesis_dict,
+            problem_dict=all_problems,
+            trace=trace,
+        )
+        if DS_RD_SETTING.enable_knowledge_base:
+            trace.knowledge_base.update_pickled_problem(all_problems, pickled_problem_name)
+
+        eda_output = sota_exp_fb[0].experiment_workspace.file_dict.get("EDA.md", None)
+        scenario_desc = trace.scen.get_scenario_all_desc(eda_output=eda_output)
+
+        return self.task_gen(
+            component_desc=component_desc,
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            sota_exp=sota_exp_fb[0],
+            hypothesis=new_hypothesis,
+            pipeline=DS_RD_SETTING.coder_on_whole_pipeline,
+            failed_exp_feedback_list_desc="",
+        )
+
+
 class ExpGen2TraceAndMerge(ExpGen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -148,12 +252,9 @@ class MergeExpGen_MultiTrace(ExpGen):
             )
 
             success_fb_list = trace.experiment_and_feedback_list_after_init(
-                return_type="sota",
-                search_type="ancestors",
-                selection=(leaves[i],),
+                return_type="sota", search_type="ancestors", selection=(leaves[i],)
             )
             if len(success_fb_list) > 0:
-
                 exp_to_merge_fb_desc = T("scenarios.data_science.share:describe.trace").r(
                     exp_and_feedback_list=success_fb_list,
                     type="success",
@@ -237,3 +338,72 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                     # return self.merge_exp_gen.gen(trace)
                     trace.set_current_selection(selection=(-1,))
                     return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
+
+
+class ExpGen2TraceAndMergeV3(ExpGen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.merge_exp_gen = ExpGen2Hypothesis(self.scen)
+        self.exp_gen = DataScienceRDLoop._get_exp_gen(
+            "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen", self.scen
+        )
+        self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
+        self.flag_start_merge = False
+
+    def gen(self, trace: DSTrace) -> DSExperiment:
+        timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
+        logger.info(f"Remain time: {timer.remain_time_duration}")
+
+        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
+
+            if DS_RD_SETTING.enable_inject_knowledge_at_root:
+
+                if len(trace.hist) == 0:
+                    # set the knowledge base option to True for the first trace
+                    DS_RD_SETTING.enable_knowledge_base = True
+
+                else:
+                    # set the knowledge base option back to False for the other traces
+                    DS_RD_SETTING.enable_knowledge_base = False
+            return self.exp_gen.gen(trace)
+
+        else:
+            # disable reset in merging stage
+            DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
+            DS_RD_SETTING.consecutive_errors = 100000
+
+            leaves: list[int] = trace.get_leaves()
+            if len(leaves) < 2:
+                trace.set_current_selection(selection=(-1,))
+                return self.exp_gen.gen(trace)
+            else:
+                selection = (leaves[0],)
+                sota_exp_fb = trace.sota_experiment_fb(selection=selection)
+                if sota_exp_fb is None:
+                    sota_exp_fb = trace.hist[leaves[0]]
+                exp_to_merge_fb = trace.sota_experiment_fb(selection=(leaves[1],))
+                if exp_to_merge_fb is None:
+                    exp_to_merge_fb = trace.hist[leaves[1]]
+                try:
+                    if (
+                        trace.sota_exp_to_submit is not None
+                        and sota_exp_fb[0].result is not None
+                        and exp_to_merge_fb[0].result is not None
+                    ):
+                        current_exp_value = exp_to_merge_fb[0].result.loc["ensemble"].iloc[0]
+                        sota_submit_value = trace.sota_exp_to_submit.result.loc["ensemble"].iloc[0]
+                        sota_feedback_value = sota_exp_fb[0].result.loc["ensemble"].iloc[0]
+
+                        # SOTA experiment value may not be the last value in the trace
+                        logger.info(
+                            f"{leaves[0]} score: {current_exp_value}, {leaves[1]} score: {current_exp_value}, Sota score: {sota_submit_value}"
+                        )
+                        if abs(current_exp_value - sota_submit_value) < abs(current_exp_value - sota_feedback_value):
+                            selection = (leaves[1],)
+                    if sota_exp_fb[0].result is None and exp_to_merge_fb[0].result is not None:
+                        logger.info(f"{leaves[0]} result is None, change selection to {leaves[1]}, result is {exp_to_merge_fb[0].result}")
+                        selection = (leaves[1],)
+                except Exception as e:
+                    logger.error(f"Get best selection failed: {e}")
+                trace.set_current_selection(selection)
+                return self.merge_exp_gen.gen(trace)
