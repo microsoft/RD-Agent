@@ -61,9 +61,16 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
 
         self.knowledge_base = knowledge_base
 
+        self.sub_trace_count: int = 0
+
         self.current_selection: tuple[int, ...] = (-1,)
 
+        self.sota_exp_to_submit: DSExperiment | None = None  # grab the global best exp to submit
+
     COMPLETE_ORDER = ("DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow")
+
+    def set_sota_exp_to_submit(self, exp: DSExperiment) -> None:
+        self.sota_exp_to_submit = exp
 
     def get_current_selection(self) -> tuple[int, ...]:
         return self.current_selection
@@ -127,15 +134,22 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
         list[tuple[DSExperiment, ExperimentFeedback]]
             The search list.
         """
+        if search_type == "all":
+            return self.hist
 
-        if selection is None:
-            selection = self.get_current_selection()
+        elif search_type == "ancestors":
 
-        if selection is None:
-            # selection is None, which means we switch to a new trace, which is not implemented yet
-            return []
+            if selection is None:
+                selection = self.get_current_selection()
 
-        return self.collect_all_ancestors(selection) if search_type == "ancestors" else self.hist
+            if len(selection) == 0:
+                # selection is (), which means we switch to a new trace
+                return []
+
+            return self.collect_all_ancestors(selection)
+
+        else:
+            raise ValueError(f"Invalid search type: {search_type}")
 
     def collect_all_ancestors(
         self,

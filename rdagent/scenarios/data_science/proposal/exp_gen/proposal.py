@@ -242,10 +242,13 @@ class DSProposalV2ExpGen(ExpGen):
         )
         return json.loads(response)
 
-    def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
+    def identify_feedback_problem(
+        self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str, inject_diverse: bool = False
+    ) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
             problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            inject_diverse=inject_diverse,
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -270,6 +273,7 @@ class DSProposalV2ExpGen(ExpGen):
         problems: dict,
         pipeline: bool,
         enable_idea_pool: bool,
+        inject_diverse: bool = False,
     ) -> Dict:
         problem_formatted_str = ""
         for problem_name, problem_dict in problems.items():
@@ -288,6 +292,7 @@ class DSProposalV2ExpGen(ExpGen):
             ),
             pipeline=pipeline,
             enable_idea_pool=enable_idea_pool,
+            inject_diverse=inject_diverse,
         )
         user_prompt = T(".prompts_v2:hypothesis_gen.user").r(
             scenario_desc=scenario_desc,
@@ -435,6 +440,7 @@ class DSProposalV2ExpGen(ExpGen):
         return exp
 
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
+
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
         else:
@@ -467,6 +473,26 @@ class DSProposalV2ExpGen(ExpGen):
             pipeline=pipeline,
         )
 
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
+            if len(trace.current_selection) == 0:
+                # start a new sub-trace, and inject diverse problems.
+                inject_diverse = True
+                logger.info("Start a new sub-trace, and inject diverse problems.")
+            else:
+                inject_diverse = False
+        else:
+            inject_diverse = False
+
+        if DS_RD_SETTING.enable_inject_diverse and len(trace.hist) > 0:
+            if len(trace.current_selection) == 0:
+                # start a new sub-trace, and inject diverse problems.
+                inject_diverse = True
+                logger.info("Start a new sub-trace, and inject diverse problems.")
+            else:
+                inject_diverse = False
+        else:
+            inject_diverse = False
+
         # Step 1: Identify problems
         all_problems = {}
         if len(trace.hist) >= 3:
@@ -474,6 +500,7 @@ class DSProposalV2ExpGen(ExpGen):
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
                 sota_exp_desc=sota_exp_desc,
+                inject_diverse=inject_diverse,
             )
             for problem_name in fb_problems:
                 fb_problems[problem_name]["label"] = "FEEDBACK_PROBLEM"
@@ -507,6 +534,7 @@ class DSProposalV2ExpGen(ExpGen):
             problems=all_problems,
             pipeline=pipeline,
             enable_idea_pool=DS_RD_SETTING.enable_knowledge_base,
+            inject_diverse=inject_diverse,
         )
         if not pipeline:
             sota_exp_model_file_count = len(

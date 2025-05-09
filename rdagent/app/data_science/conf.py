@@ -14,6 +14,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     scen: str = "rdagent.scenarios.data_science.scen.KaggleScen"
     """Scenario class for data mining model"""
 
+    hypothesis_gen: str = "rdagent.scenarios.data_science.proposal.exp_gen.DSExpGen"
+    """Hypothesis generation class"""
+
     ## Workflow Related
     consecutive_errors: int = 5
 
@@ -47,6 +50,20 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
+    ### selector related
+
+    #### checkpoint selector related
+    # selector_name: str = "latest"
+    selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.ckp_select.LatestCKPSelector"
+    """The name of the selector to use"""
+    sota_count_window: int = 5
+    """The number of trials to consider for SOTA count"""
+    sota_count_threshold: int = 1
+    """The threshold for SOTA count"""
+
+    #### SOTA experiment selector related
+    sota_exp_selector_name: str = "rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select.GlobalSOTASelector"
+    """The name of the SOTA experiment selector to use"""
     ### knowledge base
     enable_knowledge_base: bool = False
     knowledge_base_version: str = "v1"
@@ -64,6 +81,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     eval_sub_dir: str = "eval"  # TODO: fixme, this is not a good name
     """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}"
     to find the scriipt to evaluate the submission on test"""
+
+    ### inject diverse
+    enable_inject_diverse: bool = False
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
