@@ -138,6 +138,20 @@ class LoopBase:
                         + current_local_datetime.year * 1e10
                     )
                     mlflow.log_metric("current_datetime", float_like_datetime)
+                    mlflow.log_metric("api_fail_count", RD_Agent_TIMER_wrapper.api_fail_count)
+                    lastest_api_fail_time = RD_Agent_TIMER_wrapper.latest_api_fail_time
+                    if lastest_api_fail_time is not None:
+                        mlflow.log_metric(
+                            "api_fail_count",
+                            (
+                                lastest_api_fail_time.second
+                                + lastest_api_fail_time.minute * 1e2
+                                + lastest_api_fail_time.hour * 1e4
+                                + lastest_api_fail_time.day * 1e6
+                                + lastest_api_fail_time.month * 1e8
+                                + lastest_api_fail_time.year * 1e10
+                            ),
+                        )
 
                 if self.timer.started:
                     if RD_AGENT_SETTINGS.enable_mlflow:
