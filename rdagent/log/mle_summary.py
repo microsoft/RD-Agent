@@ -85,6 +85,11 @@ def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
     last_loop = loop_trace[stop_li]
     last_step = last_loop[-1]
     stop_fn = session_obj.steps[last_step.step_idx]
+    print(f"Stop Loop: {stop_li=}, {stop_fn=}")
+    files = sorted((log_folder / "__session__").glob("*/*_*"),
+                   key=lambda f: (int(f.parent.name), int(f.name.split("_")[0])))
+
+    print(f"Max Session: {files[-1:]=}")
     return stop_li, stop_fn
 
 
