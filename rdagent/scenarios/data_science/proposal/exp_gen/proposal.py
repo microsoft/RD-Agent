@@ -651,7 +651,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
                     "risk_reward_balance_score": h.evaluation.risk_reward_balance.score,
                 }
             } for h in hypotheses.hypotheses }
+
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
+
+        if len(resp_dict) == 0:
+            logger.error("No hypothesis generated. Retrying...")
+            raise ValueError("No hypothesis generated.")
+
         return resp_dict
 
     def task_gen(
@@ -765,7 +771,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
 
         # Step 1: Identify problems
         all_problems = {}
-        if len(trace.hist) >= 1:
+        if len(trace.hist) >= 3:
             fb_problems = self.identify_feedback_problem(
                 scenario_desc=scenario_desc,
                 exp_feedback_list_desc=exp_feedback_list_desc,
@@ -1023,7 +1029,7 @@ class HypothesisList(BaseModel):
 
 class CodingSketch(BaseModel):
     current_state: str = Field(
-        description="The full textual content of the current `main.py` script that serves as the baseline for the planned changes. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
+        description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
     )
     modifications: List[str] = Field(
         description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
