@@ -292,6 +292,10 @@ def preview_csv(p: Path, file_name: str, simple=True) -> str:
         res = f"The columns are: {cols_str}"
         if len(cols) > sel_cols:
             res += f"... and {len(cols)-sel_cols} more columns"
+        nan_cols = [col for col in cols[:sel_cols] if df[col].isnull().any()]
+        nan_cols_str = ", ".join(nan_cols) if nan_cols else "None"
+        if nan_cols_str:
+            res += f"\n Columns containing NaN values: {nan_cols_str}"
         out.append(res)
     else:
         out.append("Here is some information about the columns:")
