@@ -654,6 +654,82 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         logger.info(f"Generated hypotheses:\n" + json.dumps(resp_dict, indent=2))
         return resp_dict
 
+    def task_gen(
+        self,
+        component_desc: str,
+        scenario_desc: str,
+        sota_exp_desc: str,
+        sota_exp: DSExperiment,
+        hypotheses: list[DSHypothesis],
+        pipeline: bool,
+        failed_exp_feedback_list_desc: str,
+    ) -> DSExperiment:
+        if pipeline:
+            component_info = COMPONENT_TASK_MAPPING["Pipeline"]
+        else:
+            component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+        sys_prompt = T(".prompts_v3:task_gen.system").r(
+            # targets=component_info["target_name"],
+            # task_output_format=component_info["task_output_format"],
+            # component_desc=component_desc,
+            # workflow_check=not pipeline and hypothesis.component != "Workflow",
+        )
+        user_prompt = T(".prompts_v3:task_gen.user").r(
+            scenario_desc=scenario_desc,
+            sota_exp_desc=sota_exp_desc,
+            hypotheses=hypotheses,
+            failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
+        )
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            response_format=CodingSketch
+            # json_mode=True,
+            # json_target_type=Dict[str, str | Dict[str, str]],
+        )
+        task_dict = json.loads(response)
+        task_design = task_dict.get("sketch", {})
+        logger.info("Task design:\n" + task_design)
+        task_name = hypotheses[0].component
+        description = (
+            task_design
+            if isinstance(task_design, str)
+            else task_design.get("description", f"{component_info['target_name']} description not provided")
+        )
+        task_class = component_info["task_class"]
+        task = task_class(
+            name=task_name,
+            description=description,
+        )
+        new_workflow_desc = task_dict.get("workflow_update", "No update needed")
+        exp = DSExperiment(pending_tasks_list=[[task]], hypothesis=hypotheses[0])
+        # exp.experiment_workspace.inject_code_from_folder(sota_exp.experiment_workspace.workspace_path)
+        if sota_exp is not None:
+            exp.experiment_workspace.inject_code_from_file_dict(sota_exp.experiment_workspace)
+        if not pipeline and new_workflow_desc != "No update needed":
+            workflow_task = WorkflowTask(
+                name="Workflow",
+                description=new_workflow_desc,
+            )
+            exp.pending_tasks_list.append([workflow_task])
+        return exp
+
+    def get_all_hypotheses(self, problem_dict: dict, hypothesis_dict: dict) -> list[DSHypothesis]:
+        result = []
+        for name, data in hypothesis_dict.items():
+            problem_data = problem_dict.get(name, {})
+            result.append(
+                DSHypothesis(
+                    component=data.get("component", "Model"),
+                    hypothesis=data.get("hypothesis", "Hypothesis not provided"),
+                    reason=data.get("reason", "Reason not provided"),
+                    problem_name=name,
+                    problem_desc=problem_data.get("problem", "Problem description not provided"),
+                    problem_label=problem_data.get("label", "FEEDBACK_PROBLEM"),
+                )
+            )
+        return result
+
     def gen(self, trace: DSTrace, pipeline: bool = False) -> DSExperiment:
         if pipeline:
             component_desc = T("scenarios.data_science.share:component_description_in_pipeline").r()
@@ -759,7 +835,8 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
-            hypothesis=new_hypothesis,
+            hypotheses=[new_hypothesis] if len(trace.hist) > 0
+                else self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
@@ -938,4 +1015,29 @@ class HypothesisDetail(BaseModel):
 class HypothesisList(BaseModel):
     hypotheses: List[HypothesisDetail] = Field(
         description="List of hypotheses proposed for the next iteration."
+    )
+
+
+class CodingSketch(BaseModel):
+    current_state: str = Field(
+        description="The full textual content of the current `main.py` script that serves as the baseline for the planned changes. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
+    )
+    modifications: List[str] = Field(
+        description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
+                    "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
+                    "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
+                    "(c) a brief explanation or high-level sketch of the new logic or change. "
+                    "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
+    )
+    structure: List[str] = Field(
+        description="An outline of the new high-level architectural components (primarily functions and classes) if a new `main.py` script is being created from scratch, or if the existing `main.py` is undergoing a major refactor that fundamentally alters or replaces its core structure. "
+                    "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
+                    "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
+                    "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
+    )
+    sketch: str = Field(
+        description="A detailed, step-by-step narrative that elaborates on how to implement the planned code. "
+                    "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
+                    "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
+                    "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
     )
