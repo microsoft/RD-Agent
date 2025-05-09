@@ -1,44 +1,38 @@
 scenario_description: |-
-  {% if use_raw_description -%}
-  ====== Background ======
+  {% if use_raw_description %}
+  ------Background of the scenario------
   {{ raw_description }}
 
+  The evaluation metrics used is directed as:
+  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
+
   {% else %}
-  ====== Background ======
+    ------Background of the scenario------
   {{ background }}
 
-  {% if eda_output is not none %}
-  ====== Data Overview (EDA) ======
-  {{ eda_output }}
-  {% endif %}
+  ------ Guidelines for participating in the competition ----
+  Before submitting your results, we have numerous tests ready to check your code. Please ensure your submission is genuine and do not manipulate data or return values just to pass the tests, as this will not lead to successful final results.
 
-  ====== Submission Format ======
-  Please ensure your submission adheres to the following specifications:
+  ------The expected output & submission format specifications------
   {{ submission_specifications }}
 
-  ====== Important Guidelines ======
-  Before submitting your results, please note the following:
-  - We have numerous tests in place to check your code.
-  - Ensure your submission is genuine.
-  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
-
+  ------The name of the evaluation metric used------
+  {{ metric_name }}
   {% endif %}
 
-  ====== Evaluation ======
-  {% if not use_raw_description and metric_name %}
-  The primary evaluation metric for this task is: **{{ metric_name }}**.
-  {% endif %}
-  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
+  {% if time_limit %}------The time limit to your code------
+  You code running is limit to {{ time_limit }}, please change yor model type and model parameters to make sure your code can run within the time limit.
 
-  {% if evaluation is not none %}
-  Additional Evaluation Details:
+  {% endif %}
+  {% if evaluation is not none %}------Evaluation------
   {{ evaluation }}
-  {% endif %}
 
-  {% if time_limit %}
-  ====== Time Limit ======
-  Your code's execution is limited to **{{ time_limit }}**.
-  Please optimize your model and parameters to ensure your code runs within this specified time constraint.
+  {% endif %}
+  The evaluation metrics used is directed as:
+  The metric is better when it is {% if metric_direction %}bigger{% else %}smaller{% endif %}.
+
+  {% if eda_output is not none %}------Data Overview(EDA)------
+  {{ eda_output }}
   {% endif %}
 
 competition_description_template:

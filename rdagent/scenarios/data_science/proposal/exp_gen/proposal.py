@@ -231,7 +231,7 @@ class DSProposalV2ExpGen(ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:scenario_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:scenario_problem.user").r(
             scenario_desc=scenario_desc,
@@ -240,20 +240,15 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=Opportunities
-            # json_mode=True,
-            # json_target_type=Dict[str, Dict[str, str]],
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
         )
-        opportunities = Opportunities(**json.loads(response))
-        # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in opportunities.opportunities }
-        logger.info(f"Identified scenario problems:\n" + pprint.pformat(problems))
-        return problems
+        return json.loads(response)
 
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
         sys_prompt = T(".prompts_v2:feedback_problem.system").r(
             problem_spec=T(".prompts_v2:specification.problem").r(),
-            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
+            problem_output_format=T(".prompts_v2:output_format.problem").r(),
         )
         user_prompt = T(".prompts_v2:feedback_problem.user").r(
             scenario_desc=scenario_desc,
@@ -263,15 +258,10 @@ class DSProposalV2ExpGen(ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=ActionableInsights
-            # json_mode=True,
-            # json_target_type=Dict[str, Dict[str, str]],
+            json_mode=True,
+            json_target_type=Dict[str, Dict[str, str]],
         )
-        actionable_insights = ActionableInsights(**json.loads(response))
-        # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in actionable_insights.insights }
-        logger.info(f"Identified feedback problems:\n" + pprint.pformat(problems))
-        return problems
+        return json.loads(response)
 
     @wait_retry(retry_n=5)
     def hypothesis_gen(
@@ -560,10 +550,7 @@ class DSProposalV2ExpGen(ExpGen):
 
 class DSProposalV3ExpGen(DSProposalV2ExpGen):
     def identify_scenario_problem(self, scenario_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v3:scenario_problem.system").r(
-            problem_spec=T(".prompts_v3:specification.problem").r(),
-            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
-        )
+        sys_prompt = T(".prompts_v3:scenario_problem.system").r()
         user_prompt = T(".prompts_v3:scenario_problem.user").r(
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
@@ -582,10 +569,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         return problems
 
     def identify_feedback_problem(self, scenario_desc: str, exp_feedback_list_desc: str, sota_exp_desc: str) -> Dict:
-        sys_prompt = T(".prompts_v3:feedback_problem.system").r(
-            problem_spec=T(".prompts_v3:specification.problem").r(),
-            # problem_output_format=T(".prompts_v2:output_format.problem").r(),
-        )
+        sys_prompt = T(".prompts_v3:feedback_problem.system").r()
         user_prompt = T(".prompts_v3:feedback_problem.user").r(
             scenario_desc=scenario_desc,
             exp_and_feedback_list_desc=exp_feedback_list_desc,
