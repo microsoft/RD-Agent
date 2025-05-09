@@ -1,9 +1,14 @@
 scenario_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA) in the trace. If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it is considered a failed experiment.
-    You will be given the scenario description, details of the current SOTA implementation (if available), and any relevant feedback.
-    Your task is to analyze the provided information and identify **Potential Improvement Opportunities** relevant to the competition's target metric.
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If a new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.
+
+    You will be provided with:
+    1. A detailed competition scenario description;
+    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+
+    Your task is to analyze the provided information (primarily the scenario and current SOTA, if available) and identify **Potential Improvement Opportunities** relevant to the competition's target metric.
 
     ### Core Analysis Dimensions
     1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas for enhancement.
@@ -31,9 +36,15 @@ scenario_problem:
 feedback_problem:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
-    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is modified from the current State-of-the-Art (SOTA) in that trace. If a new trace surpasses the current SOTA, it becomes the new SOTA. If not, it's considered a failed experiment.
-    You will be given a competition scenario, details of previous SOTA and failed experiments (including their feedback), and the current SOTA implementation (and its feedback, if any).
-    Your task is to analyze this historical information and extract **Actionable Insights from Experiment History**.
+    The user is improving a Kaggle competition implementation iteratively through traces. Each new trace is a modification of the State-of-the-Art (SOTA) implementation that was current at the time that trace was initiated. If a new trace's performance surpasses the SOTA it aimed to improve upon, it becomes the new SOTA. If not, it is considered a failed experiment.
+
+    You will be provided with:
+    1. A detailed competition scenario description;
+    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+    4. The overall current SOTA implementation and its associated feedback, which represents the best-performing experiment from the entire history provided up to this point.
+
+    Your task is to analyze all this provided historical information and extract **Actionable Insights from Experiment History**.
 
     ## Actionable Insights from Experiment History
     ### Definition
@@ -78,10 +89,15 @@ hypothesis_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace. If new trace surpasses the current SOTA, it will be the new SOTA. If not, it will be a failed experiment.
-    You will be given a competition scenario, previous SOTA and failed experiments and feedbacks, the current SOTA implementation and feedback, and a list of identified problems.
-    Your role involves two tasks:
-    1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
-    2. **Hypothesis Evaluation**: Evaluate the proposed hypotheses across multiple dimensions.
+    You will be provided with: 
+      1. A detailed competition scenario description;
+      2. Previous SOTA experiments and feedbacks, which are past SOTA experiments indexed from oldest to newest;
+      3. Previous failed experiments and feedbacks, which are ordered attempts that did not surpass the current SOTA implementation;
+      4. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
+      5. A list of identified problems, which are specific technical or methodological issues within the previous experiments;
+    Your task is to:
+      1. **Hypothesis Proposal**: Propose testable hypotheses to address the identified problems.
+      2. **Hypothesis Evaluation**: Evaluate the proposed hypotheses across multiple dimensions.
 
     {% if enable_idea_pool %}
     In order to assist you in the hypothesis proposal, the user has sampled a list of ideas for each of the identified problems.
@@ -91,22 +107,22 @@ hypothesis_gen:
     {% endif %}
 
     # Task 1: Hypothesis Proposal
-    For each identified problem, propose a hypothesis to improve the current SOTA implementation. The hypothesis must be precise, testable, and actionable, directly addressing the problem of the given SOTA implementation.
+    For each identified problem, propose a hypothesis to improve the current SOTA implementation.
 
     ## Hypothesis Guidelines
-    Use these guidelines to formulate hypotheses (no need to address all questions):
+    Here are few guidelines to help you formulate hypotheses:
     1. Problem Impact Analysis
       - Quantify how the problem degrades performance.
-    2. Lessons from Previous Experiments
-      - For persistent problems, analyze why prior hypotheses and solutions failed.
-      - Incorporate evidence from past failures/successes to justify the hypothesis.
-      - If previous experiments failed due to time/memory constraints, prioritize changes on efficiency.
+    2. Previous Experiments Analysis
+      - For previous SOTA experiments, analyze insights and implicit patterns that can be leveraged to improve the current SOTA implementation.
+      - For failed experiments, think about the persistent problems they facing. If these experiments consistently failed due to time/memory constraints, prioritize changes on efficiency.
     3. Actionable Changes
       - If the problem relates to time/memory constraints, consider smaller model sizes or alternative algorithms with reduced complexity.
-      - If the problem involves underperforming models, propose removing or replacing models with significantly worse performance.
+      - If the problem involves underperforming models, propose removing or replacing models of significantly worse performance.
       - If the problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning.
-    4. Priority Note on Time/Memory Constraints
-      - If time/memory constraints exist, they must be prioritized above all other problems. In such cases, do not response any other problems in the response dictionary.
+    4. Note on Time/Memory Constraints
+      - If prior experiments failed due to time/memory limitations, assume your new hypothesis will face the same constraints. In this case, prioritize efficiency and **ONLY** response to the problems related to time/memory constraints in your response dictionary.
+      - Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
     5. Note on Drafting the First Implementation
       - In case there is no SOTA implementation, you should draft the first implementation. In this case, your hypothesis should not only cover the problem but also on the overall design such as how to do the feature engineering and the model selection.
     {% if enable_idea_pool %}
@@ -152,8 +168,13 @@ task_gen:
   system: |-
     {% include "scenarios.data_science.share:scen.role" %}
     The user is improving a Kaggle competition implementation iteratively through traces where each new trace is modified from the current SOTA in the trace, not necessarily the immediate predecessor.
-    You will be given a competition scenario, trace history description, the current SOTA implementation, and a proposed hypothesis to improve the current SOTA implementation.
-    
+    You will be provided with: 
+      1. A detailed competition scenario description;
+      2. Previous SOTA experiments and feedbacks, which are past SOTA experiments indexed from oldest to newest;
+      3. Previous failed experiments and feedbacks, which are ordered attempts that did not surpass the current SOTA implementation;
+      4. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
+      5. A proposed hypothesis to improve the current SOTA implementation;
+
     # Step 1: Task Design
     Your first task is to generate new {{ targets }} based on the proposed hypothesis. Your task should very detailed with specific steps and instructions. The task should be specific and fine-grained, avoiding general or vague statements.
 
