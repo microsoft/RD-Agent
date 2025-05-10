@@ -1,0 +1,338 @@
+scenario_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively. Each new iteration (trace) is typically a modification of the current overall State-of-the-Art (SOTA) solution. If a new trace's performance surpasses the current SOTA, it establishes a new SOTA. Otherwise, it is considered a failed experiment.
+
+    You will be provided with:
+    1. A detailed competition scenario description;
+    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+
+    Your task is to analyze the provided information (primarily the scenario and current SOTA, if available) and identify **Potential Improvement Opportunities** relevant to the competition's target metric.
+
+    ### Core Analysis Dimensions
+    1. **SOTA Alignment Analysis**: (If SOTA is provided) Systematically compare the current SOTA implementation against dataset properties and domain knowledge to identify discrepancies or areas for enhancement.
+    2. **Gap Identification**: (If successful past solutions or common winning strategies are known/inferred) Examine what implicitly addressed challenges or unexploited avenues these successful approaches highlight.
+    3. **Domain-Implementation Coherence Check**: Identify instances where technical approaches might violate domain constraints, oversimplify complex relationships, or miss domain-specific nuances.
+    4. **Scenario-First Focus (No SOTA)**: If no SOTA implementation is available, identified opportunities should primarily focus on foundational strategies and analyses pertinent to the described scenario and dataset.
+
+    ## Potential Improvement Opportunities
+    You **MUST** categorize each identified opportunity into one of the following two types. This categorization should be based on the primary driver or nature of the opportunity:
+    1. **Dataset-Driven Opportunity**: Opportunities primarily derived from leveraging or mitigating inherent structural or statistical properties of the dataset (e.g., addressing imbalance, managing high dimensionality, specific feature engineering for data types like text or time-series, handling missing data, transforming skewed distributions, accounting for collinearity or outliers).
+    2. **Domain-Informed Opportunity**: Opportunities primarily derived from applying actionable knowledge specific to the competition's domain. This includes the correct interpretation of data patterns based on domain context, domain-specific feature engineering, adherence to known domain constraints, or avoiding invalid assumptions that data analysis alone might not reveal.
+
+    ### Specification
+    1. The opportunity should be specific and fine-grained. Avoid general or vague statements.
+    2. The opportunity should be technical or methodological. Focus on design and implementation strategies, not runtime errors.
+    3. The opportunity must be strictly aligned with the improvement of the target metric. It should fit the template: "IF THIS OPPORTUNITY IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+feedback_problem:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is improving a Kaggle competition implementation iteratively through traces. Each new trace is a modification of the State-of-the-Art (SOTA) implementation that was current at the time that trace was initiated. If a new trace's performance surpasses the SOTA it aimed to improve upon, it becomes the new SOTA. If not, it is considered a failed experiment.
+
+    You will be provided with:
+    1. A detailed competition scenario description;
+    2. A history of previous SOTA experiments and their associated feedbacks, typically indexed or ordered from oldest to newest;
+    3. A history of previous failed experiments and their associated feedbacks, chronologically ordered, where each failed experiment did not surpass the SOTA that was current at the time of its execution;
+    4. The overall current SOTA implementation and its associated feedback, which represents the best-performing experiment from the entire history provided up to this point.
+
+    Your task is to analyze all this provided historical information and extract **Actionable Insights from Experiment History**.
+
+    ## Actionable Insights from Experiment History
+    ### Definition
+    Actionable Insights are specific, fine-grained technical or methodological observations, issues, or patterns identified within previous experiments or the current SOTA implementation. These insights are primarily derived from explicit feedback, code analysis, or patterns in the trace history, and should guide concrete improvements in subsequent iterations.
+
+    ### Guidelines for Identification
+    Here are guidelines to help you identify these Actionable Insights:
+
+    1. **Feedback Analysis**:
+      - **Explicit Issues/Suggestions**: Extract issues, errors, or direct suggestions explicitly stated in the feedback for any given trace (SOTA or failed).
+      - **Implicit Gaps**: Infer unaddressed points, shortcomings, or areas for improvement implied by the feedback's context, even if not directly stated (e.g., if feedback praises a small gain from a feature but the overall score is still low, an implicit gap might be the need for more impactful features).
+      - **Time/Memory Constraints**: If previous experiments indicate failures due to time/memory limitations, it indicates that the efficiency of current experiments is a critical concern. In this case, the efficiency issues should be listed as an insight.
+
+    2. **Implementation Review (of SOTA or relevant past experiments)**:
+      - **Feature Engineering**: Identify potentially suboptimal feature selection (e.g., missing crucial features, using redundant or noisy ones, improper transformations for the model type) or a mismatch between feature characteristics and model assumptions, especially if feedback or performance hints at this.
+      - **Model Architecture & Hyperparameters**: Assess if the model type, architecture, or key hyperparameters (e.g., complexity, capacity) seem misaligned with the problem domain, dataset size/characteristics, or information gleaned from feedback or performance trends across traces.
+      - **Ensemble Strategy**: If ensembling is used, evaluate if the method appears suboptimal (e.g., lack of model diversity, questionable weighting, overly complex for the gain). Pinpoint if feedback or performance data suggests specific base models are underperforming or harming the ensemble.
+      - **Training & Validation Process**: Scrutinize training parameters (e.g., learning rate schedule, batch size, epoch count), loss functions, or regularization techniques, especially if they might be contributing to issues highlighted in feedback (e.g., overfitting, slow convergence, instability) or inconsistent performance in trace history. Check if validation strategies appear robust and reflective of the test set.
+
+    3. **Trace History Analysis (Trends & Patterns)**:
+      - **Persistent Issues**: Flag unresolved negative patterns, errors, or suboptimal outcomes that recur across multiple experiment traces, despite attempts to fix them.
+      - **Ineffective/Partial Fixes**: Highlight previous changes that were intended to address an issue but were only partially successful, proved ineffective, or potentially introduced new, subtle problems, as evidenced by subsequent feedback or performance.
+      - **Unexplored Promising Directions**: Identify potentially valuable approaches (e.g., alternative feature sets, different model families, advanced optimization techniques) that were hinted at by feedback, briefly tried without full exploration, or represent logical next steps given the trajectory of past experiments.
+      - **Constraint Violations/Inefficiencies**: Note any indications of unaddressed time or memory constraint violations, or significant computational inefficiencies that might have impacted previous experiments or could limit future, more complex iterations.
+
+    ### Specification for each Actionable Insight
+    1. The insight must be specific, actionable, and evidence-based (tied to feedback, code, or trace history).
+    2. The insight should focus on technical or methodological aspects.
+    3. Addressing the point raised by the insight should have a plausible positive impact on the target metric.
+    4. The insight should fit a template like: "IF THE OBSERVATION MADE IN THIS INSIGHT IS ADDRESSED, THEN THE TARGET METRIC IS EXPECTED TO IMPROVE."
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+    
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+scenario_description: |-
+  {% if use_raw_description -%}
+  ====== Background ======
+  {{ raw_description }}
+
+  {% else %}
+  ====== Background ======
+  {{ background }}
+
+  {% if eda_output is not none %}
+  ====== Data Overview (EDA) ======
+  {{ eda_output }}
+  {% endif %}
+
+  ====== Submission Format ======
+  Please ensure your submission adheres to the following specifications:
+  {{ submission_specifications }}
+
+  ====== Important Guidelines ======
+  Before submitting your results, please note the following:
+  - We have numerous tests in place to check your code.
+  - Ensure your submission is genuine.
+  - Do not manipulate data or return values solely to pass preliminary tests, as this will not lead to successful final evaluation.
+
+  {% endif %}
+
+  ====== Evaluation ======
+  {% if not use_raw_description and metric_name %}
+  The primary evaluation metric for this task is: **{{ metric_name }}**.
+  {% endif %}
+  This metric is considered better when it is **{% if metric_direction %}larger{% else %}smaller{% endif %}**.
+
+  {% if evaluation is not none %}
+  Additional Evaluation Details:
+  {{ evaluation }}
+  {% endif %}
+
+  {% if time_limit %}
+  ====== Time Limit ======
+  Your code's execution is limited to **{{ time_limit }}**.
+  Please optimize your model and parameters to ensure your code runs within this specified time constraint.
+  {% endif %}
+
+hypothesis_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is iteratively improving a Kaggle competition implementation. Each new iteration (trace) is a modification of the current State-of-the-Art (SOTA). If a new trace surpasses the current SOTA, it becomes the new SOTA. Otherwise, it's a failed experiment.
+    You will be provided with:
+    1. A detailed competition scenario description.
+    2. Previous SOTA experiments and feedback (chronologically ordered, oldest to newest).
+    3. Previous failed experiments and feedback (ordered attempts that did not improve SOTA).
+    4. The current SOTA implementation and feedback (the latest successful experiment).
+    5. A list of identified opportunities or insights (specific technical or methodological issues from previous experiments).
+
+    Your task is to perform two main steps:
+    1. **Hypothesis Proposal**: For each identified insight, propose a testable hypothesis.
+    2. **Hypothesis Evaluation**: Evaluate each proposed hypothesis across multiple dimensions.
+
+    {% if enable_idea_pool %}
+    To help you propose hypotheses, the user may provide a list of ideas for each identified insight. These ideas are methods or techniques from successful SOTA implementations in other competitions.
+    Evaluate these ideas: they might help address the identified insights and improve the current SOTA. You must decide whether to use them. If you adapt a provided idea for a specific insight into your hypothesis, ensure you clearly state this by setting the 'inspired' flag to True for that hypothesis.
+    {% endif %}
+
+    # Task 1: Hypothesis Proposal
+    For each identified insight, if it is not a duplicate of a previous one, propose one hypothesis corresponding to the insight, aimed at improving the current SOTA implementation.
+
+    ## 1.1. Steps to Hypothesize
+    Follow these steps to formulate effective hypotheses:
+
+    1. **Reaffirming the Insights**:
+       - Internally assess and quantify how the identified insight degrades performance to inform your hypothesis.
+       - Relate to previous SOTA experiments. Analyze insights and implicit patterns that can be leveraged.
+       - From failed experiments, identify persistent problems. For example, if experiments consistently failed due to time/memory constraints, your hypotheses for those insights should prioritize efficiency improvements.
+    2. **Drafting the First Implementation (if first)**:
+       If there is no SOTA implementation yet (i.e., you are drafting the first implementation), your hypotheses should not only address the identified insights but also cover the overall techniques to be used, such as feature engineering strategies and model selection.
+    3. **Actionable Changes**:
+       - If a problem relates to time/memory constraints, consider specific changes like using smaller model sizes or alternative, less complex algorithms.
+       - If a problem involves underperforming models, propose specific actions like removing or replacing models with significantly worse performance.
+       - If a problem relates to hyperparameter tuning, recommend a specific method or strategy for tuning (e.g., "Bayesian optimization for LightGBM's learning_rate and num_leaves").
+       - **Efficiency Issues:** If time/memory failures have occurred in previous experiments, your response should prioritize the hypotheses that are *directly related to time/memory constraints*, no matter whether they are mentioned in the insights. Besides, do not compromise performance merely for efficiency since the current SOTA implementation do not encounter the constraints. You should think about how to balance the efficiency and performance so that your new hypothesis can be executed successfully and achieve satisfactory performance. 
+    {% if enable_idea_pool %}
+    4. **Idea Reference**:
+       Provided ideas are methods, techniques, or tricks from high-performing implementations in other competitions addressing similar problems. Use them as inspiration if you find them suitable.
+    {% endif %}
+
+    ## 1.2. Guidelines for Writing
+
+    1. **Be Specific and Decisive**:
+      - Clearly state the exact, unambiguous change(s) being proposed. Avoid vague goals like "improve the model" or "optimize the pipeline."
+      - The hypothesis must propose a single, clear course of action. Do not suggest alternatives (e.g., "try method A or method B").
+      - The hypothesis statement must be direct and definitive, without phrases like "for example," "e.g.," or "might involve."
+      - The hypothesis must be more informative and decisive than the insight it addresses. It should not simply restate the insight or suggest a general approach without specifics.
+
+    2. **Ensure Testability and Actionability**:
+      - The hypothesis must describe an action or change that can be practically implemented and tested.
+      - It should clearly state the expected outcome or specific improvement, typically related to a measurable performance metric.
+      - *Good Example*: "Changing the optimizer from Adam to AdamW and applying a learning rate of 1e-4 for the BERT-based text classifier will increase F1-score by at least 2% on the validation set."
+      - *Poor Example*: "Tune the model for better results."
+
+    3. **Align with Current SOTA and Insights**:
+      - The hypothesis must be directly relevant to improving the *current* State-of-the-Art (SOTA) implementation.
+      - It must address one of the `identified insights` provided as input.
+
+    4. **Maintain Singular Focus within Hypothesis**:
+      - If a hypothesis involves multiple adjustments, these must be tightly correlated and contribute to a single, unified conceptual change.
+      - Avoid bundling multiple independent or unrelated ideas into a single hypothesis. Each hypothesis should test one core concept.
+
+    5. **Address the Overall Pipeline (for Pipeline-Focused Tasks)**:
+      - The hypothesis should address improvements to the end-to-end pipeline.
+      - It can propose coordinated changes across multiple parts of the SOTA implementation if these are necessary to achieve a significant pipeline-level improvement. (Note: Even for pipeline-focused hypotheses, you will still select the single *most relevant* primary component tag during the evaluation task.)
+
+    # Task 2: Hypothesis Evaluation
+    After proposing one hypothesis for each relevant insight, evaluate each one.
+
+    ## 2.1. Evaluation Instruction
+    For each individual hypothesis you proposed in Task 1, perform the following two evaluation steps:
+
+    1. **Assign a Component Tag:** Assign a single component tag to the hypothesis. Choose the **single most relevant** tag from the official list below, even if the hypothesis appears to touch upon multiple areas. Use the following detailed descriptions to understand the scope and boundaries of each component. The "Associated files for changes" indicate which parts of a typical codebase would be affected by changes to that component, providing further context for its scope.
+
+      - **`DataLoadSpec`**: Responsible for loading raw competition data, ensuring data is converted to the correct types, and potentially providing an initial exploratory data analysis (EDA) summary.
+      - **`FeatureEng`**: Focuses on transforming raw data into meaningful features suitable for model consumption. Key responsibilities include maintaining data shape consistency, preventing data leakage during feature creation, and optimizing features for model performance. Feature engineering should be model-agnostic. Data transformations or augmentations that are specific to a particular model framework (e.g., requiring model code changes or using framework-specific data loaders) belong in the `Model` component, not here. Changes within `FeatureEng` should be implementable without altering model-specific code (e.g., `model_*.py`).
+      - **`Model`**: Involves model building (developing new models to address the problem), model tuning (optimizing existing models for better performance), or model removal (discarding models that do not contribute effectively). This component also handles data operations or augmentations that are:
+        1. Closely tied to a specific model framework (e.g., using PyTorch's `Datasets` & `DataLoaders` or TensorFlow's `tf.data`).
+        2. Cannot be applied generically in `feature.py` without requiring modifications to the model's own code structure.
+      - **`Ensemble`**: Combines predictions from multiple models using various ensemble strategies (e.g., averaging, stacking). It also includes evaluating the performance of these ensembles and generating the final predictions for submission.
+      - **`Workflow`**: Integrates all pipeline components, orchestrating the flow from data loading and preprocessing, through feature engineering, model training/prediction, and ensembling, to ensure efficient execution and correct formatting of the final output (e.g., `submission.csv`).
+
+    2. **Score the Hypothesis:** For each hypothesis, provide a score from 1 (lowest/worst) to 10 (highest/best) on each of the following five dimensions. Base your scores on all provided information (e.g., competition scenario, SOTA details, previous experiments, identified problems).
+
+      - **Problem-Hypothesis Alignment (Score: 1-10):** How directly and effectively does the hypothesis address the core issues of the `identified insight` it targets? A higher score means a stronger, more direct alignment.
+      - **Expected Impact (Score: 1-10):** What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness) if this hypothesis is successfully implemented on the current SOTA? Higher scores for greater positive impact.
+      - **Novelty (Score: 1-10):** How innovative or original is this hypothesis when compared to the approaches and ideas evident in the `previous SOTA experiments` and `previous failed experiments`? **Crucially, assign a score of 1 if the hypothesis is a repeat or substantially similar to a previously attempted hypothesis (whether successful or failed).**
+      - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation.
+      - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance (e.g., high potential reward justifies moderate risk, or a low-risk change offers solid gains).
+      - Exception: If the hypothesis is related to time/memory constraints and the previous experiments indicate failures due to time/memory limitations, the score for all dimensions should be 10 to make sure the hypothesis is noted by the user.
+
+  user: |-
+    # Scenario Description
+    {{ scenario_desc }}
+
+    # Previous Experiments and Feedbacks
+    {{ exp_and_feedback_list_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Identified Insights{% if enable_idea_pool %} with Sampled Ideas{% endif %}
+    {{ problems }}
+
+task_gen:
+  system: |-
+    {% include "scenarios.data_science.share:scen.role" %}
+    The user is engaged in iteratively developing a Kaggle competition solution. Each new iteration aims to improve upon the current State-of-the-Art (SOTA) implementation by applying a specific hypothesis. The new trace is based on the current SOTA; the SOTA itself evolves and is not necessarily the immediately preceding version if multiple SOTAs were achieved.
+
+    You will be provided with the following inputs:
+    1. **Competition Scenario Description**: Details about the competition (task type, data, evaluation metric, time limits, etc.).
+    2. **Previous SOTA Experiments & Feedback**: (If available) A history of successful implementations, ordered chronologically.
+    3. **Previous Failed Experiments & Feedback**: (If available) A history of unsuccessful attempts.
+    4. **Current SOTA Implementation & Feedback**: (If available) Details of the best-performing solution so far. **If no SOTA implementation is provided, your task is to sketch the initial `main.py` workflow.**
+    5. **Proposed Hypothesis**: A specific hypothesis aimed at improving the current SOTA (or forming the basis of an initial SOTA if none exists).
+
+    Your primary goal is to generate a detailed, step-by-step **sketch or refinement plan** for a new data processing and modeling pipeline, specifically for the main workflow script (`main.py`), that effectively implements the `Proposed Hypothesis`.
+
+    # BACKGROUND CONTEXT: Pipeline Implementation Standards & Constraints
+
+    The `main.py` sketch you generate should lead to a pipeline implementation that adheres to the following standards. These are guiding principles for the final *outcome* of your sketch, not direct steps for your task description itself:
+
+    1. **Program Execution**:
+      - The resulting `main.py` script must be executable via `python main.py` without requiring any command-line parameters. All configurations should be handled internally (e.g., hardcoded for simplicity, or loaded from a standard configuration file if implied by the SOTA or hypothesis).
+    2. **File Handling**:
+      - Implement robust handling of file encodings and delimiters.
+      - The input files are located under `/kaggle/input`. Combine or process them correctly if necessary.
+      - Determine test indices from a dedicated test index file (if available) or by the order in the test data file. **Crucially, do not use the sample submission file to infer test indices.**
+      - Ensure that actual data is loaded from files during the data loading phase, not just filenames or paths. Data loading should not be postponed to later stages.
+    3. **Data Preprocessing**:
+      - Convert data to their correct types (e.g., numeric, categorical; parse dates appropriately).
+      - Optimize memory usage for large datasets (e.g., using techniques like downcasting numerical types, or processing data in chunks if essential and feasible).
+      - Implement domain-specific preprocessing steps relevant to the competition and data type (e.g., text tokenization, image resizing/augmentation).
+    4. **Code Standards**:
+      - The pipeline should **NOT** use progress bars (e.g., `tqdm`) in the code intended for submission.
+      - Reiterate: Do **NOT** use the sample submission file to extract test index information.
+      - Ensure no features are inadvertently excluded during data processing or feature engineering steps.
+    5. **Preferred Technologies & Methodological Notes**:
+      - For Neural Network (NN) models: Prefer PyTorch over TensorFlow if a choice is suitable for the hypothesis and no SOTA dictates otherwise. Prioritize fine-tuning pre-trained models over training from scratch where applicable.
+      - For Decision Tree models: Prefer XGBoost or RandomForest over LightGBM if a choice is suitable for the hypothesis and no SOTA dictates otherwise.
+    6. **General Data Science Considerations**:
+      - Design for scalability, especially with large datasets.
+      - Handle missing values and outliers appropriately (e.g., impute, remove, or use robust methods).
+      - Ensure consistency between feature data types and any transformations applied.
+      - Prevent data leakage from the test set (or validation folds) into the training process of any stage.
+    7. **Resource Utilization**:
+      - GPU and multiprocessing capabilities are available and should be leveraged to accelerate computations where appropriate and beneficial.
+    8. **Metric Calculation and Storage (`scores.csv`)**:
+      - Calculate the official competition metric (as specified in the `Competition Scenario Description`) for each model and any ensemble strategy on a proper validation set. Save these results in a file named `scores.csv`.
+      - Validation should typically be based on K-fold cross-validation (e.g., 5-fold), if appropriate for the task and data. Store the mean validation score in `scores.csv`.
+      - Even if only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
+      - The `scores.csv` file must have an index including model names and the literal string "ensemble" (all lowercase) for the ensemble strategy.
+      - Column names in `scores.csv` must be: "Model" (for model/ensemble name) and the exact metric name from the scenario (e.g., "AUC").
+      - Ensure validation metrics and processes are consistent across all parts of the pipeline. Avoid changes that would alter how validation metrics are calculated unless that is part of the hypothesis.
+    9. **Submission File (`submission.csv`)**:
+      - Generate a `submission.csv` file with final predictions in the exact format required by the competition (refer to `sample_submission` details in the `Competition Scenario Description`).
+
+    # Guidelines for Sketching
+
+    YOUR TASK IS TO make a sketch for drafting or updating the `main.py` workflow. This sketch should be detailed and specific, outlining the steps to be taken in the code.
+
+    1. **No Code**: The sketch must **NOT** contain any programming code, specific library calls, or pseudo-code. Describe steps conceptually and list specific techniques or algorithm names where appropriate (e.g., "Apply Isotonic Regression for calibration").
+    2. **Structure and Conciseness**:
+      - If there is already an existing `main.py`, understand its structure.
+      - If not, write a clear sequence of clear, logical steps to structure the new `main.py` workflow.
+    3. **Leverage SOTA (If Available) or Design a New One**:
+      - If a `Current SOTA Implementation` is provided, your sketch should primarily focus on the **changes, additions, or replacements** needed to integrate the `Proposed Hypothesis` into that SOTA.
+      - **If no `Current SOTA Implementation` is provided (i.e., this is the first version):** Your sketch must describe a **complete, end-to-end pipeline** from data loading to submission file generation, with the `Proposed Hypothesis` as a central element.
+      - Avoid redundantly detailing steps that would be perfectly covered by existing SOTA code, unless restating is essential for the clarity of the new workflow modifications.
+    4. **Learn from Past Failures (If Available)**:
+      - If `Previous Failed Experiments & Feedback` are provided, analyze them. Design the task to avoid repeating similar mistakes, especially if those failures relate to the current hypothesis, data handling, or resource usage. If no failed experiments are available, this guideline is not applicable.
+    5. **Specificity and Clarity**:
+      - Be specific and unambiguous in each step. For instance, instead of "select an appropriate model," if the hypothesis or context implies a certain model or action, state it (e.g., "Train a baseline Logistic Regression model," or "Apply Temperature Scaling to the outputs of the trained neural network").
+      - Your sketch should be definitive. Avoid open-ended options, placeholders, or phrases like "for example," or "e.g.," within a step's action.
+    6. **Resource Constraints & Efficiency**:
+      - **Time Limit Awareness**: Always be mindful of the competition `Time Limit` provided in the `Competition Scenario Description`. Design a workflow that can realistically execute within this limit.
+      - **Memory/Efficiency Priority**:
+        - If `Previous Failed Experiments` explicitly state time/memory constraint issues as a cause of failure, your sketch **must** prioritize efficiency.
+        - Even without explicit past failures, if the dataset size, data complexity, proposed model, or overall `Time Limit` suggests that efficiency will be critical, proactively design for it.
+        - If efficiency is a primary driver for your sketch, highlight `[EFFICIENCY AS PRIORITY]` at the beginning of the output.
+        - When prioritizing efficiency, you may suggest simplifications or optimizations in parts of the pipeline not directly related to the `Proposed Hypothesis` (e.g., more efficient data loading, simpler viable features), as long as these changes do not compromise the ability to validate the hypothesis.
+        - The primary goal is to successfully implement and validate the `Proposed Hypothesis` effectively, balancing performance with resource constraints.
+    7. **Reminder of Common Mistakes**: In the sketch, you should remind the developer of common mistakes to avoid, especially when they are to write a new `main.py` from scratch. These include:
+      - Ensure the input files are loaded from the correct locations.
+      - Meet the format requirements of the `submission.csv`.
+
+  user: |-
+    # Competition Scenario Description
+    {{ scenario_desc }}
+
+    # Current SOTA Implementation
+    {{ sota_exp_desc }}
+
+    # Proposed Hypothesis
+    PLEASE STRICTLY FOLLOW THEM WHEN DRAFTING YOUR PLAN:
+
+    {% for hypothesis in hypotheses %}
+    ## {{ hypothesis.problem_name }}
+    **Why:** {{ hypothesis.problem_desc }}
+    **Hypothesis:** {{ hypothesis.hypothesis }}
+
+    {% endfor %}
+    # Feedback from Previous Failed Experiments (e.g., experiments that did not pass evaluation, encountered bugs, or failed to surpass SOTA performance)
+
+    {{ failed_exp_and_feedback_list_desc }}
