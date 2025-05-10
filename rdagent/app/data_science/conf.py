@@ -86,5 +86,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     ### inject diverse
     enable_inject_diverse: bool = False
 
+    #### time for merge
+    merge_hours: int = 2
+    """The time for merge"""
+
 
 DS_RD_SETTING = DataScienceBasePropSetting()

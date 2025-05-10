@@ -92,7 +92,7 @@ class ExpGen2TraceAndMerge(ExpGen):
         timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         logger.info(f"Remain time: {timer.remain_time_duration}")
 
-        if timer.remain_time_duration >= timedelta(hours=2):
+        if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 selection = tuple()  # create new trace
