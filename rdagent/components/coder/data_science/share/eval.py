@@ -48,6 +48,18 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
 
         # 2) check the result and stdout after reruning the model.
 
+        # Read the content of files submission.csv and scores.csv before execution
+        submission_content_before = (
+            (implementation.workspace_path / "submission.csv").read_text()
+            if (implementation.workspace_path / "submission.csv").exists()
+            else None
+        )
+        scores_content_before = (
+            (implementation.workspace_path / "scores.csv").read_text()
+            if (implementation.workspace_path / "scores.csv").exists()
+            else None
+        )
+
         # Remove the files submission.csv and scores.csv
         implementation.execute(env=env, entry=get_clear_ws_cmd(stage="before_inference"))
 
@@ -70,17 +82,17 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                     final_decision=False,
                 )
 
-        # Read the content of files submission.csv and scores.csv before execution
-        submission_content_before = (
-            (implementation.workspace_path / "submission.csv").read_text()
-            if (implementation.workspace_path / "submission.csv").exists()
-            else None
-        )
-        scores_content_before = (
-            (implementation.workspace_path / "scores.csv").read_text()
-            if (implementation.workspace_path / "scores.csv").exists()
-            else None
-        )
+        # Check if scores contain NaN (values)
+        score_df = pd.read_csv((implementation.workspace_path / "scores.csv"), index_col=0)
+        if score_df.isnull().values.any():
+            nan_locations = score_df[score_df.isnull().any(axis=1)]
+            err_msg = f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+            return CoSTEERSingleFeedback(
+                execution=err_msg,
+                return_checking=err_msg,
+                code=err_msg,
+                final_decision=False,
+            )
 
         assert submission_content_before is not None
         assert scores_content_before is not None

@@ -44,6 +44,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     rule_base_eval: bool = False
     sample_data: bool = True
     use_raw_description: bool = False
+    show_nan_columns: bool = False
 
     #### model dump
     enable_model_dump: bool = False
