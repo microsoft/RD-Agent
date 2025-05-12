@@ -53,8 +53,8 @@ RD-Agent currently ranks as the top machine learning engineering agent on the ML
 - Each line of RD-Agent's current results is based on a single trial due to limited resources. We plan to include results from multiple trials soon.
 
 You can inspect the detailed runs of the above results online.
-- [RD-Agent o1-preview detailed runs](TODO)
-- [RD-Agent o3(R)+GPT-4.1(D) detailed runs](TODO)
+- [RD-Agent o1-preview detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O1-preview)
+- [RD-Agent o3(R)+GPT-4.1(D) detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O3_GPT41)
 
 More details will be added soon.
 
