@@ -14,8 +14,8 @@ from streamlit import session_state as state
 from rdagent.log.mle_summary import extract_mle_json
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
+from rdagent.log.ui.utils import ALL, HIGH, LITE, MEDIUM
 from rdagent.scenarios.kaggle.kaggle_crawler import leaderboard_scores
-from rdagent.log.ui.utils import LITE, MEDIUM, HIGH, ALL
 
 
 def get_metric_direction(competition: str):
@@ -380,7 +380,7 @@ def all_summarize_win():
         "Select MLE-Bench Competitions Level",
         options=["ALL", "HIGH", "MEDIUM", "LITE"],
         index=0,
-        key="select_lite_level"
+        key="select_lite_level",
     )
     if select_lite_level != "ALL":
         if select_lite_level == "HIGH":
