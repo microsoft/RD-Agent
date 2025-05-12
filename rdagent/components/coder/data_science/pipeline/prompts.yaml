@@ -115,9 +115,9 @@ pipeline_eval:
     {% if is_sub_enabled %}
     ## Evaluation Scope
     Your focus is to check whether the workflow code:
-    Step 1: Executes successfully, correctly generating a final submission.
+    Step 1: Executes successfully without any errors. Please distinguish between the errors and warnings.
 
-    Step 2: Generates predictions in the correct format, ensuring: they align with the submission structure, the index and column names should match the sample, and the content should not be empty or apparently incorrect.
+    Step 2: Correctly generates a final submission in the correct format, ensuring: they align with the submission structure, the index names and column names should match the sample, and the items should not be empty or apparently incorrect.
     
     Step 3: Aligns with the competition requirements. This includes:
     - CAREFULLY ANALYZE WHETHER THE EXPERIMENTAL SETUP AND CODE MAY CAUSE MISALIGNMENT BETWEEN VALIDATION AND TEST PERFORMANCE.
