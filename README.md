@@ -39,14 +39,24 @@ https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
 
 # 🏆 The Best Machine Learning Engineering Agent!
 
-[MLE-bench](https://github.com/openai/mle-bench) is a benchmark for measuring how well AI agents perform at machine learning engineering
-MLE-bench curate a dataset that contains 75 Kaggle competitions which we use to evaluate the ML engineering capabilities of AI systems.
+[MLE-bench](https://github.com/openai/mle-bench) is a benchmark designed to evaluate how well AI agents perform machine learning engineering tasks. MLE-bench uses a dataset of 75 Kaggle competitions to test and measure the machine learning engineering capabilities of different AI systems.
+
+RD-Agent currently ranks as the top machine learning engineering agent on the MLE-bench leaderboard.
 
 | Agent | Low == Lite (%) | Medium (%) | High (%) | All (%) |
 |---------|--------|-----------|---------|----------|
-| AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
+| RD-Agent o1-preview | 50 | 10.53 | 20 | 24 |
+| RD-Agent o3(R)+GPT-4.1(D) | 50 | 13.16 | 13.33 | 24 |
+| AIDE o1-preview | 34.3 | 8.8  | 10.0  | 16.9  |
+- o3(R)+GPT-4.1(D): represents Research Agent is o3 and Development Agent is GPT-4.1.
+- AIDE o1-preview: previously best public top-1 result on the leaderboard.
 
-You can download and inspect
+You can inspect the detailed runs of the above results online.
+- [RD-Agent o1-preview detailed runs](TODO)
+- [RD-Agent o3(R)+GPT-4.1(D) detailed runs](TODO)
+
+More details will be added soon.
+
 
 # 🌟 Introduction
 <div align="center">
