@@ -45,7 +45,7 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
             "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
-            "RAG": "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors." if len(trace.hist) < 15 else "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). At the same time, try to use fundamental factors.",
+            "RAG": "Try the easiest and fastest factors to experiment with from various perspectives first." if len(trace.hist) < 15 else "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors).",
             "hypothesis_output_format": prompt_dict["factor_hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["factor_hypothesis_specification"],
         }
@@ -69,15 +69,22 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
         scenario = trace.scen.get_scenario_all_desc(action="factor")
         experiment_output_format = prompt_dict["factor_experiment_output_format"]
 
-        hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
-            )
-            if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
-        )
+        if len(trace.hist) == 0:
+            hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
+        else:
+            specific_trace = Trace(trace.scen)
+            for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+                if trace.hist[i][0].hypothesis.action == "factor":
+                    specific_trace.hist.insert(0, trace.hist[i])
+            if len(specific_trace.hist) > 0:
+                specific_trace.hist.reverse()
+                hypothesis_and_feedback = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(prompt_dict["hypothesis_and_feedback"])
+                    .render(trace=specific_trace)
+                )
+            else:
+                hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
         experiment_list: List[FactorExperiment] = [t[0] for t in trace.hist]
 

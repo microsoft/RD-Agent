@@ -88,44 +88,55 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
         scenario = trace.scen.get_scenario_all_desc(action="model")
         experiment_output_format = prompt_dict["model_experiment_output_format"]
 
-        hypothesis_and_feedback = (
-            (
-                Environment(undefined=StrictUndefined)
-                .from_string(prompt_dict["hypothesis_and_feedback"])
-                .render(trace=trace)
-            )
-            if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
-        )
+        last_experiment = None
+        last_feedback = None
+        sota_experiment = None
+        sota_feedback = None
+
+        if len(trace.hist) == 0:
+            hypothesis_and_feedback = "No previous hypothesis and feedback available since it's the first round."
+        else:
+            specific_trace = Trace(trace.scen)
+            for i in range(len(trace.hist) - 1, -1, -1):  # Reverse iteration
+                if trace.hist[i][0].hypothesis.action == "model":
+                    if last_experiment is None:
+                        last_experiment = trace.hist[i][0]
+                        last_feedback = trace.hist[i][1]
+                    if trace.hist[i][1].decision is True and sota_experiment is None:
+                        sota_experiment = trace.hist[i][0]
+                        sota_feedback = trace.hist[i][1]
+                    specific_trace.hist.insert(0, trace.hist[i])
+            if len(specific_trace.hist) > 0:
+                specific_trace.hist.reverse()
+                hypothesis_and_feedback = (
+                    Environment(undefined=StrictUndefined)
+                    .from_string(prompt_dict["hypothesis_and_feedback"])
+                    .render(trace=specific_trace)
+                )
+            else:
+                hypothesis_and_feedback = "No previous hypothesis and feedback available."
 
         last_hypothesis_and_feedback = (
             (
                 Environment(undefined=StrictUndefined)
                 .from_string(prompt_dict["last_hypothesis_and_feedback"])
-                .render(experiment=trace.hist[-1][0],
-                        feedback=trace.hist[-1][1])
+                .render(experiment=last_experiment,
+                        feedback=last_feedback)
             )
-            if len(trace.hist) > 0
+            if last_experiment is not None
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
-        sota_hypothesis_and_feedback = ""
-        if len(trace.hist) == 0:
-            sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since it is the first round."
-        else:
-            for i in range(len(trace.hist) - 1, -1, -1):
-                if trace.hist[i][1].decision:
-                    sota_hypothesis_and_feedback = (
-                        Environment(undefined=StrictUndefined)
-                        .from_string(prompt_dict["sota_hypothesis_and_feedback"])
-                        .render(
-                            experiment=trace.hist[i][0],
-                            feedback=trace.hist[i][1]
-                        )
-                    )
-                    break
-            else:
-                sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since previous experiments were not accepted."
+        sota_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["sota_hypothesis_and_feedback"])
+                .render(experiment=sota_experiment,
+                        feedback=sota_feedback)
+            )
+            if sota_experiment is not None
+            else "No SOTA hypothesis and feedback available since previous experiments were not accepted."
+        )
 
         experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
 

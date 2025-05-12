@@ -108,9 +108,9 @@ class QlibQuantHypothesisGen(FactorAndModelHypothesisGen):
         qaunt_rag = None
         if action == "factor":
             if len(trace.hist) < 6:
-                qaunt_rag = "Try the easiest and fastest factors to experiment with from various perspectives first. Also, try to use fundamental factors as much as possible."
+                qaunt_rag = "Try the easiest and fastest factors to experiment with from various perspectives first."
             else:
-                qaunt_rag = "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors). At the same time, try to use fundamental factors."
+                qaunt_rag = "Now, you need to try factors that can achieve high IC (e.g., machine learning-based factors)!"
         elif action == "model":
             qaunt_rag = "1. In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.\n2. The training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size. This has a significant impact on the training results. If you believe that the previous model itself is good but the training hyperparameters or model hyperparameters are not optimal, you can return the same model and adjust these parameters instead."
         
