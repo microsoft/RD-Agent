@@ -29,9 +29,42 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
             if len(trace.hist) > 0
             else "No previous hypothesis and feedback available since it's the first round."
         )
+
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
+        sota_hypothesis_and_feedback = ""
+        if len(trace.hist) == 0:
+            sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since it is the first round."
+        else:
+            for i in range(len(trace.hist) - 1, -1, -1):
+                if trace.hist[i][1].decision:
+                    sota_hypothesis_and_feedback = (
+                        Environment(undefined=StrictUndefined)
+                        .from_string(prompt_dict["sota_hypothesis_and_feedback"])
+                        .render(
+                            experiment=trace.hist[i][0],
+                            feedback=trace.hist[i][1]
+                        )
+                    )
+                    break
+            else:
+                sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since previous experiments were not accepted."
+        
+
         context_dict = {
             "hypothesis_and_feedback": hypothesis_and_feedback,
-            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.",
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
+            "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
+            "RAG": "In Quantitative Finance, market data could be time-series, and GRU model/LSTM model are suitable for them. Do not generate GNN model as for now.\nThe training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size.",
             "hypothesis_output_format": prompt_dict["hypothesis_output_format"],
             "hypothesis_specification": prompt_dict["model_hypothesis_specification"],
         }
@@ -65,6 +98,35 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             else "No previous hypothesis and feedback available since it's the first round."
         )
 
+        last_hypothesis_and_feedback = (
+            (
+                Environment(undefined=StrictUndefined)
+                .from_string(prompt_dict["last_hypothesis_and_feedback"])
+                .render(experiment=trace.hist[-1][0],
+                        feedback=trace.hist[-1][1])
+            )
+            if len(trace.hist) > 0
+            else "No previous hypothesis and feedback available since it's the first round."
+        )
+
+        sota_hypothesis_and_feedback = ""
+        if len(trace.hist) == 0:
+            sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since it is the first round."
+        else:
+            for i in range(len(trace.hist) - 1, -1, -1):
+                if trace.hist[i][1].decision:
+                    sota_hypothesis_and_feedback = (
+                        Environment(undefined=StrictUndefined)
+                        .from_string(prompt_dict["sota_hypothesis_and_feedback"])
+                        .render(
+                            experiment=trace.hist[i][0],
+                            feedback=trace.hist[i][1]
+                        )
+                    )
+                    break
+            else:
+                sota_hypothesis_and_feedback = "No SOTA hypothesis and feedback available since previous experiments were not accepted."
+
         experiment_list: List[ModelExperiment] = [t[0] for t in trace.hist]
 
         model_list = []
@@ -75,9 +137,11 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             "target_hypothesis": str(hypothesis),
             "scenario": scenario,
             "hypothesis_and_feedback": hypothesis_and_feedback,
+            "last_hypothesis_and_feedback": last_hypothesis_and_feedback,
+            "SOTA_hypothesis_and_feedback": sota_hypothesis_and_feedback,
             "experiment_output_format": experiment_output_format,
             "target_list": model_list,
-            "RAG": None,
+            "RAG": "Note, the training data consists of approximately 478,000 samples for the training set and about 128,000 samples for the validation set. Please design the hyperparameters accordingly and control the model size.",
         }, True
 
     def convert_response(self, response: str, hypothesis: Hypothesis, trace: Trace) -> ModelExperiment:
@@ -89,6 +153,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
             architecture = response_dict[model_name]["architecture"]
             variables = response_dict[model_name]["variables"]
             hyperparameters = response_dict[model_name]["hyperparameters"]
+            training_hyperparameters = response_dict[model_name]["training_hyperparameters"]
             model_type = response_dict[model_name]["model_type"]
             tasks.append(
                 ModelTask(
@@ -98,6 +163,7 @@ class QlibModelHypothesis2Experiment(ModelHypothesis2Experiment):
                     architecture=architecture,
                     variables=variables,
                     hyperparameters=hyperparameters,
+                    training_hyperparameters=training_hyperparameters,
                     model_type=model_type,
                 )
             )

@@ -65,6 +65,9 @@ evolving_strategy_factor_implementation_v1_system: |-
 evolving_strategy_factor_implementation_v2_user: |-
   --------------Target factor information:---------------
   {{ factor_information_str }}
+  [NOTE]
+  1. Ensure the computations are efficient. Prefer vectorized operations where possible, and consider JIT compilation (e.g., via numba) for recursive calculations if necessary!!
+  2. Parallelization techniques (e.g., Joblib, Dask) are allowed if it improves performance!!
 
   {% if queried_similar_error_knowledge|length != 0 %}
   {% if error_summary_critics is none %}

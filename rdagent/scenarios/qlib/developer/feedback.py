@@ -39,10 +39,10 @@ def process_results(current_result, sota_result):
 
     # Select important metrics for comparison
     important_metrics = [
-        "1day.excess_return_without_cost.max_drawdown",
-        "1day.excess_return_without_cost.information_ratio",
-        "1day.excess_return_without_cost.annualized_return",
         "IC",
+        "1day.excess_return_without_cost.annualized_return",
+        # "1day.excess_return_without_cost.max_drawdown",
+        # "1day.excess_return_without_cost.information_ratio",
     ]
 
     # Filter the combined DataFrame to retain only the important metrics
@@ -126,40 +126,66 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
 
 
 class QlibModelExperiment2Feedback(Experiment2Feedback):
-    """Generated feedbacks on the hypothesis from **Executed** Implementations of different tasks & their comparisons with previous performances"""
-
     def generate_feedback(self, exp: Experiment, trace: Trace) -> HypothesisFeedback:
         """
-        The `ti` should be executed and the results should be included, as well as the comparison between previous results (done by LLM).
-        For example: `mlflow` of Qlib will be included.
+        Generate feedback for the given experiment and hypothesis.
+
+        Args:
+            exp (QlibModelExperiment): The experiment to generate feedback for.
+            hypothesis (QlibModelHypothesis): The hypothesis to generate feedback for.
+            trace (Trace): The trace of the experiment.
+
+        Returns:
+            HypothesisFeedback: The feedback generated for the given experiment and hypothesis.
         """
         hypothesis = exp.hypothesis
         logger.info("Generating feedback...")
-        # Define the system prompt for hypothesis feedback
-        system_prompt = feedback_prompts["model_feedback_generation"]["system"]
 
-        # Define the user prompt for hypothesis feedback
-        context = trace.scen
+        # Generate the system prompt
+        sys_prompt = (
+            Environment(undefined=StrictUndefined)
+            .from_string(feedback_prompts["model_feedback_generation"]["system"])
+            .render(scenario=self.scen.get_scenario_all_desc())
+        )
+
+        important_metrics = [
+            "IC",
+            "1day.excess_return_without_cost.annualized_return",
+            "1day.excess_return_without_cost.max_drawdown",
+            # "1day.excess_return_without_cost.information_ratio",
+        ]
+
+        # Generate the user prompt
         SOTA_hypothesis, SOTA_experiment = trace.get_sota_hypothesis_and_experiment()
-
         user_prompt = (
             Environment(undefined=StrictUndefined)
             .from_string(feedback_prompts["model_feedback_generation"]["user"])
             .render(
-                context=context,
-                last_hypothesis=SOTA_hypothesis,
-                last_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
-                last_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
-                last_result=SOTA_experiment.result if SOTA_hypothesis else None,
+                sota_hypothesis=SOTA_hypothesis,
+                sota_task=SOTA_experiment.sub_tasks[0].get_task_information() if SOTA_hypothesis else None,
+                sota_code=SOTA_experiment.sub_workspace_list[0].file_dict.get("model.py") if SOTA_hypothesis else None,
+                sota_result=SOTA_experiment.result.loc[important_metrics] if SOTA_hypothesis else None,
                 hypothesis=hypothesis,
                 exp=exp,
+                exp_result=exp.result.loc[important_metrics] if exp.result is not None else "execution failed",
             )
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
+        response = APIBackend().build_messages_and_create_chat_completion(
+            user_prompt=user_prompt,
+            system_prompt=sys_prompt,
+            json_mode=True,
+            json_target_type=Dict[str, str | bool | int],
+        )
+
+        # Parse the JSON response to extract the feedback
+        response_json_hypothesis = json.loads(response)
+
+        # Call the APIBackend to generate the response for hypothesis feedback
         response_hypothesis = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
-            system_prompt=system_prompt,
+            system_prompt=sys_prompt,
             json_mode=True,
             json_target_type=Dict[str, str | bool | int],
         )
