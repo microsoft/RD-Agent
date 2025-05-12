@@ -14,6 +14,7 @@ from streamlit import session_state as state
 from rdagent.log.mle_summary import extract_mle_json
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.ds_trace import load_times
+from rdagent.log.ui.utils import ALL, HIGH, LITE, MEDIUM
 from rdagent.scenarios.kaggle.kaggle_crawler import leaderboard_scores
 
 
@@ -352,32 +353,6 @@ def days_summarize_win():
         st.dataframe(df)
 
 
-LITE = [
-    "aerial-cactus-identification",
-    "aptos2019-blindness-detection",
-    "denoising-dirty-documents",
-    "detecting-insults-in-social-commentary",
-    "dog-breed-identification",
-    "dogs-vs-cats-redux-kernels-edition",
-    "histopathologic-cancer-detection",
-    "jigsaw-toxic-comment-classification-challenge",
-    "leaf-classification",
-    "mlsp-2013-birds",
-    "new-york-city-taxi-fare-prediction",
-    "nomad2018-predict-transparent-conductors",
-    "plant-pathology-2020-fgvc7",
-    "random-acts-of-pizza",
-    "ranzcr-clip-catheter-line-classification",
-    "siim-isic-melanoma-classification",
-    "spooky-author-identification",
-    "tabular-playground-series-dec-2021",
-    "tabular-playground-series-may-2022",
-    "text-normalization-challenge-english-language",
-    "text-normalization-challenge-russian-language",
-    "the-icml-2013-whale-challenge-right-whale-redux",
-]
-
-
 def all_summarize_win():
     def shorten_folder_name(folder: str) -> str:
         if "amlt" in folder:
@@ -401,8 +376,24 @@ def all_summarize_win():
     base_df = percent_df(base_df)
     base_df.insert(0, "Select", True)
     bt1, bt2 = st.columns(2)
-    if bt2.toggle("Select Lite Competitions", key="select_lite"):
-        base_df["Select"] = base_df["Competition"].isin(LITE)
+    select_lite_level = bt2.selectbox(
+        "Select MLE-Bench Competitions Level",
+        options=["ALL", "HIGH", "MEDIUM", "LITE"],
+        index=0,
+        key="select_lite_level",
+    )
+    if select_lite_level != "ALL":
+        if select_lite_level == "HIGH":
+            lite_set = set(HIGH)
+        elif select_lite_level == "MEDIUM":
+            lite_set = set(MEDIUM)
+        elif select_lite_level == "LITE":
+            lite_set = set(LITE)
+        else:
+            lite_set = set()
+        base_df["Select"] = base_df["Competition"].isin(lite_set)
+    else:
+        base_df["Select"] = True  # select all if ALL is chosen
 
     if bt1.toggle("Select Best", key="select_best"):
 
