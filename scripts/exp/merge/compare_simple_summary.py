@@ -68,8 +68,15 @@ def percent_df(df: pd.DataFrame, show_origin=True) -> pd.DataFrame:
     return base_df
 
 
+def remove_busy_owl(df):
+    """remove busy-owl competition; becuase it is a fixed competition that contains successful results"""
+    if df.shape[0] > 75:
+        df = df[~df.index.str.contains("^busy-owl - seti-breakthrough-listen|^busy-owl - whale-categorization-playground|^uncommon-macaque - seti-breakthrough-listen|^uncommon-macaque - whale-categorization-playground")]
+    return df
+
+
 def select_best(base_df: pd.DataFrame, return_sel: bool=False):
-    base_df = base_df.copy()
+    base_df = remove_busy_owl(base_df.copy())
     base_df = base_df[~base_df.index.duplicated(keep="first")]
 
     base_df = percent_df(base_df)
@@ -160,6 +167,7 @@ from itertools import combinations
 names = []
 for p in Path("mle-bench-res").glob("*.h5"):
     names.append(p.stem)
+
 
 from tqdm import tqdm
 all_stat = {}

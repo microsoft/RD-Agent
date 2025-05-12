@@ -76,6 +76,7 @@ def plot_metric_improvement_and_distribution_grid(df, save_prefix='metric_summar
 
 def main():
     df = read_all_stat()
+    df = df[~df.index.get_level_values(0).str.contains("V03|V04")]
     plot_metric_improvement_and_distribution_grid(df)
 
 if __name__ == "__main__":
