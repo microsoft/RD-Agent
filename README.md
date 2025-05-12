@@ -37,6 +37,16 @@ https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
 | Official Discord release  | We launch our first chatting channel in Discord (🗪[![Chat](https://img.shields.io/badge/chat-discord-blue)](https://discord.gg/ybQ97B6Jjy)) |
 | First release | **RDAgent** is released on GitHub |
 
+# 🏆 The Best Machine Learning Engineering Agent!
+
+[MLE-bench](https://github.com/openai/mle-bench) is a benchmark for measuring how well AI agents perform at machine learning engineering
+MLE-bench curate a dataset that contains 75 Kaggle competitions which we use to evaluate the ML engineering capabilities of AI systems.
+
+| Agent | Low == Lite (%) | Medium (%) | High (%) | All (%) |
+|---------|--------|-----------|---------|----------|
+| AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
+
+You can download and inspect
 
 # 🌟 Introduction
 <div align="center">
