@@ -112,8 +112,8 @@ class ModelFBWorkspace(FBWorkspace):
     ):
         self.before_execute()
         try:
-            qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
-            # qtde = LocalEnv(conf=QlibCondaConf()) if self.target_task.version == 1 else KGDockerEnv()
+            # qtde = QTDockerEnv() if self.target_task.version == 1 else KGDockerEnv()
+            qtde = LocalEnv(conf=QlibCondaConf()) if self.target_task.version == 1 else KGDockerEnv()
             qtde.prepare()
 
             if self.target_task.version == 1:
