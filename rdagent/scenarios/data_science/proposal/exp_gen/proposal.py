@@ -24,34 +24,34 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
 
-class OpportunityCategory(str, Enum):
+class ScenarioChallengeCategory(str, Enum):
     DATASET_DRIVEN = "dataset-driven"
     DOMAIN_INFORMED = "domain-informed"
 
 
-class OpportunityDetail(BaseModel):
+class ScenarioChallengeDetail(BaseModel):
     reasoning: str = Field(
         description=(
             "Explanation (max 3 sentences) of how the Core Analysis Dimensions "
             "(SOTA Alignment Analysis, Gap Identification, Domain-Implementation Coherence Check, Scenario-First Focus) "
-            "specifically led to identifying THIS opportunity."
+            "specifically led to identifying THIS challenge."
         )
     )
-    category: OpportunityCategory = Field(
-        description="The category of the improvement opportunity."
+    category: ScenarioChallengeCategory = Field(
+        description="The category of the improvement challenge."
     )
     statement: str = Field(
-        description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement."
+        description="Description of the challenge in no more than three sentences, outlining the specific area for improvement."
     )
     metric_impact: str = Field(
-        description="Brief explanation in no more than two sentences of why addressing this opportunity is expected to improve the target metric."
+        description="Brief explanation in no more than two sentences of why addressing this challenge is expected to improve the target metric."
     )
     caption: str = Field(
-        description="Summarize the opportunity in around 5-15 words."
+        description="Summarize the challenge in around 5-15 words."
     )
 
 
-class OpportunityAnalysis(BaseModel):
+class ScenarioAnalysis(BaseModel):
     sota_alignment_analysis: str = Field(
         description="Comparing SOTA to data/domain insights; 'N/A' if not available."
     )
@@ -66,14 +66,14 @@ class OpportunityAnalysis(BaseModel):
     )
 
 
-class Opportunities(BaseModel):
+class ScenarioChallenges(BaseModel):
 
-    analysis: OpportunityAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
-    opportunities: List[OpportunityDetail] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
-                          "select the most valuable and potentially unexplored avenues. Each opportunity must be tightly relevant to the improvement of the target metric.")
+    analysis: ScenarioAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
+    challenges: List[ScenarioChallengeDetail] = Field(description="At most five challenges, prioritizing \"FEWER BUT BETTER\": "
+                          "select the most valuable and potentially unexplored avenues. Each challenge must be tightly relevant to the improvement of the target metric.")
 
 
-class ActionableInsightAnalysisDetail(BaseModel):
+class TraceAnalysisDetail(BaseModel):
 
     category: str = Field(
         description="Describe the specific area of this analysis in a few words, such as 'Explicit Suggestions', 'Feature Engineering', 'Presistent Issues'"
@@ -83,59 +83,59 @@ class ActionableInsightAnalysisDetail(BaseModel):
     )
 
 
-class ActionableInsightAnalysis(BaseModel):
+class TraceAnalysis(BaseModel):
 
-    feedback: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details derived from feedback on previous experiments."
+    feedback: List[TraceAnalysisDetail] = Field(
+        description="Analysis points derived from feedback on previous experiments."
     )
-    implementation_review: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details from reviewing previous code implementations."
+    implementation_review: List[TraceAnalysisDetail] = Field(
+        description="Analysis points from reviewing previous code implementations."
     )
-    trace_history: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details identified from the history of experiment traces."
+    trace_history: List[TraceAnalysisDetail] = Field(
+        description="Analysis points identified from the history of experiment traces."
     )
 
 
-class ActionableInsightDetail(BaseModel):
+class TraceChallengeDetail(BaseModel):
     reasoning: str = Field(
         description=(
-            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS insight."
+            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS challenge."
         )
     )
     category: str = Field(
         description=(
-            "The specific category of the insight, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
+            "The specific category of the challenge, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
             "'Implementation - Feature Engineering Flaw', 'Trace - Recurring Error'). This should align with and be more specific than the source analysis group (feedback, implementation_review, trace_history)."
         )
     )
     statement: str = Field(
         description=(
-            "Description of the actionable insight in no more than three sentences, outlining the specific issue, "
+            "Description of the challenge in no more than three sentences, outlining the specific issue, "
             "observation, or area for improvement derived from past experiments or feedback."
         )
     )
     metric_impact: str = Field(
         description=(
-            "Brief explanation (max 2 sentences) of why acting on this insight (e.g., addressing the identified issue "
+            "Brief explanation (max 2 sentences) of why acting on this challenge (e.g., addressing the identified issue "
             "or leveraging the observation) is expected to improve the target metric or future iterations."
         )
     )
     caption: str = Field(
-        description="Summarize the actionable insight concisely in around 5-15 words."
+        description="Summarize the challenge concisely in around 5-15 words."
     )
 
 
-class ActionableInsights(BaseModel):
-    analysis: ActionableInsightAnalysis = Field(
+class TraceChallenges(BaseModel):
+    analysis: TraceAnalysis = Field(
         description=(
             "A structured summary of the analysis performed on feedback, implementation reviews, "
-            "and experiment traces, which forms the basis for the derived insights."
+            "and experiment traces, which forms the basis for the challenges."
         )
     )
-    insights: List[ActionableInsightDetail] = Field(
+    challenges: List[TraceChallengeDetail] = Field(
         description=(
-            "A list of key actionable insights (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
-            "Each insight should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
+            "A list of challenges and learnings (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
+            "Each challenge should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
         )
     )
 
@@ -155,7 +155,7 @@ class HypothesisEvaluationReasoningScore(BaseModel):
 
 class HypothesisEvaluation(BaseModel):
     alignment: HypothesisEvaluationReasoningScore = Field(
-        description="The alignment of the proposed hypothesis with the identified insight."
+        description="The alignment of the proposed hypothesis with the identified challenge."
     )
     impact: HypothesisEvaluationReasoningScore = Field(
         description="The expected impact of the proposed hypothesis on the current SOTA implementation."
@@ -173,12 +173,12 @@ class HypothesisEvaluation(BaseModel):
 
 class HypothesisDetail(BaseModel):
     caption: str = Field(
-        description="The caption of the insight it is based on."
+        description="The caption of the challenge it is based on."
     )
-    reaffirm: str = Field(
-        description="Reaffirm the insight within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    challenge: str = Field(
+        description="Reaffirm the challenge within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
     )
-    statement: str = Field(
+    hypothesis: str = Field(
         description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
     )
     metric_impact: str = Field(
@@ -195,11 +195,11 @@ class HypothesisDetail(BaseModel):
 
 
 class HypothesisList(BaseModel):
-    deduplicated_insights: List[str] = Field(
-        description="A list of deduplicated insight captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    deduplicated_challenges: List[str] = Field(
+        description="A list of deduplicated challenge captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
     )
     hypotheses: List[HypothesisDetail] = Field(
-        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one insight. The list length should match the number of insights."
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one challenge. The list length should match the number of challenges."
     )
 
 
@@ -791,13 +791,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=Opportunities
+            response_format=ScenarioChallenges
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
-        opportunities = Opportunities(**json.loads(response))
+        challenges = ScenarioChallenges(**json.loads(response))
         # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in opportunities.opportunities }
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in challenges.challenges }
         logger.info(f"Identified scenario problems:\n" + json.dumps(problems))
         return problems
 
@@ -811,13 +811,13 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         response = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
-            response_format=ActionableInsights
+            response_format=TraceChallenges
             # json_mode=True,
             # json_target_type=Dict[str, Dict[str, str]],
         )
-        actionable_insights = ActionableInsights(**json.loads(response))
+        challenges = TraceChallenges(**json.loads(response))
         # Translate to problems
-        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in actionable_insights.insights }
+        problems = { o.caption: { "problem": o.statement, "reason": o.reasoning } for o in challenges.challenges }
         logger.info(f"Identified feedback problems:\n" + json.dumps(problems))
         return problems
 
@@ -873,9 +873,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         hypotheses = HypothesisList(**json.loads(response))
         resp_dict = {
             h.caption: {
-                "reason": h.reaffirm,
+                "reason": h.challenge,
                 "component": h.component,
-                "hypothesis": h.statement,
+                "hypothesis": h.hypothesis,
                 "evaluation": {
                     "alignment_score": h.evaluation.alignment.score,
                     "impact_score": h.evaluation.impact.score,
