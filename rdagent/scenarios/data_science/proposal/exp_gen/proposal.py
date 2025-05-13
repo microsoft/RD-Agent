@@ -23,6 +23,211 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 from rdagent.utils.workflow import wait_retry
 
+
+class OpportunityCategory(str, Enum):
+    DATASET_DRIVEN = "dataset-driven"
+    DOMAIN_INFORMED = "domain-informed"
+
+
+class OpportunityDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the Core Analysis Dimensions "
+            "(SOTA Alignment Analysis, Gap Identification, Domain-Implementation Coherence Check, Scenario-First Focus) "
+            "specifically led to identifying THIS opportunity."
+        )
+    )
+    category: OpportunityCategory = Field(
+        description="The category of the improvement opportunity."
+    )
+    statement: str = Field(
+        description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement."
+    )
+    metric_impact: str = Field(
+        description="Brief explanation in no more than two sentences of why addressing this opportunity is expected to improve the target metric."
+    )
+    caption: str = Field(
+        description="Summarize the opportunity in around 5-15 words."
+    )
+
+
+class OpportunityAnalysis(BaseModel):
+    sota_alignment_analysis: str = Field(
+        description="Comparing SOTA to data/domain insights; 'N/A' if not available."
+    )
+    gap_identification: str = Field(
+        description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
+    )
+    domain_implementation_coherence_check: str = Field(
+        description="Technical methods conflicting with domain rules or oversimplifying; 'N/A' if none."
+    )
+    scenario_first_focus: str = Field(
+        description="Foundational scenario strategies, key if no SOTA exists; 'N/A' if SOTA already exists."
+    )
+
+
+class Opportunities(BaseModel):
+
+    analysis: OpportunityAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
+    opportunities: List[OpportunityDetail] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
+                          "select the most valuable and potentially unexplored avenues. Each opportunity must be tightly relevant to the improvement of the target metric.")
+
+
+class ActionableInsightAnalysisDetail(BaseModel):
+
+    category: str = Field(
+        description="Describe the specific area of this analysis in a few words, such as 'Explicit Suggestions', 'Feature Engineering', 'Presistent Issues'"
+    )
+    statement: str = Field(
+        description="Description of the analysis in no more than three sentences, outlining the specific problem."
+    )
+
+
+class ActionableInsightAnalysis(BaseModel):
+
+    feedback: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details derived from feedback on previous experiments."
+    )
+    implementation_review: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details from reviewing previous code implementations."
+    )
+    trace_history: List[ActionableInsightAnalysisDetail] = Field(
+        description="List of analysis details identified from the history of experiment traces."
+    )
+
+
+class ActionableInsightDetail(BaseModel):
+    reasoning: str = Field(
+        description=(
+            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS insight."
+        )
+    )
+    category: str = Field(
+        description=(
+            "The specific category of the insight, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
+            "'Implementation - Feature Engineering Flaw', 'Trace - Recurring Error'). This should align with and be more specific than the source analysis group (feedback, implementation_review, trace_history)."
+        )
+    )
+    statement: str = Field(
+        description=(
+            "Description of the actionable insight in no more than three sentences, outlining the specific issue, "
+            "observation, or area for improvement derived from past experiments or feedback."
+        )
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of why acting on this insight (e.g., addressing the identified issue "
+            "or leveraging the observation) is expected to improve the target metric or future iterations."
+        )
+    )
+    caption: str = Field(
+        description="Summarize the actionable insight concisely in around 5-15 words."
+    )
+
+
+class ActionableInsights(BaseModel):
+    analysis: ActionableInsightAnalysis = Field(
+        description=(
+            "A structured summary of the analysis performed on feedback, implementation reviews, "
+            "and experiment traces, which forms the basis for the derived insights."
+        )
+    )
+    insights: List[ActionableInsightDetail] = Field(
+        description=(
+            "A list of key actionable insights (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
+            "Each insight should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
+        )
+    )
+
+
+class HypothesisComponent(str, Enum):
+    DataLoadSpec = "DataLoadSpec"
+    FeatureEng = "FeatureEng"
+    Model = "Model"
+    Ensemble = "Ensemble"
+    Workflow = "Workflow"
+
+
+class HypothesisEvaluationReasoningScore(BaseModel):
+    reasoning: str = Field(description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence.")
+    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
+
+
+class HypothesisEvaluation(BaseModel):
+    alignment: HypothesisEvaluationReasoningScore = Field(
+        description="The alignment of the proposed hypothesis with the identified insight."
+    )
+    impact: HypothesisEvaluationReasoningScore = Field(
+        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
+    )
+    novelty: HypothesisEvaluationReasoningScore = Field(
+        description="The novelty of the proposed hypothesis compared to existing solutions."
+    )
+    feasibility: HypothesisEvaluationReasoningScore = Field(
+        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
+    )
+    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
+        description="The risk-reward balance of implementing the proposed hypothesis."
+    )
+
+
+class HypothesisDetail(BaseModel):
+    caption: str = Field(
+        description="The caption of the insight it is based on."
+    )
+    reaffirm: str = Field(
+        description="Reaffirm the insight within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
+    )
+    statement: str = Field(
+        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
+    )
+    metric_impact: str = Field(
+        description=(
+            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
+        )
+    )
+    component: HypothesisComponent = Field(
+        description="The component tag of the hypothesis."
+    )
+    evaluation: HypothesisEvaluation = Field(
+        description="Evaluate the quality of the hypothesis."
+    )
+
+
+class HypothesisList(BaseModel):
+    deduplicated_insights: List[str] = Field(
+        description="A list of deduplicated insight captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
+    )
+    hypotheses: List[HypothesisDetail] = Field(
+        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one insight. The list length should match the number of insights."
+    )
+
+
+class CodingSketch(BaseModel):
+    current_state: str = Field(
+        description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
+    )
+    modifications: List[str] = Field(
+        description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
+                    "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
+                    "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
+                    "(c) a brief explanation or high-level sketch of the new logic or change. "
+                    "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
+    )
+    structure: List[str] = Field(
+        description="An outline of the new high-level architectural components (primarily functions and classes) if a new `main.py` script is being created from scratch, or if the existing `main.py` is undergoing a major refactor that fundamentally alters or replaces its core structure. "
+                    "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
+                    "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
+                    "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
+    )
+    sketch: str = Field(
+        description="A detailed, step-by-step narrative that elaborates on how to implement the planned code. "
+                    "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
+                    "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
+                    "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
+    )
+
+
 COMPONENT_TASK_MAPPING = {
     "DataLoadSpec": {
         "target_name": "Data loader and specification generation",
@@ -846,207 +1051,3 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )
-
-
-class OpportunityCategory(str, Enum):
-    DATASET_DRIVEN = "dataset-driven"
-    DOMAIN_INFORMED = "domain-informed"
-
-
-class OpportunityDetail(BaseModel):
-    reasoning: str = Field(
-        description=(
-            "Explanation (max 3 sentences) of how the Core Analysis Dimensions "
-            "(SOTA Alignment Analysis, Gap Identification, Domain-Implementation Coherence Check, Scenario-First Focus) "
-            "specifically led to identifying THIS opportunity."
-        )
-    )
-    category: OpportunityCategory = Field(
-        description="The category of the improvement opportunity."
-    )
-    statement: str = Field(
-        description="Description of the opportunity in no more than three sentences, outlining the specific area for improvement."
-    )
-    metric_impact: str = Field(
-        description="Brief explanation in no more than two sentences of why addressing this opportunity is expected to improve the target metric."
-    )
-    caption: str = Field(
-        description="Summarize the opportunity in around 5-15 words."
-    )
-
-
-class OpportunityAnalysis(BaseModel):
-    sota_alignment_analysis: str = Field(
-        description="Comparing SOTA to data/domain insights; 'N/A' if not available."
-    )
-    gap_identification: str = Field(
-        description="Unaddressed challenges or workarounds in successful solutions; 'N/A' if none."
-    )
-    domain_implementation_coherence_check: str = Field(
-        description="Technical methods conflicting with domain rules or oversimplifying; 'N/A' if none."
-    )
-    scenario_first_focus: str = Field(
-        description="Foundational scenario strategies, key if no SOTA exists; 'N/A' if SOTA already exists."
-    )
-
-
-class Opportunities(BaseModel):
-
-    analysis: OpportunityAnalysis = Field(description="Analysis of provided information following the Core Analysis Dimensions.")
-    opportunities: List[OpportunityDetail] = Field(description="At most five opportunities, prioritizing \"FEWER BUT BETTER\": "
-                          "select the most valuable and potentially unexplored avenues. Each opportunity must be tightly relevant to the improvement of the target metric.")
-
-
-class ActionableInsightAnalysisDetail(BaseModel):
-
-    category: str = Field(
-        description="Describe the specific area of this analysis in a few words, such as 'Explicit Suggestions', 'Feature Engineering', 'Presistent Issues'"
-    )
-    statement: str = Field(
-        description="Description of the analysis in no more than three sentences, outlining the specific problem."
-    )
-
-
-class ActionableInsightAnalysis(BaseModel):
-
-    feedback: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details derived from feedback on previous experiments."
-    )
-    implementation_review: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details from reviewing previous code implementations."
-    )
-    trace_history: List[ActionableInsightAnalysisDetail] = Field(
-        description="List of analysis details identified from the history of experiment traces."
-    )
-
-
-class ActionableInsightDetail(BaseModel):
-    reasoning: str = Field(
-        description=(
-            "Explanation (max 3 sentences) of how the previous analysis specifically led to identifying THIS insight."
-        )
-    )
-    category: str = Field(
-        description=(
-            "The specific category of the insight, reflecting its origin or nature (e.g., 'Feedback - Explicit Suggestion', "
-            "'Implementation - Feature Engineering Flaw', 'Trace - Recurring Error'). This should align with and be more specific than the source analysis group (feedback, implementation_review, trace_history)."
-        )
-    )
-    statement: str = Field(
-        description=(
-            "Description of the actionable insight in no more than three sentences, outlining the specific issue, "
-            "observation, or area for improvement derived from past experiments or feedback."
-        )
-    )
-    metric_impact: str = Field(
-        description=(
-            "Brief explanation (max 2 sentences) of why acting on this insight (e.g., addressing the identified issue "
-            "or leveraging the observation) is expected to improve the target metric or future iterations."
-        )
-    )
-    caption: str = Field(
-        description="Summarize the actionable insight concisely in around 5-15 words."
-    )
-
-
-class ActionableInsights(BaseModel):
-    analysis: ActionableInsightAnalysis = Field(
-        description=(
-            "A structured summary of the analysis performed on feedback, implementation reviews, "
-            "and experiment traces, which forms the basis for the derived insights."
-        )
-    )
-    insights: List[ActionableInsightDetail] = Field(
-        description=(
-            "A list of key actionable insights (e.g., at most five, prioritizing 'FEWER BUT BETTER') derived from the analysis. "
-            "Each insight should represent a valuable learning point aimed at guiding improvements for the target metric in subsequent experiments."
-        )
-    )
-
-
-class HypothesisComponent(str, Enum):
-    DataLoadSpec = "DataLoadSpec"
-    FeatureEng = "FeatureEng"
-    Model = "Model"
-    Ensemble = "Ensemble"
-    Workflow = "Workflow"
-
-
-class HypothesisEvaluationReasoningScore(BaseModel):
-    reasoning: str = Field(description="What is the quality of the hypothesis under this criteria? Answer in 1-2 sentence.")
-    score: float = Field(description="The score of the hypothesis under this criteria between 1 and 10.")
-
-
-class HypothesisEvaluation(BaseModel):
-    alignment: HypothesisEvaluationReasoningScore = Field(
-        description="The alignment of the proposed hypothesis with the identified insight."
-    )
-    impact: HypothesisEvaluationReasoningScore = Field(
-        description="The expected impact of the proposed hypothesis on the current SOTA implementation."
-    )
-    novelty: HypothesisEvaluationReasoningScore = Field(
-        description="The novelty of the proposed hypothesis compared to existing solutions."
-    )
-    feasibility: HypothesisEvaluationReasoningScore = Field(
-        description="The feasibility of implementing the proposed hypothesis in the current SOTA implementation."
-    )
-    risk_reward_balance: HypothesisEvaluationReasoningScore = Field(
-        description="The risk-reward balance of implementing the proposed hypothesis."
-    )
-
-
-class HypothesisDetail(BaseModel):
-    caption: str = Field(
-        description="The caption of the insight it is based on."
-    )
-    reaffirm: str = Field(
-        description="Reaffirm the insight within the current context (e.g., trace history, domain principles, or competition constraints). It should be no more than 2-3 sentences."
-    )
-    statement: str = Field(
-        description="The statement of the hypothesis. It could be a design of a new component, or a concise, testable statement derived from previous experimental outcomes."
-    )
-    metric_impact: str = Field(
-        description=(
-            "Brief explanation (max 2 sentences) of the expected impact of the hypothesis on the target metric."
-        )
-    )
-    component: HypothesisComponent = Field(
-        description="The component tag of the hypothesis."
-    )
-    evaluation: HypothesisEvaluation = Field(
-        description="Evaluate the quality of the hypothesis."
-    )
-
-
-class HypothesisList(BaseModel):
-    deduplicated_insights: List[str] = Field(
-        description="A list of deduplicated insight captions. Each must retain its original wording. If multiple captions are semantically identical, keep the first one."
-    )
-    hypotheses: List[HypothesisDetail] = Field(
-        description="A non-empty list of hypotheses proposed for the next iteration, each corresponding to one insight. The list length should match the number of insights."
-    )
-
-
-class CodingSketch(BaseModel):
-    current_state: str = Field(
-        description="A summary of the current `main.py` script that serves as the baseline for the planned changes. Focusing on parts that are related to the hypothesis. If `main.py` does not yet exist (i.e., it will be created from scratch based on this sketch), use the string 'N/A'."
-    )
-    modifications: List[str] = Field(
-        description="A list of specific, targeted changes to be applied to the existing code identified in `current_state`. Each string in the list should concisely describe (in 3-4 sentences): "
-                    "(a) the specific part of the code to be altered (e.g., a function name, a class, or a logical block); "
-                    "(b) the nature of the modification (e.g., bug fix, feature addition, refactoring of a small section, performance optimization, deletion); and "
-                    "(c) a brief explanation or high-level sketch of the new logic or change. "
-                    "If no direct modifications to existing code are planned (e.g., if creating an entirely new `main.py` as detailed in `structure`), this list should be empty."
-    )
-    structure: List[str] = Field(
-        description="An outline of the new high-level architectural components (primarily functions and classes) if a new `main.py` script is being created from scratch, or if the existing `main.py` is undergoing a major refactor that fundamentally alters or replaces its core structure. "
-                    "Each string in the list should define a planned function or class, detailing its name, primary responsibility, key parameters (if applicable), return values (if applicable), and core functionality in 2-3 sentences. "
-                    "This field is typically used when `current_state` is 'N/A' or when the scope of change requires a new architectural blueprint rather than just targeted `modifications`. "
-                    "Leave empty if the plan only involves direct `modifications` to the existing structure in `current_state`."
-    )
-    sketch: str = Field(
-        description="A detailed, step-by-step narrative that elaborates on how to implement the planned code. "
-                    "This section should synthesize the information from `modifications` (if any) and/or `structure` (if any) into a comprehensive and actionable coding plan for `main.py`. "
-                    "The content **must** be formatted using Markdown, with logical sections, key decision points, or implementation steps clearly organized by level-3 headings (i.e., `###`). "
-                    "This field should provide sufficient detail for a developer to understand the implementation flow, algorithms, data handling, and key logic points without ambiguity."
-    )
