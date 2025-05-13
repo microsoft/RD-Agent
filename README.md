@@ -48,6 +48,7 @@ RD-Agent currently leads as the top-performing machine learning engineering agen
 | RD-Agent o1-preview | 50 | 10.53 | 20 | 24 |
 | RD-Agent o3(R)+GPT-4.1(D) | 50 | 13.16 | 13.33 | 24 |
 | AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
+
 **Notes:**
 - **o3(R)+GPT-4.1(D)**: Combines Research Agent (o3) and Development Agent (GPT-4.1).
 - **AIDE o1-preview**: Represents the previously best public result on MLE-bench as reported in the original MLE-bench paper.
