@@ -24,11 +24,15 @@ class LatestCKPSelector(CheckpointSelector):
 
         return (-1,)
 
+
 class LimitTimeCKPSelector(CheckpointSelector):
     """
     recore the time of current sub-trace, and jump to a new sub-trace if the time is up
     """
-    def __init__(self, ):
+
+    def __init__(
+        self,
+    ):
         self.global_timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
         self.sub_trace_start_times = {}
         self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num
@@ -37,17 +41,19 @@ class LimitTimeCKPSelector(CheckpointSelector):
     def set_time_limit(self):
 
         # Calculate total time excluding merge hours
-        remaining_time = self.global_timer.all_duration.total_seconds() - timedelta(hours=DS_RD_SETTING.merge_hours).total_seconds()
-            # Convert to timedelta after division
+        remaining_time = (
+            self.global_timer.all_duration.total_seconds() - timedelta(hours=DS_RD_SETTING.merge_hours).total_seconds()
+        )
+        # Convert to timedelta after division
         self.time_limit_pre_trace = timedelta(seconds=remaining_time / DS_RD_SETTING.max_trace_num)
         # Track when each sub-trace starts
-        logger.info(f"Using limit time selector with time limit {self.time_limit_pre_trace}s / {self.time_limit_pre_trace/3600}h per trace")
+        logger.info(f"Using limit time selector with time limit {self.time_limit_pre_trace} per trace")
 
     def get_selection(self, trace: Trace) -> tuple[int, ...]:
         """
         Determine whether to continue with the current sub-trace or start a new one
         based on the time spent in the current sub-trace.
-        
+
         Returns:
             (-1,): Continue with the current latest trial
             (): Start a new sub-trace if max trace limit not reached
@@ -63,10 +69,10 @@ class LimitTimeCKPSelector(CheckpointSelector):
             self.sub_trace_start_times[trace.sub_trace_count] = current_time
             logger.info(f"Starting initial sub-trace {trace.sub_trace_count} at {current_time}")
             return (-1,)  # Continue with latest trial for new sub-trace
-        
+
         # Calculate elapsed time for current sub-trace
         elapsed_time = current_time - self.sub_trace_start_times[trace.sub_trace_count]
-        
+
         if elapsed_time < self.time_limit_pre_trace:
             # Continue with current sub-trace
             logger.info(
@@ -82,7 +88,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
                 )
                 logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                 return (-1,)
-                
+
             # Time limit exceeded, start a new sub-trace
             trace.sub_trace_count += 1
             self.sub_trace_start_times[trace.sub_trace_count] = current_time
@@ -91,6 +97,7 @@ class LimitTimeCKPSelector(CheckpointSelector):
             )
             logger.info(f"current sub-trace count: {trace.sub_trace_count}")
             return tuple()  # Empty tuple signals starting a new sub-trace
+
 
 class SOTAJumpCKPSelector(CheckpointSelector):
     """
@@ -130,7 +137,7 @@ class SOTAJumpCKPSelector(CheckpointSelector):
                     )
                     logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                     return (-1,)
-                
+
                 trace.sub_trace_count += 1
                 logger.info(
                     f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump to a new sub-trace"
@@ -191,7 +198,7 @@ class BackJumpCKPSelector(CheckpointSelector):
                     )
                     logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                     return (-1,)
-                
+
                 random_choice = random.random()
                 if random_choice < 0.5:
                     trace.sub_trace_count += 1
@@ -219,7 +226,7 @@ class BackJumpCKPSelector(CheckpointSelector):
                             )
                             logger.info(f"current sub-trace count: {trace.sub_trace_count}")
                             return (-1,)
-                        
+
                         trace.sub_trace_count += 1
                         logger.info(
                             f"SOTA count {sota_count} is below threshold {self.SOTA_COUNT_THRESHOLD}, jump a new sub-trace"

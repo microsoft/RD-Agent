@@ -81,6 +81,7 @@ class MergeExpGen(ExpGen):
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp_fb[0].experiment_workspace)
         return exp
 
+
 # dual-target version
 class ExpGen2TraceAndMerge(ExpGen):
     def __init__(self, *args, **kwargs):
@@ -113,20 +114,16 @@ class ExpGen2TraceAndMerge(ExpGen):
                 return self.merge_exp_gen.gen(trace, selection)
 
 
-
-
-
 class MergeExpGen_MultiTrace(ExpGen):
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
         # Ignore the selection argument and use all leaves instead.
         leaves: list[int] = trace.get_leaves()
-        trace.set_current_selection(selection)  # 
+        trace.set_current_selection(selection)  #
 
         # assuming merging the first and sencond trace.
         sota_exp_fb = trace.sota_experiment_fb(selection=(leaves[0],))
         if sota_exp_fb is None:
             sota_exp_fb = trace.hist[leaves[0]]
-
 
         sota_exp_desc = T("scenarios.data_science.share:describe.exp").r(
             exp=sota_exp_fb[0],
@@ -138,7 +135,7 @@ class MergeExpGen_MultiTrace(ExpGen):
         )
 
         exp_fb_desc_to_merge_list = []
-        # find the best exp to merge    
+        # find the best exp to merge
         for i in range(1, len(leaves)):
             exp_to_merge_fb = trace.sota_experiment_fb(selection=(leaves[i],))
             if exp_to_merge_fb is None:
@@ -148,7 +145,6 @@ class MergeExpGen_MultiTrace(ExpGen):
                 exp=exp_to_merge_fb[0],
                 heading="A solution that to be merged into previous best solution",
             )
-
 
             success_fb_list = trace.experiment_and_feedback_list_after_init(
                 return_type="sota", search_type="ancestors", selection=(leaves[i],)
@@ -166,10 +162,8 @@ class MergeExpGen_MultiTrace(ExpGen):
                     exp_and_feedback=exp_to_merge_fb,
                     heading="The feedback for the solution to be merged",
                 )
-        
-        
-        exp_fb_desc_to_merge_list.append((exp_to_merge_desc, exp_to_merge_fb_desc))
 
+        exp_fb_desc_to_merge_list.append((exp_to_merge_desc, exp_to_merge_fb_desc))
 
         task = PipelineTask(
             description=T("scenarios.data_science.proposal.exp_gen.merge:multi_trace").r(
@@ -199,7 +193,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         super().__init__(*args, **kwargs)
         self.merge_exp_gen = MergeExpGen_MultiTrace(self.scen)
         self.exp_gen = DSExpGen(self.scen)
-        self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num # maximum number of traces to grow before merging
+        self.MAX_TRACE_NUM = DS_RD_SETTING.max_trace_num  # maximum number of traces to grow before merging
         self.flag_start_merge = False
 
     def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
@@ -207,7 +201,7 @@ class ExpGen2TraceAndMergeV2(ExpGen):
         logger.info(f"Remain time: {timer.remain_time_duration}")
 
         if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
-            
+
             return self.exp_gen.gen(trace, selection)
         else:
             # disable reset in merging stage
@@ -219,10 +213,12 @@ class ExpGen2TraceAndMergeV2(ExpGen):
                 return self.exp_gen.gen(trace, selection=(-1,))
             else:
 
-                if not self.flag_start_merge: # root node of the merge trace
+                if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
                     selection = tuple()
                     return self.merge_exp_gen.gen(trace, selection)
                 else:
                     # return self.merge_exp_gen.gen(trace, selection)
-                    return self.exp_gen.gen(trace, selection=(-1,)) # continue the last trace, to polish the merged solution
+                    return self.exp_gen.gen(
+                        trace, selection=(-1,)
+                    )  # continue the last trace, to polish the merged solution
