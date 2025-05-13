@@ -22,3 +22,4 @@ RUN pip install catboost
 RUN pip install xgboost
 RUN pip install scipy==1.11.4
 RUN pip install tables
+RUN pip install pyarrow

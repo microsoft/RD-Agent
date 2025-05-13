@@ -7,31 +7,27 @@ benchmark: &benchmark SH000300
 
 data_handler_config: &data_handler_config
     start_time: 2008-01-01
-    end_time: 2020-08-01
-    fit_start_time: 2008-01-01
-    fit_end_time: 2014-12-31
+    end_time: 2022-08-01
     instruments: *market
-    infer_processors:
-        - class: FilterCol
-          kwargs:
-              fields_group: feature
-              col_list: ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                            "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                            "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
-                        ]
-        - class: RobustZScoreNorm
-          kwargs:
-              fields_group: feature
-              clip_outlier: true
-        - class: Fillna
-          kwargs:
-              fields_group: feature
+    data_loader:
+        class: NestedDataLoader
+        kwargs:
+            dataloader_l:
+                - class: qlib.contrib.data.loader.Alpha158DL
+                  kwargs:
+                    config:
+                        label: 
+                            - ["Ref($close, -2)/Ref($close, -1) - 1"]
+                            - ["LABEL0"]
+                - class: qlib.data.dataset.loader.StaticDataLoader
+                  kwargs:
+                    config: "combined_factors_df.parquet"
+
     learn_processors:
         - class: DropnaLabel
-        - class: CSRankNorm
+        - class: CSZScoreNorm
           kwargs:
               fields_group: label
-    label: ["Ref($close, -2) / Ref($close, -1) - 1"] 
 
 port_analysis_config: &port_analysis_config
     strategy:
@@ -52,6 +48,7 @@ port_analysis_config: &port_analysis_config
             open_cost: 0.0005
             close_cost: 0.0015
             min_cost: 5
+
 task:
     model:
         class: GeneralPTNN
@@ -65,28 +62,18 @@ task:
             loss: mse
             n_jobs: 20
             GPU: 0
-            # loss: mse
-            # lr: 0.002
-            # optimizer: adam
-            # batch_size: 8192
-            # GPU: 0
             weight_decay: 0.0001
-            # pt_model_uri: "qlib.contrib.model.pytorch_nn.Net"
-            # pt_model_uri: "env_tpl.model.Net"
-            # pt_model_uri: "./model.py:Net"
             pt_model_uri: "model.model_cls"
             pt_model_kwargs: {
-                "num_features": 20,
+                "num_features": { num_features },  # TODO: change this to the number of features in the dataset
                 {% if num_timesteps %}num_timesteps: {{ num_timesteps }}{% endif %}
-            }            
-                # input_dim: 20
-            #   How should I use jinja to put step len here conditionally          
+            }
     dataset:
         class: {{ dataset_cls | default("DatasetH") }}
         module_path: qlib.data.dataset
         kwargs:
             handler:
-                class: Alpha158
+                class: DataHandlerLP
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
