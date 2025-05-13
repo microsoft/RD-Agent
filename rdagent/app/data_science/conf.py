@@ -51,7 +51,9 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     enable_doc_dev: bool = False
     model_dump_check_level: Literal["medium", "high"] = "medium"
 
-    ### selector related
+    ### multi-trace related
+    max_trace_num: int = 3
+    """The maximum number of traces to grow before merging"""
 
     #### checkpoint selector related
     # selector_name: str = "latest"
