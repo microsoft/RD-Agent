@@ -30,6 +30,7 @@ https://github.com/user-attachments/assets/3eccbecb-34a4-4c81-bce4-d3f8862f7305
 # 📰 News
 | 🗞️ News        | 📝 Description                 |
 | --            | ------      |
+|    MLE-Bench Results Released | RD-Agent currently leads as the [top-performing machine learning engineering agent](#-the-best-machine-learning-engineering-agent) on MLE-bench |
 | Support LiteLLM Backend | We now fully support **[LiteLLM](https://github.com/BerriAI/litellm)** as a backend for integration with multiple LLM providers. |
 | More General Data Science Agent | 🚀Coming soon! |
 | Kaggle Scenario release | We release **[Kaggle Agent](https://rdagent.readthedocs.io/en/latest/scens/kaggle_agent.html)**, try the new features!                  |
