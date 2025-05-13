@@ -1,9 +1,14 @@
 """Merge the version in different traces"""
 
+from datetime import timedelta
+
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.data_science.pipeline.exp import PipelineTask
 from rdagent.core.proposal import ExpGen
+from rdagent.log import rdagent_logger as logger
+from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
+from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
 
@@ -75,3 +80,34 @@ class MergeExpGen(ExpGen):
         if sota_exp_fb is not None:
             exp.experiment_workspace.inject_code_from_file_dict(sota_exp_fb[0].experiment_workspace)
         return exp
+
+
+class ExpGen2TraceAndMerge(ExpGen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.merge_exp_gen = MergeExpGen(self.scen)
+        self.exp_gen = DSExpGen(self.scen)
+
+    def gen(self, trace: DSTrace, selection: tuple[int, ...] = (-1,)) -> DSExperiment:
+        timer: RDAgentTimer = RD_Agent_TIMER_wrapper.timer
+        logger.info(f"Remain time: {timer.remain_time_duration}")
+
+        if timer.remain_time_duration >= timedelta(hours=2):
+            leaves: list[int] = trace.get_leaves()
+            if len(leaves) < 2:
+                selection = tuple()  # create new trace
+            else:
+                selection = (
+                    leaves[0],
+                )  # continue the first trace. This will result in the interleaving of two traces expansion.
+            return self.exp_gen.gen(trace, selection)
+        else:
+            # disable reset in merging stage
+            DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
+            DS_RD_SETTING.consecutive_errors = 100000
+
+            leaves: list[int] = trace.get_leaves()
+            if len(leaves) < 2:
+                return self.exp_gen.gen(trace, selection)
+            else:
+                return self.merge_exp_gen.gen(trace, selection)

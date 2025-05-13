@@ -166,7 +166,9 @@ class DataScienceScen(Scenario):
         return stdout
 
     def _get_data_folder_description(self) -> str:
-        return describe_data_folder_v2(Path(DS_RD_SETTING.local_data_path) / self.competition)
+        return describe_data_folder_v2(
+            Path(DS_RD_SETTING.local_data_path) / self.competition, show_nan_columns=DS_RD_SETTING.show_nan_columns
+        )
 
 
 class KaggleScen(DataScienceScen):
