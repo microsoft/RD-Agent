@@ -43,7 +43,7 @@ from rdagent.components.coder.data_science.conf import (
     DSCoderCoSTEERSettings,
     get_ds_env,
 )
-from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator
+from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator, PipelineCoSTEEREvaluatorV3
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -140,6 +140,73 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
+
+class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrategy):
+
+    def implement_one_task(
+        self,
+        target_task: DataLoaderTask,
+        queried_knowledge: CoSTEERQueriedKnowledge | None = None,
+        workspace: FBWorkspace | None = None,
+        prev_task_feedback: CoSTEERSingleFeedback | None = None,
+    ) -> dict[str, str]:
+        competition_info = self.scen.get_scenario_all_desc(eda_output=workspace.file_dict.get("EDA.md", None))
+        runtime_environment = self.scen.get_runtime_environment()
+        data_folder_info = self.scen.processed_data_folder_description
+        pipeline_task_info = target_task.get_task_information()
+
+        queried_similar_successful_knowledge = (
+            queried_knowledge.task_to_similar_task_successful_knowledge[pipeline_task_info]
+            if queried_knowledge is not None
+            else []
+        )
+        queried_former_failed_knowledge = (
+            queried_knowledge.task_to_former_failed_traces[pipeline_task_info] if queried_knowledge is not None else []
+        )
+        queried_former_failed_knowledge = (
+            [
+                knowledge
+                for knowledge in queried_former_failed_knowledge[0]
+                if knowledge.implementation.file_dict.get("main.py") != workspace.file_dict.get("main.py")
+            ],
+            queried_former_failed_knowledge[1],
+        )
+
+        system_prompt = T(".prompts_v3:pipeline_coder.system").r(
+            task=target_task,
+            queried_similar_successful_knowledge=queried_similar_successful_knowledge,
+            queried_former_failed_knowledge=queried_former_failed_knowledge[0],
+            out_spec=PythonAgentOut.get_spec(),
+            runtime_environment=runtime_environment,
+            # spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            enable_model_dump=DS_RD_SETTING.enable_model_dump,
+        )
+        user_prompt = T(".prompts_v3:pipeline_coder.user").r(
+            competition_info=competition_info,
+            folder_spec=data_folder_info,
+            latest_code=workspace.file_dict.get("main.py"),
+            latest_code_feedback=prev_task_feedback,
+        )
+
+        for _ in range(5):
+            pipeline_code = PythonAgentOut.extract_output(
+                APIBackend().build_messages_and_create_chat_completion(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+            )
+            if pipeline_code != workspace.file_dict.get("main.py"):
+                break
+            else:
+                user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
+        else:
+            raise CoderError("Failed to generate a new pipeline code.")
+
+        return {
+            "main.py": pipeline_code,
+        }
+
+
 class PipelineCoSTEER(CoSTEER):
     def __init__(
         self,
@@ -148,14 +215,20 @@ class PipelineCoSTEER(CoSTEER):
         **kwargs,
     ) -> None:
         settings = DSCoderCoSTEERSettings()
-        eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        if settings.prompt_version == "v1":
+            eval_l = [PipelineCoSTEEREvaluator(scen=scen)]
+        else:
+            eval_l = [PipelineCoSTEEREvaluatorV3(scen=scen)]
         if DS_RD_SETTING.enable_model_dump:
             eval_l.append(ModelDumpEvaluator(scen=scen, data_type="sample"))
 
         eva = CoSTEERMultiEvaluator(
             single_evaluator=eval_l, scen=scen
         )  # Please specify whether you agree running your eva in parallel or not
-        es = PipelineMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        if settings.prompt_version == "v1":
+            es = PipelineMultiProcessEvolvingStrategy(scen=scen, settings=settings)
+        else:
+            es = PipelineMultiProcessEvolvingStrategyV3(scen=scen, settings=settings)
 
         super().__init__(
             *args,
