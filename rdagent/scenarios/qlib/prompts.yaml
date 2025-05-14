@@ -65,21 +65,13 @@ hypothesis_output_format: |-
   {
   "hypothesis": "An exact, testable, and innovative statement derived from previous experimental trace analysis. Avoid overly general ideas and ensure precision. The hypothesis should clearly specify the exact approach and expected improvement in performance in two or three sentences.",
   "reason": "Provide a clear, logical explanation for why this hypothesis was proposed, grounded in evidence (e.g., trace history, domain principles). Reason should be short with no more than two sentences.",
-  "concise_reason": "A two-sentence summary. First sentence provides a clear justification for the change. Second sentence states a generalizable knowledge principle.",
-  "concise_observation": "A single-sentence summary focusing on key observations from the scenario, data characteristics, or past experiences (both successes and failures).",
-  "concise_justification": "A single-sentence summary that explains the hypothesis based on theoretical principles or initial assumptions.",
-  "concise_knowledge": "A single-sentence summary of transferable knowledge based on theoretical principles. Use conditional statements (e.g., 'If..., then...; When..., then...') to state clear, unambiguous relationships."
   }
 
 factor_hypothesis_output_format: |-
   The output should follow JSON format. The schema is as follows:
   {
   "hypothesis": "The new hypothesis generated based on the information provided. Limit in two or three sentences.",
-  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
-  "concise_reason": "A two-sentence summary. First sentence provides a clear justification for the change. Second sentence states a generalizable knowledge principle.",
-  "concise_observation": "A single-sentence summary focusing on key observations from the scenario, data characteristics, or past experiences (both successes and failures).",
-  "concise_justification": "A single-sentence summary that explains the hypothesis based on theoretical principles or initial assumptions.",
-  "concise_knowledge": "A single-sentence summary of transferable knowledge based on theoretical principles. Use conditional statements (e.g., 'If..., then...; When..., then...') to state clear, unambiguous relationships."
+  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them. Limit in two or three sentences.",
   }
 
 hypothesis_output_format_with_action: |-
@@ -87,11 +79,7 @@ hypothesis_output_format_with_action: |-
   {
   "action": "If `hypothesis_specification` provides the action you need to take, please follow "hypothesis_specification" to choose the action. Otherwise, based on previous experimental results, suggest the action you believe is most appropriate at the moment. It should be one of [`factor`, `model`].",
   "hypothesis": "The new hypothesis generated based on the information provided.",
-  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them.",
-  "concise_reason": "Two-line summary. First line focuses on a concise justification for the change. Second line generalizes a knowledge statement.",
-  "concise_observation": "One line summary. It focuses on the observation of the given scenario, data characteristics, or previous experiences (failures & succeses).",
-  "concise_justification": "One line summary. Justify the hypothesis based on theoretical principles or initial assumptions.",
-  "concise_knowledge": "One line summary. Transferable knowledge based on theoretical principles. Use conditional grammar. eg. "If...., ..; When..., .; and etc" Make sure that you state things clearly without ambiguity. Eg. avoid saying "previous hypothesis", because one wouldn't know what that is."
+  "reason": "The reason why you generate this hypothesis. It should be comprehensive and logical. It should cover the other keys below and extend them. Limit in two or three sentences.",
   }
 
 model_hypothesis_specification: |-

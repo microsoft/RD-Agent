@@ -73,12 +73,12 @@ class QlibModelHypothesisGen(ModelHypothesisGen):
     def convert_response(self, response: str) -> Hypothesis:
         response_dict = json.loads(response)
         hypothesis = QlibModelHypothesis(
-            hypothesis=response_dict["hypothesis"],
-            reason=response_dict["reason"],
-            concise_reason=response_dict["concise_reason"],
-            concise_observation=response_dict["concise_observation"],
-            concise_justification=response_dict["concise_justification"],
-            concise_knowledge=response_dict["concise_knowledge"],
+            hypothesis=response_dict.get("hypothesis"),
+            reason=response_dict.get("reason"),
+            concise_reason=response_dict.get("concise_reason"),
+            concise_observation=response_dict.get("concise_observation"),
+            concise_justification=response_dict.get("concise_justification"),
+            concise_knowledge=response_dict.get("concise_knowledge"),
         )
         return hypothesis
 

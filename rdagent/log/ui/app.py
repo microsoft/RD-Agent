@@ -159,7 +159,11 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                 if should_display(msg):
                     tags = msg.tag.split(".")
                     if "r" not in state.current_tags and "r" in tags:
-                        state.lround += 1
+                        if state.lround > 29:
+                            st.toast(":red[**Only display the first 30 exps!**]", icon="🛑")
+                            break
+                        else:
+                            state.lround += 1
                     if "evolving code" not in state.current_tags and "evolving code" in tags:
                         state.erounds[state.lround] += 1
 
@@ -405,6 +409,18 @@ def metrics_window(df: pd.DataFrame, R: int, C: int, *, height: int = 300, color
                     col=j,
                 )
     st.plotly_chart(fig)
+
+    from io import BytesIO
+    # 添加下载按钮
+    buffer = BytesIO()
+    df.to_csv(buffer)
+    buffer.seek(0)
+    st.download_button(
+        label="下载数据 (CSV)",
+        data=buffer,
+        file_name="metrics.csv",
+        mime="text/csv"
+    )
 
 
 def summary_window():

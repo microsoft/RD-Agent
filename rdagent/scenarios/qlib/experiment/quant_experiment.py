@@ -141,10 +141,10 @@ class QlibQuantScenario(Scenario):
             return common_description() 
         elif filtered_tag == "hypothesis_and_experiment" or filtered_tag == "feedback":
             return common_description() + simulator(None)
-        elif filtered_tag == "factor" or filtered_tag == "feature":
-            return common_description() + interface("factor") + output("factor") + simulator("factor")
-        elif filtered_tag == "model":
-            return common_description() + interface("model") + output("model") + simulator("model")
+        elif filtered_tag == "factor" or filtered_tag == "feature" or filtered_tag == "factors":
+            return common_description("factor") + interface("factor") + output("factor") + simulator("factor")
+        elif filtered_tag == "model" or filtered_tag == "model tuning":
+            return common_description("model") + interface("model") + output("model") + simulator("model")
         elif action == "factor" or action == "model":
             return common_description(action) + interface(action) + output(action) + simulator(action)
 

@@ -30,7 +30,6 @@ hypothesis_gen:
     {% if RAG %}
     To assist you in generating new {{ targets }}, we have provided the following information: {{ RAG }}.
     {% endif %}
-    Also generate the relevant keys for the reasoning and the distilled knowledge that follows. For those keys, in particular for knowledge, explain in the context of the specific scenario to build up domain knowledge in the specific field rather than general knowledge.
 
 hypothesis2experiment:
   system_prompt: |-

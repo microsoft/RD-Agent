@@ -93,7 +93,7 @@ class LLMHypothesis2Experiment(Hypothesis2Experiment[Experiment]):
             .from_string(prompt_dict["hypothesis2experiment"]["system_prompt"])
             .render(
                 targets=self.targets,
-                scenario=trace.scen.get_scenario_all_desc(filtered_tag="hypothesis_and_experiment"),
+                scenario=trace.scen.get_scenario_all_desc(filtered_tag=self.targets),
                 experiment_output_format=context["experiment_output_format"],
             )
         )
