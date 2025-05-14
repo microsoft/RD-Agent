@@ -1,4 +1,5 @@
 import json
+import pickle
 import re
 from collections import defaultdict
 from datetime import timedelta
@@ -13,6 +14,7 @@ from rdagent.components.coder.data_science.conf import get_ds_env
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
 from rdagent.log.storage import FileStorage
+from rdagent.log.utils.folder import get_first_session_file_after_duration
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.test_eval import (
     MLETestEval,
@@ -20,6 +22,7 @@ from rdagent.scenarios.data_science.test_eval import (
     get_test_eval,
 )
 from rdagent.scenarios.kaggle.kaggle_crawler import score_rank
+from rdagent.utils.workflow import LoopBase
 
 test_eval = get_test_eval()
 
@@ -71,31 +74,24 @@ def save_all_grade_info(log_folder):
                 print(f"Error in {log_trace_path}: {e}")
 
 
-def first_li_si_after_one_time(log_path: Path, hours: int = 12) -> tuple[int, int, str]:
-    """
-    Based on the hours, find the stop loop id and step id (the first step after <hours> hours).
-    Args:
-        log_path (Path): The path to the log folder (contains many log traces).
-        hours (int): The number of hours to stat.
-    Returns:
-        tuple[int, int, str]: The loop id, step id and function name.
-    """
-    session_path = log_path / "__session__"
-    max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
-    max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
-    rdloop_obj_p = next((session_path / str(max_li)).glob(f"{max_step}_*"))
+def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
+    stop_session_fp = get_first_session_file_after_duration(log_folder, f"{hours}h")
 
-    rdloop_obj = DataScienceRDLoop.load(rdloop_obj_p, do_truncate=False)
-    loop_trace = rdloop_obj.loop_trace
-    si2fn = rdloop_obj.steps
+    with stop_session_fp.open("rb") as f:
+        session_obj: LoopBase = pickle.load(f)
 
-    duration = timedelta(seconds=0)
-    for li, lts in loop_trace.items():
-        for lt in lts:
-            si = lt.step_idx
-            duration += lt.end - lt.start
-            if duration > timedelta(hours=hours):
-                return li, si, si2fn[si]
+    loop_trace = session_obj.loop_trace
+    stop_li = max(loop_trace.keys())
+    last_loop = loop_trace[stop_li]
+    last_step = last_loop[-1]
+    stop_fn = session_obj.steps[last_step.step_idx]
+    print(f"Stop Loop: {stop_li=}, {stop_fn=}")
+    files = sorted(
+        (log_folder / "__session__").glob("*/*_*"), key=lambda f: (int(f.parent.name), int(f.name.split("_")[0]))
+    )
+
+    print(f"Max Session: {files[-1:]=}")
+    return stop_li, stop_fn
 
 
 def summarize_folder(log_folder: Path, hours: int | None = None):
@@ -133,7 +129,7 @@ def summarize_folder(log_folder: Path, hours: int | None = None):
         grade_output = None
 
         if hours:
-            stop_li, stop_si, stop_fn = first_li_si_after_one_time(log_trace_path, hours)
+            stop_li, stop_fn = _get_loop_and_fn_after_hours(log_trace_path, hours)
 
         for msg in FileStorage(log_trace_path).iter_msg():  # messages in log trace
             loop_id, fn = extract_loopid_func_name(msg.tag)

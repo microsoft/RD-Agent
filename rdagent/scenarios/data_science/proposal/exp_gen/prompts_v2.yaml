@@ -44,6 +44,15 @@ feedback_problem:
       4. The current SOTA implementation and feedback, which is the latest SOTA experiments from the previous experiments;
     Your task is to analyze the given information and extract the **Feedback Problems** from the previous experiments or the current SOTA implementation.
 
+    
+    {% if inject_diverse %}
+    ### Focus on Diversity!!
+    Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
+    1. Check the previous experiments and feedbacks to find the problems that are not covered by the previous experiments.
+    2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
+    3. Do not do incremental exploration on the previous problems.
+    {% endif %}
+
     ## Feedback Problems
     ### Definition
     Feedback problems are specific and fine-grained technical, or methodological issues within the previous experiments or the current SOTA implementation.
@@ -142,6 +151,16 @@ hypothesis_gen:
     3. Novelty: Degree of innovation compared to previous attempts. If the proposed hypothesis is similar to previous experiments' hypothesis, assign novelty score to one.
     4. Feasibility: The ease of implementing the proposed hypothesis in the current SOTA implementation.
     5. Risk-Reward Balance: The exploration-exploitation balance of the proposed hypothesis.
+
+    {% if inject_diverse %}
+    # Focus on Diversity!!
+    Diversity is very critical in the analysis of scenario problems. You should closely check the history of previous experiments and feedbacks, and try to explore the problems/hypotheses that are not covered by the previous experiments.
+    1. Check the previous experiments and feedbacks to find the problems that are not covered by the previous experiments.
+    2. Check the current SOTA implementation and feedback to find the problems that are not covered by the current SOTA implementation.
+    3. Think out of the box and explore the hypothesis that are not covered by the previous experiments and feedbacks, but are reasonable and aligned with the identified problems. 
+    4. Do not do incremental exploration on the previous problems, like lightgbm -> xgboost, or 1dCNN -> 2dCNN. Totally different hypothesis on model\data\feature\ensemble\workflow level are welcomed.
+    {% endif %}
+
 
     ## Final Output Format in JSON Schema:
     {{ hypothesis_output_format }}
@@ -312,3 +331,5 @@ output_format:
       "problem name 1 (should be exactly same as the problem name provided)": 1, # The index which is same to the idea index provided in the input and must be integer.
       "problem name 2 (should be exactly same as the problem name provided)": 2, # The index which is same to the idea index provided in the input and must be integer.
     }
+
+

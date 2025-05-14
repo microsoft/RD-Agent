@@ -149,8 +149,19 @@ class CheckpointSelector:
         - `(idx, )` represents starting from the `idx`-th trial in the trace.
         - `None` represents starting from scratch (start a new trace)
 
-
         - More advanced selection strategies in `select.py`
+        """
+
+
+class SOTAexpSelector:
+    """
+    Select the SOTA experiment from the trace to submit
+    """
+
+    @abstractmethod
+    def get_sota_exp_to_submit(self, trace: Trace) -> Experiment | None:
+        """
+        Select the SOTA experiment from the trace to submit
         """
 
 

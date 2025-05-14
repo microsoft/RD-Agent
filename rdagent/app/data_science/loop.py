@@ -32,9 +32,30 @@ from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
+from rdagent.scenarios.data_science.proposal.exp_gen.ckp_select import (
+    BackJumpCKPSelector,
+    LatestCKPSelector,
+    SOTAJumpCKPSelector,
+)
 from rdagent.scenarios.data_science.proposal.exp_gen.idea_pool import DSKnowledgeBase
-from rdagent.scenarios.data_science.proposal.exp_gen.select import LatestCKPSelector
+from rdagent.scenarios.data_science.proposal.exp_gen.sota_exp_select import (
+    AutoSOTAexpSelector,
+    BestValidSelector,
+    GlobalSOTASelector,
+)
 from rdagent.scenarios.kaggle.kaggle_crawler import download_data
+
+CKP_SELECTOR_NAME_MAP = {
+    "latest": LatestCKPSelector,
+    "sota_jump": SOTAJumpCKPSelector,
+    "back_jump": BackJumpCKPSelector,
+}
+
+SOTA_EXP_SELECTOR_NAME_MAP = {
+    "global_sota": GlobalSOTASelector,
+    "auto_sota": AutoSOTAexpSelector,
+    "best_valid_sota": BestValidSelector,
+}
 
 
 class DataScienceRDLoop(RDLoop):
@@ -49,8 +70,15 @@ class DataScienceRDLoop(RDLoop):
 
         # 2) task generation from a complete solution
         # self.exp_gen: ExpGen = import_class(PROP_SETTING.exp_gen)(scen)
-        self.ckp_selector = LatestCKPSelector()
-        self.exp_gen = DSExpGen(scen)
+
+        # self.ckp_selector = CKP_SELECTOR_NAME_MAP[DS_RD_SETTING.selector_name]()
+        # self.sota_exp_selector = SOTA_EXP_SELECTOR_NAME_MAP[DS_RD_SETTING.sota_exp_selector_name]()
+        self.ckp_selector = import_class(PROP_SETTING.selector_name)()
+        self.sota_exp_selector = import_class(PROP_SETTING.sota_exp_selector_name)()
+
+        self.exp_gen = import_class(PROP_SETTING.hypothesis_gen)(scen)
+
+        # coders
         self.data_loader_coder = DataLoaderCoSTEER(scen)
         self.feature_coder = FeatureCoSTEER(scen)
         self.model_coder = ModelCoSTEER(scen)
@@ -76,6 +104,12 @@ class DataScienceRDLoop(RDLoop):
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):
+
+        # set the SOTA experiment to submit
+        sota_exp_to_submit = self.sota_exp_selector.get_sota_exp_to_submit(self.trace)
+        self.trace.set_sota_exp_to_submit(sota_exp_to_submit)
+
+        # set the checkpoint to start from
         selection = self.ckp_selector.get_selection(self.trace)
         exp = self.exp_gen.gen(self.trace, selection)
         logger.log_object(exp)
