@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
@@ -26,6 +27,21 @@ DIRNAME = Path(__file__).absolute().resolve().parent
 
 PipelineSingleFeedback = CoSTEERSingleFeedback
 PipelineMultiFeedback = CoSTEERMultiFeedback
+
+
+class CodingFeedback(BaseModel):
+    execution: str = Field(
+        description="Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information."
+    )
+    return_checking: str = Field(
+        description="Describe the expected file to be generated."
+    )
+    code: str = Field(
+        description="Describe the code that was executed. Include the full code without summarizing or omitting any information."
+    )
+    final_decision: bool = Field(
+        description="Indicate whether the code is correct or not. If the code is correct, set this to True. Otherwise, set it to False."
+    )
 
 
 class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
@@ -196,7 +212,7 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
         score_ret_code = 0
         score_check_text = ""
         if not score_fp.exists():
-            score_check_text = "[Error] Metrics file (scores.csv) is not generated!"
+            score_check_text = "[Postrun checker] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
         else:
             try:
@@ -205,27 +221,27 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
 
                 # Check model names (index)
                 if not score_df.index.is_unique:
-                    score_check_text += "\n[Error] The score dataframe contains duplicate model names."
+                    score_check_text += "\n[Postrun checker] The score dataframe contains duplicate model names."
                     score_ret_code = 1
                 if "ensemble" not in model_set_in_scores:
-                    score_check_text += "\n[Error] The score dataframe doesn't contain the ensemble model."
+                    score_check_text += "\n[Postrun checker] The score dataframe doesn't contain the ensemble model."
                     score_ret_code = 1
                 if score_ret_code != 0:
-                    score_check_text += f"The score_df is:\n{score_df}"
+                    score_check_text += f"\n[Postrun checker] score_df contains:\n```\n{score_df}\n```"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
-                    score_check_text += f"\n[Error] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_check_text += f"\n[Postrun checker] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
                 # Check if scores contain NaN (values)
                 if score_df.isnull().values.any():
                     nan_locations = score_df[score_df.isnull().any(axis=1)]
-                    score_check_text += f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
+                    score_check_text += f"\n[Postrun checker] The scores dataframe contains NaN values at the following locations:\n```\n{nan_locations}\n```"
                     score_ret_code = 1
 
             except Exception as e:
-                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += f"\n[Postrun checker] The checker crashes when checking the scores.csv file: {e}\nscores.csv's content:\n```\n{score_fp.read_text()}\n```"
                 score_ret_code = 1
 
         test_eval = get_test_eval()
@@ -255,6 +271,8 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
                         final_decision=False,
                     )
             stdout += "\n" + submission_check_out
+
+        # NOTE(yuge): don't know why, keep as is.
 
         eda_output = implementation.file_dict.get("EDA.md", None)
 
