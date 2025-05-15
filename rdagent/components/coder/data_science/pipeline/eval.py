@@ -19,6 +19,8 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.log import rdagent_logger as logger
+from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.test_eval import get_test_eval
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -31,16 +33,28 @@ PipelineMultiFeedback = CoSTEERMultiFeedback
 
 class CodingFeedback(BaseModel):
     execution: str = Field(
-        description="Describe whether the code executed successfully. Include any errors or issues encountered, and append all error messages and full traceback details without summarizing or omitting any information."
+        description="Describe whether the code executed successfully. Detail any errors (with full tracebacks) or critical warnings from stdout. State if execution was clean."
     )
     return_checking: str = Field(
-        description="Describe the expected file to be generated."
+        description="Confirm generation of the submission file. Describe verification of its format (index, columns, content plausibility) against requirements. Note any formatting issues."
+    )
+    competition_alignment: str = Field(
+        description="Analyze whether the code might lead to a discrepancy between local validation performance and the competition's test leaderboard performance."
     )
     code: str = Field(
-        description="Describe the code that was executed. Include the full code without summarizing or omitting any information."
+        description="Begin with '[Code analysis]' or '[Evaluation error]' as per Step 3. Provide the detailed analysis of code quality, instruction adherence, and alignment with competition requirements."
     )
     final_decision: bool = Field(
-        description="Indicate whether the code is correct or not. If the code is correct, set this to True. Otherwise, set it to False."
+        description="Indicate whether the code is correct or not based on all the analysis and checks above."
+    )
+
+
+class CodingFeedbackNoSubmission(BaseModel):
+    execution: str = Field(
+        description="Describe whether the code executed successfully. Detail any errors (with full tracebacks) or critical warnings from stdout. State if execution was clean."
+    )
+    final_decision: bool = Field(
+        description="Indicate whether the code is correct or not based on all the analysis and checks above."
     )
 
 
@@ -212,7 +226,7 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
         score_ret_code = 0
         score_check_text = ""
         if not score_fp.exists():
-            score_check_text = "[Postrun checker] Metrics file (scores.csv) is not generated!"
+            score_check_text = "[Scores File Checker] Metrics file (scores.csv) is not generated!"
             score_ret_code = 1
         else:
             try:
@@ -221,27 +235,27 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
 
                 # Check model names (index)
                 if not score_df.index.is_unique:
-                    score_check_text += "\n[Postrun checker] The score dataframe contains duplicate model names."
+                    score_check_text += "\n[Scores File Checker] The score dataframe contains duplicate model names."
                     score_ret_code = 1
                 if "ensemble" not in model_set_in_scores:
-                    score_check_text += "\n[Postrun checker] The score dataframe doesn't contain the ensemble model."
+                    score_check_text += "\n[Scores File Checker] The score dataframe doesn't contain the ensemble model."
                     score_ret_code = 1
                 if score_ret_code != 0:
-                    score_check_text += f"\n[Postrun checker] score_df contains:\n```\n{score_df}\n```"
+                    score_check_text += f"\n[Scores File Checker] score_df contains:\n```\n{score_df}\n```"
 
                 # Check metric name (columns)
                 if score_df.columns.tolist() != [self.scen.metric_name]:
-                    score_check_text += f"\n[Postrun checker] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
+                    score_check_text += f"\n[Scores File Checker] The scores dataframe does not contain the correct column names.\nCorrect columns is: ['{self.scen.metric_name}']\nBut got: {score_df.columns.tolist()}"
                     score_ret_code = 1
 
                 # Check if scores contain NaN (values)
                 if score_df.isnull().values.any():
                     nan_locations = score_df[score_df.isnull().any(axis=1)]
-                    score_check_text += f"\n[Postrun checker] The scores dataframe contains NaN values at the following locations:\n```\n{nan_locations}\n```"
+                    score_check_text += f"\n[Scores File Checker] The scores dataframe contains NaN values at the following locations:\n```\n{nan_locations}\n```"
                     score_ret_code = 1
 
             except Exception as e:
-                score_check_text += f"\n[Postrun checker] The checker crashes when checking the scores.csv file: {e}\nscores.csv's content:\n```\n{score_fp.read_text()}\n```"
+                score_check_text += f"\n[Scores File Checker] The checker crashes when checking the scores.csv file: {e}\nscores.csv's content:\n```\n{score_fp.read_text()}\n```"
                 score_ret_code = 1
 
         test_eval = get_test_eval()
@@ -283,26 +297,53 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
         else:
             eda_output = implementation.file_dict.get("EDA.md", None)
 
+        is_sub_enabled = test_eval.is_sub_enabled(self.scen.competition)
         system_prompt = T(".prompts:pipeline_eval.system").r(
-            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
-            task_desc=target_task.get_task_information(),
-            is_sub_enabled=test_eval.is_sub_enabled(self.scen.competition),
-            spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            is_sub_enabled=is_sub_enabled,
         )
         user_prompt = T(".prompts:pipeline_eval.user").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
+            task=target_task,
             stdout=stdout.strip(),
             code=implementation.file_dict["main.py"],
         )
-        wfb = build_cls_from_json_with_retry(
-            PipelineSingleFeedback,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
-        )
-        if score_ret_code != 0:
-            wfb.final_decision = False
-            wfb.return_checking += "\n" + score_check_text
+
+        if is_sub_enabled:
+            resp = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt,
+                response_format=CodingFeedback, **kwargs
+            )
+            resp = CodingFeedback(**json.loads(resp))
+            logger.info(f"Pipeline single feedback: {resp}")
+            wfb = PipelineSingleFeedback(
+                execution=resp.execution,
+                return_checking=resp.return_checking,
+                code=resp.code,
+                final_decision=resp.final_decision,
+            )
+        else:
+            resp = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt,
+                response_format=CodingFeedbackNoSubmission, **kwargs
+            )
+            resp = CodingFeedbackNoSubmission(**json.loads(resp))
+            logger.info(f"Pipeline single feedback: {resp}")
+            wfb = PipelineSingleFeedback(
+                execution=resp.execution,
+                return_checking="Return checking is not available.",
+                code="Code evaluation is not available.",
+                final_decision=resp.final_decision,
+            )
+
+        wfb_post_updated = False
         if submission_ret_code != 0:
+            wfb_post_updated = wfb.final_decision
             wfb.final_decision = False
-            wfb.return_checking += "\nSubmission file check failed."
+            wfb.return_checking = "[Submission Format Test] Submission format check did not pass.\n\n---------------\n\n" + (wfb.return_checking or "")
+        if score_ret_code != 0:
+            wfb_post_updated = wfb_post_updated or wfb.final_decision
+            wfb.final_decision = False
+            wfb.return_checking = score_check_text + "[Scores File Checker] scores.csv is problematic.\n\n---------------\n\n" + (wfb.return_checking or "")
+        if wfb_post_updated:
+            logger.warning(f"Pipeline single feedback is set to false by rule, not by LLM:\n{wfb.return_checking}")
         return wfb
