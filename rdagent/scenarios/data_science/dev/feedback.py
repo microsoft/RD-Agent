@@ -235,7 +235,7 @@ class DSExperiment2FeedbackV3(DSExperiment2Feedback):
         system_prompt = T(".prompts_v3:exp_feedback.system").r()
         user_prompt = T(".prompts_v3:exp_feedback.user").r(
             scenario_desc=trace.scen.get_scenario_all_desc(eda_output=eda_output),
-            sota_desc=sota_exp,
+            sota_exp=sota_exp,
             cur_exp=exp,
             exp_and_feedback=trace.hist[-1] if trace.hist else None,
             diff_edition=diff_edition,

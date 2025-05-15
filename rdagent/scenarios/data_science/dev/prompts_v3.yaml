@@ -112,6 +112,7 @@ exp_feedback:
     ### Submission Format Check for SOTA
     {{ sota_exp.format_check_result }}
     {% endif %}
+    {% endif %}
 
     {% else %}
     No previous valid experiment available.
