@@ -43,7 +43,7 @@ class LoopMeta(type):
         steps = []
         for base in bases:
             for step in LoopMeta._get_steps(base.__bases__) + getattr(base, "steps", []):
-                if step not in steps and step not in ["load", "dump"]:  # incase user override the load/dump method
+                if step not in steps and step not in ["load", "dump", "run_R"]:  # incase user override the load/dump method
                     steps.append(step)
         return steps
 
