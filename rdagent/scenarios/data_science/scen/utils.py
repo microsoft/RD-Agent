@@ -253,7 +253,6 @@ def file_tree(path: Path, depth=0) -> str:
     if len(files) > max_n:
         result.append(f"{' '*depth*4}... and {len(files)-max_n} other files")
 
-    # TODO: inspect dir symbolic links; if the link is to a folder under the path when depth=0, just show link instead of exploring it (avoid infinite recursion)
     dirs = [p for p in Path(path).iterdir() if p.is_dir() or (p.is_symlink() and p.resolve().is_dir())]
 
     # Calculate base_path (the top-level resolved absolute directory)
