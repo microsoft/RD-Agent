@@ -2,6 +2,7 @@ import json
 from typing import Dict
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.proposal import (
@@ -18,7 +19,155 @@ from rdagent.utils.agent.tpl import T
 from rdagent.utils.repo.diff import generate_diff_from_dict
 
 
+class AspectDecision(BaseModel):
+    reasoning: str = Field(
+        description="Write 2-3 sentences on the specific aspect.",
+    )
+    decision: bool = Field(
+        description="Decide whether the current experiment passes on the specific criteria."
+    )
+
+
+class ExperimentFeedback(BaseModel):
+    submission_format: AspectDecision = Field(
+        description="Whether the submission format is valid.",
+    )
+    first_valid_submission: AspectDecision = Field(
+        description="Is it the first valid submission ever?",
+    )
+    alignment_with_competition_goal: AspectDecision = Field(
+        description="Whether the current submission is aligned with the competition goal.",
+    )
+    performance: AspectDecision = Field(
+        description="Whether the current submission has a better performance than SOTA (if any). If it's the first established SOTA, then it's always true.",
+    )
+    hypothesis: AspectDecision = Field(
+        description="Explicitly confirm or refute the hypothesis based on specific data points or performance trends."
+    )
+    final_decision: AspectDecision = Field(
+        description="Decide based on the above aspects whether to submit the current experiment or not. The reasoning of the final decision should clearly explain the reason for success or failure of the experiment. If failed, begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA."
+    )
+
+
 class DSExperiment2Feedback(Experiment2Feedback):
+    def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
+        # 用哪些信息来生成feedback
+        # 1. pending_tasks_list[0][0] 任务的描述
+        # 2. hypothesis 任务的假设
+        # 3. 相对sota_exp的改动
+        # 4. result 任务的结果
+        # 5. sota_exp.result 之前最好的结果
+        sota_exp = trace.sota_experiment()
+        sota_desc = T("scenarios.data_science.share:describe.exp").r(
+            exp=sota_exp, heading="SOTA of previous exploration of the scenario"
+        )
+
+        last_exp = trace.last_exp()
+
+        # Get feedback description using shared template
+        feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
+            exp_and_feedback=trace.hist[-1] if trace.hist else None, heading="Previous Trial Feedback"
+        )
+
+        # TODO:
+        # -  Should we choose between the diff from last experiment or last sota ?
+
+        # Retrieve the last experiment from the history
+        if sota_exp and sota_exp.experiment_workspace and exp.experiment_workspace:
+            # Generate a diff between the two workspaces
+            sota_exp_files = sota_exp.experiment_workspace.file_dict
+            current_exp_files = exp.experiment_workspace.file_dict
+            diff_edition = generate_diff_from_dict(sota_exp_files, current_exp_files)
+        else:
+            diff_edition = []
+
+        # assumption:
+        # The feedback should focus on experiment **improving**.
+        # Assume that all the the sota exp is based on the previous sota experiment
+        cur_vs_sota_score = None
+        if sota_exp:
+            cur_score = pd.DataFrame(exp.result).loc["ensemble"].iloc[0]
+            sota_score = pd.DataFrame(sota_exp.result).loc["ensemble"].iloc[0]
+            cur_vs_sota_score = (
+                f"The current score is {cur_score}, while the SOTA score is {sota_score}. "
+                f"{'In this competition, higher is better.' if self.scen.metric_direction else 'In this competition, lower is better.'}"
+            )
+        if DS_RD_SETTING.rule_base_eval:
+            if sota_exp:
+                if cur_score > sota_score:
+                    return HypothesisFeedback(
+                        observations="The current score bigger than the SOTA score.",
+                        hypothesis_evaluation="The current score is bigger than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is bigger than the SOTA score.",
+                        decision=True if self.scen.metric_direction else False,
+                    )
+                elif cur_score < sota_score:
+                    return HypothesisFeedback(
+                        observations="The current score smaller than the SOTA score.",
+                        hypothesis_evaluation="The current score is smaller than the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score is smaller than the SOTA score.",
+                        decision=False if self.scen.metric_direction else True,
+                    )
+                else:
+                    return HypothesisFeedback(
+                        observations="The current score equals to the SOTA score.",
+                        hypothesis_evaluation="The current score equals to the SOTA score.",
+                        new_hypothesis="No new hypothesis provided",
+                        reason="The current score equals to the SOTA score.",
+                        decision=False,
+                    )
+
+        eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
+        system_prompt = T(".prompts:exp_feedback.system").r(
+            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
+        )
+        user_prompt = T(".prompts:exp_feedback.user").r(
+            sota_desc=sota_desc,
+            cur_exp=exp,
+            diff_edition=diff_edition,
+            feedback_desc=feedback_desc,
+            cur_vs_sota_score=cur_vs_sota_score,
+        )
+
+        resp_dict = json.loads(
+            APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                json_mode=True,
+                json_target_type=Dict[str, str | bool | int],
+            )
+        )
+
+        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+            exp.result = None
+
+        # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
+        # `new_hypothesis` should not exist in the feedback.
+        hypothesis_feedback = HypothesisFeedback(
+            observations=resp_dict.get("Observations", "No observations provided"),
+            hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),
+            new_hypothesis=resp_dict.get("New Hypothesis", "No new hypothesis provided"),
+            reason=resp_dict.get("Reasoning", "No reasoning provided"),
+            decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
+        )
+
+        if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
+            ds_idea = DSIdea(
+                {
+                    "competition": self.scen.get_competition_full_desc(),
+                    "idea": exp.hypothesis.hypothesis,
+                    "method": exp.pending_tasks_list[0][0].get_task_information(),
+                    "hypothesis": {exp.hypothesis.problem_label: exp.hypothesis.problem_desc},
+                }
+            )
+            trace.knowledge_base.add_idea(idea=ds_idea)
+
+        return hypothesis_feedback
+
+
+class DSExperiment2FeedbackV3(DSExperiment2Feedback):
     def generate_feedback(self, exp: DSExperiment, trace: DSTrace) -> ExperimentFeedback:
         # 用哪些信息来生成feedback
         # 1. pending_tasks_list[0][0] 任务的描述
