@@ -88,23 +88,23 @@ feedback_problem:
 
 scenario_description: |-
   {% if use_raw_description -%}
-  ====== Background ======
+  ### Background ###
   {{ raw_description }}
 
   {% else %}
-  ====== Background ======
+  ### Background ###
   {{ background }}
 
   {% if eda_output is not none %}
-  ====== Data Overview (EDA) ======
+  ### Data Overview (EDA) ###
   {{ eda_output }}
   {% endif %}
 
-  ====== Submission Format ======
+  ### Submission Format ###
   Please ensure your submission adheres to the following specifications:
   {{ submission_specifications }}
 
-  ====== Important Guidelines ======
+  ### Important Guidelines ###
   Before submitting your results, please note the following:
   - We have numerous tests in place to check your code.
   - Ensure your submission is genuine.
@@ -112,7 +112,7 @@ scenario_description: |-
 
   {% endif %}
 
-  ====== Evaluation ======
+  ### Evaluation ###
   {% if not use_raw_description and metric_name %}
   The primary evaluation metric for this task is: **{{ metric_name }}**.
   {% endif %}
@@ -124,7 +124,7 @@ scenario_description: |-
   {% endif %}
 
   {% if time_limit %}
-  ====== Time Limit ======
+  ### Time Limit ###
   Your code's execution is limited to **{{ time_limit }}**.
   Please optimize your model and parameters to ensure your code runs within this specified time constraint.
   {% endif %}

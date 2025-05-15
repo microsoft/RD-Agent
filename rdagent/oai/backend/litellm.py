@@ -100,7 +100,7 @@ class LiteLLMAPIBackend(APIBackend):
         response = completion(
             model=model,
             messages=messages,
-            stream=LITELLM_SETTINGS.chat_stream,
+            stream=LITELLM_SETTINGS.chat_stream and "tools" not in kwargs,
             temperature=temperature,
             max_tokens=max_tokens,
             reasoning_effort=reasoning_effort,

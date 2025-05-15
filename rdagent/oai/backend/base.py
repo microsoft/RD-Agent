@@ -418,6 +418,11 @@ class APIBackend(ABC):
         input_content_json = (
             chat_cache_prefix + input_content_json + f"<seed={seed}/>"
         )  # FIXME this is a hack to make sure the cache represents the round index
+        # FIXME(yuge): added kwargs for tools / models
+        if "tools" in kwargs:
+            input_content_json += f"<tools={json.dumps(kwargs['tools'])}/>"
+        if "model" in kwargs:
+            input_content_json += f"<model={kwargs['model']}/>"
         if self.use_chat_cache:
             cache_result = self.cache.chat_get(input_content_json)
             if cache_result is not None:
@@ -426,7 +431,7 @@ class APIBackend(ABC):
                     logger.info(f"{LogColors.CYAN}Response:{cache_result}{LogColors.END}", tag="llm_messages")
                 return cache_result
 
-        all_response = ""
+        all_response: list[str | Any] = []
         new_messages = deepcopy(messages)
         try_n = 6
         for _ in range(try_n):  # for some long code, 3 times may not enough for reasoning models
@@ -435,20 +440,30 @@ class APIBackend(ABC):
             response, finish_reason = self._create_chat_completion_add_json_in_prompt(
                 new_messages, json_mode=json_mode, *args, **kwargs
             )  # type: ignore[misc]
-            all_response += str(response)
+            all_response.append(response)
             if finish_reason is None or finish_reason != "length":
+                # Concatenate the responses
+                if all(isinstance(r, str) for r in all_response):
+                    final_response = "".join(all_response)
+                elif len(all_response) == 1:
+                    # tool call?
+                    final_response = all_response[0]
+                else:
+                    # give up
+                    final_response = all_response
+
                 if json_mode:
                     try:
-                        json.loads(all_response)
+                        json.loads(final_response)
                     except:
-                        match = re.search(r"```json(.*)```", all_response, re.DOTALL)
-                        all_response = match.groups()[0] if match else all_response
-                        json.loads(all_response)
+                        match = re.search(r"```json(.*)```", final_response, re.DOTALL)
+                        final_response = match.groups()[0] if match else final_response
+                        json.loads(final_response)
                 if json_target_type is not None:
-                    TypeAdapter(json_target_type).validate_json(all_response)
-                if self.dump_chat_cache:
-                    self.cache.chat_set(input_content_json, all_response)
-                return all_response
+                    TypeAdapter(json_target_type).validate_json(final_response)
+                if self.dump_chat_cache and isinstance(final_response, str):
+                    self.cache.chat_set(input_content_json, final_response)
+                return final_response
             new_messages.append({"role": "assistant", "content": str(response)})
         raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
 

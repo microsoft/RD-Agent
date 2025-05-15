@@ -154,9 +154,32 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
         def remove_file(file_path: str) -> None:
             pass
 
+        def bash_patch_to_patch(patch: str) -> str:
+            start_patch_marker = "*** Begin Patch"
+            start_index = patch.find(start_patch_marker)
+
+            if start_index != -1:
+                # Find the starting index of "EOF" after "*** Begin Patch"
+                eof_marker = "EOF"
+                # We search for EOF starting from the position *after* the "apply_patch <<\"EOF\"" line
+                # to ensure we get the correct closing EOF.
+                search_after_heredoc_eof = patch.find(eof_marker) + len(eof_marker)
+                end_index = patch.find(eof_marker, search_after_heredoc_eof)
+
+                if end_index != -1:
+                    # Slice the patch including "*** Begin Patch" and excluding "EOF"
+                    sliced_segment = patch[start_index:end_index]
+                    return sliced_segment
+                else:
+                    logger.error("EOF marker not found after '*** Begin Patch'.")
+                    return patch
+            else:
+                logger.error("'*** Begin Patch' marker not found.")
+                return patch
+
         try:
             result = process_patch(
-                patch,
+                bash_patch_to_patch(patch),
                 open_file,
                 write_file,
                 remove_file,
@@ -231,18 +254,21 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             )
 
         APPLY_PATCH_TOOL = {
-            "name": "apply_patch",
-            "description": T(".prompts_v3:pipeline_coder.apply_patch_tool_desc").r(),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "input": {
-                        "type": "string",
-                        "description": " The apply_patch command that you wish to execute.",
-                    }
+            "type": "function",
+            "function": {
+                "name": "apply_patch",
+                "description": T(".prompts_v3:pipeline_coder.apply_patch_tool_desc").r(),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "input": {
+                            "type": "string",
+                            "description": "The apply_patch command that you wish to execute.",
+                        }
+                    },
+                    "required": ["input"],
                 },
-                "required": ["input"],
-            },
+            }
         }
 
         for _ in range(5):
@@ -260,12 +286,14 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             )
             if not isinstance(response, str) and response.tool_calls and main_py:
                 tool_calls = response.tool_calls
-                patch = json.loads(tool_calls[0].arguments)["input"]
-                logger.info(f"Tool call: {tool_calls[0].name} with patch:\n{patch}")
+                patch = json.loads(tool_calls[0].function.arguments)["input"]
+                logger.info(f"Tool call: {tool_calls[0].function.name} with patch:\n{patch}")
                 if main_py:
                     main_py = self.apply_to_main_py(main_py, patch)
-            else:
+            elif not isinstance(response, str):
                 main_py = PythonAgentOut.extract_output(response.message)
+            else:
+                main_py = PythonAgentOut.extract_output(response)
 
             if main_py != workspace.file_dict.get("main.py"):
                 break

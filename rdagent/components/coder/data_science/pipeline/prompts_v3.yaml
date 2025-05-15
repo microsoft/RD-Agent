@@ -77,6 +77,7 @@ pipeline_coder:
 
     ## Task-Specific Instructions for New Code Generation
     - You will generate a complete Python script named `main.py`.
+    - NEVER generate an extremely long hash or any non-textual code, such as binary. These are not helpful to the user and are very expensive.
     - This script will perform an Exploratory Data Analysis (EDA) as specified, then proceed with data preprocessing, model training, validation, and submission file generation.
     - Before outputting your response, take a moment to review all instructions, guidelines, and the specific task and coding sketch. Ensure your code fully addresses the request and adheres to all constraints. Think step-by-step.
 
@@ -85,8 +86,9 @@ pipeline_coder:
 
     ## Task-Specific Instructions for Code Revision
     - You will be provided with existing code and feedback.
-    - Your task is to generate a patch in the V4A diff format to correct the errors and implement the required changes.
-    - You should use the `apply_patch` tool and its V4A diff format, which allows you to execute a diff/patch against a file. Do NOT output the full revised code.
+    - Your task is to generate a patch in the V4A diff format to correct the errors and implement the required changes. You should use the `apply_patch` tool and its V4A diff format, which allows you to execute a diff/patch against a file. Do NOT output the full revised code.
+    - Update all necessary import statements, dependencies, and endpoints required to run the code.
+    - If the code contains comments or docstrings, ensure they are still consistent with the code after your changes.
     - Before using the tool to structure your response, take a moment to review all instructions, guidelines, and the specific task. Ensure your patch fully addresses the request and adheres to all constraints. Think step-by-step.
     - If the original code is almost NOT reusable, you can write the code from scratch. In this case, you should generate a complete Python script named `main.py`. This script will perform an Exploratory Data Analysis (EDA) as specified, then proceed with data preprocessing, model training, validation, and submission file generation.
 
@@ -149,7 +151,7 @@ pipeline_coder:
     Your entire response should be a single Python code block for `main.py`:
     ```Python
     # main.py
-    # [thinkings before writing code]
+    # [concise thinkings before writing code]
     [Your Python code here]
     ```
 
@@ -174,10 +176,15 @@ pipeline_coder:
     {% endif %}
 
     ========= Output Format =========
-    Your task is to first think step by step, then generate the V4A patch to apply the necessary modifications to the `main.py` file:
 
-    [thinkings before writing patch]
-    {Your patch here}
+    ### Format Option 1
+
+    Your task is to generate the V4A patch (using the apply_patch tool) to apply the necessary modifications to the `main.py` file:
+
+    [thoughts: think hard before writing the patch]
+    [Your patch]
+
+    ### Format Option 2
 
     Alternatively, you can also generate a new `main.py` file if the original code is almost NOT reusable. As writing the code from scratch can be costly, do NOT do this unless you are absolutely sure the code is not revisable. In this case, your entire response should be a single Python code block for `main.py`:
 

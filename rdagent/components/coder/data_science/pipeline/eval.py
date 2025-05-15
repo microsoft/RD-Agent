@@ -298,10 +298,10 @@ class PipelineCoSTEEREvaluatorV3(PipelineCoSTEEREvaluator):
             eda_output = implementation.file_dict.get("EDA.md", None)
 
         is_sub_enabled = test_eval.is_sub_enabled(self.scen.competition)
-        system_prompt = T(".prompts:pipeline_eval.system").r(
+        system_prompt = T(".prompts_v3:pipeline_eval.system").r(
             is_sub_enabled=is_sub_enabled,
         )
-        user_prompt = T(".prompts:pipeline_eval.user").r(
+        user_prompt = T(".prompts_v3:pipeline_eval.user").r(
             scenario=self.scen.get_scenario_all_desc(eda_output=eda_output),
             task=target_task,
             stdout=stdout.strip(),
