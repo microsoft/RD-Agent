@@ -67,25 +67,47 @@ def load_times(log_path: Path):
 @st.cache_data(persist=True)
 def load_data(log_path: Path):
     data = defaultdict(lambda: defaultdict(dict))
+    llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
     for msg in FileStorage(log_path).iter_msg():
-        if msg.tag and "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
+        if not msg.tag:
+            continue
+        li, fn = extract_loopid_func_name(msg.tag)
+        ei = extract_evoid(msg.tag)
+        if li:
+            li = int(li)
+        if ei is not None:
+            ei = int(ei)
+        if "debug_" in msg.tag:
+            if "debug_tpl" in msg.tag and "filter_" in msg.content["uri"]:
+                continue
+            if ei is not None:
+                llm_data[li][fn][ei].append(
+                    {
+                        "tag": msg.tag,
+                        "obj": msg.content,
+                    }
+                )
+            else:
+                llm_data[li][fn]["no_tag"].append(
+                    {
+                        "tag": msg.tag,
+                        "obj": msg.content,
+                    }
+                )
+        elif "llm" not in msg.tag and "session" not in msg.tag and "batch embedding" not in msg.tag:
             if msg.tag == "competition":
                 data["competition"] = msg.content
                 continue
 
-            li, fn = extract_loopid_func_name(msg.tag)
-            if li:
-                li = int(li)
-
-            ei = extract_evoid(msg.tag)
             msg.tag = re.sub(r"\.evo_loop_\d+", "", msg.tag)
             msg.tag = re.sub(r"Loop_\d+\.[^.]+\.?", "", msg.tag)
             msg.tag = msg.tag.strip()
 
-            if ei:
-                if int(ei) not in data[li][fn]:
-                    data[li][fn][int(ei)] = {}
-                data[li][fn][int(ei)][msg.tag] = msg.content
+            if ei is not None:
+                if ei not in data[li][fn]:
+                    data[li][fn][ei] = {}
+                data[li][fn][ei][msg.tag] = msg.content
             else:
                 if msg.tag:
                     data[li][fn][msg.tag] = msg.content
@@ -93,30 +115,30 @@ def load_data(log_path: Path):
                     if not isinstance(msg.content, str):
                         data[li][fn]["no_tag"] = msg.content
 
-    # debug_llm data
-    llm_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    # To be compatible with old version log trace, keep this
     llm_log_p = log_path / "debug_llm.pkl"
-    try:
-        rd = pickle.loads(llm_log_p.read_bytes())
-    except:
-        rd = []
-    for d in rd:
-        t = d["tag"]
-        if "debug_exp_gen" in t:
-            continue
-        if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
-            continue
-        lid, fn = extract_loopid_func_name(t)
-        ei = extract_evoid(t)
-        if lid:
-            lid = int(lid)
-        if ei:
-            ei = int(ei)
+    if llm_log_p.exists():
+        try:
+            rd = pickle.loads(llm_log_p.read_bytes())
+        except:
+            rd = []
+        for d in rd:
+            t = d["tag"]
+            if "debug_exp_gen" in t:
+                continue
+            if "debug_tpl" in t and "filter_" in d["obj"]["uri"]:
+                continue
+            lid, fn = extract_loopid_func_name(t)
+            ei = extract_evoid(t)
+            if lid:
+                lid = int(lid)
+            if ei is not None:
+                ei = int(ei)
 
-        if ei is not None:
-            llm_data[lid][fn][ei].append(d)
-        else:
-            llm_data[lid][fn]["no_tag"].append(d)
+            if ei is not None:
+                llm_data[lid][fn][ei].append(d)
+            else:
+                llm_data[lid][fn]["no_tag"].append(d)
 
     return convert_defaultdict_to_dict(data), convert_defaultdict_to_dict(llm_data)
 
@@ -652,7 +674,7 @@ with st.sidebar:
             st.radio(
                 f"Select :blue[**one log folder**]",
                 state.log_folders,
-                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0],
+                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0] if "amlt" in x else x,
             )
         )
     if not state.log_folder.exists():
@@ -702,11 +724,11 @@ if state.data["competition"]:
     st.title(state.data["competition"])
     st.markdown(f"[share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path})")
     summarize_data()
-    if len(state.data) > 2:
-        min_id, max_id = get_state_data_range(state.data)
+    min_id, max_id = get_state_data_range(state.data)
+    if max_id > min_id:
         loop_id = st.slider("Loop", min_id, max_id, min_id)
     else:
-        loop_id = 0
+        loop_id = min_id
     if state.show_stdout:
         stdout_win(loop_id)
     main_win(loop_id, state.llm_data[loop_id] if loop_id in state.llm_data else None)
