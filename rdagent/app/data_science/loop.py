@@ -28,7 +28,7 @@ from rdagent.core.proposal import ExperimentFeedback
 from rdagent.core.scenario import Scenario
 from rdagent.core.utils import import_class
 from rdagent.log import rdagent_logger as logger
-from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback
+from rdagent.scenarios.data_science.dev.feedback import DSExperiment2Feedback, DSExperiment2FeedbackV3
 from rdagent.scenarios.data_science.dev.runner import DSCoSTEERRunner
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSExpGen, DSTrace
@@ -100,7 +100,10 @@ class DataScienceRDLoop(RDLoop):
             self.trace = DSTrace(scen=scen, knowledge_base=knowledge_base)
         else:
             self.trace = DSTrace(scen=scen)
-        self.summarizer = DSExperiment2Feedback(scen)
+        if DS_RD_SETTING.proposal_version == "v3":
+            self.summarizer = DSExperiment2FeedbackV3(scen)
+        else:
+            self.summarizer = DSExperiment2Feedback(scen)
         super(RDLoop, self).__init__()
 
     def direct_exp_gen(self, prev_out: dict[str, Any]):

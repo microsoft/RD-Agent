@@ -10,6 +10,7 @@ from rdagent.core.proposal import (
     ExperimentFeedback,
     HypothesisFeedback,
 )
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen import DSTrace
@@ -21,31 +22,33 @@ from rdagent.utils.repo.diff import generate_diff_from_dict
 
 class AspectDecision(BaseModel):
     reasoning: str = Field(
-        description="Write 2-3 sentences on the specific aspect.",
+        description="A concise 2-3 sentence (unless otherwise specified) explanation supporting the decision for this aspect. Reference specific data or code elements where applicable."
     )
     decision: bool = Field(
-        description="Decide whether the current experiment passes on the specific criteria."
+        description="Boolean flag indicating if the current experiment passes the check or meets the criteria for this specific aspect."
     )
 
-
-class ExperimentFeedback(BaseModel):
-    submission_format: AspectDecision = Field(
-        description="Whether the submission format is valid.",
+class ExperimentFeedbackInAspects(BaseModel):
+    submission_format_valid: AspectDecision = Field(
+        description="Evaluates if the submission format of the current experiment is valid."
     )
-    first_valid_submission: AspectDecision = Field(
-        description="Is it the first valid submission ever?",
+    is_first_valid_submission: AspectDecision = Field(
+        description="Determines if this is the historically first experiment with a valid submission format. Only evaluate if submission_format_valid.decision is true."
     )
-    alignment_with_competition_goal: AspectDecision = Field(
-        description="Whether the current submission is aligned with the competition goal.",
+    evaluation_aligned_with_competition: AspectDecision = Field(
+        description="Assesses if the current experiment's setup (validation metric, prediction methodology, risk of overfitting/leakage) aligns with competition requirements and best practices. Only evaluate if submission_format_valid.decision is true."
     )
-    performance: AspectDecision = Field(
-        description="Whether the current submission has a better performance than SOTA (if any). If it's the first established SOTA, then it's always true.",
+    performance_exceeds_sota: AspectDecision = Field(
+        description="Compares the current experiment's ensemble performance against the SOTA ensemble. 'decision' is true if performance is obviously better or if this establishes the first SOTA. 'decision' is false if obviously worse. If similar, 'decision' can be true but reasoning must note similarity, deferring final judgment to code quality analysis for the overall_recommendation. Only evaluate if evaluation_aligned_with_competition.decision is true."
     )
-    hypothesis: AspectDecision = Field(
-        description="Explicitly confirm or refute the hypothesis based on specific data points or performance trends."
+    hypothesis_supported: AspectDecision = Field(
+        description="Evaluates whether the experimental results confirm or refute the stated hypothesis for the current experiment, based on data trends. This does not directly determine if the experiment is a 'good' submission but rather if the learning objective was met."
     )
-    final_decision: AspectDecision = Field(
-        description="Decide based on the above aspects whether to submit the current experiment or not. The reasoning of the final decision should clearly explain the reason for success or failure of the experiment. If failed, begin explicitly with [Submission format error], [Evaluation error], [Experiment Analysis] or [Code Analysis] depending on the step at which issues arose. Reference specific scores and methodological differences with SOTA."
+    code_quality_and_robustness_superior_or_establishes_sota: AspectDecision = Field(
+        description="Detailed analysis of the current experiment's code quality (less overfitting risk, best practices, interpretability, efficiency) compared to SOTA. This is especially crucial if performance_exceeds_sota.decision is true due to similar performance. If this is the first SOTA, then code quality establishes the baseline. Only evaluate if performance_exceeds_sota.decision is true."
+    )
+    overall_recommendation_to_submit: AspectDecision = Field(
+        description="Final recommendation on whether to submit this experiment's results and potentially replace the SOTA. The 'decision' is based on a cascade of the previous checks. The 'reasoning' MUST summarize the primary basis for this decision, starting with a specific tag: [Submission format error], [Evaluation alignment error], [Performance regression], [Quality or robustness inferior], [Accepted new SOTA performance], [Accepted code improvement], or [Accepted first SOTA]. Whether the hypothesis was supported by the result should also be included in the reasoning of the overall recommendation, although it's not a direct factor in the decision. The reasoning can be longer than other aspects (e.g., up to 10 sentences), but still concise."
     )
 
 
@@ -176,17 +179,8 @@ class DSExperiment2FeedbackV3(DSExperiment2Feedback):
         # 4. result 任务的结果
         # 5. sota_exp.result 之前最好的结果
         sota_exp = trace.sota_experiment()
-        sota_desc = T("scenarios.data_science.share:describe.exp").r(
-            exp=sota_exp, heading="SOTA of previous exploration of the scenario"
-        )
 
         last_exp = trace.last_exp()
-
-        # Get feedback description using shared template
-        feedback_desc = T("scenarios.data_science.share:describe.feedback").r(
-            exp_and_feedback=trace.hist[-1] if trace.hist else None, heading="Previous Trial Feedback"
-        )
-
         # TODO:
         # -  Should we choose between the diff from last experiment or last sota ?
 
@@ -238,14 +232,13 @@ class DSExperiment2FeedbackV3(DSExperiment2Feedback):
                     )
 
         eda_output = exp.experiment_workspace.file_dict.get("EDA.md", None)
-        system_prompt = T(".prompts:exp_feedback.system").r(
-            scenario=self.scen.get_scenario_all_desc(eda_output=eda_output)
-        )
-        user_prompt = T(".prompts:exp_feedback.user").r(
-            sota_desc=sota_desc,
+        system_prompt = T(".prompts_v3:exp_feedback.system").r()
+        user_prompt = T(".prompts_v3:exp_feedback.user").r(
+            scenario_desc=trace.scen.get_scenario_all_desc(eda_output=eda_output),
+            sota_desc=sota_exp,
             cur_exp=exp,
+            exp_and_feedback=trace.hist[-1] if trace.hist else None,
             diff_edition=diff_edition,
-            feedback_desc=feedback_desc,
             cur_vs_sota_score=cur_vs_sota_score,
         )
 
@@ -253,23 +246,24 @@ class DSExperiment2FeedbackV3(DSExperiment2Feedback):
             APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
                 system_prompt=system_prompt,
-                json_mode=True,
-                json_target_type=Dict[str, str | bool | int],
+                response_format=ExperimentFeedbackInAspects,
             )
         )
 
-        if resp_dict.get("Evaluation Aligned With Task", "no") == "no":
+        feedbacks = ExperimentFeedbackInAspects(**resp_dict)
+        
+        # Translate to hypothesis feedback
+        if not feedbacks.evaluation_aligned_with_competition.decision:
             exp.result = None
-
-        # Currently, we do not use `observations`, `hypothesis_evaluation`, and `new_hypothesis` in the framework.
-        # `new_hypothesis` should not exist in the feedback.
         hypothesis_feedback = HypothesisFeedback(
-            observations=resp_dict.get("Observations", "No observations provided"),
-            hypothesis_evaluation=resp_dict.get("Feedback for Hypothesis", "No feedback provided"),
-            new_hypothesis=resp_dict.get("New Hypothesis", "No new hypothesis provided"),
-            reason=resp_dict.get("Reasoning", "No reasoning provided"),
-            decision=convert2bool(resp_dict.get("Replace Best Result", "no")),
+            observations=feedbacks.performance_exceeds_sota.reasoning,
+            hypothesis_evaluation=feedbacks.hypothesis_supported.reasoning,
+            new_hypothesis="No new hypothesis provided",
+            reason=feedbacks.overall_recommendation_to_submit.reasoning,
+            decision=feedbacks.overall_recommendation_to_submit.decision,
         )
+
+        logger.info(f"Feedback for hypothesis:\n{hypothesis_feedback}")
 
         if hypothesis_feedback and DS_RD_SETTING.enable_knowledge_base:
             ds_idea = DSIdea(
