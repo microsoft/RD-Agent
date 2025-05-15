@@ -85,15 +85,16 @@ pipeline_coder:
 
     ## Task-Specific Instructions for Code Revision
     - You will be provided with existing code and feedback.
-    - Your task is to generate a patch in the V4A diff format to correct the errors and implement the required changes. In this case, do NOT output the full revised code.
     - Update all necessary import statements, dependencies, and endpoints required to run the code.
     - If the code contains comments or docstrings, ensure they are still consistent with the code after your changes.
     - Before structuring your response, take a moment to review all instructions, guidelines, and the specific task. Ensure your patch fully addresses the request and adheres to all constraints. Think step-by-step.
-    - If the original code is almost NOT reusable, you can write the code from scratch. In this case, you should generate a complete Python script named `main.py`. This script will perform an Exploratory Data Analysis (EDA) as specified, then proceed with data preprocessing, model training, validation, and submission file generation.
+    - Generate a complete Python script named `main.py`. This script will perform an Exploratory Data Analysis (EDA) as specified, then proceed with data preprocessing, model training, validation, and submission file generation.
+  # - Your task is to generate a patch in the V4A diff format to correct the errors and implement the required changes. In this case, do NOT output the full revised code.
+  # - If the original code is almost NOT reusable, you can write the code from scratch. In this case, you should generate a complete Python script named `main.py`. This script will perform an Exploratory Data Analysis (EDA) as specified, then proceed with data preprocessing, model training, validation, and submission file generation.
 
-    ## V4A Diff Format
+  # ## V4A Diff Format
 
-    {% include "components.coder.data_science.pipeline.prompts_v3:pipeline_coder.apply_patch_not_tool_desc" %}
+  # {% include "components.coder.data_science.pipeline.prompts_v3:pipeline_coder.apply_patch_not_tool_desc" %}
 
   user_shared: |-
     ========= Competition Information =========
@@ -180,28 +181,40 @@ pipeline_coder:
 
     ========= Output Format =========
 
-    ### Format Option 1
+    Generate a new `main.py` file to replace the original code. The output contains two parts: reasoning and code generation.
 
-    Your task is to generate the V4A patch to apply the necessary modifications to the `main.py` file. The response should be in the following format.
-
-    [Thinkings on how you should write the patch. Do not write any patches or codes in this part...]
-
-    %%bash
-    apply_patch <<"EOF"
-    *** Begin Patch
-    ...
-    EOF
-
-    ### Format Option 2
-
-    Alternatively, you can also generate a new `main.py` file if the original code is almost NOT reusable. As writing the code from scratch can be costly, do NOT do this unless you are absolutely sure the code is not revisable. In this case, the response should be in the following format:
-
-    [Thinkings on why the original code is not reusable and how to write the new code. DO NOT include any code blocks in this part]
+    [Think step by step before creating the new code. Do not write any code blocks in this part.]
 
     ```Python
     # main.py
     [Your Python code here]
     ```
+
+
+  # ========= Output Format =========
+
+  # ### Format Option 1
+
+  # Your task is to generate the V4A patch to apply the necessary modifications to the `main.py` file. The response should be in the following format.
+
+  # [Thinkings on how you should write the patch. Do not write any patches or codes in this part...]
+
+  # %%bash
+  # apply_patch <<"EOF"
+  # *** Begin Patch
+  # ...
+  # EOF
+
+  # ### Format Option 2
+
+  # Alternatively, you can also generate a new `main.py` file if the original code is almost NOT reusable. As writing the code from scratch can be costly, do NOT do this unless you are absolutely sure the code is not revisable. In this case, the response should be in the following format:
+
+  # [Thinkings on why the original code is not reusable and how to write the new code. DO NOT include any code blocks in this part]
+
+  # ```Python
+  # # main.py
+  # [Your Python code here]
+  # ```
 
   # https://cookbook.openai.com/examples/gpt4-1_prompting_guide
 
