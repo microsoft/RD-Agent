@@ -907,6 +907,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             component_info = COMPONENT_TASK_MAPPING["Pipeline"]
         else:
             component_info = COMPONENT_TASK_MAPPING.get(hypotheses[0].component)
+        data_folder_info = self.scen.processed_data_folder_description
         sys_prompt = T(".prompts_v3:task_gen.system").r(
             # targets=component_info["target_name"],
             # task_output_format=component_info["task_output_format"],
@@ -915,6 +916,7 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
         )
         user_prompt = T(".prompts_v3:task_gen.user").r(
             scenario_desc=scenario_desc,
+            data_folder_info=data_folder_info,
             sota_exp_desc=sota_exp_desc,
             hypotheses=hypotheses,
             failed_exp_and_feedback_list_desc=failed_exp_feedback_list_desc,
