@@ -85,12 +85,18 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
     """We'll use f"{DS_RD_SETTING.local_data_path}/{DS_RD_SETTING.eval_sub_dir}/{competition}"
     to find the scriipt to evaluate the submission on test"""
 
-    ### inject diverse
+    ### inject optimals for multi-trace
+    # inject diverse when start a new sub-trace
     enable_inject_diverse: bool = False
+
+    # inject diverse at the root of the trace (first trace)
+    enable_inject_knowledge_at_root: bool = False
 
     #### time for merge
     merge_hours: int = 2
     """The time for merge"""
+
+    
 
 
 DS_RD_SETTING = DataScienceBasePropSetting()
