@@ -189,6 +189,21 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             logger.error(f"Apply patch error: {exc}")
             return main_py
 
+    def extract_and_apply_patch(self, main_py: str, patch: str) -> str:
+        # Match the patch
+        match = re.search(r"%%bash\napply_patch <<\"EOF\".*EOF", patch, re.DOTALL)
+        if match:
+            patch = match.group(0)
+            return self.apply_to_main_py(main_py, patch)
+
+        # Match full code
+        match = re.search(r".*```[Pp]ython\n(.*)\n```.*", patch, re.DOTALL)
+        if match:
+            code = match.group(1)
+            code = re.sub(r"</?code>", "", code, flags=re.IGNORECASE)
+            return code
+        return patch
+
     def implement_one_task(
         self,
         target_task: DataLoaderTask,
@@ -273,11 +288,12 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
 
         for _ in range(5):
             tool_kwargs = {}
-            if main_py:
-                tool_kwargs = {
-                    "tools": [APPLY_PATCH_TOOL],
-                    "tool_choice": "auto",
-                }
+            # Disable tool use.
+            # if main_py:
+            #     tool_kwargs = {
+            #         "tools": [APPLY_PATCH_TOOL],
+            #         "tool_choice": "auto",
+            #     }
 
             response = APIBackend().build_messages_and_create_chat_completion(
                 user_prompt=user_prompt,
@@ -291,14 +307,13 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
                 if main_py:
                     main_py = self.apply_to_main_py(main_py, patch)
             elif not isinstance(response, str):
-                main_py = PythonAgentOut.extract_output(response.message)
+                main_py = self.extract_and_apply_patch(main_py, response.message)
             else:
-                main_py = PythonAgentOut.extract_output(response)
+                main_py = self.extract_and_apply_patch(main_py, response)
 
             if main_py != workspace.file_dict.get("main.py"):
                 break
             else:
-                raise CoderError("The generated code is the same as the previous one.")
                 user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
         else:
             raise CoderError("Failed to generate a new pipeline code.")

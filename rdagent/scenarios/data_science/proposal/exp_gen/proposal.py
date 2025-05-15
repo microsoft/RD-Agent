@@ -1076,8 +1076,9 @@ class DSProposalV3ExpGen(DSProposalV2ExpGen):
             scenario_desc=scenario_desc,
             sota_exp_desc=sota_exp_desc,
             sota_exp=sota_exp,
-            hypotheses=[new_hypothesis] if len(trace.hist) > 0
-                else self.get_all_hypotheses(all_problems, hypothesis_dict),
+            hypotheses=[new_hypothesis],
+            # hypotheses=[new_hypothesis] if len(trace.hist) > 0
+                # else self.get_all_hypotheses(all_problems, hypothesis_dict),
             pipeline=pipeline,
             failed_exp_feedback_list_desc=failed_exp_feedback_list_desc,
         )

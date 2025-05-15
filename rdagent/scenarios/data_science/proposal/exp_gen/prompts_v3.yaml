@@ -188,6 +188,7 @@ hypothesis_gen:
         - *Poor Example*: "Tune the model for better results."
       - If the hypothesis is about establishing the first solution, it should clearly outline the expected outcome -- RUNNABILITY and CORRECTNESS. Prioritize getting a valid submission out, even with a very basic model or pipeline.
         - *Good Example*: "Implement a simple RandomForest classifier with default parameters, using 5-fold cross-validation for model evaluation. This will lead to a decent baseline model that can run to completion and generate a valid submission file."
+        - *Bad Example*: "Try to ensemble a XGBoost classifier and a deep neural network, and perform a hyperparameter search on the classifier. This might yield a better model than a single one."
     3. **Align with Current SOTA and Identified Challenges**:
       - The hypothesis must be directly relevant to improving the *current* State-of-the-Art (SOTA) implementation or establishing a new SOTA if none exists.
       - It must directly address one of the `Identified Challenges` provided as input.
@@ -217,7 +218,7 @@ hypothesis_gen:
       - **Challenge-Hypothesis Alignment (Score: 1-10):** How directly and effectively does the hypothesis address the core issues of the `Identified Challenge` it targets? A higher score means a stronger, more direct alignment.
       - **Expected Impact (Score: 1-10):** What is the estimated magnitude of improvement (e.g., in the primary competition metric, efficiency, robustness, or successful execution) if this hypothesis is successfully implemented? Higher scores for greater positive impact.
       - **Novelty (Score: 1-10):** How innovative or original is this hypothesis when compared to the approaches and ideas evident in the `previous SOTA experiments` and `previous failed experiments`? Assign a score of 1 if the hypothesis is a repeat or substantially similar to a previously attempted hypothesis (whether successful or failed), UNLESS the previous attempt clearly failed due to a trivial implementation bug and the current hypothesis proposes the correct implementation of the same core idea.
-      - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution.
+      - **Feasibility (Score: 1-10):** How easily and practically can this hypothesis be implemented and *run to completion* within the existing SOTA codebase and operational constraints (e.g., allowed time for training/inference, available compute resources, overall complexity)? Higher scores for easier implementation and higher likelihood of successful execution. If there is no valid implementation yet, the hypothesis should be easy enough to implement. Otherwise, rate the feasibility lower.
       - **Risk-Reward Balance (Score: 1-10):** Considering the potential for significant improvement (reward) versus the probability of failure, negative side-effects, or excessive resource consumption (risk), how optimal is this balance? A high score indicates a favorable balance.
       - **Prioritization for Critical Challenges:** If a hypothesis directly and credibly addresses a **critical Challenge that caused prior experiment failures** (e.g., timeout, persistent data loading errors, incorrect submission format preventing any score), its **Expected Impact** and **Risk-Reward Balance** should generally be scored highly (e.g., 8-10), and **Feasibility** should also be high if the proposed solution is indeed simpler, more direct, or more efficient. This ensures such critical hypotheses are prioritized.
 
@@ -277,7 +278,8 @@ task_gen:
       - Prevent data leakage from test/validation sets into any training stage.
     7. **Resource Utilization**: Leverage GPU and multiprocessing where appropriate and beneficial, if consistent with the hypothesis and efficiency goals.
     8. **Metric Calculation and Storage (`scores.csv`)**:
-      - Calculate the official competition metric on a proper validation set (e.g., K-fold CV, typically 3-5 folds unless efficiency dictates fewer). Save results to `scores.csv`.
+      - Calculate the official competition metric on a proper validation set. Save results to `scores.csv`.
+      - When implementing the metric, ensure that it is feasible. For example, a 5-fold CV might not work if the dataset contains classes with very few samples.
       - The sketch must ensure this step is included. A successful run should always produce scores.
       - `scores.csv` must have an index with model names and the literal string "ensemble" (lowercase). Columns should be "Model" (the name of the model or the ensemble strategy), and the exact metric name (e.g., "AUC").
       - When only one model is used, its score should be present, and an "ensemble" score (which would be the same as the single model's score in this case) must also be recorded.
@@ -297,7 +299,7 @@ task_gen:
     3. **Leverage SOTA or Design a New One**:
       - **If a `Current SOTA Implementation` is provided**: Your sketch must primarily detail the **minimal and targeted changes, additions, or replacements** needed to integrate the `Proposed Hypothesis` into that SOTA. Focus only on what needs to change.
       - **If NO `Current SOTA Implementation` is provided (Initial Version)**: This is critical. Your sketch **MUST** describe a **COMPLETE, END-TO-END, YET SIMPLEST POSSIBLE baseline pipeline**.
-        - It must cover: Data loading (from specified paths), essential preprocessing (as per hypothesis or minimal viable), a basic model implementation (as per hypothesis), a simple validation strategy (e.g., a single train-validation split or fewer folds if CV is too complex initially), generation of `scores.csv`, and `submission.csv` in the correct format.
+        - It must cover: Data loading (from specified paths), essential preprocessing (as per hypothesis or minimal viable), a basic model implementation (as per hypothesis), a simple validation strategy (as per specified by each competition), generation of `scores.csv`, and `submission.csv` in the correct format.
         - The overriding goal for this initial sketch is **RUNNABILITY and CORRECTNESS of the pipeline structure**. Prioritize getting a valid submission out, even with a very basic model. Avoid any complexity not absolutely mandated by the core hypothesis or competition basics.
     4. **Learn from Past Failures**:
       - If `Previous Failed Experiments & Feedback` are provided, analyze them meticulously. Design the sketch to explicitly avoid repeating similar mistakes, especially if failures relate to the current hypothesis, data handling, submission format, or resource usage (timeouts).
@@ -312,9 +314,10 @@ task_gen:
       - Even if the `Proposed Hypothesis` is not about efficiency, if past experiments failed due to timeouts or the dataset/model is complex, the sketch **must still incorporate measures to improve overall pipeline efficiency**. This might involve simplifying aspects unrelated to the core hypothesis (e.g., reducing image resolution, simpler feature engineering) to ensure the hypothesis can be tested within limits.
       - The goal is a workflow that successfully implements and validates the `Proposed Hypothesis` effectively, balancing performance with strict resource constraints. An experiment that times out provides no information.
     7. **Reminders of Common Mistakes (Especially for New `main.py`)**: At the end of your sketch, include a "Key Reminders for Developer" section. Add the following reminders if appropriate.
-      - Ensure all input files are loaded from their exact paths under `/kaggle/input/` (e.g., `/kaggle/input/<competition_name>/train.csv`)."
-      - Verify `submission.csv` strictly adheres to format: columns, correct data types, and no extra index.
-      - "Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors."
+      - Refrain from creating a very complex `main.py` pipeline for the first run. Avoid actions like tuning hyperparameters, ensembling multiple models or training deep neural networks. Focus on a simple, robust, and efficient baseline that can quickly lead to a valid submission.
+      - Ensure all input files are loaded from their exact paths under `/kaggle/input/`. Look at the data folder structure for the available files in that directory.
+      - `submission.csv` should strictly adhere to format: columns, correct data types, and no extra index.
+      - Implement correct label mapping for classification tasks (e.g., 0-indexed, contiguous integers for loss functions like PyTorch's CrossEntropyLoss) to prevent runtime errors.
       - Handle file I/O robustly, especially for zipped data or large files, to prevent `FileNotFoundError` or `BadZipFile` issues.
       - Confirm no `tqdm` or other progress bars are in the final script.
       - Double-check that validation scores are saved correctly to `scores.csv` with specified 'Model' and metric columns, even for a single model run (include 'ensemble' row).
