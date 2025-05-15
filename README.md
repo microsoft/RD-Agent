@@ -31,21 +31,19 @@ R&D-Agent currently leads as the top-performing machine learning engineering age
 
 | Agent | Low == Lite (%) | Medium (%) | High (%) | All (%) |
 |---------|--------|-----------|---------|----------|
-| R&D-Agent o1-preview | 50 | 10.53 | 20 | 24 |
-| R&D-Agent o3(R)+GPT-4.1(D) | 50 | 13.16 | 13.33 | 24 |
+| R&D-Agent o1-preview | 48.18 ± 2.49 | 8.95 ± 2.36 | 18.67 ± 2.98 | 22.4 ± 1.1 |
+| R&D-Agent o3(R)+GPT-4.1(D) | 51.52 ± 6.21 | 7.89 ± 3.33 | 16.67 ± 3.65 | 22.45 ± 2.45 |
 | AIDE o1-preview | 34.3 ± 2.4 | 8.8 ± 1.1 | 10.0 ± 1.9 | 16.9 ± 1.1 |
 
 **Notes:**
 - **o3(R)+GPT-4.1(D)**: Combines Research Agent (o3) and Development Agent (GPT-4.1).
 - **AIDE o1-preview**: Represents the previously best public result on MLE-bench as reported in the original MLE-bench paper.
-- Results for R&D-Agent are based on single trials due to limited resources. We plan to provide more comprehensive, multi-trial results soon.
+- Average and standard deviation results for R&D-Agent o1-preview is based on a independent of 5 seeds and for R&D-Agent o3(R)+GPT-4.1(D) is based on 6 seeds.
 - According to MLE-Bench, the 75 competitions are categorized into three levels of complexity: **Low==Lite** if we estimate that an experienced ML engineer can produce a sensible solution in under 2 hours, excluding the time taken to train any models; **Medium** if it takes between 2 and 10 hours; and **High** if it takes more than 10 hours.
 
 You can inspect the detailed runs of the above results online.
 - [R&D-Agent o1-preview detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O1-preview)
 - [R&D-Agent o3(R)+GPT-4.1(D) detailed runs](https://aka.ms/RD-Agent_MLE-Bench_O3_GPT41)
-
-More details will be added soon.
 
 
 # 📰 News
