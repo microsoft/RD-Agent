@@ -202,7 +202,18 @@ class ExpGen2TraceAndMergeV2(ExpGen):
 
         if timer.remain_time_duration >= timedelta(hours=DS_RD_SETTING.merge_hours):
 
+            if DS_RD_SETTING.enable_inject_knowledge_at_root:
+
+                if len(trace.hist) == 0:
+                    # set the knowledge base option to True for the first trace
+                    DS_RD_SETTING.enable_knowledge_base = True
+
+                else:
+                    # set the knowledge base option back to False for the other traces
+                    DS_RD_SETTING.enable_knowledge_base = False
+
             return self.exp_gen.gen(trace, selection)
+
         else:
             # disable reset in merging stage
             DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
