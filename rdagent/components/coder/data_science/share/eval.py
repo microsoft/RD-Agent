@@ -43,8 +43,14 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 code=err_msg,
                 final_decision=False,
             )
-        env = get_ds_env()
-        env.conf.extra_volumes = {self.scen.debug_path: T("scenarios.data_science.share:scen.input_path").r()}
+        env = get_ds_env(
+            extra_volumes={
+                f"{DS_RD_SETTING.local_data_path}/{self.scen.competition}": T(
+                    "scenarios.data_science.share:scen.input_path"
+                ).r()
+            },
+            running_timeout_period=DS_RD_SETTING.full_timeout,
+        )
 
         # 2) check the result and stdout after reruning the model.
 
