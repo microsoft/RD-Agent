@@ -435,7 +435,7 @@ class APIBackend(ABC):
             response, finish_reason = self._create_chat_completion_add_json_in_prompt(
                 new_messages, json_mode=json_mode, *args, **kwargs
             )  # type: ignore[misc]
-            all_response += response
+            all_response += str(response)
             if finish_reason is None or finish_reason != "length":
                 if json_mode:
                     try:
@@ -449,7 +449,7 @@ class APIBackend(ABC):
                 if self.dump_chat_cache:
                     self.cache.chat_set(input_content_json, all_response)
                 return all_response
-            new_messages.append({"role": "assistant", "content": response})
+            new_messages.append({"role": "assistant", "content": str(response)})
         raise RuntimeError(f"Failed to continue the conversation after {try_n} retries.")
 
     def _create_embedding_with_cache(

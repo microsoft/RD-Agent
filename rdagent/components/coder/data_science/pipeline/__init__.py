@@ -44,6 +44,7 @@ from rdagent.components.coder.data_science.conf import (
     get_ds_env,
 )
 from rdagent.components.coder.data_science.pipeline.eval import PipelineCoSTEEREvaluator, PipelineCoSTEEREvaluatorV3
+from rdagent.components.coder.data_science.pipeline.apply_patch import process_patch, DiffError
 from rdagent.components.coder.data_science.raw_data_loader.eval import (
     DataLoaderCoSTEEREvaluator,
 )
@@ -52,6 +53,7 @@ from rdagent.components.coder.data_science.share.eval import ModelDumpEvaluator
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
+from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.utils.agent.ret import PythonAgentOut
 from rdagent.utils.agent.tpl import T
@@ -140,8 +142,29 @@ class PipelineMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         return evo
 
 
-
 class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrategy):
+
+    def apply_to_main_py(self, main_py: str, patch: str) -> str:
+        """Apply patches to main.py"""
+        def open_file(file_path: str) -> str:
+            return main_py
+        def write_file(file_path: str, content: str) -> None:
+            nonlocal main_py
+            main_py = content
+        def remove_file(file_path: str) -> None:
+            pass
+
+        try:
+            result = process_patch(
+                patch,
+                open_file,
+                write_file,
+                remove_file,
+            )
+            return result
+        except DiffError as exc:
+            logger.error(f"Apply patch error: {exc}")
+            return main_py
 
     def implement_one_task(
         self,
@@ -172,30 +195,79 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             queried_former_failed_knowledge[1],
         )
 
-        system_prompt = T(".prompts_v3:pipeline_coder.system").r(
+        main_py: str | None = workspace.file_dict.get("main.py")
+
+        system_prompt_prefix = T(".prompts_v3:pipeline_coder.system_prefix").r(
+            runtime_environment=runtime_environment,
+            # out_spec=PythonAgentOut.get_spec(),
+            # spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
+            # enable_model_dump=DS_RD_SETTING.enable_model_dump,
+        )
+        user_shared = T(".prompts_v3:pipeline_coder.user_shared").r(
+            competition_info=competition_info,
+            folder_spec=data_folder_info,
             task=target_task,
             queried_similar_successful_knowledge=queried_similar_successful_knowledge,
             queried_former_failed_knowledge=queried_former_failed_knowledge[0],
-            out_spec=PythonAgentOut.get_spec(),
-            runtime_environment=runtime_environment,
-            # spec=T("scenarios.data_science.share:component_spec.Pipeline").r(),
-            enable_model_dump=DS_RD_SETTING.enable_model_dump,
         )
-        user_prompt = T(".prompts_v3:pipeline_coder.user").r(
-            competition_info=competition_info,
-            folder_spec=data_folder_info,
-            latest_code=workspace.file_dict.get("main.py"),
-            latest_code_feedback=prev_task_feedback,
-        )
+        if not main_py:
+            system_prompt = T(".prompts_v3:pipeline_coder.system_newcode").r(
+                prefix=system_prompt_prefix
+            )
+            user_prompt = T(".prompts_v3:pipeline_coder.user_newcode").r(
+                shared=user_shared,
+                latest_code=main_py,
+                latest_code_feedback=prev_task_feedback,
+            )
+
+        else:
+            system_prompt = T(".prompts_v3:pipeline_coder.system_patch").r(
+                prefix=system_prompt_prefix
+            )
+            user_prompt = T(".prompts_v3:pipeline_coder.user_patch").r(
+                shared=user_shared,
+                latest_code=main_py,
+                latest_code_feedback=prev_task_feedback,
+            )
+
+        APPLY_PATCH_TOOL = {
+            "name": "apply_patch",
+            "description": T(".prompts_v3:pipeline_coder.apply_patch_tool_desc").r(),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "input": {
+                        "type": "string",
+                        "description": " The apply_patch command that you wish to execute.",
+                    }
+                },
+                "required": ["input"],
+            },
+        }
 
         for _ in range(5):
-            pipeline_code = PythonAgentOut.extract_output(
-                APIBackend().build_messages_and_create_chat_completion(
-                    user_prompt=user_prompt,
-                    system_prompt=system_prompt,
-                )
+            tool_kwargs = {}
+            if main_py:
+                tool_kwargs = {
+                    "tools": [APPLY_PATCH_TOOL],
+                    "tool_choice": "auto",
+                }
+
+            response = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt,
+                system_prompt=system_prompt,
+                **tool_kwargs
             )
-            if pipeline_code != workspace.file_dict.get("main.py"):
+            if not isinstance(response, str) and response.tool_calls and main_py:
+                tool_calls = response.tool_calls
+                patch = json.loads(tool_calls[0].arguments)["input"]
+                logger.info(f"Tool call: {tool_calls[0].name} with patch:\n{patch}")
+                if main_py:
+                    main_py = self.apply_to_main_py(main_py, patch)
+            else:
+                main_py = PythonAgentOut.extract_output(response.message)
+
+            if main_py != workspace.file_dict.get("main.py"):
                 break
             else:
                 user_prompt = user_prompt + "\nPlease avoid generating same code to former code!"
@@ -203,7 +275,7 @@ class PipelineMultiProcessEvolvingStrategyV3(PipelineMultiProcessEvolvingStrateg
             raise CoderError("Failed to generate a new pipeline code.")
 
         return {
-            "main.py": pipeline_code,
+            "main.py": main_py,
         }
 
 
