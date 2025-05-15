@@ -244,16 +244,37 @@ def get_file_len_size(f: Path) -> tuple[int, str]:
 def file_tree(path: Path, depth=0) -> str:
     """Generate a tree structure of files in a directory"""
     result = []
+
     files = [p for p in Path(path).iterdir() if not p.is_dir()]
-    dirs = [p for p in Path(path).iterdir() if p.is_dir()]
+
     max_n = 4 if len(files) > 30 else 8
     for p in sorted(files)[:max_n]:
         result.append(f"{' '*depth*4}{p.name} ({get_file_len_size(p)[1]})")
     if len(files) > max_n:
         result.append(f"{' '*depth*4}... and {len(files)-max_n} other files")
 
+    dirs = [p for p in Path(path).iterdir() if p.is_dir() or (p.is_symlink() and p.resolve().is_dir())]
+
+    # Calculate base_path (the top-level resolved absolute directory)
+    base_path = Path(path).resolve()
+    # Find the top-level base_path when in recursion (depth>0)
+    if depth > 0:
+        # The top-level base_path is the ancestor at depth==0
+        ancestor = Path(path)
+        for _ in range(depth):
+            ancestor = ancestor.parent
+        base_path = ancestor.resolve()
+
     for p in sorted(dirs):
-        result.append(f"{' '*depth*4}{p.name}/")
+        if p.is_symlink():
+            target = p.resolve()
+            if str(target).startswith(str(base_path)):
+                # avoid recursing into symlinks pointing inside base path
+                result.append(
+                    f"{' ' * depth * 4}{p.name}@ -> {os.path.relpath(target, base_path)} (symlinked dir, not expanded)"
+                )
+                continue
+        result.append(f"{' ' * depth * 4}{p.name}/")
         result.append(file_tree(p, depth + 1))
 
     return "\n".join(result)
@@ -263,9 +284,16 @@ def _walk(path: Path):
     """Recursively walk a directory (analogous to os.walk but for pathlib.Path)"""
     for p in sorted(Path(path).iterdir()):
         if p.is_dir():
+            # If this is a symlinked dir to a parent/ancestor, do not expand it
+            if p.is_symlink():
+                target = p.resolve()
+                cur_path = p.parent.resolve()
+                if target == cur_path or str(cur_path).startswith(str(target)):
+                    yield p
+                    continue
             yield from _walk(p)
-            continue
-        yield p
+        else:
+            yield p
 
 
 def preview_csv(p: Path, file_name: str, simple=True, show_nan_columns=False) -> str:
